@@ -346,3 +346,30 @@ files remain untracked; per-page `eval-results/<slug>/` data stays frozen.
 
 **Build/CLI note:** pass the SAME `--run-id` to `eval-page.js` and `drive-page.js` in one
 run; `build-results.js <records> <results> <collect.json> <drive.json>` enforces it.
+
+---
+
+# Round 2.7 — R2.6 self-audit remediation (2026-06-14)
+
+The R2.6 adversarial self-audit found 9 gaps (0 critical, 2 high) — two were fail-OPEN
+holes in checks I had just added; the rest were completeness/false-positive edges (two
+of which I had self-predicted). All 8 real ones fixed (#9 was rated not-a-bug by the
+verifier itself).
+
+- **A (#1/#3)** the driver's `liveRegionChanged` matched `aria-live="off"` regions, so a
+  SILENT status change suppressed the 4.1.3 contradiction — now `aria-live="off"` is
+  excluded. A 3.3.1 verdict on a field NOT covered by any probed `<form>` is rejected →
+  PARTIAL (no page-level laundering). · `drive-page.js`, `lib/result-builder.js`.
+- **B (#2/#4/#8)** axe floor: `axeRan` sentinel makes it FAIL CLOSED (axe-not-run + skip →
+  reject); counts any WCAG-SC-tagged violation (not just critical/serious impact);
+  wired into `regression-sweep`. · `eval-page.js`, `tools/build-results.js`,
+  `lib/result-builder.js`, `tools/regression-sweep.js`.
+- **C (#5/#6)** run-id proved coordination, not freshness — now also require
+  `drive.drivenAt >= collect.collectedAt` (stale reused-id drive rejected); xpath dedup
+  strips ALL whitespace (predicate-spacing variants). · `tools/build-results.js`,
+  `eval-page.js`/`drive-page.js` (timestamps).
+- **D (#7)** `MAXTAB`-without-convergence is only `indeterminate` when interference was
+  ALSO observed — a clean long nav (>120 links) is no longer a false trap. · `drive-page.js`.
+
+E (target) and F (recursive) surfaces stayed exhausted. Severity trend: R24 1-crit/3-high
+→ R2.5 0-crit/4-high → R2.6 0-crit/2-high. Auditor files untracked; per-page data frozen.
