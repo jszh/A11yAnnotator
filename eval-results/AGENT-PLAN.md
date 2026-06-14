@@ -149,8 +149,12 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
      region or blank, you CANNOT conclude absence — defer to `present`. Only override a
      `present:true` to a fail if you can see the change is an animation/caret/tooltip
      (rare now that the forced diff is used).
-   - Judge adequacy 2.4.7 (AA) vs 2.4.13 (AAA size/contrast). `forcedFocusVisibleDiffPct`
-     and `focusedOutline` are the evidence to cite.
+   - **R2-H4:** `present` now uses a **spatial** measure (`focusIndicator.spatial` —
+     changed-region area + perimeter band, area-independent), so a thin ring on a large
+     control is detected. Cite `focusIndicator.basis`/`spatial` as evidence.
+   - **2.4.13 Focus Appearance (AAA)** is **captured but NOT enforced**:
+     `focusIndicator.focusAppearance{areaPx,minThicknessPx,maxContrastChange,meetsIfEnforced}`
+     — record it for completeness, but do not raise a 2.4.13 finding unless AAA is in scope.
 6. **dynamic-announcement** — **C1: scope 4.1.3 to STATUS MESSAGES only.** A bare
    `expandedChanged`/`pressedChanged`/`aria-selected` change is **4.1.2** (state
    exposure), and `dialogOpened` is **focus-management/change-of-context** — NEITHER is

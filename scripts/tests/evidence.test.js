@@ -33,6 +33,19 @@ test('H1 focus: always-on shadow => present:false; real :focus-visible => presen
   assert.equal(noring.focusIndicator.present, false, 'suppressed outline => no ring');
 });
 
+test('R2-H4 focus: a THIN 1px ring on a BIG control is present (spatial), with 2.4.13 metrics captured', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-focus-thin.html', ['/html/body/button[1]']);
+  const f = o.elements[0].focusIndicator;
+  assert.equal(f.present, true, 'thin ring must be present despite tiny area %');
+  assert.ok(f.focusAppearance && f.focusAppearance.enforced === false, '2.4.13 metrics captured but not enforced');
+  assert.ok(f.focusAppearance.areaPx > 0 && typeof f.focusAppearance.minThicknessPx === 'number', 'area/thickness recorded for future 2.4.13');
+});
+
+test('R2-H4 focus: a JS-event-driven ring (forced :focus-visible would miss) is caught by REAL keyboard', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-focus-js.html', ['/html/body/button[1]']);
+  assert.equal(o.elements[0].focusIndicator.present, true, 'real Tab fires the JS focus handler → ring detected');
+});
+
 test('C4 target-size: small target near a LARGE neighbour fails; isolated small target passes', { skip: !serverUp }, () => {
   const o = runScript('eval-page.js', 'fx-target.html', TARGET_XPS);
   const [smallNearLarge, , isolated] = o.elements;

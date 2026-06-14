@@ -172,8 +172,37 @@ function keyboardOperabilitySignal({ role, tabindex, reachedByTab, respondedToSy
 //   unfocusedOutline/focusedOutline, unfocusedBoxShadow/focusedBoxShadow — computed
 //   forcedDiffPct                     — forced :focus-visible screenshot diff (corrob.)
 // Returns { present:true|false|null, basis, focusDependentComputed }.
-const VIS = 1.5; // visible-change threshold (%); spatial measure is preferred upstream
+const VIS = 1.5; // legacy scalar fallback only; spatial measure (below) is primary
 function _nonNone(s) { return !!s && !/^\s*none/i.test(s) && !/(^|\s)0px(\s|$)/.test(s); }
+
+// ---- R2-H4: SPATIAL focus-change verdict (area-independent), + 2.4.13 capability ----
+// `stats` is produced in-page by comparing the unfocused vs focused crop pixels:
+//   { changedPixels, totalPixels, borderPixels, borderChanged, minThicknessPx,
+//     maxContrastChange, bbox }
+// A thin 1px ring on a huge control is a TINY area %, but its changed pixels form a
+// PERIMETER band — so we judge by where the change is, not just how much. Returns the
+// 2.4.7 verdict plus raw 2.4.13 (Focus Appearance, AAA) metrics that are CAPTURED but
+// NOT enforced (so the AAA threshold can be switched on later).
+const FOCUS_MIN_CHANGED = 24;       // ignore caret/antialias specks
+const FOCUS_FILL_FRACTION = 0.04;   // a focus background/border fill change
+const FOCUS_RING_BORDERFRAC = 0.6;  // most change sits in the perimeter band → ring-like
+function focusSpatialVerdict(stats) {
+  if (!stats || !(stats.totalPixels > 0)) return { present: null, reason: 'no spatial stats' };
+  const changedFraction = stats.changedPixels / stats.totalPixels;
+  const borderFraction = stats.borderPixels > 0 ? (stats.borderChanged / stats.borderPixels) : 0;
+  const changedInBorderShare = stats.changedPixels > 0 ? (stats.borderChanged / stats.changedPixels) : 0;
+  const ringLike = stats.changedPixels >= FOCUS_MIN_CHANGED && changedInBorderShare >= FOCUS_RING_BORDERFRAC;
+  const fillLike = changedFraction >= FOCUS_FILL_FRACTION;
+  const present = stats.changedPixels >= FOCUS_MIN_CHANGED && (ringLike || fillLike || changedFraction >= 0.015);
+  // 2.4.13 (AAA) — informational only. Minimum area of a 2px-thick perimeter and a 3:1
+  // contrast change are the AAA bar; we record the measurements and a non-binding flag.
+  const meets2413 = present && (stats.minThicknessPx >= 2) && (stats.maxContrastChange >= 3);
+  return {
+    present, ringLike, fillLike, changedFraction: +changedFraction.toFixed(4), borderFraction: +borderFraction.toFixed(3),
+    focusAppearance2413: { enforced: false, areaPx: stats.changedPixels, minThicknessPx: stats.minThicknessPx, maxContrastChange: stats.maxContrastChange, bbox: stats.bbox, meetsIfEnforced: meets2413 },
+    reason: present ? (ringLike ? 'perimeter/ring change' : fillLike ? 'fill change' : 'area change') : 'no meaningful focus-dependent change',
+  };
+}
 // A computed outline that actually RENDERS: a real line style with non-zero width
 // (so "none 3px ..." and "solid 0px ..." don't count, but "auto 1px"/"solid 2px" do).
 function _visibleOutlineStyle(s) {
@@ -198,9 +227,12 @@ function focusRingDecision(opts = {}) {
   const shadowFocusDependent = (!!fSh && fSh !== 'none') && (uSh == null || fSh !== uSh);
   const focusDependentComputed = outlineFocusDependent || shadowFocusDependent;
 
-  const realChange = realTabCropValid && typeof realTabDiffPct === 'number' && realTabDiffPct >= VIS;
-  const realNoChange = realTabCropValid && typeof realTabDiffPct === 'number' && realTabDiffPct < VIS;
-  const forcedChange = typeof forcedDiffPct === 'number' && forcedDiffPct >= VIS;
+  // R2-H4: prefer the SPATIAL verdict (area-independent) over the scalar % when present.
+  const spatial = opts.realTabSpatial ? focusSpatialVerdict(opts.realTabSpatial) : null;
+  const forcedSpatial = opts.forcedSpatial ? focusSpatialVerdict(opts.forcedSpatial) : null;
+  const realChange = realTabCropValid && (spatial ? spatial.present === true : (typeof realTabDiffPct === 'number' && realTabDiffPct >= VIS));
+  const realNoChange = realTabCropValid && (spatial ? spatial.present === false : (typeof realTabDiffPct === 'number' && realTabDiffPct < VIS));
+  const forcedChange = forcedSpatial ? forcedSpatial.present === true : (typeof forcedDiffPct === 'number' && forcedDiffPct >= VIS);
 
   // 1) Real keyboard focus produced a visible change.
   if (realChange) return { present: true, basis: focusDependentComputed ? 'real-keyboard-diff+computed' : 'real-keyboard-diff (verify not animation)', focusDependentComputed };
@@ -244,6 +276,6 @@ module.exports = {
   isVsrNoisePhrase, meaningfulAnnouncement,
   isMediaErrorName, isBlankFrame,
   isRovingTabindexItem, keyboardOperabilitySignal, COMPOSITE_ROLES,
-  focusRingDecision,
+  focusRingDecision, focusSpatialVerdict,
   CONSENT_SELECTORS,
 };

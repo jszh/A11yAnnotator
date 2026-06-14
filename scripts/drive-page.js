@@ -198,6 +198,38 @@ function loadXpaths() {
       }, b64).catch(() => null);
     }
 
+    // R2-H4: SPATIAL focus diff — where pixels changed (perimeter band, bbox, thickness,
+    // contrast), not just a scalar %. Lets a thin ring on a huge control register, and
+    // captures the 2.4.13 (Focus Appearance, AAA) metrics for future enforcement.
+    async function spatialFocusStats(b64a, b64b) {
+      if (!b64a || !b64b) return null;
+      return page.evaluate(async (a, b) => {
+        function load(s) { const i = new Image(); i.src = 'data:image/png;base64,' + s; return i.decode().then(() => i).catch(() => null); }
+        const ia = await load(a), ib = await load(b); if (!ia || !ib) return null;
+        if (ia.naturalWidth !== ib.naturalWidth || ia.naturalHeight !== ib.naturalHeight) return null;
+        const w = ia.naturalWidth, h = ia.naturalHeight;
+        const mk = img => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.drawImage(img, 0, 0); return x.getImageData(0, 0, w, h).data; };
+        const d1 = mk(ia), d2 = mk(ib);
+        const band = Math.max(2, Math.min(14, Math.floor(Math.min(w, h) / 2)));
+        const lum = (r, g, bl) => { const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(bl); };
+        let changed = 0, borderPixels = 0, borderChanged = 0, minX = w, minY = h, maxX = 0, maxY = 0, maxContrast = 0, sampleN = 0;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          const inBand = x < band || x >= w - band || y < band || y >= h - band;
+          if (inBand) borderPixels++;
+          const dr = Math.abs(d1[i] - d2[i]), dg = Math.abs(d1[i + 1] - d2[i + 1]), db = Math.abs(d1[i + 2] - d2[i + 2]);
+          if (Math.max(dr, dg, db) > 28) {
+            changed++; if (inBand) borderChanged++;
+            if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
+            if ((sampleN++ % 7) === 0) { const l1 = lum(d1[i], d1[i + 1], d1[i + 2]), l2 = lum(d2[i], d2[i + 1], d2[i + 2]); const cr = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); if (cr > maxContrast) maxContrast = cr; }
+          }
+        }
+        const bbox = changed > 0 ? { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 } : { x: 0, y: 0, w: 0, h: 0 };
+        const perim = 2 * (bbox.w + bbox.h) || 1;
+        return { changedPixels: changed, totalPixels: w * h, borderPixels, borderChanged, bbox, minThicknessPx: +(changed / perim).toFixed(2), maxContrastChange: +maxContrast.toFixed(2) };
+      }, b64a, b64b).catch(() => null);
+    }
+
     // T1/T8: deterministic focus-ring read. Force :focus-visible via CDP and measure
     // the computed outline + a fresh screenshot diff — independent of the flaky
     // tab-walk shot (which often captures the wrong region → false diff=0 = false
@@ -222,9 +254,10 @@ function loadXpaths() {
         const after = (inV && forced) ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
         if (nodeId && forced) { try { await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] }); } catch (e) {} }
         const forcedDiffPct = (before && after) ? await diffPct(before, after) : null;
+        const forcedSpatial = (before && after) ? await spatialFocusStats(before, after) : null;
         const blankFrame = before ? A.isBlankFrame(await frameStats(before)) : false;
         return {
-          cropValid: inV && !blankFrame, forced, forcedDiffPct, blankFrame,
+          cropValid: inV && !blankFrame, forced, forcedDiffPct, forcedSpatial, blankFrame,
           unfocusedOutline: outlineUnforced && outlineUnforced.outline, unfocusedBoxShadow: outlineUnforced && outlineUnforced.boxShadow,
           focusedOutline: outlineForced && outlineForced.outline, focusedBoxShadow: outlineForced && outlineForced.boxShadow,
         };
@@ -357,26 +390,29 @@ function loadXpaths() {
         }
         const computed = await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return null; const cs = getComputedStyle(el); return { outline: cs.outlineStyle + ' ' + cs.outlineWidth + ' ' + cs.outlineColor, boxShadow: (cs.boxShadow && cs.boxShadow !== 'none') ? cs.boxShadow.slice(0, 60) : 'none' }; }, xp).catch(() => null);
         const dp = (baseB64 && focusB64) ? await diffPct(baseB64, focusB64) : null;
+        const realSpatial = (baseB64 && focusB64) ? await spatialFocusStats(baseB64, focusB64) : null;
         // T1/T8/T12: authoritative forced :focus-visible probe + crop-validity +
         // black-frame guard, combined by the shared focusRingDecision.
         const forced = await forcedFocusRing(xp);
         const baseBlank = baseB64 ? A.isBlankFrame(await frameStats(baseB64)) : false;
         const cropValidTab = !!(baseB64 && focusB64) && !baseBlank;
-        // H1: real-keyboard pixel change is primary; focus-DEPENDENCE comes from the
-        // forced probe's unfocused-vs-forced computed outline/shadow (an always-on
-        // outline/shadow has unfocused == focused → not counted). Forced diff = corrob.
+        // H1/R2-H4: SPATIAL real-keyboard change is primary (area-independent); forced
+        // is corroboration; focus-DEPENDENCE from forced unfocused-vs-forced outline.
         const decision = A.focusRingDecision({
-          realTabDiffPct: dp, realTabCropValid: cropValidTab,
+          realTabSpatial: realSpatial, realTabDiffPct: dp, realTabCropValid: cropValidTab,
+          forcedSpatial: forced && forced.forcedSpatial, forcedDiffPct: forced && forced.forcedDiffPct,
           unfocusedOutline: forced && forced.unfocusedOutline, focusedOutline: forced && forced.focusedOutline,
           unfocusedBoxShadow: forced && forced.unfocusedBoxShadow, focusedBoxShadow: forced && forced.focusedBoxShadow,
-          forcedDiffPct: forced && forced.forcedDiffPct,
         });
+        const appearanceSpatial = realSpatial || (forced && forced.forcedSpatial);
+        const focusAppearance = appearanceSpatial ? A.focusSpatialVerdict(appearanceSpatial).focusAppearance2413 : null;
         rec.localTabWalk = { positioned: !!(pos && pos.positioned), targetIndexInFocusables: pos && pos.targetIndex, reachedByTab: reachedAt >= 0, stopsToReach: reachedAt, stops: tabStops };
         rec.focusIndicator = {
           present: decision.present,                      // TRI-STATE: true | false | null(=PARTIAL)
           indicatorPresent: decision.present === true,    // back-compat boolean
           basis: decision.basis, focusDependentComputed: decision.focusDependentComputed,
           realTabDiffPct: dp, realTabCropValid: cropValidTab,
+          spatial: realSpatial, focusAppearance, // R2-H4 + 2.4.13 (AAA, captured not enforced)
           forcedFocusVisibleDiffPct: forced && forced.forcedDiffPct, forcedCropValid: forced && forced.cropValid,
           unfocusedOutline: forced && forced.unfocusedOutline, focusedOutline: forced && forced.focusedOutline,
           computedOutline: computed && computed.outline, computedBoxShadow: computed && computed.boxShadow,

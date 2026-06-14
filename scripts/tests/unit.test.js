@@ -164,3 +164,33 @@ test('H1 focusRingDecision: nothing usable => indeterminate (null)', () => {
   const r = L.focusRingDecision({ realTabCropValid: false, focusedOutline: 'none', unfocusedOutline: 'none' });
   assert.equal(r.present, null);
 });
+
+// ---------------- R2-H4: spatial focus verdict (area-independent) + 2.4.13 capture ----------------
+test('R2-H4 focusSpatialVerdict: THIN ring on a BIG control (tiny %) => present via perimeter', () => {
+  // 1px ring on a 600x100 button: ~1.8% of pixels, but 93% of the change is in the border band
+  const v = L.focusSpatialVerdict({ changedPixels: 1400, totalPixels: 77000, borderPixels: 20000, borderChanged: 1300, minThicknessPx: 1, maxContrastChange: 4.2, bbox: { x: 0, y: 0, w: 624, h: 124 } });
+  assert.equal(v.present, true);
+  assert.equal(v.ringLike, true);
+});
+test('R2-H4 focusSpatialVerdict: a blinking caret (few interior pixels) => not a ring', () => {
+  const v = L.focusSpatialVerdict({ changedPixels: 16, totalPixels: 8000, borderPixels: 3000, borderChanged: 0, minThicknessPx: 1, maxContrastChange: 10 });
+  assert.equal(v.present, false);
+});
+test('R2-H4 focusSpatialVerdict: a focus background fill => present via area', () => {
+  const v = L.focusSpatialVerdict({ changedPixels: 4000, totalPixels: 8000, borderPixels: 3000, borderChanged: 1500, minThicknessPx: 40, maxContrastChange: 3.5 });
+  assert.equal(v.present, true);
+  assert.equal(v.fillLike, true);
+});
+test('R2-H4 focusSpatialVerdict: captures 2.4.13 metrics but does NOT enforce the AAA threshold', () => {
+  const v = L.focusSpatialVerdict({ changedPixels: 1400, totalPixels: 77000, borderPixels: 20000, borderChanged: 1300, minThicknessPx: 3, maxContrastChange: 4.2 });
+  assert.equal(v.focusAppearance2413.enforced, false);
+  assert.equal(v.focusAppearance2413.areaPx, 1400);
+  assert.equal(v.focusAppearance2413.minThicknessPx, 3);
+  assert.equal(v.focusAppearance2413.meetsIfEnforced, true); // >=2px & >=3:1 — recorded, not gated
+});
+test('R2-H4 focusRingDecision: spatial present overrides a sub-1.5% scalar (thin-large fix)', () => {
+  const r = L.focusRingDecision({ realTabCropValid: true, realTabDiffPct: 1.28,
+    realTabSpatial: { changedPixels: 1400, totalPixels: 77000, borderPixels: 20000, borderChanged: 1300, minThicknessPx: 1, maxContrastChange: 4 },
+    unfocusedOutline: 'none', focusedOutline: 'solid 1px rgb(255,0,0)' });
+  assert.equal(r.present, true, 'a visible thin ring must be present despite <1.5% area');
+});
