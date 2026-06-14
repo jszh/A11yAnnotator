@@ -171,10 +171,15 @@ test('R2.6-D trap (#4): a FREEZE trap (preventDefault all Tab) leaves count:0 bu
   assert.notEqual(o.tabWalk.trapDetected, false, 'must NOT read as "not a trap" — frozen focus with focusables present');
   assert.match(o.tabWalk.trapReason || '', /no focusable was reached/);
 });
-test('R2.6-D trap (#7): an EVER-FRESH-focusable trap (never converges) is INDETERMINATE, not a silent pass', { skip: !serverUp }, () => {
+test('R2.6-D trap (#7): an EVER-FRESH-focusable trap (never converges, interferes) is INDETERMINATE', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap-everfresh.html', ['/html/body/div[1]/button[1]']);
   assert.equal(o.tabWalk.trapDetected, null);
-  assert.equal(o.tabWalk.trapIndeterminate, true, 'a walk that never converges cannot assess keyboard/focus');
+  assert.equal(o.tabWalk.trapIndeterminate, true, 'a walk that never converges AND interferes cannot assess keyboard/focus');
+});
+test('R2.7-D trap (#7 false-positive): a CLEAN long nav (>MAXTAB links, no interference) is NOT a trap', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-longnav.html', ['/html/body/nav[1]/a[1]']);
+  assert.equal(o.tabWalk.trapDetected, false, 'a big page the walk truncated is not a keyboard trap');
+  assert.notEqual(o.tabWalk.trapIndeterminate, true, 'no interference ⇒ not falsely indeterminate');
 });
 test('R2.5-D trap (my #3): a DISABLE-the-background trap (tabindex=-1 on outside controls) is caught', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap-disable.html', ['/html/body/div[1]/button[1]']);

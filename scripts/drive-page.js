@@ -426,11 +426,13 @@ function loadXpaths() {
           if (fin.prevented > 0) { out.tabWalk.trapDetected = true; out.tabWalk.trapInterference = 'focus-frozen'; }
           else { out.tabWalk.trapDetected = null; out.tabWalk.trapIndeterminate = true; }
           out.tabWalk.trapReason = `no focusable was reached by Tab despite ${totalFocusables} focusable(s) — focus may be frozen/blocked`;
-        } else if (out.tabWalk.budgetExceeded || reached >= MAXTAB) {
-          // #7 ever-fresh-focusable: the walk kept advancing to new elements without bound
-          // and never converged — keyboard/focus cannot be assessed ⇒ indeterminate.
+        } else if ((out.tabWalk.budgetExceeded || reached >= MAXTAB) && (fin.prevented > 0 || fin.defocus >= 2 || (fin.focusins - fin.tabs) > Math.max(2, fin.tabs * 0.25))) {
+          // R2.7-D (#7): the walk never converged AND the page INTERFERED (preventDefault /
+          // background-defocus / excess refocus) — an ever-fresh-focusable trap ⇒ indeterminate.
+          // A clean LONG nav (>MAXTAB focusables, NO interference) is NOT flagged — it is just
+          // a big page the walk truncated, not a trap (avoids a false positive).
           out.tabWalk.trapDetected = null; out.tabWalk.trapIndeterminate = true;
-          out.tabWalk.trapReason = 'tab-walk did not converge (focus kept advancing to new focusables without bound, or exceeded budget) — keyboard/focus indeterminate';
+          out.tabWalk.trapReason = 'tab-walk did not converge AND the page interfered with Tab (kept advancing under preventDefault/refocus) — keyboard/focus indeterminate';
         }
       }
     }
