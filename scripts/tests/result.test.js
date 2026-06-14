@@ -235,12 +235,20 @@ test('R2.5-B skip integrity: mass-skip (>25% cap), filler reasons, and extra ski
 test('R2.5-B axe floor: skipping elements + 0 failures while the collector axe found serious violations is REJECTED', () => {
   const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
     provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b', reason: 'off-screen duplicate' }] } } });
-  const blocked = validateResults(R, { collectorAxe: { seriousCount: 4 } });
-  assert.ok(blocked.errors.some(e => /collector's axe run found 4 critical\/serious/.test(e)), 'cannot launder a clean result by skipping flagged elements');
+  const blocked = validateResults(R, { collectorAxe: { ran: true, wcagViolations: 4 } });
+  assert.ok(blocked.errors.some(e => /collector's axe run found 4 WCAG/.test(e)), 'cannot launder a clean result by skipping flagged elements');
   // no skips → the floor does not apply (agent owns every element)
   const noSkip = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a'), el('/b')],
     provenance: { collect: { xpaths: ['/a', '/b'], count: 2 } } });
-  assert.equal(validateResults(noSkip, { collectorAxe: { seriousCount: 4 } }).ok, true, 'no skips → floor does not fire');
+  assert.equal(validateResults(noSkip, { collectorAxe: { ran: true, wcagViolations: 4 } }).ok, true, 'no skips → floor does not fire');
+});
+test('R2.7-B axe floor FAILS CLOSED when axe did not run + an element was skipped', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
+    provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b', reason: 'off-screen duplicate' }] } } });
+  // axe did NOT run (ran:false) and 0 violations — a skip can't be verified safe → reject.
+  assert.ok(validateResults(R, { collectorAxe: { ran: false, wcagViolations: 0 } }).errors.some(e => /axe run did NOT complete/.test(e)));
+  // a clean page where axe RAN clean + a legit skip → allowed.
+  assert.equal(validateResults(R, { collectorAxe: { ran: true, wcagViolations: 0 } }).ok, true, 'axe ran clean → a legit skip is fine');
 });
 test('R2.4-A provenance: count mismatch and an unexpected collect key are REJECTED', () => {
   const badCount = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')], provenance: { collect: { xpaths: ['/a'], count: 9 } } });
@@ -476,6 +484,6 @@ test('R2.6-B: skipping elements while axe found serious violations is REJECTED e
     el('/a', { 'name-role-state': { verdict: 'REPRODUCED', sc: '4.1.2', level: 'A', evidence: 'fabricated to dodge the floor' } }),
   ], provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b', reason: 'off-screen duplicate' }] } } });
   assert.equal(R.summary.normativeFailures, 1);
-  const v = validateResults(R, { collectorAxe: { seriousCount: 9 } });
+  const v = validateResults(R, { collectorAxe: { ran: true, wcagViolations: 9 } });
   assert.ok(v.errors.some(e => /EVERY collected element must be evaluated/.test(e)), 'one fabricated failure no longer dodges the floor');
 });

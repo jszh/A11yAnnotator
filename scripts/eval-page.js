@@ -202,7 +202,8 @@ function parseRGB(s) {
           nodes: v.nodes.map(n => ({ target: n.target, html: (n.html || '').slice(0, 160) })),
         }));
       });
-    } catch (e) { out.problems.push('axe: ' + e.message); out.axe = []; }
+      out.axeRan = true; // R2.7-B: distinguish "axe ran clean" from "axe never ran" (fail-closed gate)
+    } catch (e) { out.problems.push('axe: ' + e.message); out.axe = []; out.axeRan = false; }
 
     // R21-H2: measure the TRUE UA-default checkbox/radio size in an isolated iframe
     // (no page CSS), so a stylesheet that resizes all checkboxes can't masquerade as a

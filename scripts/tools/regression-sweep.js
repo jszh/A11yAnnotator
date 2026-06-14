@@ -67,6 +67,8 @@ for (const s of slugs) {
     // driver evidence too (R2.4-B) when a fresh drive.json is present.
     if (builder) {
       const opts = (D && builder.driverEvidenceFrom) ? { driverEvidence: builder.driverEvidenceFrom(D) } : {};
+      // R2.7-B (#4): the axe skip-floor must run in the read-only re-gate too.
+      if (C) { const axe = Array.isArray(C.axe) ? C.axe : []; opts.collectorAxe = { ran: C.axeRan !== false, wcagViolations: axe.filter(v => v && Array.isArray(v.wcag) && v.wcag.length > 0).length }; }
       const v = builder.validateResults(R, opts);
       if (!v.ok) for (const m of v.errors) fails.push(`[C5] ${s}: ${m}`);
     }

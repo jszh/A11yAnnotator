@@ -70,9 +70,12 @@ if (dupX.size) {
 }
 const xpaths = rawXpaths;
 input.provenance = { collect: { xpaths, count: xpaths.length, skipped: Array.isArray(input.skipped) ? input.skipped : [], collectedAt: collect.collectedAt || null, page: collect.file } };
-// R2.5-B: the collector's OWN axe run is independent ground truth for the skip floor.
+// R2.5-B/R2.7-B: the collector's OWN axe run is independent ground truth for the skip
+// floor. Count any violation carrying a real WCAG SC tag (not impact-gated — moderate-
+// impact rules can still be Level A failures; best-practice rules have an empty wcag[]).
+// `ran` distinguishes "axe ran clean" from "axe never ran" so the floor can FAIL CLOSED.
 const axeArr = Array.isArray(collect.axe) ? collect.axe : (collect.axe && Array.isArray(collect.axe.violations) ? collect.axe.violations : []);
-const collectorAxe = { seriousCount: axeArr.filter(v => v && (v.impact === 'critical' || v.impact === 'serious')).length };
+const collectorAxe = { ran: collect.axeRan !== false, wcagViolations: axeArr.filter(v => v && Array.isArray(v.wcag) && v.wcag.length > 0).length };
 const driverEvidence = driverEvidenceFrom(drive);
 
 const built = buildResults(input);

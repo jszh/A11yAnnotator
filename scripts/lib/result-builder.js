@@ -343,15 +343,18 @@ function validateResults(R, opts = {}) {
   if (!R.pageSkills || typeof R.pageSkills !== 'object') E('results: missing pageSkills');
 
   validateProvenance(E, R);
-  // R2.5-B/R2.6-B: ground-truth floor. If the collector's OWN axe run found critical/
-  // serious violations, the audit may NOT skip ANY collected element — a skipped element
-  // could be one axe flagged. This no longer gates on `normativeFailures === 0`: that gate
-  // was trivially dodged by stamping one fabricated failure. An element the driver couldn't
-  // locate must be RECORDED as `notFound` (evaluated → PARTIAL), not skipped.
+  // R2.5-B/R2.6-B/R2.7-B: ground-truth floor, FAIL-CLOSED. The audit may NOT skip ANY
+  // collected element when the collector's axe run found a WCAG violation (a skipped
+  // element could be the flagged one), NOR when axe did NOT run (absence of axe is not
+  // evidence of conformance). Does not gate on normativeFailures (a fabricated failure
+  // used to dodge it). An unlocatable element must be RECORDED as notFound, not skipped.
   const AX = opts.collectorAxe;
-  if (AX && AX.seriousCount > 0) {
+  if (AX) {
     const skippedN = (R.provenance && R.provenance.collect && Array.isArray(R.provenance.collect.skipped)) ? R.provenance.collect.skipped.length : 0;
-    if (skippedN > 0) E(`provenance/axe: the collector's axe run found ${AX.seriousCount} critical/serious violation(s), so EVERY collected element must be evaluated — the audit SKIPPED ${skippedN} (record unlocatable elements as notFound, do not skip)`);
+    if (skippedN > 0) {
+      if (AX.wcagViolations > 0) E(`provenance/axe: the collector's axe run found ${AX.wcagViolations} WCAG violation(s), so EVERY collected element must be evaluated — the audit SKIPPED ${skippedN} (record unlocatable elements as notFound, do not skip)`);
+      else if (AX.ran === false) E(`provenance/axe: the collector's axe run did NOT complete, so a skip cannot be verified safe — EVERY collected element must be evaluated (the audit SKIPPED ${skippedN}). Fail-closed.`);
+    }
   }
 
   for (const el of R.elements) {
