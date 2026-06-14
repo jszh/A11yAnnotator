@@ -335,3 +335,20 @@ test('R2.4-B driverEvidenceFrom distils behavioralTrust/focusIndicator/forms', (
   assert.equal(ev.byXpath['/a'].activation.trusted, true);
   assert.deepEqual(ev.formsTrust, { probed: true, allTrustedIsolated: true });
 });
+
+// ---- R2.4-F: recursive strictness (R23-M2) ----
+test('R2.4-F: a disallowed SC / wrong level on a NOT REPRODUCED verdict is REJECTED', () => {
+  const badSc = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'NOT REPRODUCED', sc: '4.1.3', level: 'AA', evidence: 'checked' } })] });
+  assert.ok(validateResults(badSc).errors.some(e => /4\.1\.3 not allowed/.test(e)), 'non-issue verdicts are not exempt from SC-allowance');
+  const badLvl = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'NOT REPRODUCED', sc: '2.4.7', level: 'A', evidence: 'checked' } })] });
+  assert.ok(validateResults(badLvl).errors.some(e => /level A != AA/.test(e)));
+});
+test('R2.4-F: an unexpected key inside summary.issues[] / countBasis / bySkill cell is REJECTED', () => {
+  const base = () => build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } })] });
+  const issueKey = base(); issueKey.summary.issues[0].smuggled = 1;
+  assert.ok(validateResults(issueKey).errors.some(e => /summary\.issues\[0\]: unexpected key "smuggled"/.test(e)));
+  const cb = base(); cb.summary.countBasis.smuggled = 1;
+  assert.ok(validateResults(cb).errors.some(e => /summary\.countBasis: unexpected key "smuggled"/.test(e)));
+  const bs = base(); bs.summary.bySkill['focus-visibility'].smuggled = 1;
+  assert.ok(validateResults(bs).errors.some(e => /summary\.bySkill\.focus-visibility: unexpected key "smuggled"/.test(e)));
+});

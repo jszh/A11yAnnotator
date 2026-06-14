@@ -40,6 +40,10 @@ const ELEMENT_KEYS = new Set(['xpath', 'axRole', 'axName', 'appearanceShot', 'ap
 const VERDICT_KEYS = new Set(['verdict', 'sc', 'level', 'evidence', 'bucket', 'rule', 'isolation', 'trust', 'basis']);
 const SUMMARY_KEYS = new Set(['elements', 'elementsWithIssue', 'pageHasIssue', 'bySkill', 'pageBySkill', 'normativeFailures', 'atCompatFindings', 'bestPracticeFindings', 'issues', 'countBasis']);
 const TOP_KEYS = new Set(['file', 'slug', 'noscript', 'pageSkills', 'elements', 'summary', 'provenance']);
+// R2.4-F: nested structures are also strict — no smuggled keys inside derived objects.
+const ISSUE_KEYS = new Set(['scope', 'xpath', 'skill', 'verdict', 'sc', 'level', 'bucket', 'rule', 'evidence']);
+const COUNTBASIS_KEYS = new Set(['subVerdict', 'elementWithIssue', 'dedupedDefect', 'normativeFailures']);
+const BYSKILL_CELL_KEYS = new Set(['reproduced', 'partial', 'notReproduced', 'na']);
 
 function deriveElement(el) {
   const skills = el.skills || {};
@@ -144,17 +148,21 @@ function validateSkillVerdict(E, tag, k, sv, allowed) {
     if (sv.trust === 'synthetic') E(`${tag}/${k}: definite ${sv.verdict} resting on SYNTHETIC input must be PARTIAL (R22-H3)`);
     if (sv.isolation === 'shared') E(`${tag}/${k}: definite ${sv.verdict} resting on a NON-ISOLATED probe must be PARTIAL (R22-H3)`);
   }
-  if (!isIssue(sv.verdict)) return; // SC/level/rule only constrained for actual issues
-  const bucket = effBucket(sv);
   const codes = S.scCodes(sv.sc);
+  // R2.4-F (R23-M2): SC/level are REQUIRED only for issues, but when PRESENT on ANY verdict
+  // (incl NOT REPRODUCED / N/A — which may cite the SC they checked) they must still be
+  // allowed for the skill and carry the matching level. Validate uniformly, don't skip.
+  for (const code of codes) if (!allowed.includes(code)) E(`${tag}/${k}: SC ${code} not allowed for this skill`);
+  for (const code of codes) if (S.SC_LEVEL[code] && sv.level && sv.level !== S.SC_LEVEL[code]) E(`${tag}/${k}: level ${sv.level} != ${S.SC_LEVEL[code]} for SC ${code}`);
+  if (!isIssue(sv.verdict)) return; // the REQUIRED-SC / required-level rules below are issue-only
+  const bucket = effBucket(sv);
   if (bucket === 'normative') {
     if (!codes.length) E(`${tag}/${k}: NORMATIVE ${sv.verdict} issue with no WCAG SC`);
     const primary = codes[0];
-    if (primary && S.SC_LEVEL[primary]) { if (!sv.level) E(`${tag}/${k}: missing level for SC ${primary}`); else if (sv.level !== S.SC_LEVEL[primary]) E(`${tag}/${k}: level ${sv.level} != ${S.SC_LEVEL[primary]} for SC ${primary}`); }
+    if (primary && S.SC_LEVEL[primary]) { if (!sv.level) E(`${tag}/${k}: missing level for SC ${primary}`); }
   } else {
     if (!codes.length && !sv.rule) E(`${tag}/${k}: ${bucket} observation needs a WCAG SC or a non-SC \`rule\` id`);
   }
-  for (const code of codes) if (!allowed.includes(code)) E(`${tag}/${k}: SC ${code} not allowed for this skill`);
 }
 
 // R2.3-C / R2.4-A: PROVENANCE — tie every element back to the INDEPENDENT collector
@@ -303,10 +311,11 @@ function validateResults(R, opts = {}) {
     for (const f of ['elements', 'elementsWithIssue', 'pageHasIssue', 'normativeFailures', 'atCompatFindings', 'bestPracticeFindings']) {
       if (!(f in s)) E(`summary.${f} missing`); else if (s[f] !== rs[f]) E(`summary.${f}=${JSON.stringify(s[f])} != derived ${JSON.stringify(rs[f])}`);
     }
-    if (!s.countBasis) E('summary.countBasis missing');
-    if (!s.bySkill) E('summary.bySkill missing'); else for (const k of S.SKILLS) { const a = s.bySkill[k], b = rs.bySkill[k]; if (!a) { E(`summary.bySkill.${k} missing`); continue; } for (const c of ['reproduced', 'partial', 'notReproduced', 'na']) if (a[c] !== b[c]) E(`summary.bySkill.${k}.${c}=${a[c]} != derived ${b[c]}`); }
+    if (!s.countBasis) E('summary.countBasis missing'); else for (const key of Object.keys(s.countBasis)) if (!COUNTBASIS_KEYS.has(key)) E(`summary.countBasis: unexpected key "${key}"`);
+    if (!s.bySkill) E('summary.bySkill missing'); else for (const k of S.SKILLS) { const a = s.bySkill[k], b = rs.bySkill[k]; if (!a) { E(`summary.bySkill.${k} missing`); continue; } for (const key of Object.keys(a)) if (!BYSKILL_CELL_KEYS.has(key)) E(`summary.bySkill.${k}: unexpected key "${key}"`); for (const c of ['reproduced', 'partial', 'notReproduced', 'na']) if (a[c] !== b[c]) E(`summary.bySkill.${k}.${c}=${a[c]} != derived ${b[c]}`); }
     if (!s.pageBySkill) E('summary.pageBySkill missing'); else { for (const k of Object.keys(rs.pageBySkill)) if (s.pageBySkill[k] !== rs.pageBySkill[k]) E(`summary.pageBySkill.${k}=${s.pageBySkill[k]} != derived ${rs.pageBySkill[k]}`); for (const k of Object.keys(s.pageBySkill)) if (!(k in rs.pageBySkill)) E(`summary.pageBySkill has non-derived key ${k}`); }
     if (!Array.isArray(s.issues)) E('summary.issues missing'); else {
+      for (let i = 0; i < s.issues.length; i++) { const it = s.issues[i]; if (it && typeof it === 'object') for (const key of Object.keys(it)) if (!ISSUE_KEYS.has(key)) E(`summary.issues[${i}]: unexpected key "${key}"`); }
       const a = s.issues.map(fullIssue), b = rs.issues.map(fullIssue);
       if (a.length !== b.length) E(`summary.issues count ${a.length} != derived ${b.length} (duplicates or omissions)`);
       const n = Math.min(a.length, b.length);
