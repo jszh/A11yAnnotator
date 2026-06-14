@@ -42,6 +42,16 @@ test('H5: page-structure separates best-practice from 1.3.1 (missing landmark !=
   assert.ok(/NOT a 1\.3\.1|not a hard 1\.3\.1|NOT a 1\.3\.1 failure/i.test(ps), 'missing landmark / heading skip must be flagged as non-1.3.1');
 });
 
+test('R21-H4: AGENT-PLAN requires PARTIAL when a behavioral verdict rests on synthetic/non-isolated input', () => {
+  const plan = read('eval-results/AGENT-PLAN.md');
+  assert.ok(/synthetic/i.test(plan) && /PARTIAL/.test(plan), 'plan must calibrate behavioral confidence to probe trust');
+  assert.ok(/activate\.synthetic|submitMethod|trusted-keys/.test(plan), 'plan must reference the concrete trust flags');
+});
+test('R21-H3: AGENT-PLAN target-size uses the tri-state (needs-judgment => PARTIAL; fail checks Equivalent/Essential)', () => {
+  const plan = read('eval-results/AGENT-PLAN.md');
+  assert.ok(/needs-judgment/.test(plan) && /equivalent/i.test(plan), 'plan must consume the target-size tri-state');
+});
+
 test('M4: skill Classify sections no longer contradict the corrected scope', () => {
   const ann = read('skills/dynamic-announcement.md');
   // the Classify REPRODUCED line must scope to status messages, not bare state changes

@@ -268,6 +268,13 @@ findings with `bucket:"best-practice"`/`"at-compat"` so they don't count as SC f
 - **T6: never assert a definite DYNAMIC verdict (keyboard/focus/announcement) on a
   `notFound` element** — the driver couldn't exercise it → PARTIAL. (A static
   name/contrast verdict from collect is still fine if collect resolved it.)
+- **R21-H4: calibrate behavioral confidence to the PROBE'S TRUST.** Every behavioral
+  probe records how it was driven. A definite REPRODUCED / NOT REPRODUCED requires
+  **trusted** input; if the verdict rests on a SYNTHETIC fallback or a non-isolated
+  probe, record **PARTIAL** with the reason. Specifically: `activate.synthetic:true`
+  (or `clickMethod` ≠ `trusted`), `forms[].submitMethod` ∈ {`synthetic-fallback`,
+  `requestSubmit`}, or `keyboard.method` not `trusted-keys` ⇒ the activation /
+  error-identification / keyboard verdict it feeds is **PARTIAL**, not definite.
 - **T16: real failures OUTSIDE the sampled set** that axe flags (e.g. unnamed ad
   links, invalid widget ARIA) → report as a **separate count in `notes.md`**, clearly
   labelled "unsampled," so the tallies don't silently undercount.
