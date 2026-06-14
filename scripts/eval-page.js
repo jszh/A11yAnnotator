@@ -58,8 +58,11 @@ const NOSCRIPT = has('noscript') ? true : has('scripts') ? false : isNoscriptFla
 // Resolve the element list: explicit --xpaths file, else samples-saved.json.
 function loadXpaths() {
   if (has('xpaths')) {
+    // The element loop consumes OBJECTS ({xpath,...}); wrap bare strings so the
+    // --xpaths path matches the samples-saved.json path (this was a latent bug —
+    // strings made every element resolve to el.xpath === undefined → notFound).
     const arr = JSON.parse(fs.readFileSync(opt('xpaths'), 'utf8'));
-    return arr.map(x => (typeof x === 'string' ? x : x.xpath)).filter(Boolean);
+    return arr.map(x => (typeof x === 'string' ? { xpath: x } : x)).filter(e => e && e.xpath);
   }
   const ss = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/samples-saved.json'), 'utf8'));
   const key = 'saved/' + FILE;

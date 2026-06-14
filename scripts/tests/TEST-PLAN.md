@@ -17,6 +17,21 @@ Use the `*.test.js` glob, not the bare directory (`node --test scripts/tests/` t
 **precondition** test that FAILS if `:3001` is down, so a no-server run can't silently
 pass with zero executed integration assertions; its individual cases still skip.
 
+### Round-2 suites (response to the independent audit — REMEDIATION-PLAN.md)
+- `unit.test.js` — pure logic incl. the audit counterexamples: target-size circle-to-rect
+  (`{w:10,h:10}` near a large neighbour → fail, C4) and focus focus-dependence
+  (always-on shadow → false, H1).
+- `result.test.js` — deterministic builder + schema validator: each **C5** corruption
+  (anyIssue/bySkill drift, disallowed SC e.g. 4.1.3 on focus-visibility, empty evidence,
+  missing skill key) is rejected.
+- `docs.test.js` — normative-consistency (no browser): skill/plan ↔ lib/contract
+  (4.1.3 scope C1, 3.3.1 C2, 1.3.1 buckets H5, contrast threshold H6).
+- `evidence.test.js` — the same counterexamples proven END-TO-END on deterministic
+  fixtures served by the annotator: `fx-focus.html` (always-on shadow vs real ring vs
+  suppressed), `fx-target.html` (small-near-large vs isolated), `fx-states.html` (H7).
+- `scripts/tools/regression-sweep.js` — cross-page invariants incl. the C5 aggregate
+  rebuild, T6 notFound, T9/H3 walk speech, present value-domain, T3 geometry.
+
 ## QA methods used
 - **Unit** — pure logic in `scripts/lib/a11y-eval.js` tested in isolation with known
   inputs/outputs (`unit.test.js`). Deterministic, millisecond-fast, no browser.

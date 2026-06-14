@@ -1,0 +1,54 @@
+// W6 — documentation/normative consistency (pure, no browser). Guards W1 + H6:
+// the skills, AGENT-PLAN, and the contract must not contradict the helper or WCAG.
+'use strict';
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
+const L = require('../lib/a11y-eval.js');
+
+const ROOT = path.join(__dirname, '..', '..');
+const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
+
+test('H6: color skill large-text threshold matches the lib (24px / 18.66px-bold)', () => {
+  const md = read('skills/color-and-visual-text.md');
+  assert.ok(/≥\s*24px/.test(md) && /≥\s*18\.66px/.test(md), 'skill must state the correct 24px / 18.66px-bold thresholds');
+  // any mention of the old "14px bold" form must be in a negation/bug context, not as the rule
+  const m = md.match(/[^.\n]*≥\s*14px\s*bold[^.\n]*/);
+  if (m) assert.ok(/NOT|bug|wrong/i.test(m[0]), `"14px bold" may only appear marked as wrong; got: ${m[0]}`);
+  // and the lib itself enforces it (the Domino's regression)
+  assert.equal(L.isLargeText(16, 700), false);
+  assert.equal(L.contrastThresholdFor(16, 700), 4.5);
+});
+
+test('C1: 4.1.3 is scoped to status messages — state changes route to 4.1.2', () => {
+  const ann = read('skills/dynamic-announcement.md');
+  assert.ok(/4\.1\.2/.test(ann) && /status message/i.test(ann), 'announcement skill must route state→4.1.2 and scope to status messages');
+  const plan = read('eval-results/AGENT-PLAN.md');
+  // the plan must NOT instruct: expanded/pressed/dialog with no announcement => 4.1.3 candidate
+  assert.ok(!/(expandedChanged|pressedChanged)[^\n]*⇒\s*4\.1\.3 candidate/.test(plan), 'plan must not map a bare state change to a 4.1.3 candidate');
+  assert.ok(/4\.1\.2/.test(plan), 'plan Step 6 must mention 4.1.2 routing');
+});
+
+test('C2: forms guidance requires demonstrated error / native validation can meet 3.3.1', () => {
+  const forms = read('skills/forms-instructions-errors.md');
+  assert.ok(/validationMessage/.test(forms), 'forms skill must capture validationMessage');
+  assert.ok(/meet[s]? 3\.3\.1|generally meet/i.test(forms), 'forms skill must say native validation can meet 3.3.1');
+});
+
+test('H5: page-structure separates best-practice from 1.3.1 (missing landmark != failure)', () => {
+  const ps = read('skills/page-structure.md');
+  assert.ok(/best.practice/i.test(ps), 'page-structure must call out best-practice bucket');
+  assert.ok(/NOT a 1\.3\.1|not a hard 1\.3\.1|NOT a 1\.3\.1 failure/i.test(ps), 'missing landmark / heading skip must be flagged as non-1.3.1');
+});
+
+test('contract SC lists are self-consistent with the schema and SC_LEVEL', () => {
+  const S = require('../lib/result-schema.js');
+  for (const skill of S.SKILLS) {
+    assert.ok(Array.isArray(S.SKILL_SCS[skill]) && S.SKILL_SCS[skill].length, `${skill} has allowed SCs`);
+    for (const sc of S.SKILL_SCS[skill]) assert.ok(S.SC_LEVEL[sc], `SC ${sc} has a level`);
+  }
+  // C1 invariant pinned: dynamic-announcement is 4.1.3-only; 4.1.2 lives on name-role-state
+  assert.deepEqual(S.SKILL_SCS['dynamic-announcement'], ['4.1.3']);
+  assert.ok(S.SKILL_SCS['name-role-state'].includes('4.1.2'));
+});

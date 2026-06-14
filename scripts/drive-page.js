@@ -288,7 +288,9 @@ function loadXpaths() {
         const iTags = ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'];
         const iRoles = ['link', 'button', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'checkbox', 'radio', 'switch', 'slider', 'textbox', 'combobox', 'option', 'spinbutton'];
         const compositeRoles = ['tab', 'menuitem', 'menuitemradio', 'menuitemcheckbox', 'option', 'radio', 'slider', 'spinbutton'];
-        return { tag, role, tabindex: el.getAttribute('tabindex'), isInteractive: iTags.includes(tag) || iRoles.includes(role) || (el.getAttribute('tabindex') !== null && +el.getAttribute('tabindex') >= 0) || el.hasAttribute('onclick'), isComposite: compositeRoles.includes(role), hasTooltipCue: !!(el.getAttribute('title') || el.getAttribute('aria-describedby')) };
+        const ti = el.getAttribute('tabindex');
+        const focusable = (ti !== null && +ti >= 0) || (iTags.includes(tag) && !el.disabled) || el.isContentEditable;
+        return { tag, role, tabindex: ti, focusable, isInteractive: iTags.includes(tag) || iRoles.includes(role) || (ti !== null && +ti >= 0) || el.hasAttribute('onclick'), isComposite: compositeRoles.includes(role), hasTooltipCue: !!(el.getAttribute('title') || el.getAttribute('aria-describedby')) };
       }, xp).catch(() => null);
       let info = await readInfo();
       if (!info) {
@@ -299,7 +301,7 @@ function loadXpaths() {
         if (info) out.problems.push('relocated after retry: el' + idx);
       }
       if (!info) { rec.notFound = true; out.elements.push(rec); continue; }
-      Object.assign(rec, { tag: info.tag, role: info.role, tabindex: info.tabindex, isInteractive: info.isInteractive, isComposite: info.isComposite });
+      Object.assign(rec, { tag: info.tag, role: info.role, tabindex: info.tabindex, focusable: info.focusable, isInteractive: info.isInteractive, isComposite: info.isComposite });
 
       // appearance shot (unfocused baseline)
       await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', inline: 'center' }); }, xp).catch(() => {});

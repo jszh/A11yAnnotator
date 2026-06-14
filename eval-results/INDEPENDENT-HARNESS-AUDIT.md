@@ -51,6 +51,76 @@ Validation performed:
 - Full browser integration suite.
 - Unit tests and regression sweep.
 
+## Estimated impact on the first-round results
+
+There are several relevant denominators:
+
+- **792** published/deduplicated actionable findings in `summary.issues`.
+- **1,925** actionable REPRODUCED/PARTIAL page and element sub-verdicts.
+- **11,708** total page and element skill verdicts, including passes and N/A.
+- **1,154** sampled elements across 56 pages.
+
+The most useful estimate is against the 792 published findings.
+
+### Practical estimate
+
+| Impact tier | Published findings | Share | Meaning |
+|---|---:|---:|---|
+| Evidence or SC is clearly unsupported | **32** | **4.0%** | 14 wrongly scoped 4.1.3 state/dialog findings, 17 native-validation 3.3.1 findings not established by the probe, and 1 definite dynamic verdict on a `notFound` element |
+| Likely to materially change | **about 108–118** | **13.6–14.9%** | The 32 above, at least 11 clearly exception-prone target-size findings, and the builder's independently estimated 65–75 focus false positives |
+| Must be revalidated | **399** | **50.4%** | Matches at least one validated normative, synthetic-input, focus/visual, target-size, structural, or missing-evidence risk signature |
+
+“Materially change” means disappear, change verdict/confidence, or move to a different
+WCAG SC. It does not mean every affected page becomes clean. For example, a hamburger
+state finding may move from incorrect 4.1.3 reasoning to a valid 4.1.2 question.
+
+The 108–118 range is deliberately conservative and does not include all questionable
+structural findings, synthetic dynamic probes, or target-size cases whose geometry has
+not yet been recomputed. It also excludes the known Domino's contrast false negative,
+which is missing from the published 792 rather than being an incorrect listed finding.
+It assumes the builder's 65–75 focus estimate maps approximately to the deduplicated
+published focus findings. If that estimate instead counts only raw/duplicated
+sub-verdicts, the directly identifiable lower bound is **43 published findings (5.4%)**,
+with focus changes added after focused re-adjudication.
+
+### Broad revalidation scope
+
+The 399 findings requiring revalidation break down as follows. Categories overlap.
+
+| Risk family | Findings | Pages |
+|---|---:|---:|
+| Normative/rubric risks | **157** | **53** |
+| Measurement/dynamic/visual risks | **253** | **50** |
+| Either family | **399** | **55 of 56** |
+
+Risk concentration by success criterion:
+
+| SC | Published findings | Matching a validated risk | Share |
+|---|---:|---:|---:|
+| 4.1.3 Status Messages | 41 | 37 | 90% |
+| 3.3.1 Error Identification | 18 | 17 | 94% |
+| 2.5.8 Target Size | 42 | 42 | 100% |
+| 1.3.1 Info and Relationships | 130 | 84 | 65% |
+| 2.4.7 Focus Visible | 161 | 151 | 94% |
+| 2.1.1 Keyboard | 60 | 30 | 50% |
+
+These percentages mean “revalidate,” not “incorrect.” For focus, for example, the
+current evidence is unreliable for most findings, but some controls genuinely have no
+visible indicator.
+
+At the raw analysis level, **1,106 of 1,925 actionable sub-verdicts (57%)** match at
+least one risk signature. Aggregation metadata is affected separately: all 56 per-page
+`summary.bySkill` objects are inconsistent, 47 pages have an incorrect
+`elementsWithIssue`, and 204 issue-bearing elements have `anyIssue:false`.
+
+### Planning implication
+
+Do not selectively rerun only the roughly 108–118 likely changes. Before publishing a
+new tally, regenerate and reassess at least the 399 risk-matched published findings,
+plus a stratified control sample of apparently unaffected findings and passes. Because
+the same harness decisions operate across the corpus, the safest final run remains a
+full regeneration after the normative and measurement fixes.
+
 ## Critical findings
 
 ### C1. The plan misclassifies state changes and dialogs as 4.1.3 failures
