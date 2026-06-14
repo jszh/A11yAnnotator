@@ -213,8 +213,9 @@ test('R2-H4 focusSpatialVerdict: captures 2.4.13 metrics but does NOT enforce th
   const v = L.focusSpatialVerdict({ changedPixels: 1400, totalPixels: 77000, borderPixels: 20000, borderChanged: 1300, minThicknessPx: 3, maxContrastChange: 4.2 });
   assert.equal(v.focusAppearance2413.enforced, false);
   assert.equal(v.focusAppearance2413.areaPx, 1400);
-  assert.equal(v.focusAppearance2413.minThicknessPx, 3);
-  assert.equal(v.focusAppearance2413.meetsIfEnforced, true); // >=2px & >=3:1 — recorded, not gated
+  assert.equal(v.focusAppearance2413.thicknessProxyPx, 3);
+  assert.equal(v.focusAppearance2413.roughMeetsProxy, true); // proxy hint only, recorded not gated
+  assert.equal(v.focusAppearance2413.proxyOnly, true);
 });
 test('R2-H4 focusRingDecision: spatial present overrides a sub-1.5% scalar (thin-large fix)', () => {
   const r = L.focusRingDecision({ realTabCropValid: true, realTabDiffPct: 1.28,

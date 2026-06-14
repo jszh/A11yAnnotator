@@ -38,7 +38,7 @@ test('R2-H4 focus: a THIN 1px ring on a BIG control is present (spatial), with 2
   const f = o.elements[0].focusIndicator;
   assert.equal(f.present, true, 'thin ring must be present despite tiny area %');
   assert.ok(f.focusAppearance && f.focusAppearance.enforced === false, '2.4.13 metrics captured but not enforced');
-  assert.ok(f.focusAppearance.areaPx > 0 && typeof f.focusAppearance.minThicknessPx === 'number', 'area/thickness recorded for future 2.4.13');
+  assert.ok(f.focusAppearance.areaPx > 0 && typeof f.focusAppearance.thicknessProxyPx === 'number' && f.focusAppearance.proxyOnly === true, 'area/thickness PROXIES recorded (not enforced)');
 });
 
 test('R2-H4 focus: a JS-event-driven ring (forced :focus-visible would miss) is caught by REAL keyboard', { skip: !serverUp }, () => {

@@ -110,16 +110,23 @@ function parseRGB(s) {
       // M2: EVALUATE the consent-present state (its own controls) BEFORE neutralising it,
       // so we record consent-overlay a11y defects instead of silently dropping them.
       const analysis = { containers: 0, focusable: 0, unlabelledControls: 0, headings: 0, hasDialogRole: false };
-      const named = el => !!(el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || (el.textContent || '').trim() || el.getAttribute('title') || el.getAttribute('alt'));
+      // M2: resolve aria-labelledby to a real non-empty target (a dangling idref is NOT a name).
+      const named = el => {
+        const lb = el.getAttribute('aria-labelledby');
+        if (lb && lb.split(/\s+/).some(id => { const t = document.getElementById(id); return t && (t.textContent || '').trim(); })) return true;
+        return !!((el.getAttribute('aria-label') || '').trim() || (el.textContent || '').trim() || el.getAttribute('title') || el.getAttribute('alt'));
+      };
+      const seenC = new Set(); // M2: a container matching MULTIPLE selectors counts once
       for (const sel of selectors) {
         let els = [];
         try { els = [...document.querySelectorAll(sel)]; } catch (e) { continue; }
         for (const el of els) {
+          el.setAttribute('data-a11yeval-consent-hidden', '1'); el.style.setProperty('display', 'none', 'important'); n++;
+          if (seenC.has(el)) continue; seenC.add(el);
           analysis.containers++;
           if (el.getAttribute('role') === 'dialog' || el.getAttribute('role') === 'alertdialog') analysis.hasDialogRole = true;
           for (const c of el.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')) { analysis.focusable++; if (!named(c)) analysis.unlabelledControls++; }
           analysis.headings += el.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]').length;
-          el.setAttribute('data-a11yeval-consent-hidden', '1'); el.style.setProperty('display', 'none', 'important'); n++;
         }
         if (els.length) matched.push(sel);
       }

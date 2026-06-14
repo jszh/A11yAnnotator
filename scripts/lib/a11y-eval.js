@@ -210,12 +210,16 @@ function focusSpatialVerdict(stats) {
   const ringLike = stats.changedPixels >= FOCUS_MIN_CHANGED && changedInBorderShare >= FOCUS_RING_BORDERFRAC;
   const fillLike = changedFraction >= FOCUS_FILL_FRACTION;
   const present = stats.changedPixels >= FOCUS_MIN_CHANGED && (ringLike || fillLike || changedFraction >= 0.015);
-  // 2.4.13 (AAA) — informational only. Minimum area of a 2px-thick perimeter and a 3:1
-  // contrast change are the AAA bar; we record the measurements and a non-binding flag.
-  const meets2413 = present && (stats.minThicknessPx >= 2) && (stats.maxContrastChange >= 3);
+  // 2.4.13 (AAA) — DIAGNOSTIC PROXIES ONLY, not enforced and NOT a faithful 2.4.13 test.
+  // M4: `thicknessProxyPx` = changedPixels/bbox-perimeter (an average, not a measured
+  // minimum thickness); `maxSampledContrast` = the max single-pixel contrast change
+  // (not the area-at-≥3:1 the SC requires). `roughMeetsProxy` is therefore only a hint.
+  // Enabling real 2.4.13 needs a proper min-thickness + contiguous-≥3:1-area measure,
+  // NOT just a config flip.
+  const roughMeetsProxy = present && (stats.minThicknessPx >= 2) && (stats.maxContrastChange >= 3);
   return {
     present, ringLike, fillLike, changedFraction: +changedFraction.toFixed(4), borderFraction: +borderFraction.toFixed(3),
-    focusAppearance2413: { enforced: false, areaPx: stats.changedPixels, minThicknessPx: stats.minThicknessPx, maxContrastChange: stats.maxContrastChange, bbox: stats.bbox, meetsIfEnforced: meets2413 },
+    focusAppearance2413: { enforced: false, proxyOnly: true, areaPx: stats.changedPixels, thicknessProxyPx: stats.minThicknessPx, maxSampledContrast: stats.maxContrastChange, bbox: stats.bbox, roughMeetsProxy },
     reason: present ? (ringLike ? 'perimeter/ring change' : fillLike ? 'fill change' : 'area change') : 'no meaningful focus-dependent change',
   };
 }

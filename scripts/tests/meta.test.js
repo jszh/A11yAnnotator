@@ -18,15 +18,18 @@ test('run-all is not broken: the sweep CLI is OUT of the test glob (the MODULE_N
   assert.ok(fs.existsSync(path.join(ROOT, 'scripts/tools/regression-sweep.js')), 'sweep lives under scripts/tools');
 });
 
-test('the documented run-all glob actually executes >0 tests and exits 0', () => {
-  // spawn with the node:test context removed so the nested runner doesn't conflict
+test('the documented PURE glob (multiple files) executes >0 tests and exits 0', () => {
+  // R21-M2: run the ACTUAL multi-file pure glob, not just unit.test.js. (The browser
+  // suites are excluded here only because they need the live server; the full glob is
+  // run separately in the green-suite verification.)
   const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
+  const files = ['unit.test.js', 'result.test.js', 'docs.test.js'].map(f => 'scripts/tests/' + f);
   let out = '';
-  try { out = execFileSync('node', ['--test', 'scripts/tests/unit.test.js'], { cwd: ROOT, encoding: 'utf8', env }); }
-  catch (e) { out = (e.stdout || '') + (e.stderr || ''); if (!out) assert.fail('run-all subset errored: ' + e.message); }
+  try { out = execFileSync('node', ['--test', ...files], { cwd: ROOT, encoding: 'utf8', env }); }
+  catch (e) { out = (e.stdout || '') + (e.stderr || ''); if (!out) assert.fail('pure glob errored: ' + e.message); }
   const tests = +(/\btests\s+(\d+)/.exec(out) || [])[1] || 0;
   const fail = +(/\bfail\s+(\d+)/.exec(out) || [])[1] || 0;
-  assert.ok(tests > 0, `must execute >0 tests (saw tail: ${out.slice(-160)})`);
+  assert.ok(tests >= 30, `must execute the multi-file glob (saw tests=${tests}, tail: ${out.slice(-160)})`);
   assert.equal(fail, 0);
 });
 

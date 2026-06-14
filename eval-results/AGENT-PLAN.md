@@ -278,7 +278,14 @@ findings with `bucket:"best-practice"`/`"at-compat"` so they don't count as SC f
 - **T16: real failures OUTSIDE the sampled set** that axe flags (e.g. unnamed ad
   links, invalid widget ARIA) → report as a **separate count in `notes.md`**, clearly
   labelled "unsampled," so the tallies don't silently undercount.
-- Treat `consentHidden` (cookie banners removed), `tabWalk.trapDetected` /
-  `budgetExceeded`, and `forms[].skipped` as harness bookkeeping, not page findings.
+- Treat `tabWalk.trapDetected`/`budgetExceeded` and `forms[].skipped` as harness
+  bookkeeping, not page findings.
+- **M2 consent is a SEPARATE STATE, not just bookkeeping.** `consentHidden.consentState`
+  inventories the cookie/consent overlay BEFORE it was neutralised (focusable controls,
+  `unlabelledControls`, headings, `hasDialogRole`). If a consent overlay is present,
+  evaluate IT too (unlabelled controls → 4.1.2; its own focus trap; heading order) and
+  report findings scoped to the consent layer — don't silently drop them because the
+  overlay was hidden for the main pass. (This is a static inventory; a full
+  consent-present axe/keyboard pass is still a known limitation.)
 - Final message: 4–6 lines (counts by verdict, standout issues, problems). The
   files are the real output.

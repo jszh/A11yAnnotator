@@ -49,11 +49,14 @@ pass with zero executed integration assertions; its individual cases still skip.
 - Fixtures: `fx-focus-thin`, `fx-focus-js`, `fx-trap`, `fx-wraparound`, `fx-firstfocus`,
   `fx-target-exc`, `fx-form` (all under `assets/saved/`).
 
-### 2.4.13 Focus Appearance (AAA)
-Captured but **not enforced**: `focusIndicator.focusAppearance{areaPx, minThicknessPx,
-maxContrastChange, meetsIfEnforced}`. The spatial measure already computes the changed-
-region area/thickness/contrast, so enabling the AAA threshold later is a config flip in
-`focusSpatialVerdict` (`meets2413`), not new instrumentation.
+### 2.4.13 Focus Appearance (AAA) — DIAGNOSTIC PROXIES only
+Captured but **not enforced**: `focusIndicator.focusAppearance{enforced:false,
+proxyOnly:true, areaPx, thicknessProxyPx, maxSampledContrast, roughMeetsProxy}`.
+**These are proxies, not a faithful 2.4.13 measure (M4):** `thicknessProxyPx` is
+changedPixels ÷ bbox-perimeter (an average, not the minimum thickness), and
+`maxSampledContrast` is the max single-pixel contrast change (not the contiguous
+≥3:1 area the SC requires). So `roughMeetsProxy` is only a hint. Enabling real 2.4.13
+needs a proper min-thickness + contiguous-≥3:1-area measure — **not just a config flip.**
 
 ## QA methods used
 - **Unit** — pure logic in `scripts/lib/a11y-eval.js` tested in isolation with known
