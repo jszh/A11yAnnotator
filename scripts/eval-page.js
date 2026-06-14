@@ -333,6 +333,26 @@ function parseRGB(s) {
           const top = document.elementFromPoint(hx, hy);
           obscured = !!top && top !== r && !r.contains(top) && !top.contains(r);
         }
+        // R2.4-D: POSITIVELY prove a page-aligned 24×24 square fits ON the target — sample
+        // a grid inside the centred 24×24 square; every point must hit the target or a
+        // descendant of it. Catches overflow-clip, SVG/non-rect, transforms, and rounding
+        // that the enumerated shape flags miss. null = not measurable (square off-screen)
+        // → evalTargetSize falls back to the flags. on-target excludes ANCESTORS (a point
+        // over an ancestor means the target does not paint there).
+        let squareFits = null;
+        if (b.width >= 24 && b.height >= 24) {
+          const cx = b.x + b.width / 2, cy = b.y + b.height / 2, half = 12;
+          const offs = [-11, -6, 0, 6, 11];
+          const sqMinX = cx - half, sqMinY = cy - half, sqMaxX = cx + half, sqMaxY = cy + half;
+          if (sqMinX >= 0 && sqMinY >= 0 && sqMaxX <= innerWidth && sqMaxY <= innerHeight) {
+            let allOn = true;
+            for (const dx of offs) { for (const dy of offs) {
+              const hit = document.elementFromPoint(cx + dx, cy + dy);
+              if (!(hit && (hit === r || r.contains(hit)))) { allOn = false; break; }
+            } if (!allOn) break; }
+            squareFits = allOn;
+          }
+        }
         const interactiveTags = ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'];
         const interactiveRoles = ['link', 'button', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'checkbox', 'radio', 'switch', 'slider', 'textbox', 'combobox', 'option', 'spinbutton'];
         const formTags = ['input', 'select', 'textarea'];
@@ -348,7 +368,7 @@ function parseRGB(s) {
           box: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) },
           color: cs.color, ownBg: cs.backgroundColor, ownBgImage: cs.backgroundImage,
           effBg, effBgImage, bgWalkCrossedOverlay, textInChildDiffColor,
-          display: cs.display, inSentence, inlineCandidate: cs.display === 'inline', uaControl, transformed, clipped, cornerRadius, targetNeighbors,
+          display: cs.display, inSentence, inlineCandidate: cs.display === 'inline', uaControl, transformed, clipped, cornerRadius, squareFits, targetNeighbors,
           states, tabindexEffective, roleOverridesNative, obscured,
           fontSize: cs.fontSize, fontWeight: cs.fontWeight,
           outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, outlineColor: cs.outlineColor,
@@ -392,6 +412,7 @@ function parseRGB(s) {
         rec.targetSize = A.evalTargetSize(dom.box, {
           inSentence: dom.inSentence, inlineCandidate: dom.inlineCandidate,
           uaControl: dom.uaControl, transformed: dom.transformed, clipped: dom.clipped, cornerRadius: dom.cornerRadius,
+          squareFits: dom.squareFits,
           neighbors: dom.targetNeighbors,
         });
       }

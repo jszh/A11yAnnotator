@@ -70,6 +70,21 @@ test('R21-H2: a STYLESHEET-resized checkbox is NOT a UA control (true iframe def
   assert.equal(navlabel.inSentence, false, 'all-caps nav labels are NOT a sentence (no real prose)');
 });
 
+test('R2.4-D target-size (R23-H3): an OVERFLOW-clipped 40×40 link → needs-judgment; a plain 30×30 → pass', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-target-overflow.html', ['/html/body/div[1]/a[1]', '/html/body/a[1]']);
+  const [clipped, plain] = o.elements;
+  assert.equal(clipped.squareFits, false, 'only 20px of the 40px-wide target is usable (ancestor overflow:hidden)');
+  assert.equal(clipped.targetSize.verdict, 'needs-judgment', 'a 24×24 square is not fully on the clipped target');
+  assert.equal(plain.squareFits, true);
+  assert.equal(plain.targetSize.verdict, 'pass', 'a plain 30×30 rectangle positively fits a 24×24 square');
+});
+test('R2.4-D target-size: an SVG circle (30×30 bbox) hit-tests as needs-judgment (corners not on the circle)', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-target-svg.html', ["/html/body/*[name()='svg']/*[name()='a']"]);
+  const e = o.elements[0];
+  assert.equal(e.squareFits, false, 'a 30px circle cannot contain a page-aligned 24×24 square');
+  assert.equal(e.targetSize.verdict, 'needs-judgment');
+});
+
 test('R2.3-A target-size SHAPE/exception (root: necessary≠sufficient => needs-judgment)', { skip: !serverUp }, () => {
   const o = runScript('eval-page.js', 'fx-shape.html', ['/html/body/div[1]/a[1]', '/html/body/div[1]/button[1]', '/html/body/div[1]/button[2]', '/html/body/div[2]/input[1]']);
   const [rotated, rounded24, rounded40, appnone] = o.elements;

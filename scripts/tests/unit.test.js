@@ -37,6 +37,15 @@ test('contrastRatio sanity', () => {
 test('C4 evalTargetSize: meets size', () => {
   assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 40, h: 40 }).passes, true);
 });
+test('R2.4-D evalTargetSize: positive hit-area squareFits is authoritative over the flags', () => {
+  // squareFits=true → pass even if a flag would have suspected the shape
+  assert.equal(L.evalTargetSize({ w: 40, h: 40 }, { squareFits: true, transformed: true }).verdict, 'pass');
+  // squareFits=false → needs-judgment even with no enumerated flag (e.g. overflow-clip)
+  assert.equal(L.evalTargetSize({ w: 40, h: 40 }, { squareFits: false }).verdict, 'needs-judgment');
+  // not measured (off-screen) → fall back to the enumerated flags
+  assert.equal(L.evalTargetSize({ w: 40, h: 40 }, { squareFits: null, transformed: true }).verdict, 'needs-judgment');
+  assert.equal(L.evalTargetSize({ w: 40, h: 40 }, { squareFits: null }).verdict, 'pass');
+});
 test('C4 evalTargetSize: spacing exception — small target clear of all neighbours', () => {
   // 98x15 footer link at (0,100); nearest neighbour rect is far → 24px circle clears it
   const r = L.evalTargetSize({ x: 0, y: 100, w: 98, h: 15 }, { neighbors: [{ x: 0, y: 200, w: 98, h: 15 }] });
