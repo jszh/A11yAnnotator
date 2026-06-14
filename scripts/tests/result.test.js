@@ -335,10 +335,15 @@ test('R2.4-B reject: agent self-attests trusted but the DRIVER shows no trusted+
   const v = validateResults(R, DE({ '/a': { activation: { trusted: false, isolated: true } } }));
   assert.ok(v.errors.some(e => /not supported by driver evidence/.test(e)), 'driver evidence is authoritative over the agent stamp');
 });
-test('R2.4-B reject: forms-instructions-errors REPRODUCED with a SYNTHETIC submit → PARTIAL', () => {
+test('R2.4-B reject: forms-instructions-errors REPRODUCED on a field whose OWN form was a SYNTHETIC submit → PARTIAL', () => {
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'forms-instructions-errors': { verdict: 'REPRODUCED', sc: '3.3.1', level: 'A', evidence: 'no error text' } })] });
-  const v = validateResults(R, DE({ '/a': {} }, { probed: true, allTrustedIsolated: false }));
-  assert.ok(v.errors.some(e => /synthetic\/non-trusted/.test(e)));
+  const opts = { driverEvidence: { byXpath: { '/a': {} }, formsTrust: { probed: true, allTrustedIsolated: false }, formByField: { '/a': { trustedSubmit: false, nativeTextIdentification: false, noTextIdentificationAtAll: false } } } };
+  assert.ok(validateResults(R, opts).errors.some(e => /synthetic\/non-trusted/.test(e)));
+});
+test('R2.7-A #3: a 3.3.1 verdict on an UNMAPPED field (outside any probed form) is REJECTED → PARTIAL', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/loose', { 'forms-instructions-errors': { verdict: 'NOT REPRODUCED', sc: '3.3.1', level: 'A', evidence: 'fine' } })] });
+  const opts = { driverEvidence: { byXpath: { '/loose': {} }, formsTrust: { probed: true, allTrustedIsolated: true }, formByField: { '/other-form-field': { trustedSubmit: true, nativeTextIdentification: true } } } };
+  assert.ok(validateResults(R, opts).errors.some(e => /not covered by any probed form/.test(e)), 'an unrelated clean form cannot clear a field outside any probed form');
 });
 test('R2.4-B native presumption supports NOT REPRODUCED but NOT a keyboard FAILURE', () => {
   const nativeEv = { '/a': { keyboard: { trusted: null, isolated: true, exercised: false }, activation: { trusted: true, isolated: true } } };
@@ -451,11 +456,11 @@ test('R2.6-A #5: a NOT REPRODUCED 4.1.3 is rejected when the driver saw a SILENT
   const v = validateResults(R, DEo({ '/a': { activation: { trusted: true, isolated: true }, viewChanged: true, focusMoved: false, dialogOpened: false, vsrAnnounced: false, liveRegionChanged: false } }));
   assert.ok(v.errors.some(e => /silent status change/.test(e)));
 });
-test('R2.6-A #1: forms NOT REPRODUCED on an UNMAPPED field is rejected when a probed form had noTextIdentificationAtAll', () => {
+test('R2.6-A #1: forms NOT REPRODUCED on an UNMAPPED field (beyond the perField cap) is rejected', () => {
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/field9', { 'forms-instructions-errors': { verdict: 'NOT REPRODUCED', sc: '3.3.1', level: 'A', evidence: 'fine' } })] });
-  // /field9 is NOT in formByField (beyond the perField cap); a probed form failed 3.3.1.
+  // /field9 is NOT in formByField; an unmapped field gets no definite 3.3.1 verdict (R2.7-A).
   const v = validateResults(R, DEo({ '/field9': {} }, { formsTrust: { probed: true, allTrustedIsolated: true, anyNoTextId: true, anyNativeTextId: false }, formByField: {} }));
-  assert.ok(v.errors.some(e => /unmapped field while a probed form had noTextIdentificationAtAll/.test(e)));
+  assert.ok(v.errors.some(e => /not covered by any probed form/.test(e)));
 });
 test('R2.6-A driverEvidenceFrom maps EVERY field via fieldXpaths (not just perField’s first 8)', () => {
   const ev = driverEvidenceFrom({ elements: [], forms: [{ submitMethod: 'trusted', noTextIdentificationAtAll: true, fieldXpaths: ['/f/i9'], perField: [] }] });

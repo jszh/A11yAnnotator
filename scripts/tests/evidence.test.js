@@ -257,3 +257,13 @@ test('H7 states: expanded/checked/disabled collected from DOM + AX', { skip: !se
   assert.equal(disbtn.states.disabled, 'true');
   assert.ok(expbtn.axStates, 'authoritative axStates present');
 });
+
+test('R2.7-A #1: a status change in an aria-live="off" region is NOT a live update (liveRegionChanged:false)', { skip: !serverUp }, () => {
+  const off = runScript('drive-page.js', 'fx-status-live-off.html', ['/html/body/span[1]']);
+  const a = off.elements[0].activate;
+  assert.equal(a.viewChanged, true, 'the view text changed');
+  assert.equal(a.liveRegionChanged, false, 'aria-live="off" is excluded — a screen reader would announce nothing');
+  assert.equal(a.vsrAnnouncement == null, true, 'and the VSR confirms silence');
+  const polite = runScript('drive-page.js', 'fx-status-live-polite.html', ['/html/body/span[1]']);
+  assert.equal(polite.elements[0].activate.liveRegionChanged, true, 'an aria-live="polite" update IS a live change');
+});

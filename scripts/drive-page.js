@@ -683,7 +683,7 @@ function loadXpaths() {
         const viewSig = () => { const m = document.querySelector('main') || document.body; return (m.innerText || '').trim().slice(0, 160) + '#' + m.childElementCount; };
         window.__act = {
           trigger: el, navTo: link ? { href: link.getAttribute('href'), newTab: link.getAttribute('target') === '_blank' } : null,
-          before: { href: location.href, title: document.title, view: viewSig(), active: document.activeElement, expanded: el.getAttribute('aria-expanded'), pressed: el.getAttribute('aria-pressed'), dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length, liveText: [...document.querySelectorAll('[aria-live],[role=status],[role=alert],[role=log],output')].map(n => (n.textContent || '').trim()).join('||') },
+          before: { href: location.href, title: document.title, view: viewSig(), active: document.activeElement, expanded: el.getAttribute('aria-expanded'), pressed: el.getAttribute('aria-pressed'), dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length, liveText: [...document.querySelectorAll('[aria-live],[role=status],[role=alert],[role=log],output')].filter(n => n.getAttribute('aria-live') !== 'off').map(n => (n.textContent || '').trim()).join('||') },
           mut: [], viewSig,
         };
         const obs = new MutationObserver(ms => { for (const m of ms) { let t = m.target; if (t && t.nodeType === 3) t = t.parentElement; if (t && t.closest && t.closest('[aria-live],[role=status],[role=alert],[role=log],output')) window.__act.mut.push((t.textContent || '').trim().slice(0, 80)); } });
@@ -698,7 +698,7 @@ function loadXpaths() {
         const a = window.__act; if (!a) return { gone: true };
         if (window.__actObs) window.__actObs.disconnect();
         const el = a.trigger; const viewSig = a.viewSig;
-        const after = { href: location.href, title: document.title, view: viewSig(), active: document.activeElement, expanded: el.getAttribute('aria-expanded'), pressed: el.getAttribute('aria-pressed'), dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length, liveText: [...document.querySelectorAll('[aria-live],[role=status],[role=alert],[role=log],output')].map(n => (n.textContent || '').trim()).join('||') };
+        const after = { href: location.href, title: document.title, view: viewSig(), active: document.activeElement, expanded: el.getAttribute('aria-expanded'), pressed: el.getAttribute('aria-pressed'), dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length, liveText: [...document.querySelectorAll('[aria-live],[role=status],[role=alert],[role=log],output')].filter(n => n.getAttribute('aria-live') !== 'off').map(n => (n.textContent || '').trim()).join('||') };
         const b = a.before;
         const res = {
           navTo: a.navTo,

@@ -280,17 +280,14 @@ function behavioralSupport(skill, verdict, codes, ev, formsTrust, formOutcome) {
   // ---- forms (page/field scoped) ----
   if (skill === 'forms-instructions-errors') {
     if (!formsTrust || !formsTrust.probed) return { ok: false, reason: 'no form was submit-probed by the driver' };
-    if (formOutcome) { // tied to the field's OWN form (every field is mapped, R2.6-A)
-      if (!formOutcome.trustedSubmit) return { ok: false, reason: "the field's own form submission was synthetic/non-trusted" };
-      if (REP && formOutcome.nativeTextIdentification) return { ok: false, reason: 'REPRODUCED "error not identified" (3.3.1) contradicts nativeTextIdentification:true on this field’s form' };
-      if (NR && formOutcome.noTextIdentificationAtAll) return { ok: false, reason: 'NOT REPRODUCED (3.3.1) contradicts noTextIdentificationAtAll:true on this field’s form' };
-      return { ok: true };
-    }
-    // R2.6-A: an UNMAPPED field can only use the page-level aggregate, conservatively — a
-    // single fabricated/other clean form must not clear a field whose own form may have failed.
-    if (!formsTrust.allTrustedIsolated) return { ok: false, reason: 'a form submission was synthetic/non-trusted' };
-    if (NR && formsTrust.anyNoTextId) return { ok: false, reason: 'NOT REPRODUCED (3.3.1) on an unmapped field while a probed form had noTextIdentificationAtAll:true' };
-    if (REP && !formsTrust.anyNoTextId) return { ok: false, reason: 'REPRODUCED (3.3.1) on an unmapped field but no probed form failed to identify errors in text' };
+    // R2.7-A (#3): a DEFINITE 3.3.1 verdict requires the field to be tied to its OWN probed
+    // form. A field NOT covered by any probed <form> (outside a form, or in a skipped form)
+    // has no error-identification evidence → must be PARTIAL; it can NOT be cleared by an
+    // unrelated clean form via a page-level aggregate.
+    if (!formOutcome) return { ok: false, reason: '3.3.1 verdict on a field not covered by any probed form — must be PARTIAL' };
+    if (!formOutcome.trustedSubmit) return { ok: false, reason: "the field's own form submission was synthetic/non-trusted" };
+    if (REP && formOutcome.nativeTextIdentification) return { ok: false, reason: 'REPRODUCED "error not identified" (3.3.1) contradicts nativeTextIdentification:true on this field’s form' };
+    if (NR && formOutcome.noTextIdentificationAtAll) return { ok: false, reason: 'NOT REPRODUCED (3.3.1) contradicts noTextIdentificationAtAll:true on this field’s form' };
     return { ok: true };
   }
   if (!ev) return { ok: false, reason: 'element was not behaviorally probed by the driver' };
