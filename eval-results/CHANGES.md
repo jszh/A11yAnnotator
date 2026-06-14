@@ -210,3 +210,53 @@ invariants rewritten. · `eval-page.js`, `fx-consent.html`, docs.
 
 **Auditor files** (`ROUND2*-INDEPENDENT-VERIFICATION.md`) are the auditor's and are left
 untracked. Per-page eval data under `eval-results/<slug>/` remains FROZEN (pre-W7).
+
+---
+
+# Round 2.4 — second independent-audit remediation (2026-06-14)
+
+Round 2.3's auditor (`ROUND23-INDEPENDENT-VERIFICATION.md`) found that each R2.3 fix
+applied the right principle at the wrong DEPTH/BOUNDARY. R2.4 re-grounds them on two
+structural rules: **anchor every gate to independent ground truth** (not a value the
+evaluated party controls) and **prove-good rather than enumerate-bad** (default-closed).
+
+### R2.4-A — provenance ground truth, default-closed completeness (R23-C1)
+`complete` was derived FROM the records (circular) and `collect.json` was optional. Now
+collect.json is MANDATORY, provenance is derived only from it, and completeness is always
+enforced: every collected element is evaluated OR in `skipped:[{xpath,reason}]`. Inventory
+count/dup/skip integrity validated. · `tools/build-results.js`, `lib/result-builder.js`.
+
+### R2.4-B — behavioral verdicts bound to DRIVER evidence (R23-C2)
+trust/isolation were optional and self-attested; forms were unenforced. Now build-results
+REQUIRES drive.json; a DEFINITE behavioral verdict (4 dynamic skills + forms) is bound to
+the driver's behavioralTrust/focusIndicator/forms — even an agent-stamped `trust:"trusted"`
+fails if the driver shows no trusted+isolated probe. WCAG 2.1.1 native presumption supports
+only "operable" (NOT REPRODUCED), never a keyboard failure. · `lib/result-builder.js`,
+`tools/build-results.js`, `lib/result-schema.js`, `tools/regression-sweep.js`.
+
+### R2.4-C — non-mutating keyboard-trap detection (R23-H1)
+The boundary sentinel was a real focusable node a page could enumerate/absorb. Replaced
+with PASSIVE listeners observing the actual 2.1.2 interference: `Tab` keydown
+`defaultPrevented` OR focus-redirect (focusins > Tab presses). Stuck-cycle + interference ⇒
+trap; stuck without interference ⇒ wraparound. · `drive-page.js`,
+fx-trap-delegated/fx-trap-redirect.
+
+### R2.4-D — target-size positive hit-area proof (R23-H3)
+Enumerated shape flags missed overflow-clip and SVG. Now the collector hit-tests whether a
+page-aligned 24×24 square centred on the target is FULLY on the target (elementFromPoint
+grid); true→pass, false→needs-judgment, null(off-screen)→fall back to flags. Subsumes
+transform/clip/radius/overflow/SVG and is more accurate. · `eval-page.js`, `lib/a11y-eval.js`,
+fx-target-overflow/svg/circle.
+
+### R2.4-E — fully canonical merge (R23-M1)
+The representative xpath now comes from a contributor that CARRIES the winning verdict
+(highest precedence, then smallest xpath), and evidence whitespace is collapsed in identity
++ emission — byte-stable regardless of order or raw casing. · `lib/result-builder.js`.
+
+### R2.4-F — recursive strictness (R23-M2)
+SC-allowance/level now validated on ANY verdict carrying them (not issues only); nested key
+checks added for summary.issues[]/countBasis/bySkill cells. · `lib/result-builder.js`.
+
+**Build command is now:** `build-results.js <records> <results> <collect.json> <drive.json>`
+(both inputs mandatory). Auditor files (`ROUND2*-INDEPENDENT-VERIFICATION.md`,
+`fx-audit-r23-*`) remain untracked; per-page `eval-results/<slug>/` data stays frozen.
