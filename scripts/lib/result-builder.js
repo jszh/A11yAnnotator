@@ -170,7 +170,7 @@ function validateSkillVerdict(E, tag, k, sv, allowed) {
 // every collected element must be evaluated OR listed in `skipped[{xpath, reason}]`. The
 // old `complete` flag was derived FROM the records (circular — dropping an element flipped
 // it false and disabled the check); it is gone. Completeness is always enforced.
-const PROV_COLLECT_KEYS = new Set(['xpaths', 'count', 'skipped', 'collectedAt']);
+const PROV_COLLECT_KEYS = new Set(['xpaths', 'count', 'skipped', 'collectedAt', 'page']);
 function validateProvenance(E, R) {
   const p = R.provenance;
   if (!p || typeof p !== 'object') { E('provenance: missing — results must be linked to the collector inventory'); return; }
@@ -209,6 +209,9 @@ function validateProvenance(E, R) {
   // DEFAULT-CLOSED completeness: every collected element is evaluated OR skipped-with-reason.
   for (const xp of inv) if (!seen.has(xp) && !skippedSet.has(xp)) E(`provenance: collected element ${String(xp).slice(-30)} was dropped (not evaluated, not skipped-with-reason)`);
   for (const xp of skippedSet) if (seen.has(xp)) E(`provenance: ${String(xp).slice(-30)} is both evaluated and skipped`);
+  // R2.5-C: when the collector page identity is recorded, it must match the result's file
+  // (defense-in-depth against cross-page artifact substitution, even off the CLI path).
+  if (c.page != null && R.file != null && c.page !== R.file) E(`provenance.collect.page=${JSON.stringify(c.page)} != results.file=${JSON.stringify(R.file)} (cross-page substitution)`);
 }
 
 // R2.4-B/R2.5-A: distil drive.json into per-element + page evidence, including the

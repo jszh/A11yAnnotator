@@ -34,11 +34,6 @@ if (!collectPath) {
 let collect;
 try { collect = JSON.parse(fs.readFileSync(collectPath, 'utf8')); }
 catch (e) { console.error('cannot read/parse collect.json:', e.message); process.exit(2); }
-const xpaths = [...new Set((collect.elements || []).map(e => e.xpath).filter(Boolean))];
-input.provenance = { collect: { xpaths, count: xpaths.length, skipped: Array.isArray(input.skipped) ? input.skipped : [], collectedAt: collect.collectedAt || null } };
-// R2.5-B: the collector's OWN axe run is independent ground truth for the skip floor.
-const axeArr = Array.isArray(collect.axe) ? collect.axe : (collect.axe && Array.isArray(collect.axe.violations) ? collect.axe.violations : []);
-const collectorAxe = { seriousCount: axeArr.filter(v => v && (v.impact === 'critical' || v.impact === 'serious')).length };
 
 // R2.4-B: drive.json is MANDATORY — definite behavioral verdicts must be bound to it.
 if (!drivePath) {
@@ -48,6 +43,26 @@ if (!drivePath) {
 let drive;
 try { drive = JSON.parse(fs.readFileSync(drivePath, 'utf8')); }
 catch (e) { console.error('cannot read/parse drive.json:', e.message); process.exit(2); }
+
+// R2.5-C (R24-H1): IDENTITY BINDING — records, collector, and driver must describe the
+// SAME page, so a drive/collect from another page cannot authorize this result.
+if (!input.file || input.file !== collect.file || input.file !== drive.file) {
+  console.error(`REFUSED: page-identity mismatch — records.file=${JSON.stringify(input.file)}, collect.file=${JSON.stringify(collect.file)}, drive.file=${JSON.stringify(drive.file)} must be identical (R2.5-C).`);
+  process.exit(2);
+}
+// R2.5-C: raw collector xpaths must be UNIQUE before normalization — reject (don't
+// silently dedup) so a duplicate-laden inventory can't mask a fabricated count.
+const rawXpaths = (collect.elements || []).map(e => e.xpath).filter(Boolean);
+const dupX = new Set(); { const seen = new Set(); for (const x of rawXpaths) { if (seen.has(x)) dupX.add(x); seen.add(x); } }
+if (dupX.size) {
+  console.error(`REFUSED: collector inventory has ${dupX.size} duplicate xpath(s) (e.g. ${String([...dupX][0]).slice(-40)}) — must be unique (R2.5-C).`);
+  process.exit(2);
+}
+const xpaths = rawXpaths;
+input.provenance = { collect: { xpaths, count: xpaths.length, skipped: Array.isArray(input.skipped) ? input.skipped : [], collectedAt: collect.collectedAt || null, page: collect.file } };
+// R2.5-B: the collector's OWN axe run is independent ground truth for the skip floor.
+const axeArr = Array.isArray(collect.axe) ? collect.axe : (collect.axe && Array.isArray(collect.axe.violations) ? collect.axe.violations : []);
+const collectorAxe = { seriousCount: axeArr.filter(v => v && (v.impact === 'critical' || v.impact === 'serious')).length };
 const driverEvidence = driverEvidenceFrom(drive);
 
 const built = buildResults(input);

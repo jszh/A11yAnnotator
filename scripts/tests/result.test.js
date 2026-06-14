@@ -407,3 +407,13 @@ test('R2.5-A ALLOW: verdicts CONSISTENT with the observed outcome validate', () 
   const v = validateResults(R, DEo({ '/a': { focusProbed: true, ringPresent: false, activation: { trusted: true, isolated: true }, vsrAnnounced: true } }));
   assert.equal(v.ok, true, 'present:false supports "no ring"; an announcement supports NOT REPRODUCED');
 });
+
+// ---- R2.5-C: identity binding (R24-H1) ----
+test('R2.5-C: a recorded collector page that disagrees with results.file is REJECTED (defense-in-depth)', () => {
+  const R = buildResults({ file: 'victim.html', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
+    provenance: { collect: { xpaths: ['/a'], count: 1, page: 'attacker.html' } } });
+  assert.ok(validateResults(R).errors.some(e => /cross-page substitution/.test(e)));
+  const okMatch = buildResults({ file: 'victim.html', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
+    provenance: { collect: { xpaths: ['/a'], count: 1, page: 'victim.html' } } });
+  assert.equal(validateResults(okMatch).ok, true, 'matching page identity validates');
+});
