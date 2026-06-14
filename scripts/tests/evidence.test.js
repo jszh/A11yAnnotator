@@ -53,6 +53,22 @@ test('C4 target-size: small target near a LARGE neighbour fails; isolated small 
   assert.equal(isolated.targetSize.passes, true, 'isolated 16x16 with no neighbour passes via spacing');
 });
 
+test('R2-H2 trap: a two-control A↔B keyboard trap is detected (not just same-element repeat)', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap.html', ['/html/body/button[2]']);
+  assert.equal(o.tabWalk.trapDetected, true, 'A↔B cycle that cannot escape is a trap');
+  assert.ok((o.tabWalk.trapCycle || []).length >= 2, 'trap cycle records the multiple controls');
+});
+test('R2-H2 trap: ordinary wraparound is NOT a trap', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-wraparound.html', ['/html/body/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, false);
+});
+test('R2-H3 first-focusable: the first focusable target is reached by real Tab (sentinel reset)', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-firstfocus.html', ['/html/body/button[1]']);
+  const lt = o.elements[0].localTabWalk;
+  assert.equal(lt.reachedByTab, true, 'first focusable must be reachable');
+  assert.ok(lt.stopsToReach <= 1, `should reach at stop 0, got ${lt.stopsToReach}`);
+});
+
 test('H7 states: expanded/checked/disabled collected from DOM + AX', { skip: !serverUp }, () => {
   const o = runScript('eval-page.js', 'fx-states.html', STATE_XPS);
   const [expbtn, chk, disbtn] = o.elements;

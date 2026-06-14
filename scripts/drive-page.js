@@ -276,7 +276,19 @@ function loadXpaths() {
     // ---------- GLOBAL TAB-WALK (traps / overall order / off-screen) ----------
     out.tabWalk = { stops: [], trapDetected: false, offScreenStops: 0, noOutlineStops: 0 };
     await page.evaluate(() => { try { document.activeElement && document.activeElement.blur(); } catch (e) {} });
-    const seen = new Map(); let prevKey = null, repeat = 0; const tw0 = Date.now();
+    const totalFocusables = await page.evaluate(() => {
+      const sel = 'a[href],button,input:not([type=hidden]),select,textarea,summary,details,[tabindex],[contenteditable="true"]';
+      return [...document.querySelectorAll(sel)].filter(el => { const s = getComputedStyle(el); const b = el.getBoundingClientRect(); return s.visibility !== 'hidden' && s.display !== 'none' && el.getAttribute('tabindex') !== '-1' && (b.width > 0 || b.height > 0); }).length;
+    }).catch(() => 0);
+    out.tabWalk.totalFocusables = totalFocusables;
+    // R2-H2: a keyboard trap is "Tab cannot leave a COMPONENT" — it may cycle among
+    // SEVERAL controls (A↔B), not just repeat one. Detect a small recurring sub-cycle
+    // (the last `WIN` stops cover ≤ `CYCMAX` distinct elements while the page has MORE
+    // focusables than that), then CONFIRM by probing the component boundary: from the
+    // current element, neither Tab nor Shift+Tab reaches anything OUTSIDE the cycle set.
+    const WIN = 6, CYCMAX = 3; const window6 = [];
+    const tw0 = Date.now();
+    const curXpath = () => page.evaluate(() => { const el = document.activeElement; return el && el !== document.body ? window.__getXPath(el) : null; }).catch(() => null);
     for (let i = 0; i < MAXTAB; i++) {
       if (Date.now() - tw0 > TABWALK_BUDGET_MS) { out.tabWalk.budgetExceeded = true; break; }
       await page.keyboard.press('Tab'); await sleep(22);
@@ -290,22 +302,25 @@ function loadXpaths() {
       if (st.speech && A.isVsrNoisePhrase(st.speech)) st.speech = null; // T9/H3: don't carry root/noise phrases
       if (!st.outlineOrShadow) out.tabWalk.noOutlineStops++;
       if (!st.inViewport) out.tabWalk.offScreenStops++;
-      seen.set(st.xpath, (seen.get(st.xpath) || 0) + 1);
       out.tabWalk.stops.push(st);
-      // C3: a TRAP is "Tab does not advance focus" (same element repeating consecutively),
-      // NOT normal wraparound (revisiting an element after cycling the page). Confirm a
-      // suspected trap with Shift+Tab — if focus escapes backward, it isn't a trap.
-      if (st.xpath === prevKey) {
-        repeat++;
-        if (repeat >= 3) {
-          const before = st.xpath;
-          await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); await sleep(22);
-          const escaped = await page.evaluate((b) => { const el = document.activeElement; return !el || el === document.body || window.__getXPath(el) !== b; }, before).catch(() => false);
-          if (!escaped) { out.tabWalk.trapDetected = true; out.tabWalk.trapXpath = before; break; }
-          repeat = 0; // Shift+Tab escaped → not a trap; keep walking
+      window6.push(st.xpath); if (window6.length > WIN) window6.shift();
+      const cycle = [...new Set(window6)];
+      // suspect a sub-cycle trap: window saturated, few distinct, and the page has more
+      if (window6.length >= WIN && cycle.length <= CYCMAX && totalFocusables > cycle.length + 1) {
+        const cycleSet = new Set(cycle); let escaped = false;
+        for (const press of [['Tab'], ['Shift', 'Tab']]) {
+          for (let k = 0; k < cycle.length + 1 && !escaped; k++) {
+            if (press[0] === 'Shift') { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
+            else await page.keyboard.press('Tab');
+            await sleep(22);
+            const here = await curXpath();
+            if (here && !cycleSet.has(here)) { escaped = true; break; }
+          }
         }
-      } else repeat = 0;
-      prevKey = st.xpath;
+        if (!escaped) { out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = cycle; break; }
+        // escaped → not a trap; clear the window so we don't re-trigger on the same run
+        window6.length = 0;
+      }
     }
     out.tabWalk.count = out.tabWalk.stops.length;
 
@@ -355,13 +370,15 @@ function loadXpaths() {
           let ti = all.indexOf(target);
           if (ti < 0) { const inner = target.querySelector && target.querySelector(sel); if (inner) ti = all.indexOf(inner); }
           if (ti < 0) return { positioned: false, targetIndex: ti };
-          // C3: when the target IS the first focusable (ti===0), focusing all[startIdx]
-          // would focus the target then immediately Tab OFF it → falsely "unreachable".
-          // Instead blur and let the first Tab land on it.
+          // R2-H3: when the target IS the first focusable (ti===0), a blur does NOT
+          // reset the browser's sequential-focus start point, so Tab can wrap through
+          // everything before reaching it. Insert a temporary focusable SENTINEL before
+          // it and focus that, so the very first Tab lands on the real first focusable.
           const startIdx = ti > 0 ? Math.max(0, ti - 5) : -1;
-          if (startIdx >= 0 && all[startIdx]) { try { all[startIdx].focus(); } catch (e) {} }
-          else { try { document.activeElement && document.activeElement.blur(); } catch (e) {} }
-          return { positioned: true, targetIndex: ti, startIdx, total: all.length };
+          if (startIdx >= 0 && all[startIdx]) { try { all[startIdx].focus(); } catch (e) {} return { positioned: true, targetIndex: ti, startIdx, total: all.length }; }
+          const sent = document.createElement('span'); sent.tabIndex = 0; sent.setAttribute('data-a11y-sentinel', ''); sent.style.cssText = 'position:fixed;left:-9999px;top:0';
+          document.body.insertBefore(sent, document.body.firstChild); try { sent.focus(); } catch (e) {}
+          return { positioned: true, targetIndex: ti, startIdx, total: all.length, sentinel: true };
         }, xp).catch(() => ({ error: true }));
         const tabStops = []; let reachedAt = -1, focusB64 = null;
         if (pos && pos.positioned) {
@@ -420,7 +437,7 @@ function loadXpaths() {
           method: cropValidTab ? 'real-keyboard-diff' : ((forced && typeof forced.forcedDiffPct === 'number') ? 'forced-focus-visible' : 'indeterminate'),
           focusShot: focusB64 ? path.join(SHOTDIR, 'el' + idx + '_focus.png') : null,
         };
-        await page.evaluate(() => { try { document.activeElement && document.activeElement.blur(); } catch (e) {} }).catch(() => {});
+        await page.evaluate(() => { try { document.activeElement && document.activeElement.blur(); } catch (e) {} const s = document.querySelector('[data-a11y-sentinel]'); if (s) s.remove(); }).catch(() => {});
       }
 
       // ---- LOCAL SR WALK: land on target, go back 5, then 15 forward ----
