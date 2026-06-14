@@ -75,6 +75,11 @@ test('R2.5-E target-size (R24-H3/#7): a 2px pointer-dead strip across a 24×24 t
   assert.equal(o.elements[0].squareFits, false, 'a non-target strip between samples is hit by the ~2px grid');
   assert.equal(o.elements[0].targetSize.verdict, 'needs-judgment');
 });
+test('R2.6-E target-size (#8): a 1px-period non-target "comb" over the square is caught (1px grid) → needs-judgment', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-target-comb.html', ['/html/body/div[1]/a[1]']);
+  assert.equal(o.elements[0].squareFits, false, 'sub-2px teeth between the old 2px samples are now hit by the 1px grid');
+  assert.equal(o.elements[0].targetSize.verdict, 'needs-judgment');
+});
 test('R2.5-E target-size (#5): an off-viewport overflow-clipped target is MEASURED (scrollIntoView), not flag-passed', { skip: !serverUp }, () => {
   const o = runScript('eval-page.js', 'fx-target-belowfold.html', ['/html/body/div[2]/a[1]']);
   assert.notEqual(o.elements[0].targetSize.verdict, 'pass', 'a below-fold clipped target must never be a definite pass via flag fallback');

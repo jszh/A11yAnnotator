@@ -353,11 +353,12 @@ function parseRGB(s) {
           const hb = r.getBoundingClientRect();
           const cx = hb.x + hb.width / 2, cy = hb.y + hb.height / 2;
           if (cx - 12 >= 0 && cy - 12 >= 0 && cx + 12 <= innerWidth && cy + 12 <= innerHeight) {
-            // sample the [-11,11] INTERIOR at ~2px (avoid the razor ±12 edge where
-            // elementFromPoint is ambiguous from sub-pixel rounding); covers a real ≥2px
-            // dead-strip/hole while not false-failing on a solid box's boundary.
+            // R2.6-E: sample the [-11,11] INTERIOR at 1px (avoid the razor ±12 edge where
+            // elementFromPoint is ambiguous). A 1px step closes the 2px-grid Nyquist blind
+            // spot — a non-target "comb"/strip with sub-2px teeth aligned between samples
+            // can no longer read as fully on-target. Sub-1px gaps are physically irrelevant.
             let allOn = true;
-            for (let dx = -11; dx <= 11 && allOn; dx += 2) { for (let dy = -11; dy <= 11; dy += 2) {
+            for (let dx = -11; dx <= 11 && allOn; dx += 1) { for (let dy = -11; dy <= 11; dy += 1) {
               const hit = document.elementFromPoint(cx + dx, cy + dy);
               if (!(hit && (hit === r || r.contains(hit)))) { allOn = false; break; }
             } }
