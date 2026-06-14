@@ -135,10 +135,20 @@ test('R2.4-C trap (R23-H1): a DELEGATED handler enumerating all buttons is caugh
   assert.equal(o.tabWalk.trapDetected, true, 'preventDefault on Tab is seen by a passive, non-focusable listener');
   assert.equal(o.tabWalk.trapInterference, 'preventDefault');
 });
-test('R2.4-C trap: a focusout-REDIRECT trap (no preventDefault) is caught via excess focusins', { skip: !serverUp }, () => {
+test('R2.4-C trap: a focusout-REDIRECT trap (no preventDefault) is caught via an outcome signal', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap-redirect.html', ['/html/body/div[1]/button[1]']);
-  assert.equal(o.tabWalk.trapDetected, true, 'focus reassigned programmatically ⇒ more focusins than Tab presses');
-  assert.equal(o.tabWalk.trapInterference, 'focus-redirect');
+  assert.equal(o.tabWalk.trapDetected, true, 'programmatic refocus is caught (focus-redirect or focus-frozen)');
+  assert.ok(['focus-redirect', 'focus-frozen', 'background-defocus'].includes(o.tabWalk.trapInterference), 'an outcome-layer interference channel fired');
+});
+test('R2.5-D trap (R24-H2): a stopImmediatePropagation modal that blocks both listeners is INDETERMINATE, not a false wraparound', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-stopimmediate.html', ['/html/body/div[1]/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, null, 'absence of OBSERVED interference is not proof of wraparound');
+  assert.equal(o.tabWalk.trapIndeterminate, true, 'focus confined in a dialog with no demonstrated escape ⇒ indeterminate (agent → PARTIAL)');
+});
+test('R2.5-D trap (my #3): a DISABLE-the-background trap (tabindex=-1 on outside controls) is caught', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-disable.html', ['/html/body/div[1]/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, true, 'the page removed the escape routes ⇒ background-defocus interference');
+  assert.equal(o.tabWalk.trapInterference, 'background-defocus');
 });
 test('R2.3-B+ trap: a non-standard exit that is ADVISED emits advisedExitHint (agent → PARTIAL, not a definite trap)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap-advised.html', ['/html/body/div[1]/button[1]']);

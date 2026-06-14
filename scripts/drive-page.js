@@ -305,14 +305,23 @@ function loadXpaths() {
     // sentinel's flaw: a page that queried "all buttons" treated the sentinel as an
     // escape and hid a real trap). Listeners don't change the tab order.
     await page.evaluate(() => {
-      window.__a11yTrap = { prevented: 0, focusins: 0, tabs: 0 };
+      window.__a11yTrap = { prevented: 0, focusins: 0, tabs: 0, defocus: 0 };
       window.__a11yTrapKD = (e) => { if (e.key === 'Tab') { window.__a11yTrap.tabs++; if (e.defaultPrevented) window.__a11yTrap.prevented++; } };
       window.__a11yTrapFI = () => { window.__a11yTrap.focusins++; };
       window.addEventListener('keydown', window.__a11yTrapKD, false); // bubble + last ⇒ sees final defaultPrevented
       document.addEventListener('focusin', window.__a11yTrapFI, true);
+      // R2.5-D: OUTCOME-layer signal — a trap may DISABLE the escape routes (tabindex=-1 /
+      // disabled / inert / aria-hidden on the background) rather than preventDefault. That
+      // mutation is observable even when the page stopImmediatePropagation()s our listeners.
+      try {
+        const mo = new MutationObserver(ms => { for (const m of ms) { const el = m.target; if (!el || el.nodeType !== 1) continue; const a = m.attributeName; if ((a === 'tabindex' && el.getAttribute('tabindex') === '-1') || (a === 'disabled' && el.disabled) || (a === 'inert' && el.hasAttribute('inert')) || (a === 'aria-hidden' && el.getAttribute('aria-hidden') === 'true')) window.__a11yTrap.defocus++; } });
+        mo.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['tabindex', 'disabled', 'inert', 'aria-hidden'] });
+        window.__a11yTrapMO = mo;
+      } catch (e) {}
     }).catch(() => {});
     const curState = () => page.evaluate(() => { const el = document.activeElement; return { xpath: el && el !== document.body ? window.__getXPath(el) : null, dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length }; }).catch(() => ({ xpath: null, dialogs: 0 }));
-    const trapSnap = () => page.evaluate(() => ({ ...window.__a11yTrap })).catch(() => ({ prevented: 0, focusins: 0, tabs: 0 }));
+    const trapSnap = () => page.evaluate(() => ({ ...window.__a11yTrap })).catch(() => ({ prevented: 0, focusins: 0, tabs: 0, defocus: 0 }));
+    let consecutiveNone = 0;
     for (let i = 0; i < MAXTAB; i++) {
       if (Date.now() - tw0 > TABWALK_BUDGET_MS) { out.tabWalk.budgetExceeded = true; break; }
       await page.keyboard.press('Tab'); await sleep(22);
@@ -321,7 +330,12 @@ function loadXpaths() {
         const cs = getComputedStyle(el); const b = el.getBoundingClientRect();
         return { xpath: window.__getXPath(el), tag: el.tagName.toLowerCase(), text: (el.innerText || el.textContent || '').trim().slice(0, 36), outlineOrShadow: (cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0) || (cs.boxShadow && cs.boxShadow !== 'none'), inViewport: b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth && b.width > 0 && b.height > 0 };
       }).catch(() => ({ none: true }));
-      if (st.none) { if (i > 0) break; else continue; }
+      // R2.5-D: a SINGLE none (focus transiting document.body between cycle members on a
+      // native wrap) must NOT abandon the walk before stuck-detection runs — that
+      // short-circuit let any body-wrapping disable/roving trap escape detection. Only
+      // break after several CONSECUTIVE nones (focus genuinely fell off the page).
+      if (st.none) { consecutiveNone++; if (consecutiveNone >= 3 && i > 0) break; continue; }
+      consecutiveNone = 0;
       st.speech = await speechNow();
       if (st.speech && A.isVsrNoisePhrase(st.speech)) st.speech = null; // T9/H3: don't carry root/noise phrases
       if (!st.outlineOrShadow) out.tabWalk.noOutlineStops++;
@@ -343,12 +357,18 @@ function loadXpaths() {
         const afterEsc = await curState();
         if ((afterEsc.xpath && !reached.has(afterEsc.xpath)) || afterEsc.dialogs < dlgBefore) { escaped = true; escapeMethod = 'Escape'; }
         const s0 = await trapSnap();
+        let frozen = 0, prevX = afterEsc.xpath;
         for (const press of [['Tab'], ['Shift', 'Tab']]) {
           for (let k = 0; k < PROBE && !escaped; k++) {
             if (press[0] === 'Shift') { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
             else await page.keyboard.press('Tab');
             await sleep(22);
             const hs = await curState();
+            // OUTCOME signal: a normal Tab ALWAYS moves focus. If focus is pinned on one
+            // element across presses, the page is freezing it (a preventDefault trap that
+            // stopImmediatePropagation()s our listeners still cannot hide a frozen outcome).
+            if (hs.xpath && hs.xpath === prevX) frozen++;
+            prevX = hs.xpath;
             if (hs.xpath && !reached.has(hs.xpath)) { escaped = true; escapeMethod = press.join('+'); break; }
           }
         }
@@ -356,11 +376,12 @@ function loadXpaths() {
         const tabs = Math.max(0, s1.tabs - s0.tabs);
         const prevented = Math.max(0, s1.prevented - s0.prevented);
         const redirects = Math.max(0, (s1.focusins - s0.focusins) - tabs); // focusins > tabs ⇒ programmatic refocus
-        const interfered = prevented > 0 || redirects > 0;
+        const defocus = s1.defocus; // cumulative: did the page disable escape routes during the walk?
+        const interfered = prevented > 0 || redirects > 0 || frozen > 0 || defocus >= 2;
         if (escaped) { out.tabWalk.escapableComponent = { via: escapeMethod }; stopsSinceNew = 0; continue; }
         if (interfered) {
           out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = [...new Set(recent)];
-          out.tabWalk.trapInterference = prevented > 0 ? 'preventDefault' : 'focus-redirect';
+          out.tabWalk.trapInterference = prevented > 0 ? 'preventDefault' : frozen > 0 ? 'focus-frozen' : redirects > 0 ? 'focus-redirect' : 'background-defocus';
           // 2.1.2: a NON-STANDARD exit is conformant IF the user is ADVISED of it. The
           // harness can't prove an advisement is adequate/associated, so it emits a HINT
           // only (instructional text near the component naming an exit method); the agent
@@ -375,11 +396,21 @@ function loadXpaths() {
           }).catch(() => null);
           break;
         }
-        out.tabWalk.escapableComponent = { via: 'wraparound' }; // bounded but no interference ⇒ not a trap
+        // No escape demonstrated AND no interference observed. R2.5-D (R24-H2): the
+        // ABSENCE of observed interference is NOT proof of wraparound. Call it wraparound
+        // ONLY for the honest common case — the cycle is the WHOLE page (every focusable
+        // reached, nothing confined-away; a real browser would simply pass focus to chrome)
+        // AND no modal is confining focus. Otherwise — focusables remain UNREACHED, or an
+        // open dialog confines the cycle while listeners may be suppressed — escape could
+        // not be positively demonstrated ⇒ INDETERMINATE (agent treats keyboard/focus as
+        // PARTIAL), never a silent "not a trap".
+        const dlgNow = (await curState()).dialogs;
+        if (seenAll.size >= totalFocusables && dlgNow === 0) { if (!out.tabWalk.escapableComponent) out.tabWalk.escapableComponent = { via: 'wraparound' }; } // don't clobber an earlier real escape (e.g. Escape)
+        else { out.tabWalk.trapDetected = null; out.tabWalk.trapIndeterminate = true; out.tabWalk.trapReason = dlgNow > 0 ? 'focus confined within an open dialog and no escape could be positively demonstrated' : 'bounded cycle; unreached focusables remain and no escape could be positively demonstrated'; out.tabWalk.trapCycle = [...new Set(recent)]; }
         break;
       }
     }
-    await page.evaluate(() => { try { window.removeEventListener('keydown', window.__a11yTrapKD, false); document.removeEventListener('focusin', window.__a11yTrapFI, true); delete window.__a11yTrap; delete window.__a11yTrapKD; delete window.__a11yTrapFI; } catch (e) {} }).catch(() => {});
+    await page.evaluate(() => { try { window.removeEventListener('keydown', window.__a11yTrapKD, false); document.removeEventListener('focusin', window.__a11yTrapFI, true); if (window.__a11yTrapMO) window.__a11yTrapMO.disconnect(); delete window.__a11yTrap; delete window.__a11yTrapKD; delete window.__a11yTrapFI; delete window.__a11yTrapMO; } catch (e) {} }).catch(() => {});
     out.tabWalk.count = out.tabWalk.stops.length;
 
     // ---------- PASS A: appearance + LOCAL tab walk + LOCAL SR walk (per element) ----------
