@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse | Messages</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #f5f5f5;
+            margin: 0;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-display {
+            font-family: 'Outfit', 'Inter', sans-serif;
+        }
+
+        .env-pb {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        html,
+        body,
+        #root {
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { indigo: { 500: '#6366f1', 600: '#4f46e5' } } } }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="root" class="h-full"></div>
+    <script type="text/babel" src="shared.js"></script>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function MessagesContent() {
+            const convos = [
+                { id: 1, name: 'Maya Lin', handle: '@mayadesigns', img: 'a042581f4e29026704d', lastText: 'Sounds great! Talk soon.', time: '12m', unread: 1 },
+                { id: 2, name: 'Design Team', handle: 'Group', img: '41', lastText: 'Can someone share the Figma link again?', time: '2h', unread: 0 },
+                { id: 3, name: 'Sam Rodriguez', handle: '@samcodes', img: 'samrod', lastText: 'Yeah the new API is much cleaner.', time: 'Yesterday', unread: 0 },
+                { id: 4, name: 'Elena Rogers', handle: '@elenarise', img: '32', lastText: 'Just emailed over the invoice for March.', time: 'Mon', unread: 0 },
+            ];
+
+            const [activeConvo, setActiveConvo] = useState(convos[0]);
+            const [messages, setMessages] = useState([
+                { id: 1, sender: 'them', text: 'Hey Alex! Are we still on for the sync at 2?', time: '9:40 AM' },
+                { id: 2, sender: 'me', text: 'Hey Maya 👋 Yes absolutely!', time: '9:42 AM' },
+                { id: 3, sender: 'me', text: 'I\'ll have the new prototypes ready to show.', time: '9:43 AM' },
+                { id: 4, sender: 'them', text: 'Perfect. Looking forward to seeing the dark mode adjustments.', time: '9:45 AM' },
+                { id: 5, sender: 'them', text: 'Sounds great! Talk soon.', time: '9:50 AM' },
+            ]);
+            const [inputValue, setInputValue] = useState('');
+            const endRef = useRef(null);
+
+            // Scroll to bottom when messages change
+            useEffect(() => {
+                endRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [messages]);
+
+            const handleSend = (e) => {
+                e.preventDefault();
+                if (!inputValue.trim()) return;
+                setMessages([...messages, { id: Date.now(), sender: 'me', text: inputValue, time: 'Now' }]);
+                setInputValue('');
+            };
+
+            return (
+                <div className="flex h-full w-full bg-[#0a0a0a]">
+                    {/* Left Panel: Conversation List */}
+                    <div className="w-full md:w-80 lg:w-[380px] border-r border-neutral-800/60 flex flex-col h-full shrink-0">
+                        <header className="p-4 pt-5 pb-3 border-b border-neutral-800/60 flex items-center justify-between z-10 sticky top-0 bg-[#0a0a0a]">
+                            <h1 className="font-extrabold text-2xl font-display">Messages</h1>
+                            <div className="flex items-center gap-1 text-white">
+                                <button className="p-2 hover:bg-white/10 rounded-full transition-colors" aria-label="Settings"><window.Icons.Settings className="w-5 h-5" /></button>
+                                <button className="p-2 hover:bg-white/10 rounded-full transition-colors" aria-label="New Message"><window.Icons.PlusCircle className="w-5 h-5" /></button>
+                            </div>
+                        </header>
+
+                        <div className="p-3">
+                            <div className="relative group">
+                                <window.Icons.Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-indigo-400" />
+                                <input type="text" placeholder="Search direct messages" className="w-full bg-neutral-900 border border-neutral-800 rounded-full py-2.5 pl-10 pr-4 text-white text-[15px] placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto no-scrollbar pb-20 sm:pb-0">
+                            {convos.map(c => (
+                                <button key={c.id} onClick={() => setActiveConvo(c)} className={`w-full p-4 flex items-center gap-3 transition-colors text-left border-r-2 ${activeConvo?.id === c.id ? 'bg-white/[0.04] border-indigo-500' : 'hover:bg-white/[0.02] border-transparent'}`}>
+                                    <div className="relative shrink-0">
+                                        <img src={`https://i.pravatar.cc/150?u=${c.img}`} alt={c.name} className="w-12 h-12 rounded-full object-cover" />
+                                        {c.unread > 0 && <span className="absolute -top-1 -right-1 bg-indigo-500 border-2 border-[#0a0a0a] w-4 h-4 rounded-full"></span>}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-0.5">
+                                            <span className={`font-bold text-[15px] truncate ${c.unread > 0 ? 'text-white' : 'text-neutral-200'}`}>{c.name}</span>
+                                            <span className="text-xs text-neutral-500 shrink-0">{c.time}</span>
+                                        </div>
+                                        <p className={`text-[14px] truncate ${c.unread > 0 ? 'text-neutral-200 font-medium' : 'text-neutral-500'}`}>{c.lastText}</p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Right Panel: Active Chat (Hidden on small screens unless active, but we'll show it fixed on larger logic. For mockup, hidden on pure mobile, flex on md+) */}
+                    <div className="hidden md:flex flex-1 flex-col h-full relative bg-[#0a0a0a] min-w-0">
+                        {activeConvo ? (
+                            <React.Fragment>
+                                <header className="p-4 border-b border-neutral-800/60 flex items-center justify-between sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-md z-10 shrink-0">
+                                    <div className="flex items-center gap-3 cursor-pointer group">
+                                        <img src={`https://i.pravatar.cc/150?u=${activeConvo.img}`} className="w-10 h-10 rounded-full object-cover group-hover:opacity-90 transition-opacity" />
+                                        <div className="flex flex-col leading-tight">
+                                            <span className="font-bold text-white text-[15px] group-hover:underline">{activeConvo.name}</span>
+                                            <span className="text-neutral-500 text-xs">{activeConvo.handle}</span>
+                                        </div>
+                                    </div>
+                                    <button className="p-2 hover:bg-white/10 rounded-full text-white transition-colors" aria-label="Conversation details">
+                                        <window.Icons.MoreVertical className="w-5 h-5" />
+                                    </button>
+                                </header>
+
+                                <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-4">
+                                    <div className="text-center">
+                                        <img src={`https://i.pravatar.cc/150?u=${activeConvo.img}`} className="w-16 h-16 rounded-full mx-auto mb-2" />
+                                        <h3 className="font-bold text-white mb-0.5">{activeConvo.name}</h3>
+                                        <p className="text-sm text-neutral-500 mb-6">{activeConvo.handle}</p>
+                                        <p className="text-xs text-neutral-600 font-medium uppercase tracking-widest border-b border-neutral-800 pb-2 inline-block px-10">Today</p>
+                                    </div>
+
+                                    {messages.map((m, i) => {
+                                        const isMe = m.sender === 'me';
+                                        // Check if previous message was same sender to group bubbles
+                                        const prevM = messages[i - 1];
+                                        const isSameSender = prevM && prevM.sender === m.sender;
+                                        return (
+                                            <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} ${isSameSender ? 'mt-1' : 'mt-4'}`}>
+                                                <div className={`max-w-[75%] lg:max-w-[60%] rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed ${isMe ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-neutral-800 text-neutral-100 rounded-tl-sm'}`}>
+                                                    {m.text}
+                                                </div>
+                                                {!isSameSender && <span className="text-[11px] text-neutral-500 mt-1 mx-1 font-medium">{m.time}</span>}
+                                            </div>
+                                        );
+                                    })}
+                                    <div ref={endRef} />
+                                </div>
+
+                                <div className="p-4 pb-20 sm:pb-4 border-t border-neutral-800/60 bg-[#0a0a0a] shrink-0">
+                                    <form onSubmit={handleSend} className="bg-neutral-900 border border-neutral-800 rounded-full flex items-center gap-2 p-1.5 focus-within:ring-1 focus-within:border-indigo-500 focus-within:ring-indigo-500/50 transition-all">
+                                        <button type="button" className="p-2 text-indigo-400 hover:bg-white/5 rounded-full outline-none" aria-label="Upload image">
+                                            <window.Icons.ImageIcon className="w-5 h-5" />
+                                        </button>
+                                        <input
+                                            type="text"
+                                            value={inputValue}
+                                            onChange={(e) => setInputValue(e.target.value)}
+                                            placeholder="Start a new message"
+                                            className="flex-1 bg-transparent border-none text-[15px] focus:outline-none text-white placeholder-neutral-500"
+                                            aria-label="Message input"
+                                        />
+                                        <button type="button" className="p-2 text-indigo-400 hover:bg-white/5 rounded-full outline-none" aria-label="Add emoji">
+                                            <window.Icons.Smile className="w-5 h-5" />
+                                        </button>
+                                        <button type="submit" disabled={!inputValue.trim()} className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 active:scale-95 transition-all outline-none" aria-label="Send message">
+                                            <window.Icons.Send className="w-5 h-5" />
+                                        </button>
+                                    </form>
+                                </div>
+                            </React.Fragment>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border-l border-neutral-800/60">
+                                <window.Icons.MessageCircle className="w-16 h-16 text-neutral-700 mb-4" strokeWidth={1} />
+                                <h2 className="font-extrabold text-2xl mb-2 text-white">Select a message</h2>
+                                <p className="text-neutral-500 text-[15px] max-w-sm">Choose from your existing conversations, start a new one, or just keep swimming.</p>
+                                <button className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-full mt-6 transition-colors shadow-lg active:scale-95">New message</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            const [ready, setReady] = useState(false);
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    if (window.SocialLayout && window.Icons) {
+                        setReady(true);
+                        clearInterval(interval);
+                    }
+                }, 50);
+                return () => clearInterval(interval);
+            }, []);
+
+            if (!ready) return <div className="h-screen w-full flex bg-[#0a0a0a]"></div>;
+
+            const SocialLayout = window.SocialLayout;
+            return (
+                <SocialLayout activePage="Messages">
+                    <MessagesContent />
+                </SocialLayout>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

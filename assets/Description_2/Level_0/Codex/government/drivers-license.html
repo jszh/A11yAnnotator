@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Driver's License Renewal | State of Vermont</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              sky: {
+                50: "#f4f9fd",
+                100: "#d7ebf9",
+                700: "#1f5f91",
+                800: "#184d77",
+                900: "#17324d",
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./shared.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel" data-presets="react" src="./shared.js"></script>
+    <script type="text/babel" data-presets="react">
+      const { Shell, Hero, SectionHeading } = window.GovernmentPortal;
+
+      const steps = [
+        "Confirm eligibility",
+        "Prepare required documents",
+        "Review fees",
+        "Schedule an appointment",
+        "Receive confirmation",
+      ];
+
+      const documents = [
+        "Current Vermont driver's license or permit number",
+        "Proof of current residential address",
+        "Vision certification if requested during renewal",
+        "Payment method for $35 renewal fee",
+      ];
+
+      const appointments = [
+        ["Mon 8", "9:00 AM", "11:00 AM", "2:30 PM"],
+        ["Tue 9", "8:30 AM", "10:30 AM", "1:00 PM"],
+        ["Wed 10", "9:15 AM", "12:15 PM", "3:15 PM"],
+        ["Thu 11", "8:45 AM", "11:45 AM", "2:00 PM"],
+      ];
+
+      function App() {
+        return (
+          <Shell current="./drivers-license.html">
+            <Hero
+              eyebrow="Driver services"
+              title="Renew your driver's license online"
+              copy="Complete the renewal flow, verify requirements, and reserve an in-person appointment if your renewal requires updated photo or vision review."
+            >
+              <div className="portal-card rounded-[2rem] p-6 ring-1 ring-white/40">
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">Estimated time</p>
+                <p className="mt-3 text-4xl font-semibold text-slate-900">~10 min</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Most residents can complete the renewal online and receive a confirmation email immediately.</p>
+                <a href="#wizard" className="mt-5 inline-flex rounded-full bg-sky-900 px-5 py-3 text-sm font-semibold text-white">
+                  Start renewal steps
+                </a>
+              </div>
+            </Hero>
+
+            <section id="wizard" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+              <SectionHeading
+                eyebrow="Renewal wizard"
+                title="Follow each step to complete your renewal"
+                copy="This mockup presents the same information residents need in order: eligibility, documents, fees, scheduling, and confirmation."
+              />
+              <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr]">
+                <div className="portal-card rounded-[2rem] p-6 ring-1 ring-slate-200/70">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">Steps</p>
+                  <div className="mt-4 space-y-3">
+                    {steps.map((step, index) => (
+                      <div key={step} className={`rounded-[1.25rem] px-4 py-4 ${index === 0 ? "bg-sky-900 text-white" : "bg-slate-50 text-slate-700 ring-1 ring-slate-200"}`}>
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em]">{`Step ${index + 1}`}</p>
+                        <p className="mt-2 text-base font-semibold">{step}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="portal-card rounded-[2rem] p-6 ring-1 ring-slate-200/70">
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">Eligibility checker</p>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      {["Age 18 or older", "Current license expires within 12 months", "No suspension on record", "Residency address is up to date"].map((item) => (
+                        <label key={item} className="form-chip flex items-center gap-3 rounded-[1.25rem] bg-slate-50 px-4 py-4 ring-1 ring-slate-200">
+                          <input type="checkbox" checked readOnly className="h-5 w-5 rounded border-slate-300 text-sky-900" />
+                          <span className="text-sm font-medium text-slate-700">{item}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="portal-card rounded-[2rem] p-6 ring-1 ring-slate-200/70">
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">Required documents</p>
+                      <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+                        {documents.map((doc) => (
+                          <li key={doc} className="rounded-[1.1rem] bg-slate-50 px-4 py-3 ring-1 ring-slate-200">{doc}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="portal-card rounded-[2rem] p-6 ring-1 ring-slate-200/70">
+                      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">Fee breakdown</p>
+                      <div className="mt-4 space-y-3 rounded-[1.25rem] bg-slate-50 p-5 ring-1 ring-slate-200">
+                        <div className="flex items-center justify-between text-sm text-slate-600">
+                          <span>License renewal fee</span>
+                          <span className="font-semibold text-slate-900">$35.00</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-slate-600">
+                          <span>Online processing</span>
+                          <span className="font-semibold text-slate-900">$0.00</span>
+                        </div>
+                        <div className="h-px bg-slate-200" />
+                        <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+                          <span>Total due today</span>
+                          <span>$35.00</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="portal-card rounded-[2rem] p-6 ring-1 ring-slate-200/70">
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">Appointment scheduler</p>
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                      {appointments.map(([day, ...times]) => (
+                        <div key={day} className="rounded-[1.4rem] bg-slate-50 p-4 ring-1 ring-slate-200">
+                          <p className="text-lg font-semibold text-slate-900">{day}</p>
+                          <div className="mt-3 space-y-2">
+                            {times.map((time) => (
+                              <button key={time} type="button" className="w-full rounded-full bg-white px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">
+                                {time}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="calm-stripe rounded-[2rem] p-6 ring-1 ring-sky-100">
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">Confirmation email summary</p>
+                    <div className="mt-4 rounded-[1.5rem] bg-white p-5 ring-1 ring-slate-200">
+                      <p className="text-lg font-semibold text-slate-900">Subject: Vermont License Renewal Received</p>
+                      <p className="mt-3 text-sm leading-7 text-slate-600">
+                        Thank you for renewing your driver's license. Your payment of $35 has been received. Appointment details and next steps will be sent if an in-person visit is required. A temporary renewal confirmation is available in your portal inbox.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </Shell>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

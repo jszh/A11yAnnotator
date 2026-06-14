@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Technology — The Pulse</title>
+  <meta name="description" content="Tech news, AI breakthroughs, gadget reviews, cybersecurity, and the future of computing." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['"Playfair Display"', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body style="background:#0D1117; color:#E6EDF3;">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="../components/components.js" data-presets="react"></script>
+
+  <script type="text/babel" data-presets="react">
+    window.BASE_PATH = '../';
+
+    /* Tech uses a dark/neon theme inspired by The Verge */
+
+    /* Tech Hero — neon dark-mode card grid */
+    const TechHero = ({ stories }) => (
+      <section className="px-4 py-8 max-w-screen-2xl mx-auto" aria-label="Featured tech stories">
+        <div className="grid grid-cols-12 gap-4">
+          {/* Main feature */}
+          <article className="col-span-12 lg:col-span-8 tech-panel rounded-2xl overflow-hidden">
+            <div className="relative aspect-video overflow-hidden">
+              <img src={stories[0]?.mediaUrl} alt="" className="w-full h-full object-cover opacity-70" loading="eager" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="badge-breaking">BREAKING</span>
+                  <span className="cat-label" style={{ background: '#7C3AED', color: '#fff' }}>AI</span>
+                </div>
+                <a href={R('article/article.html')}>
+                  <h1 className="text-2xl md:text-3xl font-bold text-white hover:text-orange-400 transition-colors leading-tight">{stories[0]?.title}</h1>
+                </a>
+                <p className="text-slate-300 mt-2 text-sm line-clamp-2">{stories[0]?.summary}</p>
+                <div className="flex items-center gap-3 mt-3 text-xs text-slate-400">
+                  <span>{stories[0]?.author}</span>
+                  <span>·</span>
+                  <time>{stories[0]?.publishTime}</time>
+                  <span>·</span>
+                  <span>{stories[0]?.readLength}</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          {/* Side 4 cards */}
+          <div className="col-span-12 lg:col-span-4 grid grid-rows-2 gap-4">
+            {stories.slice(1, 3).map((story) => (
+              <article key={story.id} className="tech-panel rounded-xl overflow-hidden">
+                <div className="relative overflow-hidden" style={{ height: '120px' }}>
+                  <img src={story.mediaUrl} alt="" className="w-full h-full object-cover opacity-60" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <span className="cat-label" style={{ background: '#7C3AED', color: '#fff' }}>{story.categoryLabel}</span>
+                    <a href={R('article/article.html')}>
+                      <h3 className="text-white text-sm font-bold mt-1 hover:text-orange-400 transition-colors line-clamp-2">{story.title}</h3>
+                    </a>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+
+    /* Tech Category Tabs */
+    const TECH_CATS = ['All', 'AI & Machine Learning', 'Cybersecurity', 'Hardware', 'Software', 'Space Tech', 'EVs & Mobility', 'Startups'];
+
+    /* Dark Story Card */
+    const DarkStoryCard = ({ story }) => (
+      <article className="tech-panel rounded-xl overflow-hidden flex flex-col" style={{ border: '1px solid #21262D' }}>
+        <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
+          <img src={story.mediaUrl} alt="" className="w-full h-full object-cover opacity-70 transition-transform duration-300 hover:scale-105" loading="lazy" />
+          {story.isBreaking && (
+            <div className="absolute top-3 left-3">
+              <span className="badge-breaking">BREAKING</span>
+            </div>
+          )}
+        </div>
+        <div className="p-4 flex flex-col flex-1">
+          <span className="cat-label" style={{ background: '#7C3AED', color: '#fff', marginBottom: '8px', display: 'inline-block' }}>
+            {story.categoryLabel}
+          </span>
+          <a href={R('article/article.html')}>
+            <h3 className="font-bold text-base leading-snug hover:text-orange-400 transition-colors" style={{ color: '#E6EDF3' }}>
+              {story.title}
+            </h3>
+          </a>
+          <p className="text-sm mt-2 line-clamp-2" style={{ color: '#8B949E' }}>{story.summary}</p>
+          <div className="mt-auto pt-3 flex items-center gap-2 text-xs" style={{ color: '#6E7681' }}>
+            <span style={{ color: '#C9D1D9', fontWeight: 600 }}>{story.author}</span>
+            <span>·</span>
+            <time>{story.publishTime}</time>
+            <span>·</span>
+            <span>{story.readLength}</span>
+          </div>
+        </div>
+      </article>
+    );
+
+    /* Trending Tech widget */
+    const TrendingTech = ({ stories }) => (
+      <aside style={{ background: '#161B22', border: '1px solid #21262D', borderRadius: '8px', overflow: 'hidden', marginBottom: '1.5rem' }}
+        aria-label="Trending in tech">
+        <div style={{ background: '#21262D', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8B949E' }}>
+          Trending in Tech
+        </div>
+        <div style={{ padding: '12px 16px' }}>
+          {stories.slice(0, 5).map((story, i) => (
+            <div key={story.id} style={{ display: 'flex', gap: '12px', padding: '10px 0', borderBottom: '1px solid #21262D' }}
+              className="last:border-0">
+              <span style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.5rem', fontWeight: 900, color: '#30363D', lineHeight: 1, flexShrink: 0, minWidth: '28px' }}>
+                {i + 1}
+              </span>
+              <div>
+                <a href={R('article/article.html')}>
+                  <h4 style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#C9D1D9', lineHeight: 1.3 }}
+                    className="hover:text-orange-400 transition-colors">
+                    {story.title}
+                  </h4>
+                </a>
+                <p style={{ fontSize: '0.75rem', color: '#6E7681', marginTop: '4px' }}>{story.engagementMetrics.views} views · {story.publishTime}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </aside>
+    );
+
+    const App = () => {
+      const [cat, setCat] = React.useState('All');
+      const techStories = ALL_STORIES.filter(s => s.category === 'tech');
+      const allStories = ALL_STORIES;
+
+      return (
+        <div style={{ background: '#0D1117', minHeight: '100vh', color: '#E6EDF3' }}>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+          <GlobalUtilityBar />
+          <BrandHeader currentCategory="tech" />
+          <CategoryNav currentCategory="tech" />
+
+          {/* Tech page banner */}
+          <div style={{ background: 'linear-gradient(135deg, #0D1117 0%, #161B22 50%, #0D1117 100%)', borderBottom: '1px solid #21262D', padding: '40px 16px' }}>
+            <div className="max-w-screen-2xl mx-auto">
+              <p style={{ color: '#F97316', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '8px' }}>
+                Technology
+              </p>
+              <h1 style={{ fontFamily: '"Playfair Display", serif', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700, color: '#E6EDF3', lineHeight: 1.1 }}>
+                The Future is <span style={{ color: '#F97316' }}>Now</span>
+              </h1>
+              <p style={{ color: '#8B949E', marginTop: '12px', fontSize: '1rem' }}>
+                AI, hardware, cybersecurity, and the tech shaping tomorrow.
+              </p>
+            </div>
+          </div>
+
+          <LiveTicker />
+
+          {/* Section filter */}
+          <div style={{ borderBottom: '1px solid #21262D', overflowX: 'auto' }} role="tablist" aria-label="Tech category filter">
+            <div className="max-w-screen-2xl mx-auto px-4 flex gap-0">
+              {TECH_CATS.map((c) => (
+                <button
+                  key={c}
+                  role="tab"
+                  aria-selected={cat === c}
+                  onClick={() => setCat(c)}
+                  style={{
+                    flexShrink: 0, padding: '12px 16px',
+                    fontSize: '0.8125rem', fontWeight: 600,
+                    borderBottom: cat === c ? '2px solid #F97316' : '2px solid transparent',
+                    color: cat === c ? '#F97316' : '#8B949E',
+                    background: 'transparent', border: 'none',
+                    borderBottom: cat === c ? '2px solid #F97316' : '2px solid transparent',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                    transition: 'color 150ms',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => { e.target.style.outline = '3px solid #3B82F6'; e.target.style.outlineOffset = '-2px'; }}
+                  onBlur={(e) => { e.target.style.outline = 'none'; }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <main id="main-content" tabIndex="-1">
+            <TechHero stories={techStories.concat(allStories.slice(0, 4))} />
+
+            <section className="max-w-screen-2xl mx-auto px-4 py-4">
+              <div className="flex gap-8">
+                {/* Main */}
+                <div className="flex-1 min-w-0">
+                  {/* Dark grid */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', borderBottom: '2px solid #21262D', paddingBottom: '10px' }}>
+                    <span style={{ display: 'inline-block', width: '4px', height: '24px', background: '#F97316', borderRadius: '2px' }} />
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C9D1D9' }}>
+                      Latest in Tech
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {techStories.concat(allStories.slice(0, 5)).slice(0, 6).map((story) => (
+                      <DarkStoryCard key={story.id} story={story} />
+                    ))}
+                  </div>
+
+                  {/* Tech highlight — dark feature banner */}
+                  <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '16px', marginTop: '2.5rem', minHeight: '320px', display: 'flex', alignItems: 'flex-end', border: '1px solid #21262D' }}>
+                    <img src={techStories[3]?.mediaUrl || allStories[19]?.mediaUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #0D1117 0%, transparent 100%)' }} />
+                    <div style={{ position: 'relative', zIndex: 10, padding: '2rem' }}>
+                      <span style={{ display: 'inline-block', background: '#F97316', color: '#fff', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '4px', marginBottom: '12px' }}>
+                        Deep Dive
+                      </span>
+                      <a href={R('article/article.html')}>
+                        <h2 style={{ fontFamily: '"Playfair Display", serif', fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', fontWeight: 700, color: '#E6EDF3', lineHeight: 1.15, maxWidth: '600px' }}
+                          className="hover:text-orange-400 transition-colors">
+                          {techStories[3]?.title || allStories[19]?.title}
+                        </h2>
+                      </a>
+                      <p style={{ color: '#8B949E', marginTop: '12px', maxWidth: '500px', fontSize: '0.9375rem' }}>
+                        {techStories[3]?.summary || allStories[19]?.summary}
+                      </p>
+                      <a href={R('article/article.html')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '20px', padding: '10px 20px', background: '#F97316', color: '#fff', borderRadius: '6px', fontWeight: 700, fontSize: '0.875rem', textDecoration: 'none' }}
+                        className="hover:opacity-90 transition-opacity">
+                        Read Full Story →
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* More stories row */}
+                  <div style={{ marginTop: '2.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', borderBottom: '2px solid #21262D', paddingBottom: '10px' }}>
+                      <span style={{ display: 'inline-block', width: '4px', height: '24px', background: '#7C3AED', borderRadius: '2px' }} />
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#C9D1D9' }}>
+                        AI & Machine Learning
+                      </span>
+                    </div>
+                    <div className="scroll-row">
+                      {allStories.slice(3, 9).map((story) => (
+                        <div key={story.id} style={{ width: '260px' }}>
+                          <DarkStoryCard story={story} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sidebar */}
+                <aside className="hidden xl:block w-80 flex-shrink-0" style={{ marginTop: '0' }}>
+                  <TrendingTech stories={techStories.concat(allStories.slice(0,2))} />
+                  <div style={{ background: '#161B22', border: '1px solid #21262D', borderRadius: '8px', overflow: 'hidden', marginBottom: '1.5rem' }} aria-label="Tech newsletter">
+                    <div style={{ background: '#21262D', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8B949E' }}>
+                      Tech Morning Brief
+                    </div>
+                    <div style={{ padding: '16px' }}>
+                      <p style={{ fontSize: '0.875rem', color: '#8B949E', marginBottom: '12px' }}>
+                        The most important tech stories, every weekday morning.
+                      </p>
+                      <form onSubmit={(e) => e.preventDefault()}>
+                        <label htmlFor="tech-email" className="sr-only">Email address</label>
+                        <input id="tech-email" type="email" placeholder="your@email.com" required
+                          style={{ width: '100%', background: '#21262D', border: '1px solid #30363D', color: '#E6EDF3', borderRadius: '6px', padding: '8px 12px', fontSize: '0.875rem', marginBottom: '8px', outline: 'none' }}
+                          onFocus={(e) => { e.target.style.border = '1px solid #F97316'; }}
+                          onBlur={(e) => { e.target.style.border = '1px solid #30363D'; }}
+                        />
+                        <button type="submit" style={{ width: '100%', background: '#F97316', color: '#fff', border: 'none', borderRadius: '6px', padding: '9px', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer' }}>
+                          Subscribe Free
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                  <div style={{ background: '#161B22', border: '1px dashed #30363D', borderRadius: '8px', minHeight: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    role="complementary" aria-label="Advertisement">
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#6E7681', border: '1px solid #30363D', padding: '1px 6px', borderRadius: '2px', marginBottom: '8px', display: 'inline-block' }}>
+                        Advertisement
+                      </p>
+                      <p style={{ fontSize: '0.75rem', color: '#6E7681' }}>300×250</p>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </section>
+          </main>
+
+          {/* Dark subscription CTA */}
+          <div style={{ background: 'linear-gradient(135deg, #161B22 0%, #0D1117 100%)', borderTop: '1px solid #21262D', padding: '4rem 1rem', marginTop: '2rem' }}>
+            <div className="max-w-screen-2xl mx-auto text-center">
+              <p style={{ color: '#F97316', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '12px' }}>
+                The Pulse Tech
+              </p>
+              <h2 style={{ fontFamily: '"Playfair Display", serif', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 700, color: '#E6EDF3', lineHeight: 1.1 }}>
+                Stay ahead of the curve.
+              </h2>
+              <p style={{ color: '#8B949E', marginTop: '12px', maxWidth: '480px', margin: '12px auto 0' }}>
+                Subscribe for ad-free, in-depth tech coverage from our expert team.
+              </p>
+              <a href={R('subscribe/subscribe.html')}
+                style={{ display: 'inline-block', marginTop: '24px', padding: '12px 32px', background: '#F97316', color: '#fff', borderRadius: '6px', fontWeight: 700, fontSize: '1rem', textDecoration: 'none' }}
+                className="hover:opacity-90 transition-opacity">
+                Start Free Trial
+              </a>
+            </div>
+          </div>
+
+          <Footer />
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

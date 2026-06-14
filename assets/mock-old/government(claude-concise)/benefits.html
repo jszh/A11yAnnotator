@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Benefits & Assistance – CivicGate | Westfield County</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { gov: { DEFAULT:"#1a4480", dark:"#0d2b5e" } },
+          fontFamily: { sans:["Inter","system-ui","sans-serif"] }
+        }
+      }
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 antialiased">
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const NAV = [
+  { label:"Home",     href:"index.html" },
+  { label:"Services", href:"services.html" },
+  { label:"About",    href:"about.html" },
+  { label:"Contact",  href:"contact.html" },
+];
+
+function AlertBanner() {
+  const [visible, setVisible] = useState(true);
+  if (!visible) return null;
+  return (
+    <div className="bg-amber-50 border-b-2 border-amber-300" role="alert">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-start sm:items-center gap-3">
+        <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+        <p className="text-sm text-amber-900 flex-1"><strong>Service Alert:</strong> Online permit portal maintenance Saturday, March 1, 2–4 AM. <a href="#" className="underline font-semibold">Details →</a></p>
+        <button onClick={() => setVisible(false)} className="text-amber-600 hover:text-amber-900 shrink-0 transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+    </div>
+  );
+}
+
+function Header({ active }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  return (
+    <header>
+      <div className="bg-slate-900 border-b border-slate-700"><div className="max-w-7xl mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-between"><div className="flex items-center gap-1.5 text-xs text-slate-400"><svg className="w-3 h-3 text-blue-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd"/></svg><span>Official government portal — Westfield County, California</span></div><div className="hidden sm:flex items-center gap-4 text-xs text-slate-400"><a href="#" className="hover:text-white">Español</a><a href="#" className="hover:text-white">♿ Accessibility</a><a href="#" className="bg-blue-700 hover:bg-blue-600 text-white px-2.5 py-1 rounded font-medium">Resident Sign In</a></div></div></div>
+      <div className="bg-slate-800 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+          <a href="index.html" className="flex items-center gap-3 shrink-0"><div className="w-11 h-11 bg-blue-700 rounded-lg flex items-center justify-center"><svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd"/></svg></div><div><p className="text-white font-bold text-lg leading-tight">Westfield County</p><p className="text-blue-300 text-xs">CivicGate Resident Portal</p></div></a>
+          <nav className="hidden md:flex items-center gap-1">{NAV.map(item => <a key={item.href} href={item.href} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${active === item.href ? "bg-blue-700 text-white" : "text-slate-200 hover:bg-slate-700 hover:text-white"}`}>{item.label}</a>)}</nav>
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden text-slate-300 hover:text-white p-2 rounded-lg hover:bg-slate-700"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}/></svg></button>
+        </div>
+        {mobileOpen && <div className="md:hidden border-t border-slate-700 px-4 py-3 space-y-1">{NAV.map(item => <a key={item.href} href={item.href} className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-medium ${active === item.href ? "bg-blue-700 text-white" : "text-slate-200 hover:bg-slate-700"}`}>{item.label}</a>)}</div>}
+      </div>
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-slate-900 text-slate-400 mt-16">
+      <div className="bg-slate-800 border-b border-slate-700"><div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-start gap-3"><span className="text-blue-400 text-xl">🏛️</span><div><p className="text-sm text-white font-semibold">Official Website of Westfield County, California</p><p className="text-xs text-slate-400 mt-0.5">For emergencies call <strong className="text-slate-300">911</strong>. County non-emergency: <strong className="text-slate-300">(559) 555-0100</strong>.</p></div></div></div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
+        {[{title:"Services",links:[["Permits & Licensing","permits.html"],["Benefits & Assistance","benefits.html"],["Tax Payments","services.html"]]},{title:"Government",links:[["About","about.html"],["Departments","about.html"],["Public Records","about.html"]]},{title:"Community",links:[["News","#"],["Events","#"],["Parks","#"]]},{title:"Help",links:[["Contact Us","contact.html"],["FAQ","contact.html"],["Accessibility","#"]]}].map(col => (
+          <div key={col.title}><p className="text-white text-sm font-semibold mb-3 pb-2 border-b border-slate-700">{col.title}</p><ul className="space-y-2">{col.links.map(([l,h]) => <li key={l}><a href={h} className="text-xs hover:text-white hover:underline transition-colors">{l}</a></li>)}</ul></div>
+        ))}
+      </div>
+      <div className="border-t border-slate-800"><div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500"><span>© 2026 Westfield County, California. All rights reserved.</span><div className="flex gap-3">{["Privacy Policy","Terms of Use","Accessibility"].map(l => <a key={l} href="#" className="hover:text-slate-300">{l}</a>)}</div></div></div>
+    </footer>
+  );
+}
+
+function Breadcrumb({ items }) {
+  return (
+    <nav className="bg-white border-b border-slate-200" aria-label="Breadcrumb">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-1.5 text-sm flex-wrap">
+        <a href="index.html" className="text-blue-700 hover:underline">Home</a>
+        {items.map((item, i) => (
+          <React.Fragment key={i}>
+            <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+            {item.href ? <a href={item.href} className="text-blue-700 hover:underline">{item.label}</a> : <span className="text-slate-500">{item.label}</span>}
+          </React.Fragment>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+function AccordionItem({ question, answer }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-slate-200 rounded-xl overflow-hidden">
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left bg-white hover:bg-slate-50 transition-colors">
+        <span className="font-semibold text-slate-800 text-sm pr-4">{question}</span>
+        <svg className={`w-5 h-5 text-slate-500 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      {open && (
+        <div className="px-5 pb-5 pt-0 bg-white border-t border-slate-100">
+          <p className="text-sm text-slate-600 leading-relaxed">{answer}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const PROGRAMS = [
+  {
+    icon:"🏠", color:"bg-blue-50 border-blue-200",
+    badge:"bg-blue-100 text-blue-700",
+    name:"Emergency Housing Assistance",
+    desc:"Short-term rental and utility assistance for residents at risk of eviction or homelessness due to financial hardship.",
+    eligibility:"Westfield County resident, income ≤ 50% AMI, documented financial hardship",
+    amount:"Up to $2,500 once per 12 months",
+    time:"5–7 business days",
+  },
+  {
+    icon:"🍽️", color:"bg-emerald-50 border-emerald-200",
+    badge:"bg-emerald-100 text-emerald-700",
+    name:"CalFresh / SNAP Food Benefits",
+    desc:"Monthly food assistance benefits loaded onto an EBT card, administered through the California Department of Social Services.",
+    eligibility:"Household income ≤ 130% federal poverty level; citizenship/immigration status requirements apply",
+    amount:"$23–$1,751/month (household size dependent)",
+    time:"30 days (7 days expedited if urgent)",
+  },
+  {
+    icon:"💊", color:"bg-purple-50 border-purple-200",
+    badge:"bg-purple-100 text-purple-700",
+    name:"Medi-Cal Health Coverage",
+    desc:"Low- or no-cost health insurance for eligible adults, children, pregnant women, seniors, and people with disabilities.",
+    eligibility:"Income ≤ 138% FPL for adults (higher for children/pregnant women); California resident",
+    amount:"Free to low-cost premiums; most services $0 copay",
+    time:"45 days (90 days for disability)",
+  },
+  {
+    icon:"💡", color:"bg-amber-50 border-amber-200",
+    badge:"bg-amber-100 text-amber-700",
+    name:"LIHEAP Utility Assistance",
+    desc:"Low Income Home Energy Assistance Program helps eligible households pay heating and cooling bills.",
+    eligibility:"Income ≤ 60% State Median Income; primary home in Westfield County",
+    amount:"Up to $1,000 per program year",
+    time:"10–15 business days",
+  },
+  {
+    icon:"👶", color:"bg-pink-50 border-pink-200",
+    badge:"bg-pink-100 text-pink-700",
+    name:"CalWORKs Cash Assistance",
+    desc:"Cash aid and employment services for families with children when parents are unemployed or underemployed.",
+    eligibility:"Family with child(ren) under 18; income and asset limits apply; U.S. citizen or qualified immigrant",
+    amount:"$728–$1,222/month (family size dependent)",
+    time:"45 days from application",
+  },
+  {
+    icon:"🧓", color:"bg-slate-100 border-slate-300",
+    badge:"bg-slate-200 text-slate-700",
+    name:"Senior Services Support",
+    desc:"In-home support services, meal delivery, transportation assistance, and caregiver respite for adults 65+.",
+    eligibility:"Age 65+ or adults with disabilities; Westfield County resident; functional need assessment required",
+    amount:"Varies by service type",
+    time:"Assessment within 10 days",
+  },
+];
+
+const STEPS = [
+  { num:1, title:"Check Eligibility", desc:"Review the eligibility criteria for the program(s) you're interested in. Use our online eligibility screener for a quick estimate — it takes about 5 minutes." },
+  { num:2, title:"Gather Documents", desc:"Collect required documents: proof of identity, residency, income (pay stubs, tax returns), and any program-specific requirements like a utility bill or lease agreement." },
+  { num:3, title:"Submit Application", desc:"Apply online through the BenefitsCal portal, by phone at (559) 555-0300, or in person at the Human Services Building. Applications are accepted Mon–Fri." },
+  { num:4, title:"Interview (if required)", desc:"Some programs require a brief phone or in-person interview to verify your information. You'll be notified if an interview is needed within 5 business days of your application." },
+  { num:5, title:"Receive Decision", desc:"You'll receive a written notice of approval or denial. If approved, benefits begin on your eligibility date. If denied, the notice will explain the reason and your appeal rights." },
+];
+
+const FAQS = [
+  { q:"How do I know which programs I qualify for?", a:"Use our Benefits Eligibility Screener (linked above) for a quick overview. For a comprehensive assessment, contact the Human Services Department at (559) 555-0300 or visit our office. A case worker will review all programs for which you may be eligible." },
+  { q:"Will applying for benefits affect my immigration status?", a:'California "public charge" rules protect most residents. Medi-Cal, CalFresh, and most county programs are not considered "public charge" programs and will not negatively impact your immigration case. We recommend consulting an immigration attorney if you have specific concerns. Our office can provide referrals to free legal aid.' },
+  { q:"What if I need help right away — can I get emergency assistance?", a:"Yes. If you are facing an immediate crisis such as eviction, utility shutoff, or lack of food, contact our office immediately at (559) 555-0300 or walk in during business hours. Expedited CalFresh processing is available within 7 days for urgent cases. Emergency housing assistance can often be processed within 48–72 hours." },
+  { q:"Can I apply for multiple programs at once?", a:"Yes. We encourage you to apply for all programs for which you may be eligible in a single visit or application session. Our case workers are trained to identify all potential benefits and can submit multiple applications on your behalf." },
+  { q:"What happens if my income or household situation changes?", a:"You are required to report changes within 10 days for most programs. Changes may increase, decrease, or end your benefits. Report changes online through your BenefitsCal account, by phone, or in person. Failing to report changes may result in overpayment recovery or program termination." },
+  { q:"What if my application is denied?", a:"You have the right to appeal any denial or reduction in benefits. You must request a State Hearing within 90 days of receiving your denial notice (or 30 days to receive benefits while the hearing is pending, if eligible). Contact our Appeals Unit at (559) 555-0301 or request a hearing form at the front desk." },
+];
+
+function EligibilityChecker() {
+  const [answers, setAnswers] = useState({ resident: null, income: null, household: null });
+  const [result, setResult] = useState(null);
+
+  const allAnswered = Object.values(answers).every(v => v !== null);
+
+  function check() {
+    const programs = [];
+    if (answers.resident === "yes") {
+      if (answers.income === "low" || answers.income === "very-low") programs.push("CalFresh / SNAP", "Medi-Cal", "LIHEAP Utility Assistance");
+      if (answers.income === "very-low") programs.push("Emergency Housing Assistance", "CalWORKs Cash Assistance");
+      if (answers.household === "children") programs.push("CalWORKs Cash Assistance", "CalFresh / SNAP");
+      if (answers.household === "seniors") programs.push("Senior Services Support", "Medi-Cal");
+    }
+    setResult(answers.resident === "no" ? [] : [...new Set(programs)]);
+  }
+
+  const Q = [
+    {
+      key:"resident",
+      q:"Are you a current Westfield County resident?",
+      opts:[["yes","Yes"],["no","No"]],
+    },
+    {
+      key:"income",
+      q:"What is your approximate household income level?",
+      opts:[["very-low","Very low (below $25k/year)"],["low","Low-moderate ($25k–$55k)"],["moderate","Moderate ($55k+)"]],
+    },
+    {
+      key:"household",
+      q:"Does your household include any of the following?",
+      opts:[["children","Children under 18"],["seniors","Adults 65+ or with disabilities"],["neither","Neither"]],
+    },
+  ];
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+      <div className="bg-blue-700 px-6 py-4">
+        <h3 className="text-white font-bold text-base">Benefits Eligibility Screener</h3>
+        <p className="text-blue-200 text-sm mt-0.5">Answer 3 quick questions to see which programs may apply to you.</p>
+      </div>
+      <div className="p-6 space-y-5">
+        {Q.map(({ key, q, opts }) => (
+          <div key={key}>
+            <p className="text-sm font-semibold text-slate-700 mb-2">{q}</p>
+            <div className="flex flex-wrap gap-2">
+              {opts.map(([val, label]) => (
+                <button key={val} onClick={() => { setAnswers(a => ({ ...a, [key]: val })); setResult(null); }}
+                  className={`px-3.5 py-2 rounded-lg text-sm border font-medium transition-colors ${answers[key] === val ? "bg-blue-700 text-white border-blue-700" : "bg-white text-slate-600 border-slate-300 hover:border-blue-400"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {allAnswered && !result && (
+          <button onClick={check} className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-xl text-sm transition-colors">
+            Check My Eligibility →
+          </button>
+        )}
+
+        {result !== null && (
+          <div className={`rounded-xl p-4 ${result.length > 0 ? "bg-emerald-50 border border-emerald-200" : "bg-slate-50 border border-slate-200"}`}>
+            {result.length > 0 ? (
+              <>
+                <p className="text-emerald-800 font-semibold text-sm mb-2">You may qualify for {result.length} program{result.length !== 1 ? "s" : ""}:</p>
+                <ul className="space-y-1">
+                  {result.map(p => (
+                    <li key={p} className="flex items-center gap-2 text-sm text-emerald-700">
+                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-emerald-700 mt-3">This is an estimate only. Contact our office to confirm eligibility and apply.</p>
+              </>
+            ) : (
+              <p className="text-slate-600 text-sm">Based on your answers, you may not qualify for county assistance programs. Contact us at (559) 555-0300 — a case worker can identify additional state or federal options.</p>
+            )}
+            <button onClick={() => { setAnswers({ resident: null, income: null, household: null }); setResult(null); }}
+              className="mt-3 text-xs text-blue-700 hover:underline font-semibold">Start over</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BenefitsPage() {
+  const [activeTab, setActiveTab] = useState("programs");
+  const [helpful, setHelpful] = useState(null);
+
+  return (
+    <>
+      <AlertBanner />
+      <Header active="services.html" />
+      <Breadcrumb items={[{ label:"Services", href:"services.html" }, { label:"Benefits & Assistance" }]} />
+
+      {/* Service hero */}
+      <div className="bg-blue-800 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 bg-blue-700 rounded-xl flex items-center justify-center text-3xl shrink-0">🤝</div>
+            <div>
+              <p className="text-blue-200 text-sm font-semibold uppercase tracking-wider mb-1">Westfield County — Human Services Department</p>
+              <h1 className="text-2xl md:text-3xl font-bold leading-tight">Benefits & Assistance</h1>
+              <p className="text-blue-200 mt-2 text-sm leading-relaxed max-w-2xl">Financial aid, food assistance, healthcare, housing support, and social services for Westfield County residents in need. Our goal is to connect you with the help you deserve.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Info strip */}
+      <div className="bg-blue-900 text-blue-100 border-b border-blue-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap gap-6 text-xs font-medium">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+            <span>Online applications available</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Processing: 7–45 business days</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            <span>Help: (559) 555-0300</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+            <span>Services in 20+ languages</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main layout */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col lg:flex-row gap-8">
+        {/* Content */}
+        <main className="flex-1 min-w-0">
+          {/* Tabs */}
+          <div className="flex border-b border-slate-200 mb-8 overflow-x-auto">
+            {[["programs","Programs"],["apply","How to Apply"],["eligibility","Eligibility"],["faq","FAQ"]].map(([id, label]) => (
+              <button key={id} onClick={() => setActiveTab(id)}
+                className={`shrink-0 px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === id ? "border-blue-700 text-blue-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === "programs" && (
+            <div className="space-y-8">
+              <div>
+                <p className="text-slate-700 leading-relaxed">Westfield County Human Services administers a range of state and county-funded programs to help residents meet basic needs. Programs are confidential, and our staff are trained to help you navigate the process with dignity and respect.</p>
+              </div>
+
+              {/* Urgency callout */}
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
+                <svg className="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                <div>
+                  <p className="text-sm font-semibold text-red-900">Facing an emergency?</p>
+                  <p className="text-sm text-red-800 mt-0.5">If you need immediate help with food, shelter, or utilities, call <strong>(559) 555-0300</strong> or walk in Mon–Fri, 8 AM–5 PM. Emergency cases are prioritized same-day.</p>
+                </div>
+              </div>
+
+              {/* Program cards */}
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 mb-4">Available Programs</h2>
+                <div className="space-y-3">
+                  {PROGRAMS.map(prog => (
+                    <div key={prog.name} className={`border ${prog.color} rounded-xl p-5 hover:shadow-sm transition-all`}>
+                      <div className="flex items-start gap-4">
+                        <span className="text-3xl shrink-0">{prog.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                            <h3 className="font-bold text-slate-800">{prog.name}</h3>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${prog.badge}`}>Online Available</span>
+                          </div>
+                          <p className="text-sm text-slate-600 leading-relaxed mb-3">{prog.desc}</p>
+                          <div className="grid sm:grid-cols-3 gap-2 text-xs">
+                            <div className="bg-white bg-opacity-70 rounded-lg px-3 py-2">
+                              <p className="text-slate-500 uppercase tracking-wide text-[10px] font-semibold mb-0.5">Eligibility</p>
+                              <p className="text-slate-700">{prog.eligibility}</p>
+                            </div>
+                            <div className="bg-white bg-opacity-70 rounded-lg px-3 py-2">
+                              <p className="text-slate-500 uppercase tracking-wide text-[10px] font-semibold mb-0.5">Benefit Amount</p>
+                              <p className="text-slate-700 font-semibold">{prog.amount}</p>
+                            </div>
+                            <div className="bg-white bg-opacity-70 rounded-lg px-3 py-2">
+                              <p className="text-slate-500 uppercase tracking-wide text-[10px] font-semibold mb-0.5">Processing Time</p>
+                              <p className="text-slate-700">{prog.time}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "apply" && (
+            <div className="space-y-6">
+              <p className="text-slate-600 leading-relaxed">Most county benefits can be applied for online, by phone, or in person. The steps below apply to most programs. Some state-administered programs (CalFresh, Medi-Cal, CalWORKs) use the statewide BenefitsCal portal.</p>
+
+              <div className="space-y-0">
+                {STEPS.map((step, i) => (
+                  <div key={step.num} className="flex gap-5 pb-8 last:pb-0 relative">
+                    {i < STEPS.length - 1 && <div className="absolute left-[17px] top-10 bottom-0 w-0.5 bg-slate-200" />}
+                    <div className="shrink-0">
+                      <div className="w-9 h-9 rounded-full bg-blue-700 text-white font-bold text-sm flex items-center justify-center relative z-10">{step.num}</div>
+                    </div>
+                    <div className="flex-1 pt-1.5">
+                      <h3 className="font-bold text-slate-800 mb-1.5">{step.title}</h3>
+                      <p className="text-sm text-slate-600 leading-relaxed">{step.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Documents */}
+              <div className="bg-white border border-slate-200 rounded-xl p-5">
+                <h3 className="font-bold text-slate-800 mb-3">Common Documents Needed</h3>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {["Government-issued photo ID (driver's license, passport)","Proof of Westfield County residency (utility bill, lease)","Social Security numbers for all household members","Past 3 months' pay stubs or proof of income","Recent bank statements (last 30–60 days)","Utility bills (for LIHEAP energy assistance)","Lease or mortgage statement","Birth certificates for children in household"].map((doc, i) => (
+                    <div key={i} className="flex items-start gap-2 text-sm">
+                      <div className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <svg className="w-3 h-3 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>
+                      </div>
+                      <span className="text-slate-700">{doc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-blue-700 rounded-2xl p-6 text-white text-center">
+                <h3 className="text-xl font-bold mb-2">Ready to Apply?</h3>
+                <p className="text-blue-200 text-sm mb-5">Apply online through BenefitsCal, call us at (559) 555-0300, or visit the Human Services Building (Mon–Fri, 8 AM–5 PM).</p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button className="bg-white text-blue-700 font-bold px-6 py-3 rounded-xl hover:bg-blue-50 transition-colors text-sm">Apply via BenefitsCal</button>
+                  <a href="contact.html" className="bg-blue-600 text-white border border-blue-500 font-semibold px-6 py-3 rounded-xl hover:bg-blue-500 transition-colors text-sm">Schedule an Appointment</a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "eligibility" && (
+            <div className="space-y-6">
+              <p className="text-slate-600 leading-relaxed">Eligibility varies by program and is based on factors including income, household composition, residency, and citizenship/immigration status. Use the screener below for a quick estimate.</p>
+
+              <EligibilityChecker />
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+                <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/></svg>
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">About the screener</p>
+                  <p className="text-sm text-amber-800 mt-0.5">This tool provides a general estimate only and does not guarantee eligibility. Official determination is made by a case worker after a complete application review.</p>
+                </div>
+              </div>
+
+              {/* Income table */}
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100">
+                  <h3 className="font-bold text-slate-800">2026 Income Eligibility Guidelines</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Based on Federal Poverty Level (FPL). Updated January 1, 2026.</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                      <tr>
+                        <th className="px-5 py-3 text-left">Household Size</th>
+                        <th className="px-5 py-3 text-right">100% FPL (Annual)</th>
+                        <th className="px-5 py-3 text-right">138% FPL (Medi-Cal)</th>
+                        <th className="px-5 py-3 text-right">200% FPL (CalFresh)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {[[1,"$15,060","$20,783","$30,120"],[2,"$20,440","$28,207","$40,880"],[3,"$25,820","$35,632","$51,640"],[4,"$31,200","$43,056","$62,400"],[5,"$36,580","$50,480","$73,160"],[6,"$41,960","$57,905","$83,920"]].map(([size, p100, p138, p200]) => (
+                        <tr key={size} className="hover:bg-slate-50">
+                          <td className="px-5 py-3 font-medium text-slate-700">{size} person{size > 1 ? "s" : ""}</td>
+                          <td className="px-5 py-3 text-right text-slate-600">{p100}</td>
+                          <td className="px-5 py-3 text-right text-slate-600">{p138}</td>
+                          <td className="px-5 py-3 text-right text-slate-600">{p200}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "faq" && (
+            <div className="space-y-3">
+              {FAQS.map(item => <AccordionItem key={item.q} question={item.q} answer={item.a} />)}
+            </div>
+          )}
+
+          {/* Page feedback */}
+          <div className="mt-10 pt-6 border-t border-slate-200">
+            <p className="text-sm font-semibold text-slate-700 mb-3">Was this page helpful?</p>
+            <div className="flex gap-3">
+              {[["👍 Yes", "yes"], ["👎 No", "no"]].map(([label, val]) => (
+                <button key={val} onClick={() => setHelpful(val)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${helpful === val ? "bg-blue-700 text-white border-blue-700" : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {helpful && <p className="text-xs text-emerald-700 mt-2 font-medium">Thank you for your feedback!</p>}
+          </div>
+        </main>
+
+        {/* Sidebar */}
+        <aside className="lg:w-72 shrink-0 space-y-4">
+          {/* Apply CTA */}
+          <div className="bg-blue-700 text-white rounded-2xl p-5">
+            <h3 className="font-bold text-base mb-1.5">Apply for Benefits</h3>
+            <p className="text-blue-200 text-xs mb-4 leading-relaxed">Apply online, by phone, or in person. Our staff can help you navigate the process.</p>
+            <button className="w-full bg-white text-blue-700 font-bold py-2.5 rounded-xl hover:bg-blue-50 transition-colors text-sm mb-2">Apply via BenefitsCal</button>
+            <p className="text-center text-xs text-blue-200">Office: Mon–Fri, 8:00 AM–5:00 PM</p>
+          </div>
+
+          {/* Check case status */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5">
+            <h3 className="font-bold text-slate-800 mb-3">Check Case Status</h3>
+            <input className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 mb-2" placeholder="Enter case or reference number" />
+            <button className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors">Check Status</button>
+          </div>
+
+          {/* Contact */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3">
+            <h3 className="font-bold text-slate-800">Contact Human Services</h3>
+            {[["📍","Human Services Building\n300 Oak Street, Westfield"],["📞","(559) 555-0300"],["✉️","benefits@westfieldcounty.gov"],["🕐","Mon–Fri: 8:00 AM – 5:00 PM"]].map(([icon, info]) => (
+              <div key={info} className="flex gap-2.5 text-sm">
+                <span className="shrink-0">{icon}</span>
+                <span className="text-slate-600 whitespace-pre-line">{info}</span>
+              </div>
+            ))}
+            <a href="contact.html" className="block text-center mt-1 text-sm text-blue-700 hover:underline font-semibold">Send a message →</a>
+          </div>
+
+          {/* Language services */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+            <h3 className="font-bold text-slate-800 mb-2 text-sm">Language Services</h3>
+            <p className="text-xs text-slate-600 leading-relaxed mb-3">Free interpreter services available in person and by phone. Se habla español. Tiếng Việt. 中文. Hmong. Punjabi.</p>
+            <div className="flex items-center gap-2 text-xs text-blue-700 font-semibold">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+              <span>20+ languages supported</span>
+            </div>
+          </div>
+
+          {/* Related */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5">
+            <h3 className="font-bold text-slate-800 mb-3">Related Services</h3>
+            <div className="space-y-2">
+              {[["Permits & Licensing","permits.html"],["Public Health","services.html"],["Senior Services","services.html"],["Employment Help","services.html"]].map(([label, href]) => (
+                <a key={label} href={href} className="flex items-center justify-between text-sm text-blue-700 hover:underline py-1.5 border-b border-slate-100 last:border-0">
+                  <span>{label}</span>
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                </a>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<BenefitsPage />);
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LearnPath | Pricing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Plus Jakarta Sans"', "sans-serif"] }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="learn-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { useState } = React;
+      const { Header, Footer, faq } = window.LearnPathShared;
+
+      function App() {
+        const [openFaq, setOpenFaq] = useState(faq[0].q);
+        const plans = [
+          ["Free", "$0", "Limited course access and selected learning tools."],
+          ["Pro", "$19/mo", "Full library access, certificates, and offline learning."],
+          ["Teams", "$49/seat/mo", "Shared admin dashboard, reporting, and group seats."]
+        ];
+        return (
+          <>
+            <a href="#main-content" className="absolute left-4 top-4 z-50 -translate-y-20 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg focus:translate-y-0 focus-visible:translate-y-0">
+              Skip to main content
+            </a>
+            <Header activePath="pricing.html" />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+              <section className="page-surface rounded-[2rem] p-8">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-800">Plans</p>
+                <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-slate-950">Choose a plan that fits how you learn</h1>
+                <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-700">Flexible access for independent learners, ambitious professionals, and growing teams.</p>
+              </section>
+
+              <section className="mt-8 grid gap-5 md:grid-cols-3">
+                {plans.map(([name, price, text], index) => (
+                  <article key={name} className={`plan-card page-surface rounded-[1.75rem] p-6 transition ${index === 1 ? "border-blue-200" : ""}`}>
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{name}</p>
+                    <h2 className="mt-3 text-4xl font-extrabold text-slate-950">{price}</h2>
+                    <p className="mt-4 text-sm leading-7 text-slate-600">{text}</p>
+                    <button type="button" className="mt-6 rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800">
+                      {name === "Free" ? "Try Free" : "Sign Up"}
+                    </button>
+                  </article>
+                ))}
+              </section>
+
+              <section className="mt-8 page-surface rounded-[1.75rem] p-6 overflow-x-auto">
+                <h2 className="text-3xl font-extrabold text-slate-950">Feature comparison</h2>
+                <table className="mt-5 min-w-full border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      {["Feature", "Free", "Pro", "Teams"].map((head) => (
+                        <th key={head} className="px-4 py-3 font-semibold text-slate-950">{head}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["Course access", "Limited", "Full library", "Full library"],
+                      ["Certificates", "No", "Yes", "Yes"],
+                      ["Admin dashboard", "No", "No", "Yes"],
+                      ["Team analytics", "No", "No", "Yes"]
+                    ].map((row) => (
+                      <tr key={row[0]} className="border-b border-slate-200">
+                        {row.map((cell) => (
+                          <td key={cell} className="px-4 py-3 text-slate-700">{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+
+              <section className="mt-8 grid gap-8 xl:grid-cols-[1fr_360px]">
+                <div className="space-y-8">
+                  <div className="page-surface rounded-[1.75rem] p-6">
+                    <div className="inline-flex items-center gap-3 rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900">
+                      <span>14-day money-back guarantee</span>
+                    </div>
+                    <div className="mt-5 grid gap-4 md:grid-cols-2">
+                      {[
+                        "LearnPath helped me move from self-study to a real weekly routine.",
+                        "Our team finally has one place to track skills progress and certificates."
+                      ].map((quote) => (
+                        <blockquote key={quote} className="rounded-2xl bg-slate-50 p-5 text-sm leading-7 text-slate-700">
+                          “{quote}”
+                        </blockquote>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="page-surface rounded-[1.75rem] p-6">
+                    <h2 className="text-3xl font-extrabold text-slate-950">FAQ</h2>
+                    <div className="mt-5 space-y-3">
+                      {faq.map((item) => (
+                        <div key={item.q} className="rounded-2xl border border-slate-200 bg-white">
+                          <button type="button" onClick={() => setOpenFaq(openFaq === item.q ? "" : item.q)} aria-expanded={openFaq === item.q} className="w-full px-4 py-4 text-left text-sm font-semibold text-slate-950">
+                            {item.q}
+                          </button>
+                          {openFaq === item.q ? <p className="px-4 pb-4 text-sm leading-7 text-slate-600">{item.a}</p> : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <aside className="page-surface rounded-[1.75rem] p-6">
+                  <h2 className="text-3xl font-extrabold text-slate-950">Start your plan</h2>
+                  <form className="mt-5 space-y-4">
+                    <div>
+                      <label htmlFor="plan-name" className="mb-2 block text-sm font-semibold text-slate-700">Full name</label>
+                      <input id="plan-name" type="text" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900" />
+                    </div>
+                    <div>
+                      <label htmlFor="plan-email" className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+                      <input id="plan-email" type="email" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900" />
+                    </div>
+                    <div>
+                      <label htmlFor="plan-tier" className="mb-2 block text-sm font-semibold text-slate-700">Plan</label>
+                      <select id="plan-tier" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900">
+                        <option>Pro</option>
+                        <option>Teams</option>
+                        <option>Free</option>
+                      </select>
+                    </div>
+                    <button type="submit" className="rounded-full bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">
+                      Start Learning
+                    </button>
+                  </form>
+                </aside>
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

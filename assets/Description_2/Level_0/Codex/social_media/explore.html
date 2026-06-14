@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Folia | Explore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { theme: { extend: {} } };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./shared.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+    <script src="./shared.js"></script>
+    <script>
+      const { html, AppShell, Card, exploreTiles, risingCreators, palettes } = window.Folia;
+
+      function ExploreGrid() {
+        return html`
+          <${Card}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-lg font-semibold text-slate-950">Discover by Medium</p>
+                <p className="mt-1 text-sm text-slate-500">Digital Art, Photography, Typography, 3D, Motion, and adjacent disciplines.</p>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                <span className="rounded-full bg-slate-100 px-3 py-2">Digital Art</span>
+                <span className="rounded-full bg-slate-100 px-3 py-2">Photography</span>
+                <span className="rounded-full bg-slate-100 px-3 py-2">Typography</span>
+                <span className="rounded-full bg-slate-100 px-3 py-2">3D</span>
+                <span className="rounded-full bg-slate-100 px-3 py-2">Motion</span>
+              </div>
+            </div>
+            <div className="mt-5 grid auto-rows-[210px] gap-4 md:grid-cols-3">
+              ${exploreTiles.map(
+                (tile) => html`
+                  <div key=${tile.creator} className=${`group artwork-panel ${tile.mood} ${tile.size} relative overflow-hidden rounded-[1.75rem]`}>
+                    <div className="tile-overlay absolute inset-0 flex items-end p-5 opacity-100 transition md:opacity-90 md:group-hover:opacity-100">
+                      <div className="text-white">
+                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-200">${tile.medium}</p>
+                        <p className="mt-2 text-xl font-semibold">${tile.creator}</p>
+                        <p className="mt-1 text-sm text-slate-200">${tile.appreciate} appreciates</p>
+                      </div>
+                    </div>
+                  </div>
+                `
+              )}
+            </div>
+          </${Card}>
+        `;
+      }
+
+      function Aside() {
+        return html`
+          <${Card}>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Rising Creators</p>
+            <div className="mt-4 space-y-3">
+              ${risingCreators.map(
+                (creator) => html`
+                  <div key=${creator.name} className="rounded-[1.5rem] bg-white p-4">
+                    <p className="font-semibold text-slate-900">${creator.name}</p>
+                    <p className="mt-1 text-sm text-slate-500">${creator.focus}</p>
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">${creator.streak}</p>
+                  </div>
+                `
+              )}
+            </div>
+          </${Card}>
+          <${Card}>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Trending Palettes</p>
+            <div className="mt-4 space-y-4">
+              ${palettes.map(
+                (palette) => html`
+                  <div key=${palette[0]}>
+                    <p className="text-sm font-semibold text-slate-800">${palette[0]}</p>
+                    <div className="mt-2 grid grid-cols-4 gap-2">
+                      ${palette[1].map(
+                        (swatch) => html`<div key=${swatch} className="h-12 rounded-2xl" style=${{ background: swatch }}></div>`
+                      )}
+                    </div>
+                  </div>
+                `
+              )}
+            </div>
+          </${Card}>
+        `;
+      }
+
+      function App() {
+        return html`
+          <${AppShell}
+            current="./explore.html"
+            title="Explore"
+            subtitle="Visual discovery tuned for medium, momentum, and curation patterns across the Folia network."
+            actionLabel="Save Inspiration"
+            actionHref="./profile.html"
+            aside=${html`<${Aside} />`}
+          >
+            <${ExploreGrid} />
+          </${AppShell}>
+        `;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+    </script>
+  </body>
+</html>

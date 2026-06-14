@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MarketFlow - Cart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: "#2563eb",
+              ink: "#0f172a",
+              soft: "#f8fafc"
+            },
+            boxShadow: {
+              card: "0 10px 35px rgba(15, 23, 42, 0.08)"
+            }
+          }
+        }
+      };
+    </script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-slate-100 text-ink">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const navLinks = [
+        { href: "index.html", label: "Home" },
+        { href: "products.html", label: "Products" },
+        { href: "product.html", label: "Product Detail" },
+        { href: "cart.html", label: "Cart" },
+        { href: "account.html", label: "Account" }
+      ];
+
+      function Header({ active }) {
+        return (
+          <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+            <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-4 sm:px-6">
+              <a href="index.html" className="text-2xl font-black tracking-tight text-brand">MarketFlow</a>
+              <div className="hidden flex-1 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 md:flex">
+                <input className="w-full bg-transparent text-sm outline-none" placeholder="Search products, brands, categories..." />
+              </div>
+              <nav className="flex gap-1 overflow-x-auto text-sm font-medium">
+                {navLinks.map((item) => (
+                  <a key={item.href} href={item.href} className={`whitespace-nowrap rounded-lg px-3 py-2 ${active === item.href ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </header>
+        );
+      }
+
+      function Footer() {
+        return (
+          <footer className="mt-14 border-t border-slate-200 bg-white">
+            <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-500 sm:px-6">
+              <p className="font-semibold text-slate-700">MarketFlow Marketplace</p>
+              <p className="mt-1">Fast checkout, global shipping, and curated product collections.</p>
+            </div>
+          </footer>
+        );
+      }
+
+      function CartPage() {
+        const items = [
+          { name: "Wireless Earbuds Pro", qty: 1, price: 79 },
+          { name: "Travel Backpack", qty: 1, price: 69 }
+        ];
+        const subtotal = items.reduce((acc, item) => acc + item.qty * item.price, 0);
+
+        return (
+          <>
+            <Header active="cart.html" />
+            <main className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-3">
+              <section className="space-y-4 lg:col-span-2">
+                <h1 className="text-3xl font-black">Your Cart</h1>
+                {items.map((item) => (
+                  <article key={item.name} className="rounded-xl bg-white p-4 shadow-card">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="font-semibold">{item.name}</h2>
+                        <p className="text-sm text-slate-500">Quantity: {item.qty}</p>
+                      </div>
+                      <p className="text-lg font-bold">${item.price}</p>
+                    </div>
+                  </article>
+                ))}
+              </section>
+
+              <aside className="h-fit rounded-xl bg-white p-5 shadow-card">
+                <h2 className="text-lg font-semibold">Order Summary</h2>
+                <div className="mt-4 space-y-2 text-sm text-slate-600">
+                  <p className="flex justify-between"><span>Subtotal</span><span>${subtotal}</span></p>
+                  <p className="flex justify-between"><span>Shipping</span><span>$8</span></p>
+                  <p className="flex justify-between"><span>Tax</span><span>$12</span></p>
+                </div>
+                <p className="mt-4 flex justify-between border-t border-slate-200 pt-4 text-lg font-black">
+                  <span>Total</span>
+                  <span>${subtotal + 20}</span>
+                </p>
+                <a href="account.html" className="mt-5 block rounded-lg bg-brand px-4 py-3 text-center text-sm font-semibold text-white">Proceed to Checkout</a>
+              </aside>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<CartPage />);
+    </script>
+  </body>
+</html>

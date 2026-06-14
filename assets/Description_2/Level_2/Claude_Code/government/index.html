@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vermont.gov — Official State Resident Services Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'gov-navy':   '#1A3A6B',
+            'gov-navy-h': '#142E56',
+            'gov-blue':   '#2558A3',
+            'gov-blue-h': '#1E4A8A',
+            'gov-green':  '#2D6A3F',
+            'gov-green-h':'#245531',
+            'gov-gold':   '#8B6914',
+            'gov-light':  '#EEF3FB',
+            'gov-gray':   '#F5F6F8',
+            'gov-border': '#D1D9E6',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #F5F6F8; color: #1A1A2E; }
+    :focus-visible { outline: 3px solid #2558A3 !important; outline-offset: 2px !important; }
+    .skip-link { position: absolute; top: -52px; left: 8px; background: #1A3A6B; color: #fff; padding: 10px 18px; z-index: 9999; border-radius: 4px; font-weight: 600; transition: top 0.15s; text-decoration: none; font-size: 14px; }
+    .skip-link:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .live-dot { animation: pulse-dot 2s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    /* ── Shared Header ─────────────────────────────────────────── */
+    function Header({ current = 'home', lang, setLang }) {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const menuRef = useRef(null);
+      const menuBtnRef = useRef(null);
+
+      useEffect(() => {
+        if (menuOpen) menuRef.current?.querySelector('a')?.focus();
+      }, [menuOpen]);
+
+      const navLinks = [
+        { label: 'Home',     href: 'index.html',        key: 'home'     },
+        { label: 'Services', href: 'services.html',     key: 'services' },
+        { label: 'About',    href: 'about.html',        key: 'about'    },
+        { label: 'Contact',  href: 'contact.html',      key: 'contact'  },
+      ];
+
+      const LANGS = [
+        { code: 'EN', label: 'English' },
+        { code: 'ES', label: 'Español' },
+        { code: 'FR', label: 'Français' },
+      ];
+
+      return (
+        <header className="bg-gov-navy text-white shadow-lg">
+          {/* Top utility bar */}
+          <div className="bg-gov-navy-h border-b border-white/10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4 text-xs text-white/70">
+                <a href="#" className="hover:text-white transition-colors flex items-center gap-1">
+                  <svg aria-hidden="true" className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                  Official Vermont State Website
+                </a>
+              </div>
+              {/* Language selector */}
+              <div className="flex items-center gap-1" role="navigation" aria-label="Language selection">
+                <label htmlFor="lang-select" className="sr-only">Select language</label>
+                <select
+                  id="lang-select"
+                  value={lang}
+                  onChange={e => setLang(e.target.value)}
+                  className="bg-transparent border border-white/20 text-white text-xs rounded px-2 py-0.5 focus:border-white cursor-pointer"
+                  aria-label="Select display language"
+                >
+                  {LANGS.map(l => <option key={l.code} value={l.code} className="text-black">{l.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Main header */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-20 gap-6">
+              {/* State seal + name */}
+              <a href="index.html" className="flex items-center gap-3 group flex-shrink-0" aria-label="Vermont.gov — Go to homepage">
+                <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border-2 border-white/20 group-hover:border-white/50 transition-colors flex-shrink-0" aria-hidden="true">
+                  <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                <div>
+                  <p className="font-extrabold text-lg leading-tight tracking-tight">Vermont.gov</p>
+                  <p className="text-white/60 text-xs leading-tight">Official State Portal</p>
+                </div>
+              </a>
+
+              {/* Desktop nav */}
+              <nav aria-label="Main navigation" className="hidden md:block">
+                <ul className="flex items-center gap-1" role="list">
+                  {navLinks.map(l => (
+                    <li key={l.key}>
+                      <a
+                        href={l.href}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${current === l.key ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10'}`}
+                        aria-current={current === l.key ? 'page' : undefined}
+                      >{l.label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+
+              {/* Mobile menu button */}
+              <button
+                ref={menuBtnRef}
+                className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
+                aria-expanded={menuOpen}
+                aria-controls="mobile-nav"
+                aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                onClick={() => setMenuOpen(o => !o)}
+              >
+                {menuOpen
+                  ? <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  : <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile nav */}
+          {menuOpen && (
+            <nav id="mobile-nav" ref={menuRef} aria-label="Mobile navigation">
+              <ul className="border-t border-white/10 px-4 py-3 space-y-1" role="list">
+                {navLinks.map(l => (
+                  <li key={l.key}>
+                    <a href={l.href} className="block px-4 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors" aria-current={current === l.key ? 'page' : undefined}>{l.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
+        </header>
+      );
+    }
+
+    /* ── Shared Footer ─────────────────────────────────────────── */
+    function Footer() {
+      return (
+        <footer className="bg-gov-navy-h text-white mt-0" role="contentinfo">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+              {/* Brand */}
+              <div className="lg:col-span-2">
+                <p className="font-extrabold text-lg mb-2">Vermont.gov</p>
+                <p className="text-sm text-white/60 leading-relaxed mb-4">The official website of the State of Vermont. Your central hub for state services, information, and resources.</p>
+                <p className="text-xs text-white/40">© 2025 State of Vermont. All rights reserved.</p>
+              </div>
+              {/* Services */}
+              <nav aria-label="Services navigation">
+                <h2 className="font-semibold text-sm uppercase tracking-wider text-white/50 mb-3">Services</h2>
+                <ul className="space-y-2" role="list">
+                  {['Driver\'s License','Benefits & Assistance','Voter Registration','Tax Filing','Business Registration'].map(l => (
+                    <li key={l}><a href="services.html" className="text-sm text-white/70 hover:text-white transition-colors">{l}</a></li>
+                  ))}
+                </ul>
+              </nav>
+              {/* Government */}
+              <nav aria-label="Government navigation">
+                <h2 className="font-semibold text-sm uppercase tracking-wider text-white/50 mb-3">Government</h2>
+                <ul className="space-y-2" role="list">
+                  {['Governor\'s Office','State Legislature','Agency Directory','Open Data','Careers'].map(l => (
+                    <li key={l}><a href="about.html" className="text-sm text-white/70 hover:text-white transition-colors">{l}</a></li>
+                  ))}
+                </ul>
+              </nav>
+              {/* Help */}
+              <nav aria-label="Help and support navigation">
+                <h2 className="font-semibold text-sm uppercase tracking-wider text-white/50 mb-3">Help</h2>
+                <ul className="space-y-2" role="list">
+                  {[{l:'Contact Us',h:'contact.html'},{l:'Accessibility',h:'#'},{l:'Privacy Policy',h:'#'},{l:'Site Map',h:'#'},{l:'Language Access',h:'#'}].map(({l,h}) => (
+                    <li key={l}><a href={h} className="text-sm text-white/70 hover:text-white transition-colors">{l}</a></li>
+                  ))}
+                </ul>
+              </nav>
+            </div>
+            <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <p className="text-xs text-white/40">An official website of the State of Vermont. <a href="#" className="underline hover:text-white/70">How to identify a state website.</a></p>
+              <div className="flex gap-4">
+                {['Accessibility Statement','Non-Discrimination','Web Privacy Policy'].map(l => (
+                  <a key={l} href="#" className="text-xs text-white/40 hover:text-white/70 transition-colors">{l}</a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── Homepage ──────────────────────────────────────────────── */
+    const QUICK_LINKS = [
+      { label: 'Renew Driver\'s License', href: 'drivers-license.html', icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zm-5-5V5a1 1 0 00-1-1H4a1 1 0 00-1 1v10h16m-5-8l3 3H9', desc: 'Renew online in ~10 minutes' },
+      { label: 'Apply for Benefits',      href: 'benefits.html',       icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', desc: 'SNAP, Medicaid & more' },
+      { label: 'Register to Vote',         href: 'services.html',      icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', desc: 'Check or update your registration' },
+      { label: 'Find a School',            href: 'services.html',      icon: 'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222', desc: 'School finder & enrollment' },
+      { label: 'File State Taxes',         href: 'services.html',      icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z', desc: 'Free online tax filing' },
+      { label: 'Business Registration',    href: 'services.html',      icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 00-1-1h-2a1 1 0 00-1 1v5m4 0H9', desc: 'Start or manage your business' },
+    ];
+
+    const UPDATES = [
+      { dept: 'Dept. of Finance', time: '2 hours ago', text: 'Vermont tax filing portal is now open for FY 2024 returns. File early to receive refunds faster.', type: 'info' },
+      { dept: 'Dept. of Health',  time: '1 day ago',   text: 'Spring vaccination clinics now scheduling. Flu, COVID, and RSV vaccines available statewide.', type: 'health' },
+      { dept: 'DMV',              time: '2 days ago',  text: 'Real ID compliant licenses now required for domestic air travel as of May 7, 2025.', type: 'notice' },
+      { dept: 'Dept. of Education', time: '3 days ago', text: 'K-12 enrollment for 2025–26 opens March 31. Use the school finder to locate your district.', type: 'info' },
+    ];
+
+    const TYPE_STYLES = {
+      info:   'bg-blue-50 border-blue-200 text-blue-800',
+      health: 'bg-green-50 border-green-200 text-green-800',
+      notice: 'bg-amber-50 border-amber-200 text-amber-800',
+    };
+    const TYPE_DOT = {
+      info:   'bg-blue-500',
+      health: 'bg-green-500',
+      notice: 'bg-amber-500',
+    };
+
+    function HomePage() {
+      const [lang, setLang] = useState('EN');
+      const [searchVal, setSearchVal] = useState('');
+      const [alertDismissed, setAlertDismissed] = useState(false);
+      const [bannerPaused, setBannerPaused] = useState(false);
+      const alertRef = useRef(null);
+
+      return (
+        <>
+          <Header current="home" lang={lang} setLang={setLang} />
+
+          {/* ── Emergency / Seasonal Alert ──────────────────── */}
+          {!alertDismissed && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              aria-atomic="true"
+              className="bg-amber-600 text-white"
+              ref={alertRef}
+            >
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <svg aria-hidden="true" className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  <p className="text-sm font-medium">
+                    <strong>Tax Filing Deadline: April 15</strong> — File your Vermont state return online by midnight. <a href="services.html" className="underline hover:no-underline font-bold">File Online Now →</a>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setAlertDismissed(true)}
+                  aria-label="Dismiss tax filing deadline alert"
+                  className="flex-shrink-0 p-1.5 rounded hover:bg-white/20 transition-colors"
+                >
+                  <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <main id="main-content" tabIndex={-1}>
+            {/* ── Hero / Search ────────────────────────────── */}
+            <section
+              aria-labelledby="hero-heading"
+              className="bg-gov-navy text-white py-16 sm:py-20"
+              style={{background:'linear-gradient(135deg, #1A3A6B 0%, #2558A3 60%, #1E4A8A 100%)'}}
+            >
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 id="hero-heading" className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight mb-4">
+                  Vermont Resident Services
+                </h1>
+                <p className="text-white/75 text-lg mb-10 max-w-xl mx-auto">How can we help you today? Search for any state service, form, or department.</p>
+
+                {/* Search bar */}
+                <form
+                  role="search"
+                  aria-label="Search Vermont state services"
+                  onSubmit={e => { e.preventDefault(); if (searchVal.trim()) window.location.href = 'services.html'; }}
+                  className="max-w-2xl mx-auto"
+                >
+                  <div className="flex shadow-2xl rounded-xl overflow-hidden">
+                    <label htmlFor="hero-search" className="sr-only">Search for services, forms, or departments</label>
+                    <input
+                      id="hero-search"
+                      type="search"
+                      value={searchVal}
+                      onChange={e => setSearchVal(e.target.value)}
+                      placeholder="e.g. driver's license, SNAP benefits, voter registration…"
+                      className="flex-1 px-5 py-4 text-gov-navy text-base focus:outline-none placeholder-gray-400"
+                      aria-label="Search for services, forms, or departments"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-gov-green hover:bg-gov-green-h text-white px-7 py-4 font-semibold text-sm flex items-center gap-2 transition-colors"
+                      aria-label="Submit search"
+                    >
+                      <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                      Search
+                    </button>
+                  </div>
+                  <p className="text-white/50 text-xs mt-3">Try: "renew license", "apply for Medicaid", "register business"</p>
+                </form>
+              </div>
+            </section>
+
+            {/* ── Quick Links ──────────────────────────────── */}
+            <section aria-labelledby="quicklinks-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+              <h2 id="quicklinks-heading" className="text-xl font-bold text-gov-navy mb-6 flex items-center gap-2">
+                <svg aria-hidden="true" className="w-5 h-5 text-gov-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                Popular Services
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" role="list" aria-label="Popular state services">
+                {QUICK_LINKS.map(ql => (
+                  <a
+                    key={ql.label}
+                    href={ql.href}
+                    role="listitem"
+                    className="bg-white border border-gov-border rounded-xl p-5 flex items-start gap-4 hover:border-gov-blue hover:shadow-md transition-all group"
+                    aria-label={`${ql.label} — ${ql.desc}`}
+                  >
+                    <div className="w-11 h-11 bg-gov-light rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-gov-blue/10 transition-colors">
+                      <svg aria-hidden="true" className="w-5 h-5 text-gov-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={ql.icon} /></svg>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-gov-navy group-hover:text-gov-blue transition-colors">{ql.label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{ql.desc}</p>
+                    </div>
+                    <svg aria-hidden="true" className="w-4 h-4 text-gray-300 group-hover:text-gov-blue transition-colors flex-shrink-0 mt-0.5 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  </a>
+                ))}
+              </div>
+            </section>
+
+            {/* ── Two-column: Services by Stage + Updates ──── */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+              <div className="grid lg:grid-cols-3 gap-8">
+
+                {/* Services by Life Stage */}
+                <section aria-labelledby="stage-heading" className="lg:col-span-2">
+                  <h2 id="stage-heading" className="text-xl font-bold text-gov-navy mb-6">Services by Life Stage</h2>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {[
+                      { label: 'New Residents',  icon: '🏠', desc: 'Set up residency, transfer your license, register to vote.', href: 'services.html', color: 'from-blue-50 to-blue-100 border-blue-200' },
+                      { label: 'Families',        icon: '👨‍👩‍👧', desc: 'Birth certificates, childcare, school enrollment, SNAP.', href: 'services.html', color: 'from-green-50 to-green-100 border-green-200' },
+                      { label: 'Students',        icon: '🎓', desc: 'Financial aid, school finder, transcript requests.', href: 'services.html', color: 'from-purple-50 to-purple-100 border-purple-200' },
+                      { label: 'Seniors',         icon: '👴', desc: 'Medicare enrollment, heating assistance, Meals on Wheels.', href: 'services.html', color: 'from-amber-50 to-amber-100 border-amber-200' },
+                      { label: 'Businesses',      icon: '🏢', desc: 'Register a business, file taxes, permits & licenses.', href: 'services.html', color: 'from-slate-50 to-slate-100 border-slate-200' },
+                      { label: 'Veterans',        icon: '🎖️', desc: 'Benefits, healthcare, housing, and employment resources.', href: 'services.html', color: 'from-red-50 to-red-100 border-red-200' },
+                    ].map(s => (
+                      <a
+                        key={s.label}
+                        href={s.href}
+                        className={`bg-gradient-to-br ${s.color} border rounded-xl p-5 flex items-start gap-3 hover:shadow-md transition-shadow`}
+                        aria-label={`${s.label} services — ${s.desc}`}
+                      >
+                        <span aria-hidden="true" className="text-2xl flex-shrink-0">{s.icon}</span>
+                        <div>
+                          <p className="font-semibold text-sm text-gov-navy">{s.label}</p>
+                          <p className="text-xs text-gray-600 mt-1 leading-relaxed">{s.desc}</p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                  <a href="services.html" className="mt-4 inline-flex items-center gap-1 text-gov-blue font-semibold text-sm hover:underline">
+                    View all services
+                    <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  </a>
+                </section>
+
+                {/* Live Updates */}
+                <aside aria-labelledby="updates-heading">
+                  <div className="bg-white border border-gov-border rounded-xl overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-gov-border">
+                      <h2 id="updates-heading" className="font-bold text-sm text-gov-navy flex items-center gap-2">
+                        <span className={`live-dot w-2 h-2 rounded-full bg-gov-green flex-shrink-0`} aria-hidden="true"></span>
+                        State Updates
+                      </h2>
+                      <button
+                        onClick={() => setBannerPaused(p => !p)}
+                        aria-label={bannerPaused ? 'Resume live updates feed' : 'Pause live updates feed'}
+                        aria-pressed={bannerPaused}
+                        className="text-xs text-gray-500 hover:text-gov-blue transition-colors border border-gray-200 rounded px-2 py-0.5"
+                      >
+                        {bannerPaused ? 'Resume' : 'Pause'}
+                      </button>
+                    </div>
+                    <div
+                      aria-live={bannerPaused ? 'off' : 'polite'}
+                      aria-label="Live state department updates"
+                    >
+                      {UPDATES.map((u, i) => (
+                        <article key={i} className="px-5 py-4 border-b border-gov-border/50 last:border-0">
+                          <div className="flex items-start gap-2">
+                            <span className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${TYPE_DOT[u.type]}`} aria-hidden="true"></span>
+                            <div>
+                              <p className="text-xs font-semibold text-gray-500">{u.dept} · <time>{u.time}</time></p>
+                              <p className="text-sm text-gov-navy mt-1 leading-relaxed">{u.text}</p>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                    <div className="px-5 py-3 bg-gov-gray">
+                      <a href="about.html" className="text-xs text-gov-blue font-semibold hover:underline">View all state news →</a>
+                    </div>
+                  </div>
+
+                  {/* Emergency contacts */}
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4">
+                    <h3 className="font-bold text-sm text-red-800 mb-2 flex items-center gap-1.5">
+                      <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                      Emergency Numbers
+                    </h3>
+                    <ul className="space-y-1.5 text-sm" role="list" aria-label="Emergency contact numbers">
+                      {[
+                        { label: 'Emergency', number: '911' },
+                        { label: 'State Police', number: '802-244-8727' },
+                        { label: 'Crisis Hotline', number: '988' },
+                      ].map(c => (
+                        <li key={c.label} className="flex justify-between">
+                          <span className="text-red-700 text-xs">{c.label}</span>
+                          <a href={`tel:${c.number.replace(/-/g,'')}`} className="text-red-800 font-bold text-xs hover:underline" aria-label={`Call ${c.label}: ${c.number}`}>{c.number}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </aside>
+              </div>
+            </div>
+
+            {/* ── Benefits screener CTA ────────────────────── */}
+            <section aria-labelledby="screener-cta-heading" className="bg-gov-green text-white py-14">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 id="screener-cta-heading" className="text-2xl sm:text-3xl font-extrabold mb-4">See What You May Qualify For</h2>
+                <p className="text-white/80 mb-8 max-w-xl mx-auto">Answer a few quick questions and we'll show you all state and federal assistance programs you may be eligible for — in under 2 minutes.</p>
+                <a
+                  href="benefits.html"
+                  className="inline-flex items-center gap-2 bg-white text-gov-green font-bold px-8 py-4 rounded-xl hover:bg-gov-light transition-colors shadow-lg"
+                  aria-label="Start benefits eligibility screener — takes about 2 minutes"
+                >
+                  Start Eligibility Screener
+                  <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </a>
+              </div>
+            </section>
+
+            {/* ── Agency stats ─────────────────────────────── */}
+            <section aria-labelledby="stats-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+              <h2 id="stats-heading" className="sr-only">Vermont state service statistics</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {[
+                  { num: '650K+', label: 'Residents Served', icon: '👥' },
+                  { num: '120+',  label: 'Online Services',  icon: '🌐' },
+                  { num: '24/7',  label: 'Portal Availability', icon: '🕐' },
+                  { num: '40+',   label: 'State Agencies',   icon: '🏛️' },
+                ].map(s => (
+                  <div key={s.label} className="bg-white border border-gov-border rounded-xl p-6 text-center shadow-sm">
+                    <p aria-hidden="true" className="text-3xl mb-2">{s.icon}</p>
+                    <p className="text-2xl font-extrabold text-gov-navy" aria-label={`${s.num} ${s.label}`}>{s.num}</p>
+                    <p className="text-xs text-gray-500 mt-1">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </main>
+
+          <Footer />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<HomePage />);
+  </script>
+</body>
+</html>

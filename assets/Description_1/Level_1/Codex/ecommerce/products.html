@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NovaMart | Product Listing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', "sans-serif"]
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="site-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { useMemo, useState } = React;
+      const { Header, Footer, products, formatPrice, renderStars } = window.NovaMartShared;
+
+      const brands = ["Sony", "NovaHome", "Stride", "PeakTrail", "Lumen", "Terra", "Pulse", "Northline", "Harbor"];
+      const priceRanges = [
+        { id: "under-50", label: "Under $50", min: 0, max: 50 },
+        { id: "50-100", label: "$50 to $100", min: 50, max: 100 },
+        { id: "100-250", label: "$100 to $250", min: 100, max: 250 },
+        { id: "250-plus", label: "$250+", min: 250, max: Infinity }
+      ];
+
+      function ProductCard({ product }) {
+        return (
+          <article className="product-card rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition">
+            <div className="relative overflow-hidden rounded-2xl bg-slate-100">
+              <img src={product.image} alt={product.alt} className="product-image w-full" />
+              <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-900 shadow">
+                {product.badge}
+              </span>
+            </div>
+            <div className="mt-4 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                {product.brand} • {product.category}
+              </p>
+              <h2 className="text-lg font-bold text-slate-950">{product.name}</h2>
+              <p className="text-sm text-slate-600">
+                <span aria-label={`${product.rating} out of 5 stars`} className="font-semibold text-amber-500">
+                  {renderStars(product.rating)}
+                </span>
+                <span className="ml-2">{product.rating.toFixed(1)} ({product.reviews})</span>
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-xl font-extrabold text-slate-950">{formatPrice(product.price)}</span>
+                <span className="text-sm text-slate-500 line-through">{formatPrice(product.originalPrice)}</span>
+              </div>
+              <p className={`text-sm font-semibold ${product.availability === "In Stock" ? "text-emerald-700" : "text-amber-700"}`}>
+                {product.availability}
+              </p>
+              <div className="flex gap-2">
+                <a
+                  href={product.slug === "sony-wh-1000xm5-headphones" ? "product.html" : "products.html"}
+                  className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-slate-800"
+                >
+                  View details
+                </a>
+                <button type="button" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50">
+                  Save
+                </button>
+              </div>
+            </div>
+          </article>
+        );
+      }
+
+      function App() {
+        const [selectedBrands, setSelectedBrands] = useState([]);
+        const [selectedRatings, setSelectedRatings] = useState([]);
+        const [selectedAvailability, setSelectedAvailability] = useState("all");
+        const [selectedPriceRange, setSelectedPriceRange] = useState("all");
+        const [sortBy, setSortBy] = useState("best");
+
+        const filteredProducts = useMemo(() => {
+          let nextProducts = [...products];
+
+          if (selectedBrands.length) {
+            nextProducts = nextProducts.filter((product) => selectedBrands.includes(product.brand));
+          }
+
+          if (selectedRatings.length) {
+            nextProducts = nextProducts.filter((product) =>
+              selectedRatings.some((rating) => product.rating >= Number(rating))
+            );
+          }
+
+          if (selectedAvailability !== "all") {
+            nextProducts = nextProducts.filter((product) => product.availability === selectedAvailability);
+          }
+
+          if (selectedPriceRange !== "all") {
+            const range = priceRanges.find((item) => item.id === selectedPriceRange);
+            nextProducts = nextProducts.filter(
+              (product) => product.price >= range.min && product.price < range.max
+            );
+          }
+
+          if (sortBy === "low-high") {
+            nextProducts.sort((a, b) => a.price - b.price);
+          } else if (sortBy === "rating") {
+            nextProducts.sort((a, b) => b.rating - a.rating);
+          } else {
+            nextProducts.sort((a, b) => b.reviews - a.reviews);
+          }
+
+          return nextProducts;
+        }, [selectedAvailability, selectedBrands, selectedPriceRange, selectedRatings, sortBy]);
+
+        const toggleValue = (value, values, setter) => {
+          setter(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
+        };
+
+        return (
+          <>
+            <a
+              href="#main-content"
+              className="absolute left-4 top-4 z-50 -translate-y-20 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg focus:translate-y-0 focus-visible:translate-y-0"
+            >
+              Skip to main content
+            </a>
+            <Header activePath="products.html" />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+              <section className="rounded-[2rem] border border-slate-200 bg-white/85 p-8 shadow-sm">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-700">Search results</p>
+                <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">All products</h1>
+                    <p className="mt-2 max-w-2xl text-base leading-7 text-slate-600">
+                      Compare top-rated electronics, home goods, apparel, and sports gear from NovaMart’s curated marketplace.
+                    </p>
+                  </div>
+                  <div className="w-full max-w-xs">
+                    <label htmlFor="sort-products" className="mb-2 block text-sm font-semibold text-slate-700">
+                      Sort by
+                    </label>
+                    <select
+                      id="sort-products"
+                      value={sortBy}
+                      onChange={(event) => setSortBy(event.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                    >
+                      <option value="best">Best Match</option>
+                      <option value="low-high">Price: Low to High</option>
+                      <option value="rating">Customer Rating</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-8 grid gap-8 xl:grid-cols-[300px_1fr]">
+                <aside className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm" aria-label="Product filters">
+                  <div className="space-y-8">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-950">Brand</h2>
+                      <fieldset className="mt-4 space-y-3">
+                        <legend className="sr-only">Filter by brand</legend>
+                        {brands.map((brand) => (
+                          <label key={brand} className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={selectedBrands.includes(brand)}
+                              onChange={() => toggleValue(brand, selectedBrands, setSelectedBrands)}
+                              className="h-4 w-4 rounded border-slate-300 text-orange-600"
+                            />
+                            {brand}
+                          </label>
+                        ))}
+                      </fieldset>
+                    </div>
+
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-950">Price Range</h2>
+                      <fieldset className="mt-4 space-y-3">
+                        <legend className="sr-only">Filter by price range</legend>
+                        <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">
+                          <input
+                            type="radio"
+                            name="price-range"
+                            checked={selectedPriceRange === "all"}
+                            onChange={() => setSelectedPriceRange("all")}
+                            className="h-4 w-4 border-slate-300 text-orange-600"
+                          />
+                          All prices
+                        </label>
+                        {priceRanges.map((range) => (
+                          <label key={range.id} className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">
+                            <input
+                              type="radio"
+                              name="price-range"
+                              checked={selectedPriceRange === range.id}
+                              onChange={() => setSelectedPriceRange(range.id)}
+                              className="h-4 w-4 border-slate-300 text-orange-600"
+                            />
+                            {range.label}
+                          </label>
+                        ))}
+                      </fieldset>
+                    </div>
+
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-950">Rating</h2>
+                      <fieldset className="mt-4 space-y-3">
+                        <legend className="sr-only">Filter by customer rating</legend>
+                        {[4, 4.5].map((rating) => (
+                          <label key={rating} className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={selectedRatings.includes(String(rating))}
+                              onChange={() => toggleValue(String(rating), selectedRatings, setSelectedRatings)}
+                              className="h-4 w-4 rounded border-slate-300 text-orange-600"
+                            />
+                            {rating}+ stars
+                          </label>
+                        ))}
+                      </fieldset>
+                    </div>
+
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-950">Availability</h2>
+                      <fieldset className="mt-4 space-y-3">
+                        <legend className="sr-only">Filter by stock availability</legend>
+                        {["all", "In Stock", "Limited Stock"].map((item) => (
+                          <label key={item} className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">
+                            <input
+                              type="radio"
+                              name="availability"
+                              checked={selectedAvailability === item}
+                              onChange={() => setSelectedAvailability(item)}
+                              className="h-4 w-4 border-slate-300 text-orange-600"
+                            />
+                            {item === "all" ? "All items" : item}
+                          </label>
+                        ))}
+                      </fieldset>
+                    </div>
+                  </div>
+                </aside>
+
+                <div>
+                  <div className="mb-4 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-700">{filteredProducts.length} products</p>
+                    <a href="cart.html" className="text-sm font-semibold text-slate-700 hover:text-slate-950">
+                      Go to cart
+                    </a>
+                  </div>
+                  <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    {filteredProducts.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

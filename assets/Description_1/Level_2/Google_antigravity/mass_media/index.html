@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Meridian | Independent Global News</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    },
+                    colors: {
+                        meridian: {
+                            50: '#f4f6f8',
+                            100: '#e3e8ee',
+                            500: '#64748b',
+                            800: '#1d2939',
+                            900: '#0f172a',
+                            accent: '#b91c1c'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            scroll-padding-top: 80px;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        .font-serif {
+            font-family: 'Merriweather', serif;
+        }
+
+        .ticker-wrap {
+            width: 100%;
+            overflow: hidden;
+            background-color: #b91c1c;
+            color: white;
+            white-space: nowrap;
+            box-sizing: border-box;
+        }
+
+        .ticker {
+            display: inline-block;
+            padding-left: 100%;
+            animation: ticker 25s linear infinite;
+        }
+
+        @keyframes ticker {
+            0% {
+                transform: translate3d(0, 0, 0);
+            }
+
+            100% {
+                transform: translate3d(-100%, 0, 0);
+            }
+        }
+
+        /* Ticker pause mechanism for accessibility */
+        .ticker-wrap:focus-within .ticker,
+        .ticker-wrap:hover .ticker {
+            animation-play-state: paused;
+        }
+
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .focus-outline:focus-visible {
+            outline: 3px solid #3b82f6;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        // Shared Components
+        const Header = () => (
+            <header className="sticky-header">
+                <div className="bg-meridian-900 text-white text-xs py-1 px-4 flex justify-between items-center">
+                    <div>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                    <div className="flex space-x-4">
+                        <a href="subscription.html" className="hover:text-meridian-100 focus-outline">Subscribe</a>
+                        <a href="#" className="hover:text-meridian-100 focus-outline">Log In</a>
+                    </div>
+                </div>
+                <div className="max-w-7xl mx-auto px-4 py-6 text-center border-b border-gray-200">
+                    <a href="index.html" className="inline-block focus-outline">
+                        <h1 className="text-5xl font-serif font-black tracking-tight text-meridian-900">The Meridian</h1>
+                    </a>
+                </div>
+                <nav className="max-w-7xl mx-auto px-4 border-b border-gray-200" aria-label="Main Navigation">
+                    <ul className="flex flex-wrap justify-center space-x-6 py-3 font-medium text-sm text-meridian-800 uppercase tracking-wider">
+                        <li><a href="index.html" className="font-bold border-b-2 border-meridian-accent focus-outline">Home</a></li>
+                        <li><a href="category.html" className="hover:text-meridian-accent focus-outline">World</a></li>
+                        <li><a href="#" className="hover:text-meridian-accent focus-outline">Politics</a></li>
+                        <li><a href="#" className="hover:text-meridian-accent focus-outline">Tech</a></li>
+                        <li><a href="#" className="hover:text-meridian-accent focus-outline">Culture</a></li>
+                        <li><a href="opinion.html" className="hover:text-meridian-accent focus-outline">Opinion</a></li>
+                    </ul>
+                </nav>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="bg-meridian-900 text-white mt-16 pt-12 pb-8 border-t-4 border-meridian-accent">
+                <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                    <div>
+                        <h2 className="text-2xl font-serif font-bold mb-4">The Meridian</h2>
+                        <p className="text-gray-400 text-sm mb-4">Independent digital news outlet covering global affairs, politics, technology, and culture.</p>
+                        <div className="flex space-x-4">
+                            <a href="#" className="text-gray-400 hover:text-white focus-outline" aria-label="Share on Twitter"><i className="fab fa-twitter"></i></a>
+                            <a href="#" className="text-gray-400 hover:text-white focus-outline" aria-label="Share on Facebook"><i className="fab fa-facebook"></i></a>
+                            <a href="#" className="text-gray-400 hover:text-white focus-outline" aria-label="Share on Instagram"><i className="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg mb-4">Sections</h3>
+                        <ul className="space-y-2 text-gray-400 text-sm">
+                            <li><a href="category.html" className="hover:text-white focus-outline">World</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Politics</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Tech</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Culture</a></li>
+                            <li><a href="opinion.html" className="hover:text-white focus-outline">Opinion</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg mb-4">Company</h3>
+                        <ul className="space-y-2 text-gray-400 text-sm">
+                            <li><a href="#" className="hover:text-white focus-outline">About Us</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Careers</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Code of Ethics</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Contact</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg mb-4">Newsletter</h3>
+                        <p className="text-gray-400 text-sm mb-4">Get the latest news delivered to your inbox daily.</p>
+                        <form className="flex flex-col space-y-2" aria-label="Newsletter Signup">
+                            <input
+                                type="email"
+                                placeholder="Your email address"
+                                className="px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus-outline"
+                                aria-label="Email address for newsletter"
+                                required
+                            />
+                            <button type="submit" className="px-4 py-2 bg-meridian-accent text-white font-bold rounded hover:bg-red-800 transition focus-outline">
+                                Subscribe
+                            </button>
+                        </form>
+                        <div aria-live="polite" className="sr-only"></div>
+                    </div>
+                </div>
+                <div className="max-w-7xl mx-auto px-4 border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between text-xs text-gray-500">
+                    <p>&copy; {new Date().getFullYear()} The Meridian. All rights reserved.</p>
+                    <div className="flex space-x-4 mt-4 md:mt-0">
+                        <a href="#" className="hover:text-white focus-outline">Privacy Policy</a>
+                        <a href="#" className="hover:text-white focus-outline">Terms of Service</a>
+                        <a href="#" className="hover:text-white focus-outline">Cookie Settings</a>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        const ArticleCard = ({ title, summary, author, authorRole, time, image, isLarge, category }) => {
+            const headingLevel = isLarge ? "h2" : "h3";
+            const HeadlineTag = `${headingLevel}`;
+
+            return (
+                <article className={`flex flex-col group ${isLarge ? 'md:col-span-2' : ''}`}>
+                    <a href="article.html" className="block focus-outline mb-4 overflow-hidden relative" aria-labelledby={`article-title-${title.replace(/\s+/g, '-').toLowerCase()}`}>
+                        <img
+                            src={image}
+                            alt=""
+                            className={`w-full object-cover transition duration-300 group-hover:scale-105 ${isLarge ? 'h-96' : 'h-48'}`}
+                        />
+                        {category && (
+                            <span className="absolute top-0 left-0 bg-meridian-accent text-white text-xs font-bold uppercase tracking-wider px-2 py-1">
+                                {category}
+                            </span>
+                        )}
+                    </a>
+                    <HeadlineTag className={`font-serif font-bold text-meridian-900 leading-tight mb-2 ${isLarge ? 'text-3xl md:text-5xl' : 'text-xl'}`}>
+                        <a href="article.html" id={`article-title-${title.replace(/\s+/g, '-').toLowerCase()}`} className="hover:text-meridian-accent focus-outline">
+                            {title}
+                        </a>
+                    </HeadlineTag>
+                    {summary && <p className={`text-gray-600 mb-4 ${isLarge ? 'text-lg md:text-xl' : 'text-sm'}`}>{summary}</p>}
+                    <div className="mt-auto flex items-center pt-2">
+                        {author && (
+                            <img
+                                src={`https://ui-avatars.com/api/?name=${author}&background=f1f5f9&color=1d2939`}
+                                alt={author}
+                                className="w-8 h-8 rounded-full mr-3 border border-gray-200"
+                            />
+                        )}
+                        <div className="text-xs">
+                            {author && <span className="font-bold text-meridian-900 block">{author}</span>}
+                            <span className="text-gray-500 uppercase tracking-widest text-[10px]">{time}</span>
+                        </div>
+                    </div>
+                </article>
+            );
+        };
+
+        const SmallArticle = ({ title, time, category, index }) => (
+            <article className="py-4 border-b border-gray-200 last:border-0">
+                <a href="article.html" className="block group focus-outline" aria-labelledby={`small-article-${index}`}>
+                    <div className="text-meridian-accent text-xs font-bold uppercase tracking-wider mb-1">{category}</div>
+                    <h3 id={`small-article-${index}`} className="font-serif font-bold text-meridian-900 leading-snug group-hover:text-meridian-accent transition">
+                        {title}
+                    </h3>
+                    <div className="text-gray-500 text-xs mt-2">{time}</div>
+                </a>
+            </article>
+        );
+
+        const SectionStrip = ({ title, articles }) => (
+            <section className="mb-12">
+                <div className="border-t-2 border-black mb-6">
+                    <h2 id={`section-${title.toLowerCase()}`} className="inline-block bg-black text-white px-4 py-1 text-sm font-bold uppercase tracking-wider">
+                        {title}
+                    </h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6" aria-labelledby={`section-${title.toLowerCase()}`}>
+                    {articles.map((art, idx) => (
+                        <ArticleCard
+                            key={idx}
+                            title={art.title}
+                            author={art.author}
+                            time={art.time}
+                            image={art.image}
+                        />
+                    ))}
+                </div>
+            </section>
+        );
+
+        const Homepage = () => {
+            const worldSection = [
+                { title: "European Markets Rally Following Central Bank Update", author: "Sarah Jenkins", time: "2 hours ago", image: "https://picsum.photos/seed/img_648/800/600" },
+                { title: "New Climate Accord Reached in Paris Talks", author: "David Chen", time: "5 hours ago", image: "https://picsum.photos/seed/img_648/800/600" },
+                { title: "Innovations in Deep Sea Exploration", author: "Maria Rodriguez", time: "8 hours ago", image: "https://picsum.photos/seed/img_648/800/600" },
+                { title: "Global Summit Addresses Trade Imbalances", author: "James Wilson", time: "11 hours ago", image: "https://picsum.photos/seed/img_648/800/600" }
+            ];
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <div className="ticker-wrap" role="marquee" aria-label="Breaking news ticker">
+                        <div className="ticker py-2 text-sm font-bold tracking-wide">
+                            <span className="mr-8"><span className="text-black bg-white px-2 py-0.5 rounded mr-2">BREAKING</span> UN Emergency Session Called Over Red Sea Tensions</span>
+                            <span className="mr-8"><span className="text-black bg-white px-2 py-0.5 rounded mr-2">UPDATE</span> Major Tech Firm Announces Surprise Leadership Shakeup</span>
+                            <span><span className="text-black bg-white px-2 py-0.5 rounded mr-2">LIVE</span> Election Results Pouring in From Key Swing Districts</span>
+                            <button className="sr-only focus:not-sr-only focus:absolute focus:bg-white focus:text-black focus:p-2" onClick={(e) => {
+                                const ticker = document.querySelector('.ticker');
+                                const isPaused = ticker.style.animationPlayState === 'paused';
+                                ticker.style.animationPlayState = isPaused ? 'running' : 'paused';
+                                e.target.textContent = isPaused ? 'Pause Ticker' : 'Play Ticker';
+                            }}>Pause Ticker</button>
+                        </div>
+                    </div>
+
+                    <Header />
+
+                    <main className="flex-grow max-w-7xl mx-auto px-4 py-8">
+                        {/* Hero Section */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
+                            <div className="lg:col-span-9">
+                                <ArticleCard
+                                    isLarge={true}
+                                    category="Global Affairs"
+                                    title="Tensions Mount as Historic Summit Reaches Critical Impasse"
+                                    summary="Negotiators work through the night seeking consensus on climate provisions, while thousands gather outside the convention center. The outcome promises to reshape international environmental policy for the next decade."
+                                    author="Elena Rostova"
+                                    time="1 hour ago"
+                                    image="https://picsum.photos/seed/img_578/800/600"
+                                />
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-8 border-t border-gray-200">
+                                    <ArticleCard
+                                        title="The Rising Cost of Urban Living: A Global Perspective"
+                                        author="Michael Chang"
+                                        time="3 hours ago"
+                                        image="https://picsum.photos/seed/img_646/800/600"
+                                    />
+                                    <ArticleCard
+                                        title="Breakthrough in Quantum Computing Announced at MIT"
+                                        author="Dr. Sarah Hughes"
+                                        time="4 hours ago"
+                                        image="https://picsum.photos/seed/img_646/800/600"
+                                    />
+                                    <ArticleCard
+                                        title="Art exhibition transforms abandoned subway station"
+                                        author="Julian Vance"
+                                        time="6 hours ago"
+                                        image="https://picsum.photos/seed/img_646/800/600"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Sidebar - Needs to be after main content in DOM order for SR: We are visually in a grid which places it right. It's technically inside main but to be strictly after MAIN content, we place it last in the grid. */}
+                            <aside className="lg:col-span-3">
+                                <div className="bg-white p-6 shadow-sm border border-gray-100 mb-8 rounded">
+                                    <h2 className="font-serif font-bold text-xl border-b border-black pb-2 mb-4">Most Read</h2>
+                                    <div className="space-y-0" aria-label="Most read articles">
+                                        <SmallArticle index={1} category="Tech" title="New smartphone regulations could change app stores forever" time="2 hours ago" />
+                                        <SmallArticle index={2} category="Politics" title="Senate passes sweeping infrastructure bill in midnight vote" time="12 hours ago" />
+                                        <SmallArticle index={3} category="Culture" title="Why 90s fashion is making a comeback" time="1 day ago" />
+                                        <SmallArticle index={4} category="Economy" title="Inflation cools rapidly, raising hopes for rate cuts" time="2 days ago" />
+                                        <SmallArticle index={5} category="Health" title="Study links new diet trend to improved longevity" time="4 days ago" />
+                                    </div>
+                                </div>
+                                <div className="bg-meridian-50 p-6 border-t-4 border-meridian-accent rounded">
+                                    <h2 className="font-serif font-bold text-xl mb-2">The Daily Briefing</h2>
+                                    <p className="text-sm text-gray-600 mb-4">Your essential morning news roundup. Get informed before your first cup of coffee.</p>
+                                    <form aria-label="Daily Briefing Signup">
+                                        <input type="email" required placeholder="Email address" className="w-full mb-2 px-3 py-2 border border-gray-300 rounded focus-outline text-sm" aria-label="Email address" />
+                                        <button type="submit" className="w-full bg-meridian-900 text-white font-bold py-2 rounded hover:bg-black transition focus-outline text-sm">Sign Up</button>
+                                    </form>
+                                </div>
+                            </aside>
+                        </div>
+
+                        <SectionStrip title="World" articles={worldSection} />
+
+                        <SectionStrip title="Tech & Science" articles={[
+                            { title: "Electric vehicle sales surpass gas equivalents in major European market", author: "Daniel Kim", time: "1 hour ago", image: "https://picsum.photos/seed/img_648/800/600" },
+                            { title: "NASA's newest rover discovers potentially water-bearing minerals", author: "Dr. Amanda West", time: "3 hours ago", image: "https://picsum.photos/seed/img_648/800/600" },
+                            { title: "The rise of conscious AI: Are we there yet?", author: "Tech Desk", time: "5 hours ago", image: "https://picsum.photos/seed/img_648/800/600" },
+                            { title: "Cybersecurity firm warns of new widespread vulnerability", author: "Alex Torres", time: "7 hours ago", image: "https://picsum.photos/seed/img_648/800/600" }
+                        ]} />
+
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Homepage />);
+    </script>
+</body>
+
+</html>

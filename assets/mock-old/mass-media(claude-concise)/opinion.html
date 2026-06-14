@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Tribune – Opinion</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const featuredOp = {
+  initials: 'KN',
+  name: 'Katherine Nguyen',
+  role: 'Senior Political Correspondent',
+  headline: 'Democracy\'s Real Crisis Isn\'t Disinformation—It\'s Disengagement',
+  deck: 'Blaming foreign actors is easier than confronting the systemic failures that turned citizens away from civic life in the first place. Until we reckon with those failures honestly, our prescriptions will keep arriving too late.',
+  date: 'March 1, 2026',
+};
+
+const columnists = [
+  { initials: 'MR', name: 'Marcus Reid', role: 'Economic Affairs Editor', headline: 'The IMF\'s Prescription for the Global South Was Always the Problem', excerpt: 'Austerity-led reforms exported poverty while enriching consultancies. The record must be reckoned with honestly.', date: 'Feb 28' },
+  { initials: 'SF', name: 'Sophia Fischer', role: 'Technology Critic', headline: 'Silicon Valley\'s Safety Theater Won\'t Save Us From AI Risk', excerpt: 'Responsible AI principles are a marketing strategy dressed in the language of ethics—and regulators are falling for it.', date: 'Feb 27' },
+  { initials: 'JO', name: 'James Okoye', role: 'Africa Desk Editor', headline: 'Stop Blaming Coup Leaders. Start Asking Why Populations Welcome Them.', excerpt: 'The question Western media never asks: what did elected governments do—or fail to do—in the years before soldiers arrived?', date: 'Feb 26' },
+  { initials: 'LB', name: 'Lena Brandt', role: 'Defence Correspondent', headline: 'Europe\'s Rearmament Is Happening—Just Not Fast Enough', excerpt: 'Political will exists. Industrial capacity does not. This gap is the real vulnerability no summit communiqué addresses.', date: 'Feb 25' },
+];
+
+const letters = [
+  { author: 'A Reader in Toronto', headline: 'On the limits of climate optimism', body: 'Ms. Fischer\'s column last week captured something I\'ve felt but could not articulate: optimism deployed as a political shield against structural change.' },
+  { author: 'A Reader in Berlin', headline: 'The EU deserves more credit', body: 'Whatever its flaws, European integration has kept peace on a continent that tore itself apart twice in living memory. That achievement is being taken for granted.' },
+  { author: 'A Reader in Nairobi', headline: 'Aid dependency is a design, not a failure', body: 'The aid industry\'s inability to generate independence isn\'t a bug—it\'s what keeps the industry funded. Until this is named, nothing changes.' },
+];
+
+const tabs = ['All Opinion', 'Columnists', 'Letters', 'Editorials', 'Corrections'];
+
+function OpinionPage() {
+  const [activeTab, setActiveTab] = React.useState('All Opinion');
+
+  return (
+    <Tribune.SiteShell active="opinion.html">
+      {/* ── Section header ── */}
+      <div style={{ borderBottom: '3px solid var(--ink)', paddingBottom: '0.75rem', marginBottom: '1.75rem' }}>
+        <span className="section-label">Section</span>
+        <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1, marginTop: '0.25rem' }}>
+          Opinion &amp; Analysis
+        </h1>
+        <p style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: '1rem', color: 'var(--muted)', marginTop: '0.4rem', fontStyle: 'italic' }}>
+          Rigorous argument, documented evidence, and perspectives that challenge received wisdom.
+        </p>
+      </div>
+
+      {/* ── Tabs ── */}
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--rule)', marginBottom: '2rem', overflowX: 'auto' }}>
+        {tabs.map(t => (
+          <button
+            key={t}
+            onClick={() => setActiveTab(t)}
+            style={{
+              fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+              padding: '0.7rem 1.1rem', border: 'none', background: 'none', cursor: 'pointer',
+              color: activeTab === t ? 'var(--ink)' : 'var(--muted)',
+              borderBottom: activeTab === t ? '2px solid var(--red)' : '2px solid transparent',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Featured column ── */}
+      <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: '3fr 2fr', marginBottom: '2.5rem', alignItems: 'start' }}>
+        {/* Featured */}
+        <div style={{ background: 'var(--ink)', color: '#fff', borderRadius: '3px', padding: '2.5rem', position: 'relative', overflow: 'hidden' }}>
+          <span style={{ position: 'absolute', top: '-1rem', left: '1.5rem', fontFamily: "'Playfair Display', serif", fontSize: '8rem', color: 'rgba(255,255,255,0.06)', lineHeight: 1, pointerEvents: 'none' }}>"</span>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '1rem' }}>
+              Today's Lead Column
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ width: '3.5rem', height: '3.5rem', borderRadius: '50%', background: 'var(--red)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Playfair Display', serif", fontSize: '1.2rem', fontWeight: 700, flexShrink: 0 }}>
+                {featuredOp.initials}
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{featuredOp.name}</div>
+                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{featuredOp.role}</div>
+              </div>
+            </div>
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(1.3rem, 3vw, 2rem)', fontWeight: 700, lineHeight: 1.2, marginBottom: '0.85rem' }}>
+              {featuredOp.headline}
+            </h2>
+            <p style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.65, marginBottom: '1.25rem' }}>
+              {featuredOp.deck}
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>{featuredOp.date}</span>
+              <a href="article.html" style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', textDecoration: 'none' }}>
+                Read Column →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Tribune Editorial */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#fff0f0', border: '1px solid #fcd4d4', borderRadius: '3px', padding: '1.5rem' }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--red)', marginBottom: '0.5rem' }}>
+              Tribune Editorial Board
+            </div>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3, marginBottom: '0.5rem' }}>
+              The Case for Mandatory AI Transparency in Public Services
+            </h3>
+            <p style={{ fontFamily: "'Source Serif 4', serif", fontSize: '0.85rem', color: 'var(--muted)', lineHeight: 1.55 }}>
+              Governments that deploy algorithmic decision-making without disclosure are undermining the rule of law, not protecting efficiency.
+            </p>
+          </div>
+          <div style={{ background: '#fff', border: '1px solid var(--rule)', borderRadius: '3px', padding: '1.25rem' }}>
+            <div style={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.5rem' }}>
+              From the Editor-in-Chief
+            </div>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1rem', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3, marginBottom: '0.5rem' }}>
+              Why We Are Publishing This Series on Migration
+            </h3>
+            <p style={{ fontFamily: "'Source Serif 4', serif", fontSize: '0.82rem', color: 'var(--muted)', lineHeight: 1.55 }}>
+              Our mandate has always been to report what is true, not what is comfortable. This project required three years of access and 140 interviews.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Columnists grid ── */}
+      <div className="section-header">
+        <h2 className="section-title">Our Columnists</h2>
+      </div>
+      <div className="grid-cols-2" style={{ marginBottom: '2.5rem' }}>
+        {columnists.map(c => (
+          <div key={c.name} className="opinion-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', position: 'relative', zIndex: 1 }}>
+              <div className="opinion-avatar" style={{ background: c.initials === 'MR' ? 'var(--red)' : c.initials === 'SF' ? '#2d3142' : c.initials === 'JO' ? '#c99a2e' : 'var(--ink)' }}>
+                {c.initials}
+              </div>
+              <div>
+                <div className="opinion-byline">{c.name}</div>
+                <div className="opinion-role">{c.role} · {c.date}</div>
+              </div>
+            </div>
+            <a href="article.html" className="story-headline" style={{ position: 'relative', zIndex: 1 }}>{c.headline}</a>
+            <p className="story-deck" style={{ position: 'relative', zIndex: 1 }}>{c.excerpt}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Letters ── */}
+      <div className="section-header">
+        <h2 className="section-title">Letters to the Editor</h2>
+        <a href="#" className="section-more">Submit a Letter →</a>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+        {letters.map((l, i) => (
+          <div key={i} style={{ padding: '1.25rem 0', borderBottom: i < letters.length - 1 ? '1px solid var(--rule)' : 'none', display: 'grid', gap: '0.5rem', gridTemplateColumns: '1fr 3fr' }}>
+            <div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--ink)' }}>{l.author}</div>
+              <div style={{ fontSize: '0.68rem', fontStyle: 'italic', color: 'var(--muted)' }}>{l.headline}</div>
+            </div>
+            <p style={{ fontFamily: "'Source Serif 4', serif", fontSize: '0.88rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>{l.body}</p>
+          </div>
+        ))}
+      </div>
+    </Tribune.SiteShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<OpinionPage />);
+</script>
+</body>
+</html>

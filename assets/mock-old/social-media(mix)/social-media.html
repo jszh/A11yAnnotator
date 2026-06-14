@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sphere - Connect with the world</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #1d9bf0; --primary-hover: #1a8cd8; --primary-light: #e8f5fd;
+            --success: #00ba7c; --error: #f4212e; --warning: #ffad1f;
+            --bg-primary: #ffffff; --bg-secondary: #f7f9f9; --bg-tertiary: #eff3f4;
+            --bg-hover: rgba(15, 20, 25, 0.03); --text-primary: #0f1419;
+            --text-secondary: #536471; --text-tertiary: #8b98a5;
+            --border-primary: #eff3f4; --border-secondary: #cfd9de;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06); --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+            --transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.5; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .top-header { position: sticky; top: 0; z-index: 1000; background: rgba(255, 255, 255, 0.8); backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border-primary); }
+        .header-content { max-width: 1280px; margin: 0 auto; padding: 0 16px; display: flex; align-items: center; height: 56px; gap: 20px; }
+        .logo { width: 32px; height: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; cursor: pointer; }
+        .search-container { flex: 1; max-width: 600px; position: relative; }
+        .search-input { width: 100%; height: 42px; padding: 0 16px 0 48px; border: 1px solid transparent; border-radius: 9999px; background: var(--bg-secondary); }
+        .main-container { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 275px 1fr 350px; gap: 32px; padding: 0 16px; }
+        .left-sidebar { position: sticky; top: 72px; height: fit-content; padding: 12px 0; }
+        .nav-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+        .nav-item { display: flex; align-items: center; gap: 20px; padding: 12px 16px; border-radius: 9999px; cursor: pointer; text-decoration: none; color: var(--text-primary); font-size: 20px; }
+        .nav-item:hover { background: var(--bg-hover); }
+        .main-feed { border-left: 1px solid var(--border-primary); border-right: 1px solid var(--border-primary); min-height: 100vh; }
+        .post-card { padding: 16px; border-bottom: 1px solid var(--border-primary); display: flex; gap: 12px; transition: background 0.2s; cursor: pointer; animation: fadeIn 0.5s ease; }
+        .post-card:hover { background: var(--bg-hover); }
+        .post-avatar { width: 48px; height: 48px; border-radius: 50%; }
+        .post-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .post-author { font-weight: 700; }
+        .post-handle { color: var(--text-secondary); }
+        .post-stats { display: flex; justify-content: space-between; max-width: 425px; margin-top: 12px; }
+        .stat-button { display: flex; align-items: center; gap: 8px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; }
+        .stat-button.liked { color: #f91880; }
+        .right-sidebar { position: sticky; top: 72px; padding: 12px 0; }
+        .sidebar-card { background: var(--bg-secondary); border-radius: 16px; margin-bottom: 16px; padding: 16px; }
+    </style>
+</head>
+<body>
+    <header class="top-header"><div class="header-content"><div class="logo">S</div><div class="search-container"><input type="search" class="search-input" placeholder="Search Sphere"></div></div></header>
+    <div class="main-container">
+        <aside class="left-sidebar"><nav><ul class="nav-list"><li><a href="#" class="nav-item">Home</a></li><li><a href="#" class="nav-item">Explore</a></li></ul></nav></aside>
+        <main class="main-feed"><div id="posts-feed"></div></main>
+        <aside class="right-sidebar"><div class="sidebar-card">Trending now</div></aside>
+    </div>
+
+    <script>
+        const posts = [
+            { id: 1, author: 'Emma Chen', handle: '@emmachen', time: '2h', text: 'Just shipped the biggest feature of my career! 🚀', avatar: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', stats: { comments: 156, likes: 4521 } },
+            { id: 2, author: 'Tech Pulse', handle: '@techpulse', time: '4h', text: 'BREAKING: Major AI breakthrough announced.', avatar: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', stats: { comments: 2341, likes: 31245 } },
+            { id: 3, author: 'Sarah Miller', handle: '@sarahmdesign', time: '6h', text: 'New design system just dropped 🎨', avatar: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', stats: { comments: 234, likes: 5892 } }
+        ];
+
+        function renderPosts() {
+            const feed = document.getElementById('posts-feed');
+            posts.forEach(post => {
+                const postEl = document.createElement('div');
+                postEl.className = 'post-card';
+                // 动态带 ID 跳转
+                postEl.onclick = () => window.location.href = `social-media-detail.html?id=${post.id}`;
+                
+                postEl.innerHTML = `
+                    <div class="post-avatar" style="background: ${post.avatar}"></div>
+                    <div class="post-content">
+                        <div class="post-header"><span class="post-author">${post.author}</span> <span class="post-handle">${post.handle} · ${post.time}</span></div>
+                        <div class="post-text">${post.text}</div>
+                        <div class="post-stats">
+                            <button class="stat-button">💬 ${post.stats.comments}</button>
+                            <button class="stat-button">❤️ ${post.stats.likes}</button>
+                        </div>
+                    </div>
+                `;
+                feed.appendChild(postEl);
+            });
+        }
+        renderPosts();
+    </script>
+</body>
+</html>

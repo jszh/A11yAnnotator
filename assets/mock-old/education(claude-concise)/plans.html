@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meridian – Plans & Pricing</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const PLANS = [
+  {
+    name: 'Free',
+    price: { monthly: 0, annual: 0 },
+    desc: 'Start learning with 200+ free lessons and explore Meridian at your own pace.',
+    cta: 'Get Started Free',
+    ctaStyle: 'btn-secondary',
+    features: [
+      { text: '200+ free lessons across all topics', inc: true },
+      { text: 'Access to community forums', inc: true },
+      { text: 'Basic study tools', inc: true },
+      { text: 'Mobile app access', inc: true },
+      { text: 'Full course library (1,200+)', inc: false },
+      { text: 'Certificates of completion', inc: false },
+      { text: 'Downloadable resources', inc: false },
+      { text: 'Offline viewing', inc: false },
+      { text: 'Live Q&A sessions', inc: false },
+    ],
+  },
+  {
+    name: 'Pro',
+    price: { monthly: 19, annual: 14 },
+    desc: 'Unlimited access to every course, certificate programs, and premium learning tools.',
+    cta: 'Start 7-Day Free Trial',
+    ctaStyle: 'btn-primary',
+    featured: true,
+    badge: 'Most Popular',
+    features: [
+      { text: 'Everything in Free', inc: true },
+      { text: 'Full course library (1,200+)', inc: true },
+      { text: 'Certificates of completion', inc: true },
+      { text: 'Downloadable resources & notebooks', inc: true },
+      { text: 'Offline viewing on mobile', inc: true },
+      { text: 'Live Q&A sessions', inc: true },
+      { text: 'Advanced study tools & quizzes', inc: true },
+      { text: 'Priority support', inc: true },
+      { text: 'Dedicated learning coach', inc: false },
+    ],
+  },
+  {
+    name: 'Teams',
+    price: { monthly: 29, annual: 22 },
+    desc: 'Everything in Pro, plus admin controls, team analytics, and custom learning paths.',
+    cta: 'Start Team Trial',
+    ctaStyle: 'btn-secondary',
+    note: 'per seat/month, min. 5 seats',
+    features: [
+      { text: 'Everything in Pro', inc: true },
+      { text: 'Team admin dashboard', inc: true },
+      { text: 'Custom learning paths', inc: true },
+      { text: 'Progress & completion reporting', inc: true },
+      { text: 'SSO & SCIM provisioning', inc: true },
+      { text: 'Dedicated account manager', inc: true },
+      { text: 'Custom invoicing', inc: true },
+      { text: 'White-label option', inc: false },
+      { text: 'API access', inc: false },
+    ],
+  },
+];
+
+const COMPARE_ROWS = [
+  { feature: 'Free course access', free: '200+', pro: '1,200+', teams: '1,200+' },
+  { feature: 'Certificates', free: '—', pro: '✓', teams: '✓' },
+  { feature: 'Offline viewing', free: '—', pro: '✓', teams: '✓' },
+  { feature: 'Live Q&A', free: '—', pro: '✓', teams: '✓' },
+  { feature: 'Downloadable resources', free: '—', pro: '✓', teams: '✓' },
+  { feature: 'Team reporting', free: '—', pro: '—', teams: '✓' },
+  { feature: 'Custom paths', free: '—', pro: '—', teams: '✓' },
+  { feature: 'SSO', free: '—', pro: '—', teams: '✓' },
+];
+
+const FAQS = [
+  { q: 'Can I cancel my Pro subscription anytime?', a: 'Yes — cancel from your account settings at any time. You keep access until the end of your billing period, with no hidden fees or penalty.' },
+  { q: 'What happens after the 7-day free trial?', a: 'After your trial, you\'ll be charged the plan rate. We\'ll remind you 2 days before the trial ends. Cancel anytime before then to avoid charges.' },
+  { q: 'Does Pro include future courses?', a: 'Yes. New courses added to the library are immediately available to Pro subscribers at no extra cost.' },
+  { q: 'Is there a student discount?', a: 'Yes — students and educators get 50% off Pro with a verified academic email. Contact us to apply.' },
+  { q: 'What is the Teams minimum?', a: 'Teams plans start at 5 seats. Contact us for enterprise deals at 50+ seats, including volume pricing and dedicated support.' },
+];
+
+function PlansPage() {
+  const [billing, setBilling] = React.useState('annual');
+  const [openFaq, setOpenFaq] = React.useState(null);
+
+  return (
+    <Meridian.Shell active="plans.html">
+      {/* ── Hero ── */}
+      <section style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', padding: '4rem 0 3rem', color: '#fff', textAlign: 'center' }}>
+        <div className="container">
+          <div className="eyebrow" style={{ color: '#a78bfa', justifyContent: 'center' }}>✦ Simple Pricing</div>
+          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 800, marginBottom: '0.75rem' }}>
+            Invest in your future.
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: '1.05rem', marginBottom: '2rem', maxWidth: '480px', margin: '0 auto 2rem' }}>
+            Start free, upgrade when ready. All plans include a 30-day money-back guarantee.
+          </p>
+          {/* Toggle */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.1)', borderRadius: '99px', padding: '4px', gap: '4px' }}>
+              {['monthly', 'annual'].map(b => (
+                <button key={b} onClick={() => setBilling(b)}
+                  style={{ padding: '0.5rem 1.25rem', borderRadius: '99px', border: 'none', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, transition: 'all 0.15s', background: billing === b ? '#fff' : 'transparent', color: billing === b ? 'var(--indigo)' : 'rgba(255,255,255,0.65)' }}>
+                  {b === 'annual' ? 'Annual (Save 25%)' : 'Monthly'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Plan cards ── */}
+      <section style={{ background: 'var(--surface)', padding: '3rem 0' }}>
+        <div className="container">
+          <div className="grid-3" style={{ maxWidth: '960px', margin: '0 auto', alignItems: 'start' }}>
+            {PLANS.map(plan => (
+              <div key={plan.name} className={`plan-card${plan.featured ? ' featured' : ''}`} style={{ position: 'relative' }}>
+                {plan.badge && (
+                  <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: 'var(--indigo)', color: '#fff', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '0.25rem 0.85rem', borderRadius: '99px', whiteSpace: 'nowrap' }}>
+                    {plan.badge}
+                  </div>
+                )}
+                <div className="plan-name">{plan.name}</div>
+                <div>
+                  {plan.price.monthly === 0 ? (
+                    <span className="plan-price">Free</span>
+                  ) : (
+                    <>
+                      <span className="plan-price">${billing === 'annual' ? plan.price.annual : plan.price.monthly}</span>
+                      <span className="plan-period"> /mo</span>
+                    </>
+                  )}
+                </div>
+                {plan.price.monthly > 0 && billing === 'annual' && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--emerald)', fontWeight: 600 }}>
+                    Save ${(plan.price.monthly - plan.price.annual) * 12}/year
+                  </div>
+                )}
+                {plan.note && (
+                  <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{plan.note}</div>
+                )}
+                <p className="plan-desc">{plan.desc}</p>
+                <hr className="plan-divider" />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
+                  {plan.features.map(f => (
+                    <div key={f.text} className="plan-feature">
+                      <span className={f.inc ? 'plan-check' : 'plan-cross'}>{f.inc ? '✓' : '—'}</span>
+                      <span style={{ color: f.inc ? 'var(--ink-3)' : 'var(--subtle)' }}>{f.text}</span>
+                    </div>
+                  ))}
+                </div>
+                <a href="dashboard.html" className={`btn btn-lg ${plan.ctaStyle}`} style={{ justifyContent: 'center', marginTop: '1rem' }}>
+                  {plan.cta}
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Compare table ── */}
+      <section className="section" style={{ background: 'var(--white)', borderTop: '1px solid var(--rule)' }}>
+        <div className="container">
+          <Meridian.SectionHead eyebrow="Compare" title="Everything side by side" center />
+          <div style={{ maxWidth: '760px', margin: '0 auto', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--ink)' }}>
+                  <th style={{ textAlign: 'left', padding: '0.75rem 1rem', color: 'var(--muted)', fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Feature</th>
+                  {['Free', 'Pro', 'Teams'].map(h => (
+                    <th key={h} style={{ padding: '0.75rem 1rem', color: h === 'Pro' ? 'var(--indigo)' : 'var(--ink)', fontWeight: 700, textAlign: 'center' }}>
+                      {h}{h === 'Pro' && <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--indigo)', letterSpacing: '0.08em' }}>POPULAR</div>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARE_ROWS.map((row, i) => (
+                  <tr key={row.feature} style={{ borderBottom: '1px solid var(--rule)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--white)' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--ink-3)' }}>{row.feature}</td>
+                    {[row.free, row.pro, row.teams].map((val, ci) => (
+                      <td key={ci} style={{ padding: '0.75rem 1rem', textAlign: 'center', color: val === '✓' ? 'var(--emerald)' : val === '—' ? 'var(--subtle)' : 'var(--ink)', fontWeight: val === '✓' ? 700 : 400 }}>{val}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Enterprise strip ── */}
+      <section style={{ background: 'var(--ink)', color: '#fff', padding: '3rem 0' }}>
+        <div className="container">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.4rem' }}>
+                Need more than 50 seats? Let's talk.
+              </h2>
+              <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.9rem' }}>
+                Custom pricing, white-labelling, LMS integration, and dedicated learning success management.
+              </p>
+            </div>
+            <a href="#" className="btn btn-primary btn-lg" style={{ background: '#fff', color: 'var(--indigo)', flexShrink: 0 }}>
+              Contact Sales
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section className="section">
+        <div className="container">
+          <Meridian.SectionHead eyebrow="FAQ" title="Common Questions" center />
+          <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+            {FAQS.map((faq, i) => (
+              <div key={i} style={{ borderBottom: '1px solid var(--rule)' }}>
+                <button onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  style={{ width: '100%', textAlign: 'left', padding: '1.1rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', gap: '1rem' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--ink)' }}>{faq.q}</span>
+                  <span style={{ color: 'var(--indigo)', fontWeight: 700, fontSize: '1.1rem', flexShrink: 0 }}>{openFaq === i ? '−' : '+'}</span>
+                </button>
+                {openFaq === i && (
+                  <p style={{ fontSize: '0.88rem', color: 'var(--muted)', lineHeight: 1.7, paddingBottom: '1.1rem' }}>{faq.a}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+    </Meridian.Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PlansPage />);
+</script>
+</body>
+</html>

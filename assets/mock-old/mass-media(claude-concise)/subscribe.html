@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Tribune – Subscribe</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const plans = [
+  {
+    name: 'Digital',
+    price: '$4',
+    period: '/week',
+    annual: 'or $169/year (save 19%)',
+    featured: false,
+    features: [
+      'Unlimited digital articles',
+      'The Tribune app (iOS & Android)',
+      'Daily Morning Briefing newsletter',
+      'Archive access (10 years)',
+      'Ad-light experience',
+    ],
+    cta: 'Start Digital',
+    ctaClass: '',
+  },
+  {
+    name: 'Tribune+',
+    price: '$7',
+    period: '/week',
+    annual: 'or $299/year (save 18%)',
+    featured: true,
+    badge: 'Most Popular',
+    features: [
+      'Everything in Digital',
+      'Unlimited premium audio articles',
+      'Exclusive subscriber newsletters (6)',
+      'Early access to investigations',
+      'Live Q&A with our correspondents',
+      'The Tribune Annual Print Edition',
+    ],
+    cta: 'Start Tribune+',
+    ctaClass: 'red',
+  },
+  {
+    name: 'Patron',
+    price: '$20',
+    period: '/week',
+    annual: 'or $899/year',
+    featured: false,
+    features: [
+      'Everything in Tribune+',
+      'Invitation to Tribune editorial events',
+      'Credit in annual report',
+      'Direct access to editors\' desk',
+      'Exclusive patron briefings',
+      'Unlimited gift articles',
+    ],
+    cta: 'Become a Patron',
+    ctaClass: '',
+  },
+];
+
+const testimonials = [
+  { quote: 'The Tribune is the only source I trust to tell me what\'s actually happening, not what\'s convenient for any particular narrative.', name: 'R. Nakamura', location: 'Osaka' },
+  { quote: 'Worth every penny. The depth of their foreign reporting has no equivalent in English-language journalism.', name: 'C. Mensah', location: 'Accra' },
+  { quote: 'I cancelled three other subscriptions when I subscribed to The Tribune. One is enough when it\'s this good.', name: 'L. Petrova', location: 'Prague' },
+];
+
+const faqs = [
+  { q: 'Can I cancel at any time?', a: 'Yes. Cancel anytime from your account settings. You will retain access until the end of your billing period.' },
+  { q: 'Is there a student or educational discount?', a: 'We offer 50% off Digital and Tribune+ plans for verified students and faculty. Apply with your institutional email.' },
+  { q: 'Do you offer group subscriptions?', a: 'Yes—newsrooms, universities, and businesses can license Tribune content. Contact our partnerships team.' },
+  { q: 'What payment methods do you accept?', a: 'All major credit and debit cards, PayPal, and bank transfer for annual plans.' },
+];
+
+function SubscribePage() {
+  const [billing, setBilling] = React.useState('weekly');
+  const [openFaq, setOpenFaq] = React.useState(null);
+
+  return (
+    <Tribune.SiteShell active="subscribe.html">
+      {/* ── Hero ── */}
+      <div style={{ textAlign: 'center', maxWidth: '680px', margin: '0 auto 3rem', padding: '0 1rem' }}>
+        <div className="section-label" style={{ marginBottom: '0.6rem' }}>Support Independent Journalism</div>
+        <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 900, color: 'var(--ink)', lineHeight: 1.15, marginBottom: '1rem' }}>
+          Journalism that holds power to account—because someone has to.
+        </h1>
+        <p style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: '1.05rem', color: 'var(--muted)', lineHeight: 1.7 }}>
+          The Tribune has been independently owned and editorially free since 1887. Your subscription funds the
+          correspondents, investigators, and editors who make that possible.
+        </p>
+      </div>
+
+      {/* ── Billing toggle ── */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '0', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', background: 'var(--rule)', borderRadius: '3px', padding: '3px', gap: '3px' }}>
+          {['weekly', 'annual'].map(b => (
+            <button
+              key={b}
+              onClick={() => setBilling(b)}
+              style={{
+                fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'capitalize',
+                padding: '0.55rem 1.4rem', border: 'none', borderRadius: '2px', cursor: 'pointer',
+                background: billing === b ? 'var(--ink)' : 'transparent',
+                color: billing === b ? '#fff' : 'var(--muted)',
+                transition: 'all 0.15s',
+              }}
+            >
+              {b === 'annual' ? 'Annual (Save up to 19%)' : 'Weekly'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Plans ── */}
+      <div className="grid-cols-3" style={{ maxWidth: '1080px', margin: '0 auto 3rem', alignItems: 'start' }}>
+        {plans.map(plan => (
+          <div key={plan.name} className={`plan-card${plan.featured ? ' featured' : ''}`} style={{ position: 'relative' }}>
+            {plan.badge && (
+              <div style={{ position: 'absolute', top: '-1px', right: '1.25rem', background: 'var(--red)', color: '#fff', fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', padding: '0.25rem 0.6rem', borderRadius: '0 0 2px 2px' }}>
+                {plan.badge}
+              </div>
+            )}
+            <div className="plan-name">{plan.name}</div>
+            <div>
+              <span className="plan-price">{plan.price}</span>
+              <span className="plan-period">{billing === 'weekly' ? plan.period : '/year'}</span>
+            </div>
+            {billing === 'weekly' && (
+              <div style={{ fontSize: '0.72rem', color: 'var(--muted)', fontStyle: 'italic' }}>{plan.annual}</div>
+            )}
+            <hr style={{ border: 'none', borderTop: '1px solid var(--rule)', margin: '0.5rem 0' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              {plan.features.map(f => (
+                <div key={f} className="plan-feature">
+                  <span className="plan-check">✓</span>
+                  <span>{f}</span>
+                </div>
+              ))}
+            </div>
+            <a href="#" className={`btn-plan${plan.ctaClass ? ` ${plan.ctaClass}` : ''}`} style={{ marginTop: '1.25rem' }}>
+              {plan.cta}
+            </a>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Trust bar ── */}
+      <div style={{ background: 'var(--cream)', border: '1px solid var(--rule)', borderRadius: '3px', padding: '2rem', marginBottom: '3rem' }}>
+        <div style={{ textAlign: 'center', fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '1.5rem' }}>
+          Why Readers Choose The Tribune
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', textAlign: 'center' }}>
+          {[
+            { stat: '138', label: 'Years of Independent Journalism' },
+            { stat: '4.2M', label: 'Monthly Readers Worldwide' },
+            { stat: '62', label: 'Countries with Active Correspondents' },
+            { stat: '12', label: 'Pulitzer Prizes' },
+          ].map(item => (
+            <div key={item.label}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '2.2rem', fontWeight: 900, color: 'var(--red)', lineHeight: 1 }}>{item.stat}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: '0.3rem' }}>{item.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Testimonials ── */}
+      <div className="section-header">
+        <h2 className="section-title">What Subscribers Say</h2>
+      </div>
+      <div className="grid-cols-3" style={{ marginBottom: '3rem' }}>
+        {testimonials.map(t => (
+          <div key={t.name} style={{ background: '#fff', border: '1px solid var(--rule)', borderRadius: '3px', padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+            <span style={{ position: 'absolute', top: '-0.75rem', left: '1rem', fontFamily: "'Playfair Display', serif", fontSize: '5rem', color: 'var(--rule)', lineHeight: 1 }}>"</span>
+            <p style={{ fontFamily: "'Source Serif 4', serif", fontSize: '0.9rem', lineHeight: 1.65, color: 'var(--ink-2)', marginBottom: '1rem', position: 'relative', zIndex: 1 }}>
+              {t.quote}
+            </p>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--ink)' }}>{t.name}</div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{t.location}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── FAQs ── */}
+      <div style={{ maxWidth: '720px', margin: '0 auto 3rem' }}>
+        <div className="section-header">
+          <h2 className="section-title">Frequently Asked Questions</h2>
+        </div>
+        {faqs.map((faq, i) => (
+          <div key={i} style={{ borderBottom: '1px solid var(--rule)' }}>
+            <button
+              onClick={() => setOpenFaq(openFaq === i ? null : i)}
+              style={{ width: '100%', textAlign: 'left', padding: '1rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', gap: '1rem' }}
+            >
+              <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '0.95rem', fontWeight: 600, color: 'var(--ink)' }}>{faq.q}</span>
+              <span style={{ color: 'var(--red)', fontWeight: 700, fontSize: '1.1rem', flexShrink: 0 }}>{openFaq === i ? '−' : '+'}</span>
+            </button>
+            {openFaq === i && (
+              <p style={{ fontFamily: "'Source Serif 4', serif", fontSize: '0.88rem', color: 'var(--muted)', lineHeight: 1.65, paddingBottom: '1rem' }}>
+                {faq.a}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Bottom CTA ── */}
+      <div style={{ background: 'var(--ink)', borderRadius: '3px', padding: '3rem 2rem', textAlign: 'center', color: '#fff' }}>
+        <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '0.75rem' }}>
+          Start Today
+        </div>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 'clamp(1.5rem, 4vw, 2.2rem)', fontWeight: 700, marginBottom: '0.75rem' }}>
+          Join 4.2 million readers who trust The Tribune.
+        </h2>
+        <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.55)', marginBottom: '1.5rem' }}>
+          Cancel anytime. No commitment required.
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <a href="#" style={{ background: 'var(--red)', color: '#fff', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '0.85rem 2rem', borderRadius: '2px', textDecoration: 'none' }}>
+            Subscribe Now
+          </a>
+          <a href="index.html" style={{ background: 'transparent', color: 'rgba(255,255,255,0.65)', fontSize: '0.8rem', fontWeight: 600, padding: '0.85rem 1.5rem', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '2px', textDecoration: 'none' }}>
+            Read Free Articles
+          </a>
+        </div>
+      </div>
+    </Tribune.SiteShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<SubscribePage />);
+</script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Nexus Social — Your home feed. See posts from people you follow." />
+  <title>Home — Nexus Social</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+
+  <!-- App root -->
+  <div id="app"></div>
+
+  <!-- Scripts -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="components/components.js"></script>
+
+  <script>
+  (function () {
+    const e = React.createElement;
+    const {
+      TopHeader, SidebarNav, SidebarRight,
+      FeedComposer, PostCard, MobileBottomNav,
+      SAMPLE_POSTS
+    } = window.NexusComponents;
+
+    /* ---- Feed Tabs ---- */
+    function FeedTabs({ active, onSelect }) {
+      const tabs = ['For You', 'Following', 'Recommended'];
+      return e('nav', {
+        className: 'feed-tabs',
+        role: 'tablist',
+        'aria-label': 'Feed filter tabs'
+      },
+        tabs.map(tab =>
+          e('button', {
+            key: tab,
+            role: 'tab',
+            'aria-selected': active === tab,
+            className: 'feed-tab' + (active === tab ? ' active' : ''),
+            onClick: () => onSelect(tab),
+            id: `tab-${tab.replace(/\s/g,'')}`,
+            'aria-controls': 'feed-panel'
+          }, tab)
+        )
+      );
+    }
+
+    /* ---- Home Page ---- */
+    function HomePage() {
+      const [activeTab, setActiveTab] = React.useState('For You');
+
+      return e(React.Fragment, null,
+        e(TopHeader, { activePage: 'home', rootPath: '.' }),
+
+        e('div', { className: 'page-shell' },
+          e(SidebarNav, { activePage: 'home', rootPath: '.' }),
+
+          e('main', {
+            id: 'main-content',
+            className: 'main-content',
+            role: 'main',
+            'aria-label': 'Home feed'
+          },
+            e(FeedTabs, { active: activeTab, onSelect: setActiveTab }),
+            e(FeedComposer),
+
+            e('div', {
+              id: 'feed-panel',
+              role: 'tabpanel',
+              'aria-labelledby': `tab-${activeTab.replace(/\s/g,'')}`,
+              'aria-live': 'polite'
+            },
+              SAMPLE_POSTS.map(post => e(PostCard, { key: post.id, post, rootPath: '.' })),
+
+              e('div', { className: 'load-more' },
+                e('button', { className: 'btn-load-more', 'aria-label': 'Load more posts' },
+                  'Load more posts'
+                )
+              )
+            )
+          ),
+
+          e(SidebarRight, { rootPath: '.' })
+        ),
+
+        e(MobileBottomNav, { activePage: 'home', rootPath: '.' })
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('app'));
+    root.render(e(HomePage));
+  })();
+  </script>
+</body>
+</html>

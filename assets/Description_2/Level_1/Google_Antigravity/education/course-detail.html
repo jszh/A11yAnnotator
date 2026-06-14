@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Administrative Assistant Certificate - SkillForge</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                            950: '#042f2e',
+                        },
+                        accent: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        condensed: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            scroll-behavior: smooth;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // --- Common SVG Icons ---
+        const Icons = {
+            Menu: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
+            X: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
+            CheckCircle: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            Clock: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            Calendar: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+            Tag: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>,
+            Award: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
+            Users: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
+            FileText: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+            Briefcase: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+            ChevronRight: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>,
+            ChevronDown: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        };
+
+        // --- Shared Layout Components ---
+        const Header = () => {
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+            return (
+                <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-20">
+                            <div className="flex-shrink-0 flex items-center">
+                                <a href="index.html" className="flex items-center gap-2" aria-label="SkillForge Home">
+                                    <div className="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                                        SF
+                                    </div>
+                                    <span className="font-condensed font-bold text-2xl text-slate-900 tracking-tight">SkillForge</span>
+                                </a>
+                            </div>
+
+                            <nav className="hidden md:flex space-x-8 items-center" aria-label="Main Navigation">
+                                <a href="courses.html" className="text-slate-600 hover:text-brand-600 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-md px-2 py-1">Programs</a>
+                                <a href="course-detail.html" className="text-brand-600 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-md px-2 py-1" aria-current="page">Certifications</a>
+                                <a href="pricing.html" className="text-slate-600 hover:text-brand-600 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-md px-2 py-1">Pricing</a>
+                                <div className="h-6 w-px bg-slate-200"></div>
+                                <a href="dashboard.html" className="text-slate-600 hover:text-brand-600 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-md px-2 py-1">Log in</a>
+                            </nav>
+
+                            <div className="md:hidden flex items-center">
+                                <button
+                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                    className="p-2 rounded-md text-slate-400 hover:text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
+                                    aria-expanded={isMenuOpen}
+                                    aria-label="Toggle navigation menu"
+                                >
+                                    {isMenuOpen ? <Icons.X className="h-6 w-6" /> : <Icons.Menu className="h-6 w-6" />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {isMenuOpen && (
+                        <div className="md:hidden border-t border-slate-200 bg-white shadow-lg pb-4">
+                            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                                <a href="courses.html" className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-brand-600 hover:bg-slate-50">Programs</a>
+                                <a href="course-detail.html" className="block px-3 py-2 rounded-md text-base font-medium text-brand-700 bg-brand-50" aria-current="page">Certifications</a>
+                                <a href="study-tool.html" className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-brand-600 hover:bg-slate-50">Classroom</a>
+                                <a href="pricing.html" className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-brand-600 hover:bg-slate-50">Pricing</a>
+                                <a href="dashboard.html" className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-brand-600 hover:bg-slate-50">Log in</a>
+                            </div>
+                        </div>
+                    )}
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-slate-900 border-t border-slate-800 text-slate-300 mt-auto">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                        <div className="pt-8 border-t border-slate-800 text-sm text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <p>&copy; {new Date().getFullYear()} SkillForge Education Inc. All rights reserved.</p>
+                            <div className="flex space-x-6">
+                                <a href="#" className="text-slate-500 hover:text-white transition-colors focus:outline-none focus:text-white" aria-label="Twitter">Twitter</a>
+                                <a href="#" className="text-slate-500 hover:text-white transition-colors focus:outline-none focus:text-white" aria-label="LinkedIn">LinkedIn</a>
+                                <a href="#" className="text-slate-500 hover:text-white transition-colors focus:outline-none focus:text-white" aria-label="Facebook">Facebook</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        // --- Page Components ---
+
+        const CourseDetail = () => {
+            const [activeTab, setActiveTab] = useState('curriculum');
+            const [billingCycle, setBillingCycle] = useState('full');
+
+            return (
+                <div className="bg-slate-50 min-h-screen">
+                    {/* Course Hero */}
+                    <div className="bg-slate-900 text-white pt-12 pb-24 isolate relative">
+                        <div className="absolute inset-0 -z-10 bg-[url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')] object-cover opacity-10 mix-blend-overlay"></div>
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                            <div className="mb-6">
+                                <a href="courses.html" className="text-brand-300 hover:text-brand-100 text-sm font-medium flex items-center focus:outline-none focus:underline w-max">
+                                    <Icons.ChevronRight className="h-4 w-4 mr-1 transform rotate-180" /> Back to Programs
+                                </a>
+                            </div>
+
+                            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+                                <div className="max-w-3xl">
+                                    <div className="flex flex-wrap items-center gap-3 mb-4">
+                                        <span className="bg-brand-500/20 text-brand-300 border border-brand-500/30 px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase">
+                                            Healthcare
+                                        </span>
+                                        <span className="bg-accent-500/20 text-accent-300 border border-accent-500/30 px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase">
+                                            High Demand
+                                        </span>
+                                    </div>
+                                    <h1 className="text-4xl md:text-5xl font-extrabold text-white font-condensed tracking-tight mb-6">
+                                        Medical Administrative Assistant Certificate
+                                    </h1>
+                                    <p className="text-xl text-slate-300 mb-8 max-w-2xl leading-relaxed">
+                                        Master healthcare administration essentials including scheduling, medical billing, and EHR management to launch your career in clinical environments.
+                                    </p>
+
+                                    <div className="flex flex-wrap gap-6 text-sm text-slate-300">
+                                        <div className="flex items-center">
+                                            <Icons.Clock className="h-5 w-5 mr-2 text-brand-400" />
+                                            <span><strong className="text-white">8 weeks</strong> (120 hours total)</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <Icons.Users className="h-5 w-5 mr-2 text-brand-400" />
+                                            <span><strong className="text-white">Cohort format</strong> (Live + async)</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <Icons.Tag className="h-5 w-5 mr-2 text-brand-400" />
+                                            <span><strong className="text-white">$349</strong> full tuition</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex-shrink-0 lg:w-80">
+                                    {/* Urgency Alert */}
+                                    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl relative top-8">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="h-10 w-10 bg-accent-900/50 rounded-lg flex items-center justify-center border border-accent-800">
+                                                <Icons.Calendar className="h-5 w-5 text-accent-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-400">Next Cohort</p>
+                                                <p className="text-lg font-bold text-white leading-none mt-1">Starts March 3</p>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
+                                            <div className="bg-accent-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                                        </div>
+                                        <p className="text-xs text-accent-400 font-medium mb-6">Only 4 seats remaining</p>
+
+                                        <a href="study-tool.html" className="w-full flex justify-center items-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-base font-medium text-slate-900 bg-brand-400 hover:bg-brand-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 focus:ring-offset-slate-900 transition-colors">
+                                            Enroll Now
+                                        </a>
+                                        <p className="text-xs text-center text-slate-400 mt-4">
+                                            or <a href="#financing" className="text-brand-300 hover:text-brand-200 underline focus:outline-none">explore financing options</a>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                        <div className="flex flex-col lg:flex-row gap-12">
+                            {/* Main Content */}
+                            <div className="lg:w-2/3 lg:pr-8">
+                                {/* Navigation Tabs */}
+                                <div className="border-b border-slate-200 sticky top-20 z-40 bg-slate-50 pb-px mb-8">
+                                    <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
+                                        {[
+                                            { id: 'curriculum', name: 'Curriculum' },
+                                            { id: 'outcomes', name: 'Alumni Outcomes' },
+                                            { id: 'instructor', name: 'Instructor' },
+                                            { id: 'financing', name: 'Financing' }
+                                        ].map(tab => (
+                                            <button
+                                                key={tab.id}
+                                                onClick={() => setActiveTab(tab.id)}
+                                                className={`
+                                                    whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                                                    ${activeTab === tab.id
+                                                        ? 'border-brand-500 text-brand-600'
+                                                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}
+                                                    focus:outline-none
+                                                `}
+                                                aria-current={activeTab === tab.id ? 'page' : undefined}
+                                            >
+                                                {tab.name}
+                                            </button>
+                                        ))}
+                                    </nav>
+                                </div>
+
+                                <div className="space-y-12">
+                                    {/* Curriculum Tab Section */}
+                                    <div className={activeTab === 'curriculum' ? 'block animate-fade-in-up' : 'hidden'}>
+                                        <section className="mb-12">
+                                            <h2 className="text-2xl font-bold text-slate-900 font-condensed mb-6">What You Will Learn</h2>
+                                            <div className="bg-white rounded-2xl border border-slate-200 p-8">
+                                                <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {[
+                                                        "Medical terminology and anatomy basics",
+                                                        "Electronic Health Record (EHR) software navigation",
+                                                        "Patient scheduling, intake, and triage protocols",
+                                                        "Medical billing, coding basics, and insurance claims",
+                                                        "HIPAA compliance, ethics, and healthcare law",
+                                                        "Effective communication with clinical staff and patients"
+                                                    ].map((item, idx) => (
+                                                        <li key={idx} className="flex items-start">
+                                                            <Icons.CheckCircle className="h-5 w-5 text-brand-500 mt-0.5 mr-3 flex-shrink-0" />
+                                                            <span className="text-slate-700">{item}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </section>
+
+                                        <section>
+                                            <div className="flex justify-between items-end mb-6">
+                                                <h2 className="text-2xl font-bold text-slate-900 font-condensed">8-Week Schedule</h2>
+                                                <div className="text-sm font-medium text-brand-600 bg-brand-50 px-3 py-1 rounded-full flex items-center">
+                                                    <div className="w-2 h-2 rounded-full bg-brand-500 mr-2 animate-pulse"></div> Live Q&A: Tuesdays 6pm EST
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {[
+                                                    { week: 1, title: "Healthcare Ecosystem & Medical Basics", desc: "Introduction to clinic workflow, hierarchy, and essential medical terminology prefixes and suffixes." },
+                                                    { week: 2, title: "Patient Interaction & Scheduling", desc: "Mastering appointment booking algorithms, patient triage, and professional communication." },
+                                                    { week: 3, title: "EHR Fundamentals", desc: "Hands-on simulation with industry-standard Electronic Health Records software." },
+                                                    { week: 4, title: "HIPAA, Law & Ethics", desc: "Understanding compliance, data privacy, and legal responsibilities of the front office." },
+                                                    { week: 5, title: "Medical Billing & Insurance (Part 1)", desc: "Introduction to insurance verification, co-pays, deductibles, and authorization." },
+                                                    { week: 6, title: "Coding & Claims (Part 2)", desc: "ICD-10/CPT coding fundamentals and lifecycle of a clean insurance claim." },
+                                                    { week: 7, title: "Clinic Operations Capstone", desc: "Synthesizing skills in a realistic 5-day clinic stress-test simulation." },
+                                                    { week: 8, title: "Career Prep & Final Exam", desc: "Resume building, mock interviews, and final certification examination." }
+                                                ].map((week) => (
+                                                    <div key={week.week} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-brand-300 transition-colors group">
+                                                        <div className="p-5 sm:flex sm:items-center">
+                                                            <div className="flex-shrink-0 h-10 w-10 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center font-bold font-condensed mr-5 group-hover:bg-brand-100 group-hover:text-brand-700 transition-colors">
+                                                                W{week.week}
+                                                            </div>
+                                                            <div>
+                                                                <h3 className="text-lg font-bold text-slate-900">{week.title}</h3>
+                                                                <p className="mt-1 text-sm text-slate-600">{week.desc}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </section>
+                                    </div>
+
+                                    {/* Outcomes Tab Section */}
+                                    <div className={activeTab === 'outcomes' ? 'block animate-fade-in-up' : 'hidden'}>
+                                        <h2 className="text-2xl font-bold text-slate-900 font-condensed mb-6">Proven Career Outcomes</h2>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                                            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+                                                <div className="text-4xl font-extrabold text-brand-600 font-condensed mb-2">92%</div>
+                                                <p className="text-sm text-slate-600 font-medium">Job placement within 3 months of completion</p>
+                                            </div>
+                                            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+                                                <div className="text-4xl font-extrabold text-brand-600 font-condensed mb-2">$42k</div>
+                                                <p className="text-sm text-slate-600 font-medium">Average starting salary for graduates</p>
+                                            </div>
+                                            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+                                                <div className="text-4xl font-extrabold text-brand-600 font-condensed mb-2">400+</div>
+                                                <p className="text-sm text-slate-600 font-medium">Hiring partners actively recruiting</p>
+                                            </div>
+                                        </div>
+
+                                        <h3 className="text-xl font-bold text-slate-900 mb-6">Where our alumni work</h3>
+                                        <div className="bg-white p-8 rounded-2xl border border-slate-200">
+                                            <div className="flex flex-wrap items-center gap-12 opacity-60 grayscale">
+                                                <span className="font-bold text-xl text-slate-800">Mayo Clinic</span>
+                                                <span className="font-bold text-xl text-slate-800 font-serif">Kaiser Permanente</span>
+                                                <span className="font-bold text-xl text-slate-800 tracking-tighter">CVS Health</span>
+                                                <span className="font-bold text-xl text-slate-800">UnitedHealth Group</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Instructor Tab Section */}
+                                    <div className={activeTab === 'instructor' ? 'block animate-fade-in-up' : 'hidden'}>
+                                        <h2 className="text-2xl font-bold text-slate-900 font-condensed mb-6">Meet Your Instructor</h2>
+                                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                                            <div className="md:flex">
+                                                <div className="md:w-1/3 bg-slate-100">
+                                                    <img
+                                                        src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                                                        alt="Dr. Elena Rostova"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                                <div className="p-8 md:w-2/3">
+                                                    <div className="uppercase tracking-wide text-xs text-brand-600 font-bold mb-1">Lead Instructor</div>
+                                                    <h3 className="block mt-1 text-2xl leading-tight font-bold text-slate-900 font-condensed mb-4">Elena Rostova, MHA, CMA</h3>
+                                                    <p className="mt-2 text-slate-600 mb-6">
+                                                        Elena brings 15 years of healthcare administration experience to the classroom. Formerly a Clinic Director at Providence Health, she built training programs for hundreds of administrative staff. Her teaching approach is deeply practical, focusing on the exact scenarios you'll face on day one of the job.
+                                                    </p>
+
+                                                    <h4 className="font-semibold text-slate-900 mb-3 text-sm uppercase tracking-wider">Credentials</h4>
+                                                    <ul className="space-y-2 text-sm text-slate-600">
+                                                        <li className="flex items-center"><Icons.Award className="h-4 w-4 mr-2 text-slate-400" /> Master of Health Administration (MHA)</li>
+                                                        <li className="flex items-center"><Icons.Award className="h-4 w-4 mr-2 text-slate-400" /> Certified Medical Assistant (AAMA)</li>
+                                                        <li className="flex items-center"><Icons.Award className="h-4 w-4 mr-2 text-slate-400" /> Certified Professional Coder (AAPC)</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Financing Tab Section */}
+                                    <div id="financing" className={activeTab === 'financing' ? 'block animate-fade-in-up' : 'hidden'}>
+                                        <h2 className="text-2xl font-bold text-slate-900 font-condensed mb-6">Tuition & Financing Options</h2>
+
+                                        <div className="bg-white rounded-2xl border border-brand-200 shadow-sm overflow-hidden mb-8">
+                                            <div className="flex border-b border-slate-200">
+                                                <button
+                                                    onClick={() => setBillingCycle('full')}
+                                                    className={`flex-1 py-4 px-6 text-center font-medium text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 ${billingCycle === 'full' ? 'bg-brand-50 text-brand-700 border-b-2 border-brand-500' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                                                >
+                                                    Pay in Full
+                                                </button>
+                                                <button
+                                                    onClick={() => setBillingCycle('split')}
+                                                    className={`flex-1 py-4 px-6 text-center font-medium text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 ${billingCycle === 'split' ? 'bg-brand-50 text-brand-700 border-b-2 border-brand-500' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                                                >
+                                                    3-Part Payment Plan
+                                                </button>
+                                            </div>
+
+                                            <div className="p-8">
+                                                {billingCycle === 'full' ? (
+                                                    <div className="text-center">
+                                                        <div className="text-5xl font-extrabold text-slate-900 font-condensed mb-2">$349</div>
+                                                        <p className="text-slate-500 mb-6">One-time payment</p>
+                                                        <a href="study-tool.html" className="inline-block w-full sm:w-auto px-8 py-3 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                                                            Enroll Now
+                                                        </a>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center">
+                                                        <div className="text-5xl font-extrabold text-slate-900 font-condensed mb-2">$120<span className="text-xl font-medium text-slate-500">/mo</span></div>
+                                                        <p className="text-slate-500 mb-6">For 3 months ($360 total)</p>
+                                                        <a href="study-tool.html" className="inline-block w-full sm:w-auto px-8 py-3 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                                                            Enroll with Payment Plan
+                                                        </a>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="bg-white border border-slate-200 rounded-xl p-6">
+                                                <Icons.Briefcase className="h-8 w-8 text-indigo-500 mb-4" />
+                                                <h3 className="text-lg font-bold text-slate-900 mb-2">Employer Reimbursement</h3>
+                                                <p className="text-sm text-slate-600 mb-4">Many employers reimburse tuition for professional development. Download our template to ask your manager.</p>
+                                                <a href="#" className="text-brand-600 text-sm font-medium hover:text-brand-800 flex items-center focus:outline-none focus:underline">
+                                                    Download Template <Icons.ChevronRight className="h-4 w-4 ml-1" />
+                                                </a>
+                                            </div>
+                                            <div className="bg-white border border-slate-200 rounded-xl p-6">
+                                                <Icons.Award className="h-8 w-8 text-amber-500 mb-4" />
+                                                <h3 className="text-lg font-bold text-slate-900 mb-2">Scholarships & Grants</h3>
+                                                <p className="text-sm text-slate-600 mb-4">SkillForge offers need-based scholarships covering up to 50% of tuition. Eligible for WIOA funding in select states.</p>
+                                                <a href="pricing.html" className="text-brand-600 text-sm font-medium hover:text-brand-800 flex items-center focus:outline-none focus:underline">
+                                                    Apply for Scholarship <Icons.ChevronRight className="h-4 w-4 ml-1" />
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sticky Sidebar */}
+                            <div className="lg:w-1/3 hidden lg:block">
+                                <div className="sticky top-28">
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
+                                        <h3 className="font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2">Required Materials</h3>
+                                        <ul className="space-y-3 text-sm text-slate-600">
+                                            <li className="flex items-start">
+                                                <Icons.CheckCircle className="h-5 w-5 text-emerald-500 mr-2 flex-shrink-0" />
+                                                Laptop or desktop computer (PC/Mac) with webcam
+                                            </li>
+                                            <li className="flex items-start">
+                                                <Icons.CheckCircle className="h-5 w-5 text-emerald-500 mr-2 flex-shrink-0" />
+                                                Reliable high-speed broadband internet
+                                            </li>
+                                            <li className="flex items-start">
+                                                <Icons.CheckCircle className="h-5 w-5 text-emerald-500 mr-2 flex-shrink-0" />
+                                                No textbook required (All reading materials provided digitally)
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="bg-brand-50 rounded-2xl border border-brand-100 p-6 text-center">
+                                        <h3 className="font-bold text-slate-900 mb-2">Have Questions?</h3>
+                                        <p className="text-sm text-slate-600 mb-4">Talk to an admissions advisor to see if this program is right for you.</p>
+                                        <a href="pricing.html" className="inline-block w-full py-2 bg-white border border-brand-200 rounded-lg text-brand-700 font-medium text-sm hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-sm">
+                                            Chat with Advisor
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            return (
+                <div className="min-h-screen flex flex-col font-sans">
+                    <Header />
+                    <CourseDetail />
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

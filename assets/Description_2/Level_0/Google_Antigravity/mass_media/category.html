@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate | Groundwork Journalism</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Custom Compiled CSS -->
+    <link href="styles.css" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons (Phosphor) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        body {
+            background-color: #F5F5F3;
+            color: #111111;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased selection:bg-gw-red selection:text-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ---------------------------------------------------------
+        // SHARED COMPONENTS
+        // ---------------------------------------------------------
+        const Header = () => (
+            <header className="border-b-[6px] border-gw-dark pb-4 mb-8 pt-6 px-4 md:px-8 max-w-[1400px] mx-auto sticky top-0 bg-gw-light z-50 transition-all shadow-sm">
+                <div className="flex justify-between items-center mb-4 border-b border-gray-300 pb-2">
+                    <div className="text-xs font-bold tracking-[0.2em] uppercase text-gw-red flex items-center gap-2">
+                        <i className="ph ph-detective"></i> Independent Investigative Journalism
+                    </div>
+                    <div className="flex gap-4 items-center">
+                        <a href="subscription.html" className="text-sm font-bold bg-gw-red text-white px-3 py-1 rounded-sm hover:bg-black transition-colors flex items-center gap-1">
+                            <i className="ph ph-heart-straight-fill"></i> Donate
+                        </a>
+                        <a href="#" className="text-sm font-bold hover:text-gw-red transition-colors flex items-center gap-1">
+                            <i className="ph ph-envelope-open"></i> Newsletters
+                        </a>
+                        <div className="flex items-center gap-2 border-l border-gray-300 pl-4 ml-2">
+                            <a href="#" className="hover:text-gw-red"><i className="ph ph-magnifying-glass text-xl"></i></a>
+                            <a href="#" className="hover:text-gw-red"><i className="ph ph-user text-xl"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex flex-col lg:flex-row justify-between items-end gap-6 pt-2">
+                    <a href="index.html" className="block outline-none shrink-0">
+                        <h1 className="font-serif text-5xl md:text-7xl font-black tracking-tight leading-none text-gw-dark hover:text-gw-red transition-colors">
+                            GROUNDWORK
+                        </h1>
+                    </a>
+                    <nav className="flex gap-4 lg:gap-8 pb-1 overflow-x-auto w-full lg:w-auto scrollbar-hide text-gw-dark items-center">
+                        <a href="category.html" className="font-sans font-bold text-base uppercase tracking-wider text-gw-red whitespace-nowrap border-b-2 border-gw-red pb-1 transition-all">Climate</a>
+                        <a href="#" className="font-sans font-bold text-base uppercase tracking-wider hover:text-gw-red whitespace-nowrap border-b-2 border-transparent hover:border-gw-red pb-1 transition-all">Energy</a>
+                        <a href="#" className="font-sans font-bold text-base uppercase tracking-wider hover:text-gw-red whitespace-nowrap border-b-2 border-transparent hover:border-gw-red pb-1 transition-all">Policy</a>
+                        <a href="#" className="font-sans font-bold text-base uppercase tracking-wider hover:text-gw-red whitespace-nowrap border-b-2 border-transparent hover:border-gw-red pb-1 transition-all">Science</a>
+                        <a href="#" className="font-sans font-bold text-base uppercase tracking-wider hover:text-gw-red whitespace-nowrap border-b-2 border-transparent hover:border-gw-red pb-1 transition-all">Data</a>
+                        <a href="opinion.html" className="font-serif font-black italic text-lg hover:text-gw-red whitespace-nowrap border-l-2 border-gray-300 pl-4 lg:pl-8 ml-2 lg:ml-4 text-gray-600 transition-colors">Perspectives</a>
+                    </nav>
+                </div>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="bg-gw-dark text-white py-20 px-4 md:px-8 mt-24 border-t-8 border-gw-red">
+                <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-12">
+                    <div className="md:col-span-5 pr-0 md:pr-12">
+                        <h2 className="font-serif text-5xl font-black mb-6 tracking-tight">GROUNDWORK</h2>
+                        <p className="font-sans text-gray-400 text-lg mb-8 leading-relaxed">
+                            Data-driven investigative journalism focused on climate, science, and environmental policy. We report the facts, independent of corporate influence or political bias. Our work relies on reader support.
+                        </p>
+                        <div className="flex gap-4">
+                            <a href="subscription.html" className="bg-gw-red text-white px-8 py-4 font-bold rounded-sm hover:bg-white hover:text-gw-dark transition-colors flex items-center justify-center gap-2 group text-lg w-full sm:w-auto">
+                                <i className="ph-fill ph-hand-heart group-hover:scale-110 transition-transform"></i>
+                                Become a Supporter
+                            </a>
+                        </div>
+                    </div>
+                    <div className="md:col-span-2">
+                        <h3 className="font-bold text-sm uppercase tracking-widest mb-6 text-gray-500 border-b border-gray-800 pb-3">Sections</h3>
+                        <ul className="space-y-3 flex flex-col font-sans text-gray-300 font-medium">
+                            <li><a href="index.html" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Home</a></li>
+                            <li><a href="category.html" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Climate</a></li>
+                            <li><a href="#" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Energy</a></li>
+                            <li><a href="#" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Policy</a></li>
+                            <li><a href="#" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Science</a></li>
+                            <li><a href="#" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Data Center</a></li>
+                            <li><a href="opinion.html" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Perspectives</a></li>
+                        </ul>
+                    </div>
+                    <div className="md:col-span-2">
+                        <h3 className="font-bold text-sm uppercase tracking-widest mb-6 text-gray-500 border-b border-gray-800 pb-3">About Us</h3>
+                        <ul className="space-y-3 flex flex-col font-sans text-gray-300 font-medium">
+                            <li><a href="#" className="hover:text-white transition-colors">Our Mission</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">Staff & Reporters</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">Financial Transparency</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">Impact Report</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">Contact the Newsroom</a></li>
+                            <li><a href="#" className="hover:text-white transition-colors">Pitch a Story</a></li>
+                        </ul>
+                    </div>
+                    <div className="md:col-span-3">
+                        <div className="bg-gray-900 p-6 rounded-sm border border-gray-800">
+                            <h3 className="font-bold text-lg mb-2 text-white flex items-center gap-2">
+                                <i className="ph-fill ph-envelope-simple-open text-gw-red"></i> Daily Briefing
+                            </h3>
+                            <p className="text-gray-400 text-sm mb-4">Get our latest investigations and exclusive data deep-dives delivered to your inbox.</p>
+                            <form className="flex flex-col gap-3">
+                                <input type="email" placeholder="Your email address" className="bg-gray-800 text-white px-4 py-3 border border-gray-700 outline-none focus:border-gw-red transition-colors w-full rounded-sm" />
+                                <button type="button" className="bg-white text-gw-dark font-bold px-4 py-3 hover:bg-gray-200 transition-colors w-full rounded-sm">Subscribe Free</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div className="max-w-[1400px] mx-auto mt-16 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4 text-gray-500 font-sans text-sm">
+                    <div>&copy; {new Date().getFullYear()} Groundwork Journalism. Mockup for demonstration purposes.</div>
+                    <div className="flex gap-6">
+                        <a href="#" className="hover:text-white transition-colors"><i className="ph-fill ph-twitter-logo text-2xl"></i></a>
+                        <a href="#" className="hover:text-white transition-colors"><i className="ph-fill ph-instagram-logo text-2xl"></i></a>
+                        <a href="#" className="hover:text-white transition-colors"><i className="ph-fill ph-linkedin-logo text-2xl"></i></a>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        // ---------------------------------------------------------
+        // CATEGORY PAGE COMPONENT
+        // ---------------------------------------------------------
+        const CategoryPage = () => {
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow px-4 md:px-8 max-w-[1400px] mx-auto w-full">
+
+                        {/* Category Header */}
+                        <div className="border-b-[6px] border-gw-dark pb-6 mb-12 flex justify-between items-end">
+                            <div>
+                                <h1 className="font-serif text-6xl md:text-8xl font-black text-gw-dark uppercase tracking-tighter leading-none">Climate</h1>
+                                <p className="font-sans text-xl text-gray-600 mt-4 max-w-3xl">Investigating the global climate crisis, its local impacts, and the policies shaping our environmental future.</p>
+                            </div>
+                            <div className="hidden md:flex gap-4 mb-2">
+                                <button className="border border-gray-300 px-4 py-2 font-bold text-sm bg-white hover:bg-gw-dark hover:text-white transition-colors">Impacts</button>
+                                <button className="border border-gray-300 px-4 py-2 font-bold text-sm bg-white hover:bg-gw-dark hover:text-white transition-colors">Solutions</button>
+                                <button className="border border-gray-300 px-4 py-2 font-bold text-sm bg-white hover:bg-gw-dark hover:text-white transition-colors">Denial</button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-16">
+
+                            {/* Main Content Area */}
+                            <div className="lg:col-span-8">
+
+                                {/* Lead Investigation Card */}
+                                <div className="mb-12 border-b-2 border-gray-200 pb-12">
+                                    <h2 className="font-bold text-sm uppercase tracking-widest text-gw-red mb-4 flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-gw-red animate-pulse"></div> Active Investigation
+                                    </h2>
+                                    <a href="article.html" className="group block">
+                                        <div className="overflow-hidden mb-6 h-[400px] relative">
+                                            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors z-10"></div>
+                                            <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Mountain landscape" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" />
+                                        </div>
+                                        <h3 className="font-serif text-4xl lg:text-5xl font-black mb-4 group-hover:text-gw-red transition-colors leading-tight">
+                                            Meltdown: The Accelerating Collapse of Alpine Glaciers
+                                        </h3>
+                                        <p className="font-sans text-xl text-gray-700 mb-6 leading-relaxed">
+                                            As permafrost thaws at unprecedented rates, mountain communities face cascading infrastructure failures and shrinking water reservoirs. Groundwork spent six months tracking the quiet catastrophe unfolding above 10,000 feet.
+                                        </p>
+                                        <div className="flex items-center gap-4 text-sm font-sans">
+                                            <div className="w-10 h-10 overflow-hidden border border-gray-300 bg-gray-100">
+                                                <img src="https://i.pravatar.cc/150?img=11" alt="Reporter" />
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-gw-dark">By Jonathan Reed</div>
+                                                <div className="text-gray-500">15 min read • Published 2 days ago</div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+
+                                {/* Story List */}
+                                <div className="space-y-10">
+                                    <h3 className="font-serif text-2xl font-black mb-6">Recent Climate Reports</h3>
+
+                                    <article className="grid grid-cols-1 md:grid-cols-3 gap-6 group cursor-pointer border-b border-gray-200 pb-8 hover:bg-white transition-colors -mx-4 px-4 py-2">
+                                        <div className="md:col-span-1 overflow-hidden h-[180px] bg-gray-100">
+                                            <img src="https://images.unsplash.com/photo-1549488344-c782c53aee2e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Ocean waves" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        </div>
+                                        <div className="md:col-span-2 flex flex-col justify-center">
+                                            <div className="text-gw-red text-[10px] font-bold uppercase tracking-widest self-start mb-2 flex items-center gap-1 border border-gw-red px-2 py-0.5">
+                                                Sea Level
+                                            </div>
+                                            <h4 className="font-serif text-2xl font-bold mb-2 group-hover:text-gw-red transition-colors">Coastal Retreat: Managed Relocation Becomes Reality</h4>
+                                            <p className="font-sans text-gray-600 mb-3 line-clamp-2">Two coastal towns have officially begun the process of moving inland as king tides increasingly flood main streets.</p>
+                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider mt-auto">By Sarah Jenkins • 8 min read</div>
+                                        </div>
+                                    </article>
+
+                                    <article className="grid grid-cols-1 md:grid-cols-3 gap-6 group cursor-pointer border-b border-gray-200 pb-8 hover:bg-white transition-colors -mx-4 px-4 py-2">
+                                        <div className="md:col-span-1 overflow-hidden h-[180px] bg-gray-100">
+                                            <img src="https://images.unsplash.com/photo-1594396324227-2c1b81cd7ce2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Forest fire" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        </div>
+                                        <div className="md:col-span-2 flex flex-col justify-center">
+                                            <div className="text-gw-red text-[10px] font-bold uppercase tracking-widest self-start mb-2 flex items-center gap-1 border border-gw-red px-2 py-0.5">
+                                                Wildfire
+                                            </div>
+                                            <h4 className="font-serif text-2xl font-bold mb-2 group-hover:text-gw-red transition-colors">The Smoke Season: Living in the Shadow of the Megafire</h4>
+                                            <p className="font-sans text-gray-600 mb-3 line-clamp-2">Public health officials warn of long-term respiratory impacts as particulate matter reaches hazardous levels for the third consecutive summer.</p>
+                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider mt-auto">By Elena Rodriguez • 11 min read</div>
+                                        </div>
+                                    </article>
+
+                                    <article className="grid grid-cols-1 md:grid-cols-3 gap-6 group cursor-pointer border-b border-gray-200 pb-8 hover:bg-white transition-colors -mx-4 px-4 py-2">
+                                        <div className="md:col-span-1 overflow-hidden h-[180px] bg-gray-100">
+                                            <img src="https://images.unsplash.com/photo-1621683391741-2856272ded1e?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Industrial smoke" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        </div>
+                                        <div className="md:col-span-2 flex flex-col justify-center">
+                                            <div className="text-gw-red text-[10px] font-bold uppercase tracking-widest self-start mb-2 flex items-center gap-1 border border-gw-red px-2 py-0.5">
+                                                Carbon Markets
+                                            </div>
+                                            <h4 className="font-serif text-2xl font-bold mb-2 group-hover:text-gw-red transition-colors">Offset Illusions: The Failing Promise of Cap and Trade</h4>
+                                            <p className="font-sans text-gray-600 mb-3 line-clamp-2">An analysis of corporate carbon credits reveals that over 40% of purchased offsets have no tangible impact on actual greenhouse gas emission reduction.</p>
+                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wider mt-auto">By Mark Davis • 14 min read</div>
+                                        </div>
+                                    </article>
+
+                                    <div className="flex justify-center pt-8">
+                                        <button className="border-2 border-gw-dark px-12 py-4 font-bold text-lg hover:bg-gw-dark hover:text-white transition-colors uppercase tracking-widest">
+                                            Load More Reports
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sidebar Area */}
+                            <div className="lg:col-span-4 flex flex-col gap-12">
+
+                                {/* Key Documents Sidebar */}
+                                <div className="bg-white border-4 border-gray-900 p-8 shadow-sm">
+                                    <h3 className="font-serif text-2xl font-black mb-6 flex items-center gap-2 border-b-2 border-gray-200 pb-4">
+                                        <i className="ph-fill ph-folders text-gw-red text-3xl"></i> Document Cache
+                                    </h3>
+                                    <p className="font-sans text-sm text-gray-600 mb-6">Explore the primary source materials underlying our latest climate reporting.</p>
+                                    <ul className="space-y-6">
+                                        <li>
+                                            <a href="#" className="group flex items-start gap-4">
+                                                <div className="bg-red-100 text-gw-red p-2 rounded-sm shrink-0 group-hover:bg-gw-red group-hover:text-white transition-colors">
+                                                    <i className="ph-fill ph-file-pdf text-xl"></i>
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold font-sans text-sm group-hover:text-gw-red transition-colors leading-tight mb-1">EPA Internal Memo: Coastal Zoning Vulnerabilities (2024)</div>
+                                                    <div className="text-xs text-gray-500">PDF • 2.4 MB • Uploaded 3 days ago</div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a href="#" className="group flex items-start gap-4">
+                                                <div className="bg-red-100 text-gw-red p-2 rounded-sm shrink-0 group-hover:bg-gw-red group-hover:text-white transition-colors">
+                                                    <i className="ph-fill ph-file-pdf text-xl"></i>
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold font-sans text-sm group-hover:text-gw-red transition-colors leading-tight mb-1">UNEP Emissions Gap Unredacted Appendix</div>
+                                                    <div className="text-xs text-gray-500">PDF • 5.1 MB • Uploaded 1 week ago</div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a href="#" className="group flex items-start gap-4">
+                                                <div className="bg-green-100 text-green-700 p-2 rounded-sm shrink-0 group-hover:bg-green-700 group-hover:text-white transition-colors">
+                                                    <i className="ph-fill ph-file-xls text-xl"></i>
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold font-sans text-sm group-hover:text-gw-red transition-colors leading-tight mb-1">Corporate Disclosures Database: Top 50 Emitters</div>
+                                                    <div className="text-xs text-gray-500">XLSX • 1.1 MB • Updated monthly</div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                {/* Data Vis Embed Preview */}
+                                <div className="bg-black text-white p-8 shadow-xl relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity">
+                                        <i className="ph ph-arrows-out text-2xl cursor-pointer hover:text-gw-red"></i>
+                                    </div>
+                                    <div className="font-sans text-gray-400 text-xs uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
+                                        <i className="ph-fill ph-chart-polar text-gw-red text-lg"></i> Groundwork Data Center
+                                    </div>
+                                    <h3 className="font-serif text-2xl font-bold mb-6 leading-tight">Global Temperature Anomalies Tracker (1880-Present)</h3>
+
+                                    {/* Mock Chart */}
+                                    <div className="w-full bg-gray-900 border border-gray-800 h-48 flex items-end mb-8 relative p-2 gap-1 cursor-pointer">
+                                        {/* Axes */}
+                                        <div className="absolute bottom-6 left-2 border-t border-gray-700 w-[calc(100%-16px)]"></div>
+                                        <div className="absolute bottom-2 left-2 text-[10px] text-gray-500">1880</div>
+                                        <div className="absolute bottom-2 right-2 text-[10px] text-gray-500">2024</div>
+
+                                        {/* Bars */}
+                                        {[...Array(35)].map((_, i) => {
+                                            const isHot = i > 25;
+                                            const isWarm = i > 15;
+                                            const val = Math.random() * 30 + (i * 1.5);
+                                            return (
+                                                <div
+                                                    key={i}
+                                                    className={`hover:bg-white flex-1 transition-colors ${isHot ? 'bg-gw-red' : isWarm ? 'bg-orange-500' : 'bg-blue-400'}`}
+                                                    style={{ height: `${val}%`, minHeight: '5%', marginBottom: '24px' }}
+                                                ></div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <a href="#" className="block w-full text-center bg-gw-red hover:bg-white hover:text-black py-4 font-black text-sm uppercase tracking-widest transition-colors shadow-sm">
+                                        View Interactive Report
+                                    </a>
+                                </div>
+
+                                {/* Newsletter widget small */}
+                                <div className="bg-white p-6 border-b-4 border-gw-dark text-center">
+                                    <h4 className="font-serif font-bold text-xl mb-2">The Climate Desk</h4>
+                                    <p className="text-gray-600 text-sm mb-4">A weekly roundup of our most critical environmental reporting.</p>
+                                    <input type="email" placeholder="Email address" className="w-full border border-gray-300 px-4 py-2 mb-3 outline-none focus:border-gw-red" />
+                                    <button className="w-full bg-gw-dark text-white font-bold py-2 uppercase text-xs tracking-widest hover:bg-gw-red transition-colors">Sign Up</button>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CategoryPage />);
+    </script>
+</body>
+
+</html>

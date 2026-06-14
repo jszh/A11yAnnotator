@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages — Folia Creative Community</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'folia-bg':     '#FAF9F7',
+            'folia-surf':   '#F2EFEA',
+            'folia-border': '#E4DFD8',
+            'folia-text':   '#1C1917',
+            'folia-muted':  '#78716C',
+            'folia-accent': '#7C3AED',
+            'folia-accent-h':'#6D28D9',
+            'folia-rose':   '#F43F5E',
+            'folia-amber':  '#D97706',
+            'folia-sidebar':'#161514',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #FAF9F7; color: #1C1917; overflow: hidden; }
+    :focus-visible { outline: 3px solid #7C3AED !important; outline-offset: 2px !important; }
+    .skip-link { position:absolute;top:-52px;left:8px;background:#7C3AED;color:#fff;padding:10px 18px;z-index:9999;border-radius:6px;font-weight:600;transition:top 0.15s;text-decoration:none;font-size:14px; }
+    .skip-link:focus { top:8px; }
+    .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+    .sidebar-link { display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;font-size:15px;font-weight:500;color:#a8a29e;transition:all 0.15s;text-decoration:none; }
+    .sidebar-link:hover { background:rgba(255,255,255,0.07);color:#fff; }
+    .sidebar-link.active { background:rgba(124,58,237,0.15);color:#c4b5fd; }
+    .bottom-nav-link { display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;color:#78716c;font-size:10px;font-weight:500;text-decoration:none;transition:color 0.15s; }
+    .bottom-nav-link.active { color:#7C3AED; }
+    .bottom-nav-link:hover { color:#7C3AED; }
+    .msg-list::-webkit-scrollbar { width:4px; }
+    .msg-list::-webkit-scrollbar-thumb { background:#E4DFD8; border-radius:2px; }
+    .thread::-webkit-scrollbar { width:4px; }
+    .thread::-webkit-scrollbar-thumb { background:#E4DFD8; border-radius:2px; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    /* ── Sidebar ───────────────────────────────────────────────── */
+    function Sidebar({ current = 'messages' }) {
+      const NAV = [
+        { key:'feed',    label:'Feed',          href:'index.html',         icon:'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+        { key:'explore', label:'Explore',       href:'explore.html',       icon:'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
+        { key:'notifs',  label:'Notifications', href:'notifications.html', icon:'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', badge: 3 },
+        { key:'messages',label:'Messages',      href:'messages.html',      icon:'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', badge: 2 },
+        { key:'profile', label:'Profile',       href:'profile.html',       icon:'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+        { key:'settings',label:'Settings',      href:'settings.html',      icon:'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+      ];
+      return (
+        <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-60 bg-folia-sidebar text-white z-40 py-6 px-3" aria-label="Primary navigation">
+          <a href="index.html" className="flex items-center gap-2.5 px-3 mb-8" aria-label="Folia — go to feed">
+            <div className="w-9 h-9 bg-gradient-to-br from-folia-accent to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0" aria-hidden="true">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+            </div>
+            <span className="font-extrabold text-xl tracking-tight">folia</span>
+          </a>
+          <nav aria-label="Main site navigation">
+            <ul className="space-y-1" role="list">
+              {NAV.map(n => (
+                <li key={n.key}>
+                  <a href={n.href} className={`sidebar-link ${current===n.key?'active':''}`}
+                    aria-current={current===n.key?'page':undefined}
+                    aria-label={n.badge ? `${n.label} — ${n.badge} unread` : n.label}>
+                    <div className="relative flex-shrink-0">
+                      <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {n.icon.includes('M15 12') ? (
+                          <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></>
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={n.icon} />
+                        )}
+                      </svg>
+                      {n.badge && <span aria-hidden="true" className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-folia-rose text-white text-[10px] font-bold rounded-full flex items-center justify-center">{n.badge}</span>}
+                    </div>
+                    <span>{n.label}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="flex-1" />
+          <a href="profile.html" className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors" aria-label="My profile — Kai Rivera">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0" role="img" aria-label="Kai Rivera's avatar">KR</div>
+            <div className="min-w-0">
+              <p className="font-semibold text-sm text-white truncate">Kai Rivera</p>
+              <p className="text-xs text-folia-muted truncate">@kairivera</p>
+            </div>
+          </a>
+        </aside>
+      );
+    }
+
+    function BottomNav({ current = 'messages' }) {
+      const NAV = [
+        { key:'feed',    href:'index.html',        icon:'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', label:'Feed' },
+        { key:'explore', href:'explore.html',      icon:'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', label:'Explore' },
+        { key:'notifs',  href:'notifications.html',icon:'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', label:'Activity' },
+        { key:'messages',href:'messages.html',     icon:'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', label:'Messages' },
+        { key:'profile', href:'profile.html',      icon:'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', label:'Profile' },
+      ];
+      return (
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-folia-border z-40 flex" aria-label="Mobile navigation">
+          {NAV.map(n => (
+            <a key={n.key} href={n.href} className={`bottom-nav-link flex-1 ${current===n.key?'active':''}`} aria-current={current===n.key?'page':undefined} aria-label={n.label}>
+              <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={current===n.key?2.5:2} d={n.icon} /></svg>
+              <span>{n.label}</span>
+            </a>
+          ))}
+        </nav>
+      );
+    }
+
+    /* ── Data ──────────────────────────────────────────────────── */
+    const THREADS = [
+      {
+        id: 1, name:'Maya Chen', handle:'@mayachen', avatarGrad:'from-purple-400 to-pink-500', unread: 2,
+        preview: 'Love the direction you\'re going with the lighting…',
+        messages: [
+          { id:1, from:'Maya Chen', mine:false, time:'Yesterday 2:14 PM', text:'Hey! Saw your latest post — the color work is incredible. Are you available for a collab?' },
+          { id:2, from:'Kai Rivera', mine:true,  time:'Yesterday 2:31 PM', text:'Thanks Maya! I\'d definitely be open to it. What did you have in mind?' },
+          { id:3, from:'Maya Chen', mine:false, time:'Yesterday 3:05 PM', text:'I\'m putting together a zine about "liminal spaces in digital art" — would love your editorial style for 2–3 spreads.', read: true },
+          { id:4, from:'Maya Chen', mine:false, time:'Yesterday 3:06 PM', text:'Love the direction you\'re going with the lighting…', read: false },
+          { id:5, from:'Maya Chen', mine:false, time:'Yesterday 3:06 PM', imgGrad:'from-amber-300 via-orange-400 to-rose-500', imgLabel:'Shared image: Solstice III preview', read: false },
+        ]
+      },
+      {
+        id: 2, name:'Linh Nguyen', handle:'@linhdraws', avatarGrad:'from-emerald-400 to-teal-500', unread: 0,
+        preview: 'Project brief attached — let me know your timeline',
+        messages: [
+          { id:1, from:'Linh Nguyen', mine:false, time:'Mon 10:22 AM', text:'Hi Kai! I\'ve been following your work for a while. I\'m working on a motion piece and could use some still illustration for key frames.' },
+          { id:2, from:'Kai Rivera',  mine:true,  time:'Mon 11:00 AM', text:'Hey Linh! Big fan of your 3D loops. Tell me more about the project.' },
+          { id:3, from:'Linh Nguyen', mine:false, time:'Mon 11:45 AM', text:'Project brief attached — let me know your timeline', read: true },
+          { id:4, from:'Linh Nguyen', mine:false, time:'Mon 11:45 AM', imgGrad:'from-emerald-300 via-teal-400 to-cyan-500', imgLabel:'Shared image: Botanic Systems brief', read: true },
+        ]
+      },
+      {
+        id: 3, name:'Hiroshi Tanaka', handle:'@hiroshit', avatarGrad:'from-teal-400 to-cyan-500', unread: 0,
+        preview: 'Happy to share the film scan files',
+        messages: [
+          { id:1, from:'Kai Rivera',   mine:true,  time:'Sun 9:00 AM',  text:'Your Kamo River series is breathtaking. What scanner do you use for the Portra?' },
+          { id:2, from:'Hiroshi Tanaka',mine:false,time:'Sun 4:12 PM', text:'Thank you! I use a Plustek OpticFilm 8200i — great for 35mm. Happy to share the film scan files', read: true },
+        ]
+      },
+    ];
+
+    /* ── Share a Project modal ─────────────────────────────────── */
+    function ShareProjectModal({ onClose, triggerRef }) {
+      const closeBtnRef = useRef(null);
+      const modalRef = useRef(null);
+      const PROJECTS = [
+        { id:1, name:'Solstice III',     grad:'from-amber-300 to-rose-400' },
+        { id:2, name:'Midnight Study #4',grad:'from-indigo-300 to-violet-500' },
+        { id:3, name:'Color Study VII',  grad:'from-rose-200 to-fuchsia-400' },
+      ];
+
+      useEffect(() => {
+        closeBtnRef.current?.focus();
+        function trap(e) {
+          const focusable = modalRef.current?.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+          if (!focusable || focusable.length === 0) return;
+          const first = focusable[0]; const last = focusable[focusable.length-1];
+          if (e.key === 'Tab') {
+            if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
+            else { if (document.activeElement === last) { e.preventDefault(); first.focus(); } }
+          }
+          if (e.key === 'Escape') { onClose(); triggerRef.current?.focus(); }
+        }
+        document.addEventListener('keydown', trap);
+        return () => document.removeEventListener('keydown', trap);
+      }, []);
+
+      return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="share-dialog-title" ref={modalRef}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between p-5 border-b border-folia-border">
+              <h2 id="share-dialog-title" className="font-bold text-folia-text">Share a Project</h2>
+              <button ref={closeBtnRef} onClick={() => { onClose(); triggerRef.current?.focus(); }} aria-label="Close share project dialog" className="w-8 h-8 rounded-full hover:bg-folia-surf flex items-center justify-center text-folia-muted">
+                <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-folia-muted mb-4">Choose a project to share in this conversation:</p>
+              <ul className="space-y-2" role="list">
+                {PROJECTS.map(p => (
+                  <li key={p.id}>
+                    <button
+                      onClick={() => { onClose(); triggerRef.current?.focus(); }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-folia-border hover:border-folia-accent hover:bg-folia-accent/5 transition-colors text-left"
+                      aria-label={`Share project: ${p.name}`}
+                    >
+                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${p.grad} flex-shrink-0`} role="img" aria-label={`${p.name} thumbnail`} />
+                      <span className="font-medium text-sm text-folia-text">{p.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Messages page ─────────────────────────────────────────── */
+    function MessagesPage() {
+      const [activeThread, setActiveThread] = useState(THREADS[0].id);
+      const [threads, setThreads] = useState(THREADS);
+      const [input, setInput] = useState('');
+      const [shareOpen, setShareOpen] = useState(false);
+      const [liveMsg, setLiveMsg] = useState('');
+      const inputRef = useRef(null);
+      const shareTrigerRef = useRef(null);
+      const threadEndRef = useRef(null);
+
+      const thread = threads.find(t => t.id === activeThread);
+
+      useEffect(() => {
+        threadEndRef.current?.scrollIntoView({ behavior:'smooth' });
+      }, [activeThread, thread?.messages?.length]);
+
+      function sendMessage() {
+        const text = input.trim();
+        if (!text) return;
+        setThreads(prev => prev.map(t => {
+          if (t.id !== activeThread) return t;
+          return {
+            ...t,
+            preview: text,
+            messages: [...t.messages, { id: Date.now(), from:'Kai Rivera', mine:true, time:'Just now', text, read:true }]
+          };
+        }));
+        setInput('');
+        setLiveMsg('Message sent');
+        setTimeout(() => { setLiveMsg(''); inputRef.current?.focus(); }, 500);
+      }
+
+      function handleKeyDown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      }
+
+      function openThread(id) {
+        setActiveThread(id);
+        setThreads(prev => prev.map(t => t.id === id ? { ...t, unread: 0 } : t));
+      }
+
+      return (
+        <div className="min-h-screen bg-folia-bg">
+          <Sidebar current="messages" />
+          <BottomNav current="messages" />
+
+          {shareOpen && <ShareProjectModal onClose={() => setShareOpen(false)} triggerRef={shareTrigerRef} />}
+
+          <main id="main-content" className="lg:ml-60 h-screen flex" tabIndex={-1}>
+            {/* Live region */}
+            <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{liveMsg}</div>
+
+            {/* Thread list panel */}
+            <section
+              className="w-72 flex-shrink-0 border-r border-folia-border bg-white flex flex-col"
+              aria-label="Message threads"
+            >
+              <div className="px-5 py-4 border-b border-folia-border">
+                <h1 className="text-lg font-bold text-folia-text">Messages</h1>
+                <p className="text-xs text-folia-muted mt-0.5">
+                  <span aria-live="polite" aria-atomic="true">
+                    {threads.reduce((sum, t) => sum + t.unread, 0)} unread
+                  </span>
+                </p>
+              </div>
+              <ul
+                className="flex-1 overflow-y-auto msg-list"
+                role="list"
+                aria-label="Conversations"
+              >
+                {threads.map(t => (
+                  <li key={t.id}>
+                    <button
+                      onClick={() => openThread(t.id)}
+                      aria-current={activeThread === t.id ? 'true' : undefined}
+                      aria-label={`${t.unread ? `${t.unread} unread messages from ` : ''}${t.name}: ${t.preview}`}
+                      className={`w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-folia-surf transition-colors border-b border-folia-border ${activeThread === t.id ? 'bg-folia-accent/5 border-l-2 border-l-folia-accent' : ''}`}
+                    >
+                      <div className="relative flex-shrink-0">
+                        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${t.avatarGrad} flex items-center justify-center text-white font-bold text-sm`} role="img" aria-label={`${t.name}'s avatar`}>
+                          {t.name.split(' ').map(w=>w[0]).join('')}
+                        </div>
+                        {t.unread > 0 && <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-folia-rose text-white text-[10px] font-bold rounded-full flex items-center justify-center">{t.unread}</span>}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm truncate ${t.unread ? 'font-semibold text-folia-text' : 'font-medium text-folia-text'}`}>{t.name}</p>
+                        <p className="text-xs text-folia-muted truncate mt-0.5">{t.preview}</p>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {/* Conversation panel */}
+            <section className="flex-1 flex flex-col bg-folia-bg" aria-label={`Conversation with ${thread?.name}`}>
+              {/* Header */}
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-folia-border bg-white">
+                <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${thread?.avatarGrad} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`} role="img" aria-label={`${thread?.name}'s avatar`}>
+                  {thread?.name.split(' ').map(w=>w[0]).join('')}
+                </div>
+                <div>
+                  <a href="profile.html" className="font-semibold text-sm text-folia-text hover:text-folia-accent transition-colors">{thread?.name}</a>
+                  <p className="text-xs text-folia-muted">{thread?.handle}</p>
+                </div>
+                <div className="flex-1" />
+                <a href="profile.html" className="text-xs text-folia-accent font-medium hover:underline" aria-label={`View ${thread?.name}'s profile`}>View profile</a>
+              </div>
+
+              {/* Message log */}
+              <div
+                role="log"
+                aria-label={`Messages with ${thread?.name}`}
+                aria-live="polite"
+                aria-atomic="false"
+                aria-relevant="additions"
+                className="flex-1 overflow-y-auto thread px-6 py-6 space-y-4"
+              >
+                {thread?.messages.map(msg => (
+                  <div key={msg.id} className={`flex ${msg.mine ? 'justify-end' : 'justify-start'}`}>
+                    {!msg.mine && (
+                      <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${thread.avatarGrad} flex items-center justify-center text-white font-bold text-[11px] flex-shrink-0 mr-2 mt-0.5`} role="img" aria-label={`${msg.from}'s avatar`}>
+                        {msg.from.split(' ').map(w=>w[0]).join('')}
+                      </div>
+                    )}
+                    <div className={`max-w-xs lg:max-w-md ${msg.mine ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                      {msg.imgGrad ? (
+                        <div
+                          className={`w-48 h-36 rounded-xl bg-gradient-to-br ${msg.imgGrad}`}
+                          role="img"
+                          aria-label={msg.imgLabel || 'Shared image'}
+                        />
+                      ) : (
+                        <div className={`px-4 py-2.5 rounded-2xl text-sm ${msg.mine ? 'bg-folia-accent text-white rounded-br-sm' : 'bg-white border border-folia-border text-folia-text rounded-bl-sm'}`}>
+                          {msg.text}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-folia-muted">{msg.time}</span>
+                        {msg.mine && (
+                          <span className="text-[11px] text-folia-muted" aria-label={msg.read ? 'Read' : 'Delivered'}>
+                            {msg.read ? '✓✓' : '✓'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={threadEndRef} />
+              </div>
+
+              {/* Input bar */}
+              <div className="px-6 py-4 border-t border-folia-border bg-white">
+                {/* Share project shortcut */}
+                <div className="flex items-center gap-2 mb-3">
+                  <button
+                    ref={shareTrigerRef}
+                    onClick={() => setShareOpen(true)}
+                    className="flex items-center gap-1.5 text-xs text-folia-accent font-medium hover:bg-folia-accent/10 px-2.5 py-1.5 rounded-lg transition-colors"
+                    aria-label="Share a project in this conversation"
+                  >
+                    <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    Share a Project
+                  </button>
+                </div>
+                <div className="flex items-end gap-3">
+                  <label htmlFor="msg-input" className="sr-only">Message {thread?.name}</label>
+                  <textarea
+                    id="msg-input"
+                    ref={inputRef}
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={`Message ${thread?.name}…`}
+                    rows={1}
+                    aria-label={`Type a message to ${thread?.name}. Press Enter to send, Shift+Enter for new line.`}
+                    className="flex-1 resize-none border border-folia-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-folia-accent focus:ring-2 focus:ring-folia-accent/20 transition-colors"
+                    style={{ minHeight:'44px', maxHeight:'120px' }}
+                  />
+                  <button
+                    onClick={sendMessage}
+                    disabled={!input.trim()}
+                    aria-label="Send message"
+                    className="flex-shrink-0 w-10 h-10 rounded-xl bg-folia-accent text-white flex items-center justify-center hover:bg-folia-accent-h transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                  </button>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<MessagesPage />);
+  </script>
+</body>
+</html>

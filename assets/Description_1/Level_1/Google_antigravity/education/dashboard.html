@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | LearnPath</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        primaryHover: '#1d4ed8',
+                        secondary: '#facc15',
+                        dark: '#0f172a',
+                        light: '#f8fafc',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.5s ease-in-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+
+<body class="bg-light text-slate-800 antialiased selection:bg-primary selection:text-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Progress Ring Component
+        const ProgressRing = ({ radius, stroke, progress, colorClass }) => {
+            const normalizedRadius = radius - stroke * 2;
+            const circumference = normalizedRadius * 2 * Math.PI;
+            const strokeDashoffset = circumference - progress / 100 * circumference;
+
+            return (
+                <div className="relative inline-flex items-center justify-center">
+                    <svg height={radius * 2} width={radius * 2}>
+                        <circle
+                            stroke="currentColor"
+                            fill="transparent"
+                            strokeWidth={stroke}
+                            r={normalizedRadius}
+                            cx={radius}
+                            cy={radius}
+                            className="text-slate-100"
+                        />
+                        <circle
+                            stroke={colorClass}
+                            fill="transparent"
+                            strokeWidth={stroke}
+                            strokeDasharray={circumference + ' ' + circumference}
+                            style={{ strokeDashoffset }}
+                            r={normalizedRadius}
+                            cx={radius}
+                            cy={radius}
+                            className={`progress-ring__circle`}
+                            strokeLinecap="round"
+                        />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center font-bold text-slate-700">
+                        {progress}%
+                    </div>
+                </div>
+            );
+        };
+
+        const Header = () => {
+            const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+            const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+
+            return (
+                <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-16">
+                            <div className="flex items-center gap-8">
+                                <a href="index.html" className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-primary rounded" aria-label="LearnPath Homepage">
+                                    <div className="bg-primary text-white p-1.5 rounded-lg flex items-center justify-center">
+                                        <i className="fas fa-graduation-cap text-xl"></i>
+                                    </div>
+                                    <span className="font-bold text-2xl tracking-tight text-dark">LearnPath</span>
+                                </a>
+
+                                <nav className="hidden md:flex items-center space-x-2">
+                                    <div className="relative group">
+                                        <button className="px-3 py-2 text-slate-600 hover:text-dark font-medium flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary rounded transition-colors">
+                                            Explore <i className="fas fa-chevron-down text-xs transition-transform group-hover:rotate-180"></i>
+                                        </button>
+                                        <div className="absolute top-full left-0 w-56 bg-white shadow-xl rounded-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-left scale-95 group-hover:scale-100 z-50 mt-1">
+                                            <div className="p-2 space-y-0.5">
+                                                <a href="courses.html" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary rounded-lg font-medium transition-colors">Development</a>
+                                                <a href="courses.html" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary rounded-lg font-medium transition-colors">Business</a>
+                                                <a href="courses.html" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary rounded-lg font-medium transition-colors">Design</a>
+                                                <a href="courses.html" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary rounded-lg font-medium transition-colors">Marketing</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="w-px h-5 bg-slate-300"></div>
+                                    <div className="relative group focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 rounded-full">
+                                        <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors"></i>
+                                        <input type="text" placeholder="Search my learning..." className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full w-64 focus:outline-none focus:border-primary focus:bg-white text-sm transition-all shadow-inner" aria-label="Search my learning" />
+                                    </div>
+                                </nav>
+                            </div>
+
+                            <div className="hidden md:flex items-center gap-6">
+                                <a href="dashboard.html" className="text-primary font-bold text-sm transition-colors focus:outline-none focus:underline" aria-current="page">My Learning</a>
+                                <a href="plans.html" className="text-slate-600 hover:text-dark font-medium text-sm transition-colors focus:outline-none focus:underline">Instructor</a>
+                                <div className="w-px h-5 bg-slate-300 mx-2"></div>
+                                <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                        <button
+                                            className="text-slate-500 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded-full p-1.5 transition-colors relative"
+                                            onClick={() => setNotificationsOpen(!notificationsOpen)}
+                                            aria-label="Notifications"
+                                            aria-expanded={notificationsOpen}
+                                        >
+                                            <i className="far fa-bell text-xl"></i>
+                                            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
+                                        </button>
+                                        {notificationsOpen && (
+                                            <div className="absolute top-full right-0 w-80 bg-white shadow-xl rounded-xl border border-slate-200 mt-2 z-50 overflow-hidden">
+                                                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                                    <h3 className="font-bold text-slate-900">Notifications</h3>
+                                                    <button className="text-xs text-primary hover:underline focus:outline-none">Mark all read</button>
+                                                </div>
+                                                <div className="divide-y divide-slate-100 max-h-[300px] overflow-y-auto">
+                                                    <a href="#" className="block p-4 hover:bg-slate-50 transition-colors bg-blue-50/30">
+                                                        <p className="text-sm text-slate-800 font-medium mb-1">New content added: Python for Data Science</p>
+                                                        <p className="text-xs text-slate-500">2 hours ago</p>
+                                                    </a>
+                                                    <a href="#" className="block p-4 hover:bg-slate-50 transition-colors">
+                                                        <p className="text-sm text-slate-700 mb-1">Reminder: Complete your weekly goal!</p>
+                                                        <p className="text-xs text-slate-500">Yesterday</p>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="relative group">
+                                        <button className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 overflow-hidden ring-2 ring-transparent group-hover:ring-primary transition-all">
+                                            <img src="https://ui-avatars.com/api/?name=Jordan+Lee&background=6366f1&color=fff" alt="Jordan's profile" className="w-full h-full object-cover" />
+                                        </button>
+                                        <div className="absolute top-full right-0 w-56 bg-white shadow-xl rounded-xl border border-slate-200 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                            <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+                                                <img src="https://ui-avatars.com/api/?name=Jordan+Lee&background=6366f1&color=fff" alt="" className="w-10 h-10 rounded-full" />
+                                                <div className="overflow-hidden">
+                                                    <p className="font-bold text-slate-900 text-sm truncate">Jordan Lee</p>
+                                                    <p className="text-xs text-slate-500 truncate">jordan.lee@example.com</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-2 space-y-1 my-1">
+                                                <a href="dashboard.html" className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary rounded-lg font-medium transition-colors">My Learning Dashboard</a>
+                                                <a href="#" className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary rounded-lg font-medium transition-colors">Public Profile</a>
+                                                <a href="#" className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary rounded-lg font-medium transition-colors">Account Settings</a>
+                                                <a href="#" className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary rounded-lg font-medium transition-colors">Payment Methods</a>
+                                            </div>
+                                            <div className="p-2 border-t border-slate-100">
+                                                <a href="index.html" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium transition-colors">
+                                                    <i className="fas fa-sign-out-alt"></i> Sign out
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex md:hidden items-center gap-3">
+                                <button className="text-slate-500 hover:text-primary p-2 rounded-full" aria-label="Notifications">
+                                    <i className="far fa-bell text-xl"></i>
+                                </button>
+                                <button className="text-slate-600 hover:text-dark p-2 focus:outline-none focus:ring-2 focus:ring-primary rounded" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-expanded={isMenuOpen} aria-label="Toggle menu">
+                                    <i className={`fas ${isMenuOpen ? 'fa-times' : 'fa-bars'} text-xl`}></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Mobile Menu */}
+                    {isMenuOpen && (
+                        <div className="md:hidden border-t border-slate-100 bg-white shadow-xl pb-4">
+                            <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50 mb-2">
+                                <img src="https://ui-avatars.com/api/?name=Jordan+Lee&background=6366f1&color=fff" alt="" className="w-10 h-10 rounded-full" />
+                                <div>
+                                    <p className="font-bold text-slate-900 text-sm">Jordan Lee</p>
+                                    <p className="text-xs text-slate-500">jordan.lee@example.com</p>
+                                </div>
+                            </div>
+                            <div className="px-4 py-3 space-y-1 border-b border-slate-100">
+                                <a href="dashboard.html" className="block px-3 py-2.5 text-base font-bold text-primary bg-primary/5 rounded-md">My Learning</a>
+                                <a href="courses.html" className="block px-3 py-2.5 text-base font-medium text-slate-800 hover:bg-slate-50 hover:text-primary rounded-md">Explore Courses</a>
+                                <a href="plans.html" className="block px-3 py-2.5 text-base font-medium text-slate-800 hover:bg-slate-50 hover:text-primary rounded-md">Upgrade Plan</a>
+                            </div>
+                            <div className="px-4 pt-4 space-y-3">
+                                <a href="index.html" className="flex items-center justify-center w-full px-4 py-3 border border-slate-300 rounded-lg text-base font-medium text-slate-700 bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors">Sign Out</a>
+                            </div>
+                        </div>
+                    )}
+                </header>
+            );
+        };
+
+        const Footer = () => (
+            <footer className="bg-dark text-slate-300 pt-16 pb-8 border-t border-slate-800 mt-16">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12 mb-12">
+                        <div className="lg:col-span-2 space-y-4">
+                            <div className="flex items-center gap-2">
+                                <div className="bg-primary text-white p-1.5 rounded-lg">
+                                    <i className="fas fa-graduation-cap text-xl"></i>
+                                </div>
+                                <span className="font-bold text-2xl tracking-tight text-white">LearnPath</span>
+                            </div>
+                            <p className="text-slate-400 max-w-sm text-sm leading-relaxed mt-4">
+                                Empowering global learners with world-class education. Master new skills, advance your career, and achieve your goals.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 tracking-wide text-sm">Explore</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="courses.html" className="hover:text-white transition-colors focus:outline-none focus:underline">Courses</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Certifications</a></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 tracking-wide text-sm">Community</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Learners</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Partners</a></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 tracking-wide text-sm">Company</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">About Us</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Careers</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+                        <p>&copy; {new Date().getFullYear()} LearnPath Inc. All rights reserved.</p>
+                        <div className="flex gap-6">
+                            <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Privacy Policy</a>
+                            <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Terms of Service</a>
+                            <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Accessibility</a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        const CourseCard = ({ title, instructor, rating, reviews, duration, level, price, image, badge }) => (
+            <a href="course-detail.html" className="group flex flex-col bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary h-full">
+                <div className="relative aspect-video overflow-hidden bg-slate-100">
+                    <img src={image} alt={`Thumbnail for ${title}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-primary shadow-sm" aria-label="Save to wishlist" onClick={(e) => { e.preventDefault(); }}>
+                        <i className="far fa-heart"></i>
+                    </button>
+                    <div className="absolute inset-0 bg-dark/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-white text-primary flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                            <i className="fas fa-play ml-1"></i>
+                        </div>
+                    </div>
+                </div>
+                <div className="p-4 flex flex-col flex-grow">
+                    <h3 className="font-bold text-sm text-slate-900 leading-snug mb-1 group-hover:text-primary transition-colors line-clamp-2">{title}</h3>
+                    <p className="text-xs text-slate-500 mb-2">{instructor}</p>
+                    <div className="flex items-center gap-1 mb-2">
+                        <span className="text-secondary text-xs"><i className="fas fa-star"></i></span>
+                        <span className="font-bold text-xs text-slate-800 ml-1">{rating}</span>
+                        <span className="text-[10px] text-slate-400 ml-1">({reviews.toLocaleString()})</span>
+                    </div>
+                    <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <span className="font-bold text-sm text-slate-900">{price === 0 ? 'Free' : `$${price}`}</span>
+                    </div>
+                </div>
+            </a>
+        );
+
+        const App = () => {
+            const [activeTab, setActiveTab] = React.useState('all');
+
+            return (
+                <div className="min-h-screen flex flex-col bg-slate-50">
+                    <Header />
+
+                    <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+                        {/* Welcome Dashboard Header */}
+                        <div className="bg-dark text-white rounded-2xl p-8 mb-8 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+
+                            <div className="relative z-10 w-full md:w-auto text-center md:text-left">
+                                <h1 className="text-3xl font-bold mb-2 tracking-tight">Welcome back, Jordan! <span className="text-2xl">👋</span></h1>
+                                <p className="text-slate-400">You're making great progress. Ready to learn something new today?</p>
+                            </div>
+
+                            {/* Streak Tracker & Goal */}
+                            <div className="flex gap-4 md:gap-8 relative z-10 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar snap-x">
+                                <div className="bg-slate-800/60 backdrop-blur border border-slate-700 rounded-xl p-4 flex items-center gap-4 min-w-[200px] snap-center">
+                                    <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center text-orange-500 text-xl shadow-inner shrink-0">
+                                        <i className="fas fa-fire"></i>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white mb-0.5"><span className="text-xl">4</span> Day Streak</p>
+                                        <p className="text-xs text-slate-400">Keep it up!</p>
+                                    </div>
+                                </div>
+                                <div className="bg-slate-800/60 backdrop-blur border border-slate-700 rounded-xl p-4 flex items-center gap-4 min-w-[200px] snap-center">
+                                    <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400 text-xl shadow-inner shrink-0">
+                                        <i className="fas fa-bullseye"></i>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white mb-0.5"><span className="text-xl">1.5 / 3</span><span className="text-xs font-normal text-slate-400 ml-1">hrs</span></p>
+                                        <p className="text-xs text-slate-400">Weekly Goal</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                            {/* Left Column: Learning Progress */}
+                            <div className="lg:col-span-2 space-y-8">
+
+                                {/* Continue Learning Section */}
+                                <section>
+                                    <div className="flex justify-between items-end mb-6">
+                                        <h2 className="text-2xl font-bold text-slate-900">Let's continue learning</h2>
+                                        <a href="#" className="hidden sm:inline-block text-sm font-semibold text-primary hover:text-primaryHover focus:outline-none focus:underline">View all learning</a>
+                                    </div>
+
+                                    {/* Active Course Card (Large) */}
+                                    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow mb-6 flex flex-col sm:flex-row group">
+                                        <div className="sm:w-[280px] bg-slate-100 relative group-hover:opacity-90 transition-opacity">
+                                            <img src="https://images.unsplash.com/photo-1526379095098-d400fd0bf935?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Course thumbnail" className="w-full h-full object-cover sm:absolute inset-0 aspect-video sm:aspect-auto" />
+                                            <div className="absolute inset-0 bg-dark/20 flex flex-col items-center justify-center group-hover:bg-dark/40 transition-colors">
+                                                <div className="w-16 h-16 rounded-full bg-white/90 backdrop-blur-sm text-primary flex items-center justify-center text-xl shadow-lg transform group-hover:scale-110 transition-transform">
+                                                    <i className="fas fa-play ml-1"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="p-6 flex-1 flex flex-col justify-center">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <p className="text-xs font-bold text-primary uppercase tracking-wider mb-2">Data Science &bull; Active Course</p>
+                                                <button className="text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary rounded p-1"><i className="fas fa-ellipsis-v"></i></button>
+                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-900 mb-1 leading-tight"><a href="study.html" className="hover:underline focus:outline-none focus:text-primary">Python for Data Science — Intermediate</a></h3>
+                                            <p className="text-sm text-slate-500 mb-4 font-medium">Next up: DataFrames - Introduction</p>
+
+                                            <div className="mt-4 flex items-center gap-4">
+                                                <div className="w-full bg-slate-100 rounded-full h-2">
+                                                    <div className="bg-primary h-2 rounded-full" style={{ width: '35%' }}></div>
+                                                </div>
+                                                <span className="text-sm font-bold text-slate-700 whitespace-nowrap">35%</span>
+                                            </div>
+                                            <a href="study.html" className="mt-6 inline-flex justify-center items-center px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 sm:w-fit w-full shadow-[0_2px_10px_-3px_rgba(0,0,0,0.3)]">
+                                                Resume Learning
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    {/* Other Enrolled Courses List */}
+                                    <div className="space-y-4">
+                                        {[
+                                            { title: "Complete Web & Mobile Designer in 2026", progress: 82, next: "Figma Prototyping Basics", color: "text-emerald-500" },
+                                            { title: "Machine Learning A-Z: AI, Python & R", progress: 14, next: "Data Preprocessing", color: "text-primary" }
+                                        ].map((course, idx) => (
+                                            <a key={idx} href="study.html" className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 flex items-center gap-4 sm:gap-6 hover:shadow-md hover:border-slate-300 transition-all focus:outline-none focus:ring-2 focus:ring-primary group">
+                                                <div className="hidden sm:block shrink-0">
+                                                    <ProgressRing radius={30} stroke={6} progress={course.progress} colorClass={course.color} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <h4 className="font-bold text-slate-900 text-base group-hover:text-primary transition-colors truncate pr-4">{course.title}</h4>
+                                                        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded shrink-0 sm:hidden">{course.progress}%</span>
+                                                    </div>
+                                                    <p className="text-xs sm:text-sm text-slate-500 truncate">Next: {course.next}</p>
+                                                    <div className="w-full bg-slate-100 rounded-full h-1 mt-3 sm:hidden">
+                                                        <div className={`h-1 rounded-full ${course.progress > 50 ? 'bg-emerald-500' : 'bg-primary'}`} style={{ width: `${course.progress}%` }}></div>
+                                                    </div>
+                                                </div>
+                                                <div className="hidden sm:flex shrink-0">
+                                                    <button className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-colors">
+                                                        <i className="fas fa-play ml-0.5 text-sm"></i>
+                                                    </button>
+                                                </div>
+                                            </a>
+                                        ))}
+                                    </div>
+
+                                    <div className="mt-4 text-center sm:hidden">
+                                        <a href="#" className="inline-block text-sm font-bold text-slate-600 hover:text-primary pt-2 pb-2">View all learning list</a>
+                                    </div>
+                                </section>
+
+                                {/* Recommended Content Strip */}
+                                <section className="pt-8 border-t border-slate-200 mt-8">
+                                    <h2 className="text-xl font-bold text-slate-900 mb-6">Recommended for you</h2>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        <CourseCard
+                                            title="Data Visualization with Tableau and Python"
+                                            instructor="LearnPath Instructors"
+                                            rating="4.7"
+                                            reviews={8420}
+                                            duration="12 hours"
+                                            level="Intermediate"
+                                            price={89}
+                                            image="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                                        />
+                                        <CourseCard
+                                            title="Advanced NLP with Scikit-Learn"
+                                            instructor="Jose Portilla"
+                                            rating="4.8"
+                                            reviews={5120}
+                                            duration="9.5 hours"
+                                            level="Advanced"
+                                            price={65}
+                                            image="https://images.unsplash.com/photo-1527474305487-b87b222841cc?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                                        />
+                                        <CourseCard
+                                            title="SQL Bootcamp: From Zero to Hero"
+                                            instructor="Andrei Neagoie"
+                                            rating="4.6"
+                                            reviews={45120}
+                                            duration="15 hours"
+                                            level="Beginner"
+                                            price={45}
+                                            image="https://images.unsplash.com/photo-1661858055465-b7f036573c9f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+                                        />
+                                    </div>
+                                </section>
+
+                            </div>
+
+                            {/* Right Column: Achievements & Stats */}
+                            <div className="lg:col-span-1 space-y-6">
+
+                                {/* Achievements Panel */}
+                                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="font-bold text-slate-900 text-lg">Achievements</h3>
+                                        <a href="#" className="text-primary hover:text-primaryHover focus:outline-none focus:underline text-sm font-medium">View All</a>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-4 mb-4">
+                                        <div className="flex flex-col items-center group cursor-pointer">
+                                            <div className="w-16 h-16 rounded-full bg-yellow-100 border-2 border-yellow-200 flex items-center justify-center text-yellow-500 text-3xl mb-2 shadow-sm group-hover:scale-110 transition-transform relative">
+                                                <i className="fas fa-medal"></i>
+                                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-800 shadow-sm">3</div>
+                                            </div>
+                                            <span className="text-[11px] font-bold text-slate-700 text-center leading-tight">Fast<br />Learner</span>
+                                        </div>
+                                        <div className="flex flex-col items-center group cursor-pointer">
+                                            <div className="w-16 h-16 rounded-full bg-blue-100 border-2 border-blue-200 flex items-center justify-center text-blue-500 text-3xl mb-2 shadow-sm group-hover:scale-110 transition-transform relative">
+                                                <i className="fas fa-trophy"></i>
+                                            </div>
+                                            <span className="text-[11px] font-bold text-slate-700 text-center leading-tight">Course<br />Master</span>
+                                        </div>
+                                        <div className="flex flex-col items-center group cursor-pointer opacity-50 grayscale hover:opacity-80 hover:grayscale-0 transition-all">
+                                            <div className="w-16 h-16 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-slate-400 text-3xl mb-2">
+                                                <i className="fas fa-star"></i>
+                                            </div>
+                                            <span className="text-[11px] font-bold text-slate-500 text-center leading-tight">Locked</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-slate-100">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center font-bold">
+                                                <i className="fas fa-certificate text-lg"></i>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-900">2 Certificates Earned</p>
+                                                <a href="#" className="text-xs text-primary hover:text-primaryHover focus:outline-none focus:underline font-medium">Download or add to LinkedIn</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Goals & Reminders */}
+                                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                                    <h3 className="font-bold text-slate-900 text-lg mb-6">Upcoming Tasks</h3>
+
+                                    <div className="space-y-4">
+                                        <label className="flex items-start gap-4 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer group">
+                                            <div className="flex items-center mt-0.5">
+                                                <input type="checkbox" className="w-5 h-5 text-primary bg-white border-slate-300 rounded focus:ring-primary focus:ring-2 cursor-pointer transition-colors" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors">Finish Module 3 Project</p>
+                                                <p className="text-xs text-red-500 font-medium mt-1 flex items-center gap-1"><i className="far fa-clock"></i> Due today</p>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-start gap-4 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer group">
+                                            <div className="flex items-center mt-0.5">
+                                                <input type="checkbox" className="w-5 h-5 text-primary bg-white border-slate-300 rounded focus:ring-primary focus:ring-2 cursor-pointer transition-colors" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors">Review Pandas DataFrames</p>
+                                                <p className="text-xs text-slate-500 font-medium mt-1">Review lesson notes</p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <button className="w-full mt-4 py-2 border border-slate-200 text-slate-600 text-sm font-bold rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary border-dashed">
+                                        <i className="fas fa-plus mr-1"></i> Add Personal Task
+                                    </button>
+                                </div>
+
+                                {/* Community / Learning Path */}
+                                <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl p-6 shadow-lg text-white relative overflow-hidden">
+                                    {/* Background decoration */}
+                                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                                        <i className="fas fa-compass text-8xl"></i>
+                                    </div>
+
+                                    <div className="relative z-10">
+                                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-blue-300 mb-4 backdrop-blur-sm border border-white/10">
+                                            <i className="fas fa-road text-lg"></i>
+                                        </div>
+                                        <h3 className="font-bold text-lg mb-2">Data Science Path</h3>
+                                        <p className="text-sm text-slate-300 mb-6 leading-relaxed bg-black/20 p-3 rounded-lg border border-white/5">You are on the <span className="text-white font-bold">Data Science</span> career path. You've completed 2 of 5 core courses.</p>
+                                        <a href="#" className="block w-full text-center py-2.5 bg-white text-indigo-900 font-bold text-sm rounded-lg hover:bg-slate-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-white">
+                                            View Path Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,32 @@
+name: Build-only
+
+on:
+  workflow_dispatch
+  
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+        fetch-depth: 0
+    - name: Set up Ruby 3.4.8
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.4.8
+        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+    - name: Build and test with Jekyll
+      run: |
+        bundle exec jekyll build --verbose --trace --config "_config.yml,_config_prod.yml" --profile
+    - name: Generate list of resources
+      run: |
+        find ./_site -type f | sed 's,^\.\/_site,,' | sort > ./_site/manifest.txt
+    - name: check output
+      run: |
+        ls -la _site

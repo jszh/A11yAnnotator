@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulse | Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Manrope"', "sans-serif"] }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="pulse-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { Layout } = window.PulseShared;
+
+      function Toggle({ label, hint }) {
+        return (
+          <label className="flex items-start justify-between gap-4 rounded-[1.25rem] border border-slate-200 bg-white px-4 py-4">
+            <span>
+              <span className="block text-sm font-semibold text-slate-950">{label}</span>
+              <span className="mt-1 block text-sm text-slate-600">{hint}</span>
+            </span>
+            <input type="checkbox" className="mt-1 h-5 w-5 rounded border-slate-300 text-teal-700" defaultChecked />
+          </label>
+        );
+      }
+
+      function App() {
+        return (
+          <Layout activePath="settings.html">
+            <main id="main-content" className="mt-6 space-y-6">
+              <section className="card-surface rounded-[1.75rem] p-6">
+                <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">Settings</h1>
+                <p className="mt-2 text-sm leading-7 text-slate-600">Manage account details, privacy preferences, notifications, and appearance.</p>
+              </section>
+
+              <section className="grid gap-6 xl:grid-cols-2">
+                <div className="card-surface rounded-[1.75rem] p-6">
+                  <h2 className="text-2xl font-extrabold text-slate-950">Account</h2>
+                  <div className="mt-5 space-y-4">
+                    <div>
+                      <label htmlFor="username" className="mb-2 block text-sm font-semibold text-slate-700">Username</label>
+                      <input id="username" type="text" value="alexwrites" readOnly className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" />
+                    </div>
+                    <div>
+                      <label htmlFor="email" className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+                      <input id="email" type="email" value="alex@pulse.example" readOnly className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" />
+                    </div>
+                    <div>
+                      <label htmlFor="password" className="mb-2 block text-sm font-semibold text-slate-700">Password</label>
+                      <input id="password" type="password" value="password123" readOnly className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card-surface rounded-[1.75rem] p-6">
+                  <h2 className="text-2xl font-extrabold text-slate-950">Privacy</h2>
+                  <div className="mt-5 space-y-4">
+                    <div>
+                      <label htmlFor="visibility" className="mb-2 block text-sm font-semibold text-slate-700">Who can see posts</label>
+                      <select id="visibility" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
+                        <option>Everyone</option>
+                        <option>Followers only</option>
+                        <option>Close friends</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="dm-permissions" className="mb-2 block text-sm font-semibold text-slate-700">DM permissions</label>
+                      <select id="dm-permissions" className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
+                        <option>People you follow</option>
+                        <option>Everyone</option>
+                        <option>No one</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card-surface rounded-[1.75rem] p-6">
+                  <h2 className="text-2xl font-extrabold text-slate-950">Notifications</h2>
+                  <div className="mt-5 space-y-4">
+                    <Toggle label="Email notifications" hint="Receive summaries of mentions, follows, and direct messages." />
+                    <Toggle label="Push notifications" hint="Get immediate alerts on your device for new activity." />
+                  </div>
+                </div>
+
+                <div className="card-surface rounded-[1.75rem] p-6">
+                  <h2 className="text-2xl font-extrabold text-slate-950">Appearance</h2>
+                  <div className="mt-5 space-y-4">
+                    <fieldset>
+                      <legend className="text-sm font-semibold text-slate-700">Theme</legend>
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        {["Light mode", "Dark mode"].map((item, index) => (
+                          <label key={item} className="flex items-center gap-3 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900">
+                            <input type="radio" name="theme" defaultChecked={index === 0} className="h-4 w-4 border-slate-300 text-teal-700" />
+                            {item}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  </div>
+                </div>
+
+                <div className="card-surface rounded-[1.75rem] border-pink-200 p-6 xl:col-span-2">
+                  <h2 className="text-2xl font-extrabold text-slate-950">Danger Zone</h2>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">
+                    Deactivate your account temporarily or permanently delete your Pulse profile and content.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button type="button" className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50">
+                      Deactivate Account
+                    </button>
+                    <button type="button" className="rounded-full bg-pink-700 px-5 py-3 text-sm font-bold text-white hover:bg-pink-800">
+                      Delete Account
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </main>
+          </Layout>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

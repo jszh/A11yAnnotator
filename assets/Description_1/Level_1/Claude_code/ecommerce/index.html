@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaMart – Shop Electronics, Home Goods & Apparel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 800:'#1e40af' },
+            accent: { 400:'#fb923c', 500:'#f97316', 600:'#ea580c' }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; border-radius: 3px; }
+    .hero-slide { animation: fadeIn 0.6s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    .deals-scroll::-webkit-scrollbar { height: 6px; }
+    .deals-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
+    .deals-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+    .star-filled { color: #f59e0b; }
+    .badge-sale { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    /* ─── Shared Data ─────────────────────────────── */
+    const NAV_LINKS = [
+      { label: 'Electronics', href: 'products.html?cat=electronics' },
+      { label: 'Kitchen', href: 'products.html?cat=kitchen' },
+      { label: 'Clothing', href: 'products.html?cat=clothing' },
+      { label: 'Sports', href: 'products.html?cat=sports' },
+      { label: "Today's Deals", href: 'products.html?cat=deals' },
+    ];
+
+    const HERO_SLIDES = [
+      {
+        id: 1,
+        badge: '⚡ Flash Sale',
+        headline: 'Up to 50% Off Electronics',
+        sub: 'Headphones, TVs, laptops and more — limited time only.',
+        cta: 'Shop the Sale',
+        href: 'products.html?cat=electronics',
+        bg: 'from-brand-800 to-brand-600',
+        imgSeed: 'electronics',
+        imgAlt: 'Assortment of Sony headphones, Apple iPad and Samsung TV on a dark background',
+      },
+      {
+        id: 2,
+        badge: '🆕 New Arrivals',
+        headline: 'Spring Kitchen Collection',
+        sub: 'Refresh your kitchen with our latest appliance drops.',
+        cta: 'Explore Kitchen',
+        href: 'products.html?cat=kitchen',
+        bg: 'from-emerald-800 to-emerald-600',
+        imgSeed: 'kitchen',
+        imgAlt: 'Colourful stand mixers and air fryers arranged on a white countertop',
+      },
+      {
+        id: 3,
+        badge: '👟 Trending',
+        headline: 'Activewear Under $100',
+        sub: 'Performance gear that keeps up with your lifestyle.',
+        cta: 'Shop Apparel',
+        href: 'products.html?cat=clothing',
+        bg: 'from-violet-800 to-violet-600',
+        imgSeed: 'sports-apparel',
+        imgAlt: 'Nike and Adidas sneakers displayed on a gradient purple background',
+      },
+    ];
+
+    const CATEGORIES = [
+      { label: 'Electronics', icon: '💻', href: 'products.html?cat=electronics', color: 'bg-blue-100 text-blue-800', border: 'border-blue-200' },
+      { label: 'Kitchen', icon: '🍳', href: 'products.html?cat=kitchen', color: 'bg-emerald-100 text-emerald-800', border: 'border-emerald-200' },
+      { label: 'Clothing', icon: '👕', href: 'products.html?cat=clothing', color: 'bg-violet-100 text-violet-800', border: 'border-violet-200' },
+      { label: 'Sports', icon: '🏋️', href: 'products.html?cat=sports', color: 'bg-orange-100 text-orange-800', border: 'border-orange-200' },
+      { label: 'Home Decor', icon: '🛋️', href: 'products.html?cat=home', color: 'bg-pink-100 text-pink-800', border: 'border-pink-200' },
+      { label: 'Books', icon: '📚', href: 'products.html?cat=books', color: 'bg-yellow-100 text-yellow-800', border: 'border-yellow-200' },
+      { label: 'Toys', icon: '🧸', href: 'products.html?cat=toys', color: 'bg-teal-100 text-teal-800', border: 'border-teal-200' },
+      { label: 'Beauty', icon: '✨', href: 'products.html?cat=beauty', color: 'bg-rose-100 text-rose-800', border: 'border-rose-200' },
+    ];
+
+    const DEALS = [
+      { id:1, name:'Sony WH-1000XM5 Headphones', price:279.99, original:349.99, rating:4.8, reviews:12847, badge:'20% OFF', img:'headphones', alt:'Sony WH-1000XM5 wireless noise-cancelling headphones in midnight black' },
+      { id:2, name:'Ninja Air Fryer XL 5.5 Qt', price:89.99, original:129.99, rating:4.7, reviews:8302, badge:'31% OFF', img:'airfryer', alt:'Ninja XL air fryer in silver and black with digital display' },
+      { id:3, name:'Apple AirPods Pro (3rd Gen)', price:199.99, original:249.99, rating:4.7, reviews:19560, badge:'20% OFF', img:'airpods', alt:'Apple AirPods Pro with charging case on white background' },
+      { id:4, name:'Levi\'s 501 Original Fit Jeans', price:49.99, original:79.99, rating:4.4, reviews:5430, badge:'37% OFF', img:'jeans', alt:'Dark-wash Levi\'s 501 jeans folded on a wooden surface' },
+      { id:5, name:'Hydro Flask 32 oz Wide Mouth', price:34.95, original:44.95, rating:4.8, reviews:22100, badge:'22% OFF', img:'flask', alt:'Teal Hydro Flask 32 oz bottle with straw lid' },
+      { id:6, name:'Echo Dot (5th Gen)', price:29.99, original:49.99, rating:4.6, reviews:15300, badge:'40% OFF', img:'echo', alt:'Charcoal Amazon Echo Dot smart speaker on a desk' },
+      { id:7, name:'Yoga Mat Premium 6mm', price:32.99, original:49.99, rating:4.6, reviews:4120, badge:'34% OFF', img:'yoga', alt:'Purple non-slip yoga mat rolled out on hardwood floor' },
+      { id:8, name:'Ring Video Doorbell Pro', price:149.99, original:199.99, rating:4.5, reviews:9870, badge:'25% OFF', img:'doorbell', alt:'Ring Video Doorbell Pro installed on a white door frame' },
+    ];
+
+    const FEATURED = [
+      { id:10, name:'Samsung 65" 4K QLED TV', price:899.99, original:1199.99, rating:4.6, reviews:6210, img:'tv', category:'Electronics', alt:'Samsung 65-inch 4K QLED TV mounted on a white wall in a modern living room' },
+      { id:11, name:'KitchenAid 5 Qt Stand Mixer', price:349.99, original:449.99, rating:4.9, reviews:31000, img:'mixer', category:'Kitchen', alt:'Candy Apple Red KitchenAid stand mixer on a marble countertop' },
+      { id:12, name:'Patagonia Better Sweater Fleece', price:159.99, original:199.99, rating:4.7, reviews:3490, img:'jacket', category:'Clothing', alt:'Navy blue Patagonia Better Sweater fleece jacket hanging on a rack' },
+      { id:13, name:'Dyson V15 Detect Vacuum', price:549.99, original:699.99, rating:4.8, reviews:8740, img:'vacuum', category:'Home', alt:'Dyson V15 cordless stick vacuum in gold and purple' },
+    ];
+
+    /* ─── Stars Component ─────────────────────────── */
+    const Stars = ({ rating, reviews }) => {
+      const full = Math.floor(rating);
+      const half = rating % 1 >= 0.5;
+      return (
+        <div className="flex items-center gap-1" aria-label={`Rating: ${rating} out of 5 stars, ${reviews.toLocaleString()} reviews`}>
+          {Array.from({ length: 5 }, (_, i) => (
+            <span key={i} aria-hidden="true" className={i < full ? 'text-amber-400' : i === full && half ? 'text-amber-300' : 'text-gray-300'}>★</span>
+          ))}
+          <span className="text-xs text-gray-500 ml-1">({reviews.toLocaleString()})</span>
+        </div>
+      );
+    };
+
+    /* ─── Header ──────────────────────────────────── */
+    const Header = ({ cartCount = 3 }) => {
+      const [query, setQuery] = useState('');
+      const [mobileOpen, setMobileOpen] = useState(false);
+      const searchRef = useRef(null);
+
+      const handleSearch = (e) => {
+        e.preventDefault();
+        if (query.trim()) window.location.href = `products.html?q=${encodeURIComponent(query)}`;
+      };
+
+      return (
+        <header role="banner">
+          {/* Top bar */}
+          <div className="bg-brand-800 text-white text-sm py-1.5 text-center" aria-label="Promotional announcement">
+            🚚 Free shipping on orders over $35 — <a href="products.html" className="underline font-medium hover:text-brand-100 focus-visible:text-brand-100">Shop Now</a>
+          </div>
+
+          {/* Main header */}
+          <div className="bg-brand-700 text-white shadow-lg">
+            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+              {/* Logo */}
+              <a href="index.html" className="flex items-center gap-2 shrink-0 rounded focus-visible:ring-2 focus-visible:ring-white" aria-label="NovaMart home">
+                <div className="w-8 h-8 bg-accent-500 rounded-lg flex items-center justify-center font-black text-white text-lg" aria-hidden="true">N</div>
+                <span className="text-xl font-black tracking-tight hidden sm:block">NovaMart</span>
+              </a>
+
+              {/* Search */}
+              <form onSubmit={handleSearch} role="search" className="flex-1 flex max-w-2xl" aria-label="Site search">
+                <label htmlFor="site-search" className="sr-only">Search NovaMart</label>
+                <input
+                  id="site-search"
+                  ref={searchRef}
+                  type="search"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Search products, brands, categories…"
+                  className="flex-1 px-4 py-2 rounded-l-lg text-gray-900 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-accent-400"
+                  aria-label="Search query"
+                />
+                <button
+                  type="submit"
+                  className="bg-accent-500 hover:bg-accent-600 px-4 rounded-r-lg font-semibold text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label="Submit search"
+                >
+                  🔍 Search
+                </button>
+              </form>
+
+              {/* Nav icons */}
+              <nav aria-label="Account and cart" className="flex items-center gap-3 shrink-0">
+                <a href="account.html" className="flex flex-col items-center text-xs hover:text-brand-100 rounded px-2 py-1 transition-colors" aria-label="Your account">
+                  <span aria-hidden="true" className="text-xl">👤</span>
+                  <span className="hidden sm:block">Account</span>
+                </a>
+                <a href="cart.html" className="relative flex flex-col items-center text-xs hover:text-brand-100 rounded px-2 py-1 transition-colors" aria-label={`Cart, ${cartCount} items`}>
+                  <span aria-hidden="true" className="text-xl">🛒</span>
+                  <span className="hidden sm:block">Cart</span>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-accent-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" aria-hidden="true">
+                      {cartCount}
+                    </span>
+                  )}
+                </a>
+                {/* Mobile menu toggle */}
+                <button
+                  onClick={() => setMobileOpen(!mobileOpen)}
+                  className="md:hidden p-1 rounded focus-visible:ring-2 focus-visible:ring-white"
+                  aria-expanded={mobileOpen}
+                  aria-controls="mobile-nav"
+                  aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+                >
+                  <span aria-hidden="true" className="text-xl">{mobileOpen ? '✕' : '☰'}</span>
+                </button>
+              </nav>
+            </div>
+
+            {/* Category nav */}
+            <nav aria-label="Main categories" className="bg-brand-600 hidden md:block">
+              <div className="max-w-7xl mx-auto px-4">
+                <ul className="flex gap-1" role="list">
+                  {NAV_LINKS.map(link => (
+                    <li key={link.label}>
+                      <a
+                        href={link.href}
+                        className="block px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 rounded-t transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1 focus-visible:ring-offset-brand-600"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </nav>
+
+            {/* Mobile nav */}
+            {mobileOpen && (
+              <nav id="mobile-nav" aria-label="Mobile navigation" className="md:hidden bg-brand-600 pb-2">
+                <ul role="list">
+                  {NAV_LINKS.map(link => (
+                    <li key={link.label}>
+                      <a href={link.href} className="block px-6 py-2 text-sm text-white hover:bg-brand-500 transition-colors">{link.label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )}
+          </div>
+        </header>
+      );
+    };
+
+    /* ─── Footer ──────────────────────────────────── */
+    const Footer = () => (
+      <footer className="bg-gray-900 text-gray-300 mt-16" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 bg-accent-500 rounded-lg flex items-center justify-center font-black text-white" aria-hidden="true">N</div>
+              <span className="text-white font-black text-lg">NovaMart</span>
+            </div>
+            <p className="text-sm leading-relaxed text-gray-400">Your trusted marketplace for electronics, home goods, and apparel — delivered fast.</p>
+          </div>
+          <div>
+            <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">Shop</h3>
+            <ul className="space-y-2 text-sm" role="list">
+              {['Electronics', 'Kitchen', 'Clothing', 'Sports', "Today's Deals"].map(item => (
+                <li key={item}><a href="products.html" className="hover:text-white transition-colors focus-visible:text-accent-400">{item}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">Help</h3>
+            <ul className="space-y-2 text-sm" role="list">
+              {['Track Order', 'Returns & Refunds', 'Shipping Info', 'FAQs', 'Contact Us'].map(item => (
+                <li key={item}><a href="#" className="hover:text-white transition-colors focus-visible:text-accent-400">{item}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">Company</h3>
+            <ul className="space-y-2 text-sm" role="list">
+              {['About NovaMart', 'Careers', 'Press', 'Sell on NovaMart', 'Affiliate Program'].map(item => (
+                <li key={item}><a href="#" className="hover:text-white transition-colors focus-visible:text-accent-400">{item}</a></li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-gray-800 max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+          <p>© 2026 NovaMart, Inc. All rights reserved.</p>
+          <div className="flex gap-4">
+            <a href="#" className="hover:text-white focus-visible:text-white transition-colors">Privacy Policy</a>
+            <a href="#" className="hover:text-white focus-visible:text-white transition-colors">Terms of Service</a>
+            <a href="#" className="hover:text-white focus-visible:text-white transition-colors">Accessibility</a>
+          </div>
+        </div>
+      </footer>
+    );
+
+    /* ─── Hero Carousel ───────────────────────────── */
+    const Hero = () => {
+      const [current, setCurrent] = useState(0);
+
+      useEffect(() => {
+        const t = setInterval(() => setCurrent(c => (c + 1) % HERO_SLIDES.length), 5000);
+        return () => clearInterval(t);
+      }, []);
+
+      const slide = HERO_SLIDES[current];
+
+      return (
+        <section aria-label="Featured promotions" className="relative overflow-hidden">
+          <div className={`hero-slide bg-gradient-to-r ${slide.bg} text-white`} key={slide.id}>
+            <div className="max-w-7xl mx-auto px-4 py-14 md:py-20 flex flex-col md:flex-row items-center gap-8">
+              <div className="flex-1 text-center md:text-left">
+                <span className="inline-block bg-white/20 text-white text-sm font-semibold px-3 py-1 rounded-full mb-4">{slide.badge}</span>
+                <h1 className="text-4xl md:text-5xl font-black leading-tight mb-4">{slide.headline}</h1>
+                <p className="text-lg text-white/90 mb-8 max-w-md">{slide.sub}</p>
+                <a
+                  href={slide.href}
+                  className="inline-block bg-accent-500 hover:bg-accent-600 text-white font-bold px-8 py-3 rounded-xl text-lg transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700"
+                >
+                  {slide.cta} →
+                </a>
+              </div>
+              <div className="flex-1 flex justify-center">
+                <img
+                  src={`https://picsum.photos/seed/${slide.imgSeed}/480/300`}
+                  alt={slide.imgAlt}
+                  width="480"
+                  height="300"
+                  className="rounded-2xl shadow-2xl max-w-sm md:max-w-md w-full object-cover"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Slide indicators */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2" role="tablist" aria-label="Slide navigation">
+            {HERO_SLIDES.map((s, i) => (
+              <button
+                key={s.id}
+                role="tab"
+                aria-selected={i === current}
+                aria-label={`Slide ${i + 1}: ${s.headline}`}
+                onClick={() => setCurrent(i)}
+                className={`w-3 h-3 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${i === current ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/75'}`}
+              />
+            ))}
+          </div>
+        </section>
+      );
+    };
+
+    /* ─── Category Grid ───────────────────────────── */
+    const CategoryGrid = () => (
+      <section aria-labelledby="categories-heading" className="max-w-7xl mx-auto px-4 py-10">
+        <h2 id="categories-heading" className="text-2xl font-bold text-gray-900 mb-6">Shop by Category</h2>
+        <ul className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3" role="list">
+          {CATEGORIES.map(cat => (
+            <li key={cat.label}>
+              <a
+                href={cat.href}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border ${cat.color} ${cat.border} hover:shadow-md transition-all text-center font-semibold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600`}
+              >
+                <span className="text-3xl" aria-hidden="true">{cat.icon}</span>
+                {cat.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+
+    /* ─── Product Card ────────────────────────────── */
+    const ProductCard = ({ product, compact = false }) => {
+      const discount = Math.round((1 - product.price / product.original) * 100);
+      return (
+        <article className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col overflow-hidden group">
+          <a href="product-detail.html" aria-label={`View ${product.name}`} className="block relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded-t-xl overflow-hidden">
+            <img
+              src={`https://picsum.photos/seed/${product.img}/300/220`}
+              alt={product.alt}
+              width="300"
+              height="220"
+              className="w-full object-cover group-hover:scale-105 transition-transform duration-300"
+              style={{ height: compact ? '160px' : '200px' }}
+            />
+            {product.badge && (
+              <span className="badge-sale absolute top-2 left-2 text-white text-xs font-bold px-2 py-0.5 rounded-full" aria-label={`Discount: ${product.badge}`}>
+                {product.badge}
+              </span>
+            )}
+          </a>
+          <div className="p-3 flex flex-col flex-1">
+            <h3 className="text-sm font-semibold text-gray-800 leading-snug mb-1 line-clamp-2">
+              <a href="product-detail.html" className="hover:text-brand-600 focus-visible:text-brand-600 focus-visible:outline-none">{product.name}</a>
+            </h3>
+            <Stars rating={product.rating} reviews={product.reviews} />
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-lg font-black text-gray-900" aria-label={`Price: $${product.price}`}>${product.price.toFixed(2)}</span>
+              {product.original && <span className="text-sm text-gray-400 line-through" aria-label={`Original price: $${product.original}`}>${product.original.toFixed(2)}</span>}
+            </div>
+            {product.category && <span className="text-xs text-gray-500 mt-1">{product.category}</span>}
+            <div className="mt-3 mt-auto pt-2">
+              <a
+                href="cart.html"
+                className="block w-full text-center bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold py-2 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+                aria-label={`Add ${product.name} to cart`}
+              >
+                Add to Cart
+              </a>
+            </div>
+          </div>
+        </article>
+      );
+    };
+
+    /* ─── Today's Deals ───────────────────────────── */
+    const TodaysDeals = () => (
+      <section aria-labelledby="deals-heading" className="bg-white py-10 border-y border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 id="deals-heading" className="text-2xl font-bold text-gray-900">
+              ⚡ Today's Deals
+              <span className="ml-3 text-sm font-normal text-red-600 animate-pulse">Ends in 08:42:17</span>
+            </h2>
+            <a href="products.html?cat=deals" className="text-brand-600 hover:text-brand-700 font-semibold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded">
+              See all deals →
+            </a>
+          </div>
+          <div className="flex gap-4 overflow-x-auto deals-scroll pb-3" role="list" aria-label="Today's deals">
+            {DEALS.map(product => (
+              <div key={product.id} className="shrink-0 w-44" role="listitem">
+                <ProductCard product={product} compact />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+
+    /* ─── Featured Products ───────────────────────── */
+    const FeaturedProducts = () => (
+      <section aria-labelledby="featured-heading" className="max-w-7xl mx-auto px-4 py-10">
+        <h2 id="featured-heading" className="text-2xl font-bold text-gray-900 mb-6">Featured Products</h2>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" role="list">
+          {FEATURED.map(product => (
+            <li key={product.id} role="listitem"><ProductCard product={product} /></li>
+          ))}
+        </ul>
+      </section>
+    );
+
+    /* ─── Trust Badges ────────────────────────────── */
+    const TrustBadges = () => (
+      <section aria-label="Shopping benefits" className="bg-brand-50 border-y border-brand-100 py-8">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6">
+          {[
+            { icon: '🚚', title: 'Free Shipping', sub: 'On orders over $35' },
+            { icon: '↩️', title: 'Easy Returns', sub: '30-day hassle-free returns' },
+            { icon: '🔒', title: 'Secure Checkout', sub: '256-bit SSL encryption' },
+            { icon: '⭐', title: '5M+ Reviews', sub: 'Trusted by millions' },
+          ].map(b => (
+            <div key={b.title} className="flex items-center gap-3">
+              <span className="text-3xl" aria-hidden="true">{b.icon}</span>
+              <div>
+                <div className="font-semibold text-gray-900 text-sm">{b.title}</div>
+                <div className="text-xs text-gray-500">{b.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+
+    /* ─── Newsletter ──────────────────────────────── */
+    const Newsletter = () => {
+      const [email, setEmail] = useState('');
+      const [submitted, setSubmitted] = useState(false);
+      const handleSubmit = (e) => { e.preventDefault(); if (email) setSubmitted(true); };
+      return (
+        <section aria-labelledby="newsletter-heading" className="max-w-7xl mx-auto px-4 py-10">
+          <div className="bg-gradient-to-r from-brand-700 to-brand-600 rounded-2xl p-8 md:p-12 text-center text-white">
+            <h2 id="newsletter-heading" className="text-3xl font-black mb-2">Get Exclusive Deals</h2>
+            <p className="text-white/80 mb-8 max-w-md mx-auto">Subscribe and be the first to hear about flash sales, new arrivals, and members-only discounts.</p>
+            {submitted ? (
+              <p role="status" className="text-lg font-semibold">🎉 You're subscribed! Check your inbox for a welcome offer.</p>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" aria-label="Newsletter signup">
+                <label htmlFor="newsletter-email" className="sr-only">Email address</label>
+                <input
+                  id="newsletter-email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  required
+                  className="flex-1 px-4 py-3 rounded-xl text-gray-900 text-sm border-0 focus:outline-none focus:ring-2 focus:ring-accent-400"
+                  aria-label="Email address for newsletter"
+                />
+                <button
+                  type="submit"
+                  className="bg-accent-500 hover:bg-accent-600 text-white font-bold px-6 py-3 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white"
+                >
+                  Subscribe
+                </button>
+              </form>
+            )}
+            <p className="text-xs text-white/60 mt-4">No spam, ever. Unsubscribe at any time.</p>
+          </div>
+        </section>
+      );
+    };
+
+    /* ─── App ─────────────────────────────────────── */
+    const App = () => (
+      <div className="min-h-screen flex flex-col">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-brand-600 text-white px-4 py-2 rounded z-50 font-semibold">
+          Skip to main content
+        </a>
+        <Header />
+        <main id="main-content" className="flex-1">
+          <Hero />
+          <TrustBadges />
+          <CategoryGrid />
+          <TodaysDeals />
+          <FeaturedProducts />
+          <Newsletter />
+        </main>
+        <Footer />
+      </div>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

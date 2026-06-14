@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact Us – GovPortal</title>
+  <link rel="stylesheet" href="../styles/main.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            'gov-dark': '#1a4480',
+            'gov-mid':  '#1d5fad',
+            'gov-gold': '#c9600a',
+            'gov-green':'#1b7a4b',
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* ── Contact page extras ── */
+    .contact-hero {
+      background: linear-gradient(135deg, #0a2548 0%, #1a4480 100%);
+      padding: 56px 0 48px;
+      color: #fff;
+    }
+    .contact-hero h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 700; margin-bottom: .75rem; }
+    .contact-hero p  { font-size: 1.05rem; opacity: .9; max-width: 560px; }
+
+    /* Support option cards */
+    .support-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px; margin-bottom: 48px;
+    }
+    .support-card {
+      background: #fff; border: 2px solid #e5e7eb;
+      border-radius: var(--r-md); padding: 28px 20px;
+      text-align: center; display: flex; flex-direction: column;
+      align-items: center; gap: 10px;
+      transition: border-color .2s, box-shadow .2s;
+      text-decoration: none; color: inherit;
+    }
+    .support-card:hover { border-color: var(--gov-mid); box-shadow: 0 4px 16px rgba(29,95,173,.15); }
+    .support-card:focus-visible { outline: 3px solid var(--gov-gold); outline-offset: 3px; border-radius: var(--r-md); }
+    .support-icon { font-size: 2.2rem; }
+    .support-card h3 { font-size: .95rem; font-weight: 700; color: var(--gov-dark); }
+    .support-card p  { font-size: .8rem; color: #6b7280; }
+    .support-status {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; padding: 3px 10px; border-radius: 20px;
+    }
+    .status-open  { background: #dcfce7; color: var(--gov-green); }
+    .status-closed { background: #f3f4f6; color: #6b7280; }
+
+    /* Contact form */
+    .contact-form-wrap {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: var(--r-lg); padding: 40px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block; font-weight: 600; font-size: .875rem;
+      color: #374151; margin-bottom: 6px;
+    }
+    .form-group .req-star { color: #b91c1c; margin-left: 2px; }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%; padding: 10px 14px;
+      border: 1px solid #d1d5db; border-radius: var(--r-sm);
+      font-size: .9rem; font-family: inherit;
+      transition: border-color .2s, box-shadow .2s;
+      resize: vertical;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--gov-mid);
+      box-shadow: 0 0 0 3px rgba(29,95,173,.2);
+    }
+    .form-group input[aria-invalid="true"],
+    .form-group textarea[aria-invalid="true"] {
+      border-color: #b91c1c;
+      box-shadow: 0 0 0 3px rgba(185,28,28,.15);
+    }
+    .form-error { display: none; font-size: .8rem; color: #b91c1c; margin-top: 4px; }
+    .form-error.visible { display: block; }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width:600px) { .form-grid-2 { grid-template-columns: 1fr; } }
+
+    /* Char counter */
+    .char-count { font-size: .75rem; color: #9ca3af; text-align: right; margin-top: 4px; }
+    .char-count.near-limit { color: var(--gov-gold); }
+    .char-count.at-limit   { color: #b91c1c; }
+
+    /* Success state */
+    .form-success {
+      display: none; text-align: center; padding: 40px 20px;
+    }
+    .form-success .success-icon { font-size: 3rem; margin-bottom: 16px; }
+    .form-success h3 { font-size: 1.3rem; font-weight: 700; color: var(--gov-dark); margin-bottom: 8px; }
+    .form-success p { font-size: .9rem; color: #4b5563; }
+
+    /* Sidebar */
+    .sidebar-card {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: var(--r-md); padding: 24px; margin-bottom: 16px;
+    }
+    .sidebar-card h3 { font-size: .95rem; font-weight: 700; color: var(--gov-dark); margin-bottom: 12px; }
+    .contact-detail { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; font-size: .85rem; }
+    .contact-detail-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .contact-detail-body { color: #374151; }
+    .contact-detail-body strong { display: block; color: var(--gov-dark); }
+    .hours-table { width: 100%; font-size: .8rem; }
+    .hours-table tr td { padding: 4px 0; }
+    .hours-table .day { color: #4b5563; }
+    .hours-table .time { text-align: right; font-weight: 600; color: var(--gov-dark); }
+    .hours-table .closed { color: #9ca3af; }
+
+    /* Office list */
+    .office-row {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 14px 0; border-bottom: 1px solid #f3f4f6;
+    }
+    .office-row:last-child { border-bottom: none; }
+    .office-num {
+      width: 28px; height: 28px;
+      border-radius: 50%; background: var(--gov-dark); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; font-weight: 700; flex-shrink: 0;
+    }
+    .office-detail h4 { font-size: .88rem; font-weight: 700; color: var(--gov-dark); }
+    .office-detail p  { font-size: .78rem; color: #6b7280; }
+    .office-link { font-size: .78rem; font-weight: 600; color: var(--gov-mid); text-decoration: none; }
+    .office-link:hover { text-decoration: underline; }
+    .office-link:focus-visible { outline: 3px solid var(--gov-gold); outline-offset: 2px; border-radius: 2px; }
+
+    /* FAQ accordion override for contact */
+    .contact-faq .acc-item { border: none; border-bottom: 1px solid #e5e7eb; }
+    .contact-faq .acc-btn  { padding-left: 0; font-size: .9rem; }
+
+    /* Section headings */
+    .sec-label { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gov-gold); margin-bottom: 8px; }
+    .sec-heading { font-size: 1.6rem; font-weight: 700; color: var(--gov-dark); margin-bottom: 8px; }
+    .sec-sub { font-size: .95rem; color: #4b5563; max-width: 560px; }
+    .section-gap { padding: 56px 0; }
+  </style>
+</head>
+<body>
+
+  <!-- Skip link -->
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- Trust Banner -->
+  <div class="trust-banner" role="region" aria-label="Official website notice">
+    <div class="container trust-banner-inner">
+      <div class="trust-left">
+        <span class="trust-flag" aria-hidden="true">🏛️</span>
+        <span>An official government website. <a href="#verify" class="trust-link">Here's how you know</a></span>
+      </div>
+      <div class="trust-right">
+        <a href="../index.html#accessibility" class="trust-link">Accessibility</a>
+        <a href="../index.html#language" class="trust-link">Language</a>
+        <a href="contact.html" class="trust-link" aria-current="page">Contact</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="site-header" role="banner">
+    <div class="container hdr-inner">
+      <a href="../index.html" class="gov-logo" aria-label="GovPortal – Home">
+        <span class="logo-emblem" aria-hidden="true">⚖️</span>
+        <span class="logo-text"><strong>Gov</strong>Portal</span>
+      </a>
+      <form class="header-search" role="search" aria-label="Site search">
+        <label for="hdr-q" class="sr-only">Search</label>
+        <input type="search" id="hdr-q" name="q" placeholder="Search services, forms, offices…" autocomplete="off" />
+        <button type="submit" aria-label="Submit search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+      </form>
+      <div class="header-actions">
+        <select aria-label="Select language" class="lang-select">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="zh">中文</option>
+        </select>
+        <a href="../index.html#help" class="hdr-action-link">Help</a>
+        <a href="contact.html" class="hdr-action-link" aria-current="page">Contact</a>
+        <a href="../index.html#signin" class="btn btn-outline-sm">Sign In</a>
+      </div>
+      <button class="ham-btn" id="ham-btn" aria-controls="mobile-nav" aria-expanded="false" aria-label="Open navigation menu">
+        <span class="ham-bar" aria-hidden="true"></span>
+        <span class="ham-bar" aria-hidden="true"></span>
+        <span class="ham-bar" aria-hidden="true"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Service Nav -->
+  <nav class="service-nav" id="service-nav" aria-label="Services navigation">
+    <div class="container nav-inner">
+      <ul class="nav-list" role="list">
+        <li class="nav-item">
+          <button class="nav-link" aria-haspopup="true" aria-expanded="false" aria-controls="menu-benefits">
+            Benefits <span class="nav-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div class="mega-menu" id="menu-benefits" role="menu" aria-hidden="true">
+            <div class="mega-col">
+              <p class="mega-cat">Financial Assistance</p>
+              <a role="menuitem" href="../services/benefits/benefits.html" class="mega-link">All Benefits</a>
+              <a role="menuitem" href="../services/benefits/benefits.html#health" class="mega-link">Health Coverage</a>
+              <a role="menuitem" href="../services/benefits/benefits.html#housing" class="mega-link">Housing Assistance</a>
+            </div>
+            <div class="mega-col">
+              <p class="mega-cat">Food &amp; Nutrition</p>
+              <a role="menuitem" href="../services/benefits/benefits.html#food" class="mega-link">SNAP / Food Stamps</a>
+              <a role="menuitem" href="../services/benefits/benefits.html#wic" class="mega-link">WIC Program</a>
+            </div>
+            <div class="mega-col">
+              <p class="mega-cat">Disability &amp; Senior</p>
+              <a role="menuitem" href="../services/benefits/benefits.html#disability" class="mega-link">Disability Benefits</a>
+              <a role="menuitem" href="../services/benefits/benefits.html#senior" class="mega-link">Senior Assistance</a>
+            </div>
+          </div>
+        </li>
+
+        <li class="nav-item">
+          <button class="nav-link" aria-haspopup="true" aria-expanded="false" aria-controls="menu-taxes">
+            Taxes <span class="nav-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div class="mega-menu" id="menu-taxes" role="menu" aria-hidden="true">
+            <div class="mega-col">
+              <p class="mega-cat">File &amp; Pay</p>
+              <a role="menuitem" href="../services/taxes/taxes.html" class="mega-link">File My Taxes</a>
+              <a role="menuitem" href="../services/taxes/taxes.html#pay" class="mega-link">Make a Payment</a>
+              <a role="menuitem" href="../services/taxes/taxes.html#refund" class="mega-link">Check Refund Status</a>
+            </div>
+            <div class="mega-col">
+              <p class="mega-cat">Forms</p>
+              <a role="menuitem" href="../services/taxes/taxes.html#forms" class="mega-link">Tax Forms</a>
+              <a role="menuitem" href="../services/taxes/taxes.html#deadlines" class="mega-link">Key Deadlines</a>
+            </div>
+          </div>
+        </li>
+
+        <li class="nav-item">
+          <button class="nav-link" aria-haspopup="true" aria-expanded="false" aria-controls="menu-licenses">
+            Licenses <span class="nav-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div class="mega-menu" id="menu-licenses" role="menu" aria-hidden="true">
+            <div class="mega-col">
+              <p class="mega-cat">Driver &amp; ID</p>
+              <a role="menuitem" href="../services/licenses/licenses.html" class="mega-link">Driver's License</a>
+              <a role="menuitem" href="../services/licenses/licenses.html#id" class="mega-link">State ID Card</a>
+              <a role="menuitem" href="../services/licenses/licenses.html#real-id" class="mega-link">REAL ID</a>
+            </div>
+            <div class="mega-col">
+              <p class="mega-cat">Business</p>
+              <a role="menuitem" href="../services/licenses/licenses.html#business" class="mega-link">Business License</a>
+              <a role="menuitem" href="../services/licenses/licenses.html#professional" class="mega-link">Professional License</a>
+            </div>
+          </div>
+        </li>
+
+        <li class="nav-item"><a href="../index.html#payments" class="nav-link">Payments</a></li>
+        <li class="nav-item"><a href="../about/about.html" class="nav-link">About</a></li>
+        <li class="nav-item"><a href="contact.html" class="nav-link active" aria-current="page">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Mobile Nav -->
+  <div id="mobile-nav" hidden role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <div id="mobile-backdrop" class="mobile-backdrop" aria-hidden="true"></div>
+    <div class="mobile-panel">
+      <div class="mobile-header">
+        <span class="mobile-title">Menu</span>
+        <button id="mobile-close" class="mobile-close" aria-label="Close navigation menu">✕</button>
+      </div>
+      <nav aria-label="Mobile navigation">
+        <ul class="mobile-list" role="list">
+          <li><a href="../index.html" class="mobile-link">Home</a></li>
+          <li><a href="../services/benefits/benefits.html" class="mobile-link">Benefits</a></li>
+          <li><a href="../services/taxes/taxes.html" class="mobile-link">Taxes</a></li>
+          <li><a href="../services/licenses/licenses.html" class="mobile-link">Licenses</a></li>
+          <li><a href="../about/about.html" class="mobile-link">About</a></li>
+          <li><a href="contact.html" class="mobile-link active">Contact</a></li>
+        </ul>
+      </nav>
+      <div class="mobile-footer">
+        <a href="../index.html#signin" class="btn btn-primary w-full text-center">Sign In to MyGov</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main id="main" tabindex="-1">
+
+    <!-- Hero -->
+    <section class="contact-hero" aria-labelledby="contact-h1">
+      <div class="container">
+        <nav class="breadcrumb" aria-label="Breadcrumb" style="margin-bottom:20px;">
+          <ol class="breadcrumb-list" role="list">
+            <li class="breadcrumb-item"><a href="../index.html" class="breadcrumb-link">Home</a></li>
+            <li class="breadcrumb-item breadcrumb-current" aria-current="page">Contact</li>
+          </ol>
+        </nav>
+        <h1 id="contact-h1">Contact Us</h1>
+        <p>We're here to help. Reach us by phone, live chat, or by submitting a message — our team responds within 1–2 business days.</p>
+      </div>
+    </section>
+
+    <!-- Support Options -->
+    <section class="container" style="padding-top:48px;" aria-labelledby="support-h2">
+      <div class="sec-label">Get Help Now</div>
+      <h2 class="sec-heading" id="support-h2">Ways to Reach Us</h2>
+      <p class="sec-sub" style="margin-bottom:28px;">Choose the contact method that works best for you.</p>
+
+      <div class="support-grid" role="list">
+        <a href="#live-chat" class="support-card" role="listitem">
+          <span class="support-icon" aria-hidden="true">💬</span>
+          <h3>Live Chat</h3>
+          <p>Connect with an agent instantly during business hours.</p>
+          <span class="support-status status-open" role="status" aria-label="Status: Open now">Open Now</span>
+        </a>
+
+        <a href="tel:+18005550100" class="support-card" role="listitem">
+          <span class="support-icon" aria-hidden="true">📞</span>
+          <h3>Phone Support</h3>
+          <p>Speak with a specialist at 1-800-555-0100.</p>
+          <span class="support-status status-open" role="status" aria-label="Status: Available">Available</span>
+        </a>
+
+        <a href="#contact-form" class="support-card" role="listitem">
+          <span class="support-icon" aria-hidden="true">✉️</span>
+          <h3>Send a Message</h3>
+          <p>Submit a question or request. Response within 2 business days.</p>
+          <span class="support-status status-open" role="status" aria-label="Status: Always open">Always Open</span>
+        </a>
+
+        <a href="#offices" class="support-card" role="listitem">
+          <span class="support-icon" aria-hidden="true">🏛️</span>
+          <h3>Visit an Office</h3>
+          <p>Get in-person assistance at your nearest government office.</p>
+          <span class="support-status status-open" role="status" aria-label="Status: Locations open">Open</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Contact Form + Sidebar -->
+    <section class="container section-gap" id="contact-form" aria-labelledby="form-h2">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+
+        <!-- Form -->
+        <div class="lg:col-span-2">
+          <div class="sec-label">Send a Message</div>
+          <h2 class="sec-heading" id="form-h2">Contact Form</h2>
+          <p style="font-size:.9rem; color:#4b5563; margin-bottom:28px;">Fields marked with <span style="color:#b91c1c;" aria-label="required">*</span> are required.</p>
+
+          <div class="contact-form-wrap">
+            <!-- The form -->
+            <form id="contact-form-el" novalidate aria-label="Contact form" aria-describedby="form-notice">
+              <p id="form-notice" class="sr-only">This form requires your name, email, topic, and message. All fields marked with an asterisk are required.</p>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label for="cf-fname">First Name <span class="req-star" aria-hidden="true">*</span></label>
+                  <input type="text" id="cf-fname" name="fname" autocomplete="given-name"
+                         required aria-required="true" aria-describedby="err-fname" />
+                  <span id="err-fname" class="form-error" role="alert">Please enter your first name.</span>
+                </div>
+                <div class="form-group">
+                  <label for="cf-lname">Last Name <span class="req-star" aria-hidden="true">*</span></label>
+                  <input type="text" id="cf-lname" name="lname" autocomplete="family-name"
+                         required aria-required="true" aria-describedby="err-lname" />
+                  <span id="err-lname" class="form-error" role="alert">Please enter your last name.</span>
+                </div>
+              </div>
+
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label for="cf-email">Email Address <span class="req-star" aria-hidden="true">*</span></label>
+                  <input type="email" id="cf-email" name="email" autocomplete="email"
+                         required aria-required="true" aria-describedby="err-email"
+                         placeholder="you@example.com" />
+                  <span id="err-email" class="form-error" role="alert">Please enter a valid email address.</span>
+                </div>
+                <div class="form-group">
+                  <label for="cf-phone">Phone Number <span style="font-weight:400; color:#6b7280;">(optional)</span></label>
+                  <input type="tel" id="cf-phone" name="phone" autocomplete="tel" placeholder="(555) 000-0000" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="cf-topic">Topic <span class="req-star" aria-hidden="true">*</span></label>
+                <select id="cf-topic" name="topic" required aria-required="true" aria-describedby="err-topic">
+                  <option value="">Select the topic of your inquiry…</option>
+                  <optgroup label="Benefits">
+                    <option value="benefits-apply">Applying for Benefits</option>
+                    <option value="benefits-status">Benefits Application Status</option>
+                    <option value="benefits-appeal">Benefits Appeal</option>
+                  </optgroup>
+                  <optgroup label="Taxes">
+                    <option value="tax-file">Filing Tax Returns</option>
+                    <option value="tax-payment">Tax Payment</option>
+                    <option value="tax-refund">Refund Status</option>
+                  </optgroup>
+                  <optgroup label="Licenses">
+                    <option value="lic-driver">Driver's License</option>
+                    <option value="lic-business">Business License</option>
+                    <option value="lic-renew">License Renewal</option>
+                  </optgroup>
+                  <optgroup label="Other">
+                    <option value="other-account">MyGov Account Help</option>
+                    <option value="other-accessibility">Accessibility Support</option>
+                    <option value="other-general">General Inquiry</option>
+                  </optgroup>
+                </select>
+                <span id="err-topic" class="form-error" role="alert">Please select a topic.</span>
+              </div>
+
+              <div class="form-group">
+                <label for="cf-subject">Subject <span class="req-star" aria-hidden="true">*</span></label>
+                <input type="text" id="cf-subject" name="subject"
+                       required aria-required="true" aria-describedby="err-subject"
+                       maxlength="120" placeholder="Brief summary of your question or issue" />
+                <span id="err-subject" class="form-error" role="alert">Please enter a subject.</span>
+              </div>
+
+              <div class="form-group">
+                <label for="cf-message">Message <span class="req-star" aria-hidden="true">*</span></label>
+                <textarea id="cf-message" name="message" rows="6"
+                          required aria-required="true" aria-describedby="err-message cf-char"
+                          maxlength="1000"
+                          placeholder="Please describe your question or issue in detail. Include any reference or case numbers if available."></textarea>
+                <div id="cf-char" class="char-count" aria-live="polite" aria-atomic="true">0 / 1000 characters</div>
+                <span id="err-message" class="form-error" role="alert">Please enter your message (minimum 20 characters).</span>
+              </div>
+
+              <div class="form-group">
+                <label style="display:flex; align-items:flex-start; gap:10px; font-weight:400; cursor:pointer;">
+                  <input type="checkbox" id="cf-consent" name="consent"
+                         style="width:16px; height:16px; margin-top:2px; flex-shrink:0;"
+                         required aria-required="true" aria-describedby="err-consent" />
+                  <span style="font-size:.875rem; color:#374151;">
+                    I agree to the <a href="#" style="color:var(--gov-mid);">Privacy Policy</a> and consent to GovPortal processing my request and contacting me at the information provided.
+                    <span class="req-star" aria-hidden="true">*</span>
+                  </span>
+                </label>
+                <span id="err-consent" class="form-error" role="alert">You must agree to the privacy policy to submit.</span>
+              </div>
+
+              <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px;">
+                <button type="submit" id="cf-submit" class="btn btn-primary">
+                  Send Message
+                </button>
+                <button type="reset" class="btn btn-outline">Clear Form</button>
+              </div>
+            </form>
+
+            <!-- Success state -->
+            <div class="form-success" id="form-success" aria-live="polite" aria-atomic="true" tabindex="-1">
+              <div class="success-icon" aria-hidden="true">✅</div>
+              <h3>Message Sent Successfully!</h3>
+              <p>Thank you for reaching out. Your reference number is <strong id="ref-num" style="color:var(--gov-dark);"></strong>.</p>
+              <p style="margin-top:8px;">A confirmation has been sent to your email address. Our team will respond within 1–2 business days.</p>
+              <button onclick="resetForm()" class="btn btn-outline" style="margin-top:24px;">Send Another Message</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside aria-label="Contact information">
+          <!-- Phone & Hours -->
+          <div class="sidebar-card">
+            <h3>Phone Support</h3>
+            <div class="contact-detail">
+              <span class="contact-detail-icon" aria-hidden="true">📞</span>
+              <div class="contact-detail-body">
+                <strong>General Inquiries</strong>
+                <a href="tel:+18005550100" style="color:var(--gov-mid); font-weight:600;">1-800-555-0100</a>
+              </div>
+            </div>
+            <div class="contact-detail">
+              <span class="contact-detail-icon" aria-hidden="true">📞</span>
+              <div class="contact-detail-body">
+                <strong>Benefits Hotline</strong>
+                <a href="tel:+18005550200" style="color:var(--gov-mid); font-weight:600;">1-800-555-0200</a>
+              </div>
+            </div>
+            <div class="contact-detail">
+              <span class="contact-detail-icon" aria-hidden="true">📞</span>
+              <div class="contact-detail-body">
+                <strong>TTY / Hearing Impaired</strong>
+                <a href="tel:+18005550300" style="color:var(--gov-mid); font-weight:600;">1-800-555-0300</a>
+              </div>
+            </div>
+
+            <h3 style="margin-top:16px;">Call Center Hours</h3>
+            <table class="hours-table" aria-label="Call center hours of operation">
+              <tbody>
+                <tr><td class="day">Monday – Friday</td><td class="time">8:00 AM – 6:00 PM</td></tr>
+                <tr><td class="day">Saturday</td><td class="time">9:00 AM – 1:00 PM</td></tr>
+                <tr><td class="day">Sunday</td><td class="closed">Closed</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Live Chat -->
+          <div class="sidebar-card" id="live-chat">
+            <h3>Live Chat</h3>
+            <p style="font-size:.85rem; color:#4b5563; margin-bottom:14px;">Chat is available during business hours. Average wait time: under 3 minutes.</p>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+              <span style="width:10px; height:10px; border-radius:50%; background:var(--gov-green); display:inline-block;" aria-hidden="true"></span>
+              <span style="font-size:.82rem; font-weight:600; color:var(--gov-green);" role="status">Agents available now</span>
+            </div>
+            <button class="btn btn-primary" style="width:100%;" id="start-chat-btn" aria-label="Start a live chat session">
+              Start Live Chat
+            </button>
+          </div>
+
+          <!-- Quick links -->
+          <div class="sidebar-card">
+            <h3>Quick Links</h3>
+            <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:6px;" role="list">
+              <li><a href="../services/benefits/benefits.html#eligibility" style="font-size:.875rem; color:var(--gov-mid); display:flex; align-items:center; gap:6px;">
+                <span aria-hidden="true">→</span> Check Benefits Eligibility
+              </a></li>
+              <li><a href="../services/taxes/taxes.html#refund" style="font-size:.875rem; color:var(--gov-mid); display:flex; align-items:center; gap:6px;">
+                <span aria-hidden="true">→</span> Check Tax Refund Status
+              </a></li>
+              <li><a href="../services/licenses/licenses.html#renew" style="font-size:.875rem; color:var(--gov-mid); display:flex; align-items:center; gap:6px;">
+                <span aria-hidden="true">→</span> Renew a License
+              </a></li>
+              <li><a href="../index.html#signin" style="font-size:.875rem; color:var(--gov-mid); display:flex; align-items:center; gap:6px;">
+                <span aria-hidden="true">→</span> Sign In to MyGov
+              </a></li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Office Locations -->
+    <section class="section-gap" id="offices" style="background:#f8fafc;" aria-labelledby="offices-h2">
+      <div class="container">
+        <div class="sec-label">In-Person Help</div>
+        <h2 class="sec-heading" id="offices-h2">Government Office Locations</h2>
+        <p class="sec-sub" style="margin-bottom:32px;">Visit any of our offices for in-person assistance. No appointment required for most services.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" role="list" aria-label="Office locations">
+          <article style="background:#fff; border:1px solid #e5e7eb; border-radius:var(--r-md); padding:28px;" role="listitem">
+            <h3 style="font-size:1rem; font-weight:700; color:var(--gov-dark); margin-bottom:16px;">Downtown Service Center</h3>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">📍</div>
+              <div class="office-detail">
+                <h4>Address</h4>
+                <p>123 Government Plaza, Suite 100<br>City Center, ST 10001</p>
+              </div>
+            </div>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">🕐</div>
+              <div class="office-detail">
+                <h4>Hours</h4>
+                <p>Mon–Fri 8:00 AM – 5:00 PM<br>Sat 9:00 AM – 12:00 PM</p>
+              </div>
+            </div>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">📞</div>
+              <div class="office-detail">
+                <h4>Direct Line</h4>
+                <a href="tel:+15550101" class="office-link">(555) 010-0100</a>
+              </div>
+            </div>
+            <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="office-btn" aria-label="Get directions to Downtown Service Center">Get Directions</button>
+              <button class="office-btn" aria-label="Schedule appointment at Downtown Service Center">Schedule Appointment</button>
+            </div>
+          </article>
+
+          <article style="background:#fff; border:1px solid #e5e7eb; border-radius:var(--r-md); padding:28px;" role="listitem">
+            <h3 style="font-size:1rem; font-weight:700; color:var(--gov-dark); margin-bottom:16px;">Westside Community Hub</h3>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">📍</div>
+              <div class="office-detail">
+                <h4>Address</h4>
+                <p>450 West Boulevard, Building B<br>Westside, ST 10024</p>
+              </div>
+            </div>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">🕐</div>
+              <div class="office-detail">
+                <h4>Hours</h4>
+                <p>Mon–Thu 9:00 AM – 6:00 PM<br>Fri 9:00 AM – 4:00 PM</p>
+              </div>
+            </div>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">📞</div>
+              <div class="office-detail">
+                <h4>Direct Line</h4>
+                <a href="tel:+15550102" class="office-link">(555) 010-0200</a>
+              </div>
+            </div>
+            <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="office-btn" aria-label="Get directions to Westside Community Hub">Get Directions</button>
+              <button class="office-btn" aria-label="Schedule appointment at Westside Community Hub">Schedule Appointment</button>
+            </div>
+          </article>
+
+          <article style="background:#fff; border:1px solid #e5e7eb; border-radius:var(--r-md); padding:28px;" role="listitem">
+            <h3 style="font-size:1rem; font-weight:700; color:var(--gov-dark); margin-bottom:16px;">Northgate Regional Office</h3>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">📍</div>
+              <div class="office-detail">
+                <h4>Address</h4>
+                <p>789 North Avenue, Floor 2<br>Northgate, ST 10089</p>
+              </div>
+            </div>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">🕐</div>
+              <div class="office-detail">
+                <h4>Hours</h4>
+                <p>Tue–Sat 8:30 AM – 4:30 PM</p>
+              </div>
+            </div>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">📞</div>
+              <div class="office-detail">
+                <h4>Direct Line</h4>
+                <a href="tel:+15550103" class="office-link">(555) 010-0300</a>
+              </div>
+            </div>
+            <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="office-btn" aria-label="Get directions to Northgate Regional Office">Get Directions</button>
+              <button class="office-btn" aria-label="Schedule appointment at Northgate Regional Office">Schedule Appointment</button>
+            </div>
+          </article>
+
+          <article style="background:#fff; border:1px solid #e5e7eb; border-radius:var(--r-md); padding:28px;" role="listitem">
+            <h3 style="font-size:1rem; font-weight:700; color:var(--gov-dark); margin-bottom:16px;">Eastside Benefits Office</h3>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">📍</div>
+              <div class="office-detail">
+                <h4>Address</h4>
+                <p>212 East Park Drive<br>Eastside, ST 10063</p>
+              </div>
+            </div>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">🕐</div>
+              <div class="office-detail">
+                <h4>Hours</h4>
+                <p>Mon–Fri 8:00 AM – 4:00 PM</p>
+              </div>
+            </div>
+            <div class="office-row">
+              <div class="office-num" aria-hidden="true">📞</div>
+              <div class="office-detail">
+                <h4>Direct Line</h4>
+                <a href="tel:+15550104" class="office-link">(555) 010-0400</a>
+              </div>
+            </div>
+            <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="office-btn" aria-label="Get directions to Eastside Benefits Office">Get Directions</button>
+              <button class="office-btn" aria-label="Schedule appointment at Eastside Benefits Office">Schedule Appointment</button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="container section-gap" aria-labelledby="faq-h2">
+      <div class="sec-label">Common Questions</div>
+      <h2 class="sec-heading" id="faq-h2">Frequently Asked Questions</h2>
+      <p class="sec-sub" style="margin-bottom:32px;">Can't find your answer? Submit the form above and we'll respond within 2 business days.</p>
+
+      <div class="accordion contact-faq" id="contact-faq" aria-label="Contact FAQ">
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false" aria-controls="cfaq-1" id="cfaq-btn-1">
+            How long does it take to get a response to my message?
+            <span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div class="acc-panel" id="cfaq-1" role="region" aria-labelledby="cfaq-btn-1">
+            <div class="acc-body">
+              <p>We aim to respond to all contact form submissions within 1–2 business days. For urgent matters, please call our general inquiry line at 1-800-555-0100. Live chat is typically answered in under 3 minutes during business hours.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false" aria-controls="cfaq-2" id="cfaq-btn-2">
+            Do I need an appointment to visit an office?
+            <span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div class="acc-panel" id="cfaq-2" role="region" aria-labelledby="cfaq-btn-2">
+            <div class="acc-body">
+              <p>Most services are available on a walk-in basis, though wait times can be longer. Scheduling an appointment in advance is recommended for complex matters like benefit applications, license tests, or appeals. Use the "Schedule Appointment" button for any office listed above.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false" aria-controls="cfaq-3" id="cfaq-btn-3">
+            Is my personal information secure when I submit this form?
+            <span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div class="acc-panel" id="cfaq-3" role="region" aria-labelledby="cfaq-btn-3">
+            <div class="acc-body">
+              <p>Yes. All data submitted through this website is encrypted with TLS 1.3 and stored on government-secured servers. We do not share your personal information with third parties. Please avoid including sensitive information like your full SSN or financial account numbers in the message field.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false" aria-controls="cfaq-4" id="cfaq-btn-4">
+            What services are available in languages other than English?
+            <span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div class="acc-panel" id="cfaq-4" role="region" aria-labelledby="cfaq-btn-4">
+            <div class="acc-body">
+              <p>All GovPortal services are available in English, Spanish, French, and Mandarin Chinese. Phone interpretation is available in over 200 languages — simply inform the agent of your preferred language at the start of the call. In-person translation assistance is available at all office locations with 24-hour advance notice.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-item">
+          <button class="acc-btn" aria-expanded="false" aria-controls="cfaq-5" id="cfaq-btn-5">
+            How do I track the status of a previously submitted inquiry?
+            <span class="acc-icon" aria-hidden="true"></span>
+          </button>
+          <div class="acc-panel" id="cfaq-5" role="region" aria-labelledby="cfaq-btn-5">
+            <div class="acc-body">
+              <p>After submitting a contact form, you will receive a reference number via email. Log in to your MyGov account and navigate to "My Requests" to view the status of all your submitted inquiries. Alternatively, call our inquiry line with your reference number for an immediate update.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container footer-main">
+      <div class="footer-brand">
+        <a href="../index.html" class="gov-logo" aria-label="GovPortal Home" style="margin-bottom:12px;">
+          <span class="logo-emblem" aria-hidden="true">⚖️</span>
+          <span class="logo-text"><strong>Gov</strong>Portal</span>
+        </a>
+        <p class="footer-tagline">Serving residents with accessible, transparent government services.</p>
+        <p class="footer-legal-text" style="font-size:.75rem; opacity:.6; margin-top:8px;">An official government website.</p>
+      </div>
+      <div class="footer-col">
+        <h3 class="footer-heading">Services</h3>
+        <ul class="footer-links" role="list">
+          <li><a href="../services/benefits/benefits.html" class="footer-link">Benefits</a></li>
+          <li><a href="../services/taxes/taxes.html" class="footer-link">Taxes</a></li>
+          <li><a href="../services/licenses/licenses.html" class="footer-link">Licenses</a></li>
+          <li><a href="../index.html#payments" class="footer-link">Payments</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3 class="footer-heading">Agency</h3>
+        <ul class="footer-links" role="list">
+          <li><a href="../about/about.html" class="footer-link">About Us</a></li>
+          <li><a href="contact.html" class="footer-link" aria-current="page">Contact</a></li>
+          <li><a href="../about/about.html#leadership" class="footer-link">Leadership</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3 class="footer-heading">Legal</h3>
+        <ul class="footer-links" role="list">
+          <li><a href="#" class="footer-link">Privacy Policy</a></li>
+          <li><a href="#" class="footer-link">Accessibility</a></li>
+          <li><a href="#" class="footer-link">FOIA Requests</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container footer-bottom-inner">
+        <p>© 2026 GovPortal. All rights reserved.</p>
+        <select aria-label="Select language" class="lang-select" style="background:transparent; color:rgba(255,255,255,.7); border-color:rgba(255,255,255,.3);">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="zh">中文</option>
+        </select>
+      </div>
+    </div>
+  </footer>
+
+  <button id="scroll-top" aria-label="Scroll back to top" style="display:none;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 15l-6-6-6 6"/></svg>
+  </button>
+
+  <script src="../components/nav.js"></script>
+  <script>
+    /* ── Contact form with validation ── */
+    (function () {
+      var form    = document.getElementById('contact-form-el');
+      var success = document.getElementById('form-success');
+      var refEl   = document.getElementById('ref-num');
+      var msgTA   = document.getElementById('cf-message');
+      var charCt  = document.getElementById('cf-char');
+
+      /* Character counter */
+      msgTA.addEventListener('input', function () {
+        var len = msgTA.value.length;
+        var max = parseInt(msgTA.getAttribute('maxlength'), 10);
+        charCt.textContent = len + ' / ' + max + ' characters';
+        charCt.className = 'char-count' + (len > max * .9 ? ' near-limit' : '') + (len >= max ? ' at-limit' : '');
+      });
+
+      /* Validation helper */
+      function showError(inputId, errId, show) {
+        var inp = document.getElementById(inputId);
+        var err = document.getElementById(errId);
+        if (!inp || !err) return;
+        if (show) {
+          inp.setAttribute('aria-invalid', 'true');
+          err.classList.add('visible');
+        } else {
+          inp.removeAttribute('aria-invalid');
+          err.classList.remove('visible');
+        }
+      }
+
+      function validate() {
+        var ok = true;
+        var fname = document.getElementById('cf-fname').value.trim();
+        var lname = document.getElementById('cf-lname').value.trim();
+        var email = document.getElementById('cf-email').value.trim();
+        var topic = document.getElementById('cf-topic').value;
+        var subj  = document.getElementById('cf-subject').value.trim();
+        var msg   = msgTA.value.trim();
+        var cons  = document.getElementById('cf-consent').checked;
+
+        showError('cf-fname',   'err-fname',   !fname);   if (!fname) ok = false;
+        showError('cf-lname',   'err-lname',   !lname);   if (!lname) ok = false;
+        var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        showError('cf-email',   'err-email',   !emailRe.test(email)); if (!emailRe.test(email)) ok = false;
+        showError('cf-topic',   'err-topic',   !topic);   if (!topic) ok = false;
+        showError('cf-subject', 'err-subject', !subj);    if (!subj) ok = false;
+        showError('cf-message', 'err-message', msg.length < 20); if (msg.length < 20) ok = false;
+        var errCons = document.getElementById('err-consent');
+        if (!cons) { errCons.classList.add('visible'); ok = false; } else { errCons.classList.remove('visible'); }
+
+        return ok;
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!validate()) {
+          /* Focus first invalid field */
+          var firstErr = form.querySelector('[aria-invalid="true"]');
+          if (firstErr) firstErr.focus();
+          return;
+        }
+
+        var btn = document.getElementById('cf-submit');
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+
+        /* Simulate network delay */
+        setTimeout(function () {
+          form.style.display = 'none';
+          success.style.display = 'block';
+          refEl.textContent = 'GP-' + Math.floor(100000 + Math.random() * 900000);
+          success.focus();
+        }, 1200);
+      });
+
+      /* Inline validation on blur */
+      ['cf-fname','cf-lname','cf-email','cf-topic','cf-subject','cf-message'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('blur', function () { validate(); });
+      });
+    })();
+
+    /* ── Reset form ── */
+    function resetForm() {
+      var form    = document.getElementById('contact-form-el');
+      var success = document.getElementById('form-success');
+      var btn     = document.getElementById('cf-submit');
+      form.reset();
+      form.style.display = 'block';
+      success.style.display = 'none';
+      if (btn) { btn.disabled = false; btn.textContent = 'Send Message'; }
+      document.getElementById('cf-char').textContent = '0 / 1000 characters';
+    }
+
+    /* ── Live chat demo ── */
+    document.getElementById('start-chat-btn').addEventListener('click', function () {
+      alert('Live Chat\n\nIn a production environment, this would open a chat window with a live support agent.\n\nEstimated wait: < 3 minutes');
+    });
+
+    /* ── Office button demos ── */
+    document.querySelectorAll('.office-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        alert(btn.getAttribute('aria-label') + '\n\nIn a production environment, this would open the relevant tool (Google Maps or scheduling calendar).');
+      });
+    });
+  </script>
+</body>
+</html>

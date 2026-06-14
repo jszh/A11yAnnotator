@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact Us — Vermont.gov Resident Services</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'gov-navy':   '#1A3A6B',
+            'gov-navy-h': '#142E56',
+            'gov-blue':   '#2558A3',
+            'gov-blue-h': '#1E4A8A',
+            'gov-green':  '#2D6A3F',
+            'gov-green-h':'#245531',
+            'gov-light':  '#EEF3FB',
+            'gov-gray':   '#F5F6F8',
+            'gov-border': '#D1D9E6',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #F5F6F8; color: #1A1A2E; }
+    :focus-visible { outline: 3px solid #2558A3 !important; outline-offset: 2px !important; }
+    .skip-link { position: absolute; top: -52px; left: 8px; background: #1A3A6B; color: #fff; padding: 10px 18px; z-index: 9999; border-radius: 4px; font-weight: 600; transition: top 0.15s; text-decoration: none; font-size: 14px; }
+    .skip-link:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @keyframes chat-blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .chat-online { animation: chat-blink 2.5s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    function Header() {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [lang, setLang] = useState('EN');
+      const navLinks = [
+        { label: 'Home',     href: 'index.html',    key: 'home' },
+        { label: 'Services', href: 'services.html', key: 'services' },
+        { label: 'About',    href: 'about.html',    key: 'about' },
+        { label: 'Contact',  href: 'contact.html',  key: 'contact' },
+      ];
+      return (
+        <header className="bg-gov-navy text-white shadow-lg">
+          <div className="bg-gov-navy-h border-b border-white/10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex items-center justify-between">
+              <p className="text-xs text-white/70">Official Vermont State Website</p>
+              <div role="navigation" aria-label="Language selection">
+                <label htmlFor="lang-select" className="sr-only">Select language</label>
+                <select id="lang-select" value={lang} onChange={e=>setLang(e.target.value)} className="bg-transparent border border-white/20 text-white text-xs rounded px-2 py-0.5" aria-label="Select display language">
+                  {[{code:'EN',label:'English'},{code:'ES',label:'Español'},{code:'FR',label:'Français'}].map(l=><option key={l.code} value={l.code} className="text-black">{l.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-20 gap-6">
+              <a href="index.html" className="flex items-center gap-3 flex-shrink-0" aria-label="Vermont.gov — Go to homepage">
+                <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border-2 border-white/20 flex-shrink-0" aria-hidden="true"><svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+                <div><p className="font-extrabold text-lg leading-tight tracking-tight">Vermont.gov</p><p className="text-white/60 text-xs leading-tight">Official State Portal</p></div>
+              </a>
+              <nav aria-label="Main navigation" className="hidden md:block">
+                <ul className="flex items-center gap-1" role="list">
+                  {navLinks.map(l=><li key={l.key}><a href={l.href} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${l.key==='contact'?'bg-white/15 text-white':'text-white/80 hover:text-white hover:bg-white/10'}`} aria-current={l.key==='contact'?'page':undefined}>{l.label}</a></li>)}
+                </ul>
+              </nav>
+              <button className="md:hidden p-2 rounded-lg hover:bg-white/10" aria-expanded={menuOpen} aria-controls="mobile-nav" aria-label={menuOpen?'Close':'Open navigation menu'} onClick={()=>setMenuOpen(o=>!o)}>
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </button>
+            </div>
+          </div>
+          {menuOpen && <nav id="mobile-nav" aria-label="Mobile navigation"><ul className="border-t border-white/10 px-4 py-3 space-y-1" role="list">{navLinks.map(l=><li key={l.key}><a href={l.href} className="block px-4 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10">{l.label}</a></li>)}</ul></nav>}
+        </header>
+      );
+    }
+
+    function Footer() {
+      return (
+        <footer className="bg-gov-navy-h text-white" role="contentinfo">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+              <div className="lg:col-span-2"><p className="font-extrabold text-lg mb-2">Vermont.gov</p><p className="text-sm text-white/60 leading-relaxed mb-4">The official website of the State of Vermont.</p><p className="text-xs text-white/40">© 2025 State of Vermont. All rights reserved.</p></div>
+              <nav aria-label="Services navigation"><h2 className="font-semibold text-sm uppercase tracking-wider text-white/50 mb-3">Services</h2><ul className="space-y-2" role="list">{['Driver\'s License','Benefits','Voter Registration','Tax Filing'].map(l=><li key={l}><a href="services.html" className="text-sm text-white/70 hover:text-white transition-colors">{l}</a></li>)}</ul></nav>
+              <nav aria-label="Government navigation"><h2 className="font-semibold text-sm uppercase tracking-wider text-white/50 mb-3">Government</h2><ul className="space-y-2" role="list">{['Governor\'s Office','Legislature','Agency Directory','Open Data'].map(l=><li key={l}><a href="about.html" className="text-sm text-white/70 hover:text-white transition-colors">{l}</a></li>)}</ul></nav>
+              <nav aria-label="Help navigation"><h2 className="font-semibold text-sm uppercase tracking-wider text-white/50 mb-3">Help</h2><ul className="space-y-2" role="list">{[{l:'Contact',h:'contact.html'},{l:'Accessibility',h:'#'},{l:'Privacy',h:'#'},{l:'Site Map',h:'#'}].map(({l,h})=><li key={l}><a href={h} className="text-sm text-white/70 hover:text-white transition-colors">{l}</a></li>)}</ul></nav>
+            </div>
+            <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-start gap-4">
+              <p className="text-xs text-white/40">An official website of the State of Vermont.</p>
+              <div className="flex gap-4">{['Accessibility','Non-Discrimination','Privacy Policy'].map(l=><a key={l} href="#" className="text-xs text-white/40 hover:text-white/70 transition-colors">{l}</a>)}</div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── Chat Widget ───────────────────────────────────────────── */
+    function ChatWidget({ onClose, triggerRef }) {
+      const [messages, setMessages] = useState([
+        { from: 'agent', text: 'Hello! Welcome to Vermont.gov live chat. How can I help you today?' }
+      ]);
+      const [input, setInput] = useState('');
+      const [loading, setLoading] = useState(false);
+      const widgetRef = useRef(null);
+      const inputRef = useRef(null);
+      const closeBtnRef = useRef(null);
+      const msgsEndRef = useRef(null);
+
+      useEffect(() => {
+        closeBtnRef.current?.focus();
+        function trap(e) {
+          if (!widgetRef.current) return;
+          const els = widgetRef.current.querySelectorAll('button,input,[tabindex]:not([tabindex="-1"])');
+          const first = els[0]; const last = els[els.length-1];
+          if (e.key==='Tab') {
+            if (e.shiftKey){if(document.activeElement===first){e.preventDefault();last.focus();}}
+            else{if(document.activeElement===last){e.preventDefault();first.focus();}}
+          }
+          if (e.key==='Escape'){onClose();triggerRef.current?.focus();}
+        }
+        document.addEventListener('keydown',trap);
+        return ()=>document.removeEventListener('keydown',trap);
+      },[]);
+
+      useEffect(()=>{ msgsEndRef.current?.scrollIntoView({behavior:'smooth'}); },[messages]);
+
+      const RESPONSES = [
+        "I'd be happy to help with that! Could you share a bit more detail?",
+        "Great question. For driver's license renewal, you can visit our renewal page at Vermont DMV.",
+        "For benefits assistance, our screener can help identify programs you qualify for.",
+        "Our contact center hours are Monday–Friday, 8am–5pm EST. Is there anything else I can help with?",
+        "I'll connect you with a specialist for that. Please hold for a moment.",
+      ];
+
+      function sendMessage(e) {
+        e.preventDefault();
+        if (!input.trim()) return;
+        const userMsg = { from: 'user', text: input.trim() };
+        setMessages(m => [...m, userMsg]);
+        setInput('');
+        setLoading(true);
+        setTimeout(() => {
+          const resp = RESPONSES[Math.floor(Math.random() * RESPONSES.length)];
+          setMessages(m => [...m, { from: 'agent', text: resp }]);
+          setLoading(false);
+        }, 1200);
+      }
+
+      return (
+        <div
+          ref={widgetRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="chat-title"
+          className="fixed bottom-6 right-6 z-50 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gov-border flex flex-col overflow-hidden"
+          style={{maxHeight:'520px'}}
+        >
+          {/* Chat header */}
+          <div className="bg-gov-navy text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
+            <div className="relative flex-shrink-0">
+              <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center" aria-hidden="true">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+              </div>
+              <span className="chat-online absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-gov-navy" aria-hidden="true"></span>
+            </div>
+            <div>
+              <h2 id="chat-title" className="font-semibold text-sm">Vermont.gov Live Chat</h2>
+              <p className="text-white/60 text-xs flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full" aria-hidden="true"></span>
+                Representative online
+              </p>
+            </div>
+            <button ref={closeBtnRef} onClick={()=>{onClose();triggerRef.current?.focus();}} aria-label="Close live chat" className="ml-auto p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div
+            className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+            role="log"
+            aria-label="Chat messages"
+            aria-live="polite"
+            aria-atomic="false"
+            aria-relevant="additions"
+          >
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.from==='user'?'justify-end':'justify-start'}`}>
+                <div className={`max-w-[80%] px-3 py-2.5 rounded-2xl text-sm leading-relaxed ${m.from==='user'?'bg-gov-blue text-white rounded-br-sm':'bg-gov-gray text-gov-navy rounded-bl-sm border border-gov-border'}`}
+                  aria-label={`${m.from==='user'?'You':'Representative'}: ${m.text}`}
+                >
+                  {m.text}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex justify-start" aria-label="Representative is typing" role="status">
+                <div className="bg-gov-gray border border-gov-border px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1">
+                  {[0,1,2].map(i=><span key={i} className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:`${i*0.15}s`}} aria-hidden="true"></span>)}
+                </div>
+              </div>
+            )}
+            <div ref={msgsEndRef}></div>
+          </div>
+
+          {/* Input */}
+          <form onSubmit={sendMessage} className="border-t border-gov-border px-3 py-3 flex gap-2 flex-shrink-0" aria-label="Send a message in live chat">
+            <label htmlFor="chat-input" className="sr-only">Type your message</label>
+            <input
+              ref={inputRef}
+              id="chat-input"
+              type="text"
+              value={input}
+              onChange={e=>setInput(e.target.value)}
+              placeholder="Type a message…"
+              className="flex-1 border border-gov-border rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-gov-blue focus:border-transparent"
+              aria-label="Type your message to the representative"
+            />
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              className="bg-gov-blue text-white p-2.5 rounded-xl hover:bg-gov-blue-h disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+              aria-label="Send message"
+            >
+              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+            </button>
+          </form>
+        </div>
+      );
+    }
+
+    /* ── Contact Page ──────────────────────────────────────────── */
+    const HELPLINES = [
+      { dept: 'General Information',         number: '802-828-1110', hours: 'Mon–Fri 8am–5pm', icon: '🏛️' },
+      { dept: 'Dept. of Motor Vehicles',     number: '802-828-2000', hours: 'Mon–Fri 7:45am–4:30pm', icon: '🚗' },
+      { dept: 'Benefits & Assistance (DCF)', number: '800-479-6151', hours: 'Mon–Fri 7:45am–4:30pm', icon: '🤝' },
+      { dept: 'Dept. of Health',             number: '800-640-4374', hours: 'Mon–Fri 8am–4:30pm', icon: '🏥' },
+      { dept: 'Dept. of Taxes',              number: '802-828-2505', hours: 'Mon–Fri 7:45am–4:30pm', icon: '📊' },
+      { dept: 'Secretary of State',          number: '802-828-2363', hours: 'Mon–Fri 7:45am–4:30pm', icon: '📝' },
+      { dept: 'Vermont State Police',        number: '802-244-8727', hours: '24/7', icon: '🚔' },
+      { dept: 'Crisis Hotline (988)',        number: '988',          hours: '24/7', icon: '💛' },
+    ];
+
+    function ContactPage() {
+      const [chatOpen, setChatOpen] = useState(false);
+      const [formData, setFormData] = useState({ name: '', email: '', category: '', message: '' });
+      const [formErrors, setFormErrors] = useState({});
+      const [formStatus, setFormStatus] = useState(''); // '' | 'success' | 'error'
+      const [liveMsg, setLiveMsg] = useState('');
+      const chatBtnRef = useRef(null);
+      const formStatusRef = useRef(null);
+
+      function validateFeedback() {
+        const errs = {};
+        if (!formData.name.trim()) errs.name = 'Please enter your name.';
+        if (!formData.email.trim()) errs.email = 'Please enter your email address.';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errs.email = 'Please enter a valid email address (e.g. name@example.com).';
+        if (!formData.category) errs.category = 'Please select a feedback category.';
+        if (!formData.message.trim()) errs.message = 'Please enter your message.';
+        else if (formData.message.trim().length < 20) errs.message = 'Please provide more detail — at least 20 characters.';
+        setFormErrors(errs);
+        if (Object.keys(errs).length) {
+          const firstId = Object.keys(errs)[0];
+          document.getElementById(`field-${firstId}`)?.focus();
+          return false;
+        }
+        return true;
+      }
+
+      function submitFeedback(e) {
+        e.preventDefault();
+        if (!validateFeedback()) return;
+        setFormStatus('loading');
+        setLiveMsg('Submitting your feedback…');
+        setTimeout(() => {
+          setFormStatus('success');
+          setLiveMsg('Feedback submitted successfully. Thank you!');
+          setTimeout(() => formStatusRef.current?.focus(), 50);
+        }, 1200);
+      }
+
+      return (
+        <>
+          <Header />
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{liveMsg}</div>
+          {chatOpen && <ChatWidget onClose={()=>setChatOpen(false)} triggerRef={chatBtnRef} />}
+
+          <div className="bg-gov-navy text-white py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <nav aria-label="Breadcrumb" className="mb-3">
+                <ol className="flex items-center gap-2 text-sm text-white/60" role="list">
+                  <li><a href="index.html" className="hover:text-white transition-colors">Home</a></li>
+                  <li aria-hidden="true">/</li>
+                  <li aria-current="page" className="text-white font-medium">Contact Us</li>
+                </ol>
+              </nav>
+              <h1 className="text-2xl sm:text-3xl font-extrabold">Contact Us</h1>
+              <p className="text-white/70 text-sm mt-1">We're here to help — Monday through Friday, 8am to 5pm</p>
+            </div>
+          </div>
+
+          <main id="main-content" tabIndex={-1}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+              <div className="grid lg:grid-cols-3 gap-10">
+
+                {/* Left — contact options */}
+                <div className="lg:col-span-1 space-y-5">
+
+                  {/* Live chat widget trigger */}
+                  <section aria-labelledby="chat-section-heading" className="bg-gov-green text-white rounded-2xl p-6">
+                    <h2 id="chat-section-heading" className="font-bold text-lg mb-1 flex items-center gap-2">
+                      <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                      Live Chat
+                    </h2>
+                    <p className="text-white/80 text-sm mb-1">Chat with a Vermont.gov representative in real time.</p>
+                    <p className="text-white/60 text-xs mb-4">
+                      <span className="w-1.5 h-1.5 bg-green-300 rounded-full inline-block mr-1" aria-hidden="true"></span>
+                      Available Mon–Fri, 8am–5pm EST
+                    </p>
+                    <button
+                      ref={chatBtnRef}
+                      onClick={() => setChatOpen(true)}
+                      className="w-full bg-white text-gov-green font-bold text-sm py-3 rounded-xl hover:bg-green-50 transition-colors flex items-center justify-center gap-2"
+                      aria-label="Open live chat with a Vermont.gov representative"
+                      aria-expanded={chatOpen}
+                    >
+                      <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                      Start Chat Now
+                    </button>
+                  </section>
+
+                  {/* Multilingual notice */}
+                  <div className="bg-gov-light border border-gov-border rounded-2xl p-5">
+                    <h2 className="font-bold text-sm text-gov-navy mb-2 flex items-center gap-2">
+                      <span aria-hidden="true">🌐</span>
+                      Multilingual Support
+                    </h2>
+                    <p className="text-sm text-gray-600 mb-3 leading-relaxed">
+                      Vermont.gov services are available in multiple languages. Interpreter services are available at no cost for all in-person and phone interactions.
+                    </p>
+                    <ul className="text-xs space-y-1.5 text-gray-600" role="list" aria-label="Languages available for support">
+                      {[
+                        { lang: 'English',    note: 'Primary language' },
+                        { lang: 'Español',    note: 'Spanish — llamar al 802-828-1110' },
+                        { lang: 'Français',   note: 'French — 802-828-1110' },
+                        { lang: 'Kirundi',    note: 'Interpreter available on request' },
+                        { lang: 'Nepali',     note: 'Interpreter available on request' },
+                        { lang: 'Somali',     note: 'Interpreter available on request' },
+                      ].map(l => (
+                        <li key={l.lang} className="flex items-start gap-2">
+                          <svg aria-hidden="true" className="w-3 h-3 text-gov-green flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          <span><strong>{l.lang}</strong> — {l.note}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Helpline numbers */}
+                  <section aria-labelledby="helplines-heading" className="bg-white border border-gov-border rounded-2xl p-5">
+                    <h2 id="helplines-heading" className="font-bold text-sm text-gov-navy mb-4">Department Helplines</h2>
+                    <ul className="space-y-3" role="list" aria-label="Department phone numbers">
+                      {HELPLINES.map(h => (
+                        <li key={h.dept} className="flex items-start gap-3">
+                          <span aria-hidden="true" className="text-lg flex-shrink-0 mt-0.5">{h.icon}</span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-gov-navy">{h.dept}</p>
+                            <a
+                              href={`tel:${h.number.replace(/[^0-9]/g,'')}`}
+                              className="text-sm font-bold text-gov-blue hover:underline"
+                              aria-label={`Call ${h.dept} at ${h.number}`}
+                            >{h.number}</a>
+                            <p className="text-xs text-gray-500">{h.hours}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                </div>
+
+                {/* Right — feedback form */}
+                <div className="lg:col-span-2">
+                  <section aria-labelledby="feedback-heading">
+                    <h2 id="feedback-heading" className="text-xl font-bold text-gov-navy mb-2">Website Feedback</h2>
+                    <p className="text-gray-600 text-sm mb-6">Help us improve Vermont.gov. Share your experience, report an issue, or suggest an improvement. All submissions are reviewed by our digital services team.</p>
+
+                    {formStatus === 'success' ? (
+                      <div
+                        ref={formStatusRef}
+                        tabIndex={-1}
+                        role="status"
+                        aria-live="assertive"
+                        className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center focus:outline-none"
+                      >
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4" aria-hidden="true">
+                          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-gov-navy mb-2">Thank You for Your Feedback!</h3>
+                        <p className="text-gray-600 text-sm mb-6">We've received your message and will review it within 2–3 business days. A confirmation has been sent to {formData.email}.</p>
+                        <button onClick={()=>{setFormStatus('');setFormData({name:'',email:'',category:'',message:''}); setFormErrors({});}} className="bg-gov-navy text-white font-semibold px-6 py-3 rounded-xl hover:bg-gov-navy-h transition-colors text-sm" aria-label="Submit another feedback message">Submit Another Message</button>
+                      </div>
+                    ) : (
+                      <form onSubmit={submitFeedback} noValidate aria-label="Website feedback submission form" className="bg-white border border-gov-border rounded-2xl p-6 sm:p-8">
+                        <div className="grid sm:grid-cols-2 gap-5 mb-5">
+                          {/* Name */}
+                          <div>
+                            <label htmlFor="field-name" className="block text-sm font-semibold text-gov-navy mb-1.5">
+                              Full Name <span className="text-red-500" aria-hidden="true">*</span>
+                            </label>
+                            <input
+                              id="field-name"
+                              type="text"
+                              required
+                              aria-required="true"
+                              aria-invalid={!!formErrors.name}
+                              aria-describedby={formErrors.name?'err-name':undefined}
+                              value={formData.name}
+                              onChange={e=>setFormData(p=>({...p,name:e.target.value}))}
+                              placeholder="Jane Doe"
+                              className={`w-full border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gov-blue focus:border-transparent transition-colors ${formErrors.name?'border-red-400':'border-gov-border'}`}
+                            />
+                            {formErrors.name && <p id="err-name" role="alert" className="mt-1.5 text-red-600 text-xs flex items-center gap-1"><svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{formErrors.name}</p>}
+                          </div>
+
+                          {/* Email */}
+                          <div>
+                            <label htmlFor="field-email" className="block text-sm font-semibold text-gov-navy mb-1.5">
+                              Email Address <span className="text-red-500" aria-hidden="true">*</span>
+                            </label>
+                            <input
+                              id="field-email"
+                              type="email"
+                              required
+                              aria-required="true"
+                              aria-invalid={!!formErrors.email}
+                              aria-describedby={formErrors.email?'err-email':undefined}
+                              value={formData.email}
+                              onChange={e=>setFormData(p=>({...p,email:e.target.value}))}
+                              placeholder="jane@example.com"
+                              className={`w-full border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gov-blue focus:border-transparent transition-colors ${formErrors.email?'border-red-400':'border-gov-border'}`}
+                            />
+                            {formErrors.email && <p id="err-email" role="alert" className="mt-1.5 text-red-600 text-xs flex items-center gap-1"><svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{formErrors.email}</p>}
+                          </div>
+                        </div>
+
+                        {/* Category */}
+                        <div className="mb-5">
+                          <label htmlFor="field-category" className="block text-sm font-semibold text-gov-navy mb-1.5">
+                            Feedback Category <span className="text-red-500" aria-hidden="true">*</span>
+                          </label>
+                          <select
+                            id="field-category"
+                            required
+                            aria-required="true"
+                            aria-invalid={!!formErrors.category}
+                            aria-describedby={formErrors.category?'err-category':undefined}
+                            value={formData.category}
+                            onChange={e=>setFormData(p=>({...p,category:e.target.value}))}
+                            className={`w-full border rounded-xl px-4 py-3 text-sm bg-white focus:ring-2 focus:ring-gov-blue focus:border-transparent transition-colors ${formErrors.category?'border-red-400':'border-gov-border'}`}
+                          >
+                            <option value="">— Select a category —</option>
+                            <option>Website navigation / usability</option>
+                            <option>Incorrect or outdated information</option>
+                            <option>Broken link or technical error</option>
+                            <option>Accessibility barrier</option>
+                            <option>Service complaint or compliment</option>
+                            <option>Suggestion for improvement</option>
+                            <option>Other</option>
+                          </select>
+                          {formErrors.category && <p id="err-category" role="alert" className="mt-1.5 text-red-600 text-xs flex items-center gap-1"><svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{formErrors.category}</p>}
+                        </div>
+
+                        {/* Message */}
+                        <div className="mb-5">
+                          <label htmlFor="field-message" className="block text-sm font-semibold text-gov-navy mb-1.5">
+                            Message <span className="text-red-500" aria-hidden="true">*</span>
+                          </label>
+                          <textarea
+                            id="field-message"
+                            required
+                            aria-required="true"
+                            aria-invalid={!!formErrors.message}
+                            aria-describedby={formErrors.message?'err-message':'message-hint'}
+                            rows={5}
+                            value={formData.message}
+                            onChange={e=>setFormData(p=>({...p,message:e.target.value}))}
+                            placeholder="Describe your feedback, issue, or suggestion in detail…"
+                            className={`w-full border rounded-xl px-4 py-3 text-sm resize-none focus:ring-2 focus:ring-gov-blue focus:border-transparent transition-colors ${formErrors.message?'border-red-400':'border-gov-border'}`}
+                          ></textarea>
+                          <p id="message-hint" className="mt-1 text-xs text-gray-400">{formData.message.length} characters · minimum 20 required</p>
+                          {formErrors.message && <p id="err-message" role="alert" className="mt-1 text-red-600 text-xs flex items-center gap-1"><svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{formErrors.message}</p>}
+                        </div>
+
+                        {/* Page URL optional */}
+                        <div className="mb-6">
+                          <label htmlFor="field-url" className="block text-sm font-semibold text-gov-navy mb-1.5">
+                            Related Page URL <span className="text-gray-400 font-normal text-xs ml-1">(optional)</span>
+                          </label>
+                          <input
+                            id="field-url"
+                            type="url"
+                            placeholder="https://www.vermont.gov/…"
+                            className="w-full border border-gov-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-gov-blue focus:border-transparent transition-colors"
+                            aria-label="URL of the Vermont.gov page this feedback relates to, optional"
+                          />
+                        </div>
+
+                        <p className="text-xs text-gray-400 mb-4">
+                          <span className="text-red-500" aria-hidden="true">*</span> Required fields. Your contact info will only be used to follow up on your feedback if needed. See our <a href="#" className="underline hover:no-underline">Privacy Policy</a>.
+                        </p>
+
+                        <button
+                          type="submit"
+                          disabled={formStatus==='loading'}
+                          className="w-full bg-gov-navy text-white font-bold py-4 rounded-xl hover:bg-gov-navy-h disabled:opacity-70 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                          aria-label="Submit website feedback to Vermont.gov digital services team"
+                          aria-busy={formStatus==='loading'}
+                        >
+                          {formStatus==='loading' ? (
+                            <>
+                              <svg aria-hidden="true" className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                              Submitting…
+                            </>
+                          ) : (
+                            <>
+                              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                              Submit Feedback
+                            </>
+                          )}
+                        </button>
+                      </form>
+                    )}
+                  </section>
+
+                  {/* Office locations */}
+                  <section aria-labelledby="offices-heading" className="mt-8">
+                    <h2 id="offices-heading" className="text-xl font-bold text-gov-navy mb-4">Main State Offices</h2>
+                    <div className="grid sm:grid-cols-2 gap-4" role="list" aria-label="Main Vermont state office locations">
+                      {[
+                        { city:'Montpelier (Capital)', address:'109 State Street, Montpelier, VT 05609', hours:'Mon–Fri 8am–5pm', phone:'802-828-1110' },
+                        { city:'Burlington',           address:'100 State Street, Burlington, VT 05401', hours:'Mon–Fri 8am–4:30pm', phone:'802-865-7200' },
+                        { city:'Rutland',              address:'88 Merchants Row, Rutland, VT 05701', hours:'Mon–Fri 8am–4:30pm', phone:'802-786-5807' },
+                        { city:'St. Johnsbury',        address:'1197 Main Street, St. Johnsbury, VT 05819', hours:'Mon–Fri 8am–4:30pm', phone:'802-751-8100' },
+                      ].map(o=>(
+                        <article key={o.city} className="bg-white border border-gov-border rounded-xl p-4" role="listitem" aria-label={`${o.city} state office`}>
+                          <h3 className="font-bold text-sm text-gov-navy mb-1">{o.city}</h3>
+                          <address className="not-italic text-xs text-gray-600 space-y-1">
+                            <p>{o.address}</p>
+                            <p>{o.hours}</p>
+                            <p><a href={`tel:${o.phone.replace(/-/g,'')}`} className="text-gov-blue font-semibold hover:underline" aria-label={`Call ${o.city} office: ${o.phone}`}>{o.phone}</a></p>
+                          </address>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </main>
+
+          <Footer />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ContactPage />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opinion — The Meridian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            body: ['"Source Serif 4"', 'Georgia', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: #be123c;
+      color: white;
+      padding: 8px 16px;
+      font-family: Inter, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 9999;
+      border-radius: 0 0 4px 0;
+      transition: top 0.15s;
+    }
+    .skip-link:focus {
+      top: 0;
+    }
+    @keyframes ticker-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .ticker-track {
+      display: flex;
+      animation: ticker-scroll 30s linear infinite;
+      width: max-content;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ticker-track { animation: none; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const NAV_LINKS = [
+      { href: 'index.html', label: 'Home' },
+      { href: 'world.html', label: 'World' },
+      { href: '#', label: 'Politics' },
+      { href: '#', label: 'Technology' },
+      { href: '#', label: 'Culture' },
+      { href: 'opinion.html', label: 'Opinion' },
+    ];
+
+    function MeridianHeader({ currentPage }) {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [searchOpen, setSearchOpen] = useState(false);
+      const searchInputRef = useRef(null);
+
+      useEffect(() => {
+        if (searchOpen && searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, [searchOpen]);
+
+      return (
+        <header role="banner" className="bg-slate-900 text-white sticky top-0 z-50 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-8">
+                <a href="index.html" className="font-serif font-black text-2xl tracking-widest text-white hover:text-rose-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded" aria-label="The Meridian — Home">
+                  THE MERIDIAN
+                </a>
+                <nav aria-label="Primary navigation" className="hidden lg:flex items-center gap-1">
+                  {NAV_LINKS.map(link => (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      aria-current={currentPage === link.label ? 'page' : undefined}
+                      className={`px-3 py-2 text-sm font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 ${
+                        currentPage === link.label
+                          ? 'text-rose-400 border-b-2 border-rose-400'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                      }`}
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+              <div className="flex items-center gap-2">
+                {searchOpen && (
+                  <div className="hidden sm:flex items-center bg-slate-800 rounded-full px-3 py-1">
+                    <label htmlFor="header-search" className="sr-only">Search The Meridian</label>
+                    <input
+                      id="header-search"
+                      ref={searchInputRef}
+                      type="search"
+                      placeholder="Search stories…"
+                      className="bg-transparent text-white placeholder-slate-400 text-sm outline-none w-48 focus-visible:outline-none"
+                    />
+                  </div>
+                )}
+                <button
+                  onClick={() => setSearchOpen(!searchOpen)}
+                  aria-label={searchOpen ? 'Close search' : 'Open search'}
+                  aria-expanded={searchOpen}
+                  className="p-2 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+                <a
+                  href="subscription.html"
+                  className="hidden sm:inline-flex items-center px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white text-sm font-semibold rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                >
+                  Subscribe
+                </a>
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                  aria-expanded={menuOpen}
+                  aria-controls="mobile-menu"
+                  className="lg:hidden p-2 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    {menuOpen
+                      ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    }
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          {menuOpen && (
+            <nav id="mobile-menu" aria-label="Mobile navigation" className="lg:hidden bg-slate-800 border-t border-slate-700">
+              <div className="px-4 py-3 space-y-1">
+                {NAV_LINKS.map(link => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    aria-current={currentPage === link.label ? 'page' : undefined}
+                    className={`block px-3 py-2 text-sm font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 ${
+                      currentPage === link.label
+                        ? 'text-rose-400 bg-slate-700'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                    }`}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+                <a href="subscription.html" className="block px-3 py-2 text-sm font-semibold text-rose-400 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">
+                  Subscribe →
+                </a>
+              </div>
+            </nav>
+          )}
+        </header>
+      );
+    }
+
+    function MeridianFooter() {
+      const [email, setEmail] = useState('');
+      const [submitted, setSubmitted] = useState(false);
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (email) setSubmitted(true);
+      };
+
+      return (
+        <footer role="contentinfo" className="bg-slate-900 text-white mt-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 pb-10 border-b border-slate-700">
+              <div className="lg:col-span-2">
+                <a href="index.html" className="font-serif font-black text-2xl tracking-widest text-white hover:text-rose-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">
+                  THE MERIDIAN
+                </a>
+                <p className="mt-3 text-slate-400 text-sm leading-relaxed font-body">
+                  Independent global journalism since 2008. We report without fear or favor, funded by readers who believe in the power of a free press.
+                </p>
+                <form onSubmit={handleSubmit} className="mt-5" aria-label="Newsletter signup">
+                  <p className="text-sm font-semibold text-white mb-2">Get our Daily Brief newsletter</p>
+                  {submitted ? (
+                    <p className="text-rose-400 text-sm font-medium">Thanks! You're subscribed.</p>
+                  ) : (
+                    <div className="flex gap-2">
+                      <label htmlFor="footer-email" className="sr-only">Your email address</label>
+                      <input
+                        id="footer-email"
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        required
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                      />
+                      <button type="submit" className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white text-sm font-semibold rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">
+                        Subscribe
+                      </button>
+                    </div>
+                  )}
+                </form>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Sections</h3>
+                <ul className="space-y-2">
+                  {['World', 'Politics', 'Technology', 'Culture', 'Opinion', 'Science', 'Economy', 'Health'].map(s => (
+                    <li key={s}><a href="#" className="text-slate-400 hover:text-white text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">{s}</a></li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Company</h3>
+                <ul className="space-y-2">
+                  {['About Us', 'Careers', 'Press', 'Advertise', 'Contact', 'Ethics Policy', 'Privacy Policy', 'Terms of Use'].map(s => (
+                    <li key={s}><a href="#" className="text-slate-400 hover:text-white text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">{s}</a></li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Readers</h3>
+                <ul className="space-y-2 mb-6">
+                  {['Subscribe', 'Sign In', 'Newsletters', 'App — iOS', 'App — Android', 'Audio Edition', 'Gift a Subscription', 'Student Discount'].map(s => (
+                    <li key={s}><a href={s === 'Subscribe' ? 'subscription.html' : '#'} className="text-slate-400 hover:text-white text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">{s}</a></li>
+                  ))}
+                </ul>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Follow Us</h3>
+                <div className="flex gap-3">
+                  {['Twitter/X', 'Instagram', 'Facebook', 'YouTube'].map(s => (
+                    <a key={s} href="#" aria-label={`Follow The Meridian on ${s}`} className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">
+                      <span className="text-xs text-slate-400" aria-hidden="true">{s[0]}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-slate-500 text-xs">© 2026 The Meridian Media Group. All rights reserved.</p>
+              <p className="text-slate-600 text-xs">Independent. Accountable. Essential.</p>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    const COLUMNISTS = [
+      {
+        slug: 'elenavas',
+        name: 'Elena Vasquez',
+        specialty: 'Foreign Policy',
+        headlines: [
+          "The West Is Losing the Information War — and Barely Trying to Win It",
+          "After Hegemony: What a Multipolar World Actually Looks Like on the Ground",
+          "The Sovereignty Trap: Why Small Nations Keep Choosing the Wrong Alliances",
+        ],
+      },
+      {
+        slug: 'jamesokafor',
+        name: 'James Okafor',
+        specialty: 'Africa & Development',
+        headlines: [
+          "Why the Next Decade Belongs to the African Continent — If It Can Seize the Moment",
+          "The New Scramble: How China and the West Are Competing for Africa's Future",
+          "Debt, Democracy, and Development: The Trap African Governments Can't Escape",
+        ],
+      },
+      {
+        slug: 'priyamehta',
+        name: 'Dr. Priya Mehta',
+        specialty: 'Technology & Society',
+        headlines: [
+          "AI Is Not Coming for Your Job — It's Coming for Your Autonomy",
+          "The Attention Economy Has a Business Model Problem, Not a Content Problem",
+          "Why Big Tech's Self-Regulation Promises Have Always Been a Stalling Tactic",
+        ],
+      },
+      {
+        slug: 'marcuswebb',
+        name: 'Marcus Webb',
+        specialty: 'American Politics',
+        headlines: [
+          "The Long Death of American Consensus: A Post-Mortem",
+          "Why Washington Keeps Failing on Foreign Policy — And Why It Matters",
+          "The Realignment That Wasn't: How Both Parties Misread the 2024 Election",
+        ],
+      },
+    ];
+
+    const RECENT_OPINIONS = [
+      {
+        author: 'Elena Vasquez',
+        slug: 'elenavas',
+        category: 'Geopolitics',
+        title: "The NATO Alliance Is Stronger Than It Looks — and More Fragile Than It Admits",
+        excerpt: "Public declarations of unity mask deep disagreements about strategic priorities, burden-sharing, and what to do if deterrence fails.",
+        date: 'March 14, 2026',
+      },
+      {
+        author: 'Dr. Priya Mehta',
+        slug: 'priyamehta',
+        category: 'Technology',
+        title: "Regulating AI Without Understanding It Is a Recipe for Regulatory Capture",
+        excerpt: "Legislators around the world are racing to write rules for a technology they fundamentally do not understand, and the industry knows it.",
+        date: 'March 13, 2026',
+      },
+      {
+        author: 'James Okafor',
+        slug: 'jamesokafor',
+        category: 'Climate',
+        title: "Climate Finance Is the Defining Injustice of Our Era — and Nobody Wants to Say It",
+        excerpt: "The countries least responsible for warming are being asked to pay the most for adaptation, while wealthy nations treat their pledges as aspirational.",
+        date: 'March 12, 2026',
+      },
+      {
+        author: 'Marcus Webb',
+        slug: 'marcuswebb',
+        category: 'Economics',
+        title: "The Debt Clock Is Ticking, But Washington Keeps Hitting Snooze",
+        excerpt: "Political incentives are perfectly aligned to produce fiscal disaster. The surprising thing is that anyone is still surprised when it happens.",
+        date: 'March 11, 2026',
+      },
+      {
+        author: 'Sofia Bernardi',
+        slug: 'sofiabernardi',
+        category: 'Culture',
+        title: "Europe's Identity Crisis Is Not About Immigration — It's About Belonging",
+        excerpt: "The continent's most urgent challenge isn't managing borders; it's defining what it means to be European in the twenty-first century.",
+        date: 'March 10, 2026',
+      },
+      {
+        author: 'Amir Khalil',
+        slug: 'amirkhalil',
+        category: 'Middle East',
+        title: "Why the Gaza Ceasefire Talks Always Fail at the Same Point",
+        excerpt: "Every round of negotiations collapses over the same fundamental asymmetry: one side wants a pause, the other wants a permanent end to the conflict.",
+        date: 'March 9, 2026',
+      },
+    ];
+
+    const LETTERS = [
+      {
+        text: "Dr. Mehta's analysis of AI regulation is sharp, but undersells the agency of regulators in the EU. The Digital Markets Act has already demonstrated that legislative pressure can change behavior — even at companies that insisted it was impossible.",
+        author: 'Thomas Engström',
+        location: 'Stockholm, Sweden',
+        inResponseTo: "Regulating AI Without Understanding It Is a Recipe for Regulatory Capture",
+      },
+      {
+        text: "Vasquez is right that the West is losing the information war, but she identifies the symptom rather than the disease. The problem isn't messaging strategy — it's that Western governments have spent thirty years doing things abroad that are difficult to defend at home or anywhere else.",
+        author: 'Nadia Okonkwo',
+        location: 'Lagos, Nigeria',
+        inResponseTo: "The West Is Losing the Information War — and Barely Trying to Win It",
+      },
+      {
+        text: "Webb's post-mortem on American political consensus is moving, but I'd push back on the nostalgia. That consensus excluded large portions of the population. What looks like dysfunction from the outside is also, in part, previously excluded voices demanding inclusion in decisions that affect them.",
+        author: 'Professor Amelia Chen',
+        location: 'Berkeley, California',
+        inResponseTo: "The Long Death of American Consensus: A Post-Mortem",
+      },
+    ];
+
+    function App() {
+      return (
+        <div>
+          <MeridianHeader currentPage="Opinion" />
+          <main id="main-content">
+            {/* Section Header */}
+            <div className="bg-white border-b border-gray-200">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                <p className="text-xs font-bold text-rose-700 uppercase tracking-widest mb-2">Section</p>
+                <h1 className="font-serif font-black text-5xl text-slate-900 mb-3">Opinion</h1>
+                <p className="text-slate-500 font-body text-lg max-w-2xl">
+                  Independent voices on global affairs, politics, and the forces shaping our world.
+                </p>
+              </div>
+            </div>
+
+            {/* Featured Essay */}
+            <section aria-labelledby="featured-essay-heading" className="bg-slate-900">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 flex flex-col md:flex-row gap-10 items-center">
+                <div className="flex-shrink-0 flex flex-col items-center text-center md:items-start md:text-left w-full md:w-64">
+                  <span className="text-xs font-black text-rose-400 uppercase tracking-widest mb-4">Featured Essay</span>
+                  <img
+                    src="https://picsum.photos/seed/elenavas/200/200"
+                    alt="Portrait of Elena Vasquez, Foreign Policy Analyst"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-rose-700 mb-4"
+                  />
+                  <p className="font-serif font-bold text-white text-xl">Elena Vasquez</p>
+                  <p className="text-rose-400 text-sm mt-1">Foreign Policy Analyst · The Meridian</p>
+                </div>
+                <div className="flex-1">
+                  <h2 id="featured-essay-heading" className="font-serif font-black text-4xl md:text-5xl text-white leading-tight mb-5">
+                    The West Is Losing the Information War — and Barely Trying to Win It
+                  </h2>
+                  <p className="text-slate-300 font-body text-lg leading-relaxed mb-6">
+                    From TikTok to state-sponsored disinformation networks, adversarial narratives are spreading faster than democratic governments can respond. The problem isn't a lack of capability — it's a fundamental misunderstanding of what the war is about.
+                  </p>
+                  <a
+                    href="article.html"
+                    className="inline-flex items-center px-6 py-3 bg-rose-700 hover:bg-rose-600 text-white font-semibold rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                  >
+                    Read the essay →
+                  </a>
+                </div>
+              </div>
+            </section>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              {/* Columnists Grid */}
+              <section aria-labelledby="columnists-heading" className="py-12 border-b border-gray-200">
+                <h2 id="columnists-heading" className="font-serif font-bold text-2xl text-slate-900 mb-8">Our Columnists</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {COLUMNISTS.map((columnist) => (
+                    <div key={columnist.slug} className="flex flex-col">
+                      <div className="flex items-center gap-3 mb-4">
+                        <img
+                          src={`https://picsum.photos/seed/${columnist.slug}/200/200`}
+                          alt={`Portrait of ${columnist.name}, ${columnist.specialty} columnist`}
+                          loading="lazy"
+                          className="w-14 h-14 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
+                        />
+                        <div>
+                          <p className="font-semibold text-slate-900 leading-tight">{columnist.name}</p>
+                          <p className="text-xs text-rose-700 font-medium">{columnist.specialty}</p>
+                        </div>
+                      </div>
+                      <ul className="space-y-2 flex-1">
+                        {columnist.headlines.map((headline, i) => (
+                          <li key={i}>
+                            <a
+                              href="article.html"
+                              className="text-sm text-slate-700 hover:text-rose-700 transition-colors leading-snug block font-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded"
+                            >
+                              {headline}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                      <a
+                        href="#"
+                        className="text-xs font-semibold text-rose-700 hover:text-rose-600 mt-4 inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded"
+                      >
+                        See all columns →
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Recent Opinion Grid */}
+              <section aria-labelledby="recent-opinions-heading" className="py-12 border-b border-gray-200">
+                <h2 id="recent-opinions-heading" className="font-serif font-bold text-2xl text-slate-900 mb-8">Recent Opinion</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+                  {RECENT_OPINIONS.map((piece, i) => (
+                    <article key={i} className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                      <div className="flex items-center gap-3 mb-4">
+                        <img
+                          src={`https://picsum.photos/seed/${piece.slug}/200/200`}
+                          alt={`Portrait of ${piece.author}`}
+                          loading="lazy"
+                          className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                        />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 leading-tight">{piece.author}</p>
+                          <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">{piece.category}</span>
+                        </div>
+                      </div>
+                      <h3 className="font-serif font-bold text-slate-900 leading-snug mb-2 flex-1">
+                        <a href="article.html" className="hover:text-rose-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">
+                          {piece.title}
+                        </a>
+                      </h3>
+                      <p className="text-sm text-slate-600 font-body leading-relaxed mb-3">{piece.excerpt}</p>
+                      <time className="text-xs text-slate-400">{piece.date}</time>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              {/* Letters to the Editor */}
+              <section aria-labelledby="letters-heading" className="py-12 border-b border-gray-200">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 id="letters-heading" className="font-serif font-bold text-2xl text-slate-900 mb-1">Letters to the Editor</h2>
+                    <p className="text-slate-500 font-body text-sm">
+                      We publish a selection of reader responses every week. Letters may be edited for length and clarity.
+                    </p>
+                  </div>
+                  <a
+                    href="#"
+                    aria-label="Submit a letter to the editor"
+                    className="inline-flex items-center px-5 py-2 border-2 border-rose-700 text-rose-700 hover:bg-rose-700 hover:text-white font-semibold text-sm rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 flex-shrink-0"
+                  >
+                    Submit a Letter
+                  </a>
+                </div>
+                <div className="space-y-6">
+                  {LETTERS.map((letter, i) => (
+                    <div key={i} className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                      <blockquote className="font-body text-slate-700 leading-relaxed mb-4 italic">
+                        "{letter.text}"
+                      </blockquote>
+                      <footer className="text-sm">
+                        <span className="font-semibold text-slate-900">{letter.author}</span>
+                        <span className="text-slate-500"> · {letter.location}</span>
+                        <div className="mt-1 text-xs text-slate-400">
+                          In response to:{' '}
+                          <a href="article.html" className="text-rose-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">
+                            {letter.inResponseTo}
+                          </a>
+                        </div>
+                      </footer>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Editorial Standards Note */}
+              <section aria-labelledby="editorial-standards-heading" className="py-10">
+                <div className="bg-gray-100 rounded-xl px-6 py-5 border border-gray-200 max-w-3xl">
+                  <h2 id="editorial-standards-heading" className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Editorial Independence</h2>
+                  <p className="text-sm text-slate-600 font-body leading-relaxed">
+                    Opinion pieces published in The Meridian reflect the views of the individual authors and do not represent the editorial positions of The Meridian Media Group. Our columnists are chosen for their expertise and independence of thought. The Meridian's news reporting and its opinion section operate with separate editorial leadership. Our editorial board does not accept outside influence on its positions, and no advertiser, investor, or owner has ever directed our editorial content. Questions about editorial standards can be directed to our Standards Editor.
+                  </p>
+                </div>
+              </section>
+            </div>
+          </main>
+          <MeridianFooter />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

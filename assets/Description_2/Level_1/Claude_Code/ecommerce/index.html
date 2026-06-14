@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThreadHouse — Wear What You Stand For</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            forest: '#2C4A1E',
+            sage:   '#7A9E5A',
+            cream:  '#F8F5EE',
+            gold:   '#D4A853',
+            bark:   '#8B6B4A',
+            charcoal: '#1C1C1C',
+            muted:  '#5A5A5A',
+            border: '#D8D3CA',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0}
+    :focus-visible{outline:3px solid #2C4A1E;outline-offset:3px;border-radius:2px}
+    .scroll-snap-x{scroll-snap-type:x mandatory}
+    .snap-start{scroll-snap-align:start}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .animate-fade-in{animation:fadeIn .5s ease forwards}
+  </style>
+</head>
+<body class="bg-cream text-charcoal font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ── Shared Header ── */
+    function Header({ activePage = 'home' }) {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [searchOpen, setSearchOpen] = useState(false);
+
+      const nav = [
+        { label: 'New Arrivals', href: 'products.html' },
+        { label: 'Women',        href: 'products.html' },
+        { label: 'Men',          href: 'products.html' },
+        { label: 'Accessories',  href: 'products.html' },
+        { label: 'Sale',         href: 'products.html' },
+      ];
+
+      return (
+        <header role="banner" className="sticky top-0 z-50 bg-cream border-b border-border shadow-sm">
+          {/* Skip link */}
+          <a href="#main-content"
+             className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-forest focus:text-white focus:px-4 focus:py-2 focus:rounded">
+            Skip to main content
+          </a>
+
+          {/* Promo bar */}
+          <div className="bg-forest text-white text-center text-xs py-2 px-4 tracking-wide">
+            Free shipping on orders over $75 · Use code <strong>SPRING10</strong> for 10% off
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 gap-4">
+
+              {/* Logo */}
+              <a href="index.html" className="flex-shrink-0 font-serif text-2xl font-bold tracking-tight text-forest" aria-label="ThreadHouse Home">
+                Thread<span className="text-gold">House</span>
+              </a>
+
+              {/* Desktop nav */}
+              <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-6">
+                {nav.map(n => (
+                  <a key={n.label} href={n.href}
+                     className="text-sm font-medium text-charcoal hover:text-forest transition-colors focus-visible:rounded">
+                    {n.label}
+                  </a>
+                ))}
+              </nav>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                {/* Search toggle */}
+                <button onClick={() => setSearchOpen(v => !v)}
+                        aria-label="Toggle search" aria-expanded={searchOpen}
+                        className="p-2 rounded-full hover:bg-border transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </button>
+
+                {/* Account */}
+                <a href="account.html" aria-label="My account" className="p-2 rounded-full hover:bg-border transition-colors hidden sm:block">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </a>
+
+                {/* Cart */}
+                <a href="cart.html" aria-label="Shopping cart, 3 items" className="relative p-2 rounded-full hover:bg-border transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                  </svg>
+                  <span className="absolute -top-0.5 -right-0.5 bg-gold text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold leading-none" aria-hidden="true">3</span>
+                </a>
+
+                {/* Mobile menu button */}
+                <button onClick={() => setMenuOpen(v => !v)}
+                        aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                        aria-expanded={menuOpen}
+                        className="lg:hidden p-2 rounded hover:bg-border transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                    {menuOpen
+                      ? <path d="M6 18L18 6M6 6l12 12"/>
+                      : <><line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>}
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Search bar */}
+            {searchOpen && (
+              <div className="pb-3 animate-fade-in">
+                <label htmlFor="site-search" className="sr-only">Search products</label>
+                <div className="relative">
+                  <input id="site-search" type="search" placeholder="Search ThreadHouse…"
+                         autoFocus
+                         className="w-full border border-border rounded-full px-5 py-2.5 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-forest bg-white"
+                         aria-label="Search products" />
+                  <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile nav */}
+          {menuOpen && (
+            <nav aria-label="Mobile navigation" className="lg:hidden bg-white border-t border-border px-4 py-3 animate-fade-in">
+              {nav.map(n => (
+                <a key={n.label} href={n.href}
+                   className="block py-2.5 text-sm font-medium text-charcoal hover:text-forest border-b border-border/50 last:border-0">
+                  {n.label}
+                </a>
+              ))}
+              <a href="account.html" className="block py-2.5 text-sm font-medium text-charcoal hover:text-forest">My Account</a>
+            </nav>
+          )}
+        </header>
+      );
+    }
+
+    /* ── Shared Footer ── */
+    function Footer() {
+      return (
+        <footer role="contentinfo" className="bg-charcoal text-white mt-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+
+              {/* Brand */}
+              <div>
+                <p className="font-serif text-2xl font-bold mb-3">Thread<span className="text-gold">House</span></p>
+                <p className="text-sm text-gray-400 leading-relaxed">Sustainable, independently designed fashion for the conscious generation. Every piece tells a story worth wearing.</p>
+                <div className="flex gap-3 mt-5">
+                  {['Instagram','TikTok','Pinterest'].map(s => (
+                    <a key={s} href="#" aria-label={`${s} — opens in new tab`}
+                       className="w-8 h-8 rounded-full bg-white/10 hover:bg-gold flex items-center justify-center text-xs transition-colors">
+                      {s[0]}
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              {/* Shop */}
+              <nav aria-label="Shop links">
+                <h3 className="font-semibold text-sm uppercase tracking-widest mb-4 text-gold">Shop</h3>
+                {['New Arrivals','Women','Men','Accessories','Sale','Style Match'].map(l => (
+                  <a key={l} href="products.html" className="block text-sm text-gray-400 hover:text-white py-1 transition-colors">{l}</a>
+                ))}
+              </nav>
+
+              {/* Help */}
+              <nav aria-label="Help links">
+                <h3 className="font-semibold text-sm uppercase tracking-widest mb-4 text-gold">Help</h3>
+                {['Size Guide','Returns & Exchanges','Shipping Info','Track My Order','Contact Us','FAQ'].map(l => (
+                  <a key={l} href="#" className="block text-sm text-gray-400 hover:text-white py-1 transition-colors">{l}</a>
+                ))}
+              </nav>
+
+              {/* Newsletter */}
+              <div>
+                <h3 className="font-semibold text-sm uppercase tracking-widest mb-4 text-gold">Stay in the Loop</h3>
+                <p className="text-sm text-gray-400 mb-4">New drops, exclusive offers, and style inspo — straight to your inbox.</p>
+                <form onSubmit={e => e.preventDefault()} className="flex gap-2">
+                  <label htmlFor="footer-email" className="sr-only">Email address</label>
+                  <input id="footer-email" type="email" placeholder="your@email.com" required
+                         className="flex-1 px-3 py-2 text-sm rounded bg-white/10 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gold" />
+                  <button type="submit" className="px-4 py-2 bg-gold text-white text-sm font-semibold rounded hover:bg-amber-500 transition-colors">Join</button>
+                </form>
+              </div>
+            </div>
+
+            <div className="border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+              <p>© 2025 ThreadHouse. Certified B Corp. 1% for the Planet member.</p>
+              <div className="flex gap-4">
+                <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+                <a href="#" className="hover:text-white transition-colors">Accessibility</a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── Hero Section ── */
+    function Hero() {
+      return (
+        <section aria-label="Spring Collection Hero" className="relative overflow-hidden" style={{minHeight:'88vh'}}>
+          {/* Background image */}
+          <div className="absolute inset-0">
+            <img
+              src="https://picsum.photos/seed/threadhouse-hero/1600/900"
+              alt="Model wearing ThreadHouse spring collection in an outdoor urban setting"
+              className="w-full h-full object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-charcoal/70 via-charcoal/30 to-transparent" aria-hidden="true" />
+          </div>
+
+          {/* Content */}
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full" style={{minHeight:'88vh'}}>
+            <div className="max-w-xl animate-fade-in">
+              <span className="inline-block bg-gold text-white text-xs font-bold uppercase tracking-widest px-3 py-1 rounded mb-4">
+                Spring 2025
+              </span>
+              <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight mb-5">
+                Wear What<br />You Stand For
+              </h1>
+              <p className="text-white/80 text-lg sm:text-xl mb-8 leading-relaxed">
+                New Spring Collection — ethically made, independently designed, unapologetically you.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a href="products.html"
+                   className="inline-block bg-gold text-white font-semibold px-8 py-4 rounded-full text-sm uppercase tracking-wide hover:bg-amber-500 transition-colors shadow-lg">
+                  Shop the Collection
+                </a>
+                <a href="#brand-story"
+                   className="inline-block bg-white/15 text-white font-semibold px-8 py-4 rounded-full text-sm uppercase tracking-wide hover:bg-white/25 transition-colors border border-white/30">
+                  Our Story
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Scroll cue */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/60 flex flex-col items-center gap-2" aria-hidden="true">
+            <span className="text-xs uppercase tracking-widest">Scroll</span>
+            <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="m19 9-7 7-7-7"/>
+            </svg>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── Shop by Mood ── */
+    function ShopByMood() {
+      const moods = [
+        { name: 'Minimalist', desc: 'Clean lines, muted palettes',   seed: 'mood-minimal',   gradient: 'from-stone-200 to-stone-400' },
+        { name: 'Streetwear', desc: 'Bold graphics, relaxed fits',    seed: 'mood-street',    gradient: 'from-zinc-600 to-zinc-900' },
+        { name: 'Workwear',   desc: 'Smart, sustainable, polished',   seed: 'mood-work',      gradient: 'from-slate-300 to-slate-600' },
+        { name: 'Weekend',    desc: 'Effortless, earthy, easy',       seed: 'mood-weekend',   gradient: 'from-amber-200 to-amber-400' },
+      ];
+
+      return (
+        <section aria-labelledby="moods-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-gold mb-1">Discover</p>
+              <h2 id="moods-heading" className="font-serif text-3xl sm:text-4xl font-bold text-charcoal">Shop by Mood</h2>
+            </div>
+            <a href="products.html" className="text-sm font-semibold text-forest underline underline-offset-2 hover:text-sage transition-colors">View all styles →</a>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {moods.map((m, i) => (
+              <a key={m.name} href="products.html"
+                 className="group relative rounded-2xl overflow-hidden aspect-[3/4] focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2">
+                <img
+                  src={`https://picsum.photos/seed/${m.seed}/500/700`}
+                  alt={`${m.name} style — ${m.desc}`}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" aria-hidden="true" />
+                <div className="absolute bottom-0 left-0 p-5">
+                  <p className="text-white font-serif font-bold text-xl leading-tight">{m.name}</p>
+                  <p className="text-white/70 text-xs mt-1">{m.desc}</p>
+                </div>
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 text-forest text-xs font-bold px-3 py-1 rounded-full" aria-hidden="true">
+                  Explore →
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    /* ── New Arrivals ── */
+    function NewArrivals() {
+      const products = [
+        { id:1, name:'Oversized Linen Shirt',   color:'Sage Green', price:89,  badge:'Low Stock',  seed:'prod-1' },
+        { id:2, name:'Wide Leg Organic Denim',   color:'Indigo',     price:145, badge:null,         seed:'prod-2' },
+        { id:3, name:'Bamboo Ribbed Tank',        color:'Cream',      price:42,  badge:'New',        seed:'prod-3' },
+        { id:4, name:'Recycled Fleece Hoodie',    color:'Terracotta', price:98,  badge:'Low Stock',  seed:'prod-4' },
+        { id:5, name:'Linen Blend Trousers',      color:'Sand',       price:112, badge:'New',        seed:'prod-5' },
+        { id:6, name:'Organic Cotton Tee',        color:'Forest',     price:38,  badge:null,         seed:'prod-6' },
+        { id:7, name:'Silk Slip Dress',           color:'Ivory',      price:165, badge:'Low Stock',  seed:'prod-7' },
+        { id:8, name:'Hemp Canvas Tote',          color:'Natural',    price:55,  badge:'New',        seed:'prod-8' },
+      ];
+
+      return (
+        <section aria-labelledby="arrivals-heading" className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-gold mb-1">Just Dropped</p>
+                <h2 id="arrivals-heading" className="font-serif text-3xl sm:text-4xl font-bold text-charcoal">New Arrivals</h2>
+              </div>
+              <a href="products.html" className="text-sm font-semibold text-forest underline underline-offset-2 hover:text-sage transition-colors">Shop all →</a>
+            </div>
+
+            {/* Horizontal scroll */}
+            <div role="list" className="flex gap-5 overflow-x-auto pb-4 scroll-snap-x -mx-4 px-4" aria-label="New Arrivals product carousel">
+              {products.map(p => (
+                <article key={p.id} role="listitem"
+                         className="flex-none w-60 snap-start group focus-within:ring-2 focus-within:ring-forest rounded-2xl">
+                  <a href="product-detail.html" className="block focus:outline-none" aria-label={`${p.name} in ${p.color}, $${p.price}`}>
+                    <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-border mb-3">
+                      <img src={`https://picsum.photos/seed/${p.seed}/300/400`}
+                           alt={`${p.name} in ${p.color}`}
+                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      {p.badge && (
+                        <span className={`absolute top-2 left-2 text-xs font-bold px-2.5 py-1 rounded-full ${p.badge === 'Low Stock' ? 'bg-red-100 text-red-700' : 'bg-forest text-white'}`}>
+                          {p.badge}
+                        </span>
+                      )}
+                      {/* Quick add */}
+                      <button className="absolute bottom-0 left-0 right-0 bg-charcoal/90 text-white text-xs font-semibold py-3 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-forest"
+                              aria-label={`Quick add ${p.name} to cart`}
+                              onClick={e => { e.preventDefault(); }}>
+                        + Quick Add
+                      </button>
+                    </div>
+                    <p className="font-semibold text-sm text-charcoal">{p.name}</p>
+                    <p className="text-xs text-muted mt-0.5">{p.color}</p>
+                    <p className="font-bold text-sm text-charcoal mt-1">${p.price}.00</p>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── Sustainability Banner ── */
+    function SustainabilityBanner() {
+      const pillars = [
+        { icon: '🌿', title: 'Organic Materials',    desc: '100% natural & recycled fibres' },
+        { icon: '♻️', title: 'Circular Design',       desc: 'Built to last, made to return' },
+        { icon: '🤝', title: 'Fair Trade Certified',  desc: 'Every maker paid fairly' },
+        { icon: '📦', title: 'Zero-Waste Packaging',  desc: 'Compostable, every time' },
+      ];
+
+      return (
+        <section aria-labelledby="values-heading" className="bg-forest text-white py-14">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 id="values-heading" className="sr-only">Our sustainability values</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+              {pillars.map(p => (
+                <div key={p.title}>
+                  <span className="text-4xl mb-3 block" aria-hidden="true">{p.icon}</span>
+                  <h3 className="font-semibold text-sm uppercase tracking-wide text-gold mb-1">{p.title}</h3>
+                  <p className="text-white/70 text-sm">{p.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── Brand Story ── */
+    function BrandStory() {
+      return (
+        <section id="brand-story" aria-labelledby="story-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-gold mb-2">Who We Are</p>
+              <h2 id="story-heading" className="font-serif text-4xl sm:text-5xl font-bold text-charcoal mb-6 leading-tight">
+                Fashion should<br />leave the world<br />better than it found it.
+              </h2>
+              <p className="text-muted text-base leading-relaxed mb-5">
+                ThreadHouse was born from a frustration with fast fashion and a belief that
+                getting dressed is an act of self-expression — one that doesn't have to cost
+                the planet. We partner with independent designers and certified ethical
+                manufacturers to bring you pieces you'll wear for years, not seasons.
+              </p>
+              <p className="text-muted text-base leading-relaxed mb-8">
+                Every ThreadHouse item comes with a transparent supply chain story, so you
+                know exactly who made it, where, and under what conditions. Style with substance.
+              </p>
+              <a href="#"
+                 className="inline-block bg-forest text-white font-semibold px-8 py-4 rounded-full text-sm uppercase tracking-wide hover:bg-sage transition-colors">
+                Our Mission
+              </a>
+            </div>
+            <div className="relative">
+              <img src="https://picsum.photos/seed/brandstory/700/800"
+                   alt="ThreadHouse workshop showing artisans hand-finishing garments"
+                   className="rounded-2xl w-full object-cover aspect-[4/5]" />
+              <div className="absolute -bottom-4 -left-4 bg-gold text-white rounded-2xl px-6 py-4 shadow-xl max-w-xs">
+                <p className="font-serif font-bold text-2xl">47,000+</p>
+                <p className="text-sm font-medium mt-0.5">customers who chose better</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── Featured Editorial ── */
+    function Editorial() {
+      return (
+        <section aria-labelledby="editorial-heading" className="bg-cream py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative rounded-3xl overflow-hidden">
+              <img src="https://picsum.photos/seed/editorial/1400/500"
+                   alt="ThreadHouse spring editorial shoot in a sunlit botanical garden"
+                   className="w-full h-72 sm:h-96 object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-r from-charcoal/60 to-transparent" aria-hidden="true" />
+              <div className="absolute inset-0 flex items-center p-8 sm:p-14">
+                <div className="max-w-md">
+                  <p className="text-gold text-xs font-bold uppercase tracking-widest mb-2">Lookbook Drop</p>
+                  <h2 id="editorial-heading" className="font-serif text-3xl sm:text-4xl font-bold text-white mb-4 leading-snug">
+                    Spring in the City —<br />The Full Edit
+                  </h2>
+                  <a href="products.html"
+                     className="inline-block bg-white text-charcoal font-semibold px-6 py-3 rounded-full text-sm uppercase tracking-wide hover:bg-cream transition-colors">
+                    See the Lookbook
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ── App ── */
+    function App() {
+      return (
+        <>
+          <Header activePage="home" />
+          <main id="main-content">
+            <Hero />
+            <ShopByMood />
+            <NewArrivals />
+            <SustainabilityBanner />
+            <BrandStory />
+            <Editorial />
+          </main>
+          <Footer />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

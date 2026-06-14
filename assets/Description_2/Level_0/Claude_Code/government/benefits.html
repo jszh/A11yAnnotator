@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apply for Benefits — State of Vermont</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            vt: { blue: '#1B3A6B', dark: '#0F2444', gold: '#C8A951', green: '#2D6A4F', light: '#EEF2F7' }
+          }
+        }
+      }
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50 font-sans">
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const Header = () => (
+  <header className="bg-vt-blue text-white shadow-lg">
+    <div className="bg-vt-dark py-1.5 px-4 text-xs flex items-center justify-between">
+      <div className="flex items-center gap-1.5 text-blue-300">
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+        </svg>
+        <span>An Official Vermont State Government Website</span>
+      </div>
+    </div>
+    <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="./index.html" className="flex items-center gap-3 group">
+        <div className="w-12 h-12 rounded-full bg-vt-gold flex items-center justify-center shadow-md">
+          <span className="text-vt-dark font-black text-lg">VT</span>
+        </div>
+        <div>
+          <div className="font-bold text-lg leading-tight group-hover:text-vt-gold transition">State of Vermont</div>
+          <div className="text-blue-200 text-xs">Official Resident Services Portal</div>
+        </div>
+      </a>
+      <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
+        {[['Home', './index.html'], ['Services', './services.html'], ['About', './about.html'], ['Contact', './contact.html']].map(([label, href]) => (
+          <a key={label} href={href} className="hover:text-vt-gold transition">{label}</a>
+        ))}
+      </nav>
+    </div>
+  </header>
+);
+
+const Breadcrumb = () => (
+  <div className="bg-white border-b border-gray-200">
+    <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-2 text-sm text-gray-500 flex-wrap">
+      <a href="./index.html" className="hover:text-vt-blue transition">Home</a>
+      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+      <a href="./services.html" className="hover:text-vt-blue transition">Services</a>
+      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+      <span className="text-gray-800 font-medium">Apply for Benefits</span>
+    </div>
+  </div>
+);
+
+const incomeRanges = [
+  'Under $15,000',
+  '$15,000 – $25,000',
+  '$25,000 – $35,000',
+  '$35,000 – $50,000',
+  '$50,000 – $75,000',
+  'Over $75,000',
+];
+
+const PROGRAMS = [
+  {
+    id: 'snap',
+    name: '3SquaresVT (SNAP)',
+    icon: '🛒',
+    color: 'green',
+    agency: 'Dept. of Children & Families',
+    desc: 'Monthly food benefits to help low-income Vermonters afford nutritious food at participating retailers.',
+    benefit: 'Up to $291/month per person',
+    timeline: '30 days from application',
+    requirements: ['Income below 130% of federal poverty level', 'Vermont resident', 'Meet work requirements (if applicable)'],
+    qualifies: (form) => parseInt(form.householdSize) >= 1 && ['Under $15,000', '$15,000 – $25,000', '$25,000 – $35,000'].includes(form.income),
+  },
+  {
+    id: 'medicaid',
+    name: 'Vermont Medicaid',
+    icon: '🏥',
+    color: 'blue',
+    agency: 'Green Mountain Care',
+    desc: 'Free or low-cost health insurance coverage for qualifying Vermont residents, including doctor visits, prescriptions, and more.',
+    benefit: 'Comprehensive health coverage',
+    timeline: '45 days from application',
+    requirements: ['Income below 138% of federal poverty level', 'Vermont resident', 'US citizen or qualifying immigrant'],
+    qualifies: (form) => ['Under $15,000', '$15,000 – $25,000', '$25,000 – $35,000', '$35,000 – $50,000'].includes(form.income),
+  },
+  {
+    id: 'heat',
+    name: 'Heating Assistance (LIHEAP)',
+    icon: '🔥',
+    color: 'orange',
+    agency: 'Community Action Agencies',
+    desc: 'Help with home heating costs for income-eligible households. Covers oil, propane, natural gas, wood, and electricity for heating.',
+    benefit: 'Up to $700 per heating season',
+    timeline: 'Applications processed within 14 days',
+    requirements: ['Income at or below 60% of state median', 'Vermont resident', 'Primary heating costs on file'],
+    qualifies: (form) => ['Under $15,000', '$15,000 – $25,000', '$25,000 – $35,000', '$35,000 – $50,000'].includes(form.income),
+  },
+  {
+    id: 'childcare',
+    name: 'Child Care Financial Assistance',
+    icon: '🧸',
+    color: 'purple',
+    agency: 'Dept. of Children & Families',
+    desc: 'Subsidized child care for working families. Reduces the cost of licensed child care so parents can work or attend school.',
+    benefit: 'Sliding-scale subsidy',
+    timeline: '30 days from application',
+    requirements: ['Child under age 13', 'Working, in school, or job training', 'Income meets guidelines'],
+    qualifies: (form) => parseInt(form.householdSize) >= 2 && ['Under $15,000', '$15,000 – $25,000', '$25,000 – $35,000', '$35,000 – $50,000', '$50,000 – $75,000'].includes(form.income),
+  },
+  {
+    id: 'wic',
+    name: 'WIC Program',
+    icon: '🍼',
+    color: 'pink',
+    agency: 'Dept. of Health',
+    desc: 'Nutrition support for pregnant women, new mothers, infants, and children up to age 5.',
+    benefit: 'Monthly food vouchers + nutrition support',
+    timeline: 'Immediate upon eligibility',
+    requirements: ['Pregnant, postpartum, or have child under 5', 'Income below 185% of federal poverty level'],
+    qualifies: (form) => parseInt(form.householdSize) >= 1 && ['Under $15,000', '$15,000 – $25,000', '$25,000 – $35,000', '$35,000 – $50,000'].includes(form.income),
+  },
+];
+
+const colorMap = {
+  green:  { bg: 'bg-green-50',  border: 'border-green-200',  badge: 'bg-green-100 text-green-700',  btn: 'bg-green-600 hover:bg-green-700',  tag: 'text-green-700' },
+  blue:   { bg: 'bg-blue-50',   border: 'border-blue-200',   badge: 'bg-blue-100 text-blue-700',    btn: 'bg-blue-600 hover:bg-blue-700',    tag: 'text-blue-700' },
+  orange: { bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700',btn: 'bg-orange-600 hover:bg-orange-700',tag: 'text-orange-700' },
+  purple: { bg: 'bg-purple-50', border: 'border-purple-200', badge: 'bg-purple-100 text-purple-700',btn: 'bg-purple-600 hover:bg-purple-700',tag: 'text-purple-700' },
+  pink:   { bg: 'bg-pink-50',   border: 'border-pink-200',   badge: 'bg-pink-100 text-pink-700',    btn: 'bg-pink-600 hover:bg-pink-700',    tag: 'text-pink-700' },
+};
+
+const ScreenerForm = ({ onSubmit }) => {
+  const [form, setForm] = useState({ householdSize: '2', income: '', employment: '', zip: '' });
+  const valid = form.income && form.employment && form.zip.length >= 5;
+
+  const Field = ({ label, id, children }) => (
+    <div>
+      <label htmlFor={id} className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
+      {children}
+    </div>
+  );
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <span className="text-4xl">🔍</span>
+          <div>
+            <h2 className="text-xl font-bold text-gray-800">Benefit Eligibility Screener</h2>
+            <p className="text-gray-500 text-sm mt-0.5">Answer a few questions to see which programs you may qualify for.</p>
+          </div>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-7 text-sm text-blue-700">
+          <strong>Your privacy is protected.</strong> This screener does not create an account or start an application. Answers are not stored.
+        </div>
+
+        <div className="space-y-5">
+          <Field label="Household Size" id="household">
+            <div>
+              <input type="range" min="1" max="8" value={form.householdSize}
+                onChange={e => setForm(f => ({ ...f, householdSize: e.target.value }))}
+                className="w-full accent-vt-blue mb-1" />
+              <div className="flex justify-between text-xs text-gray-400">
+                {[1,2,3,4,5,6,7,'8+'].map(n => <span key={n}>{n}</span>)}
+              </div>
+              <div className="mt-2 text-center">
+                <span className="bg-vt-blue text-white text-sm font-bold px-4 py-1.5 rounded-full">
+                  {form.householdSize === '8' ? '8+ people' : `${form.householdSize} ${form.householdSize === '1' ? 'person' : 'people'}`}
+                </span>
+              </div>
+            </div>
+          </Field>
+
+          <Field label="Annual Household Income (before taxes)" id="income">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {incomeRanges.map(r => (
+                <button key={r} onClick={() => setForm(f => ({ ...f, income: r }))}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-semibold border-2 transition text-left ${form.income === r ? 'border-vt-blue bg-vt-blue text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  {r}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <Field label="Employment Status" id="employment">
+            <div className="grid grid-cols-2 gap-2">
+              {['Employed', 'Unemployed', 'Self-Employed', 'Retired', 'Student', 'Unable to Work'].map(s => (
+                <button key={s} onClick={() => setForm(f => ({ ...f, employment: s }))}
+                  className={`py-2.5 px-4 rounded-xl text-sm font-semibold border-2 transition ${form.employment === s ? 'border-vt-blue bg-vt-blue text-white' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <Field label="ZIP Code" id="zip">
+            <input type="text" id="zip" value={form.zip} maxLength={5}
+              onChange={e => setForm(f => ({ ...f, zip: e.target.value.replace(/\D/g,'') }))}
+              placeholder="e.g. 05602"
+              className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-vt-blue transition" />
+          </Field>
+        </div>
+
+        <button onClick={() => valid && onSubmit(form)}
+          disabled={!valid}
+          className={`w-full mt-8 py-4 rounded-xl font-bold text-sm transition ${valid ? 'bg-vt-blue text-white hover:bg-vt-dark' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+          Check My Eligibility →
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const ProgramCard = ({ program, form }) => {
+  const qualifies = program.qualifies(form);
+  const c = colorMap[program.color];
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className={`rounded-2xl border-2 shadow-sm overflow-hidden transition ${qualifies ? `${c.bg} ${c.border}` : 'bg-gray-50 border-gray-100 opacity-60'}`}>
+      <div className="p-6">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-start gap-3">
+            <span className="text-3xl">{program.icon}</span>
+            <div>
+              <div className="font-bold text-gray-800">{program.name}</div>
+              <div className={`text-xs font-medium mt-0.5 ${qualifies ? c.tag : 'text-gray-400'}`}>{program.agency}</div>
+            </div>
+          </div>
+          <span className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${qualifies ? `${c.badge}` : 'bg-gray-100 text-gray-400'}`}>
+            {qualifies ? '✓ Likely Eligible' : 'May Not Qualify'}
+          </span>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4 leading-relaxed">{program.desc}</p>
+
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="bg-white/70 rounded-xl p-3">
+            <div className="text-xs text-gray-400 mb-0.5">Potential Benefit</div>
+            <div className="text-sm font-bold text-gray-800">{program.benefit}</div>
+          </div>
+          <div className="bg-white/70 rounded-xl p-3">
+            <div className="text-xs text-gray-400 mb-0.5">Processing Time</div>
+            <div className="text-sm font-bold text-gray-800">{program.timeline}</div>
+          </div>
+        </div>
+
+        <button onClick={() => setExpanded(e => !e)} className="text-xs font-semibold text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1">
+          <span>{expanded ? '▲' : '▼'}</span> {expanded ? 'Hide' : 'View'} requirements
+        </button>
+
+        {expanded && (
+          <ul className="mb-4 space-y-1.5">
+            {program.requirements.map(r => (
+              <li key={r} className="flex items-start gap-2 text-sm text-gray-600">
+                <span className="text-gray-400 mt-0.5">•</span>
+                <span>{r}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {qualifies && (
+          <button className={`w-full py-3 rounded-xl font-bold text-sm text-white transition ${c.btn}`}>
+            Start Application →
+          </button>
+        )}
+        {!qualifies && (
+          <button className="w-full py-3 rounded-xl font-semibold text-sm text-gray-400 bg-gray-100 cursor-not-allowed">
+            Does not appear to qualify
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ResultsView = ({ form, onReset }) => {
+  const qualifying = PROGRAMS.filter(p => p.qualifies(form));
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className={`rounded-2xl p-6 mb-8 text-center ${qualifying.length > 0 ? 'bg-green-50 border-2 border-green-200' : 'bg-amber-50 border-2 border-amber-200'}`}>
+        <div className="text-5xl mb-3">{qualifying.length > 0 ? '🎉' : '🔎'}</div>
+        {qualifying.length > 0 ? (
+          <>
+            <h2 className="text-2xl font-bold text-green-800 mb-2">You may qualify for {qualifying.length} program{qualifying.length > 1 ? 's' : ''}!</h2>
+            <p className="text-green-700 text-sm">Based on your answers, the programs below appear to be a match. Click "Start Application" to begin the formal process.</p>
+          </>
+        ) : (
+          <>
+            <h2 className="text-2xl font-bold text-amber-800 mb-2">No programs matched your inputs</h2>
+            <p className="text-amber-700 text-sm">Your income level may be above the threshold for these programs. Contact us for personalized guidance.</p>
+          </>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between mb-6">
+        <div className="text-sm text-gray-500">
+          Showing <strong>{qualifying.length} qualifying</strong> + {PROGRAMS.length - qualifying.length} other programs
+        </div>
+        <button onClick={onReset} className="text-vt-blue text-sm font-semibold hover:underline">
+          ← Edit my answers
+        </button>
+      </div>
+
+      <div className="space-y-5 mb-10">
+        {[...PROGRAMS].sort((a, b) => (b.qualifies(form) ? 1 : 0) - (a.qualifies(form) ? 1 : 0)).map(p => (
+          <ProgramCard key={p.id} program={p} form={form} />
+        ))}
+      </div>
+
+      <div className="bg-vt-blue text-white rounded-2xl p-8 text-center">
+        <div className="text-3xl mb-3">🤝</div>
+        <h3 className="text-xl font-bold mb-2">Need help applying?</h3>
+        <p className="text-blue-200 text-sm mb-6">Vermont Benefits Navigators are available at no cost to help you complete applications and gather documents.</p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a href="./contact.html" className="bg-vt-gold text-vt-dark font-bold px-6 py-3 rounded-xl text-sm hover:bg-yellow-400 transition">Chat with a Navigator</a>
+          <a href="tel:18004796151" className="bg-white/10 text-white font-semibold px-6 py-3 rounded-xl text-sm hover:bg-white/20 transition">Call 1-800-479-6151</a>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const App = () => {
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState(null);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <Breadcrumb />
+      <main className="flex-1">
+        <div className="bg-vt-green text-white py-10 px-4">
+          <div className="max-w-6xl mx-auto flex items-center gap-4">
+            <span className="text-5xl">🏥</span>
+            <div>
+              <div className="text-green-200 text-sm">Dept. of Children & Families · Vermont Health Connect</div>
+              <h1 className="text-2xl font-bold">Apply for Benefits</h1>
+              <p className="text-green-200 text-sm mt-1">Find out which state assistance programs you may qualify for.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-5xl mx-auto px-4 py-12">
+          {!submitted ? (
+            <ScreenerForm onSubmit={(f) => { setForm(f); setSubmitted(true); }} />
+          ) : (
+            <ResultsView form={form} onReset={() => { setSubmitted(false); setForm(null); }} />
+          )}
+        </div>
+      </main>
+      <footer className="bg-gray-900 text-gray-400 py-8 px-4">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+          <span>© 2026 State of Vermont · Dept. of Children & Families</span>
+          <div className="flex gap-4">
+            <a href="./index.html" className="hover:text-white transition">Home</a>
+            <a href="./services.html" className="hover:text-white transition">Services</a>
+            <a href="./contact.html" className="hover:text-white transition">Help</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World News | The Meridian</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    },
+                    colors: {
+                        meridian: {
+                            50: '#f4f6f8',
+                            100: '#e3e8ee',
+                            500: '#64748b',
+                            800: '#1d2939',
+                            900: '#0f172a',
+                            accent: '#b91c1c'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            scroll-padding-top: 80px;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        .font-serif {
+            font-family: 'Merriweather', serif;
+        }
+
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .focus-outline:focus-visible {
+            outline: 3px solid #3b82f6;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        // Shared Components
+        const Header = () => (
+            <header className="sticky-header">
+                <div className="bg-meridian-900 text-white text-xs py-1 px-4 flex justify-between items-center">
+                    <div>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                    <div className="flex space-x-4">
+                        <a href="subscription.html" className="hover:text-meridian-100 focus-outline">Subscribe</a>
+                        <a href="#" className="hover:text-meridian-100 focus-outline">Log In</a>
+                    </div>
+                </div>
+                <div className="max-w-7xl mx-auto px-4 py-6 text-center border-b border-gray-200">
+                    <a href="index.html" className="inline-block focus-outline">
+                        <h1 className="text-5xl font-serif font-black tracking-tight text-meridian-900">The Meridian</h1>
+                    </a>
+                </div>
+                <nav className="max-w-7xl mx-auto px-4 border-b border-gray-200" aria-label="Main Navigation">
+                    <ul className="flex flex-wrap justify-center space-x-6 py-3 font-medium text-sm text-meridian-800 uppercase tracking-wider">
+                        <li><a href="index.html" className="hover:text-meridian-accent focus-outline">Home</a></li>
+                        <li><a href="category.html" className="font-bold border-b-2 border-meridian-accent focus-outline" aria-current="page">World</a></li>
+                        <li><a href="#" className="hover:text-meridian-accent focus-outline">Politics</a></li>
+                        <li><a href="#" className="hover:text-meridian-accent focus-outline">Tech</a></li>
+                        <li><a href="#" className="hover:text-meridian-accent focus-outline">Culture</a></li>
+                        <li><a href="opinion.html" className="hover:text-meridian-accent focus-outline">Opinion</a></li>
+                    </ul>
+                </nav>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="bg-meridian-900 text-white mt-16 pt-12 pb-8 border-t-4 border-meridian-accent">
+                <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                    <div>
+                        <h2 className="text-2xl font-serif font-bold mb-4">The Meridian</h2>
+                        <p className="text-gray-400 text-sm mb-4">Independent digital news outlet covering global affairs, politics, technology, and culture.</p>
+                        <div className="flex space-x-4">
+                            <a href="#" className="text-gray-400 hover:text-white focus-outline" aria-label="Share on Twitter"><i className="fab fa-twitter"></i></a>
+                            <a href="#" className="text-gray-400 hover:text-white focus-outline" aria-label="Share on Facebook"><i className="fab fa-facebook"></i></a>
+                            <a href="#" className="text-gray-400 hover:text-white focus-outline" aria-label="Share on Instagram"><i className="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg mb-4">Sections</h3>
+                        <ul className="space-y-2 text-gray-400 text-sm">
+                            <li><a href="category.html" className="hover:text-white focus-outline">World</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Politics</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Tech</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Culture</a></li>
+                            <li><a href="opinion.html" className="hover:text-white focus-outline">Opinion</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg mb-4">Company</h3>
+                        <ul className="space-y-2 text-gray-400 text-sm">
+                            <li><a href="#" className="hover:text-white focus-outline">About Us</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Careers</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Code of Ethics</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Contact</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg mb-4">Newsletter</h3>
+                        <p className="text-gray-400 text-sm mb-4">Get the latest news delivered to your inbox daily.</p>
+                        <form className="flex flex-col space-y-2" aria-label="Newsletter Signup">
+                            <input
+                                type="email"
+                                placeholder="Your email address"
+                                className="px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus-outline"
+                                aria-label="Email address for newsletter"
+                                required
+                            />
+                            <button type="submit" className="px-4 py-2 bg-meridian-accent text-white font-bold rounded hover:bg-red-800 transition focus-outline">
+                                Subscribe
+                            </button>
+                        </form>
+                        <div aria-live="polite" className="sr-only"></div>
+                    </div>
+                </div>
+                <div className="max-w-7xl mx-auto px-4 border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between text-xs text-gray-500">
+                    <p>&copy; {new Date().getFullYear()} The Meridian. All rights reserved.</p>
+                    <div className="flex space-x-4 mt-4 md:mt-0">
+                        <a href="#" className="hover:text-white focus-outline">Privacy Policy</a>
+                        <a href="#" className="hover:text-white focus-outline">Terms of Service</a>
+                        <a href="#" className="hover:text-white focus-outline">Cookie Settings</a>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        const ArticleCard = ({ title, summary, author, authorRole, time, image, isLarge, category }) => {
+            const headingLevel = isLarge ? "h2" : "h3";
+            const HeadlineTag = `${headingLevel}`;
+
+            return (
+                <article className={`flex flex-col group ${isLarge ? 'md:col-span-2' : ''}`}>
+                    <a href="article.html" className="block focus-outline mb-4 overflow-hidden relative" aria-labelledby={`article-title-${title.replace(/\s+/g, '-').toLowerCase()}`}>
+                        <img
+                            src={image}
+                            alt=""
+                            className={`w-full object-cover transition duration-300 group-hover:scale-105 ${isLarge ? 'h-96' : 'h-48'}`}
+                        />
+                        {category && (
+                            <span className="absolute top-0 left-0 bg-meridian-accent text-white text-xs font-bold uppercase tracking-wider px-2 py-1">
+                                {category}
+                            </span>
+                        )}
+                    </a>
+                    <HeadlineTag className={`font-serif font-bold text-meridian-900 leading-tight mb-2 ${isLarge ? 'text-3xl md:text-5xl' : 'text-xl'}`}>
+                        <a href="article.html" id={`article-title-${title.replace(/\s+/g, '-').toLowerCase()}`} className="hover:text-meridian-accent focus-outline">
+                            {title}
+                        </a>
+                    </HeadlineTag>
+                    {summary && <p className={`text-gray-600 mb-4 ${isLarge ? 'text-lg md:text-xl' : 'text-sm'}`}>{summary}</p>}
+                    <div className="mt-auto flex items-center pt-2">
+                        {author && (
+                            <img
+                                src={`https://ui-avatars.com/api/?name=${author}&background=f1f5f9&color=1d2939`}
+                                alt={author}
+                                className="w-8 h-8 rounded-full mr-3 border border-gray-200"
+                            />
+                        )}
+                        <div className="text-xs">
+                            {author && <span className="font-bold text-meridian-900 block">{author}</span>}
+                            <span className="text-gray-500 uppercase tracking-widest text-[10px]">{time}</span>
+                        </div>
+                    </div>
+                </article>
+            );
+        };
+
+        const CategoryPage = () => {
+            const [selectedTopic, setSelectedTopic] = React.useState('All');
+            const topics = ['All', 'Asia', 'Europe', 'Americas', 'Middle East', 'Africa'];
+
+            const stories = [
+                { title: "Typhoon Hits Southeast Asian Coast, Millions Evacuated", author: "Kenji Sato", time: "1 hour ago", topic: "Asia", img: "https://picsum.photos/seed/img_648/800/600" },
+                { title: "EU Parliament Passes Sweeping New Tech Regulations", author: "Clara Dubois", time: "3 hours ago", topic: "Europe", img: "https://picsum.photos/seed/img_648/800/600" },
+                { title: "Summit in Geneva Aims for Historic Arms Reduction", author: "Hans Mueller", time: "4 hours ago", topic: "Europe", img: "https://picsum.photos/seed/img_648/800/600" },
+                { title: "Economic Reforms Spark Protests Across South America", author: "Sofia Reyes", time: "6 hours ago", topic: "Americas", img: "https://picsum.photos/seed/img_648/800/600" },
+                { title: "Water Scarcity Talks Resume in Cairo", author: "Amir Hassan", time: "8 hours ago", topic: "Middle East", img: "https://picsum.photos/seed/img_648/800/600" },
+                { title: "Tech Hubs Emerge Across African Continent", author: "Ngozi Okafor", time: "10 hours ago", topic: "Africa", img: "https://picsum.photos/seed/img_648/800/600" },
+                { title: "Japan's Demographic Shift Forces Policy Overhaul", author: "Kenji Sato", time: "12 hours ago", topic: "Asia", img: "https://picsum.photos/seed/img_648/800/600" },
+                { title: "European Central Bank Holds Rates Steady", author: "Clara Dubois", time: "14 hours ago", topic: "Europe", img: "https://picsum.photos/seed/img_648/800/600" }
+            ];
+
+            const filteredStories = selectedTopic === 'All' ? stories : stories.filter(s => s.topic === selectedTopic);
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+
+                    <main className="flex-grow max-w-7xl mx-auto px-4 py-12">
+                        {/* Section Header */}
+                        <div className="mb-10 text-center border-b border-gray-200 pb-10">
+                            <h1 className="text-4xl md:text-6xl font-serif font-black mb-4">World News</h1>
+                            <p className="text-xl text-gray-600 max-w-2xl mx-auto">In-depth reporting and analysis of global affairs, geopolitics, and international relations.</p>
+                        </div>
+
+                        {/* Filter Bar */}
+                        <div className="mb-8 overflow-x-auto pb-4">
+                            <fieldset className="flex justify-center flex-wrap gap-2 md:gap-4" aria-label="Filter articles by region">
+                                <legend className="sr-only">Filter articles by region</legend>
+                                {topics.map(topic => (
+                                    <button
+                                        key={topic}
+                                        onClick={() => setSelectedTopic(topic)}
+                                        aria-pressed={selectedTopic === topic}
+                                        className={`px-4 py-2 rounded-full text-sm font-bold transition focus-outline whitespace-nowrap ${selectedTopic === topic
+                                            ? 'bg-meridian-900 text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                    >
+                                        {topic}
+                                    </button>
+                                ))}
+                            </fieldset>
+                        </div>
+
+                        {/* Lead Story */}
+                        <div className="mb-16 border-b border-gray-200 pb-16">
+                            <ArticleCard
+                                isLarge={true}
+                                title="Global Supply Chain Disruptions Spark Innovative Logistics Paradigms"
+                                summary="As blockages at major international ports continue to slow conventional shipping routes, innovative startup companies and major players alike are investing heavily in alternative transport corridors and localized manufacturing hubs to build resilience against future shocks."
+                                author="Elena Rostova"
+                                time="Just now"
+                                image="https://picsum.photos/seed/img_578/800/600"
+                                category="Special Report"
+                            />
+                        </div>
+
+                        {/* Story Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                            {filteredStories.map((story, idx) => (
+                                <ArticleCard
+                                    key={idx}
+                                    title={story.title}
+                                    author={story.author}
+                                    time={story.time}
+                                    image={story.img}
+                                    category={story.topic}
+                                />
+                            ))}
+                        </div>
+
+                        {filteredStories.length === 0 && (
+                            <div className="text-center py-12 text-gray-500 text-lg">
+                                No articles found for this region.
+                            </div>
+                        )}
+
+                        {/* Pagination / Load More */}
+                        <div className="text-center mt-12 mb-8">
+                            <button className="bg-white text-meridian-900 font-bold border-2 border-meridian-900 px-8 py-3 rounded-full hover:bg-meridian-900 hover:text-white transition focus-outline">
+                                Load More Articles
+                            </button>
+                        </div>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CategoryPage />);
+    </script>
+</body>
+
+</html>

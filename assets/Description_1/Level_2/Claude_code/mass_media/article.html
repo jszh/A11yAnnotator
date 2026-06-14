@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Red Sea Crisis Deepens as Shipping Giants Halt Major Routes | The Meridian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    .ticker-track { animation: ticker-scroll 40s linear infinite; }
+    .ticker-paused .ticker-track { animation-play-state: paused; }
+    .skip-link { position: absolute; top: -100%; left: 0; padding: 0.5rem 1rem; background: #7f1d1d; color: #fff; z-index: 9999; font-weight: 600; text-decoration: none; }
+    .skip-link:focus { top: 0; }
+    html { scroll-padding-top: 76px; }
+    :focus-visible { outline: 3px solid #b91c1c; outline-offset: 2px; }
+    .sticky-header { position: sticky; top: 0; z-index: 100; }
+    .article-body p { margin-bottom: 1.5rem; line-height: 1.8; font-size: 1.125rem; color: #374151; }
+    .article-body h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 1.5rem; font-weight: 700; color: #111827; margin: 2rem 0 1rem; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    const ARTICLE_TITLE = 'Red Sea Crisis Deepens as Shipping Giants Halt Major Routes';
+
+    function CookieBanner() {
+      const [dismissed, setDismissed] = useState(false);
+      const btnRef = useRef(null);
+      useEffect(() => { if (!dismissed && btnRef.current) btnRef.current.focus(); }, []);
+      if (dismissed) return null;
+      return (
+        <div role="region" aria-label="Cookie consent"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 text-white px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl"
+          onKeyDown={e => e.key === 'Escape' && setDismissed(true)}>
+          <p className="text-sm">We use cookies to improve your experience. See our <a href="#" className="underline hover:text-gray-200">Cookie Policy</a>.</p>
+          <div className="flex gap-2 flex-shrink-0">
+            <button ref={btnRef} onClick={() => setDismissed(true)} className="px-4 py-1.5 text-sm bg-white text-gray-900 rounded font-semibold hover:bg-gray-100">Accept</button>
+            <button onClick={() => setDismissed(true)} aria-label="Decline cookies and close banner" className="px-4 py-1.5 text-sm border border-gray-500 rounded hover:border-white">Decline</button>
+          </div>
+        </div>
+      );
+    }
+
+    function Header({ current }) {
+      const [open, setOpen] = useState(false);
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const nav = [
+        { label: 'World', href: 'world.html' },
+        { label: 'Politics', href: '#' },
+        { label: 'Tech', href: '#' },
+        { label: 'Culture', href: '#' },
+        { label: 'Opinion', href: 'opinion.html' },
+      ];
+      return (
+        <header className="sticky-header bg-gray-950 text-white">
+          <div className="border-b border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 py-1.5 flex justify-between text-xs text-gray-400">
+              <span>{today}</span>
+              <div className="flex gap-4">
+                {['Twitter','Facebook','Instagram'].map(s => (
+                  <a key={s} href="#" aria-label={`Follow The Meridian on ${s}`} className="hover:text-white transition-colors">{s}</a>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center justify-between py-3">
+              <a href="index.html" className="font-serif text-3xl font-black tracking-tight hover:text-gray-200">THE MERIDIAN</a>
+              <nav aria-label="Main navigation" className="hidden md:flex items-center gap-0.5">
+                {nav.map(({ label, href }) => (
+                  <a key={label} href={href}
+                    className={`px-3 py-2 text-sm font-medium rounded transition-colors ${current === label.toLowerCase() ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
+                    aria-current={current === label.toLowerCase() ? 'page' : undefined}>{label}</a>
+                ))}
+                <a href="subscription.html" className="ml-3 px-4 py-2 text-sm font-bold bg-red-700 text-white rounded hover:bg-red-600 transition-colors">Subscribe</a>
+              </nav>
+              <button className="md:hidden p-2 rounded hover:bg-gray-700" onClick={() => setOpen(!open)}
+                aria-expanded={open} aria-controls="mobile-nav" aria-label="Toggle navigation menu">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {open && (
+            <nav id="mobile-nav" aria-label="Mobile navigation" className="md:hidden border-t border-gray-800 pb-2">
+              {nav.map(({ label, href }) => (
+                <a key={label} href={href} className="block px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white">{label}</a>
+              ))}
+              <a href="subscription.html" className="block px-4 py-2.5 text-sm font-bold text-red-400 hover:bg-gray-800">Subscribe</a>
+            </nav>
+          )}
+        </header>
+      );
+    }
+
+    function BreakingNewsTicker() {
+      const [paused, setPaused] = useState(false);
+      const items = [
+        'BREAKING: UN Emergency Session Called Over Red Sea Tensions',
+        'Markets Rally as Fed Signals Pause in Rate Hikes',
+        'Climate Summit: 140 Nations Sign Historic Emissions Pact',
+      ];
+      const text = items.join('   ·   ') + '   ·   ' + items.join('   ·   ');
+      return (
+        <div role="region" aria-label="Breaking news ticker" className={`flex items-stretch bg-red-700 text-white overflow-hidden ${paused ? 'ticker-paused' : ''}`}>
+          <div className="flex-shrink-0 bg-red-900 px-4 py-2 flex items-center">
+            <span className="text-xs font-black tracking-widest uppercase">Breaking</span>
+          </div>
+          <div className="flex-1 overflow-hidden relative" aria-live="off">
+            <div className="ticker-track whitespace-nowrap py-2 px-4 text-sm font-medium" aria-hidden={!paused}>{text}</div>
+            {paused && <p className="absolute inset-0 flex items-center px-4 text-sm font-medium bg-red-700" aria-live="polite">{items[0]}</p>}
+          </div>
+          <button onClick={() => setPaused(p => !p)} aria-pressed={paused}
+            aria-label={paused ? 'Resume breaking news ticker' : 'Pause breaking news ticker'}
+            className="flex-shrink-0 px-4 py-2 bg-red-800 hover:bg-red-900 text-xs font-semibold transition-colors">
+            {paused ? '▶ Resume' : '⏸ Pause'}
+          </button>
+        </div>
+      );
+    }
+
+    function Footer() {
+      const [email, setEmail] = useState('');
+      const [submitted, setSubmitted] = useState(false);
+      const [error, setError] = useState('');
+      const handleSubmit = e => {
+        e.preventDefault();
+        if (!email || !/\S+@\S+\.\S+/.test(email)) { setError('Please enter a valid email address.'); return; }
+        setError(''); setSubmitted(true);
+      };
+      return (
+        <footer className="bg-gray-950 text-gray-400 mt-16">
+          <div className="border-b border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <h2 className="font-serif text-2xl text-white font-bold mb-2">Stay Informed</h2>
+                <p className="text-sm">Get The Meridian's top stories delivered to your inbox every morning.</p>
+              </div>
+              <div>
+                <div aria-live="polite" aria-atomic="true">
+                  {submitted && <p className="text-green-400 text-sm mb-2">✓ You've been added to our newsletter.</p>}
+                  {error && <p className="text-red-400 text-sm mb-2" id="nl-err">{error}</p>}
+                </div>
+                {!submitted && (
+                  <form onSubmit={handleSubmit} noValidate className="flex gap-2">
+                    <div className="flex-1">
+                      <label htmlFor="footer-email" className="sr-only">Your email address</label>
+                      <input id="footer-email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+                        placeholder="your@email.com" aria-required="true" aria-describedby={error ? 'nl-err' : undefined}
+                        className="w-full px-3 py-2 rounded bg-gray-800 text-white placeholder-gray-500 border border-gray-700 focus:outline-none focus:border-red-500 text-sm" />
+                    </div>
+                    <button type="submit" className="px-4 py-2 bg-red-700 text-white rounded text-sm font-bold hover:bg-red-600 transition-colors">Subscribe</button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between text-xs text-gray-600">
+            <span>© 2026 The Meridian. All rights reserved.</span>
+            <span>Independent journalism since 2008</span>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ─── Share Buttons ─── */
+    function ShareButtons({ title }) {
+      const platforms = [
+        { name: 'Twitter', icon: '𝕏' },
+        { name: 'Facebook', icon: 'f' },
+        { name: 'LinkedIn', icon: 'in' },
+        { name: 'Email', icon: '✉' },
+      ];
+      return (
+        <div className="flex gap-2 flex-wrap" role="group" aria-label="Share this article">
+          {platforms.map(({ name, icon }) => (
+            <a key={name} href="#"
+              aria-label={`Share "${title}" on ${name}`}
+              className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900 transition-colors font-bold text-sm">
+              {icon}
+            </a>
+          ))}
+        </div>
+      );
+    }
+
+    /* ─── Comments ─── */
+    function CommentsSection() {
+      const [comment, setComment] = useState('');
+      const [name, setName] = useState('');
+      const [submitted, setSubmitted] = useState(false);
+      const [errors, setErrors] = useState({});
+
+      const validate = () => {
+        const e = {};
+        if (!name.trim()) e.name = 'Please enter your name.';
+        if (!comment.trim()) e.comment = 'Please enter a comment.';
+        return e;
+      };
+
+      const handleSubmit = e => {
+        e.preventDefault();
+        const errs = validate();
+        setErrors(errs);
+        if (Object.keys(errs).length === 0) setSubmitted(true);
+      };
+
+      const preloadedComments = [
+        { name: 'Alexander Thompson', time: '1 hour ago', text: 'This is a critical moment for global trade. The insurance costs alone will ripple through every supply chain on earth.' },
+        { name: 'Priya Iyer', time: '2 hours ago', text: 'The longer this continues, the more the global south suffers. Rerouting adds costs that developing economies cannot absorb.' },
+        { name: 'Tobias Richter', time: '3 hours ago', text: 'Excellent reporting, Sarah. Would love to see a follow-up on what European gas suppliers are doing to hedge against this.' },
+      ];
+
+      return (
+        <section aria-labelledby="comments-heading" className="mt-12 border-t border-gray-200 pt-10">
+          <h2 id="comments-heading" className="font-serif text-2xl font-bold mb-8">Comments ({preloadedComments.length})</h2>
+          <ul className="space-y-6 mb-10">
+            {preloadedComments.map((c, i) => (
+              <li key={i} className="flex gap-4">
+                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600 flex-shrink-0" aria-hidden="true">
+                  {c.name.split(' ').map(w => w[0]).join('')}
+                </div>
+                <div>
+                  <div className="flex gap-2 items-baseline mb-1">
+                    <span className="font-semibold text-sm">{c.name}</span>
+                    <time className="text-xs text-gray-400">{c.time}</time>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed">{c.text}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div aria-live="polite" aria-atomic="true">
+            {submitted && (
+              <p className="text-green-700 bg-green-50 border border-green-200 rounded px-4 py-3 text-sm mb-4">
+                ✓ Your comment has been submitted for review.
+              </p>
+            )}
+          </div>
+
+          {!submitted && (
+            <form onSubmit={handleSubmit} noValidate aria-labelledby="comment-form-heading">
+              <h3 id="comment-form-heading" className="font-semibold text-base mb-4">Leave a Comment</h3>
+              <div className="grid sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label htmlFor="comment-name" className="block text-sm font-semibold mb-1">
+                    Name <span className="text-red-600" aria-hidden="true">*</span>
+                  </label>
+                  <input id="comment-name" type="text" value={name} onChange={e => setName(e.target.value)}
+                    aria-required="true" aria-describedby={errors.name ? 'name-err' : undefined}
+                    aria-invalid={!!errors.name}
+                    className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-red-500 ${errors.name ? 'border-red-500' : 'border-gray-300'}`} />
+                  {errors.name && <p id="name-err" className="text-red-600 text-xs mt-1" role="alert">{errors.name} Please enter your first and last name.</p>}
+                </div>
+                <div>
+                  <label htmlFor="comment-email" className="block text-sm font-semibold mb-1">Email (optional)</label>
+                  <input id="comment-email" type="email" className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-red-500" />
+                </div>
+              </div>
+              <div className="mb-4">
+                <label htmlFor="comment-text" className="block text-sm font-semibold mb-1">
+                  Comment <span className="text-red-600" aria-hidden="true">*</span>
+                </label>
+                <textarea id="comment-text" rows={4} value={comment} onChange={e => setComment(e.target.value)}
+                  aria-required="true" aria-describedby={errors.comment ? 'comment-err' : undefined}
+                  aria-invalid={!!errors.comment}
+                  className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-red-500 resize-none ${errors.comment ? 'border-red-500' : 'border-gray-300'}`} />
+                {errors.comment && <p id="comment-err" className="text-red-600 text-xs mt-1" role="alert">{errors.comment} Please write your comment before submitting.</p>}
+              </div>
+              <button type="submit" className="px-6 py-2.5 bg-gray-900 text-white rounded font-bold text-sm hover:bg-gray-700 transition-colors">
+                Post Comment
+              </button>
+            </form>
+          )}
+        </section>
+      );
+    }
+
+    /* ─── Main App ─── */
+    function App() {
+      const relatedArticles = [
+        { headline: 'How the Red Sea Became a Flashpoint for Global Conflict', href: '#', category: 'World' },
+        { headline: "Iran's Shadow War: Proxies, Influence, and the New Middle East", href: '#', category: 'World' },
+        { headline: 'Shipping Insurance Premiums Hit Post-2022 Highs', href: '#', category: 'Business' },
+      ];
+
+      const moreFromWorld = [
+        { headline: 'Taiwan Strait: A New Normal of Military Drills', author: 'Liu Wei', timestamp: '6h ago', image: 'https://picsum.photos/seed/taiwan/300/200', imageAlt: 'Naval vessels at sea', href: '#' },
+        { headline: 'France Faces Political Void After PM Resignation', author: 'Céline Dupont', timestamp: '20h ago', image: 'https://picsum.photos/seed/france2/300/200', imageAlt: 'French parliament', href: '#' },
+        { headline: "Brazil's Amazon Deforestation Drops to Decade Low", author: 'Carlos Lima', timestamp: '12h ago', image: 'https://picsum.photos/seed/amazon2/300/200', imageAlt: 'Amazon rainforest aerial view', href: '#' },
+        { headline: 'Sahel Alliance Deepens Ties with Wagner Successor', author: 'James Adeyemi', timestamp: '14h ago', image: 'https://picsum.photos/seed/sahel2/300/200', imageAlt: 'Military vehicles in the Sahel', href: '#' },
+      ];
+
+      const tags = ['Red Sea', 'Global Trade', 'Middle East', 'Shipping', 'Geopolitics', 'Houthi', 'Supply Chain'];
+
+      return (
+        <>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+          <CookieBanner />
+          <Header current="world" />
+          <BreakingNewsTicker />
+
+          <main id="main-content">
+            <div className="max-w-7xl mx-auto px-4 py-8">
+              <div className="grid lg:grid-cols-3 gap-12">
+
+                {/* Article — DOM order: h1 → byline → image → body → related (cat_10) */}
+                <div className="lg:col-span-2 min-w-0">
+                  {/* Breadcrumb */}
+                  <nav aria-label="Breadcrumb" className="mb-4">
+                    <ol className="flex items-center gap-2 text-sm text-gray-500">
+                      <li><a href="index.html" className="hover:text-gray-900">Home</a></li>
+                      <li aria-hidden="true">›</li>
+                      <li><a href="world.html" className="hover:text-gray-900">World</a></li>
+                      <li aria-hidden="true">›</li>
+                      <li className="text-gray-700 truncate" aria-current="page">Red Sea Crisis</li>
+                    </ol>
+                  </nav>
+
+                  {/* Category */}
+                  <span className="text-xs font-black text-red-700 uppercase tracking-widest">World · Middle East</span>
+
+                  {/* h1 — FIRST in DOM (cat_10) */}
+                  <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-black leading-tight mt-2 mb-4">
+                    {ARTICLE_TITLE}
+                  </h1>
+
+                  {/* Subheadline */}
+                  <p className="text-xl text-gray-600 leading-relaxed mb-6 font-light">
+                    Global supply chains brace for disruption as Houthi attacks force carriers to reroute around Cape of Good Hope, adding weeks and billions in costs.
+                  </p>
+
+                  {/* Byline — after headline (cat_10) */}
+                  <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
+                    <img src="https://picsum.photos/seed/sarahchen/80/80" alt="Sarah Chen, World Affairs Correspondent"
+                      className="w-12 h-12 rounded-full object-cover" />
+                    <div>
+                      <p className="font-semibold text-sm">By <a href="#" className="hover:text-red-700">Sarah Chen</a></p>
+                      <p className="text-xs text-gray-500">World Affairs Correspondent</p>
+                    </div>
+                    <div className="ml-auto text-right text-xs text-gray-500">
+                      <time dateTime="2026-03-17T10:00:00Z">March 17, 2026</time>
+                      <p>6 min read</p>
+                    </div>
+                  </div>
+
+                  {/* Share buttons */}
+                  <div className="mb-6">
+                    <ShareButtons title={ARTICLE_TITLE} />
+                  </div>
+
+                  {/* Hero image — after byline (cat_10) */}
+                  <figure className="mb-8">
+                    <img src="https://picsum.photos/seed/redsea3/900/500" alt="Container ships navigating through the Indian Ocean after rerouting from the Red Sea"
+                      className="w-full rounded-lg object-cover" style={{maxHeight: '520px'}} />
+                    <figcaption className="text-xs text-gray-500 mt-2 leading-relaxed">
+                      Container ships navigate the Indian Ocean after major carriers announced suspension of Red Sea routes following increased Houthi drone activity. <em>Photo: AP / Mohamed Huwais</em>
+                    </figcaption>
+                  </figure>
+
+                  {/* Article body — after image (cat_10) */}
+                  <div className="article-body">
+                    <p>
+                      <strong>ADEN, Yemen</strong> — In a move that sent shockwaves through the global shipping industry, three of the world's five largest container carriers announced Monday they were suspending all transits through the Red Sea and Gulf of Aden indefinitely, citing an unacceptable level of risk following a wave of drone and missile attacks by Houthi forces on commercial vessels.
+                    </p>
+
+                    <p>
+                      The announcements from Maersk, MSC, and CMA CGM came within hours of each other after a Houthi drone struck a Liberian-flagged cargo vessel carrying grain from Ukraine, killing two crew members and triggering a fire that burned for nearly six hours before being extinguished by a US Navy patrol vessel.
+                    </p>
+
+                    {/* Inline related article — within body */}
+                    <aside className="border-l-4 border-red-700 pl-4 my-6 bg-red-50 py-3 pr-4 rounded-r-lg" aria-label="Related article">
+                      <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">Related</p>
+                      <a href="#" className="font-serif font-bold text-base text-gray-900 hover:text-red-700 leading-snug">
+                        How the Red Sea Became a Flashpoint for Global Conflict
+                      </a>
+                    </aside>
+
+                    <h2>A New Cape of Good Hope Detour</h2>
+                    <p>
+                      Ships are now diverting to the Cape of Good Hope route around southern Africa — the same passage that dominated global trade before the Suez Canal opened in 1869. The detour adds between 10 and 14 days to voyages between Asia and Europe, and costs an estimated $1 million in additional fuel per round trip for a large container vessel.
+                    </p>
+
+                    {/* Pull quote */}
+                    <blockquote className="my-8 px-6 py-5 border-l-4 border-gray-900 bg-gray-50 rounded-r-xl" aria-label="Pull quote">
+                      <p className="font-serif text-xl md:text-2xl font-bold text-gray-900 leading-snug mb-3">
+                        "Every day this continues, the world economy pays a tax it didn't budget for. And the poorest nations pay the most."
+                      </p>
+                      <cite className="text-sm text-gray-600 not-italic">— Dr. Anita Sharma, Senior Fellow, Global Trade Institute</cite>
+                    </blockquote>
+
+                    <p>
+                      The freight market reacted swiftly. The Shanghai Containerized Freight Index jumped 18 percent on Monday, its largest single-day move since the COVID-19 pandemic disrupted global supply chains in 2021. Spot rates on the Asia-to-Europe corridor surged to $5,200 per 40-foot container, more than double the level seen just three weeks ago.
+                    </p>
+
+                    <h2>Diplomatic Efforts Stall</h2>
+                    <p>
+                      A US-led naval coalition, Operation Prosperity Guardian, has been patrolling the Red Sea since December with limited success in deterring the attacks. The coalition has intercepted dozens of drones and missiles, but the sheer volume of inexpensive weapons being deployed by Houthi forces has strained the cost calculus — each interceptor missile costs several times more than the drones it destroys.
+                    </p>
+
+                    <p>
+                      The UN Security Council held an emergency session on Tuesday but ended without a resolution, with Russia and China vetoing a Western-backed statement calling for an immediate cessation of Houthi attacks on commercial shipping. Diplomatic channels involving Oman, which brokered a 2023 ceasefire agreement between the Houthis and Saudi Arabia, are described as "active but inconclusive."
+                    </p>
+                  </div>
+
+                  {/* Tags — after body (cat_10) */}
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Topics</p>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map(tag => (
+                        <a key={tag} href="#"
+                          className="px-3 py-1 text-xs font-semibold border border-gray-300 rounded-full text-gray-700 hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-colors">
+                          {tag}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Related articles — after tags (cat_10) */}
+                  <section aria-labelledby="related-heading" className="mt-8 pt-6 border-t border-gray-200">
+                    <h2 id="related-heading" className="font-serif text-xl font-bold mb-4">Related Articles</h2>
+                    <ul className="space-y-3">
+                      {relatedArticles.map((a, i) => (
+                        <li key={i} className="flex gap-2 items-start">
+                          <span className="text-red-700 font-bold text-sm flex-shrink-0">→</span>
+                          <a href={a.href} className="text-sm font-semibold hover:text-red-700 transition-colors leading-snug">
+                            {a.headline}
+                            <span className="ml-2 text-xs text-gray-400 font-normal">{a.category}</span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+
+                  {/* Author bio */}
+                  <div className="mt-8 p-6 bg-gray-50 rounded-xl flex gap-4">
+                    <img src="https://picsum.photos/seed/sarahchen/100/100" alt="Sarah Chen, World Affairs Correspondent"
+                      className="w-16 h-16 rounded-full object-cover flex-shrink-0" />
+                    <div>
+                      <p className="font-bold text-sm mb-0.5">Sarah Chen</p>
+                      <p className="text-xs text-gray-500 mb-2">World Affairs Correspondent · The Meridian</p>
+                      <p className="text-sm text-gray-600 leading-relaxed">Sarah Chen covers geopolitics, conflict, and international trade from The Meridian's Middle East bureau. She has reported from over 40 countries and is a recipient of the Overseas Press Club Award.</p>
+                    </div>
+                  </div>
+
+                  <CommentsSection />
+                </div>
+
+                {/* Sidebar — after main content in DOM (cat_10) */}
+                <aside aria-label="Article sidebar" className="space-y-8">
+                  {/* Subscribe */}
+                  <div className="bg-gray-950 text-white rounded-xl p-6">
+                    <p className="text-xs font-black text-red-400 uppercase tracking-widest mb-2">Subscriber Only</p>
+                    <p className="font-serif text-lg font-bold mb-3">Unlock unlimited access</p>
+                    <p className="text-sm text-gray-400 mb-4">Get every story, every day. From $9.99/month.</p>
+                    <a href="subscription.html" className="block w-full py-2.5 bg-red-700 text-white text-center rounded font-bold text-sm hover:bg-red-600 transition-colors">See Plans</a>
+                  </div>
+
+                  {/* Most Read */}
+                  <section aria-labelledby="most-read-sidebar">
+                    <h2 id="most-read-sidebar" className="font-serif text-xl font-bold border-b-2 border-gray-900 pb-2 mb-4">Most Read</h2>
+                    <ol className="space-y-3">
+                      {[
+                        'Inside the Chaos of the UN Emergency Session',
+                        'The Geopolitics of Undersea Cables',
+                        'How AI Is Rewriting the Rules of Disinformation',
+                        'The Collapse of the Petrodollar',
+                        'When Democracy Becomes a Brand',
+                      ].map((h, i) => (
+                        <li key={i} className="flex gap-3 items-start">
+                          <span className="font-serif text-2xl font-black text-gray-200 leading-none w-6 flex-shrink-0" aria-hidden="true">{i+1}</span>
+                          <a href="#" className="text-sm font-semibold hover:text-red-700 transition-colors leading-snug">{h}</a>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                </aside>
+              </div>
+            </div>
+
+            {/* More from World */}
+            <section aria-labelledby="more-from-world-heading" className="border-t border-gray-200 mt-8">
+              <div className="max-w-7xl mx-auto px-4 py-10">
+                <div className="flex items-center justify-between border-b-2 border-gray-900 pb-2 mb-8">
+                  <h2 id="more-from-world-heading" className="font-serif text-2xl font-bold">More from World</h2>
+                  <a href="world.html" className="text-sm font-semibold text-red-700 hover:text-red-800">All World News →</a>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {moreFromWorld.map((art, i) => (
+                    <article key={i}>
+                      <div className="overflow-hidden rounded-lg mb-3">
+                        <img src={art.image} alt={art.imageAlt} loading="lazy"
+                          className="w-full h-40 object-cover hover:scale-105 transition-transform duration-300" />
+                      </div>
+                      <h3 className="font-serif text-base font-bold leading-snug mb-1.5">
+                        <a href={art.href} className="hover:text-red-700 transition-colors">{art.headline}</a>
+                      </h3>
+                      <p className="text-xs text-gray-400">By {art.author} · {art.timestamp}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </main>
+          <Footer />
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

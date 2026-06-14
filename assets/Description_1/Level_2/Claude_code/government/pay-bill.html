@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pay a Bill | City of Lakewood</title>
+  <meta name="description" content="Pay your City of Lakewood utility bill online. Secure, convenient payment by credit card or bank transfer." />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #skip-link { position:absolute; top:-48px; left:0; background:#1e3a8a; color:#fff; padding:10px 20px; font-weight:700; font-size:.875rem; text-decoration:none; z-index:9999; border-radius:0 0 6px 0; transition:top .1s; }
+    #skip-link:focus { top:0; }
+    :focus-visible { outline:3px solid #f59e0b; outline-offset:2px; }
+    :focus:not(:focus-visible) { outline:none; }
+    #main-content:focus { outline:none; }
+    /* Modal overlay */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50; display:flex; align-items:center; justify-content:center; padding:1rem; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+  <a href="#main-content" id="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    /* ---- Shared Header ---- */
+    function CityHeader({ currentPage }) {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const menuBtnRef = useRef(null);
+      useEffect(() => {
+        function onKey(e) { if (e.key==='Escape'&&menuOpen) { setMenuOpen(false); menuBtnRef.current?.focus(); } }
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+      }, [menuOpen]);
+      const links = [{href:'index.html',label:'Home',id:'home'},{href:'services.html',label:'Services',id:'services'},{href:'about.html',label:'About',id:'about'},{href:'contact.html',label:'Contact',id:'contact'}];
+      return (
+        <header className="bg-blue-900 shadow-md" role="banner">
+          <div className="bg-blue-950 text-blue-300 text-xs"><div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-between"><span>Official Website of the City of Lakewood, Colorado</span><div className="flex items-center gap-4"><a href="#" className="hover:text-white underline rounded focus:outline-none focus:ring-1 focus:ring-amber-400">Translate</a><span aria-hidden="true" className="text-blue-600">|</span><a href="#" className="hover:text-white underline rounded focus:outline-none focus:ring-1 focus:ring-amber-400">Accessibility</a></div></div></div>
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <a href="index.html" className="flex items-center gap-3 rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-blue-900" aria-label="City of Lakewood — Return to homepage">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="white" stroke="#1e3a8a" strokeWidth="1"/><circle cx="24" cy="24" r="20" fill="#1e3a8a"/><polygon points="24,9 26.9,17.6 36,17.6 28.5,22.8 31.4,31.5 24,26.2 16.6,31.5 19.5,22.8 12,17.6 21.1,17.6" fill="#f59e0b"/><text x="24" y="39" textAnchor="middle" fill="white" fontSize="3.8" fontFamily="Arial,sans-serif" fontWeight="bold">LAKEWOOD</text></svg>
+              <div><div className="text-white font-bold text-xl leading-tight tracking-tight">City of Lakewood</div><div className="text-blue-300 text-xs tracking-widest uppercase font-medium">Colorado · Est. 1969</div></div>
+            </a>
+            <nav aria-label="Main navigation" className="hidden md:flex items-center gap-1">
+              {links.map(l=><a key={l.id} href={l.href} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-blue-900 ${currentPage===l.id?'bg-white text-blue-900 font-semibold':'text-blue-100 hover:bg-blue-800 hover:text-white'}`} aria-current={currentPage===l.id?'page':undefined}>{l.label}</a>)}
+              <a href="pay-bill.html" className="ml-2 bg-amber-500 hover:bg-amber-400 text-white px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-900" aria-label="Pay your city utility bill online" aria-current="page">Pay a Bill</a>
+            </nav>
+            <button ref={menuBtnRef} onClick={()=>setMenuOpen(o=>!o)} aria-expanded={menuOpen} aria-controls="mobile-menu" aria-label={menuOpen?'Close navigation menu':'Open navigation menu'} className="md:hidden text-white p-2 rounded-lg hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-amber-400">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">{menuOpen?<path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>:<path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>}</svg>
+            </button>
+          </div>
+          {menuOpen && <nav id="mobile-menu" aria-label="Mobile navigation" className="md:hidden border-t border-blue-800"><ul className="px-4 py-3 space-y-1" role="list">{links.map(l=><li key={l.id}><a href={l.href} className={`block px-4 py-2.5 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 ${currentPage===l.id?'bg-white text-blue-900 font-semibold':'text-blue-100 hover:bg-blue-800'}`} aria-current={currentPage===l.id?'page':undefined}>{l.label}</a></li>)}<li><a href="pay-bill.html" className="block px-4 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-400 mt-2 focus:outline-none focus:ring-2 focus:ring-white">Pay a Bill</a></li></ul></nav>}
+        </header>
+      );
+    }
+
+    /* ---- Shared Footer ---- */
+    function CityFooter() {
+      return (
+        <footer className="bg-blue-950 text-white" role="contentinfo">
+          <div className="max-w-7xl mx-auto px-4 py-10">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              <div><a href="index.html" className="inline-flex items-center gap-2 mb-3 rounded focus:outline-none focus:ring-2 focus:ring-amber-400" aria-label="City of Lakewood homepage"><svg width="32" height="32" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="white"/><circle cx="24" cy="24" r="20" fill="#1e3a8a"/><polygon points="24,9 26.9,17.6 36,17.6 28.5,22.8 31.4,31.5 24,26.2 16.6,31.5 19.5,22.8 12,17.6 21.1,17.6" fill="#f59e0b"/></svg><span className="font-bold">City of Lakewood</span></a><address className="not-italic text-blue-300 text-sm">480 S. Allison Pkwy, Lakewood CO 80226<br/><a href="tel:+13039877000" className="text-blue-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">(303) 987-7000</a></address></div>
+              <nav aria-label="Quick links footer"><h2 className="text-white text-xs font-bold uppercase tracking-widest mb-3">Quick Links</h2><ul className="space-y-2" role="list">{[{l:'All Services',h:'services.html'},{l:'Apply for a Permit',h:'permits.html'},{l:'About Lakewood',h:'about.html'},{l:'Contact Us',h:'contact.html'}].map(i=><li key={i.l}><a href={i.h} className="text-blue-300 hover:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">{i.l}</a></li>)}</ul></nav>
+              <div><h2 className="text-white text-xs font-bold uppercase tracking-widest mb-3">Billing Help</h2><p className="text-blue-300 text-sm">Questions about your bill?<br/>Call: <a href="tel:+13039877100" className="text-blue-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">(303) 987-7100</a><br/>Mon–Fri, 8:00 AM – 5:00 PM</p></div>
+            </div>
+            <div className="border-t border-blue-800 mt-8 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-blue-400">
+              <p>© 2024 City of Lakewood, Colorado. All rights reserved.</p>
+              <nav aria-label="Legal links"><ul className="flex gap-4" role="list">{['Privacy Policy','Accessibility','Sitemap'].map(i=><li key={i}><a href="#" className="hover:text-blue-200 focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">{i}</a></li>)}</ul></nav>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ---- Focus Trap Hook ---- */
+    function useFocusTrap(isActive, containerRef, onClose) {
+      useEffect(() => {
+        if (!isActive || !containerRef.current) return;
+        const el = containerRef.current;
+        const focusable = el.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])');
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        first?.focus();
+        function handleKeyDown(e) {
+          if (e.key === 'Escape') { onClose?.(); return; }
+          if (e.key !== 'Tab') return;
+          if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last?.focus(); } }
+          else { if (document.activeElement === last) { e.preventDefault(); first?.focus(); } }
+        }
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+      }, [isActive]);
+    }
+
+    /* ---- Confirmation Modal ---- */
+    function ConfirmationModal({ amount, method, accountNum, confNumber, onClose }) {
+      const overlayRef = useRef(null);
+      const triggerRef = useRef(null); // stored externally via prop
+
+      useFocusTrap(true, overlayRef, onClose);
+
+      return (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-heading" aria-describedby="confirm-modal-desc">
+          <div ref={overlayRef} className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-9 h-9 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <h2 id="confirm-modal-heading" className="text-2xl font-bold text-gray-900">Payment Successful!</h2>
+              <p id="confirm-modal-desc" className="text-gray-500 text-sm mt-1">Your utility bill has been paid.</p>
+            </div>
+
+            <dl className="bg-gray-50 rounded-lg divide-y divide-gray-200 mb-6 text-sm">
+              <div className="flex justify-between px-4 py-3"><dt className="text-gray-500">Amount Paid</dt><dd className="font-bold text-gray-900">${amount}</dd></div>
+              <div className="flex justify-between px-4 py-3"><dt className="text-gray-500">Payment Method</dt><dd className="text-gray-800">{method}</dd></div>
+              <div className="flex justify-between px-4 py-3"><dt className="text-gray-500">Account</dt><dd className="font-mono text-gray-800">{accountNum}</dd></div>
+              <div className="flex justify-between px-4 py-3"><dt className="text-gray-500">Confirmation #</dt><dd className="font-mono font-semibold text-blue-700">{confNumber}</dd></div>
+              <div className="flex justify-between px-4 py-3"><dt className="text-gray-500">Date</dt><dd className="text-gray-800">{new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</dd></div>
+            </dl>
+
+            <p className="text-xs text-gray-500 text-center mb-5">A receipt has been sent to your registered email address.</p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={onClose}
+                className="w-full bg-blue-700 hover:bg-blue-800 text-white py-3 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                aria-label="Close payment confirmation and return to bill payment page"
+              >
+                Done — Return to Home
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="w-full bg-white text-gray-700 border border-gray-300 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                aria-label="Print payment receipt"
+              >
+                Print Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ---- Main Pay Bill Flow ---- */
+    const PAYMENT_STEPS = ['Look Up Account', 'Review Balance', 'Payment Details', 'Confirm & Pay'];
+
+    // Mock account data
+    const ACCOUNTS = {
+      '1234567890': { name:'Sarah M. Johnson', address:'1847 Depew St, Lakewood, CO 80214', accountType:'Residential', balance:87.42, dueDate:'Dec 5, 2024', lastPaid:'Nov 3, 2024 — $81.15', services:['Water','Sewer','Trash'] },
+      '9876543210': { name:'Carlos Rivera', address:'340 Estes St, Lakewood, CO 80226', accountType:'Residential', balance:143.80, dueDate:'Dec 8, 2024', lastPaid:'Nov 7, 2024 — $132.50', services:['Water','Sewer','Trash','Recycling'] },
+      '5551234567': { name:'Downtown Bakery LLC', address:'7256 W. Colfax Ave, Lakewood, CO 80214', accountType:'Commercial', balance:624.15, dueDate:'Nov 30, 2024', lastPaid:'Oct 30, 2024 — $598.20', services:['Water','Sewer'] },
+    };
+
+    function StepDots({ step }) {
+      return (
+        <nav aria-label="Payment progress" className="mb-8">
+          <ol className="flex items-center" role="list">
+            {PAYMENT_STEPS.map((label, i) => {
+              const num = i + 1;
+              const done = num < step;
+              const active = num === step;
+              return (
+                <li key={label} className="flex-1 flex flex-col items-center">
+                  <div className="flex items-center w-full">
+                    {i > 0 && <div className={`flex-1 h-1 ${done?'bg-blue-600':'bg-gray-200'}`} aria-hidden="true"/>}
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${active?'bg-blue-700 text-white ring-4 ring-blue-100':done?'bg-blue-600 text-white':'bg-gray-200 text-gray-500'}`} aria-current={active?'step':undefined}>
+                      {done ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> : num}
+                    </div>
+                    {i < PAYMENT_STEPS.length-1 && <div className={`flex-1 h-1 ${done?'bg-blue-600':'bg-gray-200'}`} aria-hidden="true"/>}
+                  </div>
+                  <span className={`mt-2 text-xs font-medium text-center ${active?'text-blue-700':done?'text-blue-600':'text-gray-400'}`}>
+                    {label}<span className="sr-only">{done?' — done':active?' — current':''}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      );
+    }
+
+    function PayBillPage() {
+      const [step, setStep] = useState(1);
+      const [acctNum, setAcctNum] = useState('');
+      const [acctError, setAcctError] = useState('');
+      const [account, setAccount] = useState(null);
+      const [searching, setSearching] = useState(false);
+      const [payAmount, setPayAmount] = useState('');
+      const [payMethod, setPayMethod] = useState('card');
+      const [cardData, setCardData] = useState({});
+      const [bankData, setBankData] = useState({});
+      const [formErrors, setFormErrors] = useState({});
+      const [processing, setProcessing] = useState(false);
+      const [showModal, setShowModal] = useState(false);
+      const [confNumber] = useState(`LKW-PAY-${Date.now().toString().slice(-8)}`);
+      const stepHeadingRef = useRef(null);
+      const prevBtnRef = useRef(null);
+      const processingStatusRef = useRef(null);
+
+      useEffect(() => { stepHeadingRef.current?.focus(); }, [step]);
+
+      function lookupAccount(e) {
+        e.preventDefault();
+        if (!acctNum.trim()) { setAcctError('Please enter your account number.'); return; }
+        if (!/^\d{10}$/.test(acctNum.replace(/\D/,''))) { setAcctError('Account number must be 10 digits.'); return; }
+        setSearching(true);
+        setAcctError('');
+        setTimeout(() => {
+          const found = ACCOUNTS[acctNum.replace(/\D/,'')];
+          if (found) { setAccount(found); setPayAmount(found.balance.toFixed(2)); setStep(2); }
+          else setAcctError('Account not found. Please check your number and try again. (Try: 1234567890)');
+          setSearching(false);
+        }, 800);
+      }
+
+      function validatePaymentDetails() {
+        const e = {};
+        if (payMethod === 'card') {
+          if (!cardData.name?.trim()) e.cardName = 'Cardholder name is required.';
+          if (!cardData.number?.trim()) e.cardNumber = 'Card number is required.';
+          else if (cardData.number.replace(/\s/g,'').length < 16) e.cardNumber = 'Please enter a valid 16-digit card number.';
+          if (!cardData.expiry?.trim()) e.cardExpiry = 'Expiration date is required.';
+          if (!cardData.cvv?.trim()) e.cardCvv = 'CVV is required.';
+        } else {
+          if (!bankData.routing?.trim()) e.routing = 'Routing number is required.';
+          else if (bankData.routing.length !== 9) e.routing = 'Routing number must be 9 digits.';
+          if (!bankData.account?.trim()) e.bankAccount = 'Account number is required.';
+          if (!bankData.accountType) e.bankAccountType = 'Please select an account type.';
+        }
+        return e;
+      }
+
+      function handlePay() {
+        const e = validatePaymentDetails();
+        if (Object.keys(e).length > 0) { setFormErrors(e); return; }
+        setFormErrors({});
+        setProcessing(true);
+        setTimeout(() => { setProcessing(false); setShowModal(true); }, 1800);
+      }
+
+      const inp = (id, label, val, onCh, type='text', opts={}, required=true) => (
+        <div>
+          <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+            {label}{required&&<span className="text-red-600 ml-0.5" aria-hidden="true">*</span>}
+          </label>
+          <input
+            id={id} type={type} value={val} onChange={e=>onCh(e.target.value)}
+            aria-required={required} aria-describedby={formErrors[id]?`err-${id}`:undefined}
+            className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${formErrors[id]?'border-red-500 bg-red-50':'border-gray-300'}`}
+            {...opts}
+          />
+          {formErrors[id]&&<p id={`err-${id}`} role="alert" className="mt-1 text-xs text-red-600">{formErrors[id]}</p>}
+        </div>
+      );
+
+      return (
+        <>
+          <div className="bg-blue-900 text-white py-10 px-4">
+            <div className="max-w-3xl mx-auto">
+              <nav aria-label="Breadcrumb navigation" className="mb-4">
+                <ol className="flex items-center gap-2 text-sm text-blue-300" role="list">
+                  <li><a href="index.html" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">Home</a></li>
+                  <li aria-hidden="true" className="text-blue-600">/</li>
+                  <li><a href="services.html" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">Services</a></li>
+                  <li aria-hidden="true" className="text-blue-600">/</li>
+                  <li><span aria-current="page" className="text-white font-medium">Pay a Bill</span></li>
+                </ol>
+              </nav>
+              <h1 className="text-3xl md:text-4xl font-bold">Pay Your Utility Bill</h1>
+              <p className="text-blue-200 mt-2">Secure online payment for water, sewer, and trash services.</p>
+            </div>
+          </div>
+
+          <main id="main-content" tabIndex={-1} className="max-w-3xl mx-auto px-4 py-10 focus:outline-none">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+              <StepDots step={step}/>
+
+              {/* STEP 1: Account Lookup */}
+              {step === 1 && (
+                <section aria-labelledby="step1-heading">
+                  <h2 ref={stepHeadingRef} id="step1-heading" tabIndex={-1} className="text-xl font-bold text-gray-900 mb-6 focus:outline-none">
+                    Step 1: Look Up Your Account
+                  </h2>
+                  <form onSubmit={lookupAccount} noValidate aria-label="Look up utility billing account">
+                    <div className="max-w-sm">
+                      <label htmlFor="account-number" className="block text-sm font-medium text-gray-700 mb-1">
+                        Account Number <span className="text-red-600" aria-hidden="true">*</span>
+                      </label>
+                      <p id="acct-hint" className="text-xs text-gray-500 mb-2">Your 10-digit account number appears on your monthly bill statement.</p>
+                      <input
+                        id="account-number"
+                        type="text"
+                        inputMode="numeric"
+                        value={acctNum}
+                        onChange={e=>{setAcctNum(e.target.value);setAcctError('');}}
+                        placeholder="Enter 10-digit account number"
+                        aria-required="true"
+                        aria-describedby={acctError?'acct-error':'acct-hint'}
+                        autoComplete="off"
+                        spellCheck="false"
+                        className={`w-full border rounded-lg px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${acctError?'border-red-500 bg-red-50':'border-gray-300'}`}
+                      />
+                      {acctError && (
+                        <p id="acct-error" role="alert" aria-live="assertive" className="mt-2 text-xs text-red-600 flex items-start gap-1">
+                          <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                          {acctError}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={searching}
+                      aria-busy={searching}
+                      className="mt-6 bg-blue-700 hover:bg-blue-800 disabled:bg-blue-400 text-white px-8 py-3 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2"
+                    >
+                      {searching ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Looking up account…</> : 'Find My Account'}
+                    </button>
+                  </form>
+                  <div className="mt-8 pt-6 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 mb-3 font-medium uppercase tracking-wide">Try these demo accounts:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.keys(ACCOUNTS).map(num=>(
+                        <button key={num} onClick={()=>{setAcctNum(num);setAcctError('');}} className="font-mono text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500">{num}</button>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* STEP 2: Balance Review */}
+              {step === 2 && account && (
+                <section aria-labelledby="step2-heading">
+                  <h2 ref={stepHeadingRef} id="step2-heading" tabIndex={-1} className="text-xl font-bold text-gray-900 mb-6 focus:outline-none">
+                    Step 2: Review Your Balance
+                  </h2>
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <dl>
+                        <dt className="text-xs text-blue-600 uppercase tracking-widest font-semibold mb-1">Account Holder</dt>
+                        <dd className="text-lg font-bold text-gray-900">{account.name}</dd>
+                        <dt className="text-xs text-gray-500 mt-2">Service Address</dt>
+                        <dd className="text-sm text-gray-700">{account.address}</dd>
+                        <dt className="text-xs text-gray-500 mt-2">Account Type</dt>
+                        <dd className="text-sm text-gray-700">{account.accountType}</dd>
+                      </dl>
+                      <div className="text-right">
+                        <div className="bg-white border border-blue-200 rounded-xl px-6 py-4">
+                          <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">Amount Due</p>
+                          <p className="text-4xl font-bold text-blue-800 mt-1">${account.balance.toFixed(2)}</p>
+                          <p className="text-xs text-red-600 font-medium mt-1">Due by {account.dueDate}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-blue-200 flex flex-wrap gap-6 text-sm">
+                      <div>
+                        <span className="text-xs text-gray-500">Services Included</span>
+                        <ul className="flex gap-2 mt-1" role="list">
+                          {account.services.map(s=><li key={s} className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium">{s}</li>)}
+                        </ul>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500">Last Payment</span>
+                        <p className="text-sm text-gray-700 mt-0.5">{account.lastPaid}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <label htmlFor="pay-amount" className="block text-sm font-medium text-gray-700 mb-1">
+                      Payment Amount <span className="text-red-600" aria-hidden="true">*</span>
+                    </label>
+                    <div className="flex items-center gap-3 max-w-xs">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium" aria-hidden="true">$</span>
+                        <input
+                          id="pay-amount"
+                          type="number"
+                          step="0.01"
+                          min="1"
+                          max={account.balance}
+                          value={payAmount}
+                          onChange={e=>setPayAmount(e.target.value)}
+                          aria-required="true"
+                          aria-label={`Payment amount in dollars, current balance is $${account.balance.toFixed(2)}`}
+                          className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <button onClick={()=>setPayAmount(account.balance.toFixed(2))} className="text-xs text-blue-600 border border-blue-300 px-3 py-2.5 rounded-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label={`Pay full balance of $${account.balance.toFixed(2)}`}>
+                        Pay Full Balance
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between mt-8">
+                    <button onClick={()=>{setStep(1);setAccount(null);}} ref={prevBtnRef} className="bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">← Change Account</button>
+                    <button onClick={()=>setStep(3)} className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Continue to Payment →</button>
+                  </div>
+                </section>
+              )}
+
+              {/* STEP 3: Payment Details */}
+              {step === 3 && (
+                <section aria-labelledby="step3-heading">
+                  <h2 ref={stepHeadingRef} id="step3-heading" tabIndex={-1} className="text-xl font-bold text-gray-900 mb-6 focus:outline-none">
+                    Step 3: Payment Details
+                  </h2>
+
+                  {/* Method selector */}
+                  <fieldset className="mb-6">
+                    <legend className="text-sm font-semibold text-gray-700 mb-3">
+                      Select Payment Method <span className="text-red-600" aria-hidden="true">*</span>
+                    </legend>
+                    <div className="grid grid-cols-2 gap-3 max-w-sm">
+                      {[{id:'card',label:'Credit / Debit Card',icon:'💳'},{id:'bank',label:'Bank Transfer (ACH)',icon:'🏦'}].map(m=>(
+                        <label key={m.id} className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl cursor-pointer transition-all ${payMethod===m.id?'border-blue-600 bg-blue-50':'border-gray-200 hover:border-gray-300'} focus-within:ring-2 focus-within:ring-blue-500`}>
+                          <input
+                            type="radio"
+                            name="payMethod"
+                            value={m.id}
+                            checked={payMethod===m.id}
+                            onChange={()=>{setPayMethod(m.id);setFormErrors({});}}
+                            className="sr-only"
+                            aria-label={`Pay with ${m.label}`}
+                          />
+                          <span className="text-2xl" aria-hidden="true">{m.icon}</span>
+                          <span className={`text-xs font-semibold text-center ${payMethod===m.id?'text-blue-700':'text-gray-600'}`}>{m.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  {/* Card form */}
+                  {payMethod==='card' && (
+                    <fieldset>
+                      <legend className="text-sm font-semibold text-gray-700 mb-4">Card Information</legend>
+                      <div className="space-y-4">
+                        {inp('cardName','Cardholder Name',cardData.name||'',v=>setCardData(d=>({...d,name:v})),'text',{autoComplete:'cc-name',placeholder:'Name as it appears on card'})}
+                        {inp('cardNumber','Card Number',cardData.number||'',v=>setCardData(d=>({...d,number:v})),'text',{inputMode:'numeric',autoComplete:'cc-number',placeholder:'1234 5678 9012 3456',maxLength:19})}
+                        <div className="grid grid-cols-2 gap-4">
+                          {inp('cardExpiry','Expiration Date (MM/YY)',cardData.expiry||'',v=>setCardData(d=>({...d,expiry:v})),'text',{autoComplete:'cc-exp',placeholder:'MM/YY',maxLength:5})}
+                          {inp('cardCvv','CVV',cardData.cvv||'',v=>setCardData(d=>({...d,cvv:v})),'text',{inputMode:'numeric',autoComplete:'cc-csc',placeholder:'123',maxLength:4,'aria-describedby':'cvv-hint'})}
+                        </div>
+                        <p id="cvv-hint" className="text-xs text-gray-500">CVV is the 3-digit code on the back of your card (4 digits for Amex).</p>
+                      </div>
+                    </fieldset>
+                  )}
+
+                  {/* Bank form */}
+                  {payMethod==='bank' && (
+                    <fieldset>
+                      <legend className="text-sm font-semibold text-gray-700 mb-4">Bank Account Information</legend>
+                      <div className="space-y-4">
+                        <div>
+                          <label htmlFor="bankAccountType" className="block text-sm font-medium text-gray-700 mb-1">Account Type <span className="text-red-600" aria-hidden="true">*</span></label>
+                          <select id="bankAccountType" value={bankData.accountType||''} onChange={e=>setBankData(d=>({...d,accountType:e.target.value}))} aria-required="true" aria-describedby={formErrors.bankAccountType?'err-bankAccountType':undefined} className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${formErrors.bankAccountType?'border-red-500 bg-red-50':'border-gray-300'}`}>
+                            <option value="">Select account type…</option>
+                            <option value="checking">Checking Account</option>
+                            <option value="savings">Savings Account</option>
+                          </select>
+                          {formErrors.bankAccountType&&<p id="err-bankAccountType" role="alert" className="mt-1 text-xs text-red-600">{formErrors.bankAccountType}</p>}
+                        </div>
+                        {inp('routing','Routing Number',bankData.routing||'',v=>setBankData(d=>({...d,routing:v})),'text',{inputMode:'numeric',placeholder:'9-digit routing number',maxLength:9})}
+                        {inp('bankAccount','Account Number',bankData.account||'',v=>setBankData(d=>({...d,account:v})),'text',{inputMode:'numeric',placeholder:'Your bank account number'})}
+                      </div>
+                    </fieldset>
+                  )}
+
+                  <div className="flex justify-between mt-8">
+                    <button onClick={()=>setStep(2)} className="bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">← Back</button>
+                    <button onClick={()=>{const e=validatePaymentDetails();if(Object.keys(e).length>0){setFormErrors(e);}else{setFormErrors({});setStep(4);}}} className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Review Payment →</button>
+                  </div>
+                </section>
+              )}
+
+              {/* STEP 4: Confirm & Pay */}
+              {step === 4 && account && (
+                <section aria-labelledby="step4-heading">
+                  <h2 ref={stepHeadingRef} id="step4-heading" tabIndex={-1} className="text-xl font-bold text-gray-900 mb-6 focus:outline-none">
+                    Step 4: Confirm &amp; Pay
+                  </h2>
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden mb-6">
+                    <div className="bg-blue-900 text-white px-5 py-3">
+                      <p className="text-sm font-semibold">Payment Summary</p>
+                    </div>
+                    <dl className="divide-y divide-gray-200 text-sm">
+                      <div className="flex justify-between px-5 py-3"><dt className="text-gray-500">Account Holder</dt><dd className="font-medium text-gray-900">{account.name}</dd></div>
+                      <div className="flex justify-between px-5 py-3"><dt className="text-gray-500">Account Number</dt><dd className="font-mono text-gray-900">{acctNum}</dd></div>
+                      <div className="flex justify-between px-5 py-3"><dt className="text-gray-500">Payment Method</dt><dd className="text-gray-900">{payMethod==='card'?`Credit/Debit Card ending in ${(cardData.number||'').slice(-4)||'****'}`:'Bank Transfer (ACH)'}</dd></div>
+                      <div className="flex justify-between px-5 py-4 bg-white"><dt className="text-base font-bold text-gray-900">Amount to Pay</dt><dd className="text-xl font-bold text-blue-700">${parseFloat(payAmount||0).toFixed(2)}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                    <p className="text-sm text-amber-800"><strong>Important:</strong> By clicking "Submit Payment" you authorize the City of Lakewood to charge the payment method shown above. Payments are processed immediately and cannot be reversed.</p>
+                  </div>
+                  <div aria-live="polite" aria-atomic="true" ref={processingStatusRef} className="sr-only">
+                    {processing ? 'Processing your payment. Please wait.' : ''}
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <button onClick={()=>setStep(3)} disabled={processing} className="bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">← Back</button>
+                    <button
+                      onClick={handlePay}
+                      disabled={processing}
+                      aria-busy={processing}
+                      aria-label="Submit payment for your utility bill"
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-8 py-3 rounded-lg font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center gap-2 min-w-[180px] justify-center"
+                    >
+                      {processing ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Processing…</> : 'Submit Payment'}
+                    </button>
+                  </div>
+                </section>
+              )}
+            </div>
+
+            {/* Info cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+              {[
+                {icon:'🔒',title:'Secure Payments',text:'256-bit SSL encryption. Your financial data is never stored.'},
+                {icon:'⏱️',title:'Instant Processing',text:'Payments post to your account within 1–2 business days.'},
+                {icon:'📄',title:'Payment History',text:'View past payments and download receipts from your account portal.'},
+              ].map(c=>(
+                <div key={c.title} className="bg-white border border-gray-200 rounded-lg p-4 flex items-start gap-3">
+                  <span className="text-2xl" aria-hidden="true">{c.icon}</span>
+                  <div><p className="text-sm font-semibold text-gray-900">{c.title}</p><p className="text-xs text-gray-500 mt-0.5">{c.text}</p></div>
+                </div>
+              ))}
+            </div>
+          </main>
+
+          {showModal && (
+            <ConfirmationModal
+              amount={parseFloat(payAmount||0).toFixed(2)}
+              method={payMethod==='card'?`Credit/Debit Card ending in ${(cardData.number||'').slice(-4)||'****'}`:'Bank Transfer (ACH)'}
+              accountNum={acctNum}
+              confNumber={confNumber}
+              onClose={()=>{ setShowModal(false); window.location.href='index.html'; }}
+            />
+          )}
+        </>
+      );
+    }
+
+    function App() {
+      return (
+        <div className="min-h-screen flex flex-col">
+          <CityHeader currentPage=""/>
+          <PayBillPage/>
+          <CityFooter/>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

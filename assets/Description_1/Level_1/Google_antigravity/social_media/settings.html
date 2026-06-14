@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse - Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        darkBg: '#0f172a',
+                        darkCard: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="bg-gray-50 text-gray-900 dark:bg-darkBg dark:text-gray-100 antialiased transition-colors duration-200">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const currentPath = 'settings.html';
+
+        const Sidebar = () => {
+            const navItems = [
+                { name: 'Home', path: 'index.html', icon: 'ph-house' },
+                { name: 'Explore', path: 'explore.html', icon: 'ph-compass' },
+                { name: 'Notifications', path: 'notifications.html', icon: 'ph-bell' },
+                { name: 'Messages', path: 'messages.html', icon: 'ph-envelope-simple' },
+                { name: 'Profile', path: 'profile.html', icon: 'ph-user' },
+                { name: 'Settings', path: 'settings.html', icon: 'ph-gear' },
+            ];
+
+            return (
+                <nav className="fixed bottom-0 w-full bg-white dark:bg-darkBg border-t border-gray-200 dark:border-gray-800 md:relative md:w-20 lg:w-64 md:h-screen md:border-t-0 md:border-r z-50 flex md:flex-col justify-around md:justify-start px-2 lg:px-6 py-2 md:py-6">
+                    <div className="hidden md:flex items-center gap-3 mb-8 lg:px-2 justify-center lg:justify-start cursor-pointer hover:opacity-80 transition-opacity">
+                        <i className="ph-fill ph-pulse text-primary text-4xl"></i>
+                        <span className="hidden lg:block text-2xl font-bold tracking-tight">Pulse</span>
+                    </div>
+                    {navItems.map(item => {
+                        const isActive = currentPath.includes(item.path);
+                        return (
+                            <a
+                                key={item.name}
+                                href={item.path}
+                                className={`flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-4 lg:py-3 rounded-full md:mb-2 transition-colors duration-200 w-fit lg:w-full mx-auto lg:mx-0 group
+                                    ${isActive
+                                        ? 'text-gray-900 dark:text-white font-bold'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'}`}
+                                aria-label={item.name}
+                            >
+                                <div className="relative">
+                                    <i className={`${item.icon} ${isActive ? 'ph-fill' : ''} text-2xl lg:text-3xl transition-transform group-hover:scale-105`}></i>
+                                </div>
+                                <span className="hidden lg:block text-xl">{item.name}</span>
+                            </a>
+                        );
+                    })}
+                    <button className="hidden md:block w-12 h-12 lg:w-full lg:h-auto mt-4 mx-auto lg:mx-0 bg-primary hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-full transition-colors focus:ring-4 focus:ring-blue-300 shadow-md shadow-blue-500/30">
+                        <i className="ph ph-plus text-2xl lg:hidden"></i>
+                        <span className="hidden lg:block">Post</span>
+                    </button>
+
+                    <a href="profile.html" className="hidden md:flex items-center justify-center lg:justify-start gap-3 mt-auto p-3 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-full cursor-pointer transition-colors group mx-auto lg:w-full w-fit">
+                        <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Alex Profile" className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 group-hover:opacity-90 transition-opacity" />
+                        <div className="hidden lg:block flex-1 min-w-0">
+                            <p className="font-bold text-sm truncate">Alex Chen</p>
+                            <p className="text-gray-500 text-sm truncate">@alexc</p>
+                        </div>
+                        <i className="ph ph-dots-three text-xl hidden lg:block ml-auto text-gray-500"></i>
+                    </a>
+                </nav>
+            );
+        };
+
+        const App = () => {
+            const [isDarkMode, setIsDarkMode] = useState(false);
+
+            useEffect(() => {
+                if (document.documentElement.classList.contains('dark')) {
+                    setIsDarkMode(true);
+                }
+            }, []);
+
+            const toggleDarkMode = () => {
+                setIsDarkMode(!isDarkMode);
+                if (!isDarkMode) {
+                    document.documentElement.classList.add('dark');
+                    document.body.classList.add('dark:bg-darkBg', 'dark:text-gray-100');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    document.body.classList.remove('dark:bg-darkBg', 'dark:text-gray-100');
+                }
+            };
+
+            const settingMenu = [
+                { id: 'account', name: 'Your Account', icon: 'ph-user' },
+                { id: 'privacy', name: 'Privacy and safety', icon: 'ph-lock-key' },
+                { id: 'premium', name: 'Pulse Premium', icon: 'ph-star' },
+                { id: 'monetization', name: 'Monetization', icon: 'ph-money' },
+                { id: 'subscriptions', name: 'Subscriptions', icon: 'ph-user-list' },
+                { id: 'security', name: 'Security and account access', icon: 'ph-shield-check' },
+                { id: 'notifications', name: 'Notifications', icon: 'ph-bell-ringing' },
+                { id: 'accessibility', name: 'Accessibility, display, and languages', icon: 'ph-eye' },
+                { id: 'additional', name: 'Additional resources', icon: 'ph-dots-three-circle' },
+            ];
+
+            return (
+                <div className="max-w-[1280px] mx-auto flex h-screen overflow-hidden">
+                    <Sidebar />
+
+                    {/* Settings Menu Panel */}
+                    <main className="flex-1 min-w-0 md:w-[350px] md:max-w-[350px] border-x-0 md:border-r border-gray-200 dark:border-gray-800 flex flex-col h-full bg-white dark:bg-darkBg z-10">
+                        <div className="px-4 py-3 flex items-center border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white/90 dark:bg-darkBg/90 backdrop-blur z-10 h-[65px]">
+                            <h1 className="font-bold text-xl text-gray-900 dark:text-white">Settings</h1>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 hide-scroll pb-20 md:pb-0">
+                            {settingMenu.map((item, index) => (
+                                <div key={index} className="px-4 justify-between items-center cursor-pointer transition-colors border-r-2 border-transparent">
+                                    <div className="flex justify-between items-center py-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 px-2 rounded-lg">
+                                        <div className="flex items-center gap-4">
+                                            <i className={`ph ${item.icon} text-xl text-gray-500`}></i>
+                                            <span className="text-[15px] font-medium text-gray-900 dark:text-white">{item.name}</span>
+                                        </div>
+                                        <i className="ph ph-caret-right text-gray-400"></i>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </main>
+
+                    {/* Settings Content Panel */}
+                    <div className="hidden md:flex flex-1 flex-col h-full bg-white dark:bg-darkBg min-w-0 border-r border-gray-200 dark:border-gray-800">
+                        <div className="px-5 py-3 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white/90 dark:bg-darkBg/90 backdrop-blur z-10 h-[65px] flex flex-col justify-center">
+                            <h2 className="font-bold text-xl leading-tight text-gray-900 dark:text-white">Your Account</h2>
+                            <p className="text-[13px] text-gray-500">See information about your account, download an archive of your data, or learn about your account deactivation options</p>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto w-full max-w-2xl">
+                            <div className="p-4 flex flex-col">
+                                <a href="#" className="flex gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors mb-2 cursor-pointer">
+                                    <i className="ph ph-user text-2xl text-gray-500 mt-1"></i>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-center">
+                                            <h3 className="font-bold text-[15px] text-gray-900 dark:text-white">Account information</h3>
+                                            <i className="ph ph-caret-right text-gray-400"></i>
+                                        </div>
+                                        <p className="text-[13px] text-gray-500 mt-0.5">See your account information like your phone number and email address.</p>
+                                    </div>
+                                </a>
+
+                                <a href="#" className="flex gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors mb-2 cursor-pointer">
+                                    <i className="ph ph-lock-key text-2xl text-gray-500 mt-1"></i>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-center">
+                                            <h3 className="font-bold text-[15px] text-gray-900 dark:text-white">Change your password</h3>
+                                            <i className="ph ph-caret-right text-gray-400"></i>
+                                        </div>
+                                        <p className="text-[13px] text-gray-500 mt-0.5">Change your password at any time.</p>
+                                    </div>
+                                </a>
+
+                                <a href="#" className="flex gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors mb-2 cursor-pointer">
+                                    <i className="ph ph-download-simple text-2xl text-gray-500 mt-1"></i>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-center">
+                                            <h3 className="font-bold text-[15px] text-gray-900 dark:text-white">Download an archive of your data</h3>
+                                            <i className="ph ph-caret-right text-gray-400"></i>
+                                        </div>
+                                        <p className="text-[13px] text-gray-500 mt-0.5">Get insights into the type of information stored for your account.</p>
+                                    </div>
+                                </a>
+
+                                {/* Theme toggle section */}
+                                <div className="mt-8 mb-4 border-t border-gray-200 dark:border-gray-800 pt-6">
+                                    <h3 className="font-bold text-lg mb-4 text-gray-900 dark:text-white px-4">Appearance</h3>
+
+                                    <div className="flex gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                                        <div className="flex-1 flex justify-between items-center">
+                                            <div>
+                                                <h3 className="font-bold text-[15px] text-gray-900 dark:text-white flex items-center gap-2">
+                                                    <i className="ph ph-moon"></i> Dark Mode
+                                                </h3>
+                                                <p className="text-[13px] text-gray-500 mt-0.5">Toggle between light and dark themes.</p>
+                                            </div>
+                                            <button
+                                                onClick={toggleDarkMode}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-darkBg ${isDarkMode ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                                aria-label="Toggle Dark Mode"
+                                            >
+                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isDarkMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 mb-4 border-t border-gray-200 dark:border-gray-800 pt-6">
+                                    <a href="#" className="flex gap-4 p-4 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-colors cursor-pointer group">
+                                        <i className="ph ph-heart-break text-2xl text-gray-500 group-hover:text-red-500 mt-1"></i>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-center">
+                                                <h3 className="font-bold text-[15px] text-gray-900 dark:text-white group-hover:text-red-500">Deactivate your account</h3>
+                                                <i className="ph ph-caret-right text-gray-400 group-hover:text-red-500"></i>
+                                            </div>
+                                            <p className="text-[13px] text-gray-500 mt-0.5">Find out how you can deactivate your account.</p>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

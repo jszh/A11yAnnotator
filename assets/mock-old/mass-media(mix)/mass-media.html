@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pulse - Breaking News, Analysis, and Storytelling</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Brand Colors */
+            --brand-red: #e0122b;
+            --brand-red-dark: #bb0a21;
+            --accent-blue: #0066cc;
+            --accent-neon: #00ff88;
+            
+            /* Neutral Palette */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --bg-dark: #1a1a1a;
+            
+            --text-primary: #1a1a1a;
+            --text-secondary: #595959;
+            --text-tertiary: #8c8c8c;
+            --text-inverse: #ffffff;
+            
+            --border-light: #e5e5e5;
+            --border-medium: #d0d0d0;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.08);
+            --shadow-lg: 0 10px 24px rgba(0,0,0,0.12);
+            
+            /* Typography */
+            --font-serif: 'Georgia', 'Times New Roman', serif;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            
+            /* Transitions */
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: var(--font-sans);
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Utility Bar */
+        .utility-bar {
+            background: var(--bg-dark);
+            color: var(--text-inverse);
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .utility-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .utility-left {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .utility-right {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .utility-link {
+            color: var(--text-inverse);
+            text-decoration: none;
+            opacity: 0.9;
+            transition: opacity var(--transition);
+        }
+
+        .utility-link:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .market-ticker {
+            display: flex;
+            gap: 16px;
+            font-weight: 500;
+        }
+
+        .ticker-item {
+            display: flex;
+            gap: 6px;
+        }
+
+        .ticker-up {
+            color: #4ade80;
+        }
+
+        .ticker-down {
+            color: #f87171;
+        }
+
+        /* Brand Header */
+        .brand-header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-light);
+            transition: all var(--transition);
+        }
+
+        .brand-header.scrolled {
+            box-shadow: var(--shadow-md);
+        }
+
+        .header-main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .menu-button {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background var(--transition);
+        }
+
+        .menu-button:hover {
+            background: var(--bg-secondary);
+        }
+
+        .menu-line {
+            width: 100%;
+            height: 2px;
+            background: var(--text-primary);
+            transition: all var(--transition);
+        }
+
+        .brand-logo {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            text-decoration: none;
+            color: var(--brand-red);
+            font-family: var(--font-serif);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-button {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition);
+        }
+
+        .search-button:hover {
+            background: var(--bg-secondary);
+        }
+
+        .subscribe-button {
+            padding: 10px 24px;
+            background: var(--brand-red);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .subscribe-button:hover {
+            background: var(--brand-red-dark);
+            transform: translateY(-1px);
+        }
+
+        .signin-button {
+            padding: 10px 20px;
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-medium);
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .signin-button:hover {
+            background: var(--bg-secondary);
+        }
+
+        /* Category Navigation */
+        .category-nav {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .category-nav-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .category-nav-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .category-link {
+            padding: 16px 20px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all var(--transition);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .category-link:hover {
+            border-bottom-color: var(--brand-red);
+            color: var(--brand-red);
+        }
+
+        .category-link.active {
+            border-bottom-color: var(--brand-red);
+            color: var(--brand-red);
+        }
+
+        /* Live Ticker */
+        .live-ticker {
+            background: var(--brand-red);
+            color: white;
+            padding: 12px 0;
+            overflow: hidden;
+        }
+
+        .ticker-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .live-badge {
+            background: white;
+            color: var(--brand-red);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: 900;
+            font-size: 12px;
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+
+        .ticker-headlines {
+            display: flex;
+            gap: 32px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            flex: 1;
+        }
+
+        .ticker-headlines::-webkit-scrollbar {
+            display: none;
+        }
+
+        .ticker-item {
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: opacity var(--transition);
+        }
+
+        .ticker-item:hover {
+            opacity: 0.8;
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 20px;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 40px;
+        }
+
+        /* Hero Editorial */
+        .hero-editorial {
+            margin-bottom: 40px;
+        }
+
+        /* 必要修改：确保卡片包装为链接后视觉一致 */
+        .hero-main, .story-card, .numbered-item, .trending-item {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .hero-main {
+            position: relative;
+            aspect-ratio: 16/9;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            background: var(--bg-tertiary);
+        }
+
+        .hero-main img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .hero-main:hover img {
+            transform: scale(1.05);
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 40px;
+        }
+
+        .hero-category {
+            display: inline-block;
+            background: var(--brand-red);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            width: fit-content;
+        }
+
+        .hero-title {
+            font-size: 42px;
+            font-weight: 900;
+            color: white;
+            line-height: 1.2;
+            margin-bottom: 12px;
+            font-family: var(--font-serif);
+        }
+
+        .hero-summary {
+            font-size: 18px;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.4;
+            margin-bottom: 16px;
+        }
+
+        .hero-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Secondary Stories Grid */
+        .secondary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .story-card {
+            cursor: pointer;
+            transition: transform var(--transition);
+        }
+
+        .story-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .story-card-image {
+            aspect-ratio: 16/9;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            background: var(--bg-tertiary);
+        }
+
+        .story-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .story-card:hover .story-card-image img {
+            transform: scale(1.05);
+        }
+
+        .story-card-category {
+            color: var(--brand-red);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .story-card-title {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 8px;
+            font-family: var(--font-serif);
+        }
+
+        .story-card-summary {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .story-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        /* Editorial Sections */
+        .editorial-section {
+            margin-bottom: 56px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 3px solid var(--brand-red);
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 900;
+            font-family: var(--font-serif);
+        }
+
+        .section-link {
+            color: var(--brand-red);
+            font-weight: 700;
+            font-size: 14px;
+            text-decoration: none;
+            transition: opacity var(--transition);
+        }
+
+        .section-link:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+        }
+
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        /* Right Sidebar */
+        .right-sidebar {
+            position: sticky;
+            top: 80px;
+            height: fit-content;
+        }
+
+        .sidebar-module {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .sidebar-title {
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            font-family: var(--font-serif);
+        }
+
+        .trending-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .trending-item {
+            cursor: pointer;
+            transition: transform var(--transition);
+        }
+
+        .trending-item:hover {
+            transform: translateX(4px);
+        }
+
+        .trending-number {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+            font-family: var(--font-serif);
+        }
+
+        .trending-title {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 4px;
+        }
+
+        .trending-meta {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        /* Newsletter Module */
+        .newsletter-module {
+            background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
+            color: white;
+            padding: 32px 24px;
+        }
+
+        .newsletter-title {
+            font-size: 24px;
+            font-weight: 900;
+            margin-bottom: 12px;
+        }
+
+        .newsletter-description {
+            font-size: 14px;
+            margin-bottom: 20px;
+            opacity: 0.95;
+            line-height: 1.5;
+        }
+
+        .newsletter-input {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .newsletter-button {
+            width: 100%;
+            padding: 14px;
+            background: white;
+            color: var(--brand-red);
+            border: none;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .newsletter-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Numbered List (BuzzFeed Style) */
+        .numbered-list {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 32px;
+            margin-bottom: 48px;
+        }
+
+        .numbered-list-title {
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 32px;
+            font-family: var(--font-serif);
+        }
+
+        .numbered-list-items {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .numbered-item {
+            display: flex;
+            gap: 20px;
+            cursor: pointer;
+            transition: transform var(--transition);
+        }
+
+        .numbered-item:hover {
+            transform: translateX(8px);
+        }
+
+        .item-number {
+            font-size: 48px;
+            font-weight: 900;
+            color: var(--brand-red);
+            line-height: 1;
+            width: 60px;
+            flex-shrink: 0;
+        }
+
+        .item-content {
+            flex: 1;
+        }
+
+        .item-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .item-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Video Module */
+        .video-module {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .video-player {
+            position: relative;
+            aspect-ratio: 16/9;
+            background: #000;
+            cursor: pointer;
+        }
+
+        .video-player img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.8;
+        }
+
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 72px;
+            height: 72px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+        }
+
+        .video-player:hover .play-button {
+            transform: translate(-50%, -50%) scale(1.1);
+            background: white;
+        }
+
+        .play-icon {
+            width: 0;
+            height: 0;
+            border-left: 20px solid var(--brand-red);
+            border-top: 12px solid transparent;
+            border-bottom: 12px solid transparent;
+            margin-left: 4px;
+        }
+
+        .video-info {
+            padding: 20px;
+            color: white;
+        }
+
+        .video-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .video-meta {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* Feature Banner (Vice Style) */
+        .feature-banner {
+            position: relative;
+            aspect-ratio: 21/9;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 48px;
+            cursor: pointer;
+        }
+
+        .feature-banner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.7s ease;
+        }
+
+        .feature-banner:hover img {
+            transform: scale(1.05);
+        }
+
+        .feature-banner-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, rgba(0,0,0,0.9) 0%, transparent 60%);
+            display: flex;
+            align-items: center;
+            padding: 60px;
+        }
+
+        .feature-content {
+            max-width: 50%;
+        }
+
+        .feature-label {
+            background: var(--accent-neon);
+            color: var(--bg-dark);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .feature-title {
+            font-size: 48px;
+            font-weight: 900;
+            color: white;
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+
+        .feature-description {
+            font-size: 18px;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+
+            .right-sidebar {
+                position: static;
+            }
+
+            .secondary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .section-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .utility-bar {
+                display: none;
+            }
+
+            .header-main {
+                padding: 0 16px;
+            }
+
+            .signin-button {
+                display: none;
+            }
+
+            .category-nav-content {
+                padding: 0 16px;
+            }
+
+            .hero-title {
+                font-size: 28px;
+            }
+
+            .hero-summary {
+                font-size: 16px;
+            }
+
+            .secondary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-banner-overlay {
+                padding: 32px;
+            }
+
+            .feature-content {
+                max-width: 100%;
+            }
+
+            .feature-title {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="utility-bar">
+        <div class="utility-content">
+            <div class="utility-left">
+                <a href="#" class="utility-link">U.S. Edition</a>
+                <div class="market-ticker">
+                    <div class="ticker-item">
+                        <span>DOW</span>
+                        <span class="ticker-up">+0.8%</span>
+                    </div>
+                    <div class="ticker-item">
+                        <span>S&P</span>
+                        <span class="ticker-up">+1.2%</span>
+                    </div>
+                    <div class="ticker-item">
+                        <span>NASDAQ</span>
+                        <span class="ticker-down">-0.3%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="utility-right">
+                <a href="#" class="utility-link">English</a>
+                <a href="#" class="utility-link">Subscribe</a>
+            </div>
+        </div>
+    </div>
+
+    <header class="brand-header" id="header">
+        <div class="header-main">
+            <div class="header-left">
+                <button class="menu-button" aria-label="Menu">
+                    <span class="menu-line"></span>
+                    <span class="menu-line"></span>
+                    <span class="menu-line"></span>
+                </button>
+                <a href="#" class="brand-logo">The Pulse</a>
+            </div>
+            <div class="header-right">
+                <button class="search-button" aria-label="Search">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+                <button class="subscribe-button">Subscribe</button>
+                <button class="signin-button">Sign In</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="category-nav">
+        <div class="category-nav-content">
+            <a href="#" class="category-link active">News</a>
+            <a href="#" class="category-link">World</a>
+            <a href="#" class="category-link">Politics</a>
+            <a href="#" class="category-link">Business</a>
+            <a href="#" class="category-link">Tech</a>
+            <a href="#" class="category-link">Culture</a>
+            <a href="#" class="category-link">Entertainment</a>
+            <a href="#" class="category-link">Science</a>
+            <a href="#" class="category-link">Opinion</a>
+            <a href="#" class="category-link">Video</a>
+        </div>
+    </nav>
+
+    <div class="live-ticker">
+        <div class="ticker-content">
+            <span class="live-badge">LIVE</span>
+            <div class="ticker-headlines">
+                <span class="ticker-item">Breaking: Major policy announcement expected within hours</span>
+                <span class="ticker-item">•</span>
+                <span class="ticker-item">Markets react to Fed decision</span>
+                <span class="ticker-item">•</span>
+                <span class="ticker-item">Climate summit enters final day</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <main>
+            <article class="hero-editorial">
+                <a href="mass-media-detail.html?id=hero" class="hero-main">
+                    <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1600&h=900&fit=crop" alt="Breaking news">
+                    <div class="hero-overlay">
+                        <span class="hero-category">Breaking News</span>
+                        <h1 class="hero-title">Historic Climate Agreement Reached at Global Summit</h1>
+                        <p class="hero-summary">
+                            World leaders commit to unprecedented action on emissions reduction, marking a turning point in global climate policy.
+                        </p>
+                        <div class="hero-meta">
+                            <div class="meta-item">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>2 hours ago</span>
+                            </div>
+                            <div class="meta-item">
+                                <span>By Sarah Johnson</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </article>
+
+            <div class="secondary-grid" id="secondary-grid"></div>
+
+            <div class="feature-banner">
+                <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1800&h=800&fit=crop" alt="Feature story">
+                <div class="feature-banner-overlay">
+                    <div class="feature-content">
+                        <span class="feature-label">Feature</span>
+                        <h2 class="feature-title">The Future of Space Exploration</h2>
+                        <p class="feature-description">
+                            Inside the missions that will define humanity's next chapter among the stars
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="numbered-list">
+                <h2 class="numbered-list-title">10 Stories That Defined the Week</h2>
+                <div class="numbered-list-items" id="numbered-items"></div>
+            </div>
+
+            <section class="editorial-section">
+                <div class="section-header">
+                    <h2 class="section-title">Technology</h2>
+                    <a href="#" class="section-link">View All →</a>
+                </div>
+                <div class="section-grid" id="tech-grid"></div>
+            </section>
+
+            <section class="editorial-section">
+                <div class="section-header">
+                    <h2 class="section-title">Culture & Entertainment</h2>
+                    <a href="#" class="section-link">View All →</a>
+                </div>
+                <div class="section-grid" id="culture-grid"></div>
+            </section>
+        </main>
+
+        <aside class="right-sidebar">
+            <div class="video-module sidebar-module">
+                <div class="video-player">
+                    <img src="https://images.unsplash.com/photo-1492619375914-88005aa9e8fb?w=600&h=400&fit=crop" alt="Video">
+                    <div class="play-button">
+                        <div class="play-icon"></div>
+                    </div>
+                </div>
+                <div class="video-info">
+                    <h3 class="video-title">Watch: Inside the Newsroom</h3>
+                    <p class="video-meta">3:42 • 125K views</p>
+                </div>
+            </div>
+
+            <div class="sidebar-module">
+                <h3 class="sidebar-title">Trending</h3>
+                <div class="trending-list" id="trending-list"></div>
+            </div>
+
+            <div class="newsletter-module sidebar-module">
+                <h3 class="newsletter-title">Daily Briefing</h3>
+                <p class="newsletter-description">
+                    Get the day's top stories delivered to your inbox every morning.
+                </p>
+                <input type="email" class="newsletter-input" placeholder="Your email address">
+                <button class="newsletter-button">Subscribe</button>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // Mock Data - 保持原样并添加 ID 以便跳转
+        const secondaryStories = [
+            {
+                id: 1,
+                category: 'Politics',
+                title: 'Senate Debates Major Infrastructure Bill',
+                summary: 'Lawmakers continue negotiations on $2 trillion investment package',
+                author: 'Michael Chen',
+                time: '3h ago',
+                readLength: '5 min',
+                image: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=600&h=400&fit=crop'
+            },
+            {
+                id: 2,
+                category: 'Business',
+                title: 'Tech Giants Report Record Earnings',
+                summary: 'Major technology companies exceed expectations in Q4 results',
+                author: 'Emma Rodriguez',
+                time: '4h ago',
+                readLength: '4 min',
+                image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&h=400&fit=crop'
+            },
+            {
+                id: 3,
+                category: 'World',
+                title: 'Global Health Initiative Launches',
+                summary: 'International coalition unveils plan to improve healthcare access',
+                author: 'David Park',
+                time: '5h ago',
+                readLength: '6 min',
+                image: 'https://images.unsplash.com/photo-1584515933487-779824d29309?w=600&h=400&fit=crop'
+            }
+        ];
+
+        const numberedStories = [
+            { id: 4, title: 'Climate Deal Marks Historic Turning Point', description: 'Nations commit to carbon neutrality by 2050' },
+            { id: 5, title: 'Tech Merger Reshapes Industry', description: 'Billion-dollar deal creates new market leader' },
+            { id: 6, title: 'Scientific Breakthrough in Medicine', description: 'Research team discovers promising treatment' },
+            { id: 7, title: 'Economic Recovery Gains Momentum', description: 'Latest indicators show sustained growth' },
+            { id: 8, title: 'Cultural Phenomenon Sweeps Nation', description: 'New trend captures public imagination' }
+        ];
+
+        const trendingStories = [
+            { id: 9, title: 'Breaking: Major Policy Shift Announced', category: 'Politics', views: '2.3M' },
+            { id: 10, title: 'Celebrity Interview Goes Viral', category: 'Entertainment', views: '1.8M' },
+            { id: 11, title: 'Stock Market Hits New Record', category: 'Business', views: '1.5M' },
+            { id: 12, title: 'Sports Team Wins Championship', category: 'Sports', views: '1.2M' },
+            { id: 13, title: 'New Study Reveals Surprising Results', category: 'Science', views: '980K' }
+        ];
+
+        const techStories = [
+            {
+                id: 14,
+                category: 'Tech',
+                title: 'AI Breakthrough Changes Everything',
+                summary: 'New model achieves human-level reasoning',
+                author: 'Alex Kim',
+                time: '6h ago',
+                image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&h=400&fit=crop'
+            },
+            {
+                id: 15,
+                category: 'Tech',
+                title: 'Cybersecurity Threats Evolve',
+                summary: 'Experts warn of sophisticated new attacks',
+                author: 'Lisa Zhang',
+                time: '7h ago',
+                image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600&h=400&fit=crop'
+            },
+            {
+                id: 16,
+                category: 'Tech',
+                title: 'Quantum Computing Milestone',
+                summary: 'Researchers demonstrate practical application',
+                author: 'James Wilson',
+                time: '8h ago',
+                image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop'
+            },
+            {
+                id: 17,
+                category: 'Tech',
+                title: 'Smartphone Industry Disrupted',
+                summary: 'Innovative design challenges status quo',
+                author: 'Maria Garcia',
+                time: '9h ago',
+                image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&h=400&fit=crop'
+            }
+        ];
+
+        const cultureStories = [
+            {
+                id: 18,
+                category: 'Culture',
+                title: 'Music Festival Returns After Hiatus',
+                summary: 'Major event announces star-studded lineup',
+                author: 'Tom Anderson',
+                time: '10h ago',
+                image: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&h=400&fit=crop'
+            },
+            {
+                id: 19,
+                category: 'Entertainment',
+                title: 'Award-Winning Film Director Retires',
+                summary: 'Legendary filmmaker reflects on career',
+                author: 'Rachel Green',
+                time: '11h ago',
+                image: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=400&fit=crop'
+            },
+            {
+                id: 20,
+                category: 'Culture',
+                title: 'Art Exhibition Breaks Records',
+                summary: 'Museum reports unprecedented attendance',
+                author: 'Chris Lee',
+                time: '12h ago',
+                image: 'https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=600&h=400&fit=crop'
+            },
+            {
+                id: 21,
+                category: 'Entertainment',
+                title: 'Streaming Platform Announces Originals',
+                summary: 'Exclusive content pipeline revealed',
+                author: 'Nina Patel',
+                time: '13h ago',
+                image: 'https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=600&h=400&fit=crop'
+            }
+        ];
+
+        // Render functions - 必要修改：将容器从 div 改为 a 以实现链接
+        function renderStoryCard(story, container) {
+            const card = document.createElement('a'); // 改为 a 标签
+            card.className = 'story-card';
+            card.href = `mass-media-detail.html?id=${story.id}`; // 链接
+            card.innerHTML = `
+                <div class="story-card-image">
+                    <img src="${story.image}" alt="${story.title}">
+                </div>
+                <div class="story-card-category">${story.category}</div>
+                <h3 class="story-card-title">${story.title}</h3>
+                <p class="story-card-summary">${story.summary}</p>
+                <div class="story-card-meta">
+                    <span>${story.author}</span>
+                    <span>•</span>
+                    <span>${story.time}</span>
+                    ${story.readLength ? `<span>•</span><span>${story.readLength} read</span>` : ''}
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        function renderNumberedItem(story, index) {
+            return `
+                <a href="mass-media-detail.html?id=${story.id}" class="numbered-item"> <div class="item-number">${String(index + 1).padStart(2, '0')}</div>
+                    <div class="item-content">
+                        <h4 class="item-title">${story.title}</h4>
+                        <p class="item-description">${story.description}</p>
+                    </div>
+                </a>
+            `;
+        }
+
+        function renderTrendingItem(story, index) {
+            return `
+                <a href="mass-media-detail.html?id=${story.id}" class="trending-item"> <div class="trending-number">${index + 1}</div>
+                    <h4 class="trending-title">${story.title}</h4>
+                    <p class="trending-meta">${story.category} • ${story.views} views</p>
+                </a>
+            `;
+        }
+
+        // Initialize
+        const secondaryGrid = document.getElementById('secondary-grid');
+        secondaryStories.forEach(story => renderStoryCard(story, secondaryGrid));
+
+        const techGrid = document.getElementById('tech-grid');
+        techStories.forEach(story => renderStoryCard(story, techGrid));
+
+        const cultureGrid = document.getElementById('culture-grid');
+        cultureStories.forEach(story => renderStoryCard(story, cultureGrid));
+
+        document.getElementById('numbered-items').innerHTML = numberedStories.map(renderNumberedItem).join('');
+        document.getElementById('trending-list').innerHTML = trendingStories.map(renderTrendingItem).join('');
+
+        // Header scroll effect
+        let lastScroll = 0;
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+    </script>
+</body>
+</html>

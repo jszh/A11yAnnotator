@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulse | Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Manrope"', "sans-serif"] }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="pulse-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { Layout, TrendSidebar, PostCard, posts } = window.PulseShared;
+
+      function App() {
+        return (
+          <Layout activePath="index.html">
+            <main id="main-content" className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="space-y-6">
+                <section className="card-surface rounded-[1.75rem] p-6">
+                  <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">Main feed</h1>
+                  <form className="mt-5 space-y-4" aria-label="Content composer">
+                    <label htmlFor="composer" className="text-sm font-semibold text-slate-700">
+                      What&apos;s on your mind, Alex?
+                    </label>
+                    <textarea
+                      id="composer"
+                      rows="4"
+                      className="w-full rounded-[1.25rem] border border-slate-300 bg-white px-4 py-4 text-sm text-slate-900"
+                      placeholder="Share an update, a thought, or a photo."
+                    ></textarea>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        {["Add photo", "Tag topic", "Schedule"].map((item) => (
+                          <button key={item} type="button" className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                      <button type="submit" className="rounded-full bg-teal-700 px-5 py-3 text-sm font-bold text-white hover:bg-teal-800">
+                        Post to Pulse
+                      </button>
+                    </div>
+                  </form>
+                </section>
+
+                <section className="space-y-5" aria-label="Followed users feed">
+                  {posts.map((post) => (
+                    <PostCard key={post.id} post={post} />
+                  ))}
+                </section>
+              </div>
+              <TrendSidebar />
+            </main>
+          </Layout>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

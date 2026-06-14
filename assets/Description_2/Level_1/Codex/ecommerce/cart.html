@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ThreadHouse | Cart</title>
+    <meta name="description" content="Review your ThreadHouse cart, gift wrapping, delivery estimate, and loyalty progress before checkout." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { colors: { stone: tailwind.colors.stone, slate: tailwind.colors.slate, rose: tailwind.colors.rose, amber: tailwind.colors.amber } } } };</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="bg-stone-100 text-slate-900">
+    <header class="sticky top-0 z-40 border-b border-stone-200 bg-[rgba(247,244,239,0.94)] backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <a href="./index.html" class="focus-ring inline-flex items-center gap-3 rounded-full"><span class="rounded-full bg-rose-700 px-3 py-2 text-xs font-bold uppercase tracking-[0.3em] text-white">TH</span><span><span class="font-display block text-2xl leading-none">ThreadHouse</span><span class="text-xs uppercase tracking-[0.24em] text-slate-500">Sustainable Marketplace</span></span></a>
+        <nav aria-label="Primary" class="hidden items-center gap-2 md:flex">
+          <a href="./index.html" class="focus-ring rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">Home</a>
+          <a href="./products.html" class="focus-ring rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">Shop</a>
+          <a href="./product-detail.html" class="focus-ring rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">Featured Product</a>
+          <a href="./cart.html" aria-current="page" class="focus-ring rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Cart</a>
+          <a href="./account.html" class="focus-ring rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">Account</a>
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div id="cart-root"></div>
+    </main>
+    <footer class="border-t border-stone-200 bg-slate-950 text-stone-200">
+      <div class="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.4fr,1fr,1fr] lg:px-8">
+        <div><h2 class="font-display text-3xl text-white">ThreadHouse</h2><p class="mt-4 max-w-md text-sm leading-7 text-stone-300">Independent fashion, transparent sourcing, and wardrobe staples that feel current without chasing wasteful cycles.</p></div>
+        <div><h3 class="text-sm font-bold uppercase tracking-[0.24em] text-stone-100">Shop</h3><ul class="mt-4 space-y-3 text-sm"><li><a href="./products.html" class="focus-ring rounded text-stone-300 hover:text-white">New arrivals</a></li><li><a href="./product-detail.html" class="focus-ring rounded text-stone-300 hover:text-white">Featured linen shirt</a></li><li><a href="./cart.html" class="focus-ring rounded text-stone-300 hover:text-white">Cart and checkout</a></li></ul></div>
+        <div><h3 class="text-sm font-bold uppercase tracking-[0.24em] text-stone-100">Support</h3><ul class="mt-4 space-y-3 text-sm"><li><a href="./account.html" class="focus-ring rounded text-stone-300 hover:text-white">Account dashboard</a></li><li><a href="./products.html" class="focus-ring rounded text-stone-300 hover:text-white">Size and fit help</a></li><li><a href="./index.html#mission" class="focus-ring rounded text-stone-300 hover:text-white">Our mission</a></li></ul></div>
+      </div>
+    </footer>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel">
+      const { useState } = React;
+      const items = [
+        { name: "Oversized Linen Shirt", price: 89, size: "M", color: "Sage Green", qty: 1, image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80" },
+        { name: "Weekend Barrel Jean", price: 108, size: "28", color: "Washed Blue", qty: 1, image: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=900&q=80" },
+        { name: "Artist Scarf", price: 48, size: "One Size", color: "Terracotta", qty: 1, image: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80" },
+      ];
+
+      function CartPage() {
+        const [giftWrap, setGiftWrap] = useState(true);
+        const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+        const total = subtotal + (giftWrap ? 5 : 0);
+
+        return (
+          <div className="grid gap-8 lg:grid-cols-[1fr,360px]">
+            <section>
+              <h1 className="font-display text-5xl">Your Cart</h1>
+              <p className="mt-3 text-sm leading-7 text-slate-600">Review your pieces, add finishing touches, and keep the momentum toward a more thoughtful wardrobe.</p>
+              <div className="mt-8 space-y-5">{items.map((item) => <article key={item.name} className="shadow-soft flex flex-col gap-5 rounded-[2rem] border border-stone-200 bg-white p-5 sm:flex-row"><img src={item.image} alt={`${item.name} in ${item.color}`} className="h-40 w-full rounded-[1.5rem] object-cover sm:w-40" /><div className="flex flex-1 flex-col justify-between gap-4"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-xl font-semibold">{item.name}</h2><p className="mt-2 text-sm text-slate-600">Size {item.size} · Color {item.color} · Qty {item.qty}</p></div><p className="text-lg font-bold">${item.price.toFixed(2)}</p></div><div className="flex flex-wrap gap-3 text-sm font-semibold"><button type="button" className="focus-ring rounded-full border border-stone-300 px-4 py-2 text-slate-700">Save for later</button><button type="button" className="focus-ring rounded-full border border-stone-300 px-4 py-2 text-slate-700">Edit item</button></div></div></article>)}</div>
+            </section>
+            <aside className="space-y-5">
+              <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-soft">
+                <h2 className="text-xl font-semibold">Order Summary</h2>
+                <div className="mt-5 space-y-4 text-sm">
+                  <div className="flex items-center justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+                  <div className="flex items-center justify-between"><label htmlFor="gift-wrap" className="font-medium">Gift wrapping (+$5)</label><input id="gift-wrap" type="checkbox" checked={giftWrap} onChange={(e) => setGiftWrap(e.target.checked)} className="focus-ring h-5 w-5 rounded border-stone-300 text-rose-700" /></div>
+                  <div className="flex items-center justify-between border-t border-stone-200 pt-4 text-base font-bold"><span>Total</span><span>${total.toFixed(2)}</span></div>
+                </div>
+                <p className="mt-5 rounded-[1.25rem] bg-stone-100 px-4 py-3 text-sm text-slate-700">Estimated delivery date: <span className="font-semibold text-slate-950">April 5, 2025</span></p>
+                <a href="./account.html" className="focus-ring mt-6 inline-flex w-full justify-center rounded-full bg-slate-950 px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-white">Proceed to checkout</a>
+              </section>
+              <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-soft">
+                <h2 className="text-xl font-semibold">Loyalty Progress</h2>
+                <p className="mt-3 text-sm leading-7 text-stone-300">You're 120 points away from a free tote.</p>
+                <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/15"><div className="h-full w-3/4 rounded-full bg-rose-500"></div></div>
+                <p className="mt-3 text-sm text-stone-300">480 / 600 points</p>
+              </section>
+            </aside>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("cart-root")).render(<CartPage />);
+    </script>
+  </body>
+</html>

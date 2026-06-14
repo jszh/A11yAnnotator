@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Folia | Notifications</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./shared.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+    <script src="./shared.js"></script>
+    <script>
+      const { html, AppShell, Card, notifications } = window.Folia;
+
+      function NotificationSection({ title, items, active }) {
+        return html`
+          <${Card}>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-lg font-semibold text-slate-950">${title}</p>
+              ${active ? html`<span className="rounded-full bg-slate-950 px-3 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white">Current Tab</span>` : null}
+            </div>
+            <div className="mt-4 space-y-3">
+              ${items.map(
+                (item) => html`
+                  <div key=${item.text} className="flex gap-4 rounded-[1.5rem] bg-white p-4">
+                    <div className="artwork-panel alt-a relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl"></div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800">${item.text}</p>
+                      <p className="mt-1 text-sm text-slate-500">${item.note}</p>
+                    </div>
+                  </div>
+                `
+              )}
+            </div>
+          </${Card}>
+        `;
+      }
+
+      function Aside() {
+        return html`
+          <${Card}>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Tabs</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">Activity</span>
+              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600">Feedback Requests</span>
+              <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600">Collections</span>
+            </div>
+          </${Card}>
+          <${Card}>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Unread Summary</p>
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-[1.5rem] bg-amber-50 p-4">
+                <p className="text-2xl font-bold text-amber-950">12</p>
+                <p className="text-sm text-amber-900">New activity notes</p>
+              </div>
+              <div className="rounded-[1.5rem] bg-slate-100 p-4">
+                <p className="text-2xl font-bold text-slate-900">3</p>
+                <p className="text-sm text-slate-600">Open critique requests</p>
+              </div>
+            </div>
+          </${Card}>
+        `;
+      }
+
+      function App() {
+        return html`
+          <${AppShell}
+            current="./notifications.html"
+            title="Notifications"
+            subtitle="Track activity, critique requests, and collection saves tied to your work."
+            actionLabel="Open Profile"
+            actionHref="./profile.html"
+            aside=${html`<${Aside} />`}
+          >
+            <${NotificationSection} title="Activity" items=${notifications.activity} active=${true} />
+            <${NotificationSection} title="Feedback Requests" items=${notifications.feedback} active=${false} />
+            <${NotificationSection} title="Collections" items=${notifications.collections} active=${false} />
+          </${AppShell}>
+        `;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perspectives — Groundwork</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #fff; color: #111827; font-family: 'Inter', system-ui, sans-serif; }
+    *:focus-visible { outline: 2px solid #15803d; outline-offset: 3px; border-radius: 3px; }
+    img { display: block; max-width: 100%; }
+    .font-display { font-family: 'Playfair Display', Georgia, serif; }
+    .font-prose { font-family: 'Source Serif 4', Georgia, serif; }
+    .font-ui { font-family: 'Inter', system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useId } = React;
+
+const IconMenu = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>;
+const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>;
+const IconHeart = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /></svg>;
+const IconArrow = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>;
+const IconMail = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>;
+
+const NAV_LINKS = [
+  { label: 'Climate', href: 'climate.html' },
+  { label: 'Energy', href: '#' },
+  { label: 'Policy', href: '#' },
+  { label: 'Science', href: '#' },
+  { label: 'Data', href: '#' },
+  { label: 'Opinion', href: 'opinion.html' },
+];
+
+function Header() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  return (
+    <header className="font-ui border-b border-gray-200 bg-white sticky top-0 z-40 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+        <a href="index.html" aria-label="Groundwork — home">
+          <span className="font-display text-2xl font-black tracking-tight text-gray-900"><span className="text-green-700">Ground</span>work</span>
+        </a>
+        <nav aria-label="Primary navigation" className="hidden md:flex items-center gap-1">
+          {NAV_LINKS.map(({ label, href }) => (
+            <a key={label} href={href}
+              aria-current={label === 'Opinion' ? 'page' : undefined}
+              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors
+                ${label === 'Opinion' ? 'text-green-700 bg-green-50 font-semibold' : 'text-gray-600 hover:text-green-700 hover:bg-green-50'}`}>
+              {label}
+            </a>
+          ))}
+        </nav>
+        <div className="flex items-center gap-3">
+          <a href="subscribe.html" className="hidden sm:inline-flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+            <IconHeart /> Support Us
+          </a>
+          <button onClick={() => setMobileOpen(p => !p)} aria-expanded={mobileOpen} aria-controls="mobile-menu" aria-label={mobileOpen ? 'Close menu' : 'Open menu'} className="md:hidden p-2 text-gray-600">
+            {mobileOpen ? <IconX /> : <IconMenu />}
+          </button>
+        </div>
+      </div>
+      {mobileOpen && (
+        <div id="mobile-menu" className="md:hidden border-t border-gray-100 bg-white px-4 pb-4 pt-2">
+          <ul className="space-y-1" role="list">
+            {NAV_LINKS.map(({ label, href }) => (
+              <li key={label}><a href={href} className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-lg">{label}</a></li>
+            ))}
+            <li className="pt-2"><a href="subscribe.html" className="flex items-center gap-2 bg-green-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg"><IconHeart /> Support Groundwork</a></li>
+          </ul>
+        </div>
+      )}
+    </header>
+  );
+}
+
+/* ── Page Header ─────────────────────────────────────────────── */
+function PageHeader() {
+  return (
+    <div className="border-b border-gray-100 py-10 bg-gray-50">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6">
+        <p className="font-ui text-xs text-green-700 font-bold uppercase tracking-widest mb-2">Groundwork</p>
+        <h1 className="font-display text-4xl sm:text-5xl font-black text-gray-900 mb-4">Perspectives</h1>
+        <p className="font-prose text-lg text-gray-600 leading-relaxed max-w-2xl">
+          Bylined essays from scientists, policymakers, community advocates, and frontline voices — offering context, challenge, and counterpoint to Groundwork's investigations.
+        </p>
+        <div className="mt-5 p-4 bg-white border border-gray-200 rounded-xl">
+          <p className="font-ui text-sm text-gray-600">
+            <strong className="text-gray-800">A note on editorial independence:</strong> Perspectives pieces represent the views of their authors and are not Groundwork editorial positions. We publish voices across the spectrum of informed opinion on climate, science, and policy.
+            <a href="#" className="text-green-700 hover:underline ml-1">Read our opinion guidelines →</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Opinion Data ────────────────────────────────────────────── */
+const FEATURED_PIECE = {
+  id: 1,
+  title: "Groundwater Law Is a 19th-Century Solution to a 21st-Century Crisis",
+  deck: "The doctrine of prior appropriation was designed for a world with unlimited water and unlimited growth. That world is gone. Our legal framework must follow.",
+  author: {
+    name: 'Prof. Elena Marchetti',
+    title: 'Professor of Environmental Law, UC Berkeley School of Law',
+    affiliation: 'Co-Director, California Water Law Project',
+    avatar: 'https://picsum.photos/seed/prof_elena/80/80',
+    bio: "Prof. Marchetti has testified before Congress on water rights reform and has spent two decades researching the intersection of Western water law and climate adaptation. She is the author of 'Prior Appropriation in the Age of Scarcity' (UC Press, 2024).",
+    expertise: 'Water Law · Climate Policy',
+  },
+  date: 'March 26, 2026',
+  readTime: '10 min',
+  img: 'https://picsum.photos/seed/water_law/900/500',
+  imgAlt: 'A dry irrigation canal in the Central Valley of California, concrete walls bare of water, cracked earth visible in the distance',
+  excerpt: [
+    "When the Colorado River Compact was signed in 1922, the negotiators allocated 17.5 million acre-feet of water annually — a figure based on the unusually wet years of the early 20th century. The river's long-term average flow is closer to 13 million acre-feet. The Compact was, from day one, legally obligating a resource that did not exist in the quantities promised.",
+    "This is not a footnote to the West's water crisis. It is the crisis. Every downstream consequence — the drying of the Delta, the collapse of aquifers, the fights over Lake Mead's elevation — flows directly from the fiction of abundance at the legal foundation of Western water allocation.",
+    "The prior appropriation doctrine itself compounds the problem. Under prior appropriation, water rights are held by those who established them first, and they are enforced in order of seniority, regardless of use, regardless of need, and increasingly regardless of physical availability. A senior water right holder is legally entitled to their full allocation even when honoring that right means junior users receive nothing — and even when the water simply isn't there to take.",
+  ],
+  href: 'article.html',
+  respondHref: '#respond',
+};
+
+const OPINION_PIECES = [
+  {
+    id: 2,
+    title: "I Farmed the Ogallala for Forty Years. Here's What Nobody Is Telling You.",
+    deck: "The government's conservation programs are well-intentioned but structurally broken. A lifelong farmer explains why.",
+    author: {
+      name: 'Robert "Bobby" Travers',
+      title: 'Fourth-generation farmer, Finney County, Kansas',
+      affiliation: 'Former board member, Southwest Kansas Groundwater Management District No. 3',
+      avatar: 'https://picsum.photos/seed/farmer_bobby/64/64',
+      expertise: 'Agriculture · Groundwater',
+    },
+    date: 'March 22, 2026', readTime: '8 min',
+    img: 'https://picsum.photos/seed/ogallala_farm/600/380',
+    imgAlt: 'A center-pivot irrigation system operating at night in a Kansas wheat field, the arc of water catching the blue moonlight',
+    excerpt: "My grandfather drilled the first irrigation well on our land in 1948. My father drilled four more. I drilled two myself, and I've watched all but one go dry. I am not telling you this to ask for sympathy. I am telling you because I want you to understand something the conservation brochures don't say: the programs designed to pay farmers to conserve water have, in most cases, simply paid us to idle our least productive wells while our best ones keep pumping.",
+    respondHref: '#respond',
+    href: 'article.html',
+  },
+  {
+    id: 3,
+    title: "The Science Is Clear. Why Isn't the Policy?",
+    deck: "Hydrogeologists have understood aquifer dynamics for decades. The gap between what we know and what we regulate is a political failure, not a scientific one.",
+    author: {
+      name: 'Dr. Priya Nair',
+      title: 'Associate Professor of Hydrology, University of Colorado',
+      affiliation: 'Principal Investigator, Western Groundwater Assessment Project',
+      avatar: 'https://picsum.photos/seed/dr_nair/64/64',
+      expertise: 'Hydrology · Earth Science',
+    },
+    date: 'March 18, 2026', readTime: '9 min',
+    img: 'https://picsum.photos/seed/hydrology_lab/600/380',
+    imgAlt: 'A hydrologist in a field lab examining a soil core sample against bright sunlight, with monitoring equipment in the background',
+    excerpt: "In 2019, our team published a peer-reviewed study in Nature Geoscience projecting that, under current extraction rates, critical portions of the High Plains Aquifer would reach unsaturated conditions — effectively zero economically recoverable water — by 2060 in some areas and by 2040 in others. The response from federal regulators was silence.",
+    respondHref: '#respond',
+    href: 'article.html',
+  },
+  {
+    id: 4,
+    title: "Water Privatization Won't Save Us. Community Governance Might.",
+    deck: "As aquifers dry up, powerful interests are pushing market-based solutions. Evidence from three continents says we should think twice.",
+    author: {
+      name: 'Amara Osei-Wusu',
+      title: 'Executive Director, Southwest Water Justice Coalition',
+      affiliation: 'Member, White House Council on Environmental Quality (2021–2024)',
+      avatar: 'https://picsum.photos/seed/amara_director/64/64',
+      expertise: 'Environmental Justice · Policy',
+    },
+    date: 'March 12, 2026', readTime: '12 min',
+    img: 'https://picsum.photos/seed/water_justice/600/380',
+    imgAlt: 'Community members at a public water board meeting, hands raised to speak, with local water district officials at the front table',
+    excerpt: "Every water crisis produces the same response from certain quarters: the market will sort it out. Price water correctly, the argument goes, and allocation will be efficient. The thirstiest bidder will win, waste will be punished, and the invisible hand will save the aquifer. It is a theory that sounds elegant in a seminar room and has failed, repeatedly, in the field.",
+    respondHref: '#respond',
+    href: 'article.html',
+  },
+  {
+    id: 5,
+    title: "In Defense of Optimism: Why Technological Solutions Deserve a Seat at the Table",
+    deck: "Conservation is essential — but pretending that technology can't also help is a form of ideological denial.",
+    author: {
+      name: 'Dr. Wei Zhang',
+      title: 'Senior Research Engineer, MIT Water Innovation Lab',
+      affiliation: 'Co-founder, Aquatek Solutions',
+      avatar: 'https://picsum.photos/seed/dr_zhang/64/64',
+      expertise: 'Water Technology · Engineering',
+    },
+    date: 'March 5, 2026', readTime: '7 min',
+    img: 'https://picsum.photos/seed/water_tech/600/380',
+    imgAlt: 'Engineer inspecting a large-scale atmospheric water generation installation with solar panels and collection tanks in a desert setting',
+    excerpt: "Let me stipulate what I am not arguing: I am not arguing that technology will let us continue pumping at current rates with no consequences. I am not arguing that desalination can replace the Colorado River. I am arguing, more modestly, that a movement so committed to evidence-based science can sometimes be surprisingly evidence-resistant when it comes to technologies that challenge its preferred narrative.",
+    respondHref: '#respond',
+    href: 'article.html',
+  },
+];
+
+/* ── Respond Link ────────────────────────────────────────────── */
+function RespondLink({ href }) {
+  return (
+    <a href={href}
+      className="font-ui inline-flex items-center gap-2 text-sm text-green-700 border border-green-200 hover:bg-green-50 px-4 py-2 rounded-lg transition-colors"
+      aria-label="Submit a response or letter to this piece">
+      <IconMail />
+      Respond to this piece
+    </a>
+  );
+}
+
+/* ── Author Bio Card ─────────────────────────────────────────── */
+function AuthorBioCard({ author, date, readTime, respond }) {
+  return (
+    <div className="flex flex-col sm:flex-row gap-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
+      <img src={author.avatar} alt={`${author.name}'s photo`}
+        className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+          <div>
+            <p className="font-ui font-semibold text-sm text-gray-900">{author.name}</p>
+            <p className="font-ui text-xs text-gray-500 mt-0.5">{author.title}</p>
+            {author.affiliation && <p className="font-ui text-xs text-gray-400 mt-0.5">{author.affiliation}</p>}
+          </div>
+          <div className="font-ui text-xs text-gray-400 flex-shrink-0">
+            <time>{date}</time> · {readTime} read
+          </div>
+        </div>
+        {author.bio && <p className="font-ui text-xs text-gray-500 mt-2 leading-relaxed">{author.bio}</p>}
+        <div className="flex items-center gap-2 mt-2">
+          <span className="font-ui text-[10px] font-bold text-green-700 bg-green-50 border border-green-100 px-2 py-0.5 rounded">
+            {author.expertise}
+          </span>
+          {respond && <RespondLink href={respond} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Featured Piece ──────────────────────────────────────────── */
+function FeaturedPiece({ piece }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <article aria-label={`Featured perspective: ${piece.title}`} className="mb-14 pb-14 border-b border-gray-100">
+      <div className="flex items-center gap-2 mb-5">
+        <span className="font-ui text-[10px] font-bold uppercase tracking-widest bg-green-700 text-white px-2.5 py-1 rounded">Featured Perspective</span>
+        <span className="font-ui text-xs text-gray-400">Water Law · Policy</span>
+      </div>
+
+      <div className="lg:grid lg:grid-cols-5 lg:gap-10 mb-6">
+        <div className="lg:col-span-3 order-2 lg:order-1 flex flex-col justify-start">
+          <h2 className="font-display text-3xl sm:text-4xl font-black leading-snug text-gray-900 mb-4">
+            <a href={piece.href} className="hover:text-green-700 transition-colors">{piece.title}</a>
+          </h2>
+          <p className="font-prose text-lg text-gray-600 leading-relaxed mb-5">{piece.deck}</p>
+          <AuthorBioCard author={piece.author} date={piece.date} readTime={piece.readTime} respond={piece.respondHref} />
+        </div>
+        <div className="lg:col-span-2 order-1 lg:order-2 mb-6 lg:mb-0">
+          <figure>
+            <a href={piece.href} tabIndex={-1} aria-hidden="true">
+              <img src={piece.img} alt={piece.imgAlt} className="w-full rounded-2xl object-cover aspect-[16/10]" />
+            </a>
+          </figure>
+        </div>
+      </div>
+
+      {/* Excerpt */}
+      <div className="max-w-2xl">
+        <div className="font-prose text-base text-gray-700 leading-relaxed space-y-4">
+          {(expanded ? piece.excerpt : piece.excerpt.slice(0, 1)).map((para, i) => (
+            <p key={i}>{para}</p>
+          ))}
+        </div>
+        <div className="mt-5 flex items-center gap-3">
+          <a href={piece.href} className="font-ui inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm">
+            Read the full essay <IconArrow />
+          </a>
+          {!expanded && (
+            <button onClick={() => setExpanded(true)} className="font-ui text-sm text-green-700 hover:text-green-800 underline">
+              Show more
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ── Opinion Card ────────────────────────────────────────────── */
+function OpinionCard({ piece }) {
+  return (
+    <article aria-label={`Perspective: ${piece.title}`} className="grid sm:grid-cols-3 gap-6 py-8 border-b border-gray-100 last:border-0">
+      <a href={piece.href} tabIndex={-1} aria-hidden="true" className="sm:col-span-1">
+        <img src={piece.img} alt={piece.imgAlt} className="w-full rounded-xl object-cover aspect-[4/3]" loading="lazy" />
+      </a>
+      <div className="sm:col-span-2 flex flex-col justify-start">
+        <h3 className="font-display text-xl font-bold leading-snug text-gray-900 mb-2">
+          <a href={piece.href} className="hover:text-green-700 transition-colors">{piece.title}</a>
+        </h3>
+        <p className="font-prose text-sm text-gray-600 leading-relaxed mb-3">{piece.deck}</p>
+        <p className="font-prose text-sm text-gray-500 italic mb-4">"{piece.excerpt.substring(0, 200)}…"</p>
+        <AuthorBioCard author={piece.author} date={piece.date} readTime={piece.readTime} respond={piece.respondHref} />
+        <div className="mt-3">
+          <a href={piece.href} className="font-ui inline-flex items-center gap-1.5 text-sm text-green-700 font-semibold hover:text-green-800 transition-colors">
+            Read the essay <IconArrow />
+          </a>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ── Letter Submission ───────────────────────────────────────── */
+function LetterSubmission() {
+  const [form, setForm] = useState({ name: '', email: '', affiliation: '', letter: '', reference: '' });
+  const nameId = useId(); const emailId = useId(); const affId = useId();
+  const letterId = useId(); const refId = useId();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (form.name && form.email && form.letter) {
+      alert('Thank you for your submission. Our editors will review your letter within 5 business days. (demo)');
+      setForm({ name: '', email: '', affiliation: '', letter: '', reference: '' });
+    }
+  };
+
+  const F = ({ label, req, children, htmlFor, hint }) => (
+    <div>
+      <label htmlFor={htmlFor} className="font-ui block text-sm font-medium text-gray-700 mb-1">
+        {label}{req && <span className="text-red-500 ml-0.5" aria-label="required">*</span>}
+      </label>
+      {children}
+      {hint && <p className="font-ui text-xs text-gray-400 mt-1">{hint}</p>}
+    </div>
+  );
+
+  return (
+    <section id="respond" aria-labelledby="respond-heading" className="bg-gray-50 rounded-2xl border border-gray-200 p-6 sm:p-8">
+      <h2 id="respond-heading" className="font-display text-2xl font-bold text-gray-900 mb-1">Respond to a Perspective</h2>
+      <p className="font-prose text-base text-gray-600 mb-6 leading-relaxed">
+        We welcome responses from readers, researchers, practitioners, and community members. Selected letters are published in Perspectives. We do not publish anonymous submissions.
+      </p>
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <div className="grid sm:grid-cols-2 gap-5">
+          <F label="Full name" req htmlFor={nameId}>
+            <input id={nameId} type="text" required value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))}
+              autoComplete="name" placeholder="Dr. / Prof. / Mr. / Ms."
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-green-600 focus:outline-none" />
+          </F>
+          <F label="Email address" req htmlFor={emailId} hint="Not published. Used for editorial correspondence only.">
+            <input id={emailId} type="email" required value={form.email} onChange={e => setForm(p => ({...p, email: e.target.value}))}
+              autoComplete="email" placeholder="you@institution.edu"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-green-600 focus:outline-none" />
+          </F>
+        </div>
+        <F label="Affiliation / Title" htmlFor={affId} hint="Optional, but helps editors assess expertise and context.">
+          <input id={affId} type="text" value={form.affiliation} onChange={e => setForm(p => ({...p, affiliation: e.target.value}))}
+            placeholder="e.g. Professor of Hydrology, University of Kansas"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-green-600 focus:outline-none" />
+        </F>
+        <F label="Which piece are you responding to?" htmlFor={refId}>
+          <select id={refId} value={form.reference} onChange={e => setForm(p => ({...p, reference: e.target.value}))}
+            aria-label="Select the piece you are responding to"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-700 focus:border-green-600 focus:outline-none bg-white">
+            <option value="">Select a piece…</option>
+            <option>Groundwater Law Is a 19th-Century Solution to a 21st-Century Crisis</option>
+            <option>I Farmed the Ogallala for Forty Years</option>
+            <option>The Science Is Clear. Why Isn't the Policy?</option>
+            <option>Water Privatization Won't Save Us</option>
+            <option>In Defense of Optimism</option>
+            <option>Other / General response</option>
+          </select>
+        </F>
+        <F label="Your letter" req htmlFor={letterId} hint="Letters should be 200–600 words. We may edit for length and clarity. Original submissions only.">
+          <textarea id={letterId} required rows={7} value={form.letter} onChange={e => setForm(p => ({...p, letter: e.target.value}))}
+            placeholder="Write your response here…"
+            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-green-600 focus:outline-none resize-none leading-relaxed" />
+          <p className="font-ui text-right text-xs text-gray-400 mt-1">{form.letter.split(/\s+/).filter(Boolean).length} words</p>
+        </F>
+        <div className="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg">
+          <input type="checkbox" id="ethics-check" required className="mt-0.5 w-4 h-4 accent-green-700 flex-shrink-0" />
+          <label htmlFor="ethics-check" className="font-ui text-sm text-gray-600 cursor-pointer">
+            I confirm this is my original work, written in my own name. I have disclosed any relevant conflicts of interest or funding sources in the text.
+            <a href="#" className="text-green-700 hover:underline ml-1">Read our ethics policy →</a>
+          </label>
+        </div>
+        <button type="submit"
+          className="font-ui bg-green-700 hover:bg-green-800 text-white font-semibold px-6 py-3 rounded-lg transition-colors">
+          Submit for Editorial Review
+        </button>
+      </form>
+    </section>
+  );
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+function Footer() {
+  return (
+    <footer className="font-ui bg-gray-900 text-gray-400 py-10 mt-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+        <span className="font-display text-xl font-black text-white"><span className="text-green-400">Ground</span>work</span>
+        <nav aria-label="Footer navigation" className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          {['Climate', 'Energy', 'Policy', 'Science', 'Opinion', 'About', 'Ethics'].map(l => (
+            <a key={l} href={l === 'Opinion' ? 'opinion.html' : l === 'Climate' ? 'climate.html' : '#'} className="hover:text-white transition-colors">{l}</a>
+          ))}
+          <a href="subscribe.html" className="text-green-400 hover:text-green-300 font-semibold">Support Us</a>
+        </nav>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 pt-6 border-t border-gray-800">
+        <p className="text-xs text-gray-500">© 2026 Groundwork Investigative Press. 501(c)(3) nonprofit.</p>
+      </div>
+    </footer>
+  );
+}
+
+/* ── App ─────────────────────────────────────────────────────── */
+function App() {
+  return (
+    <>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-1/2 focus:-translate-x-1/2 focus:z-50 focus:bg-green-700 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:font-ui focus:text-sm">
+        Skip to main content
+      </a>
+      <Header />
+      <PageHeader />
+      <main id="main-content">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+          <FeaturedPiece piece={FEATURED_PIECE} />
+
+          <section aria-labelledby="more-perspectives-heading">
+            <h2 id="more-perspectives-heading" className="font-display text-2xl font-bold text-gray-900 mb-6">More Perspectives</h2>
+            {OPINION_PIECES.map(piece => <OpinionCard key={piece.id} piece={piece} />)}
+          </section>
+
+          <div className="mt-12">
+            <LetterSubmission />
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

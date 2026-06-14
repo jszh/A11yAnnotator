@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Services - City of Lakewood</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700;900&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./shared/theme.js"></script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+
+<body class="bg-gov-neutral-50 text-gov-neutral-900 flex flex-col min-h-screen">
+    <div id="root" class="flex flex-col flex-1"></div>
+
+    <script type="text/babel" src="./shared/components.jsx"></script>
+
+    <script type="text/babel">
+        const checkShared = setInterval(() => {
+            if (window.SharedComponents) {
+                clearInterval(checkShared);
+                renderApp();
+            }
+        }, 50);
+
+        function App() {
+            const { Header, Footer, Icons } = window.SharedComponents;
+            const { ShieldIcon, TruckIcon, HeartIcon, LayoutGridIcon, DocumentIcon, CreditCardIcon, ArrowRightIcon } = Icons; // Mocking slightly mapped icons
+
+            const serviceCategories = [
+                {
+                    title: "Utilities & Billing",
+                    desc: "Pay water bills, set up trash collection, and manage municipal accounts.",
+                    href: "service-billing.html",
+                    icon: <CreditCardIcon className="w-10 h-10 text-gov-blue-600 mb-4" />,
+                    links: ["Pay Water Bill", "Start/Stop Service", "Trash & Recycling Schedule", "Utility Rates"]
+                },
+                {
+                    title: "Permits & Licenses",
+                    desc: "Apply for residential/commercial building permits and business licenses.",
+                    href: "service-permits.html",
+                    icon: <DocumentIcon className="w-10 h-10 text-gov-blue-600 mb-4" />,
+                    links: ["Residential Building Permits", "Commercial Permits", "Zoning Information", "Business Licenses"]
+                },
+                {
+                    title: "Public Safety",
+                    desc: "Police, fire, emergency services, and community safety programs.",
+                    href: "#",
+                    icon: <Icons.AlertTriangleIcon className="w-10 h-10 text-gov-blue-600 mb-4" />,
+                    links: ["File a Police Report", "Fire Department", "Emergency Management", "Animal Control"]
+                },
+                {
+                    title: "Transportation",
+                    desc: "Street maintenance, parking, public transit, and road closures.",
+                    href: "#",
+                    icon: <Icons.MenuIcon className="w-10 h-10 text-gov-blue-600 mb-4" />,
+                    links: ["Report a Pothole", "Parking Permits", "Street Sweeping", "Traffic Calming Requests"]
+                },
+                {
+                    title: "Parks & Recreation",
+                    desc: "City parks, community centers, swimming pools, and sports leagues.",
+                    href: "#",
+                    icon: <LayoutGridIcon className="w-10 h-10 text-gov-blue-600 mb-4" />,
+                    links: ["Find a Park / Facility", "Register for Programs", "Reserve a Pavilion", "Senior Services"]
+                },
+                {
+                    title: "Social Services",
+                    desc: "Housing assistance, public health, and family support resources.",
+                    href: "#",
+                    icon: <Icons.BuildingIcon className="w-10 h-10 text-gov-blue-600 mb-4" />,
+                    links: ["Housing Programs", "Public Health Center", "Veterans Affairs", "Food Assistance"]
+                }
+            ];
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header currentPath="services.html" />
+
+                    <main className="flex-1">
+                        {/* Page Header */}
+                        <div className="bg-gov-blue-900 text-white py-12 md:py-16">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <h1 className="text-4xl font-serif font-bold mb-4">City Services</h1>
+                                <p className="text-xl text-gov-blue-200 max-w-3xl">Browse services and resources provided by the City of Lakewood, organized by category.</p>
+                            </div>
+                        </div>
+
+                        {/* Search Row */}
+                        <div className="bg-white border-b border-gov-neutral-200 py-6 sticky top-[138px] z-30 shadow-sm">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+                                <div className="w-full md:w-1/2 relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Icons.SearchIcon className="h-5 w-5 text-gov-neutral-400" />
+                                    </div>
+                                    <input type="text" className="block w-full pl-10 pr-3 py-3 border border-gov-neutral-300 rounded-md leading-5 bg-white placeholder-gov-neutral-400 focus:outline-none focus:ring-2 focus:ring-gov-blue-500" placeholder="Filter services by keyword..." />
+                                </div>
+                                <div className="flex gap-2 text-sm">
+                                    <span className="font-semibold text-gov-neutral-700 mt-2">A-Z Index:</span>
+                                    <div className="flex flex-wrap text-gov-blue-700">
+                                        {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].map(l => (
+                                            <a key={l} href="#" className="w-6 h-6 flex items-center justify-center hover:bg-gov-blue-50 rounded">{l}</a>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Grid */}
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {serviceCategories.map((cat, idx) => (
+                                    <div key={idx} className="bg-white rounded-xl shadow-soft border border-gov-neutral-200 p-8 flex flex-col h-full hover:shadow-float transition-shadow">
+                                        <div className="mb-4">{cat.icon}</div>
+                                        <h2 className="text-2xl font-bold text-gov-blue-900 mb-3">{cat.title}</h2>
+                                        <p className="text-gov-neutral-600 mb-6 flex-grow">{cat.desc}</p>
+
+                                        <div className="space-y-3 mb-6">
+                                            {cat.links.map((link, lidx) => (
+                                                <a key={lidx} href={lidx === 0 && cat.links[0].includes("Permits") ? "service-permits.html" : (lidx === 0 && cat.links[0].includes("Water") ? "service-billing.html" : "#")} className="block text-gov-blue-700 hover:underline hover:text-gov-blue-800 font-medium flex items-center gap-2">
+                                                    <span className="text-gov-blue-300">›</span> {link}
+                                                </a>
+                                            ))}
+                                        </div>
+
+                                        <a href={cat.href} className="mt-auto inline-flex items-center text-gov-blue-800 font-bold hover:text-gov-blue-600 transition-colors group">
+                                            View Department <ArrowRightIcon className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                                        </a>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        }
+
+        function renderApp() {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State of Vermont - Official Resident Services Portal</title>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        },
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d', // Forest green for Vermont vibe
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- Shared Components ---
+        const TrustBanner = () => (
+            <div className="bg-slate-100 text-slate-600 text-xs py-2 px-4 border-b border-slate-200">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Flag_of_Vermont.svg" alt="Vermont Flag" className="h-4 w-6 object-cover border border-slate-300" />
+                        <span>An official website of the State of Vermont</span>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const Header = () => (
+            <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-20">
+                        {/* Logo */}
+                        <div className="flex items-center">
+                            <a href="index.html" className="flex items-center space-x-3 group">
+                                <div className="w-10 h-10 bg-brand-700 rounded-full flex items-center justify-center text-white font-bold text-xl group-hover:bg-brand-800 transition-colors">
+                                    <i data-lucide="mountain"></i>
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold text-slate-900 leading-tight group-hover:text-brand-700 transition-colors">Vermont</h1>
+                                    <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Resident Services Portal</p>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        {/* Desktop Nav */}
+                        <nav className="hidden md:flex items-center space-x-8">
+                            <a href="services.html" className="text-slate-600 hover:text-brand-700 font-medium transition-colors">Services</a>
+                            <a href="about.html" className="text-slate-600 hover:text-brand-700 font-medium transition-colors">About</a>
+                            <a href="contact.html" className="text-slate-600 hover:text-brand-700 font-medium transition-colors">Contact</a>
+                            
+                            <div className="flex items-center border-l border-slate-200 pl-6 space-x-4">
+                                <select className="text-sm border border-slate-300 rounded-md text-slate-600 py-1.5 pl-3 pr-8 focus:ring-brand-500 focus:border-brand-500 bg-white">
+                                    <option>English</option>
+                                    <option>Español</option>
+                                    <option>Français</option>
+                                </select>
+                                <button className="text-slate-500 hover:text-brand-700 p-2 transition-colors">
+                                    <i data-lucide="search" className="w-5 h-5"></i>
+                                </button>
+                                <button className="bg-brand-700 hover:bg-brand-800 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors shadow-sm">
+                                    Sign In
+                                </button>
+                            </div>
+                        </nav>
+                        
+                        {/* Mobile Menu Button */}
+                        <div className="md:hidden flex items-center">
+                            <button className="text-slate-500 hover:text-slate-700 p-2">
+                                <i data-lucide="menu" className="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="bg-slate-900 text-slate-300 py-12 border-t-4 border-brand-600">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div>
+                            <div className="flex items-center space-x-3 mb-6">
+                                <div className="w-8 h-8 bg-brand-600 rounded-full flex items-center justify-center text-white">
+                                    <i data-lucide="mountain" className="w-5 h-5"></i>
+                                </div>
+                                <span className="text-lg font-bold text-white">State of Vermont</span>
+                            </div>
+                            <p className="text-sm text-slate-400">
+                                Official resident services portal providing access to licensing, health, education, and benefits.
+                            </p>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Services</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="service-driver-license.html" className="hover:text-white hover:underline transition-colors">Driver's License & ID</a></li>
+                                <li><a href="service-benefits.html" className="hover:text-white hover:underline transition-colors">Benefits & Assistance</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Taxes & Finance</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Business & Employment</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Government</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="about.html" className="hover:text-white hover:underline transition-colors">About the Governor</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">State Agencies</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Elected Officials</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Transparency Reports</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Support</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="contact.html" className="hover:text-white hover:underline transition-colors">Contact Us</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Accessibility</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Privacy Policy</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Terms of Service</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        // --- Page Components ---
+        const SeasonalBanner = () => (
+            <div className="bg-amber-100 border-b border-amber-200 px-4 py-3 sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap">
+                    <div className="flex-1 flex items-center">
+                        <span className="flex p-2 rounded-lg bg-amber-200 text-amber-800 shadow-sm">
+                            <i data-lucide="calendar-alert" className="h-5 w-5"></i>
+                        </span>
+                        <p className="ml-3 font-medium text-amber-900 truncate">
+                            <span className="md:hidden">Tax Deadline: April 15</span>
+                            <span className="hidden md:inline">Tax Filing Deadline: April 15 — File Online Now</span>
+                        </p>
+                    </div>
+                    <div className="order-3 mt-2 flex-shrink-0 w-full sm:order-2 sm:mt-0 sm:w-auto">
+                        <a href="#" className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-900 bg-white hover:bg-amber-50 transition-colors">
+                            File Taxes <i data-lucide="arrow-right" className="ml-2 w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const Hero = () => (
+            <div className="bg-slate-900 text-white py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+                {/* Background decorative elements */}
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute left-0 right-0 top-0 h-full opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMSI+PHBhdGggZD0iTTM2IDM0djI2SDI0VjM0SDZWMjRoMThWMEgzNnYyNGgxOHYxMEgzNnoiLz48L2c+PC9nPjwvc3ZnPg==')] bg-[length:60px_60px]"></div>
+                    <div className="absolute -right-[15%] -top-[20%] w-[50%] h-[150%] bg-brand-600/20 blur-[120px] rounded-full mix-blend-overlay"></div>
+                    <div className="absolute -left-[10%] bottom-[0%] w-[40%] h-[100%] bg-blue-500/20 blur-[100px] rounded-full mix-blend-overlay"></div>
+                </div>
+                
+                <div className="max-w-3xl mx-auto relative z-10 text-center">
+                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 tracking-tight text-white">What do you need today?</h2>
+                    <p className="text-lg md:text-xl text-slate-300 mb-10 max-w-2xl mx-auto">
+                        Search across all state services, departments, and resources quickly and securely.
+                    </p>
+                    
+                    <div className="bg-white rounded-xl shadow-2xl p-2 flex border border-slate-700/50 relative overflow-hidden focus-within:ring-4 focus-within:ring-brand-500/30 transition-shadow">
+                        <div className="flex-shrink-0 flex items-center pl-4 pr-2">
+                            <i data-lucide="search" className="h-6 w-6 text-slate-400"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            placeholder="e.g. Renew a license, pay taxes, find a park..." 
+                            className="w-full py-4 px-2 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-0 text-lg rounded-md bg-transparent"
+                        />
+                        <button className="flex-shrink-0 bg-brand-600 hover:bg-brand-700 text-white py-3 px-8 rounded-lg font-semibold text-lg transition-transform hover:scale-105 shadow-md">
+                            Search
+                        </button>
+                    </div>
+                    
+                    <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm font-medium">
+                        <span className="text-slate-400">Trending:</span>
+                        <a href="service-driver-license.html" className="text-brand-300 hover:text-white transition-colors bg-white/5 px-3 py-1 rounded-full border border-white/10 hover:bg-white/10 hover:border-white/30">License Renewal</a>
+                        <a href="#" className="text-brand-300 hover:text-white transition-colors bg-white/5 px-3 py-1 rounded-full border border-white/10 hover:bg-white/10 hover:border-white/30">Tax Forms</a>
+                        <a href="service-benefits.html" className="text-brand-300 hover:text-white transition-colors bg-white/5 px-3 py-1 rounded-full border border-white/10 hover:bg-white/10 hover:border-white/30">Medicaid Application</a>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const QuickLinks = () => {
+            const links = [
+                { title: "Renew Driver's License", icon: "car", url: "service-driver-license.html", desc: "Online renewal for standard licenses and IDs." },
+                { title: "Apply for Benefits", icon: "heart-handshake", url: "service-benefits.html", desc: "SNAP, Medicaid, and Heating Assistance." },
+                { title: "Register to Vote", icon: "user-check", url: "#", desc: "Update your registration or register for the first time." },
+                { title: "Find a School", icon: "graduation-cap", url: "#", desc: "Public school directories and performance reports." },
+                { title: "Start a Business", icon: "store", url: "#", desc: "Licenses, permits, and tax registration." },
+                { title: "Pay State Taxes", icon: "calculator", url: "#", desc: "Secure online payment for individual income tax." },
+            ];
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                    <div className="flex justify-between items-end mb-8 border-b border-slate-200 pb-4">
+                        <h3 className="text-2xl font-bold text-slate-900">Top Services</h3>
+                        <a href="services.html" className="hidden md:inline-flex items-center text-sm font-medium text-brand-700 hover:text-brand-800 group">
+                            View All Services
+                            <i data-lucide="arrow-right" className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform"></i>
+                        </a>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {links.map((link, i) => (
+                            <a key={i} href={link.url} className="group bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 hover:border-brand-300 flex flex-col h-full relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-500 transform origin-top-right">
+                                    <i data-lucide={link.icon} className="w-24 h-24 text-brand-700"></i>
+                                </div>
+                                <div className="w-12 h-12 bg-slate-50 border border-slate-100 text-brand-700 rounded-xl flex items-center justify-center mb-5 group-hover:bg-brand-50 group-hover:border-brand-200 transition-colors shadow-sm relative z-10">
+                                    <i data-lucide={link.icon} className="w-6 h-6"></i>
+                                </div>
+                                <h4 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-brand-700 transition-colors relative z-10">
+                                    {link.title}
+                                </h4>
+                                <p className="text-slate-600 text-sm mt-auto relative z-10">{link.desc}</p>
+                            </a>
+                        ))}
+                    </div>
+                    <div className="mt-8 text-center md:hidden">
+                        <a href="services.html" className="inline-flex items-center text-brand-700 font-medium hover:text-brand-800 bg-brand-50 px-6 py-3 rounded-lg border border-brand-100">
+                            View All Services
+                            <i data-lucide="arrow-right" className="w-4 h-4 ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+            );
+        };
+
+        const LiveUpdates = () => {
+            const updates = [
+                { dept: "Dept. of Health", date: "Today, 9:00 AM", text: "New guidelines released for seasonal flu vaccination clinics across the central region.", type: "info" },
+                { dept: "Dept. of Transportation", date: "Yesterday, 2:30 PM", text: "Route 7 closure for bridge maintenance extended through Friday. Please use alternate routes.", type: "warning" },
+                { dept: "Governor's Office", date: "Oct 12, 10:15 AM", text: "Governor signs new bill expanding broadband access in rural and underserved areas.", type: "news" },
+            ];
+            
+            const getTypeStyles = (type) => {
+                switch(type) {
+                    case 'warning': return 'bg-amber-50 text-amber-800 border-amber-200';
+                    case 'info': return 'bg-blue-50 text-blue-800 border-blue-200';
+                    case 'news': return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                    default: return 'bg-slate-50 text-slate-800 border-slate-200';
+                }
+            };
+
+            return (
+                <div className="bg-slate-50 py-16 border-t border-slate-200">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                            <div className="lg:col-span-2 space-y-4">
+                                <h3 className="text-2xl font-bold text-slate-900 mb-6 flex items-center">
+                                    <i data-lucide="radio" className="w-6 h-6 mr-3 text-brand-600"></i>
+                                    Live Updates
+                                </h3>
+                                {updates.map((update, i) => (
+                                    <div key={i} className="flex gap-4 p-5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-colors shadow-sm">
+                                        <div className="flex-shrink-0 mt-1">
+                                            {update.type === 'warning' && <i data-lucide="alert-triangle" className="w-6 h-6 text-amber-500"></i>}
+                                            {update.type === 'info' && <i data-lucide="info" className="w-6 h-6 text-blue-500"></i>}
+                                            {update.type === 'news' && <i data-lucide="newspaper" className="w-6 h-6 text-emerald-500"></i>}
+                                        </div>
+                                        <div>
+                                            <div className="flex flex-wrap gap-2 items-center mb-2">
+                                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${getTypeStyles(update.type)}`}>
+                                                    {update.dept}
+                                                </span>
+                                                <span className="text-xs text-slate-500 font-medium">{update.date}</span>
+                                            </div>
+                                            <p className="text-slate-800 text-sm md:text-base leading-relaxed">{update.text}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                <a href="#" className="inline-block mt-4 text-sm font-medium text-brand-700 hover:text-brand-800 hover:underline">View all announcements &rarr;</a>
+                            </div>
+                            
+                            <div>
+                                <div className="bg-slate-900 text-white p-8 rounded-2xl shadow-xl border-t-4 border-brand-500 relative overflow-hidden">
+                                    <div className="absolute -right-6 -bottom-6 opacity-10">
+                                        <i data-lucide="mail" className="w-40 h-40"></i>
+                                    </div>
+                                    <div className="relative z-10">
+                                        <h4 className="text-xl font-bold mb-3 flex items-center">
+                                            Get Notified
+                                        </h4>
+                                        <p className="text-sm text-slate-300 mb-6 leading-relaxed">Sign up to receive emergency alerts, press releases, and important state updates directly to your inbox.</p>
+                                        <form className="space-y-4">
+                                            <div>
+                                                <label className="sr-only">Email address</label>
+                                                <input type="email" placeholder="Email address" className="w-full text-sm rounded-lg border-0 py-3 px-4 bg-slate-800 text-white placeholder-slate-400 focus:ring-2 focus:ring-brand-500 shadow-inner" />
+                                            </div>
+                                            <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 rounded-lg transition-all hover:scale-[1.02] shadow-md text-sm">
+                                                Subscribe
+                                            </button>
+                                        </form>
+                                        <p className="text-xs text-slate-400 mt-4 text-center">We respect your privacy. No spam.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            // Initialize Lucide icons after rendering
+            React.useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <TrustBanner />
+                    <Header />
+                    <main className="flex-grow">
+                        <SeasonalBanner />
+                        <Hero />
+                        <QuickLinks />
+                        <LiveUpdates />
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

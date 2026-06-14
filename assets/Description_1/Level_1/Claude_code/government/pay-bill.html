@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Pay your Lakewood utility bill online — water, sewer, solid waste, and stormwater." />
+  <title>Pay a Bill — City of Lakewood, CO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { 'lk-navy': '#0d2340', 'lk-blue': '#1a3a6b', 'lk-brand': '#1a56db' } } }
+    }
+  </script>
+  <style>
+    :focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; }
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="components.js"></script>
+
+<script type="text/babel">
+
+// Mock account data
+const MOCK_ACCOUNTS = {
+  '123456': {
+    name: 'Sarah M. Johnson',
+    address: '4820 W Hampden Ave, Lakewood, CO 80227',
+    accountNumber: '123456',
+    balance: 87.42,
+    dueDate: 'December 5, 2025',
+    lastPayment: { amount: 94.18, date: 'November 2, 2025' },
+    breakdown: [
+      { item: 'Water',        amount: 41.20 },
+      { item: 'Sewer',        amount: 28.15 },
+      { item: 'Solid Waste',  amount: 14.07 },
+      { item: 'Stormwater',   amount: 4.00  },
+    ],
+    status: 'current',
+  },
+  '789012': {
+    name: 'David R. Torres',
+    address: '112 S Teller St, Lakewood, CO 80226',
+    accountNumber: '789012',
+    balance: 214.55,
+    dueDate: 'November 28, 2025',
+    lastPayment: { amount: 98.40, date: 'October 15, 2025' },
+    breakdown: [
+      { item: 'Water',        amount: 103.75 },
+      { item: 'Sewer',        amount: 72.30 },
+      { item: 'Solid Waste',  amount: 28.50 },
+      { item: 'Stormwater',   amount: 10.00 },
+    ],
+    status: 'past_due',
+  },
+};
+
+// ── Step indicator ─────────────────────────────────────────────
+function StepBar({ step }) {
+  const steps = ['Account Lookup', 'Review Balance', 'Payment Info', 'Confirmation'];
+  return (
+    <nav aria-label="Payment steps" className="mb-10">
+      <ol className="flex items-center" role="list">
+        {steps.map((label, i) => {
+          const idx  = i + 1;
+          const done = idx < step;
+          const curr = idx === step;
+          return (
+            <React.Fragment key={label}>
+              <li className="flex flex-col items-center flex-shrink-0">
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
+                    done ? 'bg-green-600 border-green-600 text-white' :
+                    curr ? 'bg-blue-700 border-blue-700 text-white ring-4 ring-blue-100' :
+                           'bg-white border-gray-300 text-gray-400'
+                  }`}
+                  aria-current={curr ? 'step' : undefined}
+                  aria-label={`Step ${idx}: ${label}${done ? ' (completed)' : curr ? ' (current)' : ''}`}
+                >
+                  {done ? '✓' : idx}
+                </div>
+                <span className={`mt-2 text-xs font-semibold text-center leading-tight max-w-[72px] hidden sm:block ${
+                  curr ? 'text-blue-700' : done ? 'text-green-700' : 'text-gray-400'
+                }`}>
+                  {label}
+                </span>
+              </li>
+              {i < steps.length - 1 && (
+                <li className={`flex-1 h-0.5 mx-2 ${done ? 'bg-green-400' : 'bg-gray-200'}`} aria-hidden="true" />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+// ── Step 1: Account Lookup ────────────────────────────────────
+function StepLookup({ onFound }) {
+  const [accountNumber, setAccountNumber] = React.useState('');
+  const [error, setError]                 = React.useState('');
+  const [loading, setLoading]             = React.useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const raw = accountNumber.trim();
+    if (!raw) { setError('Please enter your account number.'); return; }
+    setLoading(true);
+    setTimeout(() => {
+      const account = MOCK_ACCOUNTS[raw];
+      setLoading(false);
+      if (account) { setError(''); onFound(account); }
+      else setError(`No account found with number "${raw}". Please check your bill and try again.`);
+    }, 800);
+  };
+
+  return (
+    <section aria-labelledby="lookup-heading">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-8 py-6 bg-gray-50 border-b border-gray-200">
+          <h2 id="lookup-heading" className="text-xl font-bold text-gray-900">Find Your Account</h2>
+          <p className="text-sm text-gray-500 mt-1">Enter the account number from your paper or email bill.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-8 py-8" aria-label="Account number lookup">
+          <label htmlFor="account-number" className="block text-sm font-semibold text-gray-700 mb-2">
+            Account Number <span className="text-red-600" aria-label="required">*</span>
+          </label>
+          <div className="flex gap-3 max-w-sm">
+            <input
+              id="account-number"
+              type="text"
+              value={accountNumber}
+              onChange={e => { setAccountNumber(e.target.value); setError(''); }}
+              placeholder="e.g. 123456"
+              autoComplete="off"
+              aria-required="true"
+              aria-describedby={error ? 'account-error' : 'account-hint'}
+              className={`flex-1 px-4 py-2.5 border rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                error ? 'border-red-400 bg-red-50' : 'border-gray-300'
+              }`}
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2.5 bg-blue-700 hover:bg-blue-600 disabled:opacity-60 text-white font-semibold text-sm rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              {loading ? 'Looking up…' : 'Look Up'}
+            </button>
+          </div>
+
+          <p id="account-hint" className="mt-2 text-xs text-gray-500">Your account number is a 6-digit number found in the top-right corner of your bill.</p>
+
+          {error && (
+            <p id="account-error" role="alert" className="mt-3 text-sm text-red-700 flex items-center gap-1.5">
+              <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {error}
+            </p>
+          )}
+        </form>
+
+        <div className="px-8 py-5 bg-blue-50 border-t border-blue-100">
+          <p className="text-sm font-semibold text-gray-700 mb-2">Try a demo account:</p>
+          <div className="flex flex-wrap gap-2">
+            {Object.keys(MOCK_ACCOUNTS).map(num => (
+              <button
+                key={num}
+                type="button"
+                onClick={() => { setAccountNumber(num); setError(''); }}
+                className="px-3 py-1.5 text-xs font-mono bg-white border border-blue-200 rounded-lg text-blue-800 hover:bg-blue-100 focus:bg-blue-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+                aria-label={`Load demo account ${num}`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Step 2: Review Balance ────────────────────────────────────
+function StepBalance({ account, onPay, onBack }) {
+  return (
+    <section aria-labelledby="balance-heading">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className={`px-8 py-6 ${account.status === 'past_due' ? 'bg-red-50 border-b border-red-200' : 'bg-gray-50 border-b border-gray-200'}`}>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h2 id="balance-heading" className="text-xl font-bold text-gray-900">Account Balance</h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Account #{account.accountNumber} · {account.name}
+              </p>
+            </div>
+            {account.status === 'past_due' && (
+              <span className="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                Past Due
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="px-8 py-8">
+          <div className="flex flex-col sm:flex-row gap-8 items-start">
+            {/* Balance summary */}
+            <div className="flex-1">
+              <div className={`rounded-2xl p-6 ${account.status === 'past_due' ? 'bg-red-50 border border-red-200' : 'bg-blue-50 border border-blue-200'}`}>
+                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-1">Amount Due</p>
+                <p className={`text-5xl font-bold ${account.status === 'past_due' ? 'text-red-700' : 'text-blue-800'}`}>
+                  ${account.balance.toFixed(2)}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">Due by {account.dueDate}</p>
+              </div>
+              <p className="text-sm text-gray-500 mt-4">
+                Service address: <strong className="text-gray-700">{account.address}</strong>
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Last payment: ${account.lastPayment.amount.toFixed(2)} on {account.lastPayment.date}
+              </p>
+            </div>
+
+            {/* Breakdown */}
+            <div className="flex-1 w-full">
+              <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Bill Breakdown</h3>
+              <table className="w-full text-sm" aria-label="Utility bill breakdown">
+                <thead>
+                  <tr className="sr-only">
+                    <th scope="col">Service</th>
+                    <th scope="col">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {account.breakdown.map(row => (
+                    <tr key={row.item} className="flex justify-between py-2">
+                      <td className="text-gray-700">{row.item}</td>
+                      <td className="font-semibold text-gray-900">${row.amount.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="flex justify-between pt-3 border-t-2 border-gray-200 mt-1">
+                    <td className="font-bold text-gray-900">Total</td>
+                    <td className="font-bold text-gray-900">${account.balance.toFixed(2)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-8 py-5 bg-gray-50 border-t border-gray-200 flex gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+          >
+            ← Back
+          </button>
+          <button
+            type="button"
+            onClick={onPay}
+            className="px-8 py-2.5 text-sm font-bold text-white bg-blue-700 hover:bg-blue-600 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Proceed to Payment →
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Step 3: Payment Method ────────────────────────────────────
+function StepPayment({ account, onConfirm, onBack }) {
+  const [method, setMethod]   = React.useState('card');
+  const [partial, setPartial] = React.useState(false);
+  const [amount, setAmount]   = React.useState(account.balance.toFixed(2));
+  const [card, setCard]       = React.useState({ number: '', name: '', exp: '', cvv: '' });
+  const [bank, setBank]       = React.useState({ routing: '', accountNum: '', type: 'checking' });
+  const [errors, setErrors]   = React.useState({});
+
+  const setC = (f) => (e) => setCard(v => ({ ...v, [f]: e.target.value }));
+  const setB = (f) => (e) => setBank(v => ({ ...v, [f]: e.target.value }));
+
+  const validate = () => {
+    const e = {};
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 0) e.amount = 'Enter a valid payment amount.';
+    else if (amt > account.balance) e.amount = `Amount cannot exceed balance of $${account.balance.toFixed(2)}.`;
+    if (method === 'card') {
+      if (!card.number.replace(/\s/g,'').match(/^\d{16}$/)) e.cardNumber = 'Enter a valid 16-digit card number.';
+      if (!card.name.trim()) e.cardName = 'Name on card is required.';
+      if (!card.exp.match(/^\d{2}\/\d{2}$/)) e.cardExp = 'Enter expiration as MM/YY.';
+      if (!card.cvv.match(/^\d{3,4}$/)) e.cardCvv = 'Enter a 3- or 4-digit CVV.';
+    } else {
+      if (!bank.routing.match(/^\d{9}$/)) e.bankRouting = 'Enter a valid 9-digit routing number.';
+      if (!bank.accountNum.trim()) e.bankAccount = 'Account number is required.';
+    }
+    return e;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const e2 = validate();
+    if (Object.keys(e2).length) { setErrors(e2); return; }
+    onConfirm({ amount: parseFloat(amount), method, card, bank });
+  };
+
+  const inputCls = (id) =>
+    `w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+      errors[id] ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'
+    }`;
+
+  const FieldRow = ({ id, label, required, error, children }) => (
+    <div>
+      <label htmlFor={`pf-${id}`} className="block text-sm font-semibold text-gray-700 mb-1.5">
+        {label}{required && <span className="text-red-600 ml-1" aria-label="required">*</span>}
+      </label>
+      {children}
+      {error && <p role="alert" className="mt-1 text-xs text-red-600">{error}</p>}
+    </div>
+  );
+
+  return (
+    <section aria-labelledby="payment-heading">
+      <form onSubmit={handleSubmit} noValidate aria-label="Payment form">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-8 py-6 bg-gray-50 border-b border-gray-200">
+            <h2 id="payment-heading" className="text-xl font-bold text-gray-900">Payment Information</h2>
+            <p className="text-sm text-gray-500 mt-1">Your payment is processed securely via SSL encryption.</p>
+          </div>
+
+          <div className="px-8 py-8 space-y-8">
+
+            {/* Amount */}
+            <fieldset>
+              <legend className="text-base font-bold text-gray-900 mb-4">Payment Amount</legend>
+              <div className="flex flex-col gap-3">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="amount-type"
+                    checked={!partial}
+                    onChange={() => { setPartial(false); setAmount(account.balance.toFixed(2)); }}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-semibold text-gray-800 group-hover:text-blue-700">
+                    Full balance — <span className="text-blue-700">${account.balance.toFixed(2)}</span>
+                  </span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="amount-type"
+                    checked={partial}
+                    onChange={() => setPartial(true)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-semibold text-gray-800 group-hover:text-blue-700">Partial payment</span>
+                </label>
+                {partial && (
+                  <div className="ml-7 max-w-xs">
+                    <label htmlFor="pf-amount" className="sr-only">Partial payment amount</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold" aria-hidden="true">$</span>
+                      <input
+                        id="pf-amount"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max={account.balance}
+                        value={amount}
+                        onChange={e => setAmount(e.target.value)}
+                        className={`${inputCls('amount')} pl-8`}
+                        aria-describedby={errors.amount ? 'err-amount' : undefined}
+                      />
+                    </div>
+                    {errors.amount && <p id="err-amount" role="alert" className="mt-1 text-xs text-red-600">{errors.amount}</p>}
+                  </div>
+                )}
+              </div>
+            </fieldset>
+
+            <hr className="border-gray-100" aria-hidden="true" />
+
+            {/* Method selector */}
+            <fieldset>
+              <legend className="text-base font-bold text-gray-900 mb-4">Payment Method</legend>
+              <div role="radiogroup" aria-label="Payment method" className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mb-6">
+                {[
+                  { id: 'card', icon: '💳', label: 'Credit / Debit Card' },
+                  { id: 'bank', icon: '🏦', label: 'Bank Transfer (ACH)' },
+                ].map(m => (
+                  <label
+                    key={m.id}
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      method === m.id
+                        ? 'border-blue-600 bg-blue-50'
+                        : 'border-gray-200 bg-white hover:border-blue-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment-method"
+                      value={m.id}
+                      checked={method === m.id}
+                      onChange={() => setMethod(m.id)}
+                      className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span aria-hidden="true" className="text-xl">{m.icon}</span>
+                    <span className="text-sm font-semibold text-gray-800">{m.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Card fields */}
+              {method === 'card' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="sm:col-span-2">
+                    <FieldRow id="cardNumber" label="Card Number" required error={errors.cardNumber}>
+                      <input
+                        id="pf-cardNumber"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={19}
+                        value={card.number}
+                        onChange={e => setCard(v => ({ ...v, number: e.target.value.replace(/[^\d ]/g, '').replace(/(.{4})/g, '$1 ').trim() }))}
+                        placeholder="1234 5678 9012 3456"
+                        autoComplete="cc-number"
+                        className={inputCls('cardNumber')}
+                        aria-describedby={errors.cardNumber ? 'err-cn' : undefined}
+                      />
+                      {errors.cardNumber && <p id="err-cn" role="alert" className="mt-1 text-xs text-red-600">{errors.cardNumber}</p>}
+                    </FieldRow>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <FieldRow id="cardName" label="Name on Card" required error={errors.cardName}>
+                      <input id="pf-cardName" type="text" value={card.name} onChange={setC('name')} autoComplete="cc-name" className={inputCls('cardName')} aria-describedby={errors.cardName ? 'err-cname' : undefined} />
+                      {errors.cardName && <p id="err-cname" role="alert" className="mt-1 text-xs text-red-600">{errors.cardName}</p>}
+                    </FieldRow>
+                  </div>
+                  <FieldRow id="cardExp" label="Expiration (MM/YY)" required error={errors.cardExp}>
+                    <input id="pf-cardExp" type="text" maxLength={5} value={card.exp} onChange={e => setCard(v => ({ ...v, exp: e.target.value.replace(/[^\d/]/g,'') }))} placeholder="MM/YY" autoComplete="cc-exp" className={inputCls('cardExp')} aria-describedby={errors.cardExp ? 'err-cexp' : undefined} />
+                    {errors.cardExp && <p id="err-cexp" role="alert" className="mt-1 text-xs text-red-600">{errors.cardExp}</p>}
+                  </FieldRow>
+                  <FieldRow id="cardCvv" label="CVV" required error={errors.cardCvv}>
+                    <input id="pf-cardCvv" type="text" maxLength={4} inputMode="numeric" value={card.cvv} onChange={setC('cvv')} placeholder="•••" autoComplete="cc-csc" className={inputCls('cardCvv')} aria-describedby={errors.cardCvv ? 'err-cvv' : undefined} />
+                    {errors.cardCvv && <p id="err-cvv" role="alert" className="mt-1 text-xs text-red-600">{errors.cardCvv}</p>}
+                  </FieldRow>
+                </div>
+              )}
+
+              {/* Bank fields */}
+              {method === 'bank' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <FieldRow id="bankRouting" label="Routing Number" required error={errors.bankRouting}>
+                    <input id="pf-bankRouting" type="text" maxLength={9} inputMode="numeric" value={bank.routing} onChange={setB('routing')} placeholder="9-digit routing number" className={inputCls('bankRouting')} aria-describedby={errors.bankRouting ? 'err-rn' : undefined} />
+                    {errors.bankRouting && <p id="err-rn" role="alert" className="mt-1 text-xs text-red-600">{errors.bankRouting}</p>}
+                  </FieldRow>
+                  <FieldRow id="bankAccount" label="Account Number" required error={errors.bankAccount}>
+                    <input id="pf-bankAccount" type="text" value={bank.accountNum} onChange={setB('accountNum')} className={inputCls('bankAccount')} aria-describedby={errors.bankAccount ? 'err-ba' : undefined} />
+                    {errors.bankAccount && <p id="err-ba" role="alert" className="mt-1 text-xs text-red-600">{errors.bankAccount}</p>}
+                  </FieldRow>
+                  <div>
+                    <label htmlFor="pf-bankType" className="block text-sm font-semibold text-gray-700 mb-1.5">Account Type</label>
+                    <select id="pf-bankType" value={bank.type} onChange={setB('type')} className={inputCls('bankType')}>
+                      <option value="checking">Checking</option>
+                      <option value="savings">Savings</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </fieldset>
+
+          </div>
+
+          <div className="px-8 py-5 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span aria-hidden="true">🔒</span>
+              256-bit SSL encryption · PCI DSS compliant
+            </div>
+            <div className="flex gap-3">
+              <button type="button" onClick={onBack} className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400">
+                ← Back
+              </button>
+              <button type="submit" className="px-8 py-2.5 text-sm font-bold text-white bg-blue-700 hover:bg-blue-600 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Submit Payment →
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+// ── Step 4: Confirmation ──────────────────────────────────────
+function StepConfirmation({ account, payment, onReset }) {
+  const confNumber = React.useMemo(() => 'PAY-' + Date.now().toString(36).toUpperCase(), []);
+  const methodLabel = payment.method === 'card' ? 'Credit/Debit Card' : 'Bank Transfer (ACH)';
+
+  return (
+    <section
+      aria-labelledby="confirm-heading"
+      role="status"
+      aria-live="polite"
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+    >
+      <div className="px-8 py-10 text-center bg-green-50 border-b border-green-200">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5" aria-hidden="true">
+          <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 id="confirm-heading" className="text-2xl font-bold text-green-800 mb-1">Payment Successful</h2>
+        <p className="text-green-700 text-sm">Your payment has been processed and applied to your account.</p>
+      </div>
+
+      <div className="px-8 py-8">
+        <dl className="space-y-4">
+          {[
+            { label: 'Confirmation Number', value: confNumber, mono: true },
+            { label: 'Account Number',      value: account.accountNumber, mono: true },
+            { label: 'Account Name',        value: account.name },
+            { label: 'Service Address',     value: account.address },
+            { label: 'Amount Paid',         value: `$${payment.amount.toFixed(2)}`, bold: true },
+            { label: 'Payment Method',      value: methodLabel },
+            { label: 'Payment Date',        value: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) },
+            { label: 'Remaining Balance',   value: `$${Math.max(0, account.balance - payment.amount).toFixed(2)}` },
+          ].map(row => (
+            <div key={row.label} className="flex justify-between items-center py-2.5 border-b border-gray-50 last:border-0">
+              <dt className="text-sm font-semibold text-gray-500">{row.label}</dt>
+              <dd className={`text-sm ${row.bold ? 'font-bold text-blue-800 text-base' : 'text-gray-800'} ${row.mono ? 'font-mono' : ''}`}>
+                {row.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold text-sm rounded-xl hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+          >
+            🖨 Print Receipt
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            className="px-6 py-2.5 bg-blue-700 text-white font-semibold text-sm rounded-xl hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Make Another Payment
+          </button>
+          <a
+            href="index.html"
+            className="px-6 py-2.5 bg-gray-100 text-gray-700 font-semibold text-sm rounded-xl hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 text-center"
+          >
+            Return Home
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────
+function PayBillPage() {
+  const [step,    setStep]    = React.useState(1);
+  const [account, setAccount] = React.useState(null);
+  const [payment, setPayment] = React.useState(null);
+
+  const reset = () => { setStep(1); setAccount(null); setPayment(null); };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <CityHeader currentPage="services" />
+
+      <main id="main-content" tabIndex={-1} className="flex-1 pb-16">
+        {/* Page header */}
+        <div className="bg-gradient-to-r from-[#0d2340] to-[#1a3a6b] text-white py-14 px-4">
+          <div className="max-w-7xl mx-auto">
+            <nav aria-label="Breadcrumb" className="mb-4">
+              <ol className="flex items-center gap-2 text-sm text-blue-300" role="list">
+                <li><a href="index.html" className="hover:text-white focus:text-white focus:outline-none hover:underline">Home</a></li>
+                <li aria-hidden="true"><span className="text-blue-500">›</span></li>
+                <li><a href="services.html" className="hover:text-white focus:text-white focus:outline-none hover:underline">Services</a></li>
+                <li aria-hidden="true"><span className="text-blue-500">›</span></li>
+                <li><span className="text-white font-medium" aria-current="page">Pay a Bill</span></li>
+              </ol>
+            </nav>
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0" aria-hidden="true">💳</div>
+              <div>
+                <h1 className="text-4xl font-bold mb-2">Pay a Utility Bill</h1>
+                <p className="text-blue-200 max-w-2xl">Payments are applied to your account immediately. Accepted: all major credit/debit cards and ACH bank transfer. No service fee for ACH.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+          <StepBar step={step} />
+
+          {step === 1 && <StepLookup onFound={(acct) => { setAccount(acct); setStep(2); }} />}
+          {step === 2 && <StepBalance account={account} onPay={() => setStep(3)} onBack={() => { setStep(1); setAccount(null); }} />}
+          {step === 3 && <StepPayment account={account} onConfirm={(pmt) => { setPayment(pmt); setStep(4); }} onBack={() => setStep(2)} />}
+          {step === 4 && <StepConfirmation account={account} payment={payment} onReset={reset} />}
+        </div>
+      </main>
+      <CityFooter />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PayBillPage />);
+</script>
+</body>
+</html>

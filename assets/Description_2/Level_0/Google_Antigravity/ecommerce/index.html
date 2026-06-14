@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThreadHouse | Modern Sustainable Fashion</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      --font-sans: 'Inter', sans-serif;
+      --font-display: 'Space Grotesk', sans-serif;
+    }
+    
+    body { 
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      color: #111827;
+    }
+    
+    h1, h2, h3, h4, h5, h6, .font-display {
+      font-family: var(--font-display);
+    }
+    
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    // --- Icons ---
+    const SearchIcon = ({size=20, className=""}) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>);
+    const UserIcon = ({size=20, className=""}) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
+    const ShoppingCartIcon = ({size=20, className=""}) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>);
+    const MenuIcon = ({size=20, className=""}) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>);
+    const ChevronRightIcon = ({size=16, className=""}) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>);
+    const ArrowRightIcon = ({size=20, className=""}) => (<svg className={className} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>);
+
+    // --- Components ---
+    const Header = () => {
+      const { useState, useEffect } = React;
+      const [isScrolled, setIsScrolled] = useState(false);
+
+      useEffect(() => {
+        const handleScroll = () => {
+          setIsScrolled(window.scrollY > 10);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
+
+      return (
+        <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-sm shadow-sm py-3' : 'bg-transparent py-5'}`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <a href="index.html" className={`text-2xl font-bold tracking-tighter hover:opacity-70 transition-opacity ${isScrolled ? 'text-black' : 'text-white'}`}>
+                  THREADHOUSE
+                </a>
+              </div>
+              <nav className="hidden md:flex space-x-10">
+                <a href="products.html" className={`text-sm font-medium transition-colors hover:text-gray-400 ${isScrolled ? 'text-gray-800' : 'text-white'}`}>New Arrivals</a>
+                <a href="products.html" className={`text-sm font-medium transition-colors hover:text-gray-400 ${isScrolled ? 'text-gray-800' : 'text-white'}`}>Clothing</a>
+                <a href="products.html" className={`text-sm font-medium transition-colors hover:text-gray-400 ${isScrolled ? 'text-gray-800' : 'text-white'}`}>Accessories</a>
+                <a href="products.html" className="text-sm font-medium text-red-500 hover:text-red-400 transition-colors">Sale</a>
+              </nav>
+              <div className="flex items-center space-x-6">
+                <button className={`transition-colors hover:text-gray-400 ${isScrolled ? 'text-gray-800' : 'text-white'}`}>
+                  <SearchIcon size={20} />
+                </button>
+                <a href="account.html" className={`transition-colors hover:text-gray-400 ${isScrolled ? 'text-gray-800' : 'text-white'}`}>
+                  <UserIcon size={20} />
+                </a>
+                <a href="cart.html" className={`relative transition-colors hover:text-gray-400 ${isScrolled ? 'text-gray-800' : 'text-white'}`}>
+                  <ShoppingCartIcon size={20} />
+                  <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">2</span>
+                </a>
+                <button className={`md:hidden transition-colors hover:text-gray-400 ${isScrolled ? 'text-gray-800' : 'text-white'}`}>
+                  <MenuIcon size={24} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+      );
+    };
+
+    const Footer = () => (
+      <footer className="bg-gray-900 text-white pt-20 pb-10 border-t border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
+            <div className="md:col-span-4">
+              <h3 className="text-xl font-bold tracking-tighter mb-6">THREADHOUSE</h3>
+              <p className="text-sm text-gray-400 leading-loose max-w-sm">
+                Sustainable, independently designed clothing for the modern creative. Wear what you stand for, without compromising the planet.
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <h4 className="font-semibold text-sm tracking-wider uppercase mb-6">Shop</h4>
+              <ul className="space-y-4 text-sm text-gray-400">
+                <li><a href="products.html" className="hover:text-white transition-colors">All Products</a></li>
+                <li><a href="products.html" className="hover:text-white transition-colors">New Arrivals</a></li>
+                <li><a href="products.html" className="hover:text-white transition-colors">Best Sellers</a></li>
+                <li><a href="products.html" className="hover:text-white transition-colors text-red-400 hover:text-red-300">Sale</a></li>
+              </ul>
+            </div>
+            <div className="md:col-span-2">
+              <h4 className="font-semibold text-sm tracking-wider uppercase mb-6">Support</h4>
+              <ul className="space-y-4 text-sm text-gray-400">
+                <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Shipping & Returns</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Size Guide</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+              </ul>
+            </div>
+            <div className="md:col-span-4">
+              <h4 className="font-semibold text-sm tracking-wider uppercase mb-6">Join Our Newsletter</h4>
+              <p className="text-sm text-gray-400 mb-6">Get 10% off your first order and stay updated on new drops and sustainable practices.</p>
+              <form className="flex border-b border-gray-700 pb-2">
+                <input type="email" placeholder="Email address" className="flex-1 bg-transparent border-none focus:outline-none text-sm text-white placeholder-gray-500" />
+                <button type="submit" className="text-sm font-medium uppercase tracking-wider hover:text-gray-300 transition-colors">
+                  Subscribe
+                </button>
+              </form>
+            </div>
+          </div>
+          <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
+            <p>&copy; 2026 ThreadHouse. All rights reserved.</p>
+            <div className="flex space-x-6 mt-4 md:mt-0">
+              <a href="#" className="hover:text-white transition-colors">Instagram</a>
+              <a href="#" className="hover:text-white transition-colors">TikTok</a>
+              <a href="#" className="hover:text-white transition-colors">Pinterest</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    );
+
+    const Hero = () => (
+      <div className="relative h-screen w-full flex items-center justify-center bg-gray-900 overflow-hidden">
+        <img 
+          src="https://images.unsplash.com/photo-1445205170230-053b83016050?ixlib=rb-4.0.3&auto=format&fit=crop&w=2500&q=80" 
+          alt="Spring Collection" 
+          className="absolute inset-0 w-full h-full object-cover opacity-70 transform scale-105" 
+        />
+        <div className="absolute inset-0 bg-black/30"></div>
+        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-16">
+          <span className="block text-white text-sm uppercase tracking-[0.3em] mb-6 drop-shadow-sm">Spring 2026</span>
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 leading-none drop-shadow-md">
+            Wear What You <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 italic">Stand For</span>
+          </h1>
+          <p className="text-lg md:text-xl text-gray-200 mb-10 max-w-2xl mx-auto font-light drop-shadow">
+            Discover our new collection of sustainable, independent designs crafted for the modern lifestyle. Effortless style, zero compromise.
+          </p>
+          <a href="products.html" className="inline-flex items-center justify-center px-10 py-4 text-sm font-semibold text-black bg-white hover:bg-gray-100 transition-colors rounded-full uppercase tracking-wider group">
+            Shop The Collection
+            <ArrowRightIcon size={18} className="ml-3 transform group-hover:translate-x-1 transition-transform" />
+          </a>
+        </div>
+      </div>
+    );
+
+    const MoodSection = () => {
+      const moods = [
+        { name: 'Minimalist', image: 'https://images.unsplash.com/photo-1434389678369-184bf38f822c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },
+        { name: 'Streetwear', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },
+        { name: 'Workwear', image: 'https://images.unsplash.com/photo-1617137968427-85924c800a22?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' },
+        { name: 'Weekend', image: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' }
+      ];
+      return (
+        <section className="py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Shop by Mood</h2>
+              <p className="text-gray-500 max-w-2xl mx-auto">Curated styles to match your vibe, whatever the day brings.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {moods.map((mood, index) => (
+                <a href="products.html" key={index} className="group relative h-96 overflow-hidden bg-gray-100 block">
+                  <img src={mood.image} alt={mood.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity"></div>
+                  <div className="absolute inset-x-0 bottom-0 p-6 flex justify-between items-end">
+                    <h3 className="text-white text-xl font-medium tracking-wide">{mood.name}</h3>
+                    <div className="bg-white/20 backdrop-blur-sm p-2 rounded-full opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                      <ArrowRightIcon size={20} className="text-white" />
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const NewArrivals = () => {
+      const products = [
+        { name: 'Oversized Linen Shirt', price: '$89.00', color: 'Sage Green', image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80', lowStock: true, newOut: true },
+        { name: 'Organic Cotton Canvas Tote', price: '$45.00', color: 'Natural', image: 'https://images.unsplash.com/photo-1597589827317-4c6d6e0a90bd?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80', lowStock: false, newOut: false },
+        { name: 'Recycled Knit Sweater', price: '$120.00', color: 'Midnight Blue', image: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80', lowStock: false, newOut: false },
+        { name: 'Essential Wide Leg Trousers', price: '$110.00', color: 'Charcoal', image: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80', lowStock: true, newOut: false }
+      ];
+      return (
+        <section className="py-24 bg-gray-50 border-t border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-end mb-12">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-3">New Arrivals</h2>
+                <p className="text-gray-500">Fresh styles just landed. Designed for longevity.</p>
+              </div>
+              <a href="products.html" className="group text-sm font-medium flex items-center mb-1">
+                <span className="border-b border-black pb-0.5 group-hover:text-gray-600 group-hover:border-gray-600 transition-colors">View All</span>
+                <ChevronRightIcon size={16} className="ml-1 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" />
+              </a>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {products.map((product, index) => (
+                <div key={index} className="group cursor-pointer">
+                  <a href="product.html" className="block relative aspect-[3/4] overflow-hidden bg-gray-200 mb-5">
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    
+                    <div className="absolute top-3 inset-x-3 flex justify-between items-start">
+                      <div className="flex flex-col gap-2">
+                        {product.newOut && (
+                          <span className="bg-white text-black text-[10px] uppercase font-bold px-2 py-1 tracking-widest rounded-sm w-max">New</span>
+                        )}
+                        {product.lowStock && (
+                          <span className="bg-red-600 text-white text-[10px] uppercase font-bold px-2 py-1 tracking-widest rounded-sm w-max">Low Stock</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <button className="w-full bg-white/95 backdrop-blur-sm text-black py-3 text-sm font-medium rounded hover:bg-black hover:text-white transition-colors">Quick Add</button>
+                    </div>
+                  </a>
+                  <div>
+                    <h3 className="text-base font-medium text-gray-900 group-hover:text-gray-600 transition-colors"><a href="product.html">{product.name}</a></h3>
+                    <p className="mt-1 text-sm text-gray-500">{product.color}</p>
+                    <p className="mt-2 text-sm font-medium text-gray-900">{product.price}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const BrandStory = () => (
+      <section className="py-32 bg-white relative overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gray-50 rounded-full blur-3xl opacity-50"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gray-50 rounded-full blur-3xl opacity-50"></div>
+        
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+          <span className="text-sm font-bold tracking-[0.2em] text-gray-400 uppercase mb-4 block">Our Story</span>
+          <h2 className="text-4xl md:text-5xl font-bold mb-8 leading-tight">Designed for the <br/><span className="italic font-light">Conscious Creative</span></h2>
+          <p className="text-lg text-gray-600 mb-12 leading-relaxed max-w-2xl mx-auto">
+            At ThreadHouse, we believe that style shouldn't come at the expense of our planet. 
+            Every piece in our collection is crafted from sustainably sourced materials, 
+            designed to outlast fleeting trends, and made in partnership with ethical manufacturers.
+          </p>
+          <a href="#" className="group inline-flex items-center space-x-3 text-black font-semibold hover:text-gray-600 transition-colors uppercase tracking-wider text-sm">
+            <span className="border-b-2 border-black pb-1 group-hover:border-gray-600 transition-colors">Read Our Mission</span>
+            <ArrowRightIcon size={18} className="transform group-hover:translate-x-1 transition-transform" />
+          </a>
+        </div>
+      </section>
+    );
+
+    const App = () => {
+      return (
+        <div className="min-h-screen flex flex-col font-sans bg-white selection:bg-gray-900 selection:text-white">
+          <Header />
+          <main className="flex-grow">
+            <Hero />
+            <MoodSection />
+            <NewArrivals />
+            <BrandStory />
+          </main>
+          <Footer />
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

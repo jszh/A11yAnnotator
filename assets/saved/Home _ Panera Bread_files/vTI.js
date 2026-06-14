@@ -1,0 +1,1 @@
+(function(){"use strict";const e={CUSTOM_LEAD_EVENTS:()=>{var t;try{(t=window._satellite)==null||t.track("miscellaneous tracking call",{value:"attentive invite submit"})}catch{}}};window.__attentive_client_cfg=e})();

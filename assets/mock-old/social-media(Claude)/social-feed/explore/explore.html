@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Nexus Social — Explore trending topics, hashtags, and people." />
+  <title>Explore — Nexus Social</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="../components/components.js"></script>
+
+  <script>
+  (function () {
+    const e = React.createElement;
+    const {
+      TopHeader, SidebarNav, SidebarRight,
+      PostCard, MobileBottomNav, SAMPLE_POSTS
+    } = window.NexusComponents;
+
+    const CATEGORIES = ['All', 'Technology', 'Design', 'Science', 'Gaming', 'Music', 'Sports', 'Art'];
+
+    const TRENDING_GRID = [
+      { emoji: '🤖', tag: '#AIRevolution',   count: '142K posts',   category: 'Technology' },
+      { emoji: '🎨', tag: '#UITrends2026',   count: '89K posts',    category: 'Design' },
+      { emoji: '🚀', tag: '#SpaceExplore',   count: '76K posts',    category: 'Science' },
+      { emoji: '🎮', tag: '#NextGenGaming',  count: '54K posts',    category: 'Gaming' },
+      { emoji: '🎵', tag: '#SynthWave',      count: '41K posts',    category: 'Music' },
+      { emoji: '⚽', tag: '#WorldSports',    count: '38K posts',    category: 'Sports' },
+      { emoji: '🖼', tag: '#GenArtToday',    count: '29K posts',    category: 'Art' },
+      { emoji: '💻', tag: '#OpenSource',     count: '67K posts',    category: 'Technology' },
+    ];
+
+    const PEOPLE_TO_FOLLOW = [
+      { name: 'Zara Okafor',   handle: '@zara_codes',   avatar: 'https://i.pravatar.cc/80?img=32', bio: 'Full-stack developer · Open source advocate · Coffee ☕' },
+      { name: 'Theo Müller',   handle: '@theo_design',  avatar: 'https://i.pravatar.cc/80?img=15', bio: 'Product designer at Figma · Type nerd' },
+      { name: 'Priya Singh',   handle: '@priya_ml',     avatar: 'https://i.pravatar.cc/80?img=45', bio: 'ML researcher · NeurIPS · Building things that matter' },
+      { name: 'James Carter',  handle: '@jamesc_photo', avatar: 'https://i.pravatar.cc/80?img=68', bio: 'Photojournalist · Traveling the world one frame at a time' },
+    ];
+
+    function CategoryTabs({ active, onSelect }) {
+      return e('div', {
+        className: 'category-tabs',
+        role: 'tablist',
+        'aria-label': 'Explore categories'
+      },
+        CATEGORIES.map(cat =>
+          e('button', {
+            key: cat,
+            role: 'tab',
+            'aria-selected': active === cat,
+            className: 'category-tab' + (active === cat ? ' active' : ''),
+            onClick: () => onSelect(cat)
+          }, cat)
+        )
+      );
+    }
+
+    function TrendingGrid({ category }) {
+      const filtered = category === 'All'
+        ? TRENDING_GRID
+        : TRENDING_GRID.filter(t => t.category === category);
+
+      return e('div', null,
+        e('div', {
+          style: { padding: '20px 24px 8px', fontWeight: '700', fontSize: '1.0625rem', color: 'var(--clr-text)' }
+        }, '🔥 Trending Now'),
+        e('div', { className: 'trending-grid', role: 'list', 'aria-label': 'Trending topics grid' },
+          filtered.length
+            ? filtered.map((item, i) =>
+                e('a', {
+                  key: i,
+                  href: '#',
+                  className: 'trending-grid-card',
+                  role: 'listitem',
+                  'aria-label': `Trending: ${item.tag} — ${item.count}`
+                },
+                  e('div', { className: 'trending-grid-card__img', 'aria-hidden': 'true' }, item.emoji),
+                  e('div', { className: 'trending-grid-card__body' },
+                    e('div', { className: 'trending-grid-card__tag' }, item.tag),
+                    e('div', { className: 'trending-grid-card__count' }, item.count)
+                  )
+                )
+              )
+            : e('p', {
+                style: { gridColumn: '1/-1', textAlign: 'center', color: 'var(--clr-text-3)', padding: '32px' }
+              }, 'No trending topics in this category right now.')
+        )
+      );
+    }
+
+    function PeopleSection() {
+      return e('section', {
+        style: { padding: '0 24px 24px' },
+        'aria-label': 'People to follow'
+      },
+        e('h2', { style: { fontWeight: '700', fontSize: '1.0625rem', color: 'var(--clr-text)', marginBottom: '16px' } },
+          '✦ People to Follow'
+        ),
+        e('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
+          PEOPLE_TO_FOLLOW.map((person, i) =>
+            e('div', {
+              key: i,
+              style: {
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '12px', borderRadius: '12px',
+                transition: 'background 120ms', cursor: 'default',
+                border: '1px solid var(--clr-border)',
+                marginBottom: '8px',
+                background: 'var(--clr-surface)'
+              }
+            },
+              e('a', {
+                href: '../profile/profile.html',
+                style: { width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, display: 'block' },
+                'aria-label': `View ${person.name}'s profile`
+              },
+                e('img', {
+                  src: person.avatar,
+                  alt: `${person.name}'s avatar`,
+                  width: 48, height: 48,
+                  loading: 'lazy',
+                  style: { width: '100%', height: '100%', objectFit: 'cover' }
+                })
+              ),
+              e('div', { style: { flex: 1, minWidth: 0 } },
+                e('a', {
+                  href: '../profile/profile.html',
+                  style: { fontWeight: '700', fontSize: '0.9375rem', color: 'var(--clr-text)', display: 'block' }
+                }, person.name),
+                e('div', { style: { fontSize: '0.8125rem', color: 'var(--clr-text-3)', marginBottom: '2px' } }, person.handle),
+                e('div', { style: { fontSize: '0.8125rem', color: 'var(--clr-text-2)' } }, person.bio)
+              ),
+              e('button', {
+                className: 'btn-follow',
+                'aria-label': `Follow ${person.name}`
+              }, 'Follow')
+            )
+          )
+        )
+      );
+    }
+
+    function ExplorePage() {
+      const [activeCategory, setActiveCategory] = React.useState('All');
+      const [searchVal, setSearchVal] = React.useState('');
+
+      return e(React.Fragment, null,
+        e(TopHeader, { activePage: 'explore' }),
+
+        e('div', { className: 'page-shell' },
+          e(SidebarNav, { activePage: 'explore' }),
+
+          e('main', {
+            id: 'main-content',
+            className: 'main-content',
+            role: 'main',
+            'aria-label': 'Explore page'
+          },
+            /* Sticky search */
+            e('div', { className: 'explore-search-bar' },
+              e('div', { className: 'explore-search-wrap' },
+                e('span', { className: 'search-ico', 'aria-hidden': 'true' }, '🔍'),
+                e('label', { htmlFor: 'explore-search', className: 'visually-hidden' }, 'Search topics, hashtags or people'),
+                e('input', {
+                  id: 'explore-search',
+                  type: 'search',
+                  placeholder: 'Search topics, hashtags, or people…',
+                  'aria-label': 'Search topics, hashtags or people',
+                  value: searchVal,
+                  onChange: ev => setSearchVal(ev.target.value)
+                })
+              )
+            ),
+
+            e(CategoryTabs, { active: activeCategory, onSelect: setActiveCategory }),
+            e(TrendingGrid, { category: activeCategory }),
+
+            e('div', { style: { height: '1px', background: 'var(--clr-border)', margin: '0 24px' }, 'aria-hidden': 'true' }),
+
+            /* Latest posts for explore */
+            e('div', { style: { padding: '20px 24px 8px', fontWeight: '700', fontSize: '1.0625rem', color: 'var(--clr-text)' } },
+              '⚡ Latest Posts'
+            ),
+            SAMPLE_POSTS.slice(0,3).map(post => e(PostCard, { key: post.id, post, rootPath: '..' })),
+
+            e('div', { style: { height: '1px', background: 'var(--clr-border)', margin: '8px 24px 0' }, 'aria-hidden': 'true' }),
+            e(PeopleSection),
+
+            e('div', { className: 'load-more' },
+              e('button', { className: 'btn-load-more', 'aria-label': 'Load more content' }, 'Load more')
+            )
+          ),
+
+          e(SidebarRight)
+        ),
+
+        e(MobileBottomNav, { activePage: 'explore' })
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('app'));
+    root.render(e(ExplorePage));
+  })();
+  </script>
+</body>
+</html>

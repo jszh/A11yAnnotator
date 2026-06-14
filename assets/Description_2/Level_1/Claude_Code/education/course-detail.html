@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medical Admin Assistant Certificate — SkillForge</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #F8FAFC; color: #0F172A; font-family: 'Inter', system-ui, sans-serif; }
+    *:focus-visible { outline: 2px solid #4F46E5; outline-offset: 3px; border-radius: 4px; }
+    img { display: block; max-width: 100%; }
+    .font-display { font-family: 'DM Sans', system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useId } = React;
+
+const IconMenu = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>;
+const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>;
+const IconCheck = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>;
+const IconStar = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 fill-orange-400" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.006Z" clipRule="evenodd" /></svg>;
+const IconArrow = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>;
+const IconChevD = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>;
+const IconChevU = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /></svg>;
+const IconShield = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" /></svg>;
+const IconCalendar = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>;
+const IconUsers = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>;
+const IconClock = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
+
+const NAV_LINKS = [
+  { label: 'Explore Courses', href: 'courses.html' },
+  { label: 'How It Works', href: 'index.html#how-it-works' },
+  { label: 'Employer Partners', href: 'index.html#partners' },
+  { label: 'Pricing', href: 'pricing.html' },
+];
+
+function Header() {
+  const [open, setOpen] = useState(false);
+  return (
+    <header className="bg-white border-b border-slate-100 sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+        <a href="index.html" aria-label="SkillForge — home" className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center" aria-hidden="true"><span className="text-white font-bold text-sm font-display">SF</span></div>
+          <span className="font-display font-bold text-lg text-slate-900">SkillForge</span>
+        </a>
+        <nav aria-label="Primary navigation" className="hidden md:flex items-center gap-1">
+          {NAV_LINKS.map(({ label, href }) => (
+            <a key={label} href={href} className="px-3 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">{label}</a>
+          ))}
+        </nav>
+        <div className="flex items-center gap-3">
+          <a href="dashboard.html" className="hidden sm:block text-sm font-medium text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg">Sign In</a>
+          <a href="#enroll" className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">Enroll Now</a>
+          <button onClick={() => setOpen(p => !p)} aria-expanded={open} aria-controls="mobile-nav" aria-label={open ? 'Close menu' : 'Open menu'} className="md:hidden p-2 text-slate-600">
+            {open ? <IconX /> : <IconMenu />}
+          </button>
+        </div>
+      </div>
+      {open && (
+        <div id="mobile-nav" className="md:hidden border-t border-slate-100 bg-white px-4 pb-4 pt-2">
+          <ul className="space-y-1" role="list">
+            {NAV_LINKS.map(({ label, href }) => (
+              <li key={label}><a href={href} className="block px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 rounded-lg">{label}</a></li>
+            ))}
+            <li className="pt-2"><a href="#enroll" className="block bg-orange-500 text-white text-sm font-semibold px-4 py-3 rounded-lg text-center">Enroll Now — $349</a></li>
+          </ul>
+        </div>
+      )}
+    </header>
+  );
+}
+
+/* ── Curriculum ──────────────────────────────────────────────── */
+const WEEKS = [
+  { n: 1, title: 'Healthcare Industry Overview', topics: ['History and structure of US healthcare', 'HIPAA basics and patient privacy', 'Medical terminology fundamentals', 'Role of the medical administrative assistant'] },
+  { n: 2, title: 'Medical Terminology & Documentation', topics: ['Body systems and anatomical terms', 'ICD-10 and CPT code introduction', 'Electronic health record (EHR) navigation', 'Patient intake forms and documentation'] },
+  { n: 3, title: 'Medical Billing Fundamentals', topics: ['Insurance types: Medicare, Medicaid, private', 'Explanation of benefits (EOB)', 'Claim submission and follow-up', 'Common billing errors and corrections'] },
+  { n: 4, title: 'Scheduling & Front Desk Operations', topics: ['Appointment scheduling systems', 'Patient registration and verification', 'Referral management', 'Telephone and in-person communication'] },
+  { n: 5, title: 'Coding Practice & Accuracy', topics: ['Hands-on ICD-10-CM coding exercises', 'Surgical procedure CPT coding', 'Evaluation and management codes', 'Coding audits and compliance'] },
+  { n: 6, title: 'Healthcare Law & Ethics', topics: ['Federal healthcare regulations', 'Fraud and abuse laws (False Claims Act)', 'Patient rights and informed consent', 'Workplace ethics case studies'] },
+  { n: 7, title: 'Practice Management Software', topics: ['Intro to Practice Fusion and Kareo', 'Generating reports and AR tracking', 'Revenue cycle management', 'End-to-end claim walkthrough'] },
+  { n: 8, title: 'Career Readiness & Certification Prep', topics: ['Resume and LinkedIn for healthcare roles', 'Interview preparation with mock sessions', 'CMAA exam overview (NHA)', 'Job search strategies and alumni network'] },
+];
+
+function CurriculumAccordion() {
+  const [openWeek, setOpenWeek] = useState(1);
+  return (
+    <div className="space-y-2">
+      {WEEKS.map(week => (
+        <div key={week.n} className="border border-slate-200 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setOpenWeek(openWeek === week.n ? null : week.n)}
+            aria-expanded={openWeek === week.n}
+            aria-controls={`week-${week.n}-content`}
+            className="w-full flex items-center justify-between px-5 py-4 bg-white hover:bg-slate-50 text-left transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <span className="font-display font-extrabold text-indigo-600 w-6 text-sm" aria-hidden="true">W{week.n}</span>
+              <span className="font-display font-semibold text-slate-800 text-sm">{week.title}</span>
+            </div>
+            {openWeek === week.n ? <IconChevU /> : <IconChevD />}
+          </button>
+          {openWeek === week.n && (
+            <div id={`week-${week.n}-content`} className="px-5 pb-4 bg-slate-50">
+              <ul className="space-y-1.5 pt-3" role="list">
+                {week.topics.map(topic => (
+                  <li key={topic} className="flex items-start gap-2.5 font-body text-sm text-slate-600">
+                    <IconCheck />
+                    {topic}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Financing Calculator ────────────────────────────────────── */
+function FinancingCalc() {
+  const totalCost = 349;
+  const [months, setMonths] = useState(3);
+  const monthly = Math.ceil(totalCost / months);
+  const monthsId = useId();
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-5">
+      <h3 className="font-display font-bold text-slate-900 mb-4">Monthly Payment Estimator</h3>
+      <div className="mb-4">
+        <label htmlFor={monthsId} className="font-body block text-sm text-slate-600 mb-1.5">
+          Number of monthly payments
+        </label>
+        <select id={monthsId} value={months} onChange={e => setMonths(Number(e.target.value))}
+          className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none bg-white">
+          <option value={1}>1 payment (pay in full)</option>
+          <option value={2}>2 monthly payments</option>
+          <option value={3}>3 monthly payments</option>
+          <option value={6}>6 monthly payments</option>
+        </select>
+      </div>
+      <div className="bg-indigo-50 rounded-xl p-4 text-center" aria-live="polite" aria-atomic="true">
+        <p className="font-body text-xs text-indigo-500 mb-1">Your monthly payment</p>
+        <p className="font-display text-4xl font-extrabold text-indigo-700">${monthly}<span className="text-lg text-indigo-400">/mo</span></p>
+        <p className="font-body text-xs text-slate-400 mt-1">Total: ${totalCost} · No interest · No credit check</p>
+      </div>
+      <p className="font-body text-xs text-slate-400 mt-3">Employer reimbursement? <a href="pricing.html" className="text-indigo-600 hover:underline">See employer sponsorship options →</a></p>
+    </div>
+  );
+}
+
+/* ── Enroll Widget ───────────────────────────────────────────── */
+function EnrollWidget() {
+  const [step, setStep] = useState(0);
+  const emailId = useId();
+  const [email, setEmail] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (email) { setStep(1); }
+  };
+
+  return (
+    <div id="enroll" className="bg-white rounded-2xl border-2 border-indigo-100 shadow-xl p-6 sticky top-24">
+      <div className="text-center mb-5">
+        <p className="font-display text-3xl font-extrabold text-slate-900">$349</p>
+        <p className="font-body text-sm text-slate-400">full program · no hidden fees</p>
+        <div className="flex items-center justify-center gap-1 mt-2">
+          <span className="text-orange-500 text-sm font-bold">🔥 Only 4 seats left</span>
+        </div>
+        <p className="font-body text-xs text-slate-400 mt-1">Next cohort: <strong className="text-slate-700">March 3, 2026</strong></p>
+      </div>
+
+      {step === 0 ? (
+        <form onSubmit={handleSubmit}>
+          <label htmlFor={emailId} className="font-body block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
+          <input id={emailId} type="email" required value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="you@example.com" autoComplete="email"
+            className="w-full border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:outline-none mb-3" />
+          <button type="submit" className="w-full font-display font-bold bg-orange-500 hover:bg-orange-600 text-white py-3.5 rounded-xl text-base transition-colors">
+            Enroll Now — $349
+          </button>
+          <p className="font-body text-xs text-slate-400 text-center mt-3">Or <a href="#financing" className="text-indigo-600 hover:underline">pay in 3 installments of $117</a></p>
+        </form>
+      ) : (
+        <div className="text-center" aria-live="polite">
+          <div className="text-4xl mb-3" aria-hidden="true">🎉</div>
+          <p className="font-display font-bold text-slate-900 mb-1">Spot reserved!</p>
+          <p className="font-body text-sm text-slate-500 mb-4">Check your inbox for enrollment instructions.</p>
+          <a href="dashboard.html" className="font-body text-sm text-indigo-600 hover:underline">Go to your dashboard →</a>
+        </div>
+      )}
+
+      <ul className="mt-5 space-y-2" role="list">
+        {['14-day money-back guarantee', 'Accredited certificate upon completion', 'Employer partner job placement support', 'Lifetime access to course materials'].map(f => (
+          <li key={f} className="flex items-start gap-2.5 font-body text-xs text-slate-600">
+            <IconCheck /> {f}
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-4 p-3 bg-slate-50 rounded-xl flex items-center gap-2">
+        <IconShield />
+        <p className="font-body text-xs text-slate-500">Secure payment · 256-bit SSL · Processed by Stripe</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── App ─────────────────────────────────────────────────────── */
+const OUTCOMES = [
+  'Navigate electronic health records (EHR) systems',
+  'Process medical billing claims using ICD-10 and CPT codes',
+  'Manage patient scheduling and front desk operations',
+  'Apply HIPAA privacy regulations in daily work',
+  'Communicate professionally with patients and providers',
+  'Prepare for the Certified Medical Administrative Assistant (CMAA) exam',
+];
+
+const QA_SESSIONS = [
+  { date: 'Feb 27, Thu', time: '7:00 PM EST', host: 'Dr. Anita Williams', topic: 'Is Medical Admin right for you?' },
+  { date: 'Mar 3, Mon', time: '12:00 PM EST', host: 'James Reed', topic: 'Cohort kickoff & orientation Q&A' },
+  { date: 'Mar 10, Mon', time: '7:00 PM EST', host: 'Dr. Anita Williams', topic: 'Week 1 office hours' },
+];
+
+function App() {
+  return (
+    <>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-1/2 focus:-translate-x-1/2 focus:z-50 focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">Skip to main content</a>
+      <Header />
+      <main id="main-content">
+        {/* Hero */}
+        <div className="bg-indigo-950 text-white py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <nav aria-label="Breadcrumb" className="font-body text-sm text-indigo-400 mb-4 flex items-center gap-2">
+              <a href="index.html" className="hover:text-indigo-200">Home</a>
+              <span aria-hidden="true">/</span>
+              <a href="courses.html" className="hover:text-indigo-200">Programs</a>
+              <span aria-hidden="true">/</span>
+              <span className="text-indigo-200">Medical Admin</span>
+            </nav>
+            <div className="grid lg:grid-cols-3 gap-8 items-start">
+              <div className="lg:col-span-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-body text-[10px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2.5 py-1 rounded-full">Healthcare</span>
+                  <span className="font-body text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-full">Cohort</span>
+                </div>
+                <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3 leading-tight">
+                  Medical Administrative Assistant Certificate
+                </h1>
+                <p className="font-body text-indigo-200 text-lg mb-5 leading-relaxed">
+                  Launch your healthcare career in just 8 weeks. Learn billing, coding, scheduling, and EHR systems — with live instructor support and job placement help.
+                </p>
+                <div className="flex flex-wrap gap-x-6 gap-y-3 font-body text-sm text-indigo-300 mb-6">
+                  <span className="flex items-center gap-1.5"><IconClock />8 weeks · 120 hours</span>
+                  <span className="flex items-center gap-1.5"><IconCalendar />Starts March 3, 2026</span>
+                  <span className="flex items-center gap-1.5"><IconUsers />24 students per cohort</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-0.5" aria-label="Rated 4.9 out of 5 stars">
+                    {[...Array(5)].map((_, i) => <IconStar key={i} />)}
+                  </div>
+                  <span className="font-body text-sm text-indigo-200">4.9 · 1,240 graduates · <strong className="text-white">92% job placement</strong></span>
+                </div>
+              </div>
+              <div className="lg:hidden">
+                <EnrollWidget />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+          <div className="lg:grid lg:grid-cols-3 lg:gap-10">
+            {/* Main content */}
+            <div className="lg:col-span-2 space-y-10">
+              {/* Outcome Stats */}
+              <section aria-labelledby="outcomes-stats-heading">
+                <h2 id="outcomes-stats-heading" className="sr-only">Alumni outcome statistics</h2>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { n: '92%', label: 'Job placement within 3 months' },
+                    { n: '+34%', label: 'Average salary increase' },
+                    { n: '4.9★', label: 'Average instructor rating' },
+                  ].map(({ n, label }) => (
+                    <div key={label} className="bg-white rounded-2xl border border-slate-100 p-5 text-center shadow-sm">
+                      <p className="font-display text-3xl font-extrabold text-indigo-600">{n}</p>
+                      <p className="font-body text-xs text-slate-500 mt-1 leading-tight">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* What You'll Learn */}
+              <section aria-labelledby="outcomes-heading">
+                <h2 id="outcomes-heading" className="font-display text-2xl font-extrabold text-slate-900 mb-5">What You'll Learn</h2>
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+                  <ul className="grid sm:grid-cols-2 gap-3" role="list">
+                    {OUTCOMES.map(o => (
+                      <li key={o} className="flex items-start gap-3 font-body text-sm text-slate-700">
+                        <IconCheck /> {o}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+
+              {/* Curriculum */}
+              <section aria-labelledby="curriculum-heading">
+                <div className="flex items-baseline justify-between mb-5">
+                  <h2 id="curriculum-heading" className="font-display text-2xl font-extrabold text-slate-900">Weekly Curriculum</h2>
+                  <span className="font-body text-sm text-slate-400">8 modules · 120 total hours</span>
+                </div>
+                <CurriculumAccordion />
+              </section>
+
+              {/* Instructor */}
+              <section aria-labelledby="instructor-heading">
+                <h2 id="instructor-heading" className="font-display text-2xl font-extrabold text-slate-900 mb-5">Your Instructor</h2>
+                <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex gap-5 items-start">
+                  <img src="https://picsum.photos/seed/instructor_anita/80/80" alt="Dr. Anita Williams, instructor photo"
+                    className="w-20 h-20 rounded-2xl object-cover flex-shrink-0" />
+                  <div>
+                    <p className="font-display font-extrabold text-lg text-slate-900">Dr. Anita Williams, CMAA, CPC</p>
+                    <p className="font-body text-sm text-indigo-600 font-semibold">Certified Medical Administrative Assistant · Certified Professional Coder</p>
+                    <p className="font-body text-sm text-slate-500 mt-1">Former Practice Manager, Mayo Clinic · 18 years in healthcare administration</p>
+                    <p className="font-body text-sm text-slate-600 mt-3 leading-relaxed">
+                      Dr. Williams brings two decades of hands-on healthcare experience to every session. She has trained over 3,000 medical administrative professionals and holds dual certification from the National Healthcareer Association and the AAPC.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Financing */}
+              <section id="financing" aria-labelledby="financing-heading">
+                <h2 id="financing-heading" className="font-display text-2xl font-extrabold text-slate-900 mb-5">Financing Options</h2>
+                <div className="grid sm:grid-cols-2 gap-4 mb-6">
+                  <FinancingCalc />
+                  <div className="space-y-3">
+                    {[
+                      { title: 'Employer Reimbursement', body: 'Many employers cover professional development costs. We provide an employer letter template to make requesting reimbursement easy.', link: 'pricing.html', linkLabel: 'View employer plans →' },
+                      { title: 'Scholarship Available', body: 'SkillForge awards need-based scholarships covering 25–100% of program cost for qualifying learners.', link: 'pricing.html', linkLabel: 'Apply for scholarship →' },
+                    ].map(({ title, body, link, linkLabel }) => (
+                      <div key={title} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                        <p className="font-display font-bold text-slate-900 mb-1">{title}</p>
+                        <p className="font-body text-sm text-slate-500 leading-relaxed mb-2">{body}</p>
+                        <a href={link} className="font-body text-sm text-indigo-600 hover:underline">{linkLabel}</a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              {/* Q&A Sessions */}
+              <section aria-labelledby="qa-heading">
+                <h2 id="qa-heading" className="font-display text-2xl font-extrabold text-slate-900 mb-5">Live Q&A Schedule</h2>
+                <div className="space-y-3">
+                  {QA_SESSIONS.map(s => (
+                    <div key={s.date} className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-4 shadow-sm flex-wrap">
+                      <div className="font-body text-center bg-indigo-50 rounded-xl p-3 w-20 flex-shrink-0">
+                        <p className="text-[10px] text-indigo-500 font-bold uppercase">{s.date.split(',')[1].trim()}</p>
+                        <p className="font-display font-extrabold text-indigo-800 text-lg leading-none">{s.date.split(' ')[1]}</p>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-display font-semibold text-slate-900">{s.topic}</p>
+                        <p className="font-body text-sm text-slate-500">{s.time} · Hosted by {s.host}</p>
+                      </div>
+                      <a href="#enroll" className="font-body text-sm text-indigo-600 border border-indigo-200 hover:bg-indigo-50 px-4 py-2 rounded-lg transition-colors">
+                        Register
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            {/* Desktop enroll widget */}
+            <div className="hidden lg:block lg:col-span-1">
+              <EnrollWidget />
+            </div>
+          </div>
+        </div>
+      </main>
+      <footer className="bg-slate-900 text-slate-400 py-8 mt-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center" aria-hidden="true"><span className="text-white font-bold text-xs">SF</span></div>
+            <span className="font-display font-bold text-white">SkillForge</span>
+          </div>
+          <nav aria-label="Footer navigation" className="flex gap-5 font-body text-sm">
+            {['index.html', 'courses.html', 'pricing.html', 'dashboard.html'].map((href, i) => (
+              <a key={i} href={href} className="hover:text-white">{['Home', 'Programs', 'Pricing', 'Dashboard'][i]}</a>
+            ))}
+          </nav>
+          <p className="font-body text-xs text-slate-500">© 2026 SkillForge. Accredited by ACCET.</p>
+        </div>
+      </footer>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

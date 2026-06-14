@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account — The Pulse</title>
+  <meta name="description" content="Manage your Pulse account, subscriptions, saved articles, and reading preferences." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['"Playfair Display"', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body class="bg-slate-50">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="../components/components.js" data-presets="react"></script>
+
+  <script type="text/babel" data-presets="react">
+    window.BASE_PATH = '../';
+
+    const TABS = ['Overview', 'Saved', 'History', 'Newsletters', 'Settings'];
+
+    /* Account page — shows login OR dashboard depending on state */
+    const LoginForm = ({ onLogin }) => (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-16">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="text-center mb-8">
+            <a href={R('index.html')} className="brand-logo inline-block">THE <span>PULSE</span></a>
+            <p className="text-slate-500 text-sm mt-2">Sign in to your account</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            {/* Social login */}
+            <div className="space-y-3 mb-6">
+              <button
+                className="w-full flex items-center justify-center gap-3 border border-slate-200 rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                onClick={() => onLogin('Google')}
+                aria-label="Continue with Google">
+                <span aria-hidden="true">🔵</span> Continue with Google
+              </button>
+              <button
+                className="w-full flex items-center justify-center gap-3 border border-slate-200 rounded-lg px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                onClick={() => onLogin('Apple')}
+                aria-label="Continue with Apple">
+                <span aria-hidden="true">⚫</span> Continue with Apple
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex-1 border-t border-slate-200" />
+              <span className="text-xs text-slate-400 font-medium">or sign in with email</span>
+              <div className="flex-1 border-t border-slate-200" />
+            </div>
+
+            {/* Email form */}
+            <form onSubmit={(e) => { e.preventDefault(); onLogin('Email'); }} aria-label="Sign in with email">
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    required
+                    className="w-full border border-slate-200 rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="password" className="block text-sm font-medium text-slate-700">Password</label>
+                    <a href="#" className="text-xs text-red-600 hover:underline font-medium">Forgot password?</a>
+                  </div>
+                  <input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    required
+                    className="w-full border border-slate-200 rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="remember" className="rounded border-slate-300 text-red-600 accent-red-600" />
+                  <label htmlFor="remember" className="text-sm text-slate-600">Remember me for 30 days</label>
+                </div>
+                <button type="submit" className="w-full btn btn-primary py-3 text-base font-bold">
+                  Sign In
+                </button>
+              </div>
+            </form>
+
+            {/* Register */}
+            <p className="text-center text-sm text-slate-500 mt-6">
+              Don't have an account?{' '}
+              <a href={R('subscribe/subscribe.html')} className="text-red-600 font-semibold hover:underline">Start free trial</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+
+    /* Dashboard once logged in */
+    const Dashboard = ({ provider }) => {
+      const [activeTab, setActiveTab] = React.useState('Overview');
+      const savedStories = ALL_STORIES.slice(0, 5);
+      const historyStories = ALL_STORIES.slice(3, 9);
+
+      return (
+        <div className="bg-slate-50 min-h-screen">
+          {/* Profile header */}
+          <div className="bg-white border-b border-slate-200">
+            <div className="max-w-screen-xl mx-auto px-4 py-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center text-white text-2xl font-black flex-shrink-0" aria-hidden="true">
+                  JP
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-xl font-bold text-slate-800">Jamie Patterson</h1>
+                  <p className="text-slate-500 text-sm">jamie.patterson@example.com · Signed in with {provider}</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full">Subscriber — Annual Plan</span>
+                    <span className="text-xs text-slate-400">Member since Jan 2023</span>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button className="btn btn-secondary text-sm py-2 px-4">Edit Profile</button>
+                  <a href={R('subscribe/subscribe.html')} className="btn btn-primary text-sm py-2 px-4">Manage Plan</a>
+                </div>
+              </div>
+            </div>
+
+            {/* Tab bar */}
+            <div className="max-w-screen-xl mx-auto px-4" role="tablist" aria-label="Account section tabs">
+              <div className="flex gap-0 overflow-x-auto">
+                {TABS.map((t) => (
+                  <button
+                    key={t}
+                    role="tab"
+                    aria-selected={activeTab === t}
+                    onClick={() => setActiveTab(t)}
+                    className={`flex-shrink-0 px-5 py-3.5 text-sm font-semibold border-b-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                      activeTab === t ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Tab panels */}
+          <div className="max-w-screen-xl mx-auto px-4 py-8">
+            {activeTab === 'Overview' && (
+              <div role="tabpanel" aria-label="Account overview" className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Stats */}
+                {[
+                  { label: 'Articles Read', value: '847', icon: '📰', color: 'text-blue-600', bg: 'bg-blue-50' },
+                  { label: 'Saved Articles', value: '34', icon: '🔖', color: 'text-amber-600', bg: 'bg-amber-50' },
+                  { label: 'Comments', value: '92', icon: '💬', color: 'text-green-600', bg: 'bg-green-50' },
+                ].map((s) => (
+                  <div key={s.label} className={`${s.bg} rounded-xl p-6 border border-white`}>
+                    <div className="text-2xl mb-2" aria-hidden="true">{s.icon}</div>
+                    <p className={`text-3xl font-black ${s.color}`}>{s.value}</p>
+                    <p className="text-sm text-slate-600 mt-1 font-medium">{s.label}</p>
+                  </div>
+                ))}
+
+                {/* Subscription card */}
+                <div className="md:col-span-3 bg-white rounded-xl border border-slate-200 p-6">
+                  <h2 className="font-bold text-slate-800 mb-4">Your Subscription</h2>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                    <div>
+                      <p className="font-semibold text-slate-800">Annual Plan <span className="text-green-600 text-sm font-bold">● Active</span></p>
+                      <p className="text-sm text-slate-500 mt-0.5">$79/year · Next billing: February 23, 2027</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button className="btn btn-ghost text-sm py-2 px-4 text-slate-600">Cancel</button>
+                      <a href={R('subscribe/subscribe.html')} className="btn btn-secondary text-sm py-2 px-4">Change Plan</a>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                    {['Unlimited access', 'Ad-free reading', 'Daily newsletter', 'Subscriber podcasts'].map((f) => (
+                      <div key={f} className="flex items-center gap-2 text-slate-600">
+                        <span className="text-green-500 font-bold" aria-hidden="true">✓</span> {f}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recently read */}
+                <div className="md:col-span-3 bg-white rounded-xl border border-slate-200 p-6">
+                  <h2 className="font-bold text-slate-800 mb-4">Continue Reading</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {ALL_STORIES.slice(0, 3).map((story) => (
+                      <StoryCard key={story.id} story={story} size="sm" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Saved' && (
+              <div role="tabpanel" aria-label="Saved articles">
+                <h2 className="font-bold text-slate-800 mb-6">Saved Articles ({savedStories.length})</h2>
+                <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+                  {savedStories.map((story) => (
+                    <div key={story.id} className="flex items-center gap-4 p-4">
+                      <div className="w-20 h-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                        <img src={story.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={`cat-label cat-${story.category}`}>{story.categoryLabel}</span>
+                        <a href={R('article/article.html')}>
+                          <h3 className="mt-1 text-sm font-semibold hover:text-red-600 transition-colors line-clamp-2">{story.title}</h3>
+                        </a>
+                        <p className="text-xs text-slate-400 mt-1">{story.author} · {story.publishTime}</p>
+                      </div>
+                      <button className="btn btn-ghost text-xs text-slate-400 hover:text-red-500 flex-shrink-0 px-2 py-1.5" aria-label={`Remove ${story.title} from saved`}>
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'History' && (
+              <div role="tabpanel" aria-label="Reading history">
+                <h2 className="font-bold text-slate-800 mb-6">Reading History</h2>
+                <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+                  {historyStories.map((story) => (
+                    <StoryCard key={story.id} story={story} layout="horizontal" size="sm" />
+                  ))}
+                </div>
+                <button className="mt-4 text-sm text-slate-400 hover:text-red-600 transition-colors font-medium">Clear history</button>
+              </div>
+            )}
+
+            {activeTab === 'Newsletters' && (
+              <div role="tabpanel" aria-label="Newsletter preferences">
+                <h2 className="font-bold text-slate-800 mb-6">Newsletter Subscriptions</h2>
+                <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+                  {[
+                    { name: 'Morning Briefing', desc: 'Top stories every weekday at 7am', active: true, freq: 'Daily' },
+                    { name: 'Tech Weekly', desc: 'The week\'s most important tech stories', active: true, freq: 'Weekly' },
+                    { name: 'Politics Tonight', desc: 'Evening political analysis', active: false, freq: 'Daily' },
+                    { name: 'The Long Read', desc: 'Our best longform journalism', active: false, freq: 'Weekly' },
+                    { name: 'Business & Markets', desc: 'Pre-market financial overview', active: false, freq: 'Daily' },
+                  ].map((nl) => (
+                    <div key={nl.name} className="flex items-center gap-4 p-5">
+                      <div className="flex-1">
+                        <p className="font-semibold text-slate-800">{nl.name}</p>
+                        <p className="text-sm text-slate-500">{nl.desc} · {nl.freq}</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer" aria-label={`Toggle ${nl.name} newsletter`}>
+                        <input type="checkbox" defaultChecked={nl.active} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:bg-red-600 peer-focus:ring-2 peer-focus:ring-blue-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5" />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Settings' && (
+              <div role="tabpanel" aria-label="Account settings">
+                <h2 className="font-bold text-slate-800 mb-6">Account Settings</h2>
+                <div className="space-y-6">
+                  {/* Profile */}
+                  <div className="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 className="font-semibold text-slate-800 mb-4">Profile Information</h3>
+                    <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        { id: 'fname', label: 'First Name', defaultValue: 'Jamie', type: 'text' },
+                        { id: 'lname', label: 'Last Name', defaultValue: 'Patterson', type: 'text' },
+                        { id: 'email', label: 'Email', defaultValue: 'jamie.patterson@example.com', type: 'email' },
+                        { id: 'country', label: 'Country', defaultValue: 'United States', type: 'text' },
+                      ].map((f) => (
+                        <div key={f.id} className={f.id === 'email' ? 'sm:col-span-2' : ''}>
+                          <label htmlFor={`setting-${f.id}`} className="block text-sm font-medium text-slate-700 mb-1.5">{f.label}</label>
+                          <input
+                            id={`setting-${f.id}`}
+                            type={f.type}
+                            defaultValue={f.defaultValue}
+                            className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      ))}
+                      <div className="sm:col-span-2">
+                        <button type="submit" className="btn btn-primary px-6 py-2.5 text-sm">Save Changes</button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Password */}
+                  <div className="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 className="font-semibold text-slate-800 mb-4">Change Password</h3>
+                    <form onSubmit={(e) => e.preventDefault()} className="space-y-4 max-w-sm">
+                      <div>
+                        <label htmlFor="curr-pass" className="block text-sm font-medium text-slate-700 mb-1.5">Current Password</label>
+                        <input id="curr-pass" type="password" className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      </div>
+                      <div>
+                        <label htmlFor="new-pass" className="block text-sm font-medium text-slate-700 mb-1.5">New Password</label>
+                        <input id="new-pass" type="password" className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                      </div>
+                      <button type="submit" className="btn btn-secondary px-6 py-2.5 text-sm">Update Password</button>
+                    </form>
+                  </div>
+
+                  {/* Danger zone */}
+                  <div className="bg-red-50 rounded-xl border border-red-200 p-6">
+                    <h3 className="font-semibold text-red-700 mb-2">Danger Zone</h3>
+                    <p className="text-sm text-red-600 mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                    <button className="btn btn-ghost text-red-600 border border-red-300 px-4 py-2 text-sm hover:bg-red-100">
+                      Delete Account
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [loggedIn, setLoggedIn] = React.useState(false);
+      const [provider, setProvider] = React.useState('');
+
+      const handleLogin = (p) => {
+        setProvider(p);
+        setLoggedIn(true);
+      };
+
+      return (
+        <PageLayout currentCategory="">
+          {loggedIn ? <Dashboard provider={provider} /> : <LoginForm onLogin={handleLogin} />}
+        </PageLayout>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

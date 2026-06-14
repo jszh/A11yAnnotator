@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World News | The Meridian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    .ticker-track { animation: ticker-scroll 40s linear infinite; }
+    .ticker-paused .ticker-track { animation-play-state: paused; }
+    .skip-link { position: absolute; top: -100%; left: 0; padding: 0.5rem 1rem; background: #7f1d1d; color: #fff; z-index: 9999; font-weight: 600; text-decoration: none; }
+    .skip-link:focus { top: 0; }
+    html { scroll-padding-top: 76px; }
+    :focus-visible { outline: 3px solid #b91c1c; outline-offset: 2px; }
+    .sticky-header { position: sticky; top: 0; z-index: 100; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    function CookieBanner() {
+      const [dismissed, setDismissed] = useState(false);
+      const btnRef = useRef(null);
+      useEffect(() => { if (!dismissed && btnRef.current) btnRef.current.focus(); }, []);
+      if (dismissed) return null;
+      return (
+        <div role="region" aria-label="Cookie consent"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 text-white px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl"
+          onKeyDown={e => e.key === 'Escape' && setDismissed(true)}>
+          <p className="text-sm">We use cookies to improve your experience. See our <a href="#" className="underline hover:text-gray-200">Cookie Policy</a>.</p>
+          <div className="flex gap-2 flex-shrink-0">
+            <button ref={btnRef} onClick={() => setDismissed(true)} className="px-4 py-1.5 text-sm bg-white text-gray-900 rounded font-semibold hover:bg-gray-100">Accept</button>
+            <button onClick={() => setDismissed(true)} aria-label="Decline cookies and close banner" className="px-4 py-1.5 text-sm border border-gray-500 rounded hover:border-white">Decline</button>
+          </div>
+        </div>
+      );
+    }
+
+    function Header({ current }) {
+      const [open, setOpen] = useState(false);
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const nav = [
+        { label: 'World', href: 'world.html' },
+        { label: 'Politics', href: '#' },
+        { label: 'Tech', href: '#' },
+        { label: 'Culture', href: '#' },
+        { label: 'Opinion', href: 'opinion.html' },
+      ];
+      return (
+        <header className="sticky-header bg-gray-950 text-white">
+          <div className="border-b border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 py-1.5 flex justify-between text-xs text-gray-400">
+              <span>{today}</span>
+              <div className="flex gap-4">
+                {['Twitter','Facebook','Instagram'].map(s => (
+                  <a key={s} href="#" aria-label={`Follow The Meridian on ${s}`} className="hover:text-white transition-colors">{s}</a>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center justify-between py-3">
+              <a href="index.html" className="font-serif text-3xl font-black tracking-tight hover:text-gray-200">THE MERIDIAN</a>
+              <nav aria-label="Main navigation" className="hidden md:flex items-center gap-0.5">
+                {nav.map(({ label, href }) => (
+                  <a key={label} href={href}
+                    className={`px-3 py-2 text-sm font-medium rounded transition-colors ${current === label.toLowerCase() ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
+                    aria-current={current === label.toLowerCase() ? 'page' : undefined}>{label}</a>
+                ))}
+                <a href="subscription.html" className="ml-3 px-4 py-2 text-sm font-bold bg-red-700 text-white rounded hover:bg-red-600 transition-colors">Subscribe</a>
+              </nav>
+              <button className="md:hidden p-2 rounded hover:bg-gray-700" onClick={() => setOpen(!open)}
+                aria-expanded={open} aria-controls="mobile-nav" aria-label="Toggle navigation menu">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {open && (
+            <nav id="mobile-nav" aria-label="Mobile navigation" className="md:hidden border-t border-gray-800 pb-2">
+              {nav.map(({ label, href }) => (
+                <a key={label} href={href} className="block px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white">{label}</a>
+              ))}
+              <a href="subscription.html" className="block px-4 py-2.5 text-sm font-bold text-red-400 hover:bg-gray-800">Subscribe</a>
+            </nav>
+          )}
+        </header>
+      );
+    }
+
+    function BreakingNewsTicker() {
+      const [paused, setPaused] = useState(false);
+      const items = [
+        'BREAKING: UN Emergency Session Called Over Red Sea Tensions',
+        'Markets Rally as Fed Signals Pause in Rate Hikes',
+        'Climate Summit: 140 Nations Sign Historic Emissions Pact',
+        'EU Antitrust Court Rules Against Three Major Tech Giants',
+      ];
+      const text = items.join('   ·   ') + '   ·   ' + items.join('   ·   ');
+      return (
+        <div role="region" aria-label="Breaking news ticker" className={`flex items-stretch bg-red-700 text-white overflow-hidden ${paused ? 'ticker-paused' : ''}`}>
+          <div className="flex-shrink-0 bg-red-900 px-4 py-2 flex items-center">
+            <span className="text-xs font-black tracking-widest uppercase">Breaking</span>
+          </div>
+          <div className="flex-1 overflow-hidden relative" aria-live="off">
+            <div className="ticker-track whitespace-nowrap py-2 px-4 text-sm font-medium" aria-hidden={!paused}>{text}</div>
+            {paused && <p className="absolute inset-0 flex items-center px-4 text-sm font-medium bg-red-700" aria-live="polite">{items[0]}</p>}
+          </div>
+          <button onClick={() => setPaused(p => !p)} aria-pressed={paused}
+            aria-label={paused ? 'Resume breaking news ticker' : 'Pause breaking news ticker'}
+            className="flex-shrink-0 px-4 py-2 bg-red-800 hover:bg-red-900 text-xs font-semibold transition-colors">
+            {paused ? '▶ Resume' : '⏸ Pause'}
+          </button>
+        </div>
+      );
+    }
+
+    function Footer() {
+      const [email, setEmail] = useState('');
+      const [submitted, setSubmitted] = useState(false);
+      const [error, setError] = useState('');
+      const handleSubmit = e => {
+        e.preventDefault();
+        if (!email || !/\S+@\S+\.\S+/.test(email)) { setError('Please enter a valid email address.'); return; }
+        setError(''); setSubmitted(true);
+      };
+      return (
+        <footer className="bg-gray-950 text-gray-400 mt-16">
+          <div className="border-b border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <h2 className="font-serif text-2xl text-white font-bold mb-2">Stay Informed</h2>
+                <p className="text-sm">Get The Meridian's top stories delivered to your inbox every morning.</p>
+              </div>
+              <div>
+                <div aria-live="polite" aria-atomic="true">
+                  {submitted && <p className="text-green-400 text-sm mb-2">✓ You've been added to our newsletter.</p>}
+                  {error && <p className="text-red-400 text-sm mb-2" id="nl-err">{error}</p>}
+                </div>
+                {!submitted && (
+                  <form onSubmit={handleSubmit} noValidate className="flex gap-2">
+                    <div className="flex-1">
+                      <label htmlFor="footer-email" className="sr-only">Your email address</label>
+                      <input id="footer-email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+                        placeholder="your@email.com" aria-required="true" aria-describedby={error ? 'nl-err' : undefined}
+                        className="w-full px-3 py-2 rounded bg-gray-800 text-white placeholder-gray-500 border border-gray-700 focus:outline-none focus:border-red-500 text-sm" />
+                    </div>
+                    <button type="submit" className="px-4 py-2 bg-red-700 text-white rounded text-sm font-bold hover:bg-red-600 transition-colors">Subscribe</button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+            {[
+              { h: 'Sections', l: [['World','world.html'],['Politics','#'],['Technology','#'],['Culture','#'],['Opinion','opinion.html']] },
+              { h: 'Company', l: [['About Us','#'],['Editorial Standards','#'],['Contact','#'],['Careers','#']] },
+              { h: 'Subscribe', l: [['Digital Access','subscription.html'],['All-Access','subscription.html'],['Gift Subscriptions','#'],['Student Discount','#']] },
+              { h: 'Legal', l: [['Privacy Policy','#'],['Terms','#'],['Cookies','#'],['Accessibility','#']] },
+            ].map(({ h, l }) => (
+              <div key={h}>
+                <h3 className="text-white font-semibold text-sm mb-3">{h}</h3>
+                <ul className="space-y-1.5">
+                  {l.map(([label, href]) => <li key={label}><a href={href} className="hover:text-white transition-colors">{label}</a></li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between text-xs text-gray-600">
+              <span>© 2026 The Meridian. All rights reserved.</span>
+              <span>Independent journalism since 2008</span>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ─── Article Card ─── */
+    function ArticleCard({ article, large = false }) {
+      return (
+        <article>
+          <div className={`overflow-hidden rounded-lg mb-3 ${large ? '' : ''}`}>
+            <img src={article.image} alt={article.imageAlt || ''}
+              className={`w-full object-cover hover:scale-105 transition-transform duration-300 ${large ? 'h-72 md:h-96' : 'h-44'}`} loading="lazy" />
+          </div>
+          <div>
+            {article.region && (
+              <span className="text-xs font-bold text-red-700 uppercase tracking-wider">{article.region}</span>
+            )}
+            {large ? (
+              <h2 className="font-serif text-2xl md:text-3xl font-bold leading-tight mt-1.5 mb-2">
+                <a href={article.href || 'article.html'} className="hover:text-red-700 transition-colors">{article.headline}</a>
+              </h2>
+            ) : (
+              <h3 className="font-serif text-base font-bold leading-snug mt-1 mb-1.5">
+                <a href={article.href || 'article.html'} className="hover:text-red-700 transition-colors">{article.headline}</a>
+              </h3>
+            )}
+            {article.summary && <p className={`text-gray-600 leading-relaxed mb-2 ${large ? 'text-base' : 'text-sm'}`}>{article.summary}</p>}
+            <div className="flex flex-wrap gap-1.5 text-xs text-gray-400">
+              {article.author && <span>By {article.author}</span>}
+              {article.author && article.timestamp && <span>·</span>}
+              {article.timestamp && <time>{article.timestamp}</time>}
+            </div>
+          </div>
+        </article>
+      );
+    }
+
+    /* ─── Main App ─── */
+    function App() {
+      const topics = ['All', 'Asia', 'Europe', 'Americas', 'Middle East', 'Africa'];
+      const [activeTopic, setActiveTopic] = useState('All');
+      const [visibleCount, setVisibleCount] = useState(6);
+      const loadMoreRef = useRef(null);
+
+      const lead = {
+        headline: 'Red Sea Crisis Deepens as Shipping Giants Halt Major Routes',
+        summary: 'The escalating conflict in the Red Sea is forcing global shipping companies to reroute vessels around Africa's Cape of Good Hope, adding up to two weeks to delivery times and pushing freight costs to their highest levels since 2022.',
+        author: 'Sarah Chen', timestamp: 'March 17, 2026 · 2 hours ago',
+        region: 'Middle East', image: 'https://picsum.photos/seed/redsea2/900/480',
+        imageAlt: 'Container ships rerouting through the Indian Ocean', href: 'article.html',
+      };
+
+      const allArticles = [
+        { headline: 'Taiwan Strait: A New Normal of Military Drills', author: 'Liu Wei', timestamp: '6 hours ago', region: 'Asia', image: 'https://picsum.photos/seed/taiwan/600/360', imageAlt: 'Naval vessels in the Taiwan Strait', href: '#' },
+        { headline: "Germany's Energy Transition Hits Industrial Headwinds", author: 'Hannah Müller', timestamp: '8 hours ago', region: 'Europe', image: 'https://picsum.photos/seed/germany/600/360', imageAlt: 'Wind turbines over German countryside', href: '#' },
+        { headline: "Brazil's Amazon Deforestation Drops to Decade Low", author: 'Carlos Lima', timestamp: '12 hours ago', region: 'Americas', image: 'https://picsum.photos/seed/amazon/600/360', imageAlt: 'Aerial view of the Amazon rainforest', href: '#' },
+        { headline: 'Sahel Alliance Deepens Ties with Wagner Group Successor', author: 'James Adeyemi', timestamp: '14 hours ago', region: 'Africa', image: 'https://picsum.photos/seed/sahel/600/360', imageAlt: 'Military vehicles in the Sahel region', href: '#' },
+        { headline: 'Iran Nuclear Talks Resume in Vienna Amid Regional Tensions', author: 'Layla Mansour', timestamp: '16 hours ago', region: 'Middle East', image: 'https://picsum.photos/seed/iran/600/360', imageAlt: 'Vienna conference center exterior', href: '#' },
+        { headline: "South Korea's Demographic Crisis: A Nation Aging Fast", author: 'Min-Jae Oh', timestamp: '18 hours ago', region: 'Asia', image: 'https://picsum.photos/seed/seoul/600/360', imageAlt: 'Seoul cityscape at night', href: '#' },
+        { headline: 'France Faces Political Void After PM Resignation', author: 'Céline Dupont', timestamp: '20 hours ago', region: 'Europe', image: 'https://picsum.photos/seed/france/600/360', imageAlt: 'French National Assembly building', href: '#' },
+        { headline: "Mexico's Cartels Move Into Cybercrime", author: 'Roberto Vega', timestamp: '22 hours ago', region: 'Americas', image: 'https://picsum.photos/seed/mexico/600/360', imageAlt: 'Darkened server room with glowing screens', href: '#' },
+      ];
+
+      const filtered = activeTopic === 'All' ? allArticles : allArticles.filter(a => a.region === activeTopic);
+      const visible = filtered.slice(0, visibleCount);
+
+      const handleLoadMore = () => {
+        setVisibleCount(c => c + 4);
+        // Focus management: keep focus on load more button (cat_5)
+        setTimeout(() => { if (loadMoreRef.current) loadMoreRef.current.focus(); }, 50);
+      };
+
+      return (
+        <>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+          <CookieBanner />
+          <Header current="world" />
+          <BreakingNewsTicker />
+          <main id="main-content">
+            {/* Category Header */}
+            <div className="bg-gray-950 text-white">
+              <div className="max-w-7xl mx-auto px-4 py-10">
+                <div className="flex items-end gap-4">
+                  <div>
+                    <p className="text-red-400 text-xs font-black uppercase tracking-widest mb-2">Section</p>
+                    <h1 className="font-serif text-5xl font-black">World</h1>
+                    <p className="text-gray-400 mt-2 max-w-xl">Comprehensive coverage of international affairs, conflicts, diplomacy, and the forces shaping our world.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 py-8">
+              {/* Lead story */}
+              <section aria-labelledby="lead-story-heading" className="mb-10">
+                <h2 id="lead-story-heading" className="sr-only">Lead Story</h2>
+                <ArticleCard article={lead} large={true} />
+              </section>
+
+              <hr className="border-gray-200 mb-8" />
+
+              {/* Topic filter bar — cat_2: fieldset with legend */}
+              <fieldset className="mb-8" aria-label="Filter by region">
+                <legend className="font-semibold text-sm text-gray-700 mb-3">Filter by Region</legend>
+                <div role="group" aria-label="Region filter options" className="flex flex-wrap gap-2">
+                  {topics.map(topic => (
+                    <button key={topic} onClick={() => { setActiveTopic(topic); setVisibleCount(6); }}
+                      aria-pressed={activeTopic === topic}
+                      className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-colors ${
+                        activeTopic === topic
+                          ? 'bg-gray-900 text-white border-gray-900'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-700 hover:text-gray-900'
+                      }`}>
+                      {topic}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              {/* Article grid */}
+              <section aria-labelledby="stories-grid-heading">
+                <h2 id="stories-grid-heading" className="font-serif text-2xl font-bold border-b-2 border-gray-900 pb-2 mb-6">
+                  {activeTopic === 'All' ? 'Latest Stories' : `${activeTopic} Stories`}
+                </h2>
+                {visible.length === 0 ? (
+                  <p className="text-gray-500 py-8">No stories found for this region.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {visible.map((article, i) => <ArticleCard key={`${activeTopic}-${i}`} article={article} />)}
+                  </div>
+                )}
+                {visibleCount < filtered.length && (
+                  <div className="mt-10 text-center">
+                    <button ref={loadMoreRef} onClick={handleLoadMore}
+                      className="px-8 py-3 border-2 border-gray-900 text-gray-900 font-bold rounded hover:bg-gray-900 hover:text-white transition-colors"
+                      aria-label={`Load more ${activeTopic === 'All' ? 'world' : activeTopic} stories`}>
+                      Load More Stories
+                    </button>
+                  </div>
+                )}
+              </section>
+            </div>
+          </main>
+          <Footer />
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Dashboard — LearnPath</title>
+  <meta name="description" content="Your personal learning dashboard. Track progress, continue courses, and discover what to learn next." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    *:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; border-radius: 4px; }
+    .skip-link { position:absolute; top:-100%; left:8px; background:#4f46e5; color:#fff; padding:8px 16px; border-radius:0 0 8px 8px; font-weight:600; font-size:14px; z-index:9999; }
+    .skip-link:focus { top:0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-ring { transform-origin: center; transform: rotate(-90deg); }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ─── ICONS ─────────────────────────────────────────────── */
+    const Logo = () => (
+      <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+        <path d="M7 20 L16 9 L25 20" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        <path d="M11 20 L21 20" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="16" cy="23" r="1.5" fill="white"/>
+      </svg>
+    );
+    const StarIcon = ({cls='w-3.5 h-3.5'}) => (
+      <svg className={cls} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+      </svg>
+    );
+    const MenuIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    );
+    const CloseIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    );
+
+    /* ─── SHARED HEADER ──────────────────────────────────────── */
+    const Header = () => {
+      const [open, setOpen] = useState(false);
+      const nav = [{href:'courses.html',label:'Browse Courses'},{href:'pricing.html',label:'Pricing'},{href:'dashboard.html',label:'My Learning'}];
+      return (
+        <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <a href="index.html" className="flex items-center gap-2.5 rounded-lg" aria-label="LearnPath – homepage">
+                <Logo /><span className="text-xl font-bold text-gray-900">Learn<span className="text-indigo-600">Path</span></span>
+              </a>
+              <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
+                {nav.map(l=>(
+                  <a key={l.href} href={l.href}
+                    className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors hover:text-indigo-600 hover:bg-indigo-50 ${l.href==='dashboard.html'?'text-indigo-600 bg-indigo-50':'text-gray-600'}`}
+                    aria-current={l.href==='dashboard.html'?'page':undefined}>{l.label}</a>
+                ))}
+              </nav>
+              <div className="hidden md:flex items-center gap-3">
+                {/* Notification bell */}
+                <button aria-label="Notifications (3 unread)" className="relative p-2 rounded-lg text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                  </svg>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" aria-hidden="true"/>
+                </button>
+                {/* User avatar */}
+                <button aria-label="Your account: Jordan" className="flex items-center gap-2 rounded-xl hover:bg-gray-50 px-2 py-1.5 transition-colors">
+                  <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">J</div>
+                  <span className="text-sm font-medium text-gray-700 hidden sm:block">Jordan</span>
+                </button>
+              </div>
+              <button onClick={()=>setOpen(!open)} className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                aria-label={open?'Close menu':'Open menu'} aria-expanded={open}>
+                {open?<CloseIcon/>:<MenuIcon/>}
+              </button>
+            </div>
+          </div>
+          {open && (
+            <nav className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-1">
+              {nav.map(l=><a key={l.href} href={l.href} className="block py-2.5 px-3 text-sm font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">{l.label}</a>)}
+              <div className="pt-3 space-y-2 border-t border-gray-100">
+                <a href="#" className="block text-center py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50">Sign Out</a>
+              </div>
+            </nav>
+          )}
+        </header>
+      );
+    };
+
+    /* ─── SHARED FOOTER ──────────────────────────────────────── */
+    const Footer = () => (
+      <footer className="bg-gray-900 text-gray-400" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex flex-col md:flex-row justify-between gap-8 mb-8">
+            <a href="index.html" className="flex items-center gap-2" aria-label="LearnPath home">
+              <Logo /><span className="text-lg font-bold text-white">Learn<span className="text-indigo-400">Path</span></span>
+            </a>
+            <div className="flex flex-wrap gap-8 text-sm">
+              {[['courses.html','Browse Courses'],['pricing.html','Pricing'],['dashboard.html','Dashboard'],['#','About'],['#','Help']].map(([href,label])=>(
+                <a key={label} href={href} className="hover:text-white transition-colors">{label}</a>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-sm">
+            <p>© 2025 LearnPath, Inc. All rights reserved.</p>
+            <div className="flex gap-6">{['Terms','Privacy','Cookies'].map(t=><a key={t} href="#" className="hover:text-white">{t}</a>)}</div>
+          </div>
+        </div>
+      </footer>
+    );
+
+    /* ─── PROGRESS RING ──────────────────────────────────────── */
+    const ProgressRing = ({ pct, size=80, stroke=6, color='#4f46e5', label }) => {
+      const r = (size - stroke) / 2;
+      const circ = 2 * Math.PI * r;
+      const offset = circ - (pct / 100) * circ;
+      return (
+        <div className="relative flex items-center justify-center" style={{width:size,height:size}}>
+          <svg width={size} height={size} aria-hidden="true">
+            <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e5e7eb" strokeWidth={stroke}/>
+            <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+              strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+              className="progress-ring" style={{transition:'stroke-dashoffset 1s ease'}}/>
+          </svg>
+          <span className="absolute text-sm font-bold text-gray-800">{pct}%</span>
+          <span className="sr-only">{label}: {pct}% complete</span>
+        </div>
+      );
+    };
+
+    /* ─── DATA ───────────────────────────────────────────────── */
+    const IN_PROGRESS = [
+      { id:1, title:'Python for Data Science', instructor:'Dr. Sarah Chen', pct:33, lesson:'Lesson 4 of 12', module:'Module 2: Data Structures', lastAccessed:'2 hours ago', emoji:'🐍', grad:'from-green-100 to-emerald-200', color:'#10b981' },
+      { id:2, title:'React & Next.js Masterclass', instructor:'Emily Zhang', pct:65, lesson:'Lesson 21 of 32', module:'Module 5: State Management', lastAccessed:'Yesterday', emoji:'⚛️', grad:'from-blue-100 to-cyan-200', color:'#3b82f6' },
+      { id:3, title:'UX Design Fundamentals', instructor:'Marcus Rivera', pct:88, lesson:'Lesson 16 of 18', module:'Module 6: Prototyping', lastAccessed:'3 days ago', emoji:'🎨', grad:'from-pink-100 to-rose-200', color:'#ec4899' },
+    ];
+
+    const BADGES = [
+      { icon:'🏆', name:'First Course', earned:true, desc:'Completed your first course' },
+      { icon:'🔥', name:'7-Day Streak', earned:true, desc:'Learned 7 days in a row' },
+      { icon:'⚡', name:'Quick Learner', earned:true, desc:'Completed 5 lessons in one day' },
+      { icon:'🎯', name:'On Target', earned:true, desc:'Met your weekly goal 3 times' },
+      { icon:'💎', name:'Pro Member', earned:true, desc:'Active Pro subscription' },
+      { icon:'🌟', name:'Top Student', earned:false, desc:'Complete 10 courses to unlock' },
+      { icon:'🚀', name:'Milestone 50h', earned:false, desc:'Learn 50+ hours to unlock' },
+      { icon:'🎓', name:'Certificate Pro', earned:false, desc:'Earn 5 certificates to unlock' },
+    ];
+
+    const STREAK_DAYS = [
+      { day:'M', done:true },
+      { day:'T', done:true },
+      { day:'W', done:true },
+      { day:'T', done:true },
+      { day:'F', done:true },
+      { day:'S', done:true },
+      { day:'S', done:false },
+    ];
+
+    const RECOMMENDED = [
+      { id:1, title:'Machine Learning A–Z', instructor:'Andrew Kim', rating:4.9, price:69.99, emoji:'🤖', grad:'from-violet-100 to-purple-200', level:'Advanced' },
+      { id:2, title:'Business Strategy', instructor:'Prof. James Howard', rating:4.6, price:39.99, emoji:'📊', grad:'from-amber-100 to-orange-200', level:'Beginner' },
+      { id:3, title:'Node.js API Dev', instructor:'Chris Park', rating:4.8, price:54.99, emoji:'🟢', grad:'from-lime-100 to-green-200', level:'Intermediate' },
+      { id:4, title:'Brand Identity Design', instructor:'Sofia Chen', rating:4.7, price:0, emoji:'🎭', grad:'from-purple-100 to-violet-200', level:'Beginner' },
+    ];
+
+    /* ─── DASHBOARD PAGE ─────────────────────────────────────── */
+    const DashboardPage = () => {
+      const [activeTab, setActiveTab] = useState('learning');
+
+      const TABS = [
+        { id:'learning', label:'My Learning' },
+        { id:'achievements', label:'Achievements' },
+        { id:'profile', label:'Profile' },
+      ];
+
+      return (
+        <div className="min-h-screen flex flex-col bg-gray-50">
+          <Header />
+          <main id="main-content" tabIndex="-1">
+
+            {/* Welcome Banner */}
+            <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-purple-700 text-white">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-white font-extrabold text-2xl border-2 border-white/30 shrink-0"
+                      aria-label="Jordan's avatar">J</div>
+                    <div>
+                      <p className="text-indigo-200 text-sm font-medium">Welcome back,</p>
+                      <h1 className="text-2xl md:text-3xl font-extrabold text-white">Jordan 👋</h1>
+                      <p className="text-indigo-200 text-sm mt-1">Pro Member · Member since Jan 2024</p>
+                    </div>
+                  </div>
+                  {/* Quick stats */}
+                  <dl className="flex gap-6 md:gap-10 bg-white/10 backdrop-blur border border-white/20 rounded-2xl px-6 py-4">
+                    {[['3','Active Courses'],['47h','Time Learned'],['2','Certificates'],['6🔥','Day Streak']].map(([v,l])=>(
+                      <div key={l} className="text-center">
+                        <dt className="text-2xl font-extrabold text-white">{v}</dt>
+                        <dd className="text-xs text-indigo-200 mt-0.5 whitespace-nowrap">{l}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              </div>
+            </div>
+
+            {/* Dashboard Tabs */}
+            <div className="bg-white border-b border-gray-100 shadow-sm">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div role="tablist" aria-label="Dashboard sections" className="flex">
+                  {TABS.map(t=>(
+                    <button key={t.id} role="tab" id={`dtab-${t.id}`} aria-selected={activeTab===t.id} aria-controls={`dpanel-${t.id}`}
+                      onClick={()=>setActiveTab(t.id)}
+                      className={`px-5 py-4 text-sm font-semibold border-b-2 transition-colors ${activeTab===t.id?'border-indigo-600 text-indigo-600':'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+              {/* ── My Learning Tab ── */}
+              <div role="tabpanel" id="dpanel-learning" aria-labelledby="dtab-learning" hidden={activeTab!=='learning'} className="space-y-10">
+
+                {/* Continue Learning */}
+                <section aria-labelledby="continue-heading">
+                  <div className="flex items-center justify-between mb-5">
+                    <h2 id="continue-heading" className="text-xl font-bold text-gray-900">Continue Learning</h2>
+                    <a href="courses.html" className="text-sm text-indigo-600 font-semibold hover:text-indigo-700">Browse more →</a>
+                  </div>
+                  <div className="space-y-4">
+                    {IN_PROGRESS.map(course=>(
+                      <article key={course.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-5">
+                          {/* Progress ring + thumbnail */}
+                          <div className="relative shrink-0">
+                            <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${course.grad} flex items-center justify-center text-3xl`} aria-hidden="true">
+                              {course.emoji}
+                            </div>
+                            <div className="absolute -bottom-2 -right-2">
+                              <ProgressRing pct={course.pct} size={36} stroke={4} color={course.color} label={course.title}/>
+                            </div>
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-gray-900 text-base mb-0.5">{course.title}</h3>
+                            <p className="text-sm text-gray-500 mb-2">{course.instructor}</p>
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-3">
+                              <span className="bg-gray-100 px-2 py-1 rounded-full">{course.lesson}</span>
+                              <span className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-full">{course.module}</span>
+                              <span>Last accessed {course.lastAccessed}</span>
+                            </div>
+                            {/* Progress bar */}
+                            <div>
+                              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>Progress</span>
+                                <span className="font-semibold text-gray-700">{course.pct}%</span>
+                              </div>
+                              <div className="h-2 bg-gray-100 rounded-full overflow-hidden" role="progressbar" aria-label={`${course.title}: ${course.pct}% complete`} aria-valuenow={course.pct} aria-valuemin={0} aria-valuemax={100}>
+                                <div className="h-full rounded-full transition-all" style={{width:`${course.pct}%`, backgroundColor:course.color}}/>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* CTA */}
+                          <div className="shrink-0">
+                            <a href="study.html"
+                              className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-5 py-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap"
+                              aria-label={`Resume ${course.title}`}>
+                              <svg className="w-4 h-4 ml-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                              Resume
+                            </a>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Streak + Activity Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Learning Streak */}
+                  <section aria-labelledby="streak-heading" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 id="streak-heading" className="text-base font-bold text-gray-900">Learning Streak</h2>
+                      <span className="text-2xl font-extrabold text-orange-500 flex items-center gap-1">6 <span className="text-xl">🔥</span></span>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-5">You're on a 6-day streak! Keep it up to earn the <strong className="text-orange-600">7-Day Badge</strong>.</p>
+                    <div className="flex justify-between" role="list" aria-label="Weekly learning activity">
+                      {STREAK_DAYS.map((d,i)=>(
+                        <div key={i} className="flex flex-col items-center gap-2" role="listitem">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${d.done?'bg-orange-500 text-white shadow-sm':'bg-gray-100 text-gray-300 border-2 border-dashed border-gray-200'}`}
+                            aria-label={`${d.day}: ${d.done?'completed':'not yet completed'}`}>
+                            {d.done ? (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+                              </svg>
+                            ) : <span className="text-xs font-bold">{d.day}</span>}
+                          </div>
+                          <span className="text-xs text-gray-400 font-medium">{d.day}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-5 bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center gap-3">
+                      <span className="text-xl" aria-hidden="true">⏰</span>
+                      <p className="text-xs text-orange-700 font-medium">Learn today to reach a 7-day streak and earn your badge!</p>
+                    </div>
+                  </section>
+
+                  {/* Learning Goals */}
+                  <section aria-labelledby="goals-heading" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 id="goals-heading" className="text-base font-bold text-gray-900">Weekly Goal</h2>
+                      <button className="text-xs text-indigo-600 font-semibold hover:text-indigo-700">Edit goal</button>
+                    </div>
+                    <div className="flex items-center gap-5 mb-5">
+                      <ProgressRing pct={62} size={80} stroke={7} color="#4f46e5" label="Weekly learning goal"/>
+                      <div>
+                        <p className="text-2xl font-extrabold text-gray-900">3.1 <span className="text-base font-semibold text-gray-400">/ 5h</span></p>
+                        <p className="text-sm text-gray-500">hours learned this week</p>
+                        <p className="text-xs text-indigo-600 font-semibold mt-1">1.9h remaining</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {[['Mon','55m',true],['Tue','40m',true],['Wed','72m',true],['Thu','0m',false],['Fri (Today)','43m',true]].map(([day,time,done])=>(
+                        <div key={day} className="flex items-center gap-3">
+                          <span className="text-xs text-gray-500 w-16">{day}</span>
+                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${done?'bg-indigo-500':'bg-gray-200'}`} style={{width:done?`${Math.min(100,parseInt(time)/60*100/2*100)}%`:'0%'}} aria-hidden="true"/>
+                          </div>
+                          <span className={`text-xs font-semibold w-10 text-right ${done?'text-gray-700':'text-gray-300'}`}>{time}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+
+                {/* Recommended */}
+                <section aria-labelledby="recommended-heading">
+                  <div className="flex items-center justify-between mb-5">
+                    <h2 id="recommended-heading" className="text-xl font-bold text-gray-900">Recommended for You</h2>
+                    <a href="courses.html" className="text-sm text-indigo-600 font-semibold hover:text-indigo-700">See all →</a>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    {RECOMMENDED.map(c=>{
+                      const lc={Beginner:'bg-emerald-100 text-emerald-700',Intermediate:'bg-amber-100 text-amber-700',Advanced:'bg-red-100 text-red-700'};
+                      return (
+                        <article key={c.id} className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all group">
+                          <a href="course-detail.html" aria-label={`View: ${c.title}`}>
+                            <div className={`aspect-video bg-gradient-to-br ${c.grad} flex items-center justify-center text-4xl`} aria-hidden="true">{c.emoji}</div>
+                          </a>
+                          <div className="p-4">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${lc[c.level]}`}>{c.level}</span>
+                            </div>
+                            <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-1">
+                              <a href="course-detail.html" className="hover:text-indigo-600 transition-colors">{c.title}</a>
+                            </h3>
+                            <p className="text-xs text-gray-500 mb-2">{c.instructor}</p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1" aria-label={`Rating: ${c.rating}`}>
+                                <StarIcon cls="w-3.5 h-3.5 text-amber-400"/>
+                                <span className="text-xs font-semibold text-gray-700">{c.rating}</span>
+                              </div>
+                              <span className="text-sm font-bold text-gray-900">{c.price===0?<span className="text-emerald-600">Free</span>:`$${c.price}`}</span>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+
+              {/* ── Achievements Tab ── */}
+              <div role="tabpanel" id="dpanel-achievements" aria-labelledby="dtab-achievements" hidden={activeTab!=='achievements'} className="space-y-10">
+                <section aria-labelledby="badges-heading">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 id="badges-heading" className="text-xl font-bold text-gray-900">Achievement Badges</h2>
+                      <p className="text-sm text-gray-500 mt-1">You've earned <strong className="text-indigo-600">5 out of 8</strong> available badges</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+                    {BADGES.map(b=>(
+                      <div key={b.name}
+                        className={`bg-white rounded-2xl border-2 p-6 text-center transition-all ${b.earned?'border-indigo-200 shadow-sm hover:shadow-md':'border-gray-100 opacity-50'}`}
+                        aria-label={`${b.name}: ${b.desc}${b.earned?' (earned)':' (locked)'}`}>
+                        <div className={`text-4xl mb-3 ${b.earned?'':'grayscale opacity-50'}`} aria-hidden="true">{b.icon}</div>
+                        <p className={`text-sm font-bold mb-1 ${b.earned?'text-gray-900':'text-gray-400'}`}>{b.name}</p>
+                        <p className="text-xs text-gray-400 leading-tight">{b.desc}</p>
+                        {b.earned && <span className="inline-block mt-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">Earned ✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Certificates */}
+                <section aria-labelledby="certs-heading">
+                  <h2 id="certs-heading" className="text-xl font-bold text-gray-900 mb-5">My Certificates</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {[
+                      { course:'UX Design Fundamentals', instructor:'Marcus Rivera', issued:'Nov 2024', id:'LP-UX-2024-11-4821', emoji:'🎨' },
+                      { course:'JavaScript ES6 Complete', instructor:'Priya Kapoor', issued:'Sep 2024', id:'LP-JS-2024-09-2934', emoji:'✨' },
+                    ].map(cert=>(
+                      <div key={cert.id} className="bg-white rounded-2xl border-2 border-indigo-100 overflow-hidden shadow-sm">
+                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-5 text-white flex items-center gap-4">
+                          <span className="text-4xl" aria-hidden="true">{cert.emoji}</span>
+                          <div>
+                            <p className="text-xs text-indigo-200 font-semibold uppercase tracking-wider">Certificate of Completion</p>
+                            <h3 className="font-bold text-base mt-1">{cert.course}</h3>
+                          </div>
+                        </div>
+                        <div className="p-5">
+                          <div className="flex items-center justify-between text-sm mb-4">
+                            <span className="text-gray-500">Instructor: <strong className="text-gray-700">{cert.instructor}</strong></span>
+                            <span className="text-gray-500">Issued: <strong className="text-gray-700">{cert.issued}</strong></span>
+                          </div>
+                          <p className="text-xs text-gray-400 font-mono mb-4">{cert.id}</p>
+                          <div className="flex gap-3">
+                            <a href="#" className="flex-1 text-center bg-indigo-600 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-indigo-700 transition-colors">View Certificate</a>
+                            <a href="#" className="flex-1 text-center border border-gray-200 text-gray-700 text-sm font-semibold py-2.5 rounded-xl hover:bg-gray-50 transition-colors">Share on LinkedIn</a>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              {/* ── Profile Tab ── */}
+              <div role="tabpanel" id="dpanel-profile" aria-labelledby="dtab-profile" hidden={activeTab!=='profile'} className="max-w-2xl">
+                <section aria-labelledby="profile-heading" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-10 text-center">
+                    <div className="w-20 h-20 bg-white/20 border-2 border-white/40 rounded-full flex items-center justify-center text-white font-extrabold text-3xl mx-auto mb-3">J</div>
+                    <h2 id="profile-heading" className="text-xl font-bold text-white">Jordan Taylor</h2>
+                    <p className="text-indigo-200 text-sm">jordan.taylor@email.com</p>
+                    <span className="inline-block mt-2 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-full">⭐ Pro Member</span>
+                  </div>
+                  <div className="p-8 space-y-5">
+                    {[
+                      { label:'Full Name', value:'Jordan Taylor', id:'name' },
+                      { label:'Email Address', value:'jordan.taylor@email.com', id:'email' },
+                      { label:'Member Since', value:'January 2024', id:'member-since', readonly:true },
+                      { label:'Learning Goal', value:'5 hours per week', id:'goal' },
+                    ].map(f=>(
+                      <div key={f.id}>
+                        <label htmlFor={`profile-${f.id}`} className="block text-sm font-semibold text-gray-700 mb-1.5">{f.label}</label>
+                        <input id={`profile-${f.id}`} type="text" defaultValue={f.value} readOnly={f.readonly}
+                          className={`w-full border rounded-xl px-4 py-3 text-sm text-gray-900 ${f.readonly?'bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed':'border-gray-200 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'}`}
+                          aria-readonly={f.readonly}/>
+                      </div>
+                    ))}
+                    <div className="flex gap-3 pt-2">
+                      <button className="flex-1 bg-indigo-600 text-white font-semibold py-3 rounded-xl hover:bg-indigo-700 transition-colors text-sm">Save Changes</button>
+                      <button className="px-5 py-3 border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 text-sm">Cancel</button>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+            </div>
+          </main>
+          <Footer />
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<DashboardPage />);
+  </script>
+</body>
+</html>

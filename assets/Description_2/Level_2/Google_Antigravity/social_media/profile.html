@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile | Folia</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0c0d10;
+            color: #f3f4f6;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .focus-ring:focus-visible {
+            outline: 2px solid #a855f7;
+            outline-offset: 2px;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%),
+                url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1600&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const SvgIcon = ({ path, className = "w-6 h-6", extraPaths }) => (
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={path} />
+                {extraPaths}
+            </svg>
+        );
+
+        const NavigationSidebar = ({ currentPage }) => {
+            const navItems = [
+                { name: 'Feed', href: 'index.html', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+                { name: 'Explore', href: 'explore.html', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
+                { name: 'Notifications', href: 'notifications.html', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
+                { name: 'Messages', href: 'messages.html', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
+                { name: 'Profile', href: 'profile.html', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+                { name: 'Settings', href: 'settings.html', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' }
+            ];
+
+            return (
+                <nav className="w-20 lg:w-64 border-r border-gray-800 h-screen fixed top-0 left-0 flex flex-col p-4 bg-[#0c0d10] z-40" aria-label="Main Navigation">
+                    <div className="mb-8 flex items-center justify-center lg:justify-start pt-2">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                            <span className="text-white font-bold text-xl">F</span>
+                        </div>
+                        <span className="text-2xl font-bold ml-3 hidden lg:block tracking-tight text-white">Folia</span>
+                    </div>
+                    <ul className="flex-1 space-y-2">
+                        {navItems.map(item => {
+                            const active = currentPage === item.href.replace('.html', '');
+                            return (
+                                <li key={item.name}>
+                                    <a href={item.href} className={`flex items-center p-3 rounded-xl transition-all duration-200 group focus-ring ${active ? 'bg-indigo-500/10 text-white' : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'}`} aria-current={active ? 'page' : undefined}>
+                                        <div className={`${active ? 'text-indigo-400' : 'group-hover:text-indigo-400'} transition-colors duration-200`}>
+                                            <SvgIcon path={item.icon} extraPaths={item.name === 'Settings' ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /> : null} />
+                                        </div>
+                                        <span className={`ml-4 font-medium hidden lg:block ${active ? 'text-white' : ''}`}>{item.name}</span>
+                                    </a>
+                                </li>
+                            )
+                        })}
+                    </ul>
+                </nav>
+            );
+        };
+
+        const ProfileItem = ({ img, title, views, appreciates }) => {
+            return (
+                <div className="group relative rounded-xl overflow-hidden aspect-[4/3] bg-gray-900 border border-gray-800 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-transform duration-300 hover:scale-[1.02]">
+                    <img src={img} alt={`Thumbnail for ${title}`} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                        <h3 className="text-white font-bold mb-2">{title}</h3>
+                        <div className="flex gap-4 text-xs font-semibold text-gray-300">
+                            <div className="flex items-center gap-1">
+                                <SvgIcon path="M15 12a3 3 0 11-6 0 3 3 0 016 0z" extraPaths={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.522 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />} className="w-4 h-4" />
+                                <span>{views} views</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <SvgIcon path="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" className="w-4 h-4 fill-current" />
+                                <span>{appreciates}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#" className="absolute inset-0 z-10 focus:outline-none" aria-label={`View details for ${title}`}></a>
+                </div>
+            );
+        };
+
+        const Profile = () => {
+            const portfolioWorks = [
+                { id: 1, img: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop', title: 'Abstract Forms v3', views: '12k', appreciates: '1.2k' },
+                { id: 2, img: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=600&auto=format&fit=crop', title: 'Retro Poster Series', views: '8.4k', appreciates: '942' },
+                { id: 3, img: 'https://images.unsplash.com/photo-1614729939124-032f0b56c9ce?q=80&w=600&auto=format&fit=crop', title: 'Typography Layout', views: '22k', appreciates: '3.1k' },
+                { id: 4, img: 'https://images.unsplash.com/photo-1600093463592-8e36ae95ef56?q=80&w=600&auto=format&fit=crop', title: 'Brand Identity Concept', views: '15k', appreciates: '1.8k' },
+                { id: 5, img: 'https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?q=80&w=600&auto=format&fit=crop', title: 'Geometric Echo UI', views: '9k', appreciates: '750' },
+                { id: 6, img: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=600&auto=format&fit=crop', title: 'Liquid Chrome Motion', views: '45k', appreciates: '5.2k' }
+            ];
+
+            return (
+                <div className="flex min-h-screen">
+                    <NavigationSidebar currentPage="profile" />
+
+                    <main className="flex-1 ml-20 lg:ml-64 w-full">
+                        {/* Hero Header */}
+                        <div className="w-full h-64 md:h-80 lg:h-96 hero-gradient relative">
+                            {/* Gradient Overlay bottom to blend */}
+                            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0c0d10] to-transparent"></div>
+                        </div>
+
+                        <div className="w-full max-w-6xl mx-auto px-4 lg:px-8 -mt-24 relative z-10 pb-16">
+                            <section aria-labelledby="profile-heading" className="bg-[#15171e] rounded-3xl p-6 lg:p-8 border border-gray-800 shadow-xl mb-12">
+                                <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start md:items-end -mt-16 md:-mt-20 mb-6">
+                                    <div className="p-2 bg-[#15171e] rounded-full border border-gray-800 inline-block shadow-lg">
+                                        <img src="https://i.pravatar.cc/150?img=32" alt="Maya's avatar" className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover" />
+                                    </div>
+                                    <div className="flex-1 pb-2">
+                                        <h1 id="profile-heading" className="text-3xl font-bold text-white mb-1">Maya Creates</h1>
+                                        <div className="flex items-center gap-3 text-gray-400 font-medium">
+                                            <span>@maya_creates</span>
+                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                            <span className="text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md text-sm border border-indigo-500/20">Open for Work</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3 w-full md:w-auto mt-2 md:mt-0">
+                                        <a href="settings.html" className="flex-1 md:flex-none text-center px-6 py-2.5 rounded-xl font-semibold bg-gray-800 hover:bg-gray-700 text-white transition-colors focus-ring">Edit Profile</a>
+                                        <button className="flex-none p-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white transition-colors focus-ring" aria-label="Share profile">
+                                            <SvgIcon path="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="max-w-3xl">
+                                    <p className="text-gray-300 text-lg leading-relaxed mb-6">
+                                        Digital artist and UI designer exploring the intersection between brutalism and fluid organic forms. Usually found experimenting with typography or new color palettes.
+                                    </p>
+
+                                    <div className="flex flex-wrap gap-4 mb-6" aria-label="Skills and Tools">
+                                        <span className="text-sm font-semibold text-gray-400 uppercase tracking-widest mr-2 flex items-center">Works In:</span>
+                                        <span className="px-3 py-1 bg-[#0c0d10] border border-gray-800 rounded-lg text-sm font-medium text-gray-300 shadow-inner">Figma</span>
+                                        <span className="px-3 py-1 bg-[#0c0d10] border border-gray-800 rounded-lg text-sm font-medium text-gray-300 shadow-inner">Procreate</span>
+                                        <span className="px-3 py-1 bg-[#0c0d10] border border-gray-800 rounded-lg text-sm font-medium text-gray-300 shadow-inner">Adobe Illustrator</span>
+                                        <span className="px-3 py-1 bg-[#0c0d10] border border-gray-800 rounded-lg text-sm font-medium text-gray-300 shadow-inner">Blender</span>
+                                    </div>
+
+                                    <div className="flex gap-8 text-sm pt-4 border-t border-gray-800">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-white text-xl">12.4k</span>
+                                            <span className="text-gray-500 font-medium">Followers</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-white text-xl">842</span>
+                                            <span className="text-gray-500 font-medium">Following</span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-white text-xl">168k</span>
+                                            <span className="text-gray-500 font-medium">Project Views</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section aria-labelledby="portfolio-heading">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 id="portfolio-heading" className="text-2xl font-bold text-white">Featured Work</h2>
+                                    <div className="flex bg-[#15171e] rounded-lg p-1 border border-gray-800">
+                                        <button className="px-4 py-1.5 rounded-md bg-gray-800 text-white font-medium text-sm shadow-sm focus-ring" aria-current="true">Projects</button>
+                                        <button className="px-4 py-1.5 rounded-md text-gray-400 hover:text-white font-medium text-sm transition-colors focus-ring">Collections</button>
+                                        <button className="px-4 py-1.5 rounded-md text-gray-400 hover:text-white font-medium text-sm transition-colors focus-ring">Liked</button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {portfolioWorks.map(work => (
+                                        <ProfileItem key={work.id} {...work} />
+                                    ))}
+
+                                    {/* Upload trigger slot */}
+                                    <div className="group rounded-xl aspect-[4/3] bg-[#15171e] hover:bg-gray-800/80 border-2 border-dashed border-gray-700 hover:border-indigo-500 transition-colors duration-300 flex flex-col items-center justify-center cursor-pointer focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent">
+                                        <div className="w-12 h-12 rounded-full bg-gray-800 group-hover:bg-indigo-500 text-gray-400 group-hover:text-white flex items-center justify-center mb-3 transition-colors duration-300">
+                                            <SvgIcon path="M12 4v16m8-8H4" />
+                                        </div>
+                                        <span className="font-semibold text-gray-400 group-hover:text-white transition-colors">Post new project</span>
+                                        <button className="absolute inset-0 z-10 focus:outline-none" aria-label="Upload a new project"></button>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Profile />);
+    </script>
+</body>
+
+</html>

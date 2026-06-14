@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Lakewood | City of Lakewood — Official Government Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa', 100: '#ccfbf1', 300: '#5eead4', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a',
+                        },
+                        navy: { 800: '#1e3a8a', 900: '#1e3a5f', }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Merriweather', 'serif'], }
+                }
+            }
+        }
+    </script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap"
+        rel="stylesheet">
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Merriweather', serif;
+        }
+
+        *:focus-visible {
+            outline: 3px solid #fde047;
+            outline-offset: 2px;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #000;
+            color: white;
+            padding: 8px;
+            z-index: 100;
+            transition: top 0.2s;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 antialiased flex flex-col min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const AlertBanner = () => {
+            const [visible, setVisible] = useState(true);
+            if (!visible) return null;
+            return (
+                <div role="alert" className="bg-red-700 text-white px-4 py-3 sm:px-6 lg:px-8 flex items-start sm:items-center justify-between shadow-md">
+                    <div className="flex items-center space-x-3 max-w-7xl mx-auto w-full">
+                        <i data-lucide="alert-triangle" className="w-6 h-6 flex-shrink-0" aria-hidden="true"></i>
+                        <span className="font-medium text-sm sm:text-base">
+                            <span className="font-bold">Emergency Alert:</span> Road Closure: Main St between 3rd and 5th Ave until Nov 30
+                        </span>
+                    </div>
+                    <button onClick={() => setVisible(false)} aria-label="Dismiss alert" className="text-white hover:text-red-200 focus:outline-none focus:ring-2 focus:ring-white rounded p-1 ml-4 transition-colors">
+                        <i data-lucide="x" className="w-6 h-6" aria-hidden="true"></i>
+                    </button>
+                </div>
+            );
+        };
+
+        const Header = () => {
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            return (
+                <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm relative">
+                    <a href="#main-content" className="skip-link sr-only focus:not-sr-only p-4 bg-navy-900 text-white font-bold absolute top-0 left-0 z-50 rounded-br">Skip to main content</a>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between h-20 items-center">
+                            <div className="flex items-center space-x-3">
+                                <i data-lucide="landmark" className="w-8 h-8 text-navy-800" aria-hidden="true"></i>
+                                <a href="index.html" className="text-2xl font-bold text-navy-900 tracking-tight focus:outline-none focus:ring-2 focus:ring-navy-800 rounded px-1 font-serif">
+                                    City of Lakewood
+                                </a>
+                            </div>
+                            <nav aria-label="Main Navigation" className="hidden md:flex space-x-8">
+                                <a href="index.html" className="text-gray-600 hover:text-navy-800 hover:border-brand-300 font-medium py-2 px-1 border-b-2 border-transparent transition-colors focus:outline-none rounded">Home</a>
+                                <a href="services.html" className="text-gray-600 hover:text-navy-800 hover:border-brand-300 font-medium py-2 px-1 border-b-2 border-transparent transition-colors focus:outline-none rounded">Services</a>
+                                <a href="about.html" className="text-navy-800 font-semibold border-b-2 border-brand-500 py-2 px-1 focus:outline-none rounded transition-colors" aria-current="page">About</a>
+                                <a href="contact.html" className="text-gray-600 hover:text-navy-800 hover:border-brand-300 font-medium py-2 px-1 border-b-2 border-transparent transition-colors focus:outline-none rounded">Contact</a>
+                            </nav>
+                            <div className="md:hidden">
+                                <button aria-expanded={isMenuOpen} aria-label="Toggle navigation menu" onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy-800 rounded p-2">
+                                    <i data-lucide={isMenuOpen ? "x" : "menu"} className="w-6 h-6" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {isMenuOpen && (
+                        <nav aria-label="Mobile Navigation" className="md:hidden bg-white border-t border-gray-100 flex flex-col space-y-1 p-4 shadow-inner">
+                            <a href="index.html" className="text-gray-600 hover:text-navy-800 hover:bg-gray-50 py-3 px-4 rounded-md">Home</a>
+                            <a href="services.html" className="text-gray-600 hover:text-navy-800 hover:bg-gray-50 py-3 px-4 rounded-md">Services</a>
+                            <a href="about.html" className="text-navy-800 font-semibold py-3 px-4 bg-brand-50 rounded-md" aria-current="page">About</a>
+                            <a href="contact.html" className="text-gray-600 hover:text-navy-800 hover:bg-gray-50 py-3 px-4 rounded-md">Contact</a>
+                        </nav>
+                    )}
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-navy-900 text-slate-300 pt-16 pb-8 mt-auto border-t-[6px] border-brand-500">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                            <div>
+                                <div className="flex items-center space-x-2 mb-6 text-white bg-navy-800 inline-block p-2 rounded">
+                                    <i data-lucide="landmark" className="w-6 h-6 inline mr-2" aria-hidden="true"></i>
+                                    <span className="text-lg font-bold font-serif">City of Lakewood</span>
+                                </div>
+                                <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                                    Dedicated to serving our 160,000 residents with transparency, efficiency, and community spirit.
+                                </p>
+                            </div>
+                            <div>
+                                <h2 className="text-white text-sm font-bold uppercase tracking-wider mb-6 bg-navy-800 inline-block px-2 py-1 rounded">Departments</h2>
+                                <ul className="space-y-3">
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Mayor's Office</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Public Works</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Parks & Recreation</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Police Department</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Fire Department</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h2 className="text-white text-sm font-bold uppercase tracking-wider mb-6 bg-navy-800 inline-block px-2 py-1 rounded">Quick Links</h2>
+                                <ul className="space-y-3">
+                                    <li><a href="services.html" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">All Services</a></li>
+                                    <li><a href="service-permits.html" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Apply for Permits</a></li>
+                                    <li><a href="service-bill.html" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Pay a Bill</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Employment</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">City Council Meetings</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h2 className="text-white text-sm font-bold uppercase tracking-wider mb-6 bg-navy-800 inline-block px-2 py-1 rounded">Contact Us</h2>
+                                <address className="not-italic text-sm space-y-4 text-slate-400">
+                                    <p className="flex items-start">
+                                        <i data-lucide="map-pin" className="w-5 h-5 mr-3 flex-shrink-0 text-slate-500" aria-hidden="true"></i>
+                                        <span>123 City Hall Plaza<br />Lakewood, ST 12345</span>
+                                    </p>
+                                    <p className="flex items-center">
+                                        <i data-lucide="phone" className="w-5 h-5 mr-3 flex-shrink-0 text-slate-500" aria-hidden="true"></i>
+                                        <span>(555) 123-4567</span>
+                                    </p>
+                                    <p className="flex items-center">
+                                        <i data-lucide="mail" className="w-5 h-5 mr-3 flex-shrink-0 text-slate-500" aria-hidden="true"></i>
+                                        <a href="mailto:info@lakewood.gov" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">info@lakewood.gov</a>
+                                    </p>
+                                </address>
+                            </div>
+                        </div>
+                        <div className="border-t border-navy-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs">
+                            <p>&copy; {new Date().getFullYear()} City of Lakewood. All rights reserved.</p>
+                            <div className="flex space-x-6 mt-4 md:mt-0">
+                                <a href="#" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Privacy Policy</a>
+                                <a href="#" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Accessibility</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        const PageHeader = () => (
+            <div className="bg-navy-800 py-16 lg:py-24 border-t border-navy-900 relative overflow-hidden text-center">
+                <div className="absolute inset-0 z-0 opacity-10 bg-center bg-cover" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1548231908-cc853dd72e42?auto=format&fit=crop&q=80')" }}></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-navy-900/80 to-navy-800/90 mix-blend-multiply"></div>
+
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-white font-serif mb-4">About Lakewood</h1>
+                    <p className="text-xl text-brand-100 font-light max-w-2xl leading-relaxed">
+                        A vibrant community of 160,000 residents, dedicated to progress, transparency, and high quality of life.
+                    </p>
+                </div>
+            </div>
+        );
+
+        const MissionStatement = () => (
+            <section className="bg-white py-16 border-b border-gray-200" aria-labelledby="mission-heading">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <i data-lucide="heart-handshake" className="w-12 h-12 mx-auto text-brand-500 mb-6" aria-hidden="true"></i>
+                    <h2 id="mission-heading" className="text-3xl font-bold text-navy-900 font-serif mb-6">Our Mission</h2>
+                    <p className="text-xl text-gray-700 leading-relaxed italic">
+                        "The City of Lakewood is committed to delivering exceptional public services, preserving our community's rich heritage, and fostering an inclusive, safe, and prosperous environment for all residents and businesses."
+                    </p>
+                </div>
+            </section>
+        );
+
+        const History = () => (
+            <section className="py-20 bg-gray-50 border-b border-gray-200" aria-labelledby="history-heading">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <h2 id="history-heading" className="text-3xl font-bold text-navy-900 font-serif mb-6 border-b-4 border-brand-500 inline-block pb-2">Our History</h2>
+                            <p className="text-lg text-gray-700 mb-6 leading-relaxed">
+                                Founded in 1889, Lakewood began as a small agricultural hub nestled in a fertile valley. Over the past century, it has grown into a bustling, diverse municipality known for its beautiful parks, robust local economy, and strong community spirit.
+                            </p>
+                            <p className="text-lg text-gray-700 leading-relaxed">
+                                Today, Lakewood seamlessly blends its historic roots with modern innovation. Our downtown preserves classic architecture while hosting cutting-edge businesses, reflecting our commitment to honoring the past while building a sustainable future.
+                            </p>
+                        </div>
+                        <div className="rounded-xl overflow-hidden shadow-xl border-4 border-white transform rotate-2 hover:rotate-0 transition-transform duration-300">
+                            <img src="https://images.unsplash.com/photo-1575836262453-2ceaf8053426?auto=format&fit=crop&q=80&w=800&h=500" alt="Historic black and white photo of Lakewood downtown in the 1920s alongside a modern colored photo showing the same street today." className="w-full h-auto" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+        );
+
+        const Leadership = () => {
+            const team = [
+                { name: 'Sarah Jenkins', role: 'Mayor', image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300&h=300' },
+                { name: 'Marcus Chen', role: 'City Manager', image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=300&h=300' },
+                { name: 'Elena Rodriguez', role: 'City Council President', image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=300&h=300' },
+                { name: 'David Thompson', role: 'City Council, District 1', image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=300&h=300' },
+                { name: 'Aisha Patel', role: 'City Council, District 2', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=300&h=300' },
+                { name: 'Michael O\'Brien', role: 'City Council, District 3', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=300&h=300' },
+            ];
+
+            return (
+                <section className="py-20 bg-white border-b border-gray-200" aria-labelledby="leadership-heading">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-16">
+                            <h2 id="leadership-heading" className="text-3xl font-bold text-navy-900 font-serif mb-4">City Leadership</h2>
+                            <p className="text-lg text-gray-600 max-w-2xl mx-auto">Meet the dedicated individuals serving the Lakewood community.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+                            {team.map((person, idx) => (
+                                <article key={idx} className="flex flex-col items-center text-center group">
+                                    <div className="w-48 h-48 rounded-full overflow-hidden mb-6 shadow-md border-4 border-gray-50 group-hover:border-brand-500 transition-colors">
+                                        <img src={person.image} alt={`Portrait of ${person.name}, ${person.role}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-900">{person.name}</h3>
+                                    <p className="text-brand-600 font-medium">{person.role}</p>
+                                </article>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const AnnualReport = () => (
+            <section className="py-24 bg-navy-800 text-white relative overflow-hidden" aria-labelledby="report-heading">
+                <div className="absolute inset-0 z-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                    <i data-lucide="file-bar-chart" className="w-16 h-16 mx-auto text-brand-400 mb-6" aria-hidden="true"></i>
+                    <h2 id="report-heading" className="text-3xl font-bold text-white font-serif mb-6">Annual Report & Financials</h2>
+                    <p className="text-lg text-navy-100 mb-10 max-w-2xl mx-auto">
+                        Transparency is one of our core values. We invite all residents to review our most recent annual report, detailing city progress, budget allocations, and future initiatives.
+                    </p>
+                    <a href="#" className="inline-flex items-center bg-brand-500 hover:bg-brand-600 text-white px-8 py-4 rounded-md font-bold text-lg transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-offset-navy-800 focus:ring-brand-500 shadow-lg group">
+                        <i data-lucide="download" className="w-5 h-5 mr-3 group-hover:-translate-y-1 transition-transform" aria-hidden="true"></i>
+                        Download 2026 Annual Report (PDF)
+                    </a>
+                </div>
+            </section>
+        );
+
+        const MainContent = () => {
+            return (
+                <main id="main-content" className="flex-grow focus:outline-none" tabIndex="-1">
+                    <PageHeader />
+                    <MissionStatement />
+                    <History />
+                    <Leadership />
+                    <AnnualReport />
+                </main>
+            );
+        };
+
+        const App = () => {
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <div className="min-h-screen flex flex-col font-sans text-gray-800">
+                    <AlertBanner />
+                    <Header />
+                    <MainContent />
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

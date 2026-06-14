@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World News — The Pulse</title>
+  <meta name="description" content="International breaking news, global affairs, foreign policy, and on-the-ground reporting from every corner of the world." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['"Playfair Display"', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body class="bg-white">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="../components/components.js" data-presets="react"></script>
+
+  <script type="text/babel" data-presets="react">
+    window.BASE_PATH = '../';
+
+    /* Region tabs for World page */
+    const REGIONS = ['All Regions', 'Americas', 'Europe', 'Asia-Pacific', 'Middle East', 'Africa', 'South Asia'];
+
+    const RegionFilter = ({ active, onChange }) => (
+      <div className="max-w-screen-2xl mx-auto px-4 py-4 flex gap-2 overflow-x-auto scrollbar-none" role="tablist" aria-label="Filter by region">
+        {REGIONS.map((r) => (
+          <button
+            key={r}
+            role="tab"
+            aria-selected={active === r}
+            onClick={() => onChange(r)}
+            className={`flex-shrink-0 px-4 py-1.5 text-xs font-semibold rounded-full border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              active === r
+                ? 'bg-blue-700 text-white border-blue-700'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400 hover:text-blue-700'
+            }`}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+    );
+
+    /* World Map Banner */
+    const WorldMapBanner = () => (
+      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-slate-900 py-10 px-4">
+        <div className="max-w-screen-2xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div>
+            <p className="text-blue-300 text-xs font-bold uppercase tracking-widest mb-2">World Coverage</p>
+            <h1 className="headline-lg text-white">Global Affairs & International News</h1>
+            <p className="body-base text-blue-200 mt-2">On-the-ground reporting from 60 countries and 120 correspondents.</p>
+          </div>
+          <div className="flex gap-6 text-center">
+            {[['60+', 'Countries'], ['120', 'Correspondents'], ['24/7', 'Live Coverage']].map(([n, l]) => (
+              <div key={l}>
+                <p className="text-3xl font-black text-white">{n}</p>
+                <p className="text-xs text-blue-300 mt-1 font-semibold">{l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+
+    /* Correspondent Spotlight */
+    const CorrespondentSpotlight = () => {
+      const correspondents = [
+        { name: 'James Okafor', region: 'West Africa', stories: 142, img: 'https://picsum.photos/seed/corr1/80/80' },
+        { name: 'Priya Sharma', region: 'South Asia', stories: 98, img: 'https://picsum.photos/seed/corr2/80/80' },
+        { name: 'Elena Kovacs', region: 'Eastern Europe', stories: 115, img: 'https://picsum.photos/seed/corr3/80/80' },
+        { name: 'Carlos Mendez', region: 'Latin America', stories: 87, img: 'https://picsum.photos/seed/corr4/80/80' },
+      ];
+      return (
+        <section className="max-w-screen-2xl mx-auto px-4 py-8 border-t border-slate-100" aria-labelledby="correspondents-title">
+          <div className="section-header">
+            <span className="section-header-accent" style={{ background: '#1D4ED8' }} />
+            <h2 id="correspondents-title" className="section-header-title">Our Correspondents</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {correspondents.map((c) => (
+              <article key={c.name} className="text-center p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-blue-200 transition-colors">
+                <img src={c.img} alt={`Portrait of ${c.name}`} className="w-16 h-16 rounded-full mx-auto object-cover mb-3 border-2 border-blue-100" />
+                <p className="font-semibold text-sm text-slate-800">{c.name}</p>
+                <p className="text-xs text-blue-600 font-medium mt-0.5">{c.region}</p>
+                <p className="text-xs text-slate-400 mt-1">{c.stories} stories</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      );
+    };
+
+    /* Conflict Tracker */
+    const ConflictTracker = () => {
+      const conflicts = [
+        { region: 'Eastern Europe', status: 'Active Conflict', level: 'high', update: '2h ago' },
+        { region: 'Middle East', status: 'Ceasefire Negotiations', level: 'high', update: '30m ago' },
+        { region: 'West Africa', status: 'Humanitarian Crisis', level: 'medium', update: '5h ago' },
+        { region: 'South Asia', status: 'Border Tensions', level: 'medium', update: '1d ago' },
+      ];
+      const levelColor = { high: 'bg-red-500', medium: 'bg-yellow-500', low: 'bg-green-500' };
+      return (
+        <aside className="sidebar-widget" aria-label="Global conflict tracker">
+          <div className="sidebar-widget-header">Conflict & Crisis Tracker</div>
+          <div className="sidebar-widget-body p-0">
+            {conflicts.map((c) => (
+              <div key={c.region} className="flex items-center gap-3 p-3 border-b border-slate-100 last:border-0">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${levelColor[c.level]}`} aria-label={`${c.level} severity`} />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-800">{c.region}</p>
+                  <p className="text-xs text-slate-500">{c.status}</p>
+                </div>
+                <time className="text-xs text-slate-400 flex-shrink-0">{c.update}</time>
+              </div>
+            ))}
+          </div>
+        </aside>
+      );
+    };
+
+    const App = () => {
+      const [region, setRegion] = React.useState('All Regions');
+      const worldStories = ALL_STORIES.filter(s => s.category === 'world');
+      const allStories = ALL_STORIES;
+
+      return (
+        <PageLayout currentCategory="world">
+          <WorldMapBanner />
+          <LiveTicker />
+          <RegionFilter active={region} onChange={setRegion} />
+
+          {/* Hero */}
+          <section className="max-w-screen-2xl mx-auto px-4 py-8">
+            <div className="flex gap-8">
+              {/* Main */}
+              <div className="flex-1 min-w-0">
+                {/* Top feature */}
+                <article className="mb-8">
+                  <div className="rounded-xl overflow-hidden aspect-video bg-slate-100 mb-4">
+                    <img src={worldStories[1]?.mediaUrl} alt="" className="w-full h-full object-cover" loading="eager" />
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="badge-live">LIVE</span>
+                    <span className="cat-label cat-world">World</span>
+                  </div>
+                  <a href={R('article/article.html')}>
+                    <h1 className="headline-lg hover:text-red-600 transition-colors">{worldStories[1]?.title}</h1>
+                  </a>
+                  <p className="body-base text-slate-500 mt-3">{worldStories[1]?.summary}</p>
+                  <p className="text-sm text-slate-400 mt-3">{worldStories[1]?.author} · {worldStories[1]?.publishTime} · {worldStories[1]?.readLength}</p>
+                </article>
+
+                {/* Story grid */}
+                <div className="section-header">
+                  <span className="section-header-accent" style={{ background: '#1D4ED8' }} />
+                  <h2 className="section-header-title">Latest World News</h2>
+                </div>
+                <StoryGrid stories={worldStories.concat(allStories.slice(0,3)).slice(0, 6)} columns={3} showSummary={true} />
+
+                {/* Feature banner */}
+                <FeatureBanner story={worldStories[2] || allStories[10]} />
+
+                {/* More stories */}
+                <div className="mt-8">
+                  <div className="section-header">
+                    <span className="section-header-accent" style={{ background: '#1D4ED8' }} />
+                    <h2 className="section-header-title">In-Depth Analysis</h2>
+                  </div>
+                  {allStories.slice(5, 10).map((story) => (
+                    <StoryCard key={story.id} story={story} layout="horizontal" />
+                  ))}
+                </div>
+              </div>
+
+              {/* Sidebar */}
+              <aside className="hidden xl:block w-80 flex-shrink-0">
+                <SidebarModule type="live-blog" />
+                <ConflictTracker />
+                <SidebarModule type="newsletter" />
+                <SidebarModule type="ad" />
+              </aside>
+            </div>
+          </section>
+
+          <CorrespondentSpotlight />
+          <SubscriptionModule variant="inline" />
+        </PageLayout>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

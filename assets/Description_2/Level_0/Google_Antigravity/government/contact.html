@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact - State of Vermont</title>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 800: '#1e293b', 900: '#0f172a' },
+                        brand: { 50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac', 400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- Shared Components ---
+        const TrustBanner = () => (
+            <div className="bg-slate-100 text-slate-600 text-xs py-2 px-4 border-b border-slate-200">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Flag_of_Vermont.svg" alt="Vermont Flag" className="h-4 w-6 object-cover border border-slate-300" />
+                        <span>An official website of the State of Vermont</span>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const Header = () => (
+            <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-20">
+                        {/* Logo */}
+                        <div className="flex items-center">
+                            <a href="index.html" className="flex items-center space-x-3 group">
+                                <div className="w-10 h-10 bg-brand-700 rounded-full flex items-center justify-center text-white font-bold text-xl group-hover:bg-brand-800 transition-colors">
+                                    <i data-lucide="mountain"></i>
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold text-slate-900 leading-tight group-hover:text-brand-700 transition-colors">Vermont</h1>
+                                    <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Resident Services Portal</p>
+                                </div>
+                            </a>
+                        </div>
+
+                        {/* Desktop Nav */}
+                        <nav className="hidden md:flex items-center space-x-8">
+                            <a href="services.html" className="text-slate-600 hover:text-brand-700 font-medium transition-colors">Services</a>
+                            <a href="about.html" className="text-slate-600 hover:text-brand-700 font-medium transition-colors">About</a>
+                            <a href="contact.html" className="text-brand-700 font-medium transition-colors border-b-2 border-brand-700 py-7">Contact</a>
+
+                            <div className="flex items-center border-l border-slate-200 pl-6 space-x-4">
+                                <select className="text-sm border border-slate-300 rounded-md text-slate-600 py-1.5 pl-3 pr-8 focus:ring-brand-500 focus:border-brand-500 bg-white">
+                                    <option>English</option>
+                                    <option>Español</option>
+                                    <option>Français</option>
+                                </select>
+                                <button className="text-slate-500 hover:text-brand-700 p-2 transition-colors">
+                                    <i data-lucide="search" className="w-5 h-5"></i>
+                                </button>
+                                <button className="bg-brand-700 hover:bg-brand-800 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors shadow-sm">
+                                    Sign In
+                                </button>
+                            </div>
+                        </nav>
+
+                        {/* Mobile Menu Button */}
+                        <div className="md:hidden flex items-center">
+                            <button className="text-slate-500 hover:text-slate-700 p-2">
+                                <i data-lucide="menu" className="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="bg-slate-900 text-slate-300 py-12 border-t-4 border-brand-600 mt-auto">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div>
+                            <div className="flex items-center space-x-3 mb-6">
+                                <div className="w-8 h-8 bg-brand-600 rounded-full flex items-center justify-center text-white">
+                                    <i data-lucide="mountain" className="w-5 h-5"></i>
+                                </div>
+                                <span className="text-lg font-bold text-white">State of Vermont</span>
+                            </div>
+                            <p className="text-sm text-slate-400">
+                                Official resident services portal providing access to licensing, health, education, and benefits.
+                            </p>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Services</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="service-driver-license.html" className="hover:text-white hover:underline transition-colors">Driver's License & ID</a></li>
+                                <li><a href="service-benefits.html" className="hover:text-white hover:underline transition-colors">Benefits & Assistance</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Taxes & Finance</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Business & Employment</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Government</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="about.html" className="hover:text-white hover:underline transition-colors">About the Governor</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">State Agencies</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Elected Officials</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Transparency Reports</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Support</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="contact.html" className="hover:text-white hover:underline transition-colors">Contact Us</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Accessibility</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Privacy Policy</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Terms of Service</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        // --- Contact Content Component ---
+        const ContactContent = () => {
+            const [chatOpen, setChatOpen] = React.useState(false);
+
+            React.useEffect(() => {
+                lucide.createIcons();
+            }, [chatOpen]);
+
+            return (
+                <div className="bg-slate-50 min-h-screen pb-20 relative">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                        <div className="mb-12 text-center max-w-3xl mx-auto">
+                            <div className="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <i data-lucide="phone" className="w-8 h-8"></i>
+                            </div>
+                            <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-5 tracking-tight">Contact Us</h2>
+                            <p className="text-xl text-slate-600 leading-relaxed">We're here to help you navigate state services. Reach out through any of the channels below.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+
+                            {/* Main Contacts */}
+                            <div className="lg:col-span-2 space-y-10">
+
+                                {/* Multilingual Notice */}
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 flex shadow-sm items-center">
+                                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-600 mr-5 flex-shrink-0 shadow-sm">
+                                        <i data-lucide="globe" className="w-6 h-6"></i>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 mb-1 text-lg">Multilingual Support Available</h4>
+                                        <p className="text-sm md:text-base text-slate-700">Telephone interpreters are available in over 150 languages when you call any state department. Request an interpreter at the start of your call.</p>
+                                    </div>
+                                </div>
+
+                                {/* Department Directory */}
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <div className="bg-slate-900 px-8 py-5 flex items-center justify-between">
+                                        <h3 className="text-xl font-bold text-white flex items-center">
+                                            <i data-lucide="phone-call" className="w-6 h-6 mr-3 text-brand-400"></i>
+                                            Department Helplines
+                                        </h3>
+                                    </div>
+                                    <div className="divide-y divide-slate-100">
+                                        {[
+                                            { name: "General State Information", num: "1-800-555-0199", hours: "Mon-Fri, 8am - 5pm" },
+                                            { name: "Department of Motor Vehicles (DMV)", num: "1-800-555-0200", hours: "Mon-Fri, 7:45am - 4:15pm" },
+                                            { name: "Department of Taxes", num: "1-800-555-0300", hours: "Mon-Tue, Thu-Fri, 7:45am - 4:30pm" },
+                                            { name: "Health Connect (Medicaid)", num: "1-800-555-0400", hours: "Mon-Fri, 8am - 5pm" },
+                                            { name: "Department of Labor", num: "1-800-555-0500", hours: "Mon-Sat, 8am - 4pm" },
+                                        ].map((dept, i) => (
+                                            <div key={i} className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between hover:bg-slate-50 transition-colors group">
+                                                <div className="mb-4 md:mb-0">
+                                                    <h4 className="font-bold text-slate-900 text-lg md:text-xl group-hover:text-brand-700 transition-colors">{dept.name}</h4>
+                                                    <p className="text-sm font-medium text-slate-500 mt-2 flex items-center uppercase tracking-wide"><i data-lucide="clock" className="w-4 h-4 mr-2 opacity-70"></i>{dept.hours}</p>
+                                                </div>
+                                                <a href={`tel:${dept.num}`} className="inline-flex items-center justify-center text-brand-700 font-bold text-lg hover:text-white transition-all bg-brand-50 hover:bg-brand-600 px-6 py-3 rounded-lg border border-brand-100 shadow-sm flex-shrink-0">
+                                                    <i data-lucide="phone" className="w-5 h-5 mr-2"></i> {dept.num}
+                                                </a>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="bg-slate-50 p-6 border-t border-slate-100 text-center">
+                                        <a href="#" className="text-brand-700 font-bold hover:text-brand-800 text-base">View Full Agency Phone Directory &rarr;</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sidebar */}
+                            <div className="space-y-10">
+
+                                {/* Feedback Form */}
+                                <div className="bg-white rounded-xl shadow-md border border-slate-200 p-8">
+                                    <h3 className="text-2xl font-bold text-slate-900 mb-3 flex items-center">
+                                        <i data-lucide="message-square" className="w-6 h-6 mr-3 text-brand-600"></i> Website Feedback
+                                    </h3>
+                                    <p className="text-slate-600 text-sm mb-6 leading-relaxed">Help us improve the resident portal. We monitor this form daily to address issues.</p>
+
+                                    <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">What were you trying to do?</label>
+                                            <input type="text" className="w-full border-slate-300 rounded-lg focus:ring-brand-500 py-3 px-4 shadow-sm text-base bg-slate-50" placeholder="e.g., Renew my license" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Did you find what you needed?</label>
+                                            <div className="relative">
+                                                <select className="w-full border-slate-300 rounded-lg focus:ring-brand-500 py-3 px-4 shadow-sm text-base bg-slate-50 appearance-none">
+                                                    <option>Yes, easily</option>
+                                                    <option>Yes, but it was difficult</option>
+                                                    <option>No</option>
+                                                </select>
+                                                <i data-lucide="chevron-down" className="w-5 h-5 absolute right-4 top-3.5 text-slate-400 pointer-events-none"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Suggestions for improvement</label>
+                                            <textarea rows="4" className="w-full border-slate-300 rounded-lg focus:ring-brand-500 py-3 px-4 shadow-sm text-base bg-slate-50" placeholder="Tell us how we can make this page better..."></textarea>
+                                        </div>
+                                        <button className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-lg transition-colors shadow-md text-lg">
+                                            Submit Feedback
+                                        </button>
+                                    </form>
+                                    <p className="text-xs text-slate-500 mt-5 font-semibold text-center"><i data-lucide="shield-alert" className="inline w-4 h-4 mr-1"></i> Do not include sensitive information like SSN or credit card numbers.</p>
+                                </div>
+
+                                {/* Emergency Numbers */}
+                                <div className="bg-rose-50 rounded-xl border border-rose-200 p-8 shadow-sm relative overflow-hidden">
+                                    <div className="absolute -right-4 -bottom-4 opacity-5">
+                                        <i data-lucide="siren" className="w-32 h-32 text-rose-900"></i>
+                                    </div>
+                                    <div className="relative z-10">
+                                        <h3 className="text-xl font-bold text-rose-900 mb-5 flex items-center border-b border-rose-200 pb-3">
+                                            <i data-lucide="alert-triangle" className="w-6 h-6 mr-3 text-rose-600"></i>
+                                            Emergency & Crisis
+                                        </h3>
+                                        <ul className="space-y-4">
+                                            <li className="flex justify-between items-center bg-white p-4 rounded-lg border border-rose-100 shadow-sm">
+                                                <span className="font-semibold text-slate-800">Emergency Info</span>
+                                                <span className="font-black text-rose-700 text-2xl tracking-widest">911</span>
+                                            </li>
+                                            <li className="flex justify-between items-center bg-white p-4 rounded-lg border border-rose-100 shadow-sm">
+                                                <span className="font-semibold text-slate-800">Mental Health Crisis</span>
+                                                <span className="font-black text-rose-700 text-2xl tracking-widest">988</span>
+                                            </li>
+                                            <li className="flex justify-between items-center bg-white p-4 rounded-lg border border-rose-100 shadow-sm">
+                                                <span className="font-semibold text-slate-800">Non-Emergency Info</span>
+                                                <span className="font-black text-rose-700 text-2xl tracking-widest">211</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {/* Chat Widget Floating Button */}
+                        <div className="fixed bottom-6 right-6 z-40">
+                            {chatOpen ? (
+                                <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-80 md:w-96 overflow-hidden flex flex-col animate-in slide-in-from-bottom-8 duration-300 origin-bottom-right mb-4">
+                                    <div className="bg-slate-900 px-5 py-4 flex justify-between items-center">
+                                        <div className="flex items-center">
+                                            <div className="w-2.5 h-2.5 bg-green-400 rounded-full mr-3 animate-pulse"></div>
+                                            <h3 className="text-white font-bold text-lg">Live Support</h3>
+                                        </div>
+                                        <button onClick={() => setChatOpen(false)} className="text-slate-400 hover:text-white transition-colors bg-white/10 p-1.5 rounded-lg">
+                                            <i data-lucide="x" className="w-5 h-5"></i>
+                                        </button>
+                                    </div>
+                                    <div className="p-5 bg-slate-50 h-[350px] overflow-y-auto flex flex-col space-y-5">
+                                        <div className="text-center">
+                                            <span className="text-xs bg-slate-200 text-slate-600 font-bold px-3 py-1 rounded-full">Mon–Fri 8am–5pm</span>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center mr-3 flex-shrink-0 mt-1 shadow-sm">
+                                                <i data-lucide="bot" className="w-6 h-6"></i>
+                                            </div>
+                                            <div className="bg-white p-4 rounded-2xl rounded-tl-sm shadow-sm border border-slate-200 text-sm md:text-base text-slate-700 leading-relaxed">
+                                                Hello! I'm the Vermont Resident Portal virtual assistant. How can I help point you in the right direction today?
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 bg-white border-t border-slate-200 flex items-center space-x-2">
+                                        <input type="text" className="flex-grow bg-slate-50 border border-slate-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 text-sm py-3 px-4" placeholder="Type your message..." />
+                                        <button className="bg-brand-600 text-white hover:bg-brand-700 p-3 rounded-lg shadow-sm transition-colors flex-shrink-0">
+                                            <i data-lucide="send" className="w-5 h-5"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            <button onClick={() => setChatOpen(!chatOpen)} className="w-16 h-16 md:w-20 md:h-20 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgb(22,163,74,0.3)] transition-all hover:scale-105 flex items-center justify-center float-right relative">
+                                {!chatOpen && <span className="absolute top-1 right-1 md:top-2 md:right-2 w-4 h-4 md:w-5 md:h-5 bg-green-500 border-2 border-white rounded-full shadow-sm animate-pulse"></span>}
+                                {chatOpen ? <i data-lucide="chevron-down" className="w-8 h-8 md:w-10 md:h-10"></i> : <i data-lucide="message-circle" className="w-8 h-8 md:w-10 md:h-10"></i>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            React.useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <div className="flex flex-col min-h-screen font-sans">
+                    <TrustBanner />
+                    <Header />
+                    <main className="flex-grow bg-slate-50">
+                        <ContactContent />
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

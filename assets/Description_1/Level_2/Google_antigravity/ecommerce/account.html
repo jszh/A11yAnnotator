@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account | NovaMart</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' } }, fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        *:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel" src="components.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { Header, Footer, A11yAnnouncer, ProductCard, announceToScreenReader } = window.NovaMart;
+
+        // --- MOCK DATA ---
+        const USER = {
+            name: 'Alex Morgan',
+            email: 'alex.morgan@example.com',
+            joinedDate: 'Jan 2024'
+        };
+
+        const ORDERS = [
+            { id: 'ORD-89214', date: 'March 12, 2026', total: 349.98, status: 'Delivered', items: [{ name: 'Sony WH-1000XM5 Headphones', image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=100' }] },
+            { id: 'ORD-89102', date: 'February 28, 2026', total: 75.50, status: 'Processing', items: [{ name: 'Logitech MX Master 3S', image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&q=80&w=100' }] },
+        ];
+
+        const WISHLIST = [
+            { id: '1', name: 'MacBook Air M2', brand: 'Apple', price: 999.00, rating: 4.9, reviews: 890, image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=300' },
+            { id: '2', name: 'Nintendo Switch OLED', brand: 'Nintendo', price: 349.99, rating: 4.8, reviews: 1205, image: 'https://images.unsplash.com/photo-1605901309584-818e25960b8f?auto=format&fit=crop&q=80&w=300' },
+        ];
+
+        const AccountPage = () => {
+            const [activeTab, setActiveTab] = useState('orders');
+            const [wishlistItems, setWishlistItems] = useState(WISHLIST);
+            const mainPanelRef = useRef(null);
+
+            const navItems = [
+                { id: 'orders', label: 'Order History', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
+                { id: 'wishlist', label: 'Wishlist', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' },
+                { id: 'addresses', label: 'Saved Addresses', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z' },
+                { id: 'payment', label: 'Payment Methods', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+                { id: 'settings', label: 'Account Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+            ];
+
+            const handleTabSwitch = (id) => {
+                setActiveTab(id);
+                const label = navItems.find((n) => n.id === id).label;
+                announceToScreenReader(`Switched to ${label} tab`);
+                // Move focus into the new panel for Cat 5 Focus management
+                setTimeout(() => {
+                    if (mainPanelRef.current) mainPanelRef.current.focus();
+                }, 0);
+            };
+
+            const handleTabKey = (e, index) => {
+                let nextIndex = null;
+                if (e.key === 'ArrowDown') {
+                    nextIndex = (index + 1) % navItems.length;
+                } else if (e.key === 'ArrowUp') {
+                    nextIndex = (index - 1 + navItems.length) % navItems.length;
+                }
+
+                if (nextIndex !== null) {
+                    e.preventDefault();
+                    const nextTabId = navItems[nextIndex].id;
+                    handleTabSwitch(nextTabId);
+                    document.getElementById(`tab-${nextTabId}`).focus();
+                }
+            };
+
+            const removeFromWishlist = (id) => {
+                const item = wishlistItems.find(i => i.id === id);
+                setWishlistItems(prev => prev.filter(i => i.id !== id));
+                announceToScreenReader(`${item.name} removed from wishlist`);
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col bg-gray-50">
+                    <A11yAnnouncer />
+                    <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[60] bg-blue-600 text-white px-4 py-2 font-bold rounded shadow-lg outline-none">
+                        Skip to main content
+                    </a>
+
+                    <div className="bg-white border-b border-gray-200 shadow-sm relative z-10">
+                        <Header activePage="account" />
+                    </div>
+
+                    <main id="main-content" className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full outline-none" tabIndex="-1">
+
+                        <div className="mb-8 flex items-center justify-between">
+                            <div>
+                                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Welcome, {USER.name.split(' ')[0]}</h1>
+                                <p className="text-gray-500 mt-1">Manage your account and orders</p>
+                            </div>
+                            <div className="hidden sm:block">
+                                <button className="text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 px-4 py-2 rounded-md hover:bg-red-100 transition focus:outline-none focus:ring-2 focus:ring-red-500">
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-8">
+
+                            {/* Sidebar Navigation - ARIA Tablist */}
+                            <aside className="md:w-64 flex-shrink-0" aria-label="Account Settings">
+                                <nav
+                                    className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24"
+                                    role="tablist"
+                                    aria-orientation="vertical"
+                                >
+                                    {navItems.map((item, idx) => (
+                                        <button
+                                            key={item.id}
+                                            id={`tab-${item.id}`}
+                                            role="tab"
+                                            aria-selected={activeTab === item.id}
+                                            aria-controls={`panel-${item.id}`}
+                                            tabIndex={activeTab === item.id ? 0 : -1}
+                                            onKeyDown={(e) => handleTabKey(e, idx)}
+                                            onClick={() => handleTabSwitch(item.id)}
+                                            className={`w-full flex items-center px-4 py-4 text-sm font-medium border-l-4 outline-none transition-colors ${activeTab === item.id ? 'bg-blue-50 border-blue-600 text-blue-700' : 'border-transparent text-gray-700 hover:bg-gray-50 hover:text-gray-900 focus-visible:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset'}`}
+                                        >
+                                            <svg className={`mr-3 h-5 w-5 ${activeTab === item.id ? 'text-blue-600' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                                            </svg>
+                                            {item.label}
+                                        </button>
+                                    ))}
+
+                                    <div className="p-4 border-t border-gray-100 sm:hidden">
+                                        <button className="w-full text-left text-sm font-medium text-red-600 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 p-2 rounded">
+                                            Sign Out
+                                        </button>
+                                    </div>
+                                </nav>
+                            </aside>
+
+                            {/* Main Content Panels */}
+                            <div className="flex-1">
+
+                                {/* Panel: Orders */}
+                                <div
+                                    id="panel-orders"
+                                    role="tabpanel"
+                                    aria-labelledby="tab-orders"
+                                    hidden={activeTab !== 'orders'}
+                                    tabIndex="-1"
+                                    ref={activeTab === 'orders' ? mainPanelRef : null}
+                                    className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl"
+                                >
+                                    <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Orders</h2>
+
+                                    <div className="space-y-6">
+                                        {ORDERS.map(order => (
+                                            <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                                                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:flex sm:gap-6">
+                                                        <div>
+                                                            <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Order Number</p>
+                                                            <p className="text-sm font-medium text-gray-900">{order.id}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Date Placed</p>
+                                                            <p className="text-sm font-medium text-gray-900">{order.date}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Amount</p>
+                                                            <p className="text-sm font-medium text-gray-900">${order.total.toFixed(2)}</p>
+                                                        </div>
+                                                    </div>
+                                                    <a href="#" className="w-full sm:w-auto text-center inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                        View Order Details
+                                                    </a>
+                                                </div>
+
+                                                <div className="p-6">
+                                                    <h3 className="sr-only">Items in {order.id}</h3>
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                                                            {order.status}
+                                                        </span>
+                                                    </div>
+
+                                                    <ul role="list" className="divide-y divide-gray-100">
+                                                        {order.items.map((item, idx) => (
+                                                            <li key={idx} className="flex py-4">
+                                                                <img src={item.image} alt="" className="h-16 w-16 rounded-md object-cover border border-gray-200" />
+                                                                <div className="ml-4 flex-1">
+                                                                    <div className="font-medium text-gray-900">{item.name}</div>
+                                                                    <div className="mt-1 flex gap-4">
+                                                                        <a href="#" className="text-sm text-blue-600 hover:text-blue-500 focus:outline-none focus:underline" aria-label={`View product ${item.name}`}>Buy it again</a>
+                                                                    </div>
+                                                                </div>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Panel: Wishlist */}
+                                <div
+                                    id="panel-wishlist"
+                                    role="tabpanel"
+                                    aria-labelledby="tab-wishlist"
+                                    hidden={activeTab !== 'wishlist'}
+                                    tabIndex="-1"
+                                    ref={activeTab === 'wishlist' ? mainPanelRef : null}
+                                    className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl"
+                                >
+                                    <h2 className="text-xl font-bold text-gray-900 mb-6">Your Wishlist</h2>
+
+                                    {wishlistItems.length === 0 ? (
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+                                            <svg className="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                                            <h3 className="text-lg font-medium text-gray-900 mb-2">No items in your wishlist</h3>
+                                            <p className="text-gray-500 mb-6">Save items you like and they will show up here.</p>
+                                            <a href="products.html" className="text-blue-600 hover:underline font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-1">Explore Products</a>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" aria-live="polite">
+                                            {wishlistItems.map(product => (
+                                                <div key={product.id} className="relative group">
+                                                    <ProductCard product={product} />
+                                                    <button
+                                                        onClick={() => removeFromWishlist(product.id)}
+                                                        className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md text-red-500 hover:text-red-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-10"
+                                                        aria-label={`Remove ${product.name} from wishlist`}
+                                                        title="Remove from wishlist"
+                                                    >
+                                                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Panel: Addresses */}
+                                <div
+                                    id="panel-addresses"
+                                    role="tabpanel"
+                                    aria-labelledby="tab-addresses"
+                                    hidden={activeTab !== 'addresses'}
+                                    tabIndex="-1"
+                                    ref={activeTab === 'addresses' ? mainPanelRef : null}
+                                    className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl"
+                                >
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-xl font-bold text-gray-900">Saved Addresses</h2>
+                                        <button className="text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none focus:underline">+ Add New Address</button>
+                                    </div>
+
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex justify-between items-start">
+                                        <address className="not-italic text-sm text-gray-600 leading-relaxed">
+                                            <span className="block font-bold text-gray-900 mb-1">Alex Morgan</span>
+                                            1234 Silicon Valley Blvd<br />
+                                            Apt 4B<br />
+                                            San Jose, CA 95131<br />
+                                            United States<br />
+                                            <span className="block mt-2">Phone: (555) 123-4567</span>
+                                        </address>
+                                        <div className="flex flex-col gap-2 items-end text-sm">
+                                            <span className="inline-flex bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-bold mb-2">Default</span>
+                                            <button className="text-blue-600 font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded" aria-label="Edit address">Edit</button>
+                                            <button className="text-red-600 font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-red-500 rounded" aria-label="Delete address">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Panel: Payment Methods */}
+                                <div
+                                    id="panel-payment"
+                                    role="tabpanel"
+                                    aria-labelledby="tab-payment"
+                                    hidden={activeTab !== 'payment'}
+                                    tabIndex="-1"
+                                    ref={activeTab === 'payment' ? mainPanelRef : null}
+                                    className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl"
+                                >
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-xl font-bold text-gray-900">Payment Methods</h2>
+                                        <button className="text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none focus:underline">+ Add New Method</button>
+                                    </div>
+
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex justify-between items-center">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-8 bg-gray-100 rounded flex items-center justify-center border border-gray-300">
+                                                <span className="text-xs font-bold text-gray-500">VISA</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">Visa ending in 4242</p>
+                                                <p className="text-xs text-gray-500">Expires 12/28</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-sm">
+                                            <button className="text-red-600 font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-red-500 rounded" aria-label="Delete payment method ending in 4242">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Panel: Settings */}
+                                <div
+                                    id="panel-settings"
+                                    role="tabpanel"
+                                    aria-labelledby="tab-settings"
+                                    hidden={activeTab !== 'settings'}
+                                    tabIndex="-1"
+                                    ref={activeTab === 'settings' ? mainPanelRef : null}
+                                    className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-xl"
+                                >
+                                    <h2 className="text-xl font-bold text-gray-900 mb-6">Account Settings</h2>
+
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden text-sm">
+                                        <div className="p-6 border-b border-gray-200">
+                                            <h3 className="font-bold text-gray-900 mb-4 text-base">Profile Information</h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-gray-700 font-bold mb-1">Full Name</label>
+                                                    <p className="text-gray-900 py-2 border-b border-gray-100">{USER.name}</p>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-gray-700 font-bold mb-1">Email Address</label>
+                                                    <p className="text-gray-900 py-2 border-b border-gray-100">{USER.email}</p>
+                                                </div>
+                                            </div>
+                                            <button className="mt-4 text-blue-600 font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded p-1">Update Profile</button>
+                                        </div>
+
+                                        <div className="p-6">
+                                            <h3 className="font-bold text-gray-900 mb-4 text-base">Password</h3>
+                                            <p className="text-gray-500 mb-4">Last changed: 3 months ago</p>
+                                            <button className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                Change Password
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AccountPage />);
+    </script>
+</body>
+
+</html>

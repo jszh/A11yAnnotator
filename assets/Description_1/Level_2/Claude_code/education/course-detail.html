@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python for Data Science | LearnPath</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const NAV_LINKS = [
+      { href: 'courses.html', label: 'Courses' },
+      { href: 'pricing.html', label: 'Pricing' },
+      { href: 'dashboard.html', label: 'Dashboard' },
+    ];
+
+    function Header({ current }) {
+      const [open, setOpen] = useState(false);
+      return (
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-40" role="banner">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <a href="index.html" className="flex items-center gap-2 rounded-md" aria-label="LearnPath — Go to homepage">
+                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 20 20" fill="white"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"/><path d="M3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0z"/></svg>
+                </div>
+                <span className="text-xl font-bold text-indigo-600">LearnPath</span>
+              </a>
+              <nav aria-label="Main navigation" className="hidden md:flex items-center gap-8">
+                {NAV_LINKS.map(l => (
+                  <a key={l.href} href={l.href} aria-current={current === l.href ? 'page' : undefined}
+                    className={`font-medium transition-colors ${current === l.href ? 'text-indigo-600' : 'text-gray-600 hover:text-indigo-600'}`}>
+                    {l.label}
+                  </a>
+                ))}
+              </nav>
+              <div className="hidden md:flex items-center gap-3">
+                <a href="dashboard.html" className="text-gray-600 hover:text-indigo-600 font-medium px-2 py-1 rounded-md transition-colors">Sign In</a>
+                <a href="pricing.html" className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">Start Free Trial</a>
+              </div>
+              <button onClick={() => setOpen(o => !o)} aria-expanded={open} aria-controls="mobile-menu" aria-label={open ? 'Close menu' : 'Open menu'}
+                className="md:hidden p-2 rounded-md text-gray-600">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  {open ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>}
+                </svg>
+              </button>
+            </div>
+            {open && (
+              <div id="mobile-menu" className="md:hidden py-4 border-t border-gray-100">
+                <nav aria-label="Mobile navigation" className="flex flex-col gap-4">
+                  {NAV_LINKS.map(l => <a key={l.href} href={l.href} className="text-gray-600 hover:text-indigo-600 font-medium px-2">{l.label}</a>)}
+                  <div className="flex gap-3 px-2 pt-3 border-t border-gray-100 mt-1">
+                    <a href="dashboard.html" className="text-gray-600 font-medium">Sign In</a>
+                    <a href="pricing.html" className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">Start Free Trial</a>
+                  </div>
+                </nav>
+              </div>
+            )}
+          </div>
+        </header>
+      );
+    }
+
+    function Footer() {
+      return (
+        <footer className="bg-gray-900 text-gray-400" role="contentinfo">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+              <a href="index.html" className="flex items-center gap-2 rounded-md" aria-label="LearnPath — Go to homepage">
+                <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center" aria-hidden="true"><span className="text-white font-bold text-xs">LP</span></div>
+                <span className="text-white font-bold">LearnPath</span>
+              </a>
+              <div className="flex gap-6 text-sm">
+                <a href="courses.html" className="hover:text-white transition-colors">Courses</a>
+                <a href="pricing.html" className="hover:text-white transition-colors">Pricing</a>
+                <a href="#" className="hover:text-white transition-colors">Help</a>
+                <a href="#" className="hover:text-white transition-colors">Accessibility</a>
+              </div>
+              <p className="text-sm">© 2026 LearnPath, Inc.</p>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    const CURRICULUM = [
+      { id:1, title:'Getting Started with Python', lessons:[
+        { id:1, title:'Introduction & Setup', duration:'12 min' },
+        { id:2, title:'Your First Python Script', duration:'18 min' },
+        { id:3, title:'Python Syntax Basics', duration:'22 min' },
+        { id:4, title:'Working with Variables', duration:'20 min' },
+        { id:5, title:'Data Types Overview', duration:'25 min' },
+        { id:6, title:'Section Quiz', duration:'10 min' },
+      ]},
+      { id:2, title:'Data Structures', lessons:[
+        { id:7, title:'Lists and Tuples', duration:'28 min' },
+        { id:8, title:'Dictionaries & Sets', duration:'24 min' },
+        { id:9, title:'Indexing & Slicing', duration:'20 min' },
+        { id:10, title:'List Comprehensions', duration:'22 min' },
+        { id:11, title:'Section Quiz', duration:'10 min' },
+      ]},
+      { id:3, title:'Functions & Modules', lessons:[
+        { id:12, title:'Defining Functions', duration:'25 min' },
+        { id:13, title:'Arguments & Return Values', duration:'22 min' },
+        { id:14, title:'Lambda Functions', duration:'15 min' },
+        { id:15, title:'Importing Modules', duration:'18 min' },
+        { id:16, title:'Building Your Own Module', duration:'20 min' },
+      ]},
+      { id:4, title:'Data Analysis with Pandas', lessons:[
+        { id:17, title:'Introduction to Pandas', duration:'30 min' },
+        { id:18, title:'DataFrames & Series', duration:'35 min' },
+        { id:19, title:'Data Cleaning Techniques', duration:'40 min' },
+        { id:20, title:'Grouping & Aggregation', duration:'30 min' },
+        { id:21, title:'Merging & Joining Data', duration:'35 min' },
+        { id:22, title:'Section Project', duration:'60 min' },
+      ]},
+      { id:5, title:'Data Visualization', lessons:[
+        { id:23, title:'Introduction to Matplotlib', duration:'25 min' },
+        { id:24, title:'Line & Bar Charts', duration:'22 min' },
+        { id:25, title:'Scatter Plots & Histograms', duration:'20 min' },
+        { id:26, title:'Seaborn for Statistical Viz', duration:'30 min' },
+        { id:27, title:'Interactive Charts with Plotly', duration:'35 min' },
+        { id:28, title:'Final Project', duration:'90 min' },
+      ]},
+    ];
+
+    const REVIEWS = [
+      { id:1, name:'Melissa T.', rating:5, date:'Jan 2026', text:'Absolutely the best Python course I\'ve taken. Dr. Chen\'s explanations are crystal clear, and the projects are super practical. I went from zero Python knowledge to building my own data dashboards in 4 weeks.' },
+      { id:2, name:'Raj Patel', rating:5, date:'Dec 2025', text:'Outstanding curriculum! The section on Pandas alone was worth the price. I\'m now applying these skills at work every day. Highly recommend for anyone in analytics.' },
+      { id:3, name:'Annika Lindström', rating:4, date:'Nov 2025', text:'Great content and well-structured. I\'d love a few more advanced exercises, but the fundamentals are rock-solid. The Q&A community is also very active and helpful.' },
+    ];
+
+    function StarRating({ value, max = 5 }) {
+      return (
+        <span className="flex items-center gap-0.5" aria-label={`${value} out of ${max} stars`}>
+          {[1,2,3,4,5].map(i => (
+            <svg key={i} className={`w-4 h-4 ${i <= value ? 'text-amber-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+            </svg>
+          ))}
+        </span>
+      );
+    }
+
+    function EnrollModal({ onClose, onConfirm }) {
+      const dialogRef = useRef(null);
+      const firstFocusRef = useRef(null);
+      const lastFocusRef = useRef(null);
+
+      useEffect(() => {
+        if (firstFocusRef.current) firstFocusRef.current.focus();
+
+        function trapFocus(e) {
+          if (!dialogRef.current) return;
+          const focusable = dialogRef.current.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (e.key === 'Tab') {
+            if (e.shiftKey) {
+              if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+            } else {
+              if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+            }
+          }
+          if (e.key === 'Escape') onClose();
+        }
+
+        document.addEventListener('keydown', trapFocus);
+        return () => document.removeEventListener('keydown', trapFocus);
+      }, [onClose]);
+
+      return (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" ref={dialogRef}
+          onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+            <h2 id="modal-title" className="text-xl font-bold text-gray-900 mb-2">Enroll in This Course</h2>
+            <p className="text-gray-500 mb-6">You're enrolling in <strong>Python for Data Science</strong>. Get unlimited lifetime access.</p>
+
+            <div aria-live="polite" aria-atomic="true" className="sr-only" id="enroll-announcer"></div>
+
+            <div className="bg-indigo-50 rounded-xl p-4 mb-6">
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-600">Course Price</span>
+                <span className="text-gray-500 line-through">$49.99</span>
+              </div>
+              <div className="flex justify-between font-bold">
+                <span>Total Today</span>
+                <span className="text-indigo-600 text-xl">$34.99</span>
+              </div>
+              <p className="text-xs text-emerald-600 mt-1">🎉 30% off limited-time offer!</p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label htmlFor="card-number" className="block text-sm font-medium text-gray-700 mb-1">
+                  Card Number <span className="text-red-500" aria-label="required">*</span>
+                </label>
+                <input type="text" id="card-number" aria-required="true" aria-describedby="card-help"
+                  placeholder="1234 5678 9012 3456" maxLength="19"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" />
+                <p id="card-help" className="text-xs text-gray-500 mt-1">Enter your 16-digit card number without spaces.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="expiry" className="block text-sm font-medium text-gray-700 mb-1">
+                    Expiry <span className="text-red-500" aria-label="required">*</span>
+                  </label>
+                  <input type="text" id="expiry" aria-required="true" placeholder="MM/YY" maxLength="5"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" />
+                </div>
+                <div>
+                  <label htmlFor="cvv" className="block text-sm font-medium text-gray-700 mb-1">
+                    CVV <span className="text-red-500" aria-label="required">*</span>
+                  </label>
+                  <input type="text" id="cvv" aria-required="true" placeholder="123" maxLength="4"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button ref={firstFocusRef} onClick={onConfirm}
+                className="flex-1 bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                Complete Enrollment
+              </button>
+              <button ref={lastFocusRef} onClick={onClose}
+                className="px-5 border border-gray-300 text-gray-700 font-medium py-3 rounded-xl hover:bg-gray-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400">
+                Cancel
+              </button>
+            </div>
+            <p className="text-xs text-center text-gray-400 mt-4">30-day money-back guarantee · Secure payment</p>
+          </div>
+        </div>
+      );
+    }
+
+    function AccordionSection({ section, index, isOpen, onToggle }) {
+      const total = section.lessons.length;
+      const btnId = `accordion-btn-${section.id}`;
+      const panelId = `accordion-panel-${section.id}`;
+
+      function handleKey(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggle();
+        }
+      }
+
+      return (
+        <li className="border border-gray-200 rounded-xl overflow-hidden">
+          <h3>
+            <button id={btnId} aria-expanded={isOpen} aria-controls={panelId}
+              onClick={onToggle} onKeyDown={handleKey}
+              className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-inset">
+              <div>
+                <span className="font-semibold text-gray-900">Section {index + 1}: {section.title}</span>
+                <span className="block text-sm text-gray-500 mt-0.5">{total} lessons</span>
+              </div>
+              <svg className={`w-5 h-5 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+          </h3>
+          {isOpen && (
+            <div id={panelId} role="region" aria-labelledby={btnId}>
+              <ul className="divide-y divide-gray-100" aria-label={`Lessons in ${section.title}`}>
+                {section.lessons.map((lesson, li) => (
+                  <li key={lesson.id} className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-indigo-50 transition-colors">
+                    <span className="text-gray-400 text-sm w-5 text-center" aria-hidden="true">{li + 1}</span>
+                    <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span className="text-sm text-gray-700 flex-1">{lesson.title}</span>
+                    <span className="text-xs text-gray-400">{lesson.duration}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </li>
+      );
+    }
+
+    function CourseDetailPage() {
+      const [openSections, setOpenSections] = useState([0]);
+      const [modalOpen, setModalOpen] = useState(false);
+      const [enrolled, setEnrolled] = useState(false);
+      const enrollBtnRef = useRef(null);
+      const liveRef = useRef(null);
+
+      function toggleSection(idx) {
+        setOpenSections(prev => prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]);
+      }
+
+      function handleEnroll() {
+        setModalOpen(false);
+        setEnrolled(true);
+        if (liveRef.current) liveRef.current.textContent = 'You have successfully enrolled in Python for Data Science. You can now start learning.';
+        setTimeout(() => { if (enrollBtnRef.current) enrollBtnRef.current.focus(); }, 100);
+      }
+
+      function closeModal() {
+        setModalOpen(false);
+        setTimeout(() => { if (enrollBtnRef.current) enrollBtnRef.current.focus(); }, 50);
+      }
+
+      const totalLessons = CURRICULUM.reduce((acc, s) => acc + s.lessons.length, 0);
+
+      return (
+        <>
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only" ref={liveRef}></div>
+
+          {modalOpen && <EnrollModal onClose={closeModal} onConfirm={handleEnroll} />}
+
+          {/* Course Hero */}
+          <div className="bg-gradient-to-br from-gray-900 via-indigo-950 to-gray-900 text-white py-12 px-4">
+            <div className="max-w-5xl mx-auto">
+              <nav aria-label="Breadcrumb" className="mb-4">
+                <ol className="flex items-center gap-2 text-sm text-indigo-300">
+                  <li><a href="index.html" className="hover:text-white transition-colors">Home</a></li>
+                  <li aria-hidden="true">›</li>
+                  <li><a href="courses.html" className="hover:text-white transition-colors">Courses</a></li>
+                  <li aria-hidden="true">›</li>
+                  <li aria-current="page" className="text-white">Python for Data Science</li>
+                </ol>
+              </nav>
+
+              <div className="flex items-center gap-2 mb-4">
+                <span className="bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded">Bestseller</span>
+                <span className="bg-indigo-700 text-indigo-200 text-xs px-2 py-1 rounded">Intermediate</span>
+              </div>
+
+              <h1 className="text-3xl md:text-4xl font-extrabold mb-4 leading-tight">
+                Python for Data Science
+              </h1>
+              <p className="text-indigo-200 text-lg mb-6 max-w-2xl leading-relaxed">
+                Master Python from the ground up, then dive into data analysis with Pandas, visualization with Matplotlib, and statistical modeling. Build a portfolio of real-world projects.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4 text-sm mb-4">
+                <span aria-label="4.8 stars out of 5, 12,400 reviews" className="flex items-center gap-1">
+                  <span className="text-amber-400 font-bold">4.8</span>
+                  <span aria-hidden="true" className="flex">
+                    {[1,2,3,4,5].map(i => <span key={i} className="text-amber-400">★</span>)}
+                  </span>
+                  <span className="text-indigo-300">(12,400 reviews)</span>
+                </span>
+                <span aria-label="84,000 students enrolled" className="text-indigo-200">👥 84,000 students</span>
+                <span aria-label="Course duration: 24 hours" className="text-indigo-200">⏱ 24 hours</span>
+                <span aria-label="32 lessons total" className="text-indigo-200">📚 {totalLessons} lessons</span>
+              </div>
+              <p className="text-indigo-300 text-sm">Created by <strong className="text-white">Dr. Sarah Chen</strong> · Last updated Jan 2026</p>
+            </div>
+          </div>
+
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="flex flex-col lg:flex-row gap-10">
+              {/* Main content — appears first in DOM for screen readers */}
+              <div className="flex-1 min-w-0">
+
+                {/* Instructor */}
+                <section aria-labelledby="instructor-heading" className="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
+                  <h2 id="instructor-heading" className="text-xl font-bold text-gray-900 mb-4">Your Instructor</h2>
+                  <div className="flex gap-4">
+                    <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-2xl shrink-0" role="img" aria-label="Instructor avatar: Dr. Sarah Chen">👩‍🏫</div>
+                    <div>
+                      <h3 className="font-bold text-gray-900">Dr. Sarah Chen</h3>
+                      <p className="text-indigo-600 text-sm mb-2">Lead Data Scientist · Stanford AI Lab</p>
+                      <div className="flex flex-wrap gap-4 text-xs text-gray-500 mb-3">
+                        <span aria-label="4.9 star instructor rating">⭐ 4.9 Instructor Rating</span>
+                        <span aria-label="120,000 students taught">👥 120K Students</span>
+                        <span aria-label="8 courses taught">📚 8 Courses</span>
+                      </div>
+                      <p className="text-sm text-gray-600 leading-relaxed">Dr. Sarah Chen is a data scientist with 12 years of experience at Google, Stripe, and Stanford. She specializes in making complex machine learning concepts accessible to learners at all levels.</p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Course includes */}
+                <section aria-labelledby="includes-heading" className="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
+                  <h2 id="includes-heading" className="text-xl font-bold text-gray-900 mb-4">This Course Includes</h2>
+                  <ul className="grid sm:grid-cols-2 gap-3" aria-label="Course features">
+                    {[
+                      { icon:'🎬', text:'24 hours of on-demand video' },
+                      { icon:'📥', text:'15 downloadable resource packs' },
+                      { icon:'📝', text:'5 hands-on projects' },
+                      { icon:'♾️', text:'Full lifetime access' },
+                      { icon:'📱', text:'Access on mobile and desktop' },
+                      { icon:'🏆', text:'Verified certificate of completion' },
+                    ].map(item => (
+                      <li key={item.text} className="flex items-center gap-3 text-sm text-gray-700">
+                        <span aria-hidden="true" className="text-xl">{item.icon}</span>
+                        {item.text}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                {/* Curriculum Accordion */}
+                <section aria-labelledby="curriculum-heading" className="mb-8">
+                  <h2 id="curriculum-heading" className="text-xl font-bold text-gray-900 mb-2">Course Curriculum</h2>
+                  <p className="text-gray-500 text-sm mb-4">{CURRICULUM.length} sections · {totalLessons} lessons · 24 hours total</p>
+                  <ul className="space-y-3 list-none p-0" aria-label="Course sections">
+                    {CURRICULUM.map((section, idx) => (
+                      <AccordionSection
+                        key={section.id}
+                        section={section}
+                        index={idx}
+                        isOpen={openSections.includes(idx)}
+                        onToggle={() => toggleSection(idx)}
+                      />
+                    ))}
+                  </ul>
+                </section>
+
+                {/* Reviews */}
+                <section aria-labelledby="reviews-heading" className="mb-8">
+                  <h2 id="reviews-heading" className="text-xl font-bold text-gray-900 mb-6">Student Reviews</h2>
+                  <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-4">
+                    <div className="flex items-center gap-6">
+                      <div className="text-center">
+                        <div className="text-5xl font-extrabold text-gray-900" aria-label="Overall rating: 4.8 out of 5">4.8</div>
+                        <StarRating value={5} />
+                        <div className="text-xs text-gray-500 mt-1">Course Rating</div>
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        {[['5 stars', 72], ['4 stars', 20], ['3 stars', 6], ['2 stars', 1], ['1 star', 1]].map(([label, pct]) => (
+                          <div key={label} className="flex items-center gap-2 text-sm">
+                            <span className="w-14 text-gray-500 text-xs">{label}</span>
+                            <div className="flex-1 bg-gray-200 rounded-full h-2" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${label}: ${pct}%`}>
+                              <div className="bg-amber-400 h-2 rounded-full" style={{ width: `${pct}%` }}></div>
+                            </div>
+                            <span className="w-8 text-gray-500 text-xs text-right">{pct}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <ul className="space-y-4 list-none p-0">
+                    {REVIEWS.map(r => (
+                      <li key={r.id} className="bg-white rounded-2xl border border-gray-200 p-5">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-sm font-bold text-indigo-700 shrink-0" aria-hidden="true">
+                            {r.name.charAt(0)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-semibold text-gray-900">{r.name}</span>
+                              <time className="text-xs text-gray-400">{r.date}</time>
+                            </div>
+                            <StarRating value={r.rating} />
+                            <p className="text-sm text-gray-600 mt-2 leading-relaxed">{r.text}</p>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+
+              {/* Sticky Enrollment Sidebar — after main content in DOM (cat_10) */}
+              <aside className="lg:w-80 shrink-0" aria-label="Course enrollment">
+                <div className="lg:sticky lg:top-24">
+                  <div className="bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
+                    <div className="h-36 bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center text-5xl" role="img" aria-label="Python for Data Science course thumbnail">📊</div>
+                    <div className="p-6">
+                      <div className="flex items-end gap-3 mb-1">
+                        <span className="text-3xl font-extrabold text-gray-900">$34.99</span>
+                        <span className="text-gray-400 line-through text-lg">$49.99</span>
+                        <span className="text-emerald-600 font-semibold text-sm">30% off</span>
+                      </div>
+                      <p className="text-xs text-red-500 mb-4">⏰ <strong>2 days</strong> left at this price!</p>
+
+                      {enrolled ? (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 text-center">
+                          <p className="text-emerald-700 font-semibold">✅ Enrolled! You're in.</p>
+                          <a href="study.html" className="block mt-3 bg-emerald-600 text-white font-bold py-2.5 rounded-lg hover:bg-emerald-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                            Start Learning →
+                          </a>
+                        </div>
+                      ) : (
+                        <button ref={enrollBtnRef} onClick={() => setModalOpen(true)}
+                          className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors mb-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          aria-label="Enroll now in Python for Data Science for $34.99">
+                          Enroll Now — $34.99
+                        </button>
+                      )}
+
+                      <a href="study.html" className="block w-full border-2 border-gray-300 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 mb-4">
+                        Try Free Preview
+                      </a>
+
+                      <p className="text-xs text-center text-gray-400 mb-4">30-day money-back guarantee</p>
+
+                      <div className="space-y-2 text-sm text-gray-600">
+                        {[
+                          { icon:'⏱', text:'24 hours total' },
+                          { icon:'♾️', text:'Lifetime access' },
+                          { icon:'📱', text:'Mobile & desktop' },
+                          { icon:'🏆', text:'Certificate included' },
+                        ].map(item => (
+                          <div key={item.text} className="flex items-center gap-2">
+                            <span aria-hidden="true">{item.icon}</span>
+                            <span>{item.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    function App() {
+      return (
+        <div className="flex flex-col min-h-screen">
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-indigo-600 text-white px-4 py-2 rounded-lg z-50">Skip to main content</a>
+          <Header current="" />
+          <main id="main-content" className="flex-1">
+            <CourseDetailPage />
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

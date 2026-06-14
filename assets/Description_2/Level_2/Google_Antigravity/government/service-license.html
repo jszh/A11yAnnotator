@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver's License Renewal | State of Vermont</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .focus-visible\:ring:focus-visible {
+            outline: 3px solid #34d399;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col">
+    <div id="root" class="flex flex-col min-h-screen w-full"></div>
+    <script type="text/babel">
+        // Shared Header and Footer components
+        const Header = ({ activePage }) => {
+            return (
+                <header className="bg-slate-900 text-white shadow-md">
+                    <div className="bg-emerald-800 text-sm py-2 px-4 flex justify-between items-center sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+                        <div className="flex items-center space-x-2">
+                            <span className="sr-only">Official State Website</span>
+                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zM5.5 10a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM10 8a2 2 0 100 4 2 2 0 000-4z" clipRule="evenodd" />
+                            </svg>
+                            <span>An official website of the State of Vermont</span>
+                        </div>
+                        <div>
+                            <label htmlFor="language-selector" className="sr-only">Select Language</label>
+                            <select id="language-selector" className="bg-emerald-700 text-white text-xs rounded border border-emerald-600 focus:ring focus:ring-emerald-300 py-1 px-2" aria-label="Language selector">
+                                <option value="en">English (EN)</option>
+                                <option value="es">Español (ES)</option>
+                                <option value="fr">Français (FR)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row justify-between items-center w-full">
+                        <a href="index.html" className="flex items-center space-x-3 mb-4 md:mb-0 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded" aria-label="State of Vermont Homepage">
+                            <div className="bg-emerald-600 rounded-full p-2 h-10 w-10 flex items-center justify-center">
+                                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold tracking-tight">VERMONT</h1>
+                                <p className="text-xs text-slate-300">Official Resident Portal</p>
+                            </div>
+                        </a>
+                        <nav aria-label="Primary Navigation">
+                            <ul className="flex flex-wrap items-center justify-center space-x-1 md:space-x-4">
+                                <li><a href="index.html" aria-current={activePage === 'home' ? 'page' : undefined} className={`font-medium px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors ${activePage === 'home' ? 'text-white border-b-2 border-emerald-500' : 'text-slate-200 hover:text-emerald-300'}`}>Home</a></li>
+                                <li><a href="services.html" aria-current={activePage === 'services' ? 'page' : undefined} className={`font-medium px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors ${activePage === 'services' ? 'text-white border-b-2 border-emerald-500' : 'text-slate-200 hover:text-emerald-300'}`}>Services</a></li>
+                                <li><a href="about.html" aria-current={activePage === 'about' ? 'page' : undefined} className={`font-medium px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors ${activePage === 'about' ? 'text-white border-b-2 border-emerald-500' : 'text-slate-200 hover:text-emerald-300'}`}>About</a></li>
+                                <li><a href="contact.html" aria-current={activePage === 'contact' ? 'page' : undefined} className={`font-medium px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors ${activePage === 'contact' ? 'text-white border-b-2 border-emerald-500' : 'text-slate-200 hover:text-emerald-300'}`}>Contact</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => (
+            <footer className="bg-slate-900 text-slate-300 py-12 border-t-4 border-emerald-600 mt-auto">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div className="mb-8 md:mb-0">
+                        <div className="flex items-center space-x-3 mb-4">
+                            <div className="bg-emerald-600 rounded-full p-1.5 h-8 w-8 flex items-center justify-center">
+                                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-white tracking-tight">VERMONT</h2>
+                                <p className="text-xs">Official Resident Portal</p>
+                            </div>
+                        </div>
+                        <p className="text-sm mb-4">Dedicated to serving the residents, businesses, and visitors of the Green Mountain State.</p>
+                        <div className="flex space-x-4">
+                            <a href="#twitter" aria-label="Visit State of Vermont Twitter page" className="text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded">
+                                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" /></svg>
+                            </a>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-bold mb-4 uppercase text-sm tracking-wider">Government</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li><a href="about.html" className="hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1 -mx-1 transition-colors">Governor's Office</a></li>
+                            <li><a href="about.html#agencies" className="hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1 -mx-1 transition-colors">State Agencies Directory</a></li>
+                            <li><a href="#legislature" className="hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1 -mx-1 transition-colors">Legislature</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-bold mb-4 uppercase text-sm tracking-wider">Services</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li><a href="service-license.html" className="hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1 -mx-1 transition-colors">Driver & Vehicle Services</a></li>
+                            <li><a href="service-benefits.html" className="hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1 -mx-1 transition-colors">Health & Human Services</a></li>
+                            <li><a href="services.html" className="hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1 -mx-1 transition-colors">All Resident Services</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="text-white font-bold mb-4 uppercase text-sm tracking-wider">Support</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li><a href="contact.html" className="hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1 -mx-1 transition-colors">Contact Us</a></li>
+                            <li><a href="#accessibility" className="hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1 -mx-1 transition-colors">Accessibility Statement</a></li>
+                            <li><a href="#privacy" className="hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1 -mx-1 transition-colors">Privacy Policy</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-slate-700 text-sm flex flex-col md:flex-row justify-between items-center">
+                    <p>&copy; {new Date().getFullYear()} State of Vermont. All rights reserved.</p>
+                    <p className="mt-2 md:mt-0 text-slate-400">Designed with accessibility in mind.</p>
+                </div>
+            </footer>
+        );
+
+        const App = () => {
+            const [step, setStep] = React.useState(1);
+            const [eligible, setEligible] = React.useState('');
+            const [aptDate, setAptDate] = React.useState('');
+            const [statusAnnouncer, setStatusAnnouncer] = React.useState('');
+            const headingRef = React.useRef(null);
+
+            const handleNext = () => {
+                const nextStep = step + 1;
+                setStep(nextStep);
+                setStatusAnnouncer(`Moved to step ${nextStep} of 4.`);
+                setTimeout(() => {
+                    if (headingRef.current) headingRef.current.focus();
+                }, 100);
+            };
+
+            const handlePrev = () => {
+                const prevStep = step - 1;
+                setStep(prevStep);
+                setStatusAnnouncer(`Moved to step ${prevStep} of 4.`);
+                setTimeout(() => {
+                    if (headingRef.current) headingRef.current.focus();
+                }, 100);
+            };
+
+            const submitRenewal = (e) => {
+                e.preventDefault();
+                setStep(5);
+                setStatusAnnouncer(`Renewal successfully submitted. Thank you.`);
+                setTimeout(() => {
+                    if (headingRef.current) headingRef.current.focus();
+                }, 100);
+            }
+
+            return (
+                <>
+                    <Header activePage="services" />
+
+                    {/* Breadcrumbs */}
+                    <nav aria-label="Breadcrumb" className="bg-white border-b border-slate-200 py-3">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <ol className="flex items-center space-x-2 text-sm text-slate-500">
+                                <li><a href="index.html" className="hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1">Home</a></li>
+                                <li><span aria-hidden="true" className="mx-1">/</span></li>
+                                <li><a href="services.html" className="hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1">Services</a></li>
+                                <li><span aria-hidden="true" className="mx-1">/</span></li>
+                                <li><a href="#current" className="text-slate-800 font-medium hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded px-1" aria-current="page">Driver's License Renewal</a></li>
+                            </ol>
+                        </div>
+                    </nav>
+
+                    <main id="main-content" className="flex-grow focus:outline-none py-10 bg-white" tabIndex="-1">
+                        {/* Live region for step announcements */}
+                        <div aria-live="polite" className="sr-only">
+                            {statusAnnouncer}
+                        </div>
+
+                        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="mb-8">
+                                <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">Driver's License Renewal</h1>
+                                <p className="text-lg text-slate-600">Complete your renewal online in four easy steps. Estimated time: 10 minutes.</p>
+                            </div>
+
+                            {/* Progress Bar */}
+                            {step <= 4 && (
+                                <div className="mb-8" aria-hidden="true">
+                                    <div className="flex justify-between text-xs font-semibold text-slate-500 mb-2">
+                                        <span className={step >= 1 ? "text-emerald-700" : ""}>Eligibility</span>
+                                        <span className={step >= 2 ? "text-emerald-700" : ""}>Documents</span>
+                                        <span className={step >= 3 ? "text-emerald-700" : ""}>Appointment</span>
+                                        <span className={step >= 4 ? "text-emerald-700" : ""}>Confirm & Pay</span>
+                                    </div>
+                                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                                        <div className="h-full bg-emerald-600 transition-all duration-300" style={{ width: `${(step / 4) * 100}%` }}></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Wizard Steps */}
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 md:p-10 shadow-sm">
+                                {step === 1 && (
+                                    <section aria-labelledby="step-heading">
+                                        <h2 id="step-heading" ref={headingRef} tabIndex="-1" className="text-2xl font-bold text-slate-900 mb-6 focus:outline-none">Step 1: Eligibility Check</h2>
+                                        <form onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
+                                            <fieldset className="mb-6 border-none p-0">
+                                                <legend className="block text-base font-semibold text-slate-900 mb-4">Is your current license suspended or revoked?</legend>
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center">
+                                                        <input
+                                                            id="eligibility-yes"
+                                                            name="eligibility"
+                                                            type="radio"
+                                                            className="h-5 w-5 border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                            aria-describedby="eligibility-desc-yes"
+                                                            onChange={() => setEligible('no')}
+                                                            required
+                                                        />
+                                                        <label htmlFor="eligibility-yes" className="ml-3 block text-base font-medium text-slate-700 cursor-pointer">Yes</label>
+                                                    </div>
+                                                    <p id="eligibility-desc-yes" className="ml-8 text-sm text-slate-500">You are not eligible to renew online if your license is currently suspended.</p>
+
+                                                    <div className="flex items-center">
+                                                        <input
+                                                            id="eligibility-no"
+                                                            name="eligibility"
+                                                            type="radio"
+                                                            className="h-5 w-5 border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                            aria-describedby="eligibility-desc-no"
+                                                            onChange={() => setEligible('yes')}
+                                                        />
+                                                        <label htmlFor="eligibility-no" className="ml-3 block text-base font-medium text-slate-700 cursor-pointer">No</label>
+                                                    </div>
+                                                    <p id="eligibility-desc-no" className="ml-8 text-sm text-slate-500">I confirm my license is valid and in good standing.</p>
+                                                </div>
+                                            </fieldset>
+
+                                            {eligible === 'no' && (
+                                                <div role="alert" className="mb-6 bg-red-50 border-l-4 border-red-500 p-4">
+                                                    <div className="flex">
+                                                        <svg className="h-5 w-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                                                        <p className="text-sm text-red-700">Based on your answer, you must contact the DMV for assistance rather than renewing online.</p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="flex justify-end pt-4 border-t border-slate-200">
+                                                <button
+                                                    type="submit"
+                                                    disabled={eligible !== 'yes'}
+                                                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium py-2.5 px-6 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                                                >
+                                                    Continue to Documents
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </section>
+                                )}
+
+                                {step === 2 && (
+                                    <section aria-labelledby="step-heading">
+                                        <h2 id="step-heading" ref={headingRef} tabIndex="-1" className="text-2xl font-bold text-slate-900 mb-6 focus:outline-none">Step 2: Required Documents</h2>
+                                        <p className="mb-4 text-slate-700">Please prepare the following documents for your renewal. You will need to bring these to your appointment.</p>
+
+                                        <ul className="mb-8 space-y-3 bg-white border border-slate-200 rounded-md p-4">
+                                            <li className="flex items-start">
+                                                <svg className="h-5 w-5 text-emerald-500 mr-3 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                                <span className="text-slate-800 font-medium">Your current driver's license</span>
+                                            </li>
+                                            <li className="flex items-start">
+                                                <svg className="h-5 w-5 text-emerald-500 mr-3 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                                <div>
+                                                    <span className="text-slate-800 font-medium block">Proof of Identity & Age</span>
+                                                    <span className="text-slate-500 text-sm">Valid passport, birth certificate, or permanent resident card.</span>
+                                                </div>
+                                            </li>
+                                            <li className="flex items-start">
+                                                <svg className="h-5 w-5 text-emerald-500 mr-3 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                                <div>
+                                                    <span className="text-slate-800 font-medium block">Two forms of proof of Vermont Residency</span>
+                                                    <span className="text-slate-500 text-sm">E.g., utility bill, lease agreement, bank statement (within last 60 days).</span>
+                                                </div>
+                                            </li>
+                                        </ul>
+
+                                        <form onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
+                                            <div className="flex items-center mb-6">
+                                                <input
+                                                    id="confirm-docs"
+                                                    type="checkbox"
+                                                    className="h-5 w-5 border-slate-300 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer"
+                                                    required
+                                                />
+                                                <label htmlFor="confirm-docs" className="ml-3 block text-base text-slate-800">I confirm I have all required documents ready.</label>
+                                            </div>
+
+                                            <div className="flex justify-between pt-4 border-t border-slate-200">
+                                                <button
+                                                    type="button"
+                                                    onClick={handlePrev}
+                                                    className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium py-2.5 px-6 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                                                >
+                                                    Back
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-6 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                                                >
+                                                    Continue to Appointment
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </section>
+                                )}
+
+                                {step === 3 && (
+                                    <section aria-labelledby="step-heading">
+                                        <h2 id="step-heading" ref={headingRef} tabIndex="-1" className="text-2xl font-bold text-slate-900 mb-6 focus:outline-none">Step 3: Appointment Scheduler</h2>
+                                        <p className="mb-6 text-slate-700">Select a convenient date and time for your brief verification appointment at your local DMV.</p>
+
+                                        <form onSubmit={(e) => { e.preventDefault(); handleNext(); }}>
+                                            <div className="mb-6 max-w-sm">
+                                                <label htmlFor="apt-date" className="block text-sm font-medium text-slate-700 mb-2">Select Date & Time</label>
+                                                <input
+                                                    type="datetime-local"
+                                                    id="apt-date"
+                                                    className="w-full border border-slate-300 rounded px-4 py-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none"
+                                                    value={aptDate}
+                                                    onChange={e => setAptDate(e.target.value)}
+                                                    required
+                                                    aria-required="true"
+                                                />
+                                            </div>
+
+                                            <div className="flex justify-between pt-4 border-t border-slate-200">
+                                                <button
+                                                    type="button"
+                                                    onClick={handlePrev}
+                                                    className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium py-2.5 px-6 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                                                >
+                                                    Back
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-6 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                                                >
+                                                    Review Application
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </section>
+                                )}
+
+                                {step === 4 && (
+                                    <section aria-labelledby="step-heading">
+                                        <h2 id="step-heading" ref={headingRef} tabIndex="-1" className="text-2xl font-bold text-slate-900 mb-6 focus:outline-none">Step 4: Confirm & Pay</h2>
+
+                                        <div className="bg-white border border-slate-200 rounded-md p-6 mb-8">
+                                            <h3 className="font-bold text-lg border-b border-slate-100 pb-3 mb-4">Summary of Renewal</h3>
+                                            <dl className="space-y-4 text-sm">
+                                                <div className="flex justify-between">
+                                                    <dt className="text-slate-500">Service Request</dt>
+                                                    <dd className="font-medium text-slate-900 text-right">Standard Driver's License Renewal</dd>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <dt className="text-slate-500">Appointment Date</dt>
+                                                    <dd className="font-medium text-slate-900 text-right">{new Date(aptDate || Date.now()).toLocaleString()}</dd>
+                                                </div>
+                                                <div className="flex justify-between border-t border-slate-100 pt-4">
+                                                    <dt className="text-slate-500">Renewal Fee (4-Year)</dt>
+                                                    <dd className="font-medium text-slate-900 text-right">$35.00</dd>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <dt className="text-slate-500">Processing Fee</dt>
+                                                    <dd className="font-medium text-slate-900 text-right">$2.50</dd>
+                                                </div>
+                                                <div className="flex justify-between border-t border-slate-200 pt-4 items-center">
+                                                    <dt className="text-lg font-bold text-slate-900">Total Due Today</dt>
+                                                    <dd className="text-2xl font-extrabold text-emerald-700 text-right">$37.50</dd>
+                                                </div>
+                                            </dl>
+                                        </div>
+
+                                        <form onSubmit={submitRenewal}>
+                                            <div className="mb-6 space-y-4 bg-slate-100 p-4 rounded border border-slate-200">
+                                                <h3 className="font-semibold text-slate-800 text-sm uppercase tracking-wide">Payment Information Simulation</h3>
+                                                <p className="text-xs text-slate-500">This is a mockup. Do not enter real credit card information.</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label htmlFor="cc-name" className="block text-sm font-medium text-slate-700 mb-1">Name on Card</label>
+                                                        <input type="text" id="cc-name" className="w-full border border-slate-300 rounded px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500" required aria-required="true" />
+                                                    </div>
+                                                    <div>
+                                                        <label htmlFor="cc-number" className="block text-sm font-medium text-slate-700 mb-1">Card Number</label>
+                                                        <input type="text" id="cc-number" className="w-full border border-slate-300 rounded px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="0000 0000 0000 0000" required aria-required="true" />
+                                                    </div>
+                                                    <div>
+                                                        <label htmlFor="cc-exp" className="block text-sm font-medium text-slate-700 mb-1">Expiration</label>
+                                                        <input type="text" id="cc-exp" className="w-full border border-slate-300 rounded px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="MM/YY" required aria-required="true" />
+                                                    </div>
+                                                    <div>
+                                                        <label htmlFor="cc-cvv" className="block text-sm font-medium text-slate-700 mb-1">CVV</label>
+                                                        <input type="text" id="cc-cvv" className="w-full border border-slate-300 rounded px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="123" required aria-required="true" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-between pt-4 border-t border-slate-200">
+                                                <button
+                                                    type="button"
+                                                    onClick={handlePrev}
+                                                    className="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium py-2.5 px-6 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                                                >
+                                                    Back
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                                                >
+                                                    Pay $37.50 & Submit
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </section>
+                                )}
+
+                                {step === 5 && (
+                                    <section aria-labelledby="step-heading" className="text-center py-8">
+                                        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-6">
+                                            <svg className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                        <h2 id="step-heading" ref={headingRef} tabIndex="-1" className="text-3xl font-extrabold text-slate-900 mb-4 focus:outline-none">Renewal Submitted Successfully!</h2>
+                                        <p className="text-lg text-slate-600 max-w-xl mx-auto mb-8">
+                                            Your appointment and payment have been confirmed. A receipt and summary have been sent to your registered email address.
+                                        </p>
+                                        <div className="bg-slate-100 inline-block p-4 rounded-lg mb-8 text-left">
+                                            <p className="text-sm font-medium text-slate-700 mb-1">Confirmation Number:</p>
+                                            <p className="text-2xl font-mono font-bold text-slate-900 tracking-wider">VT-8893-XCQ</p>
+                                        </div>
+                                        <div>
+                                            <a href="services.html" className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-6 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors">Return to Services</a>
+                                        </div>
+                                    </section>
+                                )}
+                            </div>
+                        </div>
+                    </main>
+
+                    <Footer />
+                </>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

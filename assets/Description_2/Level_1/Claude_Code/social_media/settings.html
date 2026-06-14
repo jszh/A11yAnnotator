@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Folia — Settings</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background-color: #09090B; color: #FAFAFA; font-family: system-ui, -apple-system, sans-serif; }
+    *:focus-visible { outline: 2px solid #7C3AED; outline-offset: 2px; border-radius: 6px; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #3F3F46; border-radius: 99px; }
+    img { display: block; }
+    /* Toggle switch */
+    .toggle-track { transition: background-color 0.2s; }
+    .toggle-thumb { transition: transform 0.2s; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useId } = React;
+
+const IconHome = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>;
+const IconCompass = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" /></svg>;
+const IconBell = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" /></svg>;
+const IconChat = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" /></svg>;
+const IconUser = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>;
+const IconCog = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>;
+const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
+const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>;
+const IconShield = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" /></svg>;
+
+const NAV = [
+  { label: 'Home', href: 'index.html', icon: IconHome },
+  { label: 'Explore', href: 'explore.html', icon: IconCompass },
+  { label: 'Notifications', href: 'notifications.html', icon: IconBell, badge: 3 },
+  { label: 'Messages', href: 'messages.html', icon: IconChat },
+  { label: 'Profile', href: 'profile.html', icon: IconUser },
+  { label: 'Settings', href: 'settings.html', icon: IconCog },
+];
+
+function Sidebar({ current }) {
+  return (
+    <nav aria-label="Primary navigation" className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-60 bg-zinc-900 border-r border-zinc-800 z-30 px-3 py-6">
+      <a href="index.html" className="flex items-center gap-2.5 px-3 mb-8 rounded-xl" aria-label="Folia — go to home feed">
+        <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center font-bold text-white text-sm flex-shrink-0" aria-hidden="true">F</div>
+        <span className="text-lg font-bold tracking-tight text-white">Folia</span>
+      </a>
+      <ul className="flex flex-col gap-0.5 flex-1" role="list">
+        {NAV.map(({ label, href, icon: Icon, badge }) => {
+          const active = current === label;
+          return (
+            <li key={label}>
+              <a href={href} aria-current={active ? 'page' : undefined} aria-label={badge ? `${label} (${badge} unread)` : label}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${active ? 'bg-violet-600/15 text-violet-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'}`}>
+                <Icon />
+                <span>{label}</span>
+                {badge && <span className="ml-auto bg-violet-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1" aria-hidden="true">{badge}</span>}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+      <a href="index.html#composer" className="flex items-center justify-center gap-2 mt-4 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl px-4 py-3 transition-colors">
+        <IconPlus />New Post
+      </a>
+    </nav>
+  );
+}
+
+function MobileNav({ current }) {
+  return (
+    <nav aria-label="Mobile navigation" className="lg:hidden fixed bottom-0 inset-x-0 bg-zinc-900/95 backdrop-blur border-t border-zinc-800 z-30 flex">
+      {NAV.map(({ label, href, icon: Icon, badge }) => {
+        const active = current === label;
+        return (
+          <a key={label} href={href} aria-current={active ? 'page' : undefined} aria-label={badge ? `${label}, ${badge} unread` : label}
+            className={`relative flex-1 flex flex-col items-center py-3 gap-0.5 text-[10px] transition-colors ${active ? 'text-violet-400' : 'text-zinc-500'}`}>
+            <Icon />
+            <span>{label}</span>
+            {badge && <span className="absolute top-2 left-1/2 ml-2 bg-violet-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center" aria-hidden="true">{badge}</span>}
+          </a>
+        );
+      })}
+    </nav>
+  );
+}
+
+/* ── Reusable components ──────────────────────────────────────── */
+function SectionCard({ id, title, children }) {
+  return (
+    <section aria-labelledby={id} className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden mb-4">
+      <div className="px-5 py-4 border-b border-zinc-800">
+        <h2 id={id} className="text-sm font-semibold text-zinc-200">{title}</h2>
+      </div>
+      <div className="px-5 py-4 space-y-5">{children}</div>
+    </section>
+  );
+}
+
+function Field({ label, hint, children, htmlFor }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-6">
+      <label htmlFor={htmlFor} className="sm:w-40 flex-shrink-0 text-sm text-zinc-400 pt-1">{label}</label>
+      <div className="flex-1 min-w-0">
+        {children}
+        {hint && <p className="mt-1.5 text-xs text-zinc-500">{hint}</p>}
+      </div>
+    </div>
+  );
+}
+
+function TextInput({ id, defaultValue, placeholder, type = 'text', ...rest }) {
+  return (
+    <input
+      id={id}
+      type={type}
+      defaultValue={defaultValue}
+      placeholder={placeholder}
+      className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:outline-none"
+      {...rest}
+    />
+  );
+}
+
+function TextArea({ id, defaultValue, rows = 3, placeholder }) {
+  return (
+    <textarea
+      id={id}
+      defaultValue={defaultValue}
+      rows={rows}
+      placeholder={placeholder}
+      className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:outline-none resize-none"
+    />
+  );
+}
+
+function Toggle({ checked, onChange, label, id }) {
+  return (
+    <div className="flex items-center justify-between">
+      <label htmlFor={id} className="text-sm text-zinc-300 cursor-pointer select-none">{label}</label>
+      <button
+        id={id}
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors toggle-track
+          ${checked ? 'bg-violet-600' : 'bg-zinc-700'}`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition toggle-thumb
+            ${checked ? 'translate-x-5' : 'translate-x-0'}`}
+          aria-hidden="true"
+        />
+      </button>
+    </div>
+  );
+}
+
+function RadioGroup({ name, options, value, onChange, legend }) {
+  return (
+    <fieldset>
+      <legend className="sr-only">{legend}</legend>
+      <div className="flex flex-col gap-2">
+        {options.map(opt => (
+          <label key={opt.value} className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name={name}
+              value={opt.value}
+              checked={value === opt.value}
+              onChange={() => onChange(opt.value)}
+              className="w-4 h-4 accent-violet-600"
+            />
+            <span className="text-sm text-zinc-300">{opt.label}</span>
+            {opt.desc && <span className="text-xs text-zinc-500">{opt.desc}</span>}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/* ── Skill Tags ──────────────────────────────────────────────── */
+function TagInput({ tags, setTags, label, placeholder, id }) {
+  const [input, setInput] = useState('');
+  const addTag = () => {
+    const trimmed = input.trim().replace(/^#/, '');
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+      setInput('');
+    }
+  };
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2 mb-2">
+        {tags.map(tag => (
+          <span key={tag} className="flex items-center gap-1 bg-violet-600/15 text-violet-300 text-sm px-2.5 py-1 rounded-lg">
+            #{tag}
+            <button
+              onClick={() => setTags(tags.filter(t => t !== tag))}
+              aria-label={`Remove tag ${tag}`}
+              className="ml-0.5 text-violet-400 hover:text-violet-200"
+            >
+              <IconX />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <label htmlFor={id} className="sr-only">{label}</label>
+        <input
+          id={id}
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+          placeholder={placeholder}
+          className="flex-1 bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-xl px-4 py-2 text-sm focus:border-violet-500 focus:outline-none"
+          aria-label={label}
+        />
+        <button
+          onClick={addTag}
+          aria-label="Add tag"
+          className="px-4 py-2 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 text-zinc-300 text-sm rounded-xl transition-colors"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── App ─────────────────────────────────────────────────────── */
+function App() {
+  const [skills, setSkills] = useState(['Procreate', 'Figma', 'Lightroom', 'After Effects']);
+  const [software, setSoftware] = useState(['Procreate', 'Figma', 'Blender', 'Lightroom']);
+  const [portfolioVis, setPortfolioVis] = useState('public');
+  const [openForWork, setOpenForWork] = useState(true);
+  const [commissionType, setCommissionType] = useState('both');
+  const [notifs, setNotifs] = useState({
+    appreciations: true,
+    comments: true,
+    follows: true,
+    messages: true,
+    feedbackRequests: true,
+    weeklyDigest: false,
+    productUpdates: false,
+  });
+  const [twoFa, setTwoFa] = useState(false);
+  const [sessionAlerts, setSessionAlerts] = useState(true);
+
+  const nameId = useId();
+  const handleId = useId();
+  const bioId = useId();
+  const websiteId = useId();
+  const locationId = useId();
+  const skillsId = useId();
+  const softwareId = useId();
+  const emailId = useId();
+  const currentPassId = useId();
+  const newPassId = useId();
+  const confirmPassId = useId();
+
+  const toggleNotif = (key) => setNotifs(n => ({ ...n, [key]: !n[key] }));
+
+  const SETTINGS_SECTIONS = [
+    'Profile & Portfolio',
+    'Creative Tools',
+    'Visibility',
+    'Commission Status',
+    'Notifications',
+    'Account Security',
+  ];
+
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar current="Settings" />
+      <MobileNav current="Settings" />
+
+      <main id="main-content" className="flex-1 lg:ml-60 max-w-3xl mx-auto w-full px-4 py-6 pb-24 lg:pb-6">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-violet-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
+          Skip to main content
+        </a>
+
+        {/* Page nav */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl font-bold text-zinc-100">Settings</h1>
+          <nav aria-label="Settings sections" className="hidden sm:flex gap-1 overflow-x-auto">
+            {SETTINGS_SECTIONS.map(s => (
+              <a
+                key={s}
+                href={`#section-${s.replace(/\s+/g, '-').toLowerCase()}`}
+                className="flex-shrink-0 text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+              >
+                {s}
+              </a>
+            ))}
+          </nav>
+        </div>
+
+        {/* ── Profile & Portfolio ── */}
+        <div id="section-profile-&-portfolio">
+          <SectionCard id="profile-heading" title="Profile & Portfolio">
+            {/* Avatar */}
+            <div className="flex items-center gap-4">
+              <img src="https://picsum.photos/seed/hana/80/80" alt="Your current profile photo" className="w-16 h-16 rounded-xl object-cover" />
+              <div>
+                <button className="text-sm bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 px-4 py-2 rounded-xl transition-colors">
+                  Change Photo
+                </button>
+                <p className="text-xs text-zinc-500 mt-1.5">JPG or PNG, max 5MB. Square image recommended.</p>
+              </div>
+            </div>
+
+            <Field label="Display Name" htmlFor={nameId}>
+              <TextInput id={nameId} defaultValue="Hana Kimura" />
+            </Field>
+
+            <Field label="Handle" htmlFor={handleId} hint="folia.co/@hanakimura">
+              <div className="flex">
+                <span className="flex items-center px-3 bg-zinc-800 border border-r-0 border-zinc-700 rounded-l-xl text-zinc-500 text-sm">@</span>
+                <input
+                  id={handleId}
+                  type="text"
+                  defaultValue="hanakimura"
+                  className="flex-1 bg-zinc-800 border border-zinc-700 text-zinc-100 rounded-r-xl px-3 py-2.5 text-sm focus:border-violet-500 focus:outline-none"
+                />
+              </div>
+            </Field>
+
+            <Field label="Bio" htmlFor={bioId} hint="Up to 160 characters.">
+              <TextArea id={bioId} defaultValue="Digital illustrator and visual storyteller. I find beauty in the in-between — dusk, fog, the moment before rain." rows={3} />
+            </Field>
+
+            <Field label="Website" htmlFor={websiteId}>
+              <TextInput id={websiteId} type="url" defaultValue="https://hanakimura.art" placeholder="https://yoursite.com" />
+            </Field>
+
+            <Field label="Location" htmlFor={locationId}>
+              <TextInput id={locationId} defaultValue="Kyoto, Japan" placeholder="City, Country" />
+            </Field>
+
+            <div className="pt-2 flex justify-end">
+              <button className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors">
+                Save Changes
+              </button>
+            </div>
+          </SectionCard>
+        </div>
+
+        {/* ── Creative Tools ── */}
+        <div id="section-creative-tools">
+          <SectionCard id="tools-heading" title="Creative Tools">
+            <Field label="Skills / Disciplines" htmlFor={skillsId} hint="Tags that describe your creative practice.">
+              <TagInput id={skillsId} label="Add a skill" tags={skills} setTags={setSkills} placeholder="e.g. Digital Illustration" />
+            </Field>
+            <Field label="Software & Tools" htmlFor={softwareId} hint="List the tools you actively use.">
+              <TagInput id={softwareId} label="Add software" tags={software} setTags={setSoftware} placeholder="e.g. Procreate" />
+            </Field>
+            <div className="pt-2 flex justify-end">
+              <button className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors">
+                Save Changes
+              </button>
+            </div>
+          </SectionCard>
+        </div>
+
+        {/* ── Visibility ── */}
+        <div id="section-visibility">
+          <SectionCard id="visibility-heading" title="Visibility">
+            <Field label="Portfolio visibility" htmlFor="vis-public">
+              <RadioGroup
+                name="portfolio-visibility"
+                legend="Portfolio visibility"
+                value={portfolioVis}
+                onChange={setPortfolioVis}
+                options={[
+                  { value: 'public', label: 'Public', desc: '— Anyone on Folia can view your portfolio' },
+                  { value: 'followers', label: 'Followers only', desc: '— Only people who follow you can view your work' },
+                  { value: 'private', label: 'Private', desc: '— Only you can view your portfolio' },
+                ]}
+              />
+            </Field>
+            <Toggle
+              id="show-appreciations"
+              checked={true}
+              onChange={() => {}}
+              label="Show appreciation counts on your posts"
+            />
+            <Toggle
+              id="show-in-explore"
+              checked={true}
+              onChange={() => {}}
+              label="Include my work in Explore and search results"
+            />
+            <Toggle
+              id="allow-collect"
+              checked={true}
+              onChange={() => {}}
+              label="Allow others to collect my work"
+            />
+          </SectionCard>
+        </div>
+
+        {/* ── Commission Status ── */}
+        <div id="section-commission-status">
+          <SectionCard id="commission-heading" title="Commission Status">
+            <div className="flex items-center gap-4 p-4 bg-zinc-800 rounded-xl border border-zinc-700">
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-zinc-200">Open for Work badge</p>
+                <p className="text-xs text-zinc-400 mt-0.5">Displays a green "Open for Work" badge on your profile to let clients know you're available.</p>
+              </div>
+              <button
+                role="switch"
+                aria-checked={openForWork}
+                aria-label="Toggle Open for Work status"
+                onClick={() => setOpenForWork(p => !p)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors toggle-track
+                  ${openForWork ? 'bg-emerald-600' : 'bg-zinc-700'}`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition toggle-thumb
+                    ${openForWork ? 'translate-x-5' : 'translate-x-0'}`}
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+            {openForWork && (
+              <div aria-live="polite">
+                <Field label="Commission types" htmlFor="commission-type">
+                  <RadioGroup
+                    name="commission-type"
+                    legend="Available commission types"
+                    value={commissionType}
+                    onChange={setCommissionType}
+                    options={[
+                      { value: 'both', label: 'Brand & Personal projects' },
+                      { value: 'brand', label: 'Brand / editorial projects only' },
+                      { value: 'personal', label: 'Personal projects only' },
+                    ]}
+                  />
+                </Field>
+                <Field label="Rate (optional)" htmlFor="commission-rate" hint="This is shown publicly on your profile.">
+                  <div className="flex gap-2">
+                    <select
+                      aria-label="Currency"
+                      className="bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-xl px-3 py-2.5 text-sm focus:border-violet-500 focus:outline-none"
+                    >
+                      <option>USD</option>
+                      <option>EUR</option>
+                      <option>GBP</option>
+                      <option>JPY</option>
+                    </select>
+                    <input
+                      id="commission-rate"
+                      type="text"
+                      defaultValue="From $150/hr"
+                      placeholder="From $X/hr or project-based"
+                      className="flex-1 bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:outline-none"
+                    />
+                  </div>
+                </Field>
+              </div>
+            )}
+          </SectionCard>
+        </div>
+
+        {/* ── Notifications ── */}
+        <div id="section-notifications">
+          <SectionCard id="notif-heading" title="Notifications">
+            <fieldset>
+              <legend className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-3">Activity</legend>
+              <div className="space-y-4">
+                <Toggle id="notif-appreciate" checked={notifs.appreciations} onChange={() => toggleNotif('appreciations')} label="When someone appreciates my work" />
+                <Toggle id="notif-comment" checked={notifs.comments} onChange={() => toggleNotif('comments')} label="When someone comments on my work" />
+                <Toggle id="notif-follow" checked={notifs.follows} onChange={() => toggleNotif('follows')} label="When someone follows me" />
+                <Toggle id="notif-messages" checked={notifs.messages} onChange={() => toggleNotif('messages')} label="New messages and collaboration requests" />
+                <Toggle id="notif-feedback" checked={notifs.feedbackRequests} onChange={() => toggleNotif('feedbackRequests')} label="Feedback requests from creators I follow" />
+              </div>
+            </fieldset>
+            <hr className="border-zinc-800" />
+            <fieldset>
+              <legend className="text-xs text-zinc-500 font-medium uppercase tracking-wider mb-3">Digest & Updates</legend>
+              <div className="space-y-4">
+                <Toggle id="notif-digest" checked={notifs.weeklyDigest} onChange={() => toggleNotif('weeklyDigest')} label="Weekly creative digest email" />
+                <Toggle id="notif-product" checked={notifs.productUpdates} onChange={() => toggleNotif('productUpdates')} label="Folia product updates and announcements" />
+              </div>
+            </fieldset>
+          </SectionCard>
+        </div>
+
+        {/* ── Account Security ── */}
+        <div id="section-account-security">
+          <SectionCard id="security-heading" title="Account Security">
+            <Field label="Email address" htmlFor={emailId}>
+              <TextInput id={emailId} type="email" defaultValue="hana@hanakimura.art" />
+            </Field>
+
+            <div className="border-t border-zinc-800 pt-4">
+              <p className="text-sm font-medium text-zinc-300 mb-4">Change Password</p>
+              <div className="space-y-3">
+                <Field label="Current password" htmlFor={currentPassId}>
+                  <TextInput id={currentPassId} type="password" placeholder="Enter current password" />
+                </Field>
+                <Field label="New password" htmlFor={newPassId} hint="Minimum 12 characters.">
+                  <TextInput id={newPassId} type="password" placeholder="Enter new password" />
+                </Field>
+                <Field label="Confirm new password" htmlFor={confirmPassId}>
+                  <TextInput id={confirmPassId} type="password" placeholder="Repeat new password" />
+                </Field>
+              </div>
+              <div className="flex justify-end mt-4">
+                <button className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
+                  Update Password
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t border-zinc-800 pt-4 space-y-4">
+              <div className="flex items-start gap-4 p-4 bg-zinc-800 rounded-xl border border-zinc-700">
+                <div className="text-violet-400 mt-0.5"><IconShield /></div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-zinc-200">Two-Factor Authentication</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">Protect your account with a one-time code in addition to your password.</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={twoFa}
+                  aria-label="Enable two-factor authentication"
+                  onClick={() => setTwoFa(p => !p)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors toggle-track flex-shrink-0
+                    ${twoFa ? 'bg-violet-600' : 'bg-zinc-700'}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition toggle-thumb ${twoFa ? 'translate-x-5' : 'translate-x-0'}`} aria-hidden="true" />
+                </button>
+              </div>
+              <Toggle
+                id="session-alerts"
+                checked={sessionAlerts}
+                onChange={setSessionAlerts}
+                label="Alert me when a new device signs into my account"
+              />
+            </div>
+
+            <div className="border-t border-zinc-800 pt-4">
+              <p className="text-xs text-zinc-500 mb-3">Danger zone</p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button className="text-sm text-amber-400 border border-amber-600/30 hover:bg-amber-600/10 px-4 py-2 rounded-xl transition-colors">
+                  Deactivate Account
+                </button>
+                <button className="text-sm text-red-400 border border-red-600/30 hover:bg-red-600/10 px-4 py-2 rounded-xl transition-colors">
+                  Delete Account Permanently
+                </button>
+              </div>
+            </div>
+          </SectionCard>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

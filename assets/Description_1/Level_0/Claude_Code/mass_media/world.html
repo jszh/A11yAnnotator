@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World — The Meridian</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['Playfair Display', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .font-serif { font-family: 'Playfair Display', Georgia, serif; }
+  </style>
+</head>
+<body class="bg-white text-gray-900">
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+function Header() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navLinks = [
+    { label: 'World', href: 'world.html', active: true },
+    { label: 'Politics', href: '#' },
+    { label: 'Technology', href: '#' },
+    { label: 'Culture', href: '#' },
+    { label: 'Opinion', href: 'opinion.html' },
+    { label: 'Video', href: '#' },
+  ];
+  return (
+    <header className="bg-slate-900 text-white">
+      <div className="border-b border-slate-700">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-9 text-xs text-slate-400">
+          <span>Monday, March 16, 2026</span>
+          <div className="flex gap-5">
+            <a href="#" className="hover:text-white">Sign In</a>
+            <a href="subscribe.html" className="hover:text-white">Subscribe</a>
+            <a href="#" className="hover:text-white">Newsletter</a>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">
+        <a href="index.html" className="font-serif text-4xl font-black tracking-tight text-white hover:text-slate-200">The Meridian</a>
+        <div className="hidden md:flex items-center gap-3">
+          <button className="text-slate-400 hover:text-white p-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          </button>
+          <a href="subscribe.html" className="bg-red-700 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2 transition-colors">Subscribe</a>
+        </div>
+        <button className="md:hidden text-slate-300" onClick={() => setMenuOpen(!menuOpen)}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+      </div>
+      <nav className="border-t border-slate-700">
+        <div className="max-w-7xl mx-auto px-4">
+          <ul className={`${menuOpen ? 'flex flex-col py-2' : 'hidden md:flex'}`}>
+            {navLinks.map(l => (
+              <li key={l.label}>
+                <a href={l.href} className={`block px-4 py-3 text-sm font-medium tracking-wide uppercase transition-colors ${l.active ? 'text-white border-b-2 border-red-600' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}>
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+const FILTERS = ['All', 'Asia', 'Europe', 'Americas', 'Middle East', 'Africa'];
+
+const ALL_STORIES = [
+  { region: 'Middle East', title: 'Red Sea Crisis Escalates as UN Security Council Convenes Emergency Session', summary: 'Shipping lanes through the Bab-el-Mandeb strait remain disrupted as Houthi attacks continue, prompting emergency diplomacy across three continents and sending oil prices to a six-month high.', author: 'Amara Osei', time: '2h ago', seed: 'ws1', lead: true },
+  { region: 'Europe', title: 'Eastern Ukraine Ceasefire Collapses: What Happened in the Final 72 Hours', summary: 'Back-channel talks mediated by Turkey and France broke down last week, leaving both sides at a military impasse.', author: 'Nadia Petrov', time: '3h ago', seed: 'ws2' },
+  { region: 'Asia', title: 'China Signals New Position on Taiwan Strait Ahead of G20 Summit', summary: 'Beijing\'s Foreign Ministry released a statement that analysts say softens previous language on "reunification timelines."', author: 'Mei Zhang', time: '4h ago', seed: 'ws3' },
+  { region: 'Africa', title: 'Sudan Humanitarian Corridor Blocked as RSF Forces Advance on El Fasher', summary: 'Aid agencies warn of catastrophic food insecurity as fighting encircles the last major city in Darfur.', author: 'Amara Osei', time: '5h ago', seed: 'ws4' },
+  { region: 'Europe', title: 'Germany\'s New Government Faces First Test: The Defence Spending Promise', summary: 'The ruling coalition pledged 3% of GDP on defence. Economists and opposition leaders say the numbers don\'t add up.', author: 'Klaus Brenner', time: '6h ago', seed: 'ws5' },
+  { region: 'Americas', title: 'Canada-US Trade Row Deepens Over Softwood Lumber Tariffs', summary: 'Ottawa\'s retaliatory measures take effect Monday, targeting American agriculture and auto exports.', author: 'Sarah Drummond', time: '7h ago', seed: 'ws6' },
+  { region: 'Asia', title: 'India\'s General Election: A Billion Voters and a Fractured Opposition', summary: 'With voting beginning in April, the ruling party holds a commanding lead but faces unexpected challenges in the south.', author: 'Raj Patel', time: '9h ago', seed: 'ws7' },
+  { region: 'Middle East', title: 'Reconstruction Stalls in Gaza as International Pledges Remain Unfunded', summary: 'A year after the ceasefire, less than 8% of pledged reconstruction funds have been disbursed, according to UN figures.', author: 'Leila Nasser', time: '11h ago', seed: 'ws8' },
+];
+
+function LeadStory({ story }) {
+  return (
+    <a href="article.html" className="group flex flex-col md:flex-row gap-8 border-b border-gray-200 pb-10 mb-10">
+      <div className="md:w-3/5 overflow-hidden shrink-0">
+        <img src={`https://picsum.photos/seed/${story.seed}/800/500`} alt="" className="w-full h-56 md:h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
+      </div>
+      <div className="flex flex-col justify-center">
+        <span className="inline-block bg-red-700 text-white text-xs font-black px-3 py-1 tracking-widest uppercase mb-4 self-start">{story.region}</span>
+        <h2 className="font-serif text-2xl md:text-3xl font-bold leading-snug mb-4 group-hover:text-slate-600 transition-colors">{story.title}</h2>
+        <p className="text-gray-600 leading-relaxed mb-5">{story.summary}</p>
+        <div className="flex items-center gap-4 text-sm text-gray-500">
+          <span className="font-semibold text-gray-800">{story.author}</span>
+          <span>{story.time}</span>
+          <span>· 7 min read</span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+function StoryCard({ story }) {
+  return (
+    <a href="article.html" className="group flex gap-4">
+      <div className="shrink-0 overflow-hidden w-32 h-24">
+        <img src={`https://picsum.photos/seed/${story.seed}/300/200`} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+      </div>
+      <div>
+        <span className="text-red-700 text-xs font-black tracking-widest uppercase">{story.region}</span>
+        <h3 className="font-serif text-sm font-semibold leading-snug mt-1 group-hover:text-slate-600 transition-colors">{story.title}</h3>
+        <p className="text-gray-400 text-xs mt-2">{story.author} · {story.time}</p>
+      </div>
+    </a>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-slate-950 text-slate-400 py-8 mt-12">
+      <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <a href="index.html" className="font-serif text-2xl font-black text-white">The Meridian</a>
+        <div className="flex gap-6 text-xs">
+          {['World', 'Politics', 'Technology', 'Culture', 'Opinion'].map(l => (
+            <a key={l} href={l === 'World' ? 'world.html' : l === 'Opinion' ? 'opinion.html' : '#'} className="hover:text-white transition-colors">{l}</a>
+          ))}
+        </div>
+        <p className="text-xs text-slate-600">© 2026 The Meridian Media Group</p>
+      </div>
+    </footer>
+  );
+}
+
+function App() {
+  const [activeFilter, setActiveFilter] = useState('All');
+  const lead = ALL_STORIES[0];
+  const filtered = activeFilter === 'All'
+    ? ALL_STORIES.slice(1)
+    : ALL_STORIES.slice(1).filter(s => s.region === activeFilter);
+
+  return (
+    <>
+      <Header />
+      {/* Category header */}
+      <div className="bg-slate-50 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-10">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-red-700 text-xs font-black tracking-widest uppercase mb-2">Section</p>
+              <h1 className="font-serif text-5xl font-black text-slate-900 leading-none">World</h1>
+              <p className="text-gray-500 mt-3 max-w-lg text-sm leading-relaxed">
+                Independent coverage of global affairs — from diplomatic flashpoints and humanitarian crises to economic currents reshaping the international order.
+              </p>
+            </div>
+            <div className="hidden md:block text-right">
+              <p className="text-xs text-gray-500 mb-1">Updated continuously</p>
+              <p className="text-xs text-gray-400">March 16, 2026</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter bar */}
+      <div className="border-b border-gray-200 bg-white sticky top-0 z-20 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex gap-0 overflow-x-auto">
+            {FILTERS.map(f => (
+              <button
+                key={f}
+                onClick={() => setActiveFilter(f)}
+                className={`px-5 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${
+                  activeFilter === f
+                    ? 'border-red-700 text-red-700'
+                    : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-7xl mx-auto px-4 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          <div className="lg:col-span-2">
+            {/* Lead story */}
+            {activeFilter === 'All' && <LeadStory story={lead} />}
+            {/* Grid */}
+            <div className="space-y-8">
+              {filtered.map((s, i) => (
+                <div key={i} className="border-b border-gray-100 pb-8 last:border-0">
+                  <StoryCard story={s} />
+                </div>
+              ))}
+              {filtered.length === 0 && (
+                <p className="text-gray-400 text-center py-20">No stories found for this region yet.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <aside className="border-l border-gray-100 pl-8">
+            {/* Editor's picks */}
+            <div className="mb-10">
+              <div className="border-b-2 border-slate-900 pb-2 mb-5">
+                <h3 className="font-serif text-lg font-bold">Editor's Pick</h3>
+              </div>
+              {[
+                { title: 'The Quiet Diplomacy Behind the India-Pakistan De-escalation', author: 'Raj Patel', region: 'Asia', seed: 'ep1' },
+                { title: 'Climate Migration Is Already Reshaping North Africa', author: 'Amara Osei', region: 'Africa', seed: 'ep2' },
+                { title: 'How Finland Became the Template for NATO\'s New East Flank', author: 'Nadia Petrov', region: 'Europe', seed: 'ep3' },
+              ].map((s, i) => (
+                <a href="article.html" key={i} className="group flex gap-3 mb-5 last:mb-0">
+                  <img src={`https://picsum.photos/seed/${s.seed}/100/80`} alt="" className="w-20 h-16 object-cover shrink-0" />
+                  <div>
+                    <span className="text-red-700 text-xs font-black tracking-widest uppercase">{s.region}</span>
+                    <p className="font-serif text-sm font-semibold leading-snug mt-0.5 group-hover:text-slate-600 transition-colors">{s.title}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+
+            {/* Newsletter */}
+            <div className="bg-slate-900 text-white p-6">
+              <h4 className="font-serif text-lg font-bold mb-2">World Briefing</h4>
+              <p className="text-slate-400 text-xs mb-4 leading-relaxed">A morning digest of the week's most important international stories, free every Tuesday.</p>
+              <input type="email" placeholder="your@email.com" className="w-full bg-slate-800 text-white text-sm px-3 py-2 border border-slate-600 mb-3 focus:outline-none" />
+              <button className="w-full bg-red-700 hover:bg-red-600 text-white text-sm font-semibold py-2 transition-colors">Subscribe</button>
+            </div>
+
+            {/* Topics */}
+            <div className="mt-8">
+              <div className="border-b-2 border-slate-900 pb-2 mb-4">
+                <h3 className="font-serif text-base font-bold">Topics in Focus</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {['Red Sea Crisis', 'Ukraine War', 'Taiwan Strait', 'Sudan', 'G20 2026', 'NATO', 'Climate Migration', 'Gaza Reconstruction'].map(t => (
+                  <span key={t} className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 hover:bg-red-700 hover:text-white cursor-pointer transition-colors">{t}</span>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

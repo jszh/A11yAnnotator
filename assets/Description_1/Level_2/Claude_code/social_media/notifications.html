@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications | Pulse</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+    .skip-link { position: absolute; top: -100%; left: 0; background: #6366f1; color: white; padding: 8px 16px; z-index: 9999; border-radius: 0 0 8px 0; text-decoration: none; font-weight: 600; }
+    .skip-link:focus { top: 0; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <div id="live-region" aria-live="polite" aria-atomic="true" style="position:absolute;left:-9999px;"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+const IconHome = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z"/><path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.432z"/></svg>;
+const IconCompass = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-.53 14.03a.75.75 0 001.06 0l3.5-3.5a.75.75 0 10-1.06-1.06l-2.22 2.22V8.25a.75.75 0 00-1.5 0v5.69l-2.22-2.22a.75.75 0 10-1.06 1.06l3.5 3.5z" clipRule="evenodd"/></svg>;
+const IconBell = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clipRule="evenodd"/></svg>;
+const IconChat = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97z" clipRule="evenodd"/></svg>;
+const IconUser = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd"/></svg>;
+const IconCog = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clipRule="evenodd"/></svg>;
+const IconHeart = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-rose-500"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>;
+const IconUserPlus = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-indigo-500"><path d="M6.25 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM3.25 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM19.75 7.5a.75.75 0 00-1.5 0v2.25H16a.75.75 0 000 1.5h2.25v2.25a.75.75 0 001.5 0v-2.25H22a.75.75 0 000-1.5h-2.25V7.5z"/></svg>;
+const IconAt = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-500"><path fillRule="evenodd" d="M17.834 6.166a8.25 8.25 0 100 11.668.75.75 0 011.06 1.06c-3.807 3.808-9.98 3.808-13.788 0-3.808-3.807-3.808-9.98 0-13.788 3.807-3.808 9.98-3.808 13.788 0A9.722 9.722 0 0121.75 12c0 .975-.296 1.887-.809 2.571-.514.685-1.28 1.179-2.191 1.179-.751 0-1.347-.315-1.711-.843a5.256 5.256 0 01-7.904-5.032.75.75 0 011.502.044 3.756 3.756 0 006.77 2.193.75.75 0 011.214-.882 4.483 4.483 0 00.622 4.762c.434.578.96.778 1.507.778.546 0 1.072-.2 1.507-.778A8.22 8.22 0 0020.25 12a8.25 8.25 0 00-2.416-5.834zM12 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" clipRule="evenodd"/></svg>;
+const IconChatBubble = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-green-500"><path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97z" clipRule="evenodd"/></svg>;
+const IconPlus = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd"/></svg>;
+const IconBolt = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7"><path fillRule="evenodd" d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z" clipRule="evenodd"/></svg>;
+const IconCheck = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>;
+
+function Sidebar({ activePage = 'notifications' }) {
+  const navItems = [
+    { id: 'feed', label: 'Home', href: 'index.html', icon: <IconHome /> },
+    { id: 'explore', label: 'Explore', href: 'explore.html', icon: <IconCompass /> },
+    { id: 'notifications', label: 'Notifications', href: 'notifications.html', icon: <IconBell />, badge: 5 },
+    { id: 'messages', label: 'Messages', href: 'messages.html', icon: <IconChat />, badge: 2 },
+    { id: 'profile', label: 'Profile', href: 'profile.html', icon: <IconUser /> },
+    { id: 'settings', label: 'Settings', href: 'settings.html', icon: <IconCog /> },
+  ];
+  return (
+    <nav aria-label="Main navigation" className="fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-100 flex flex-col py-6 px-4 z-40 hidden lg:flex">
+      <a href="index.html" className="flex items-center gap-2 px-2 mb-8" aria-label="Pulse home">
+        <span className="text-indigo-600"><IconBolt /></span>
+        <span className="text-2xl font-bold text-gray-900">Pulse</span>
+      </a>
+      <ul className="flex flex-col gap-1 flex-1" role="list">
+        {navItems.map(item => (
+          <li key={item.id}>
+            <a href={item.href} aria-current={activePage === item.id ? 'page' : undefined}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activePage === item.id ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className={activePage === item.id ? 'text-indigo-600' : 'text-gray-500'}>{item.icon}</span>
+              <span>{item.label}</span>
+              {item.badge && <span className="ml-auto bg-indigo-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1" aria-label={`${item.badge} unread`}>{item.badge}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <button className="mt-4 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors w-full" aria-label="Create new post">
+        <IconPlus /> New Post
+      </button>
+      <a href="profile.html" className="mt-6 flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 transition-colors">
+        <img src="https://i.pravatar.cc/40?img=11" alt="Alex Johnson — your profile" className="w-9 h-9 rounded-full object-cover" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 truncate">Alex Johnson</p>
+          <p className="text-xs text-gray-500 truncate">@alexj</p>
+        </div>
+      </a>
+    </nav>
+  );
+}
+
+function MobileNav({ activePage = 'notifications' }) {
+  const items = [
+    { id: 'feed', label: 'Home', href: 'index.html', icon: <IconHome /> },
+    { id: 'explore', label: 'Explore', href: 'explore.html', icon: <IconCompass /> },
+    { id: 'notifications', label: 'Alerts', href: 'notifications.html', icon: <IconBell /> },
+    { id: 'messages', label: 'Messages', href: 'messages.html', icon: <IconChat /> },
+    { id: 'profile', label: 'Profile', href: 'profile.html', icon: <IconUser /> },
+  ];
+  return (
+    <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex lg:hidden z-40">
+      {items.map(item => (
+        <a key={item.id} href={item.href} aria-current={activePage === item.id ? 'page' : undefined}
+          className={`flex-1 flex flex-col items-center py-3 text-xs font-medium ${activePage === item.id ? 'text-indigo-600' : 'text-gray-500'}`}>
+          {item.icon}<span className="mt-0.5">{item.label}</span>
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+const TABS = ['All', 'Mentions', 'Likes', 'Follows'];
+
+const ALL_NOTIFICATIONS = [
+  { id: 1, type: 'like', user: { name: 'Maya Chen', handle: '@mayachen', avatar: 'https://i.pravatar.cc/44?img=5' }, action: 'liked your post', snippet: '"Accessibility isn\'t a feature — it\'s the baseline."', time: '2h', read: false, category: 'Likes' },
+  { id: 2, type: 'follow', user: { name: 'Darius Okafor', handle: '@dariusok', avatar: 'https://i.pravatar.cc/44?img=60' }, action: 'started following you', snippet: null, time: '3h', read: false, category: 'Follows' },
+  { id: 3, type: 'mention', user: { name: 'Jordan Rivera', handle: '@jordanr', avatar: 'https://i.pravatar.cc/44?img=7' }, action: 'mentioned you in a post', snippet: '"@alexj totally agree with your take on #TechLayoffs"', time: '4h', read: false, category: 'Mentions' },
+  { id: 4, type: 'like', user: { name: 'Sam Park', handle: '@sampark', avatar: 'https://i.pravatar.cc/44?img=12' }, action: 'liked your post', snippet: '"Just wrapped up my talk at #ClimateWeek…"', time: '5h', read: true, category: 'Likes' },
+  { id: 5, type: 'comment', user: { name: 'Riley Torres', handle: '@rileyt', avatar: 'https://i.pravatar.cc/44?img=9' }, action: 'replied to your post', snippet: '"This is such a great point! More devs need to hear this."', time: '6h', read: true, category: 'Mentions' },
+  { id: 6, type: 'follow', user: { name: 'Sofia Reyes', handle: '@sofiareyes', avatar: 'https://i.pravatar.cc/44?img=47' }, action: 'started following you', snippet: null, time: '8h', read: true, category: 'Follows' },
+  { id: 7, type: 'like', user: { name: 'Kai Yamamoto', handle: '@kaiyama', avatar: 'https://i.pravatar.cc/44?img=33' }, action: 'and 47 others liked your post', snippet: '"The new coffee shop on Meridian opened today…"', time: '10h', read: true, category: 'Likes' },
+  { id: 8, type: 'mention', user: { name: 'Chris Lee', handle: '@chrislee', avatar: 'https://i.pravatar.cc/44?img=3' }, action: 'tagged you in a thread', snippet: '"@alexj check out what the Pulse team is doing with a11y"', time: '1d', read: true, category: 'Mentions' },
+  { id: 9, type: 'follow', user: { name: 'Priya Sharma', handle: '@priyash', avatar: 'https://i.pravatar.cc/44?img=20' }, action: 'started following you', snippet: null, time: '1d', read: true, category: 'Follows' },
+  { id: 10, type: 'like', user: { name: 'Marcus Webb', handle: '@marcwebb', avatar: 'https://i.pravatar.cc/44?img=8' }, action: 'liked your post', snippet: '"Hot take: the current wave of #TechLayoffs…"', time: '2d', read: true, category: 'Likes' },
+];
+
+const TYPE_ICON = {
+  like: <IconHeart />,
+  follow: <IconUserPlus />,
+  mention: <IconAt />,
+  comment: <IconChatBubble />,
+};
+const TYPE_BG = { like: 'bg-rose-50', follow: 'bg-indigo-50', mention: 'bg-blue-50', comment: 'bg-green-50' };
+
+function NotificationItem({ notif, onMarkRead }) {
+  return (
+    <div className={`flex items-start gap-3 px-4 py-4 hover:bg-gray-50 transition-colors border-b border-gray-50 cursor-pointer ${!notif.read ? 'bg-indigo-50/30' : ''}`}
+      role="listitem">
+      <div className="relative flex-shrink-0">
+        <img src={notif.user.avatar} alt={`${notif.user.name}'s avatar`} className="w-11 h-11 rounded-full object-cover" />
+        <span className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center ${TYPE_BG[notif.type]}`} aria-hidden="true">
+          {TYPE_ICON[notif.type]}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-gray-800">
+          <a href="profile.html" className="font-semibold hover:underline">{notif.user.name}</a>
+          {' '}<span className="text-gray-600">{notif.action}</span>
+          {' '}<span className="text-gray-400 text-xs">· {notif.time}</span>
+        </p>
+        {notif.snippet && <p className="text-sm text-gray-500 mt-0.5 truncate">{notif.snippet}</p>}
+        {notif.type === 'follow' && (
+          <button aria-label={`Follow ${notif.user.name} back`}
+            className="mt-2 text-xs font-semibold text-indigo-600 border border-indigo-200 px-3 py-1 rounded-lg hover:bg-indigo-50 transition-colors">
+            Follow back
+          </button>
+        )}
+      </div>
+      {!notif.read && (
+        <button onClick={() => onMarkRead(notif.id)}
+          aria-label={`Mark notification from ${notif.user.name} as read`}
+          className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-indigo-500 mt-2 hover:bg-indigo-700 transition-colors">
+          <span className="sr-only">Unread</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function NotificationsPage() {
+  const [activeTab, setActiveTab] = useState('All');
+  const [notifications, setNotifications] = useState(ALL_NOTIFICATIONS);
+  const tabRefs = useRef({});
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const filtered = activeTab === 'All' ? notifications : notifications.filter(n => n.category === activeTab);
+
+  const markAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    document.getElementById('live-region').textContent = 'All notifications marked as read.';
+  };
+
+  const markRead = (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const handleTabKey = (e, tab) => {
+    const tabs = TABS;
+    const idx = tabs.indexOf(tab);
+    if (e.key === 'ArrowRight') { e.preventDefault(); const next = tabs[(idx + 1) % tabs.length]; setActiveTab(next); tabRefs.current[next]?.focus(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); const prev = tabs[(idx - 1 + tabs.length) % tabs.length]; setActiveTab(prev); tabRefs.current[prev]?.focus(); }
+    if (e.key === 'Home') { e.preventDefault(); setActiveTab(tabs[0]); tabRefs.current[tabs[0]]?.focus(); }
+    if (e.key === 'End') { e.preventDefault(); setActiveTab(tabs[tabs.length-1]); tabRefs.current[tabs[tabs.length-1]]?.focus(); }
+  };
+
+  useEffect(() => {
+    document.getElementById('live-region').textContent = `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`;
+  }, [unreadCount]);
+
+  return (
+    <main id="main-content" className="max-w-2xl mx-auto px-4 py-6" aria-label="Notifications">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold text-gray-900">
+          Notifications
+          {unreadCount > 0 && (
+            <span className="ml-2 bg-indigo-600 text-white text-xs font-bold rounded-full px-2 py-0.5" aria-live="polite" aria-label={`${unreadCount} unread notifications`}>
+              {unreadCount}
+            </span>
+          )}
+        </h1>
+        {unreadCount > 0 && (
+          <button onClick={markAllRead}
+            className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+            <IconCheck /> Mark all read
+          </button>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* Tab list */}
+        <div role="tablist" aria-label="Notification categories" className="flex border-b border-gray-100">
+          {TABS.map(tab => {
+            const count = tab === 'All' ? notifications.filter(n => !n.read).length : notifications.filter(n => n.category === tab && !n.read).length;
+            return (
+              <button
+                key={tab}
+                ref={el => tabRefs.current[tab] = el}
+                role="tab"
+                aria-selected={activeTab === tab}
+                aria-controls={`panel-${tab}`}
+                id={`tab-${tab}`}
+                tabIndex={activeTab === tab ? 0 : -1}
+                onClick={() => setActiveTab(tab)}
+                onKeyDown={e => handleTabKey(e, tab)}
+                className={`flex-1 py-3.5 text-sm font-semibold transition-colors relative ${activeTab === tab ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
+                {tab}
+                {count > 0 && (
+                  <span className="ml-1.5 bg-rose-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5" aria-label={`${count} unread`}>{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab panels */}
+        {TABS.map(tab => (
+          <div key={tab} role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} hidden={activeTab !== tab}>
+            {activeTab === tab && (
+              <div role="list" aria-label={`${tab} notifications`}>
+                {filtered.length === 0 ? (
+                  <div className="py-16 text-center">
+                    <p className="text-gray-400 text-sm">No notifications here yet.</p>
+                  </div>
+                ) : (
+                  filtered.map(n => <NotificationItem key={n.id} notif={n} onMarkRead={markRead} />)
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+function App() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar activePage="notifications" />
+      <div className="lg:ml-64 pb-20 lg:pb-0">
+        <NotificationsPage />
+      </div>
+      <MobileNav activePage="notifications" />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

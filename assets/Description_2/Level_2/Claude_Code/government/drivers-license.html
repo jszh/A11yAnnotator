@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Driver's License Renewal — Vermont DMV | Vermont.gov</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'gov-navy':   '#1A3A6B',
+            'gov-navy-h': '#142E56',
+            'gov-blue':   '#2558A3',
+            'gov-blue-h': '#1E4A8A',
+            'gov-green':  '#2D6A3F',
+            'gov-green-h':'#245531',
+            'gov-gold':   '#8B6914',
+            'gov-light':  '#EEF3FB',
+            'gov-gray':   '#F5F6F8',
+            'gov-border': '#D1D9E6',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #F5F6F8; color: #1A1A2E; }
+    :focus-visible { outline: 3px solid #2558A3 !important; outline-offset: 2px !important; }
+    .skip-link { position: absolute; top: -52px; left: 8px; background: #1A3A6B; color: #fff; padding: 10px 18px; z-index: 9999; border-radius: 4px; font-weight: 600; transition: top 0.15s; text-decoration: none; font-size: 14px; }
+    .skip-link:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    function Header() {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [lang, setLang] = useState('EN');
+      const navLinks = [
+        { label: 'Home',     href: 'index.html',    key: 'home' },
+        { label: 'Services', href: 'services.html', key: 'services' },
+        { label: 'About',    href: 'about.html',    key: 'about' },
+        { label: 'Contact',  href: 'contact.html',  key: 'contact' },
+      ];
+      return (
+        <header className="bg-gov-navy text-white shadow-lg">
+          <div className="bg-gov-navy-h border-b border-white/10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex items-center justify-between">
+              <p className="text-xs text-white/70">Official Vermont State Website</p>
+              <div role="navigation" aria-label="Language selection">
+                <label htmlFor="lang-select" className="sr-only">Select language</label>
+                <select id="lang-select" value={lang} onChange={e=>setLang(e.target.value)} className="bg-transparent border border-white/20 text-white text-xs rounded px-2 py-0.5" aria-label="Select display language">
+                  {[{code:'EN',label:'English'},{code:'ES',label:'Español'},{code:'FR',label:'Français'}].map(l=><option key={l.code} value={l.code} className="text-black">{l.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-20 gap-6">
+              <a href="index.html" className="flex items-center gap-3 flex-shrink-0" aria-label="Vermont.gov — Go to homepage">
+                <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border-2 border-white/20 flex-shrink-0" aria-hidden="true"><svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+                <div><p className="font-extrabold text-lg leading-tight tracking-tight">Vermont.gov</p><p className="text-white/60 text-xs leading-tight">Official State Portal</p></div>
+              </a>
+              <nav aria-label="Main navigation" className="hidden md:block">
+                <ul className="flex items-center gap-1" role="list">
+                  {navLinks.map(l=><li key={l.key}><a href={l.href} className="px-4 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors">{l.label}</a></li>)}
+                </ul>
+              </nav>
+              <button className="md:hidden p-2 rounded-lg hover:bg-white/10" aria-expanded={menuOpen} aria-controls="mobile-nav" aria-label={menuOpen?'Close':'Open navigation menu'} onClick={()=>setMenuOpen(o=>!o)}>
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </button>
+            </div>
+          </div>
+          {menuOpen && <nav id="mobile-nav" aria-label="Mobile navigation"><ul className="border-t border-white/10 px-4 py-3 space-y-1" role="list">{navLinks.map(l=><li key={l.key}><a href={l.href} className="block px-4 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10">{l.label}</a></li>)}</ul></nav>}
+        </header>
+      );
+    }
+
+    function Footer() {
+      return (
+        <footer className="bg-gov-navy-h text-white" role="contentinfo">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
+              <div><p className="font-extrabold text-lg mb-1">Vermont.gov</p><p className="text-sm text-white/60">© 2025 State of Vermont. All rights reserved.</p></div>
+              <nav aria-label="Footer navigation"><ul className="flex flex-wrap gap-4" role="list">{[{l:'Services',h:'services.html'},{l:'About',h:'about.html'},{l:'Contact',h:'contact.html'},{l:'Accessibility',h:'#'},{l:'Privacy',h:'#'}].map(({l,h})=><li key={l}><a href={h} className="text-sm text-white/60 hover:text-white transition-colors">{l}</a></li>)}</ul></nav>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── Confirmation Modal ────────────────────────────────────── */
+    function ConfirmModal({ appointment, onClose, triggerRef }) {
+      const dialogRef = useRef(null);
+      const closeBtnRef = useRef(null);
+
+      useEffect(() => {
+        closeBtnRef.current?.focus();
+        function trap(e) {
+          if (!dialogRef.current) return;
+          const els = dialogRef.current.querySelectorAll('button,[href],input,[tabindex]:not([tabindex="-1"])');
+          const first = els[0]; const last = els[els.length-1];
+          if (e.key==='Tab') {
+            if (e.shiftKey) { if (document.activeElement===first){e.preventDefault();last.focus();} }
+            else { if (document.activeElement===last){e.preventDefault();first.focus();} }
+          }
+          if (e.key==='Escape'){onClose();triggerRef.current?.focus();}
+        }
+        document.addEventListener('keydown',trap);
+        return ()=>document.removeEventListener('keydown',trap);
+      },[]);
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+          <div className="absolute inset-0 bg-black/50" onClick={()=>{onClose();triggerRef.current?.focus();}} aria-hidden="true"></div>
+          <div ref={dialogRef} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center" aria-hidden="true">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <h2 id="confirm-title" className="text-xl font-bold text-gov-navy">Appointment Confirmed!</h2>
+              </div>
+              <button ref={closeBtnRef} onClick={()=>{onClose();triggerRef.current?.focus();}} aria-label="Close confirmation" className="p-2 hover:bg-gov-gray rounded-lg transition-colors">
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              {[
+                {l:'Service',v:'Driver\'s License Renewal'},
+                {l:'Date', v:appointment.date},
+                {l:'Time', v:appointment.time},
+                {l:'Location', v:'Vermont DMV — Montpelier Office, 120 State Street'},
+                {l:'Confirmation #', v:'VT-DMV-'+Math.random().toString(36).slice(2,8).toUpperCase()},
+              ].map(r=>(
+                <div key={r.l} className="flex justify-between py-2 border-b border-gov-border/50 last:border-0">
+                  <span className="text-gray-500">{r.l}</span>
+                  <span className="font-semibold text-gov-navy">{r.v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 bg-gov-light rounded-xl p-4 text-sm">
+              <p className="font-semibold text-gov-navy mb-1">A confirmation email has been sent.</p>
+              <p className="text-gray-600">Bring this confirmation, your current license, and required documents. Arrive 10 minutes early.</p>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button className="flex-1 bg-gov-blue text-white font-semibold py-3 rounded-xl hover:bg-gov-blue-h transition-colors text-sm" aria-label="Download confirmation PDF">Download PDF</button>
+              <button onClick={()=>{onClose();triggerRef.current?.focus();}} className="flex-1 border-2 border-gov-border text-gov-navy font-semibold py-3 rounded-xl hover:border-gov-blue transition-colors text-sm">Close</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Driver's License Renewal Page ────────────────────────── */
+    const STEPS = [
+      { key: 'eligibility', label: 'Eligibility Check', num: 1 },
+      { key: 'documents',   label: 'Documents',         num: 2 },
+      { key: 'schedule',    label: 'Schedule',          num: 3 },
+      { key: 'confirm',     label: 'Confirm & Pay',     num: 4 },
+    ];
+
+    const CALENDAR_SLOTS = {
+      'Mon Apr 7':  ['9:00 AM','9:30 AM','10:00 AM','2:00 PM','3:30 PM'],
+      'Tue Apr 8':  ['8:30 AM','11:00 AM','1:00 PM','4:00 PM'],
+      'Wed Apr 9':  ['9:00 AM','10:30 AM','3:00 PM'],
+      'Thu Apr 10': ['8:00 AM','9:30 AM','11:30 AM','2:30 PM'],
+      'Fri Apr 11': ['9:00 AM','10:00 AM','1:30 PM','3:00 PM'],
+    };
+
+    function DriversLicensePage() {
+      const [step, setStep] = useState(0); // 0=eligibility,1=docs,2=schedule,3=confirm
+      const [eligAnswers, setEligAnswers] = useState({ vt_resident: '', current_license: '', expired: '' });
+      const [docChecked, setDocChecked] = useState({});
+      const [selectedDay, setSelectedDay] = useState('');
+      const [selectedTime, setSelectedTime] = useState('');
+      const [showModal, setShowModal] = useState(false);
+      const [liveMsg, setLiveMsg] = useState('');
+      const [errors, setErrors] = useState({});
+      const [payMethod, setPayMethod] = useState('card');
+      const stepHeadingRef = useRef(null);
+      const confirmBtnRef = useRef(null);
+
+      const DAYS = Object.keys(CALENDAR_SLOTS);
+
+      useEffect(() => {
+        stepHeadingRef.current?.focus();
+        setLiveMsg(`Now on step ${step+1}: ${STEPS[step].label}`);
+        setTimeout(()=>setLiveMsg(''),2000);
+      }, [step]);
+
+      function validateElig() {
+        const errs = {};
+        if (!eligAnswers.vt_resident) errs.vt_resident = 'Please indicate whether you are a Vermont resident.';
+        if (!eligAnswers.current_license) errs.current_license = 'Please indicate if you have a current Vermont license.';
+        if (!eligAnswers.expired) errs.expired = 'Please indicate when your license expires.';
+        setErrors(errs);
+        if (Object.keys(errs).length) {
+          // Focus first error
+          const firstId = Object.keys(errs)[0];
+          document.querySelector(`[name="${firstId}"]`)?.focus();
+          return false;
+        }
+        return true;
+      }
+
+      function validateSchedule() {
+        const errs = {};
+        if (!selectedDay) errs.selectedDay = 'Please select an appointment date.';
+        if (!selectedTime) errs.selectedTime = 'Please select an appointment time.';
+        setErrors(errs);
+        if (Object.keys(errs).length) return false;
+        return true;
+      }
+
+      function handleNext() {
+        if (step === 0 && !validateElig()) return;
+        if (step === 2 && !validateSchedule()) return;
+        setErrors({});
+        setStep(s => s + 1);
+      }
+
+      function handleBack() {
+        setErrors({});
+        setStep(s => Math.max(0, s - 1));
+      }
+
+      const DOCS = [
+        { id: 'current_license',  label: 'Current Vermont Driver\'s License',       req: true,  note: 'Original document required' },
+        { id: 'proof_address',    label: 'Proof of Vermont Address',                req: true,  note: '2 documents (utility bill, bank statement, etc.)' },
+        { id: 'ssn',              label: 'Social Security Number',                  req: true,  note: 'Social Security card or last 4 digits only' },
+        { id: 'payment',          label: 'Payment of $35 Renewal Fee',              req: true,  note: 'Cash, check, or card accepted' },
+        { id: 'vision',           label: 'Pass a brief vision screening',           req: true,  note: 'Conducted at the DMV office' },
+        { id: 'real_id',          label: 'Real ID Documentation (if upgrading)',    req: false, note: 'Passport, birth certificate, or immigration docs' },
+      ];
+
+      return (
+        <>
+          <Header />
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{liveMsg}</div>
+          {showModal && <ConfirmModal appointment={{date: selectedDay, time: selectedTime}} onClose={()=>setShowModal(false)} triggerRef={confirmBtnRef} />}
+
+          {/* Page header */}
+          <div className="bg-gov-blue text-white py-8">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <nav aria-label="Breadcrumb" className="mb-3">
+                <ol className="flex items-center gap-2 text-sm text-white/60" role="list">
+                  <li><a href="index.html" className="hover:text-white transition-colors">Home</a></li>
+                  <li aria-hidden="true">/</li>
+                  <li><a href="services.html" className="hover:text-white transition-colors">Services</a></li>
+                  <li aria-hidden="true">/</li>
+                  <li aria-current="page" className="text-white font-medium">Driver's License Renewal</li>
+                </ol>
+              </nav>
+              <h1 className="text-2xl sm:text-3xl font-extrabold">Driver's License Renewal</h1>
+              <p className="text-white/70 text-sm mt-1">Vermont Department of Motor Vehicles · Estimated time: ~10 minutes online + in-person visit</p>
+            </div>
+          </div>
+
+          <main id="main-content" tabIndex={-1}>
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+              <div className="grid lg:grid-cols-4 gap-8">
+
+                {/* Progress tracker sidebar */}
+                <aside aria-label="Renewal process steps" className="lg:col-span-1">
+                  <nav aria-label="Step progress">
+                    <ol className="space-y-2" role="list">
+                      {STEPS.map((s, i) => (
+                        <li key={s.key} className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 border-2 transition-all ${
+                              i < step ? 'bg-gov-green border-gov-green text-white' :
+                              i === step ? 'bg-gov-blue border-gov-blue text-white' :
+                              'bg-white border-gov-border text-gray-400'
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {i < step ? '✓' : s.num}
+                          </div>
+                          <span className={`text-sm font-medium ${i===step?'text-gov-navy':'i < step ? text-gov-green : text-gray-400'} ${i<step?'text-gov-green':i===step?'text-gov-navy':'text-gray-400'}`}
+                            aria-current={i===step?'step':undefined}
+                          >
+                            {s.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    <div className="mt-6 p-4 bg-gov-light rounded-xl text-xs text-gray-600 space-y-1">
+                      <p className="font-semibold text-gov-navy text-sm">Fee Summary</p>
+                      <div className="flex justify-between"><span>Renewal fee</span><span className="font-medium">$35.00</span></div>
+                      <div className="flex justify-between"><span>Real ID upgrade</span><span className="font-medium text-gray-400">Optional</span></div>
+                      <div className="flex justify-between border-t border-gov-border/50 pt-1 mt-1"><span className="font-semibold">Total</span><span className="font-bold text-gov-navy">$35.00</span></div>
+                    </div>
+                  </nav>
+                </aside>
+
+                {/* Step content */}
+                <div className="lg:col-span-3">
+
+                  {/* ── Step 0: Eligibility ─────────────────── */}
+                  {step === 0 && (
+                    <section aria-labelledby="elig-heading">
+                      <h2 id="elig-heading" ref={stepHeadingRef} tabIndex={-1} className="text-xl font-bold text-gov-navy mb-2 focus:outline-none">
+                        Step 1: Eligibility Check
+                      </h2>
+                      <p className="text-gray-600 text-sm mb-6">Answer a few questions to confirm you're eligible to renew online.</p>
+
+                      <div className="bg-white border border-gov-border rounded-xl p-6 space-y-6" role="form" aria-label="Eligibility check form">
+                        {/* Q1 */}
+                        <fieldset>
+                          <legend className="font-semibold text-sm text-gov-navy mb-3">
+                            Are you a current Vermont resident?
+                            <span className="text-red-500 ml-1" aria-hidden="true">*</span>
+                          </legend>
+                          <div className="flex gap-4" role="radiogroup" aria-required="true" aria-describedby={errors.vt_resident?'err-vt_resident':undefined}>
+                            {['Yes','No'].map(v=>(
+                              <label key={v} className="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="vt_resident" value={v} checked={eligAnswers.vt_resident===v} onChange={()=>setEligAnswers(p=>({...p,vt_resident:v}))} className="w-4 h-4 text-gov-blue" aria-required="true" />
+                                <span className="text-sm">{v}</span>
+                              </label>
+                            ))}
+                          </div>
+                          {errors.vt_resident && <p id="err-vt_resident" role="alert" className="mt-2 text-red-600 text-sm flex items-center gap-1.5"><svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{errors.vt_resident}</p>}
+                        </fieldset>
+
+                        {/* Q2 */}
+                        <fieldset>
+                          <legend className="font-semibold text-sm text-gov-navy mb-3">
+                            Do you have a current Vermont driver's license?
+                            <span className="text-red-500 ml-1" aria-hidden="true">*</span>
+                          </legend>
+                          <div className="flex gap-4" role="radiogroup" aria-required="true" aria-describedby={errors.current_license?'err-current_license':undefined}>
+                            {['Yes','No'].map(v=>(
+                              <label key={v} className="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="current_license" value={v} checked={eligAnswers.current_license===v} onChange={()=>setEligAnswers(p=>({...p,current_license:v}))} className="w-4 h-4 text-gov-blue" aria-required="true" />
+                                <span className="text-sm">{v}</span>
+                              </label>
+                            ))}
+                          </div>
+                          {errors.current_license && <p id="err-current_license" role="alert" className="mt-2 text-red-600 text-sm flex items-center gap-1.5"><svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{errors.current_license}</p>}
+                        </fieldset>
+
+                        {/* Q3 */}
+                        <fieldset>
+                          <legend className="font-semibold text-sm text-gov-navy mb-3">
+                            When does your current license expire?
+                            <span className="text-red-500 ml-1" aria-hidden="true">*</span>
+                          </legend>
+                          <div className="space-y-2" role="radiogroup" aria-required="true" aria-describedby={errors.expired?'err-expired':undefined}>
+                            {['Within the next 6 months','Already expired (within 1 year)','Expired more than 1 year ago','Not sure'].map(v=>(
+                              <label key={v} className="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="expired" value={v} checked={eligAnswers.expired===v} onChange={()=>setEligAnswers(p=>({...p,expired:v}))} className="w-4 h-4 text-gov-blue" aria-required="true" />
+                                <span className="text-sm">{v}</span>
+                              </label>
+                            ))}
+                          </div>
+                          {errors.expired && <p id="err-expired" role="alert" className="mt-2 text-red-600 text-sm flex items-center gap-1.5"><svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{errors.expired}</p>}
+                        </fieldset>
+
+                        {/* Ineligibility warning */}
+                        {eligAnswers.expired === 'Expired more than 1 year ago' && (
+                          <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+                            <p className="font-semibold mb-1">You may not be eligible for online renewal.</p>
+                            <p>Licenses expired more than 1 year ago require an in-person visit and may require retesting. Please <a href="contact.html" className="underline hover:no-underline">contact the DMV</a> for guidance.</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <button onClick={handleNext} className="mt-6 bg-gov-blue text-white font-bold px-8 py-3.5 rounded-xl hover:bg-gov-blue-h transition-colors flex items-center gap-2" aria-label="Submit eligibility answers and proceed to documents step">
+                        Continue to Documents
+                        <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      </button>
+                    </section>
+                  )}
+
+                  {/* ── Step 1: Documents ───────────────────── */}
+                  {step === 1 && (
+                    <section aria-labelledby="docs-heading">
+                      <h2 id="docs-heading" ref={stepHeadingRef} tabIndex={-1} className="text-xl font-bold text-gov-navy mb-2 focus:outline-none">
+                        Step 2: Required Documents
+                      </h2>
+                      <p className="text-gray-600 text-sm mb-6">Review the list below. Check off each document as you confirm you have it ready to bring to your appointment.</p>
+
+                      <div className="bg-white border border-gov-border rounded-xl p-6">
+                        <fieldset>
+                          <legend className="font-semibold text-base text-gov-navy mb-4">Documents Checklist</legend>
+                          <div className="space-y-4" role="group" aria-label="Required documents checklist">
+                            {DOCS.map(doc => (
+                              <label key={doc.id} className="flex items-start gap-3 cursor-pointer group">
+                                <input
+                                  type="checkbox"
+                                  id={`doc-${doc.id}`}
+                                  checked={!!docChecked[doc.id]}
+                                  onChange={e=>setDocChecked(p=>({...p,[doc.id]:e.target.checked}))}
+                                  className="mt-0.5 w-4 h-4 rounded border-gray-300 text-gov-blue focus:ring-gov-blue"
+                                  aria-label={`${doc.label}${doc.req?' (required)':' (optional)'}`}
+                                />
+                                <div>
+                                  <span className={`text-sm font-medium ${docChecked[doc.id]?'line-through text-gray-400':'text-gov-navy'} transition-colors`}>
+                                    {doc.label}
+                                    {doc.req && <span className="text-red-500 ml-1" aria-label="required" title="Required">*</span>}
+                                    {!doc.req && <span className="ml-2 text-xs text-gray-400 font-normal">(optional)</span>}
+                                  </span>
+                                  <p className="text-xs text-gray-500 mt-0.5">{doc.note}</p>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+
+                        {/* Fee breakdown */}
+                        <div className="mt-6 pt-6 border-t border-gov-border">
+                          <h3 className="font-semibold text-sm text-gov-navy mb-3">Fee Breakdown</h3>
+                          <dl className="space-y-2 text-sm">
+                            {[
+                              { label: '4-Year Standard Renewal', amount: '$35.00' },
+                              { label: 'Real ID Upgrade Fee', amount: '$0.00 (included)' },
+                              { label: 'Service Fee (online)', amount: '$0.00' },
+                            ].map(r => (
+                              <div key={r.label} className="flex justify-between">
+                                <dt className="text-gray-600">{r.label}</dt>
+                                <dd className="font-semibold">{r.amount}</dd>
+                              </div>
+                            ))}
+                            <div className="flex justify-between border-t border-gov-border pt-2 mt-2">
+                              <dt className="font-bold">Total Due at DMV</dt>
+                              <dd className="font-extrabold text-gov-navy">$35.00</dd>
+                            </div>
+                          </dl>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 mt-6">
+                        <button onClick={handleBack} className="border-2 border-gov-border text-gov-navy font-semibold px-6 py-3 rounded-xl hover:border-gov-blue transition-colors" aria-label="Go back to eligibility check step">← Back</button>
+                        <button onClick={handleNext} className="bg-gov-blue text-white font-bold px-8 py-3 rounded-xl hover:bg-gov-blue-h transition-colors" aria-label="Proceed to appointment scheduling step">Continue to Schedule</button>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* ── Step 2: Schedule ────────────────────── */}
+                  {step === 2 && (
+                    <section aria-labelledby="sched-heading">
+                      <h2 id="sched-heading" ref={stepHeadingRef} tabIndex={-1} className="text-xl font-bold text-gov-navy mb-2 focus:outline-none">
+                        Step 3: Schedule Appointment
+                      </h2>
+                      <p className="text-gray-600 text-sm mb-6">Select an available date and time at your local DMV office.</p>
+
+                      <div className="bg-white border border-gov-border rounded-xl p-6">
+                        {/* Location selector */}
+                        <div className="mb-6">
+                          <label htmlFor="dmv-location" className="block font-semibold text-sm text-gov-navy mb-2">
+                            DMV Office Location <span className="text-red-500" aria-hidden="true">*</span>
+                          </label>
+                          <select id="dmv-location" className="w-full border border-gov-border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-gov-blue" aria-label="Select DMV office location" aria-required="true">
+                            {['Montpelier — 120 State Street (Headquarters)','Burlington — 1383 US Rte 2, Williston','Rutland — 88 Merchants Row','St. Johnsbury — 1197 Main Street'].map(o=><option key={o}>{o}</option>)}
+                          </select>
+                        </div>
+
+                        {/* Calendar */}
+                        <fieldset aria-describedby={errors.selectedDay?'err-day':undefined}>
+                          <legend className="font-semibold text-sm text-gov-navy mb-3">
+                            Select a Date <span className="text-red-500" aria-hidden="true">*</span>
+                          </legend>
+                          <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="Available appointment dates">
+                            {DAYS.map(day => (
+                              <button
+                                key={day}
+                                type="button"
+                                onClick={() => { setSelectedDay(day); setSelectedTime(''); setErrors(p=>({...p,selectedDay:undefined})); }}
+                                aria-pressed={selectedDay===day}
+                                aria-label={`Select date: ${day}`}
+                                className={`text-center p-2 rounded-lg border-2 text-xs font-medium transition-all ${selectedDay===day?'bg-gov-blue text-white border-gov-blue':'bg-white border-gov-border hover:border-gov-blue text-gov-navy'}`}
+                              >
+                                {day.split(' ').map((w,i)=><span key={i} className="block">{w}</span>)}
+                              </button>
+                            ))}
+                          </div>
+                          {errors.selectedDay && <p id="err-day" role="alert" className="mt-2 text-red-600 text-sm">{errors.selectedDay}</p>}
+                        </fieldset>
+
+                        {/* Time slots */}
+                        {selectedDay && (
+                          <fieldset className="mt-6" aria-describedby={errors.selectedTime?'err-time':undefined}>
+                            <legend className="font-semibold text-sm text-gov-navy mb-3">
+                              Available Times for {selectedDay} <span className="text-red-500" aria-hidden="true">*</span>
+                            </legend>
+                            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Available appointment times">
+                              {CALENDAR_SLOTS[selectedDay].map(time => (
+                                <button
+                                  key={time}
+                                  type="button"
+                                  onClick={() => { setSelectedTime(time); setErrors(p=>({...p,selectedTime:undefined})); }}
+                                  aria-pressed={selectedTime===time}
+                                  aria-label={`Select appointment time: ${time}`}
+                                  className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${selectedTime===time?'bg-gov-green text-white border-gov-green':'bg-white border-gov-border hover:border-gov-blue text-gov-navy'}`}
+                                >
+                                  {time}
+                                </button>
+                              ))}
+                            </div>
+                            {errors.selectedTime && <p id="err-time" role="alert" className="mt-2 text-red-600 text-sm">{errors.selectedTime}</p>}
+                          </fieldset>
+                        )}
+
+                        {selectedDay && selectedTime && (
+                          <div role="status" className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">
+                            <span className="font-semibold">Selected:</span> {selectedDay} at {selectedTime}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-3 mt-6">
+                        <button onClick={handleBack} className="border-2 border-gov-border text-gov-navy font-semibold px-6 py-3 rounded-xl hover:border-gov-blue transition-colors" aria-label="Go back to documents step">← Back</button>
+                        <button onClick={handleNext} className="bg-gov-blue text-white font-bold px-8 py-3 rounded-xl hover:bg-gov-blue-h transition-colors" aria-label="Proceed to confirmation and payment step">Review &amp; Pay</button>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* ── Step 3: Confirm & Pay ───────────────── */}
+                  {step === 3 && (
+                    <section aria-labelledby="pay-heading">
+                      <h2 id="pay-heading" ref={stepHeadingRef} tabIndex={-1} className="text-xl font-bold text-gov-navy mb-2 focus:outline-none">
+                        Step 4: Confirm &amp; Pay
+                      </h2>
+                      <p className="text-gray-600 text-sm mb-6">Review your appointment and complete payment of the $35 renewal fee.</p>
+
+                      <div className="space-y-4">
+                        {/* Appointment summary */}
+                        <div className="bg-white border border-gov-border rounded-xl p-6">
+                          <h3 className="font-semibold text-base text-gov-navy mb-4">Appointment Summary</h3>
+                          <dl className="grid sm:grid-cols-2 gap-3 text-sm">
+                            {[
+                              {l:'Service', v:"Driver's License Renewal"},
+                              {l:'Date', v:selectedDay},
+                              {l:'Time', v:selectedTime},
+                              {l:'Location', v:'Vermont DMV — Montpelier HQ'},
+                              {l:'Fee', v:'$35.00'},
+                            ].map(r=>(
+                              <div key={r.l}>
+                                <dt className="text-gray-500 text-xs">{r.l}</dt>
+                                <dd className="font-semibold text-gov-navy">{r.v}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </div>
+
+                        {/* Payment */}
+                        <div className="bg-white border border-gov-border rounded-xl p-6">
+                          <h3 className="font-semibold text-base text-gov-navy mb-4">Payment Method</h3>
+                          <fieldset>
+                            <legend className="sr-only">Select payment method</legend>
+                            <div className="flex gap-4 mb-4" role="radiogroup">
+                              {[{v:'card',l:'Credit / Debit Card'},{v:'check',l:'E-Check'},{v:'cash',l:'Pay at DMV'}].map(m=>(
+                                <label key={m.v} className="flex items-center gap-2 cursor-pointer">
+                                  <input type="radio" name="paymethod" value={m.v} checked={payMethod===m.v} onChange={()=>setPayMethod(m.v)} className="w-4 h-4 text-gov-blue" aria-label={m.l} />
+                                  <span className="text-sm">{m.l}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </fieldset>
+
+                          {payMethod === 'card' && (
+                            <form aria-label="Credit card payment form" className="space-y-4">
+                              <div>
+                                <label htmlFor="card-name" className="block text-sm font-medium text-gov-navy mb-1.5">
+                                  Name on Card <span className="text-red-500" aria-hidden="true">*</span>
+                                </label>
+                                <input id="card-name" type="text" required aria-required="true" placeholder="Jane Doe" className="w-full border border-gov-border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-gov-blue" />
+                              </div>
+                              <div>
+                                <label htmlFor="card-number" className="block text-sm font-medium text-gov-navy mb-1.5">
+                                  Card Number <span className="text-red-500" aria-hidden="true">*</span>
+                                </label>
+                                <input id="card-number" type="text" required aria-required="true" placeholder="•••• •••• •••• ••••" inputMode="numeric" maxLength={19} className="w-full border border-gov-border rounded-lg px-3 py-2.5 text-sm font-mono focus:ring-2 focus:ring-gov-blue" aria-label="Card number, 16 digits" />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label htmlFor="card-exp" className="block text-sm font-medium text-gov-navy mb-1.5">
+                                    Expiry <span className="text-red-500" aria-hidden="true">*</span>
+                                  </label>
+                                  <input id="card-exp" type="text" required aria-required="true" placeholder="MM/YY" maxLength={5} className="w-full border border-gov-border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-gov-blue" aria-label="Card expiry date, format MM/YY" />
+                                </div>
+                                <div>
+                                  <label htmlFor="card-cvv" className="block text-sm font-medium text-gov-navy mb-1.5">
+                                    CVV <span className="text-red-500" aria-hidden="true">*</span>
+                                  </label>
+                                  <input id="card-cvv" type="text" required aria-required="true" placeholder="•••" maxLength={4} className="w-full border border-gov-border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-gov-blue" aria-label="Card security code, 3 or 4 digits" />
+                                </div>
+                              </div>
+                            </form>
+                          )}
+                          {payMethod === 'cash' && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                              Payment of $35.00 will be collected at the DMV office. Please bring exact change or a check made out to "Vermont DMV".
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Total */}
+                        <div className="bg-gov-light border border-gov-border rounded-xl px-6 py-4 flex items-center justify-between">
+                          <span className="font-bold text-gov-navy">Total Due</span>
+                          <span className="text-2xl font-extrabold text-gov-navy">$35.00</span>
+                        </div>
+
+                        {/* Terms */}
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input type="checkbox" required aria-required="true" className="mt-0.5 w-4 h-4 rounded border-gray-300 text-gov-blue" aria-label="I certify that all information is accurate, required" />
+                          <span className="text-sm text-gray-600">I certify that all information provided is accurate to the best of my knowledge and I agree to the <a href="#" className="text-gov-blue underline hover:no-underline">DMV Terms of Service</a>. <span className="text-red-500" aria-hidden="true">*</span></span>
+                        </label>
+                      </div>
+
+                      <div className="flex gap-3 mt-6">
+                        <button onClick={handleBack} className="border-2 border-gov-border text-gov-navy font-semibold px-6 py-3.5 rounded-xl hover:border-gov-blue transition-colors" aria-label="Go back to schedule step">← Back</button>
+                        <button
+                          ref={confirmBtnRef}
+                          onClick={() => setShowModal(true)}
+                          className="flex-1 bg-gov-green text-white font-bold py-3.5 px-6 rounded-xl hover:bg-gov-green-h transition-colors flex items-center justify-center gap-2"
+                          aria-label="Confirm appointment and submit payment of $35 for driver's license renewal"
+                        >
+                          <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                          Confirm &amp; Submit — $35.00
+                        </button>
+                      </div>
+                    </section>
+                  )}
+                </div>
+              </div>
+            </div>
+          </main>
+
+          <Footer />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<DriversLicensePage />);
+  </script>
+</body>
+</html>

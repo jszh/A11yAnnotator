@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaMart | Modern Online Marketplace</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb', // Blue-600
+                        primaryDark: '#1d4ed8', // Blue-700
+                        secondary: '#475569', // Slate-600
+                        accent: '#f59e0b', // Amber-500
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons (Browser compatible script) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .focus-ring { focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- Shared Components --- //
+
+        const Header = () => {
+            return (
+                <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+                    {/* Top Bar - Announcements */}
+                    <div className="bg-primaryDark text-white text-sm py-1.5 px-4 text-center font-medium">
+                        Free shipping on orders over $50. <a href="#" className="underline hover:text-blue-200">Shop Now</a>
+                    </div>
+                    
+                    {/* Main Nav */}
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-16">
+                            {/* Logo */}
+                            <div className="flex-shrink-0 flex items-center gap-2">
+                                <a href="index.html" className="flex items-center gap-2 text-2xl font-bold tracking-tight text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded" aria-label="NovaMart Homepage">
+                                    <i data-lucide="shopping-bag" className="w-8 h-8 text-primary"></i>
+                                    NovaMart
+                                </a>
+                            </div>
+
+                            {/* Search Bar - Desktop */}
+                            <div className="hidden md:flex flex-1 max-w-2xl mx-8">
+                                <form className="w-full relative" onSubmit={(e) => e.preventDefault()}>
+                                    <label htmlFor="search" className="sr-only">Search products</label>
+                                    <input 
+                                        type="text" 
+                                        id="search" 
+                                        placeholder="Search for electronics, home goods, apparel..." 
+                                        className="w-full pl-4 pr-10 py-2.5 border border-gray-300 rounded-full bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                    />
+                                    <button 
+                                        type="submit"
+                                        aria-label="Search"
+                                        className="absolute right-0 top-0 mt-1 mr-1 p-2 text-gray-500 hover:text-primary rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
+                                    >
+                                        <i data-lucide="search" className="w-5 h-5"></i>
+                                    </button>
+                                </form>
+                            </div>
+
+                            {/* Icons (Account, Cart) */}
+                            <div className="flex items-center gap-4 sm:gap-6">
+                                <a href="account.html" className="flex flex-col items-center text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1 transition-colors" aria-label="Account">
+                                    <i data-lucide="user" className="w-6 h-6"></i>
+                                    <span className="text-[11px] font-medium hidden sm:block mt-0.5">Account</span>
+                                </a>
+                                <a href="products.html" className="flex flex-col items-center text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1 transition-colors" aria-label="Products">
+                                    <i data-lucide="grid" className="w-6 h-6"></i>
+                                    <span className="text-[11px] font-medium hidden sm:block mt-0.5">Shop</span>
+                                </a>
+                                <a href="cart.html" className="flex flex-col items-center text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1 relative transition-colors" aria-label="Cart with 2 items">
+                                    <div className="relative">
+                                        <i data-lucide="shopping-cart" className="w-6 h-6"></i>
+                                        <span className="absolute -top-1.5 -right-2 bg-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">2</span>
+                                    </div>
+                                    <span className="text-[11px] font-medium hidden sm:block mt-0.5">Cart</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-white border-t border-gray-200 pt-12 pb-8 mt-auto">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                            <div className="col-span-1 md:col-span-1">
+                                <a href="index.html" className="flex items-center gap-2 text-2xl font-bold tracking-tight text-primaryDark mb-4 focus:outline-none focus:ring-2 focus:ring-primary rounded inline-flex">
+                                    <i data-lucide="shopping-bag" className="w-6 h-6 text-primary"></i>
+                                    NovaMart
+                                </a>
+                                <p className="text-gray-500 text-sm mb-4 leading-relaxed">
+                                    Your go-to destination for electronics, home goods, and apparel. Quality products, competitive prices.
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <h3 className="font-semibold text-gray-900 mb-4">Shop</h3>
+                                <ul className="space-y-2 text-sm text-gray-600">
+                                    <li><a href="products.html" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">All Products</a></li>
+                                    <li><a href="products.html" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Electronics</a></li>
+                                    <li><a href="products.html" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Kitchen & Home</a></li>
+                                    <li><a href="products.html" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Apparel</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="font-semibold text-gray-900 mb-4">Customer Service</h3>
+                                <ul className="space-y-2 text-sm text-gray-600">
+                                    <li><a href="#" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Contact Us</a></li>
+                                    <li><a href="#" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Shipping Policy</a></li>
+                                    <li><a href="#" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Returns & Exchanges</a></li>
+                                    <li><a href="#" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">FAQ</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="font-semibold text-gray-900 mb-4">Stay Connected</h3>
+                                <p className="text-gray-500 text-sm mb-3">Subscribe to our newsletter for exclusive offers.</p>
+                                <form className="flex gap-2" onSubmit={e => e.preventDefault()}>
+                                    <label htmlFor="email" className="sr-only">Email address</label>
+                                    <input 
+                                        type="email" 
+                                        id="email" 
+                                        placeholder="Enter your email" 
+                                        className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                                        required
+                                    />
+                                    <button 
+                                        type="submit" 
+                                        className="bg-primary text-white px-4 py-2 rounded font-medium hover:bg-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors text-sm"
+                                    >
+                                        Subscribe
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <p className="text-gray-500 text-sm">© 2026 NovaMart. All rights reserved.</p>
+                            <div className="flex space-x-4">
+                                <a href="#" aria-label="Facebook" className="text-gray-400 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1">
+                                    <i data-lucide="facebook" className="w-5 h-5"></i>
+                                </a>
+                                <a href="#" aria-label="Twitter" className="text-gray-400 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1">
+                                    <i data-lucide="twitter" className="w-5 h-5"></i>
+                                </a>
+                                <a href="#" aria-label="Instagram" className="text-gray-400 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1">
+                                    <i data-lucide="instagram" className="w-5 h-5"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        const ProductCard = ({ title, price, originalPrice, rating, reviews, image, badge }) => (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col h-full">
+                <div className="relative aspect-square bg-gray-50 flex items-center justify-center p-4">
+                    {badge && (
+                        <span className="absolute top-3 left-3 bg-accent text-white text-xs font-bold px-2 py-1 rounded z-10">
+                            {badge}
+                        </span>
+                    )}
+                    <button 
+                        aria-label={`Add ${title} to wishlist`} 
+                        className="absolute top-3 right-3 p-2 bg-white rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary shadow-sm z-10"
+                    >
+                        <i data-lucide="heart" className="w-4 h-4"></i>
+                    </button>
+                    <a href="product-detail.html" className="block w-full h-full p-4 focus:outline-none focus:ring-2 focus:ring-primary rounded-lg" aria-label={`View details for ${title}`}>
+                        <img 
+                            src={image} 
+                            alt={title} 
+                            className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+                        />
+                    </a>
+                </div>
+                <div className="p-4 flex flex-col flex-grow">
+                    <a href="product-detail.html" className="block focus:outline-none focus:ring-2 focus:ring-primary rounded-sm mb-1">
+                        <h3 className="font-semibold text-gray-800 line-clamp-2 hover:text-primary transition-colors text-sm sm:text-base leading-snug">
+                            {title}
+                        </h3>
+                    </a>
+                    
+                    <div className="flex items-center gap-1 mb-2 mt-1">
+                        <div className="flex text-accent" aria-label={`Rating: ${rating} out of 5 stars`}>
+                            {[1,2,3,4,5].map(star => (
+                                <i key={star} data-lucide="star" className={`w-3.5 h-3.5 ${star <= Math.floor(rating) ? 'fill-current' : 'text-gray-300'}`}></i>
+                            ))}
+                        </div>
+                        <span className="text-xs text-gray-500">({reviews})</span>
+                    </div>
+
+                    <div className="mt-auto pt-3 flex items-center justify-between">
+                        <div className="flex flex-col">
+                            <span className="font-bold text-gray-900 text-lg">${price.toFixed(2)}</span>
+                            {originalPrice && (
+                                <span className="text-xs text-gray-400 line-through">${originalPrice.toFixed(2)}</span>
+                            )}
+                        </div>
+                        <button 
+                            className="bg-gray-900 hover:bg-primary text-white p-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center gap-2"
+                            aria-label={`Add ${title} to cart`}
+                        >
+                            <i data-lucide="shopping-cart" className="w-4 h-4"></i>
+                            <span className="hidden sm:inline text-sm">Add</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // --- Page Content --- //
+
+        const HomePage = () => {
+            const categories = [
+                { name: 'Electronics', icon: 'smartphone', color: 'bg-blue-100 text-blue-600' },
+                { name: 'Kitchen & Home', icon: 'coffee', color: 'bg-orange-100 text-orange-600' },
+                { name: 'Apparel', icon: 'shirt', color: 'bg-purple-100 text-purple-600' },
+                { name: 'Sports', icon: 'dribbble', color: 'bg-green-100 text-green-600' },
+                { name: 'Beauty', icon: 'sparkles', color: 'bg-pink-100 text-pink-600' },
+                { name: 'Toys', icon: 'gamepad-2', color: 'bg-yellow-100 text-yellow-600' },
+            ];
+
+            const deals = [
+                {
+                    id: 1,
+                    title: "Sony WH-1000XM5 Wireless Noise Canceling Headphones",
+                    price: 279.99,
+                    originalPrice: 399.99,
+                    rating: 4.8,
+                    reviews: 1245,
+                    badge: "Save 30%",
+                    image: "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=400&h=400"
+                },
+                {
+                    id: 2,
+                    title: "Ninja Pro Blender with Nutri Ninja Cups",
+                    price: 89.99,
+                    originalPrice: 119.99,
+                    rating: 4.6,
+                    reviews: 832,
+                    badge: "Best Seller",
+                    image: "https://images.unsplash.com/photo-1585515320310-259814833e62?auto=format&fit=crop&q=80&w=400&h=400"
+                },
+                {
+                    id: 3,
+                    title: "Samsung 65-Inch Class QLED 4K Smart TV",
+                    price: 849.99,
+                    originalPrice: 1099.99,
+                    rating: 4.7,
+                    reviews: 3201,
+                    badge: "Top Deal",
+                    image: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&q=80&w=400&h=400"
+                },
+                {
+                    id: 4,
+                    title: "Men's Performance Fleece Hoodie",
+                    price: 34.99,
+                    originalPrice: 55.00,
+                    rating: 4.5,
+                    reviews: 412,
+                    image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=400&h=400"
+                },
+                {
+                    id: 5,
+                    title: "Logitech MX Master 3S Wireless Mouse",
+                    price: 89.99,
+                    originalPrice: 99.99,
+                    rating: 4.9,
+                    reviews: 892,
+                    badge: "Most Popular",
+                    image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&q=80&w=400&h=400"
+                }
+            ];
+
+            return (
+                <div className="pb-16 pt-0">
+                    {/* Hero Section */}
+                    <section className="bg-primaryDark text-white relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-900 via-primaryDark to-primary opacity-90 z-0"></div>
+                        <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-white opacity-10 rounded-full blur-3xl z-0 pointer-events-none"></div>
+                        
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 relative z-10">
+                            <div className="md:w-1/2 flex flex-col items-start gap-4">
+                                <span className="bg-accent text-white uppercase tracking-wider text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                                    Flash Sale
+                                </span>
+                                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
+                                    Up to 50% off <br /> Electronics
+                                </h1>
+                                <p className="text-blue-100 text-lg md:text-xl max-w-md my-2">
+                                    Upgrade your setup with premium tech at unmatched prices. Limited time only.
+                                </p>
+                                <div className="mt-4 flex gap-4">
+                                    <a href="products.html" className="bg-white text-primaryDark px-8 py-3.5 rounded-lg font-bold text-lg hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all focus:outline-none focus:ring-4 focus:ring-white/50 inline-flex items-center gap-2">
+                                        Shop Deals
+                                        <i data-lucide="arrow-right" className="w-5 h-5"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Decorative visual right side */}
+                        <div className="hidden md:block absolute bottom-0 right-0 w-1/2 h-full z-0 overflow-hidden">
+                             <img src="https://images.unsplash.com/photo-1550009158-9a375e115fd4?auto=format&fit=crop&q=80&w=1000" alt="Tech Setup" className="w-full h-full object-cover object-left mask-image-gradient opacity-60 mix-blend-overlay" />
+                        </div>
+                    </section>
+
+                    {/* Features bar */}
+                    <div className="bg-white border-b border-gray-200">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-x divide-gray-100">
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+                                        <i data-lucide="truck" className="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900 text-sm">Free Shipping</h4>
+                                        <p className="text-xs text-gray-500">Orders over $50</p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+                                        <i data-lucide="shield-check" className="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900 text-sm">Secure Payment</h4>
+                                        <p className="text-xs text-gray-500">100% protected</p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+                                        <i data-lucide="refresh-cw" className="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900 text-sm">Easy Returns</h4>
+                                        <p className="text-xs text-gray-500">30-day policy</p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+                                        <i data-lucide="headphones" className="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900 text-sm">24/7 Support</h4>
+                                        <p className="text-xs text-gray-500">Dedicated help</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Trending Categories */}
+                    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-2xl font-bold text-gray-900">Shop by Category</h2>
+                            <a href="products.html" className="text-primary font-medium hover:text-primaryDark flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary rounded p-1">
+                                View all <i data-lucide="chevron-right" className="w-4 h-4"></i>
+                            </a>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+                            {categories.map((cat, idx) => (
+                                <a 
+                                    key={idx} 
+                                    href="products.html" 
+                                    className="flex flex-col items-center p-6 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/30 transition-all group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                                >
+                                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ${cat.color}`}>
+                                        <i data-lucide={cat.icon} className="w-8 h-8"></i>
+                                    </div>
+                                    <h3 className="font-medium text-gray-900 text-sm md:text-base text-center">{cat.name}</h3>
+                                </a>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Today's Deals - Horizontal Scroll */}
+                    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-2xl font-bold text-gray-900">Today's Deals</h2>
+                                <span className="bg-red-100 text-red-600 font-bold px-2.5 py-1 rounded text-xs flex items-center gap-1">
+                                    <i data-lucide="timer" className="w-3 h-3"></i> Ends in 05:24:12
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {/* Horizontal scroll container */}
+                        <div className="relative group">
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10 -ml-4 hidden md:block">
+                                <button className="bg-white/90 shadow-md p-2 rounded-full text-gray-800 hover:text-primary border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Previous deals">
+                                    <i data-lucide="chevron-left" className="w-6 h-6"></i>
+                                </button>
+                            </div>
+                            
+                            <div className="flex overflow-x-auto gap-6 pb-6 pt-2 hide-scrollbar snap-x">
+                                {deals.map((deal) => (
+                                    <div key={deal.id} className="min-w-[280px] w-[280px] sm:min-w-[280px] snap-start flex-shrink-0">
+                                        <ProductCard {...deal} />
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10 -mr-4 hidden md:block">
+                                <button className="bg-white/90 shadow-md p-2 rounded-full text-gray-800 hover:text-primary border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Next deals">
+                                    <i data-lucide="chevron-right" className="w-6 h-6"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    {/* Newsletter Callout */}
+                    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+                        <div className="bg-blue-50 rounded-2xl border border-blue-100 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8">
+                            <div className="md:w-1/2">
+                                <h2 className="text-2xl font-bold text-primaryDark mb-2">Join NovaMart Rewards</h2>
+                                <p className="text-gray-600 mb-6">Sign up to get 15% off your first order, member-only deals, and early access to sales.</p>
+                                <form className="flex gap-2 w-full max-w-sm" onSubmit={e => e.preventDefault()}>
+                                    <label htmlFor="promo-email" className="sr-only">Email address</label>
+                                    <input 
+                                        type="email" 
+                                        id="promo-email" 
+                                        placeholder="Enter your email" 
+                                        className="flex-1 min-w-0 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                                        required
+                                    />
+                                    <button 
+                                        type="submit" 
+                                        className="bg-primary text-white px-6 py-3 rounded-lg font-semibold shadow hover:bg-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors whitespace-nowrap"
+                                    >
+                                        Join Now
+                                    </button>
+                                </form>
+                            </div>
+                            <div className="hidden md:flex w-1/3 justify-center text-primary opacity-20">
+                                <i data-lucide="award" className="w-32 h-32"></i>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            );
+        };
+
+        const App = () => {
+            // Initialize Lucide icons on mount
+            React.useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, []);
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow">
+                        <HomePage />
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

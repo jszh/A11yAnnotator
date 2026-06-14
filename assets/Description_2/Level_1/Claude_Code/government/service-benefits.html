@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apply for Benefits — Vermont.gov</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1B5E20',
+            'primary-dark': '#145016',
+            'primary-light': '#E8F5E9',
+            'primary-mid': '#2E7D32',
+            secondary: '#1A2744',
+            accent: '#C8860A',
+            'accent-light': '#FFF8E1',
+            danger: '#B71C1C',
+            'danger-light': '#FFEBEE',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    :focus-visible { outline: 3px solid #C8860A !important; outline-offset: 2px !important; border-radius: 4px; }
+    .skip-link { position: absolute; top: -100%; left: 0.5rem; background: #C8860A; color: #000; padding: 0.5rem 1rem; font-weight: 600; border-radius: 0 0 4px 4px; z-index: 9999; text-decoration: none; }
+    .skip-link:focus { top: 0; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const SkipNav = () => <a href="#main-content" className="skip-link">Skip to main content</a>;
+
+    const OfficialBanner = () => {
+      const [open, setOpen] = useState(false);
+      return (
+        <div className="bg-gray-700 text-white text-xs">
+          <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center gap-3">
+            <span className="flex items-center gap-1.5 font-medium">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944z" clipRule="evenodd" />
+              </svg>
+              An official website of the State of Vermont
+            </span>
+            <button onClick={() => setOpen(!open)} aria-expanded={open}
+              className="text-blue-300 underline hover:no-underline text-xs">Here's how you know</button>
+          </div>
+          {open && (
+            <div className="max-w-7xl mx-auto px-4 py-4 grid sm:grid-cols-2 gap-5 border-t border-gray-600 text-gray-300">
+              <div className="flex gap-3">
+                <svg className="w-6 h-6 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <div><p className="font-semibold text-white mb-0.5">Official websites use .gov</p><p>A .gov website belongs to an official government organization.</p></div>
+              </div>
+              <div className="flex gap-3">
+                <svg className="w-6 h-6 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <div><p className="font-semibold text-white mb-0.5">Secure .gov websites use HTTPS</p><p>Share sensitive info only on official, secure sites.</p></div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const Header = ({ current }) => {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [lang, setLang] = useState('EN');
+      const navLinks = [
+        { href: 'index.html', label: 'Home' },
+        { href: 'services.html', label: 'Services' },
+        { href: 'about.html', label: 'About Vermont' },
+        { href: 'contact.html', label: 'Contact' },
+      ];
+      return (
+        <header className="bg-white border-b-2 border-primary sticky top-0 z-40 shadow-sm" role="banner">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <a href="index.html" className="flex items-center gap-3" aria-label="Vermont.gov — Home">
+                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">VT</div>
+                <div>
+                  <div className="font-bold text-lg text-primary leading-none">Vermont.gov</div>
+                  <div className="text-xs text-gray-500 leading-none mt-0.5">Official State Portal</div>
+                </div>
+              </a>
+              <nav aria-label="Main navigation" className="hidden md:flex items-center gap-1">
+                {navLinks.map(link => (
+                  <a key={link.href} href={link.href} aria-current={current === link.label ? 'page' : undefined}
+                    className={`px-4 py-2 rounded text-sm font-medium transition-colors ${current === link.label ? 'bg-primary-light text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-primary'}`}>
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex gap-1" role="group" aria-label="Select language">
+                  {['EN','ES','FR'].map(l => (
+                    <button key={l} onClick={() => setLang(l)} aria-pressed={lang === l}
+                      aria-label={`Switch to ${l === 'EN' ? 'English' : l === 'ES' ? 'Spanish' : 'French'}`}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded border ${lang === l ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-300 hover:border-primary'}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen}
+                  aria-controls="mobile-nav-ben" aria-label="Toggle navigation menu"
+                  className="md:hidden p-2 rounded text-gray-600 hover:bg-gray-100">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    {menuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>}
+                  </svg>
+                </button>
+              </div>
+            </div>
+            {menuOpen && (
+              <nav id="mobile-nav-ben" aria-label="Mobile navigation" className="md:hidden py-3 border-t border-gray-100">
+                {navLinks.map(link => (
+                  <a key={link.href} href={link.href} aria-current={current === link.label ? 'page' : undefined}
+                    className={`block px-4 py-2.5 text-sm font-medium rounded mb-1 ${current === link.label ? 'bg-primary-light text-primary' : 'text-gray-700 hover:bg-gray-100'}`}>
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
+            )}
+          </div>
+        </header>
+      );
+    };
+
+    const Footer = () => (
+      <footer className="bg-secondary text-gray-300 pt-12 pb-6" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">VT</div>
+                <span className="font-bold text-white text-lg">Vermont.gov</span>
+              </div>
+              <p className="text-sm text-gray-400">Official portal for Vermont state government services.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Quick Links</h3>
+              <ul className="space-y-2 text-sm">
+                {["Renew Driver's License","Apply for Benefits","Register to Vote","Find a School","Business Licenses"].map(t => (
+                  <li key={t}><a href="#" className="hover:text-white">{t}</a></li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Departments</h3>
+              <ul className="space-y-2 text-sm">
+                {['DMV','Health','Education','Human Services','Tax Department'].map(t => (
+                  <li key={t}><a href="#" className="hover:text-white">{t}</a></li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">About</h3>
+              <ul className="space-y-2 text-sm">
+                {['Accessibility Statement','Privacy Policy','Site Disclaimer','Open Data','Site Map'].map(t => (
+                  <li key={t}><a href="#" className="hover:text-white">{t}</a></li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-600 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+            <p>© 2025 State of Vermont. All rights reserved.</p>
+            <p>Vermont State House · 115 State Street · Montpelier, VT 05633 · (802) 828-1110</p>
+          </div>
+        </div>
+      </footer>
+    );
+
+    /* ── Page: Apply for Benefits ── */
+    const programs = [
+      {
+        id: 'snap',
+        icon: '🍎',
+        name: 'SNAP (Food Benefits)',
+        agency: 'Agency of Human Services',
+        desc: 'Monthly food assistance for qualifying low-income Vermont households. Benefits are loaded onto an EBT card accepted at most grocery stores.',
+        maxIncome: 2000,
+        minHousehold: 1,
+        maxHousehold: 10,
+        amount: 'Up to $291/month per person',
+        time: '~30 days to process',
+        color: 'border-green-300 bg-green-50',
+        badgeColor: 'bg-green-100 text-green-800',
+      },
+      {
+        id: 'medicaid',
+        icon: '🏥',
+        name: 'Medicaid (Dr. Dynasaur)',
+        agency: 'Vermont Health Connect',
+        desc: 'Free or low-cost health insurance for eligible Vermont residents. Covers doctor visits, hospital care, prescriptions, and mental health services.',
+        maxIncome: 3000,
+        minHousehold: 1,
+        maxHousehold: 10,
+        amount: '$0–$50/month premium',
+        time: '~45 days to process',
+        color: 'border-blue-300 bg-blue-50',
+        badgeColor: 'bg-blue-100 text-blue-800',
+      },
+      {
+        id: 'heating',
+        icon: '🔥',
+        name: 'LIHEAP Heating Assistance',
+        agency: 'Dept. of Children & Families',
+        desc: 'Help paying heating costs during Vermont winters. Benefit amounts depend on household size, income, and fuel type. Apply before March 31.',
+        maxIncome: 2500,
+        minHousehold: 1,
+        maxHousehold: 8,
+        amount: 'Up to $1,200/season',
+        time: '~14 days to process',
+        color: 'border-orange-300 bg-orange-50',
+        badgeColor: 'bg-orange-100 text-orange-800',
+      },
+      {
+        id: 'rental',
+        icon: '🏠',
+        name: 'Rental Housing Assistance',
+        agency: 'VT Housing Finance Agency',
+        desc: 'Emergency rental assistance to help eligible Vermont renters pay past-due or current rent to prevent eviction.',
+        maxIncome: 3500,
+        minHousehold: 1,
+        maxHousehold: 10,
+        amount: 'Up to $10,000',
+        time: '~21 days to process',
+        color: 'border-purple-300 bg-purple-50',
+        badgeColor: 'bg-purple-100 text-purple-800',
+      },
+    ];
+
+    const BenefitsPage = () => {
+      const [householdSize, setHouseholdSize] = useState('');
+      const [incomeRange, setIncomeRange] = useState('');
+      const [employment, setEmployment] = useState('');
+      const [showResults, setShowResults] = useState(false);
+      const [errors, setErrors] = useState({});
+
+      const incomeRanges = [
+        { value: 'under1000', label: 'Under $1,000/month', amount: 800 },
+        { value: '1000-2000', label: '$1,000–$2,000/month', amount: 1500 },
+        { value: '2000-3000', label: '$2,000–$3,000/month', amount: 2500 },
+        { value: '3000-4000', label: '$3,000–$4,000/month', amount: 3500 },
+        { value: 'over4000', label: 'Over $4,000/month', amount: 5000 },
+      ];
+
+      const validate = () => {
+        const e = {};
+        if (!householdSize) e.householdSize = 'Please select your household size.';
+        if (!incomeRange) e.incomeRange = 'Please select your income range.';
+        if (!employment) e.employment = 'Please select your employment status.';
+        setErrors(e);
+        return Object.keys(e).length === 0;
+      };
+
+      const handleScreener = (e) => {
+        e.preventDefault();
+        if (validate()) setShowResults(true);
+      };
+
+      const selectedIncome = incomeRanges.find(r => r.value === incomeRange)?.amount || 0;
+      const hSize = parseInt(householdSize) || 0;
+
+      const qualifyingPrograms = programs.filter(p =>
+        selectedIncome <= p.maxIncome && hSize >= p.minHousehold && hSize <= p.maxHousehold
+      );
+
+      return (
+        <main id="main-content" tabIndex={-1}>
+          {/* Page Header */}
+          <div className="bg-secondary text-white py-10 px-4">
+            <div className="max-w-4xl mx-auto">
+              <nav aria-label="Breadcrumb" className="text-sm text-gray-400 mb-3">
+                <ol className="flex items-center gap-2" role="list">
+                  <li><a href="index.html" className="hover:text-white">Home</a></li>
+                  <li aria-hidden="true">/</li>
+                  <li><a href="services.html" className="hover:text-white">Services</a></li>
+                  <li aria-hidden="true">/</li>
+                  <li aria-current="page" className="text-white font-medium">Apply for Benefits</li>
+                </ol>
+              </nav>
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center text-3xl flex-shrink-0" aria-hidden="true">🏥</div>
+                <div>
+                  <h1 className="text-3xl sm:text-4xl font-extrabold mb-1">Apply for Benefits</h1>
+                  <p className="text-gray-300">Vermont Agency of Human Services · Benefits Eligibility Screener · ~5 minutes</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            {/* Intro */}
+            <div className="bg-accent-light border border-yellow-200 rounded-xl p-5 mb-8">
+              <div className="flex gap-3 items-start">
+                <svg className="w-6 h-6 text-accent flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                </svg>
+                <div>
+                  <p className="font-semibold text-gray-800">This screener helps you find programs you may qualify for.</p>
+                  <p className="text-gray-600 text-sm mt-1">Your answers are not saved and do not constitute a formal application. Actual eligibility is determined by your caseworker after a complete application is reviewed.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Screener Form */}
+            {!showResults && (
+              <section aria-labelledby="screener-heading">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+                  <h2 id="screener-heading" className="text-2xl font-bold text-gray-900 mb-1">Eligibility Screener</h2>
+                  <p className="text-gray-500 mb-6">Answer three quick questions to see which programs you may qualify for.</p>
+
+                  <form onSubmit={handleScreener} noValidate aria-describedby="screener-desc">
+                    <p id="screener-desc" className="sr-only">This form has three required questions about your household.</p>
+
+                    {/* Household Size */}
+                    <div className="mb-6">
+                      <label htmlFor="household-size" className="font-semibold text-gray-800 block mb-2">
+                        1. How many people are in your household?
+                        <span className="text-danger ml-1" aria-hidden="true">*</span>
+                      </label>
+                      {errors.householdSize && (
+                        <p role="alert" className="text-danger text-sm mb-2 flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                          {errors.householdSize}
+                        </p>
+                      )}
+                      <div className="grid grid-cols-6 gap-2" role="radiogroup" aria-labelledby="household-size-legend" aria-required="true">
+                        <span id="household-size-legend" className="sr-only">Number of people in household</span>
+                        {[1,2,3,4,5,'6+'].map(n => (
+                          <label key={n} className={`text-center py-3 rounded-xl border-2 cursor-pointer font-semibold text-sm transition-all ${householdSize === String(n) ? 'border-primary bg-primary text-white' : 'border-gray-200 text-gray-700 hover:border-primary hover:text-primary'}`}>
+                            <input type="radio" name="household" value={n} checked={householdSize === String(n)}
+                              onChange={() => setHouseholdSize(String(n))}
+                              className="sr-only" />
+                            {n}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Income Range */}
+                    <div className="mb-6">
+                      <label htmlFor="income-select" className="font-semibold text-gray-800 block mb-2">
+                        2. What is your household's total monthly income?
+                        <span className="text-danger ml-1" aria-hidden="true">*</span>
+                      </label>
+                      {errors.incomeRange && (
+                        <p role="alert" className="text-danger text-sm mb-2 flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                          {errors.incomeRange}
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-500 mb-3">Include all income: wages, benefits, child support, and other sources.</p>
+                      <div className="space-y-2">
+                        {incomeRanges.map(r => (
+                          <label key={r.value} className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${incomeRange === r.value ? 'border-primary bg-primary-light' : 'border-gray-200 hover:border-gray-300'}`}>
+                            <input type="radio" name="income" value={r.value}
+                              checked={incomeRange === r.value}
+                              onChange={() => setIncomeRange(r.value)}
+                              className="w-4 h-4 accent-primary" />
+                            <span className="font-medium text-gray-800">{r.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Employment Status */}
+                    <div className="mb-8">
+                      <p id="employment-legend" className="font-semibold text-gray-800 mb-2">
+                        3. What is your current employment status?
+                        <span className="text-danger ml-1" aria-hidden="true">*</span>
+                      </p>
+                      {errors.employment && (
+                        <p role="alert" className="text-danger text-sm mb-2 flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                          {errors.employment}
+                        </p>
+                      )}
+                      <div role="radiogroup" aria-labelledby="employment-legend" className="grid sm:grid-cols-2 gap-2">
+                        {[
+                          { v: 'employed', label: 'Employed (full or part-time)', icon: '💼' },
+                          { v: 'self-employed', label: 'Self-employed', icon: '🏪' },
+                          { v: 'unemployed', label: 'Currently unemployed', icon: '🔍' },
+                          { v: 'retired', label: 'Retired', icon: '🌟' },
+                          { v: 'disabled', label: 'Unable to work (disability)', icon: '♿' },
+                          { v: 'student', label: 'Student', icon: '🎓' },
+                        ].map(opt => (
+                          <label key={opt.v} className={`flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${employment === opt.v ? 'border-primary bg-primary-light' : 'border-gray-200 hover:border-gray-300'}`}>
+                            <input type="radio" name="employment" value={opt.v}
+                              checked={employment === opt.v}
+                              onChange={() => setEmployment(opt.v)}
+                              className="w-4 h-4 accent-primary" />
+                            <span className="text-lg" aria-hidden="true">{opt.icon}</span>
+                            <span className="font-medium text-gray-800 text-sm">{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button type="submit"
+                      className="w-full sm:w-auto bg-primary text-white px-10 py-3.5 rounded-xl font-bold text-base hover:bg-primary-dark transition-colors">
+                      Check My Eligibility →
+                    </button>
+                  </form>
+                </div>
+              </section>
+            )}
+
+            {/* Results */}
+            {showResults && (
+              <section aria-labelledby="results-heading">
+                <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <h2 id="results-heading" className="text-2xl font-bold text-gray-900">
+                      {qualifyingPrograms.length > 0 ? `You may qualify for ${qualifyingPrograms.length} program${qualifyingPrograms.length !== 1 ? 's' : ''}` : 'No programs matched your inputs'}
+                    </h2>
+                    <p className="text-gray-500 mt-1">Based on a household of {householdSize} person{householdSize !== '1' ? 's' : ''} with {incomeRanges.find(r => r.value === incomeRange)?.label.toLowerCase()} income.</p>
+                  </div>
+                  <button onClick={() => { setShowResults(false); setErrors({}); }}
+                    className="text-primary font-semibold border-2 border-primary px-4 py-2 rounded-lg hover:bg-primary-light transition-colors text-sm">
+                    ← Modify Answers
+                  </button>
+                </div>
+
+                {qualifyingPrograms.length > 0 ? (
+                  <ul className="space-y-5" role="list" aria-label="Programs you may qualify for">
+                    {qualifyingPrograms.map(prog => (
+                      <li key={prog.id}>
+                        <article className={`bg-white rounded-2xl border-2 ${prog.color} shadow-sm overflow-hidden`}>
+                          <div className="p-6">
+                            <div className="flex items-start justify-between gap-4 mb-3">
+                              <div className="flex items-center gap-3">
+                                <span className="text-3xl" aria-hidden="true">{prog.icon}</span>
+                                <div>
+                                  <h3 className="text-xl font-bold text-gray-900">{prog.name}</h3>
+                                  <p className="text-xs text-gray-500">{prog.agency}</p>
+                                </div>
+                              </div>
+                              <span className={`text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap ${prog.badgeColor}`}>
+                                Likely Eligible
+                              </span>
+                            </div>
+                            <p className="text-gray-600 text-sm leading-relaxed mb-4">{prog.desc}</p>
+                            <div className="grid sm:grid-cols-2 gap-3 mb-5">
+                              <div className="bg-white/70 rounded-lg px-4 py-3">
+                                <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Estimated Benefit</p>
+                                <p className="font-bold text-gray-900 mt-0.5">{prog.amount}</p>
+                              </div>
+                              <div className="bg-white/70 rounded-lg px-4 py-3">
+                                <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Processing Time</p>
+                                <p className="font-bold text-gray-900 mt-0.5">{prog.time}</p>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                              <a href="#"
+                                aria-label={`Start application for ${prog.name}`}
+                                className="bg-primary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition-colors text-sm">
+                                Start Application →
+                              </a>
+                              <a href="#"
+                                aria-label={`Learn more about ${prog.name}`}
+                                className="text-primary border-2 border-primary px-6 py-2.5 rounded-lg font-semibold hover:bg-primary-light transition-colors text-sm">
+                                Learn More
+                              </a>
+                            </div>
+                          </div>
+                        </article>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
+                    <p className="text-5xl mb-4" aria-hidden="true">🔍</p>
+                    <p className="text-xl font-semibold text-gray-700">No programs matched your inputs</p>
+                    <p className="text-gray-500 mt-2 mb-6">Your household income may be above the threshold for these programs. You may still qualify for other assistance.</p>
+                    <a href="contact.html" className="bg-primary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition-colors">
+                      Speak with a Caseworker
+                    </a>
+                  </div>
+                )}
+
+                {qualifyingPrograms.length > 0 && (
+                  <div className="mt-8 bg-primary-light border border-green-200 rounded-xl p-5">
+                    <h3 className="font-bold text-primary mb-2">Need help applying?</h3>
+                    <p className="text-gray-700 text-sm mb-3">A benefits navigator can guide you through the application process at no cost. Available in English, Spanish, and French.</p>
+                    <div className="flex flex-wrap gap-3">
+                      <a href="contact.html" className="text-primary font-semibold text-sm hover:underline">Chat with a Navigator →</a>
+                      <a href="tel:18002503950" className="text-primary font-semibold text-sm hover:underline">Call (800) 250-3950</a>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
+        </main>
+      );
+    };
+
+    const App = () => (
+      <div className="min-h-screen flex flex-col">
+        <SkipNav />
+        <OfficialBanner />
+        <Header current="Services" />
+        <div className="flex-1"><BenefitsPage /></div>
+        <Footer />
+      </div>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

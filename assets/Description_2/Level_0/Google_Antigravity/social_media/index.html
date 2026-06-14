@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Folia | Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        folia: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            900: '#4c1d95',
+                            950: '#2e1065',
+                        },
+                        dark: {
+                            bg: '#0f172a',
+                            card: '#1e293b',
+                            border: '#334155'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .glass-effect {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Shared Icons Component
+        const Icons = {
+            Home: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>,
+            Explore: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" /></svg>,
+            Bell: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>,
+            Mail: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>,
+            User: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
+            Settings: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>,
+            Image: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>,
+            Heart: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></svg>,
+            MessageCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></svg>,
+            Bookmark: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg>,
+            Share: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" x2="12" y1="2" y2="15" /></svg>,
+            MoreHorizontal: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>,
+            Search: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>,
+            PenTool: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19 7-7 3 3-7 7-3-3z" /><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" /><path d="m2 2 7.58 7.58" /></svg>,
+            Sparkles: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+        };
+
+        // Shared Layout Component
+        const AppLayout = ({ children, activePage }) => {
+            const navItems = [
+                { id: 'feed', label: 'Feed', icon: Icons.Home, href: 'index.html' },
+                { id: 'explore', label: 'Explore', icon: Icons.Explore, href: 'explore.html' },
+                { id: 'notifications', label: 'Notifications', icon: Icons.Bell, href: 'notifications.html' },
+                { id: 'messages', label: 'Messages', icon: Icons.Mail, href: 'messages.html' },
+                { id: 'profile', label: 'Profile', icon: Icons.User, href: 'profile.html' },
+                { id: 'settings', label: 'Settings', icon: Icons.Settings, href: 'settings.html' },
+            ];
+
+            return (
+                <div className="min-h-screen flex flex-col md:flex-row max-w-7xl mx-auto">
+                    {/* Mobile Top Bar */}
+                    <div className="md:hidden glass-effect sticky top-0 z-50 px-4 py-3 flex justify-between items-center">
+                        <div className="flex items-center gap-2 text-folia-500 font-bold text-xl">
+                            <Icons.Sparkles className="w-6 h-6" /> Folia
+                        </div>
+                        <img src="https://i.pravatar.cc/150?img=43" alt="Avatar" className="w-8 h-8 rounded-full border border-dark-border" />
+                    </div>
+
+                    {/* Desktop Sidebar */}
+                    <aside className="hidden md:flex flex-col w-64 border-r border-dark-border p-4 sticky top-0 h-screen overflow-y-auto">
+                        <div className="flex items-center gap-2 text-folia-500 font-bold text-2xl px-4 py-6 mb-4">
+                            <Icons.Sparkles className="w-7 h-7" /> Folia
+                        </div>
+
+                        <nav className="flex-1 space-y-2">
+                            {navItems.map(item => (
+                                <a key={item.id} href={item.href}
+                                    className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group
+                                   ${activePage === item.id
+                                            ? 'bg-folia-600/10 text-folia-500 font-medium'
+                                            : 'text-slate-400 hover:bg-dark-card hover:text-slate-200'}`}>
+                                    <item.icon className={`w-6 h-6 ${activePage === item.id ? 'fill-folia-500/20' : 'group-hover:scale-110 transition-transform'}`} />
+                                    <span className="text-lg">{item.label}</span>
+                                </a>
+                            ))}
+                        </nav>
+
+                        <button className="mt-auto mb-4 bg-folia-600 hover:bg-folia-500 text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-folia-600/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                            <Icons.PenTool className="w-5 h-5" /> Post Project
+                        </button>
+
+                        <div className="flex items-center gap-3 px-4 py-3 mt-4 border-t border-dark-border cursor-pointer hover:bg-dark-card rounded-xl transition-colors">
+                            <img src="https://i.pravatar.cc/150?img=43" alt="Avatar" className="w-10 h-10 rounded-full bg-dark-card" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-200 truncate">Alex Rivera</p>
+                                <p className="text-xs text-slate-500 truncate">@arivera_design</p>
+                            </div>
+                            <Icons.MoreHorizontal className="w-5 h-5 text-slate-500" />
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className="flex-1 min-w-0 border-r border-dark-border md:w-[600px] lg:w-[700px]">
+                        {children}
+                    </main>
+
+                    {/* Right Sidebar (Desktop) */}
+                    <aside className="hidden lg:block w-80 p-6 sticky top-0 h-screen overflow-y-auto hide-scrollbar">
+                        <div className="relative mb-6">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Icons.Search className="w-5 h-5 text-slate-500" />
+                            </div>
+                            <input type="text" placeholder="Search creatives, tags..."
+                                className="w-full bg-dark-card border border-dark-border rounded-full py-2.5 pl-10 pr-4 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-folia-500 focus:ring-1 focus:ring-folia-500 transition-all" />
+                        </div>
+
+                        <div className="bg-dark-card rounded-2xl border border-dark-border p-4 mb-6">
+                            <h3 className="font-bold text-slate-200 mb-4 whitespace-nowrap">Trending Palettes</h3>
+                            <div className="grid grid-cols-5 gap-2 mb-3">
+                                <div className="h-8 rounded-md bg-[#FF5C5C]"></div>
+                                <div className="h-8 rounded-md bg-[#FFB84C]"></div>
+                                <div className="h-8 rounded-md bg-[#F266AB]"></div>
+                                <div className="h-8 rounded-md bg-[#A459D1]"></div>
+                                <div className="h-8 rounded-md bg-[#2CD3E1]"></div>
+                            </div>
+                            <p className="text-xs text-slate-400 font-medium">Cyberpunk Sunset <span className="float-right">12.4k uses</span></p>
+                        </div>
+
+                        <div className="bg-dark-card rounded-2xl border border-dark-border p-4">
+                            <h3 className="font-bold text-slate-200 mb-4">Suggested Creatives</h3>
+                            {[
+                                { name: 'Elena Roth', handle: '@elenar', role: '3D Artist', img: '32' },
+                                { name: 'Marcus Chen', handle: '@marcus_c', role: 'Typography', img: '11' },
+                                { name: 'Sarah Joy', handle: '@sjoy_photo', role: 'Photography', img: '5' }
+                            ].map((user, i) => (
+                                <div key={i} className="flex items-center gap-3 mb-4 last:mb-0">
+                                    <img src={`https://i.pravatar.cc/150?img=${user.img}`} className="w-10 h-10 rounded-full" alt={user.name} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-slate-200 truncate">{user.name}</p>
+                                        <p className="text-xs text-slate-500 truncate">{user.role}</p>
+                                    </div>
+                                    <button className="text-xs font-semibold bg-dark-bg border border-dark-border text-slate-300 px-3 py-1.5 rounded-full hover:border-folia-500 hover:text-folia-400 transition-colors">
+                                        Follow
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-6 flex flex-wrap gap-x-3 gap-y-2 px-2 text-xs text-slate-500">
+                            <a href="#" className="hover:text-slate-300">About</a>
+                            <a href="#" className="hover:text-slate-300">Help Center</a>
+                            <a href="#" className="hover:text-slate-300">Terms of Service</a>
+                            <a href="#" className="hover:text-slate-300">Privacy Policy</a>
+                            <a href="#" className="hover:text-slate-300">© 2026 Folia</a>
+                        </div>
+                    </aside>
+
+                    {/* Mobile Bottom Bar */}
+                    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-dark-bg/90 backdrop-blur-md border-t border-dark-border flex justify-around items-center h-16 px-2 z-50">
+                        {navItems.slice(0, 5).map(item => (
+                            <a key={item.id} href={item.href} className="p-2 flex flex-col items-center gap-1 group">
+                                <item.icon className={`w-6 h-6 ${activePage === item.id ? 'text-folia-500 fill-folia-500/20' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                                <span className={`text-[10px] ${activePage === item.id ? 'text-folia-500 font-medium' : 'text-slate-500'}`}>{item.label}</span>
+                            </a>
+                        ))}
+                    </nav>
+                </div>
+            );
+        };
+
+        // Feed Page implementation
+        const FeedPage = () => {
+            const [feedType, setFeedType] = useState('foryou');
+            const [postText, setPostText] = useState('');
+
+            const posts = [
+                {
+                    id: 1,
+                    user: { name: 'Klara Weiss', handle: '@klara_w', avatar: 'https://i.pravatar.cc/150?img=1' },
+                    time: '2h',
+                    content: 'Exploring some new volumetric lighting techniques in blender today. Really happy with how the atmosphere turned out! 🌫️✨',
+                    tags: ['#3D', '#blender', '#lighting'],
+                    image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop',
+                    stats: { appreciates: 342, comments: 28, collects: 89 }
+                },
+                {
+                    id: 2,
+                    user: { name: 'Julian Ford', handle: '@jford_design', avatar: 'https://i.pravatar.cc/150?img=8' },
+                    time: '5h',
+                    content: 'Brand identity concept for a boutique coffee roaster. Went for a brutalist typography approach matched with warm earthy tones.',
+                    tags: ['#branding', '#typography', '#illustrator'],
+                    image: 'https://images.unsplash.com/photo-1629198688000-71f23e745b6e?q=80&w=2680&auto=format&fit=crop',
+                    stats: { appreciates: 821, comments: 64, collects: 215 }
+                },
+                {
+                    id: 3,
+                    user: { name: 'Maya Lin', handle: '@maya_pixels', avatar: 'https://i.pravatar.cc/150?img=5' },
+                    time: '12h',
+                    content: 'WIP on the new character concepts. Trying to find the right balance between tech-wear and fantasy elements.',
+                    tags: ['#illustration', '#procreate', '#conceptart'],
+                    image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?q=80&w=2845&auto=format&fit=crop',
+                    stats: { appreciates: 1205, comments: 142, collects: 430 }
+                }
+            ];
+
+            return (
+                <div className="pb-20 md:pb-0">
+                    {/* Header with Toggles */}
+                    <div className="glass-effect sticky top-0 z-40 px-4 py-3 flex items-center justify-between lg:justify-center border-b border-dark-border">
+                        <div className="flex bg-dark-bg rounded-lg p-1 border border-dark-border">
+                            <button
+                                onClick={() => setFeedType('foryou')}
+                                className={`px-6 py-1.5 text-sm font-medium rounded-md transition-all ${feedType === 'foryou'
+                                        ? 'bg-dark-card text-slate-100 shadow-sm'
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-dark-card/50'
+                                    }`}
+                            >
+                                For You
+                            </button>
+                            <button
+                                onClick={() => setFeedType('following')}
+                                className={`px-6 py-1.5 text-sm font-medium rounded-md transition-all ${feedType === 'following'
+                                        ? 'bg-dark-card text-slate-100 shadow-sm'
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-dark-card/50'
+                                    }`}
+                            >
+                                Following
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Composer */}
+                    <div className="p-4 border-b border-dark-border bg-dark-bg/50">
+                        <div className="flex gap-4">
+                            <img src="https://i.pravatar.cc/150?img=43" className="w-10 h-10 rounded-full flex-shrink-0" alt="Avatar" />
+                            <div className="flex-1">
+                                <textarea
+                                    className="w-full bg-transparent border-none focus:ring-0 resize-none text-lg text-slate-200 placeholder-slate-500 font-medium min-h-[60px]"
+                                    placeholder="Share your work in progress..."
+                                    value={postText}
+                                    onChange={(e) => setPostText(e.target.value)}
+                                ></textarea>
+
+                                <input type="text" placeholder="Add skills: #illustration #procreate"
+                                    className="w-full bg-transparent border-none text-sm text-folia-400 placeholder-slate-600 focus:ring-0 mb-3" />
+
+                                <div className="flex items-center justify-between pt-3 border-t border-dark-border">
+                                    <div className="flex items-center gap-2 text-folia-500">
+                                        <button className="p-2 rounded-full hover:bg-folia-500/10 transition-colors">
+                                            <Icons.Image className="w-5 h-5" />
+                                        </button>
+                                        <button className="p-2 rounded-full hover:bg-folia-500/10 transition-colors">
+                                            <Icons.PenTool className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    <button
+                                        className={`px-5 py-1.5 rounded-full font-medium shadow-lg transition-all ${postText.trim().length > 0
+                                                ? 'bg-folia-600 text-white hover:bg-folia-500 shadow-folia-600/20'
+                                                : 'bg-dark-card text-slate-400 cursor-not-allowed border border-dark-border'
+                                            }`}
+                                    >
+                                        Post
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Feed Posts */}
+                    <div className="divide-y divide-dark-border">
+                        {posts.map(post => (
+                            <article key={post.id} className="p-4 md:p-5 hover:bg-dark-card/30 transition-colors cursor-pointer group">
+                                <div className="flex items-start gap-3 mb-3">
+                                    <img src={post.user.avatar} className="w-10 h-10 rounded-full object-cover" alt={post.user.name} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="font-bold text-slate-200 truncate hover:underline">{post.user.name}</h3>
+                                                <span className="text-slate-500 text-sm">{post.user.handle}</span>
+                                                <span className="text-slate-600 text-sm">·</span>
+                                                <span className="text-slate-500 text-sm hover:underline">{post.time}</span>
+                                            </div>
+                                            <button className="text-slate-500 hover:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity p-2 -mr-2 rounded-full hover:bg-dark-border">
+                                                <Icons.MoreHorizontal className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="pl-13 ml-13 md:ml-0">
+                                    <p className="text-slate-300 text-[15px] mb-3 leading-relaxed whitespace-pre-wrap">
+                                        {post.content}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                        {post.tags.map(tag => (
+                                            <span key={tag} className="text-folia-400 text-sm hover:underline cursor-pointer">{tag}</span>
+                                        ))}
+                                    </div>
+
+                                    {/* Post Image Container */}
+                                    <div className="rounded-2xl overflow-hidden border border-dark-border max-w-full relative bg-dark-card aspect-[4/3] group-hover:border-slate-600 transition-colors">
+                                        <img src={post.image} alt="Post content" className="w-full h-full object-cover" loading="lazy" />
+                                    </div>
+
+                                    {/* Engagement Actions */}
+                                    <div className="flex items-center gap-6 mt-4 max-w-md text-slate-400">
+                                        <button className="flex items-center gap-2 group/action hover:text-rose-500 transition-colors">
+                                            <div className="p-2 rounded-full group-hover/action:bg-rose-500/10 transition-colors -ml-2">
+                                                <Icons.Heart className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-sm font-medium">{post.stats.appreciates}</span>
+                                        </button>
+                                        <button className="flex items-center gap-2 group/action hover:text-blue-400 transition-colors">
+                                            <div className="p-2 rounded-full group-hover/action:bg-blue-400/10 transition-colors -ml-2">
+                                                <Icons.MessageCircle className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-sm font-medium">{post.stats.comments}</span>
+                                        </button>
+                                        <button className="flex items-center gap-2 group/action hover:text-emerald-400 transition-colors">
+                                            <div className="p-2 rounded-full group-hover/action:bg-emerald-400/10 transition-colors -ml-2">
+                                                <Icons.Bookmark className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-sm font-medium">{post.stats.collects}</span>
+                                        </button>
+                                        <button className="flex items-center gap-2 group/action hover:text-folia-400 transition-colors ml-auto">
+                                            <div className="p-2 rounded-full group-hover/action:bg-folia-400/10 transition-colors -mr-2">
+                                                <Icons.Share className="w-5 h-5" />
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const Root = () => {
+            return (
+                <AppLayout activePage="feed">
+                    <FeedPage />
+                </AppLayout>
+            );
+        };
+
+        const rootElt = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootElt);
+        root.render(<Root />);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse — Notifications</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class', theme: { extend: {} } }</script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *:focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; border-radius: 6px; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .skip-link { position: absolute; top: -40px; left: 0; background: #7c3aed; color: white; padding: 8px 16px; border-radius: 0 0 8px 0; font-weight: 600; z-index: 100; }
+    .skip-link:focus { top: 0; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/* ── ICONS ─────────────────────────────────────────────── */
+const Ic = {
+  Home:     () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
+  Compass:  () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/></svg>,
+  Bell:     () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>,
+  Msg:      () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>,
+  User:     () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
+  Gear:     () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+  Heart:    () => <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
+  Comment:  () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
+  UserPlus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>,
+  AtSign:   () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>,
+  Repost:   () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>,
+  Plus:     () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>,
+  Lightning:() => <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>,
+  Check:    () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>,
+};
+
+/* ── AVATAR ─────────────────────────────────────────────── */
+const AVATAR_COLORS = {
+  AC:'from-violet-500 to-purple-700', MR:'from-rose-500 to-pink-700',
+  JP:'from-blue-500 to-cyan-700',    ST:'from-emerald-500 to-teal-700',
+  RK:'from-amber-500 to-orange-600', PK:'from-indigo-500 to-blue-700',
+  LS:'from-fuchsia-500 to-purple-700',ZW:'from-sky-500 to-blue-600',
+  DL:'from-lime-500 to-green-600',   NP:'from-red-500 to-rose-700',
+};
+const SZ = { sm:'w-8 h-8 text-xs', md:'w-10 h-10 text-sm', lg:'w-14 h-14 text-lg' };
+const Avatar = ({ user, size='md' }) => {
+  const initials = user.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const g = AVATAR_COLORS[initials] || 'from-violet-500 to-purple-700';
+  return <div className={`${SZ[size]} rounded-full bg-gradient-to-br ${g} flex items-center justify-center font-bold text-white flex-shrink-0 select-none`} aria-hidden="true">{initials}</div>;
+};
+
+/* ── NAV ────────────────────────────────────────────────── */
+const NAV_ITEMS = [
+  { icon:'Home',    label:'Home',          href:'index.html' },
+  { icon:'Compass', label:'Explore',       href:'explore.html' },
+  { icon:'Bell',    label:'Notifications', href:'notifications.html', badge:3 },
+  { icon:'Msg',     label:'Messages',      href:'messages.html', badge:5 },
+  { icon:'User',    label:'Profile',       href:'profile.html' },
+  { icon:'Gear',    label:'Settings',      href:'settings.html' },
+];
+const ME = { name:'Alex Chen', handle:'@alexchen' };
+
+const Navigation = ({ cur }) => (
+  <nav className="fixed left-0 top-0 h-full w-64 bg-slate-900 border-r border-slate-800 flex flex-col p-4 z-40 hidden lg:flex" aria-label="Main navigation">
+    <a href="index.html" className="flex items-center gap-2 mb-8 px-2" aria-label="Pulse — go to home feed">
+      <span className="text-violet-500"><Ic.Lightning /></span>
+      <span className="text-2xl font-extrabold tracking-tight text-white">Pulse</span>
+    </a>
+    <ul className="space-y-1 flex-1" role="list">
+      {NAV_ITEMS.map(({ icon, label, href, badge }) => {
+        const Icon = Ic[icon]; const active = cur === href;
+        return (
+          <li key={label}>
+            <a href={href} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${active ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`} aria-current={active ? 'page' : undefined}>
+              <Icon /><span className="font-semibold">{label}</span>
+              {badge > 0 && <span className="ml-auto bg-violet-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1" aria-label={`${badge} unread`}>{badge}</span>}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+    <button className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl mb-4 flex items-center justify-center gap-2 transition-colors" aria-label="Create new post"><Ic.Plus /><span>New Post</span></button>
+    <a href="profile.html" className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-800 transition-colors">
+      <Avatar user={ME} size="sm" />
+      <div className="flex-1 min-w-0"><p className="font-semibold text-sm text-white truncate">{ME.name}</p><p className="text-slate-500 text-xs truncate">{ME.handle}</p></div>
+    </a>
+  </nav>
+);
+
+const MobileNav = ({ cur }) => (
+  <nav className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800 flex lg:hidden z-40" aria-label="Mobile navigation">
+    {NAV_ITEMS.slice(0,5).map(({ icon, label, href, badge }) => {
+      const Icon = Ic[icon]; const active = cur === href;
+      return (
+        <a key={label} href={href} className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 relative transition-colors ${active ? 'text-violet-400' : 'text-slate-500 hover:text-slate-300'}`}
+          aria-label={label} aria-current={active ? 'page' : undefined}>
+          <Icon /><span className="text-[10px] font-medium">{label}</span>
+          {badge > 0 && <span className="absolute top-1.5 left-1/2 translate-x-1.5 bg-violet-500 text-white text-[9px] rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5" aria-label={`${badge} unread`}>{badge}</span>}
+        </a>
+      );
+    })}
+  </nav>
+);
+
+/* ── NOTIFICATIONS DATA ─────────────────────────────────── */
+const NOTIFS = [
+  { id:1,  type:'like',    user:{ name:'Maya Rodriguez', handle:'@maya_creates' }, time:'2h',  snippet:"Just wrapped up a deep dive into AI research…",                  unread:true  },
+  { id:2,  type:'follow',  user:{ name:'Priya Kapoor',   handle:'@priyak'       }, time:'3h',  snippet:null,                                                              unread:true  },
+  { id:3,  type:'mention', user:{ name:'Sam Taylor',     handle:'@sam_t'        }, time:'4h',  snippet:"@alexchen nailed it — console.log forever 😂",                    unread:true  },
+  { id:4,  type:'like',    user:{ name:'Jordan Park',    handle:'@jordanpark'   }, time:'5h',  snippet:"Hot take: The best debugging tool is still console.log…",         unread:false },
+  { id:5,  type:'like',    user:{ name:'Riley Kim',      handle:'@rileykim'     }, time:'6h',  snippet:"Just wrapped up a deep dive into AI research…",                  unread:false },
+  { id:6,  type:'comment', user:{ name:'Leo Santos',     handle:'@leosantos'   }, time:'7h',  snippet:"This is such a good point about multimodal AI. Have you seen the new paper on…", unread:false },
+  { id:7,  type:'follow',  user:{ name:'Zoe Williams',   handle:'@zoewrites'   }, time:'9h',  snippet:null,                                                              unread:false },
+  { id:8,  type:'repost',  user:{ name:'Omar Rashid',    handle:'@omarrashid'  }, time:'10h', snippet:"Climate Week is here! Did you know switching to plant-based…",   unread:false },
+  { id:9,  type:'like',    user:{ name:'Nina Park',      handle:'@ninapark'    }, time:'12h', snippet:"Golden hour in the city never gets old…",                         unread:false },
+  { id:10, type:'mention', user:{ name:'Diego Lima',     handle:'@diegolima'   }, time:'14h', snippet:"@alexchen your take on AI models is spot on. Worth sharing…",     unread:false },
+  { id:11, type:'like',    user:{ name:'Priya Kapoor',   handle:'@priyak'      }, time:'1d',  snippet:"Climate Week is here! Every small action counts…",               unread:false },
+  { id:12, type:'follow',  user:{ name:'Chris Osei',     handle:'@chrisosei'   }, time:'2d',  snippet:null,                                                              unread:false },
+];
+
+const TYPE_CONFIG = {
+  like:    { icon: Ic.Heart,   label:'liked your post',     color:'text-rose-400',    bg:'bg-rose-400/10'   },
+  comment: { icon: Ic.Comment, label:'commented on your post', color:'text-blue-400', bg:'bg-blue-400/10'   },
+  follow:  { icon: Ic.UserPlus,label:'started following you', color:'text-emerald-400',bg:'bg-emerald-400/10' },
+  mention: { icon: Ic.AtSign,  label:'mentioned you',       color:'text-violet-400',  bg:'bg-violet-400/10' },
+  repost:  { icon: Ic.Repost,  label:'reposted your post',  color:'text-cyan-400',    bg:'bg-cyan-400/10'   },
+};
+
+const TABS = [
+  { id:'all',      label:'All',      filter: () => true },
+  { id:'mentions', label:'Mentions', filter: n => n.type === 'mention' },
+  { id:'likes',    label:'Likes',    filter: n => n.type === 'like' },
+  { id:'follows',  label:'Follows',  filter: n => n.type === 'follow' },
+];
+
+const NotifItem = ({ notif, onDismiss }) => {
+  const cfg = TYPE_CONFIG[notif.type];
+  const Icon = cfg.icon;
+  return (
+    <li className={`flex items-start gap-3 p-4 rounded-2xl border transition-colors ${notif.unread ? 'bg-violet-950/30 border-violet-800/40 hover:border-violet-700/60' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}`}>
+      <div className="relative flex-shrink-0">
+        <Avatar user={notif.user} size="md" />
+        <span className={`absolute -bottom-1 -right-1 ${cfg.bg} ${cfg.color} rounded-full p-0.5`} aria-hidden="true"><Icon /></span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-slate-100 leading-snug">
+          <a href="profile.html" className="font-bold hover:underline">{notif.user.name}</a>
+          {' '}<span className="text-slate-400">{cfg.label}</span>
+          {' '}<span className="text-slate-500">· {notif.time}</span>
+        </p>
+        {notif.snippet && <p className="text-slate-400 text-xs mt-1 line-clamp-2 leading-relaxed">"{notif.snippet}"</p>}
+      </div>
+      {notif.unread && <span className="w-2.5 h-2.5 bg-violet-500 rounded-full flex-shrink-0 mt-1" aria-label="Unread notification"></span>}
+    </li>
+  );
+};
+
+/* ── NOTIFICATIONS PAGE ─────────────────────────────────── */
+const NotificationsPage = () => {
+  const [activeTab, setActiveTab] = useState('all');
+  const [notifs, setNotifs] = useState(NOTIFS);
+  const filtered = notifs.filter(TABS.find(t => t.id === activeTab).filter);
+  const unreadCount = notifs.filter(n => n.unread).length;
+
+  const markAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })));
+
+  return (
+    <div className="min-h-screen bg-slate-950">
+      <Navigation cur="notifications.html" />
+      <MobileNav cur="notifications.html" />
+      <div className="lg:ml-64">
+        <main id="main-content" className="max-w-2xl mx-auto px-4 py-6 pb-24 lg:pb-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-extrabold text-white">Notifications</h1>
+              {unreadCount > 0 && (
+                <span className="bg-violet-600 text-white text-xs font-bold px-2.5 py-1 rounded-full" aria-label={`${unreadCount} unread notifications`}>{unreadCount} new</span>
+              )}
+            </div>
+            {unreadCount > 0 && (
+              <button onClick={markAllRead} className="flex items-center gap-1.5 text-sm text-violet-400 hover:text-violet-300 font-semibold transition-colors" aria-label="Mark all notifications as read">
+                <Ic.Check /><span>Mark all read</span>
+              </button>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 bg-slate-800/60 rounded-xl p-1 mb-5" role="tablist" aria-label="Notification categories">
+            {TABS.map(t => (
+              <button key={t.id} role="tab" id={`tab-${t.id}`} aria-selected={activeTab === t.id} aria-controls={`panel-${t.id}`}
+                onClick={() => setActiveTab(t.id)}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === t.id ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}>
+                {t.label}
+                {t.id === 'all' && unreadCount > 0 && <span className="ml-1.5 bg-violet-500 text-white text-[10px] rounded-full px-1.5 py-0.5">{unreadCount}</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* Notification list */}
+          <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
+            {filtered.length > 0 ? (
+              <ul className="space-y-2" aria-label="Notifications list">
+                {filtered.map(n => <NotifItem key={n.id} notif={n} />)}
+              </ul>
+            ) : (
+              <div className="text-center py-16">
+                <div className="text-slate-600 mb-3"><Ic.Bell /></div>
+                <p className="text-slate-400 font-medium">No notifications here yet</p>
+                <p className="text-slate-500 text-sm mt-1">When someone interacts with you, it'll show up here.</p>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<NotificationsPage />);
+</script>
+</body>
+</html>

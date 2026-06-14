@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python for Data Science — Study · LearnPath</title>
+  <meta name="description" content="Active learning session for Python for Data Science on LearnPath." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    *:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; border-radius: 4px; }
+    .skip-link { position:absolute; top:-100%; left:8px; background:#4f46e5; color:#fff; padding:8px 16px; border-radius:0 0 8px 8px; font-weight:600; font-size:14px; z-index:9999; }
+    .skip-link:focus { top:0; }
+    .lesson-scroll { max-height: calc(100vh - 180px); overflow-y: auto; }
+    .lesson-scroll::-webkit-scrollbar { width: 4px; }
+    .lesson-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+    .lesson-scroll::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 2px; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 antialiased">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ─── ICONS ─────────────────────────────────────────────── */
+    const Logo = () => (
+      <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+        <path d="M7 20 L16 9 L25 20" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        <path d="M11 20 L21 20" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="16" cy="23" r="1.5" fill="white"/>
+      </svg>
+    );
+    const CheckCircleIcon = ({cls='w-5 h-5'}) => (
+      <svg className={cls} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path fillRule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5l-3.5-3.5 1.41-1.41L10 13.67l6.09-6.09 1.41 1.41L10 16.5z"/>
+      </svg>
+    );
+    const PlayIcon = ({cls='w-5 h-5'}) => (
+      <svg className={cls} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+    );
+    const LockIcon = ({cls='w-3.5 h-3.5'}) => (
+      <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+      </svg>
+    );
+    const ChevronLeftIcon = ({cls='w-5 h-5'}) => (
+      <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
+      </svg>
+    );
+    const ChevronRightIcon = ({cls='w-5 h-5'}) => (
+      <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+      </svg>
+    );
+    const MenuIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    );
+    const CloseIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    );
+
+    /* ─── LESSON DATA ────────────────────────────────────────── */
+    const MODULES = [
+      {
+        title: 'Module 1: Python Basics',
+        lessons: [
+          { id: 1, title: 'Introduction & Setup', duration: '8:42', done: true },
+          { id: 2, title: 'Python Syntax Basics', duration: '12:15', done: true },
+          { id: 3, title: 'Variables & Data Types', duration: '14:33', done: true },
+        ]
+      },
+      {
+        title: 'Module 2: Data Structures',
+        lessons: [
+          { id: 4, title: 'Lists & Tuples', duration: '16:20', done: false, active: true },
+          { id: 5, title: 'Dictionaries & Sets', duration: '11:45', done: false },
+          { id: 6, title: 'List Comprehensions', duration: '9:58', done: false },
+          { id: 7, title: 'Working with Files', duration: '13:27', done: false },
+        ]
+      },
+      {
+        title: 'Module 3: NumPy & Pandas',
+        lessons: [
+          { id: 8, title: 'NumPy Arrays & Operations', duration: '18:10', done: false, locked: true },
+          { id: 9, title: 'DataFrame Basics', duration: '21:05', done: false, locked: true },
+          { id: 10, title: 'Data Cleaning Techniques', duration: '24:33', done: false, locked: true },
+          { id: 11, title: 'Merging & Reshaping Data', duration: '17:42', done: false, locked: true },
+          { id: 12, title: 'Time Series Basics', duration: '15:20', done: false, locked: true },
+        ]
+      },
+    ];
+
+    const NOTES = [
+      { time: '3:15', text: 'Lists are ordered and mutable. Tuples are ordered but immutable — great for fixed data.' },
+      { time: '7:40', text: 'Use list.append() to add elements, list.pop() to remove the last, or list.remove(value) for specific element.' },
+      { time: '11:22', text: 'Slicing syntax: list[start:stop:step] — remember Python uses 0-based indexing!' },
+    ];
+
+    const QA = [
+      { q: 'What is the difference between a list and a tuple in Python?', a: 'Lists are mutable (can be changed after creation) while tuples are immutable. Tuples are faster and use less memory, making them ideal for fixed collections of items.', votes: 24, author: 'Priya K.' },
+      { q: 'Can you nest lists inside other lists?', a: 'Yes! Nested lists (lists of lists) are common in Python for representing matrices or 2D data. Access elements with list[row][col] syntax.', votes: 17, author: 'Tom N.' },
+    ];
+
+    const RESOURCES = [
+      { name: 'Lesson Slides — Lists & Tuples', type: 'PDF', size: '2.4 MB' },
+      { name: 'Exercise Files — Module 2', type: 'ZIP', size: '1.1 MB' },
+      { name: 'Python Data Structures Cheatsheet', type: 'PDF', size: '0.8 MB' },
+    ];
+
+    /* ─── STUDY PAGE ─────────────────────────────────────────── */
+    const StudyPage = () => {
+      const [activeTab, setActiveTab] = useState('overview');
+      const [activeLesson, setActiveLesson] = useState(4);
+      const [sidebarOpen, setSidebarOpen] = useState(false);
+      const [completedLessons, setCompletedLessons] = useState(new Set([1,2,3]));
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [noteText, setNoteText] = useState('');
+      const [notes, setNotes] = useState(NOTES);
+
+      const totalLessons = MODULES.reduce((acc,m)=>acc+m.lessons.length,0);
+      const completedCount = completedLessons.size;
+      const progressPct = Math.round((completedCount/totalLessons)*100);
+      const currentLesson = MODULES.flatMap(m=>m.lessons).find(l=>l.id===activeLesson);
+      const currentModule = MODULES.find(m=>m.lessons.some(l=>l.id===activeLesson));
+
+      const goTo = (id) => {
+        setActiveLesson(id);
+        setSidebarOpen(false);
+      };
+
+      const markDone = () => {
+        const updated = new Set(completedLessons);
+        updated.add(activeLesson);
+        setCompletedLessons(updated);
+      };
+
+      const addNote = () => {
+        if (!noteText.trim()) return;
+        setNotes([...notes, { time: 'Now', text: noteText.trim() }]);
+        setNoteText('');
+      };
+
+      const allLessons = MODULES.flatMap(m=>m.lessons);
+      const currentIdx = allLessons.findIndex(l=>l.id===activeLesson);
+      const prevLesson = currentIdx > 0 ? allLessons[currentIdx-1] : null;
+      const nextLesson = currentIdx < allLessons.length-1 ? allLessons[currentIdx+1] : null;
+
+      const TABS = [
+        { id:'overview', label:'Overview' },
+        { id:'notes',    label:`Notes (${notes.length})` },
+        { id:'qa',       label:'Q&A' },
+        { id:'resources',label:'Resources' },
+      ];
+
+      return (
+        <div className="min-h-screen flex flex-col bg-gray-950">
+          {/* Study Nav */}
+          <header className="bg-gray-900 border-b border-gray-800 z-50" role="banner">
+            <div className="px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <a href="index.html" className="shrink-0 focus:ring-2 focus:ring-indigo-500 rounded-lg" aria-label="LearnPath – homepage">
+                  <Logo />
+                </a>
+                <div className="hidden sm:block h-5 w-px bg-gray-700" aria-hidden="true"/>
+                <div className="min-w-0">
+                  <a href="course-detail.html" className="text-xs text-gray-400 hover:text-gray-200 block truncate transition-colors" aria-label="Back to Python for Data Science course">
+                    Python for Data Science
+                  </a>
+                  <p className="text-sm font-semibold text-gray-100 truncate">{currentLesson?.title}</p>
+                </div>
+              </div>
+
+              {/* Progress */}
+              <div className="hidden md:flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-32 h-1.5 bg-gray-700 rounded-full overflow-hidden" role="progressbar" aria-label={`Course progress: ${completedCount} of ${totalLessons} lessons completed`} aria-valuenow={completedCount} aria-valuemin={0} aria-valuemax={totalLessons}>
+                    <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{width:`${progressPct}%`}}/>
+                  </div>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">{completedCount}/{totalLessons} lessons</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a href="dashboard.html" className="text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors hidden sm:block">Dashboard</a>
+                <button onClick={()=>setSidebarOpen(!sidebarOpen)}
+                  className="lg:hidden p-2 rounded-lg text-gray-400 hover:bg-gray-800 transition-colors"
+                  aria-label={sidebarOpen?'Close lesson list':'Open lesson list'} aria-expanded={sidebarOpen}>
+                  {sidebarOpen?<CloseIcon/>:<MenuIcon/>}
+                </button>
+              </div>
+            </div>
+
+            {/* Progress Bar (full width, below header) */}
+            <div className="h-0.5 bg-gray-800" aria-hidden="true">
+              <div className="h-full bg-indigo-500 transition-all duration-500" style={{width:`${progressPct}%`}}/>
+            </div>
+          </header>
+
+          {/* Module progress banner */}
+          <div className="bg-indigo-900/50 border-b border-indigo-800/60 px-4 sm:px-6 py-2.5 flex items-center justify-between">
+            <p className="text-xs text-indigo-300 font-medium">
+              <span className="text-indigo-100 font-bold">Lesson {activeLesson} of {totalLessons}</span>
+              <span className="mx-2 text-indigo-600" aria-hidden="true">—</span>
+              {currentModule?.title}
+            </p>
+            <span className="text-xs text-indigo-400 font-semibold">{progressPct}% complete</span>
+          </div>
+
+          <main id="main-content" tabIndex="-1" className="flex flex-1 overflow-hidden">
+            {/* Main: Video + Tabs */}
+            <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+              {/* Video Player */}
+              <div className="bg-black">
+                <div className="max-w-4xl mx-auto w-full">
+                  <div className="aspect-video bg-gray-900 flex items-center justify-center relative group">
+                    {/* Simulated video thumbnail */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/60 to-gray-900 flex flex-col items-center justify-center">
+                      <div className="text-6xl mb-4" aria-hidden="true">🐍</div>
+                      <p className="text-white font-bold text-lg">{currentLesson?.title}</p>
+                      <p className="text-gray-400 text-sm mt-1">Duration: {currentLesson?.duration}</p>
+                    </div>
+
+                    {/* Play/Pause overlay */}
+                    <button
+                      onClick={()=>setIsPlaying(!isPlaying)}
+                      className="relative z-10 w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/20 transition-all border-2 border-white/30 group-hover:scale-105"
+                      aria-label={isPlaying ? 'Pause video' : 'Play video'}>
+                      {isPlaying ? (
+                        <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                        </svg>
+                      ) : <PlayIcon cls="w-8 h-8 text-white ml-1"/>}
+                    </button>
+
+                    {/* Video controls bar */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <button aria-label={isPlaying?'Pause':'Play'} onClick={()=>setIsPlaying(!isPlaying)}
+                          className="text-white hover:text-indigo-300 transition-colors">
+                          {isPlaying ? (
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                          ) : <PlayIcon cls="w-5 h-5"/>}
+                        </button>
+                        {/* Fake progress bar */}
+                        <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden cursor-pointer" role="slider" aria-label="Video position" aria-valuenow={33} aria-valuemin={0} aria-valuemax={100} tabIndex="0">
+                          <div className="h-full bg-indigo-400 rounded-full" style={{width:'33%'}}/>
+                        </div>
+                        <span className="text-white text-xs font-mono whitespace-nowrap">5:22 / {currentLesson?.duration}</span>
+                        <button aria-label="Toggle subtitles" className="text-white hover:text-indigo-300 transition-colors text-xs font-bold border border-white/30 px-1.5 py-0.5 rounded">CC</button>
+                        <button aria-label="Playback speed: 1x" className="text-white hover:text-indigo-300 text-xs font-semibold">1x</button>
+                        <button aria-label="Toggle fullscreen" className="text-white hover:text-indigo-300 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Below Video */}
+              <div className="flex-1 bg-gray-50 p-0">
+                <div className="max-w-4xl mx-auto">
+                  {/* Lesson title + navigation */}
+                  <div className="px-6 py-5 bg-white border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h1 className="text-xl font-bold text-gray-900">{currentLesson?.title}</h1>
+                      <p className="text-sm text-gray-500 mt-0.5">{currentModule?.title}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button onClick={()=>prevLesson&&goTo(prevLesson.id)} disabled={!prevLesson}
+                        className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        aria-label={prevLesson?`Previous lesson: ${prevLesson.title}`:'No previous lesson'}>
+                        <ChevronLeftIcon cls="w-4 h-4"/> Prev
+                      </button>
+                      <button onClick={markDone}
+                        className={`flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg transition-colors ${completedLessons.has(activeLesson)?'bg-emerald-100 text-emerald-700 cursor-default':'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+                        aria-pressed={completedLessons.has(activeLesson)}>
+                        {completedLessons.has(activeLesson) ? <><CheckCircleIcon cls="w-4 h-4"/> Completed</> : 'Mark Complete'}
+                      </button>
+                      <button onClick={()=>nextLesson&&goTo(nextLesson.id)} disabled={!nextLesson}
+                        className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        aria-label={nextLesson?`Next lesson: ${nextLesson.title}`:'No next lesson'}>
+                        Next <ChevronRightIcon cls="w-4 h-4"/>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tabs */}
+                  <div className="bg-white border-b border-gray-100">
+                    <div role="tablist" aria-label="Lesson content tabs" className="flex px-6 gap-0">
+                      {TABS.map(t=>(
+                        <button key={t.id} role="tab" id={`tab-${t.id}`} aria-selected={activeTab===t.id} aria-controls={`panel-${t.id}`}
+                          onClick={()=>setActiveTab(t.id)}
+                          className={`px-5 py-4 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${activeTab===t.id?'border-indigo-600 text-indigo-600':'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tab Panels */}
+                  <div className="p-6">
+                    {/* Overview */}
+                    <div role="tabpanel" id="panel-overview" aria-labelledby="tab-overview" hidden={activeTab!=='overview'}>
+                      <div className="prose prose-sm max-w-none text-gray-700">
+                        <h2 className="text-lg font-bold text-gray-900 mb-3">About this Lesson</h2>
+                        <p className="mb-4">In this lesson, we dive deep into Python's two fundamental sequential data structures: <strong>lists</strong> and <strong>tuples</strong>. Understanding when to use each is crucial for writing efficient, Pythonic code.</p>
+                        <h3 className="text-base font-bold text-gray-900 mb-2">Topics Covered</h3>
+                        <ul className="space-y-2 mb-4 list-none pl-0">
+                          {['Creating and indexing lists and tuples','Slicing sequences with start:stop:step syntax','Mutable vs. immutable: when each matters','Common list methods: append, extend, insert, remove, pop','Tuple packing and unpacking','Iterating efficiently with enumerate() and zip()'].map(t=>(
+                            <li key={t} className="flex items-start gap-2">
+                              <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mt-2 shrink-0" aria-hidden="true"/>
+                              <span>{t}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mt-4">
+                          <p className="text-sm font-semibold text-indigo-800 mb-1">💡 Pro Tip</p>
+                          <p className="text-sm text-indigo-700">Use tuples for data that shouldn't change (like coordinates or RGB values) and lists for data that grows or changes over time.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notes */}
+                    <div role="tabpanel" id="panel-notes" aria-labelledby="tab-notes" hidden={activeTab!=='notes'}>
+                      <h2 className="text-lg font-bold text-gray-900 mb-4">My Notes</h2>
+                      <div className="mb-6">
+                        <label htmlFor="note-input" className="block text-sm font-medium text-gray-700 mb-2">Add a note</label>
+                        <div className="flex gap-2">
+                          <textarea id="note-input" rows={3} value={noteText} onChange={e=>setNoteText(e.target.value)}
+                            placeholder="Write a note about this lesson…"
+                            className="flex-1 text-sm border border-gray-200 rounded-xl px-4 py-3 resize-none text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"/>
+                        </div>
+                        <button onClick={addNote}
+                          className="mt-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                          Save Note
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {notes.map((n,i)=>(
+                          <div key={i} className="flex gap-3 bg-amber-50 border border-amber-100 rounded-xl p-4">
+                            <button aria-label={`Jump to ${n.time} in video`}
+                              className="shrink-0 text-xs font-bold text-amber-700 bg-amber-200 px-2 py-1 rounded-lg hover:bg-amber-300 transition-colors">
+                              {n.time}
+                            </button>
+                            <p className="text-sm text-gray-700 leading-relaxed">{n.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Q&A */}
+                    <div role="tabpanel" id="panel-qa" aria-labelledby="tab-qa" hidden={activeTab!=='qa'}>
+                      <div className="flex items-center justify-between mb-5">
+                        <h2 className="text-lg font-bold text-gray-900">Questions & Answers</h2>
+                        <button className="bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">Ask a Question</button>
+                      </div>
+                      <div className="space-y-5">
+                        {QA.map((item,i)=>(
+                          <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
+                            <div className="bg-gray-50 px-5 py-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <h3 className="text-sm font-semibold text-gray-900">{item.q}</h3>
+                                <button aria-label={`Upvote this question, currently ${item.votes} votes`}
+                                  className="shrink-0 flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:border-indigo-300 transition-colors">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg>
+                                  {item.votes}
+                                </button>
+                              </div>
+                              <p className="text-xs text-gray-400 mt-1">Asked by {item.author}</p>
+                            </div>
+                            <div className="px-5 py-4 bg-white">
+                              <p className="text-sm text-gray-700 leading-relaxed">{item.a}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Resources */}
+                    <div role="tabpanel" id="panel-resources" aria-labelledby="tab-resources" hidden={activeTab!=='resources'}>
+                      <h2 className="text-lg font-bold text-gray-900 mb-4">Downloadable Resources</h2>
+                      <ul className="space-y-3" role="list">
+                        {RESOURCES.map(r=>(
+                          <li key={r.name} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0">
+                                {r.type}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{r.name}</p>
+                                <p className="text-xs text-gray-500">{r.size}</p>
+                              </div>
+                            </div>
+                            <a href="#" download aria-label={`Download ${r.name}`}
+                              className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                              </svg>
+                              Download
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Lesson Sidebar */}
+            <aside
+              className={`${sidebarOpen?'fixed inset-0 z-40 pt-14':'hidden'} lg:relative lg:flex lg:flex-col w-80 shrink-0 bg-gray-900 border-l border-gray-800 overflow-hidden`}
+              aria-label="Course curriculum and lesson navigation">
+              <div className="px-5 py-4 border-b border-gray-800 bg-gray-800">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold text-gray-100">Course Content</h2>
+                  <button onClick={()=>setSidebarOpen(false)} className="lg:hidden p-1 text-gray-400 hover:text-white rounded" aria-label="Close lesson list">
+                    <CloseIcon />
+                  </button>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-500 rounded-full" style={{width:`${progressPct}%`}} aria-hidden="true"/>
+                  </div>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">{progressPct}%</span>
+                </div>
+              </div>
+
+              <div className="lesson-scroll flex-1 py-2">
+                {MODULES.map((mod, mi) => (
+                  <div key={mi}>
+                    <div className="px-5 py-3 sticky top-0 bg-gray-800/95 backdrop-blur-sm border-b border-gray-700/60 z-10">
+                      <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">{mod.title}</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {mod.lessons.filter(l=>completedLessons.has(l.id)).length}/{mod.lessons.length} completed
+                      </p>
+                    </div>
+                    <ul role="list">
+                      {mod.lessons.map(lesson => {
+                        const isDone = completedLessons.has(lesson.id);
+                        const isActive = lesson.id === activeLesson;
+                        const isLocked = lesson.locked && !isDone && !isActive;
+                        return (
+                          <li key={lesson.id}>
+                            <button
+                              onClick={()=>!isLocked&&goTo(lesson.id)}
+                              disabled={isLocked}
+                              className={`w-full flex items-start gap-3 px-5 py-3 text-left transition-colors ${isActive?'bg-indigo-600/20 border-l-2 border-indigo-500':'hover:bg-gray-800 border-l-2 border-transparent'} ${isLocked?'opacity-50 cursor-not-allowed':''}`}
+                              aria-label={`${lesson.title}${isDone?' (completed)':''}${isActive?' (current lesson)':''}${isLocked?' (locked)':''}`}
+                              aria-current={isActive?'true':undefined}>
+                              <div className="shrink-0 mt-0.5">
+                                {isDone ? (
+                                  <CheckCircleIcon cls="w-5 h-5 text-emerald-400"/>
+                                ) : isLocked ? (
+                                  <LockIcon cls="w-4 h-4 text-gray-600 mt-0.5"/>
+                                ) : isActive ? (
+                                  <div className="w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center">
+                                    <PlayIcon cls="w-3 h-3 text-white ml-0.5"/>
+                                  </div>
+                                ) : (
+                                  <div className="w-5 h-5 border-2 border-gray-600 rounded-full"/>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-medium leading-snug ${isActive?'text-indigo-300':isDone?'text-gray-400':'text-gray-300'}`}>
+                                  {lesson.title}
+                                </p>
+                                <p className="text-xs text-gray-600 mt-0.5">{lesson.duration}</p>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </aside>
+          </main>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<StudyPage />);
+  </script>
+</body>
+</html>

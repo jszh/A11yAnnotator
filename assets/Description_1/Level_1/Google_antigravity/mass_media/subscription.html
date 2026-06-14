@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe to The Meridian | Plans & Pricing</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Libre Baskerville', 'serif'],
+                    },
+                    colors: {
+                        meridian: {
+                            50: '#fdfdfc',
+                            100: '#f6f7f9',
+                            800: '#1a1d24',
+                            900: '#0f1115',
+                            accent: '#d92323',
+                            subscription: '#0a493a', // Dark evergreen for subscription emphasis
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdfdfc;
+            color: #1a1d24;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        .font-serif {
+            font-family: 'Libre Baskerville', serif;
+        }
+
+        .focus-visible-outline:focus-visible {
+            outline: 2px solid #0a493a;
+            outline-offset: 2px;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #0a493a;
+            color: white;
+            padding: 8px;
+            z-index: 100;
+            transition: top 0.2s;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        .subscription-bg {
+            background-color: #f6f7f9;
+        }
+
+        /* Remove default list styles inside component lists */
+        ul[role="list"] {
+            list-style: none;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+
+        // --- SHARED HEADER/FOOTER (Minimal for Subscribe flow) ---
+        const Header = () => (
+            <header className="border-b border-gray-200 sticky top-0 bg-white z-50 shadow-sm py-4">
+                <a href="#main-content" className="skip-link font-sans font-medium">Skip to main content</a>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                    <div className="flex-shrink-0 flex items-center">
+                        <a href="index.html" className="focus-visible-outline" aria-label="The Meridian Home">
+                            <h1 className="font-serif text-3xl font-bold tracking-tight text-meridian-900">The Meridian</h1>
+                        </a>
+                    </div>
+                    <div>
+                        <a href="index.html" className="text-sm font-semibold text-gray-600 hover:text-meridian-900 focus-visible-outline">Return to Home</a>
+                    </div>
+                </div>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="bg-meridian-900 text-white mt-auto py-12 border-t-4 border-meridian-subscription">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
+                        <p className="mb-4 md:mb-0">&copy; {new Date().getFullYear()} The Meridian Media Company.</p>
+                        <div className="flex space-x-6">
+                            <a href="#" className="hover:text-white focus-visible-outline">Terms of Sale</a>
+                            <a href="#" className="hover:text-white focus-visible-outline">Privacy Policy</a>
+                            <a href="#" className="hover:text-white focus-visible-outline">Subscriber Agreement</a>
+                            <a href="#" className="hover:text-white focus-visible-outline">Help Center</a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        const PricingTier = ({ title, price, period, description, features, isPopular, isAccess, buttonText, onSelect }) => (
+            <div className={`rounded-sm border-2 ${isPopular ? 'border-meridian-subscription shadow-xl relative scale-100 md:scale-105 z-10 bg-white' : 'border-gray-200 bg-white shadow-md'} p-8 flex flex-col`}>
+                {isPopular && (
+                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-meridian-subscription text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm">
+                        Most Popular
+                    </div>
+                )}
+
+                <h3 className="font-serif text-2xl font-bold text-meridian-900 mb-2">{title}</h3>
+                <p className="text-gray-500 text-sm mb-6 h-10">{description}</p>
+
+                <div className="mb-8 border-b border-gray-100 pb-8 flex-grow-0">
+                    <span className="text-4xl font-bold tracking-tight text-meridian-900">{price}</span>
+                    <span className="text-gray-500 font-medium">/{period}</span>
+                    <p className="text-xs text-gray-400 mt-2">Billed {period === 'mo' ? 'monthly' : 'annually'}, cancel anytime.</p>
+                </div>
+
+                <ul role="list" className="space-y-4 mb-8 flex-grow text-sm">
+                    {features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start">
+                            <div className="flex-shrink-0 text-meridian-subscription">
+                                <i className="fas fa-check mt-1"></i>
+                            </div>
+                            <p className="ml-3 text-gray-700 leading-relaxed">{feature}</p>
+                        </li>
+                    ))}
+                </ul>
+
+                <button
+                    onClick={onSelect}
+                    className={`nav-link w-full py-3 px-4 rounded-sm text-center font-bold text-sm tracking-wide focus-visible-outline transition-colors ${isPopular
+                            ? 'bg-meridian-subscription text-white hover:bg-[#063328]'
+                            : (isAccess ? 'bg-meridian-900 text-white hover:bg-gray-800' : 'bg-meridian-100 text-meridian-900 hover:bg-gray-200 border border-gray-300')
+                        }`}
+                >
+                    {buttonText}
+                </button>
+            </div>
+        );
+
+        const FeatureComparison = () => {
+            const features = [
+                { name: "Daily News Articles", free: true, digital: true, allAccess: true },
+                { name: "Breaking News Alerts", free: true, digital: true, allAccess: true },
+                { name: "Unlimited Articles Access", free: false, digital: true, allAccess: true },
+                { name: "Subscriber-only Newsletters", free: false, digital: true, allAccess: true },
+                { name: "Ad-Free Reading Experience", free: false, digital: "Partial", allAccess: true },
+                { name: "Meridian Crossword & Games", free: false, digital: false, allAccess: true },
+                { name: "Audio Articles & Podcasts", free: false, digital: false, allAccess: true },
+                { name: "Gift Articles (5/month)", free: false, digital: false, allAccess: true },
+            ];
+
+            const Check = () => <i className="fas fa-check text-meridian-subscription"></i>;
+            const Cross = () => <i className="fas fa-minus text-gray-300"></i>;
+
+            return (
+                <div className="mt-20 overflow-x-auto shadow-sm ring-1 ring-gray-200 rounded-sm bg-white">
+                    <table className="w-full text-left border-collapse">
+                        <caption className="sr-only">Compare Subscription Plans</caption>
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th scope="col" className="p-4 sm:p-6 font-semibold text-gray-900 w-1/4">Features</th>
+                                <th scope="col" className="p-4 sm:p-6 font-semibold text-gray-900 text-center w-1/4">Free Account</th>
+                                <th scope="col" className="p-4 sm:p-6 font-semibold text-gray-900 text-center w-1/4 border-l border-r border-gray-200 bg-meridian-50">Digital Standard</th>
+                                <th scope="col" className="p-4 sm:p-6 font-semibold text-gray-900 text-center w-1/4">All-Access</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                            {features.map((feature, idx) => (
+                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                    <th scope="row" className="p-4 sm:p-6 text-sm font-medium text-gray-900 whitespace-nowrap">{feature.name}</th>
+                                    <td className="p-4 sm:p-6 text-center text-sm text-gray-500">
+                                        {feature.free === true ? <Check /> : (feature.free === false ? <Cross /> : feature.free)}
+                                    </td>
+                                    <td className="p-4 sm:p-6 text-center text-sm font-medium text-meridian-900 border-l border-r border-gray-200 bg-meridian-50/50">
+                                        {feature.digital === true ? <Check /> : (feature.digital === false ? <Cross /> : feature.digital)}
+                                    </td>
+                                    <td className="p-4 sm:p-6 text-center text-sm font-medium text-meridian-900">
+                                        {feature.allAccess === true ? <Check /> : (feature.allAccess === false ? <Cross /> : feature.allAccess)}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        };
+
+        const Testimonial = ({ quote, author, role }) => (
+            <div className="bg-white p-8 rounded-sm shadow-sm border border-gray-200 flex flex-col h-full">
+                <div className="flex text-meridian-subscription mb-4">
+                    <i className="fas fa-star text-sm"></i>
+                    <i className="fas fa-star text-sm"></i>
+                    <i className="fas fa-star text-sm"></i>
+                    <i className="fas fa-star text-sm"></i>
+                    <i className="fas fa-star text-sm"></i>
+                </div>
+                <blockquote className="flex-grow font-serif italic text-gray-700 leading-relaxed mb-6">"{quote}"</blockquote>
+                <div className="mt-auto border-t border-gray-100 pt-4">
+                    <p className="font-bold text-sm text-meridian-900">{author}</p>
+                    <p className="text-xs text-gray-500">{role}</p>
+                </div>
+            </div>
+        );
+
+        const FAQItem = ({ question, answer }) => {
+            const [isOpen, setIsOpen] = React.useState(false);
+            return (
+                <div className="border-b border-gray-200 last:border-0 py-5">
+                    <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        className="flex justify-between items-center w-full text-left font-semibold text-meridian-900 hover:text-meridian-subscription focus-visible-outline transition"
+                        aria-expanded={isOpen}
+                    >
+                        <span>{question}</span>
+                        <span className="ml-6 flex-shrink-0 text-gray-400">
+                            <i className={`fas ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
+                        </span>
+                    </button>
+                    {isOpen && (
+                        <div className="mt-4 text-gray-600 leading-relaxed text-sm pr-12">
+                            {answer}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const StepForm = ({ planName, onBack }) => {
+            return (
+                <div className="max-w-2xl mx-auto bg-white p-6 sm:p-10 rounded-sm shadow-xl ring-1 ring-gray-200 mt-10">
+                    <button onClick={onBack} className="text-sm text-gray-500 hover:text-meridian-900 mb-6 focus-visible-outline flex items-center">
+                        <i className="fas fa-arrow-left mr-2"></i> Back to Plans
+                    </button>
+
+                    <div className="mb-8 pb-6 border-b border-gray-200 text-center">
+                        <span className="text-xs font-bold uppercase tracking-widest text-meridian-subscription mb-2 block">Step 1 of 2</span>
+                        <h2 className="font-serif text-3xl font-bold text-meridian-900">Create your account</h2>
+                        <p className="text-gray-500 mt-2">Selected Plan: <strong className="text-meridian-900">{planName}</strong></p>
+                    </div>
+
+                    <form className="space-y-6" aria-label="Account Creation Form">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label htmlFor="firstName" className="block text-sm font-semibold text-gray-700 mb-1">First Name</label>
+                                <input type="text" id="firstName" name="firstName" className="w-full border border-gray-300 rounded-sm px-4 py-3 focus:outline-none focus:ring-2 focus:ring-meridian-subscription focus:border-transparent transition" required />
+                            </div>
+                            <div>
+                                <label htmlFor="lastName" className="block text-sm font-semibold text-gray-700 mb-1">Last Name</label>
+                                <input type="text" id="lastName" name="lastName" className="w-full border border-gray-300 rounded-sm px-4 py-3 focus:outline-none focus:ring-2 focus:ring-meridian-subscription focus:border-transparent transition" required />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
+                            <input type="email" id="email" name="email" className="w-full border border-gray-300 rounded-sm px-4 py-3 focus:outline-none focus:ring-2 focus:ring-meridian-subscription focus:border-transparent transition" required />
+                        </div>
+
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                            <input type="password" id="password" name="password" className="w-full border border-gray-300 rounded-sm px-4 py-3 focus:outline-none focus:ring-2 focus:ring-meridian-subscription focus:border-transparent transition" aria-describedby="password-hint" required />
+                            <p id="password-hint" className="text-xs text-gray-500 mt-2">Must be at least 8 characters long and contain a number.</p>
+                        </div>
+
+                        <div className="flex items-start mt-6 pt-6 border-t border-gray-100">
+                            <div className="flex items-center h-5">
+                                <input id="terms" name="terms" type="checkbox" className="focus:ring-meridian-subscription h-4 w-4 text-meridian-subscription border-gray-300 rounded" required />
+                            </div>
+                            <div className="ml-3 text-sm">
+                                <label htmlFor="terms" className="font-medium text-gray-700">I agree to the <a href="#" className="text-meridian-subscription hover:underline">Terms of Service</a> and <a href="#" className="text-meridian-subscription hover:underline">Privacy Policy</a>.</label>
+                            </div>
+                        </div>
+
+                        <div className="pt-4">
+                            <button type="submit" className="w-full bg-meridian-subscription text-white font-bold py-4 rounded-sm hover:bg-[#063328] focus-visible-outline transition-colors text-lg shadow-md">
+                                Continue to Payment
+                            </button>
+                        </div>
+                        <p className="text-center text-sm text-gray-500 font-medium">Already have an account? <a href="#" className="text-meridian-subscription hover:underline">Sign In</a></p>
+                    </form>
+                </div>
+            );
+        };
+
+        const SubscriptionApp = () => {
+            const [selectedPlan, setSelectedPlan] = React.useState(null);
+
+            if (selectedPlan) {
+                return (
+                    <div className="min-h-screen flex flex-col subscription-bg">
+                        <Header />
+                        <main id="main-content" className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full" tabIndex="-1">
+                            <StepForm planName={selectedPlan} onBack={() => setSelectedPlan(null)} />
+                        </main>
+                        <Footer />
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen flex flex-col subscription-bg">
+                    <Header />
+
+                    <main id="main-content" className="flex-grow w-full" tabIndex="-1">
+
+                        {/* Header Section */}
+                        <div className="bg-meridian-900 text-white pt-20 pb-40 px-4 sm:px-6 lg:px-8 text-center relative">
+                            <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold mb-6 max-w-4xl mx-auto tracking-tight">Independent Journalism Worth Supporting.</h1>
+                            <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto font-serif italic mb-10">Subscribe to The Meridian and gain complete access to award-winning reporting, rigorous global analysis, and our deepest investigations.</p>
+                        </div>
+
+                        {/* Pricing Cards */}
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-28 relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
+                            <PricingTier
+                                title="Free Basic"
+                                price="$0"
+                                period="mo"
+                                description="Essential access to daily top headlines and limited reports."
+                                features={["3 free articles per month", "Daily news roundup newsletter", "Breaking news alerts"]}
+                                isPopular={false}
+                                buttonText="Create Free Account"
+                                onSelect={() => setSelectedPlan("Free Basic")}
+                            />
+
+                            <PricingTier
+                                title="Digital Standard"
+                                price="$9.99"
+                                period="mo"
+                                description="Full access to Meridian's core reporting across all your devices."
+                                features={["Unlimited article access", "Subscriber-only daily briefings", "Partial ad-free experience", "Cancel anytime online"]}
+                                isPopular={true}
+                                buttonText="Choose Digital Standard"
+                                onSelect={() => setSelectedPlan("Digital Standard")}
+                            />
+
+                            <PricingTier
+                                title="All-Access"
+                                price="$19.99"
+                                period="mo"
+                                description="The complete Meridian experience, including games, audio, and premium features."
+                                features={["Everything in Digital Standard", "Zero advertisements", "Meridian Crosswords & Games", "Audio articles & podcasts", "Gift up to 5 articles/mo"]}
+                                isPopular={false}
+                                isAccess={true}
+                                buttonText="Choose All-Access"
+                                onSelect={() => setSelectedPlan("All-Access")}
+                            />
+                        </div>
+
+                        {/* Features Table */}
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 lg:mt-24 mb-20 section-fade-in">
+                            <div className="text-center mb-10">
+                                <h2 className="font-serif text-3xl font-bold text-meridian-900">Compare Plans</h2>
+                                <p className="text-gray-600 mt-2">Find the subscription that best fits your reading habits.</p>
+                            </div>
+                            <FeatureComparison />
+                        </div>
+
+                        {/* Trust/Testimonials */}
+                        <div className="bg-white border-y border-gray-200 py-20 section-fade-in">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <h2 className="font-serif text-3xl font-bold text-meridian-900 text-center mb-12">Why our readers subscribe</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <Testimonial
+                                        quote="The Meridian's coverage of European politics is unmatched. It cuts through the noise and provides context you can't find elsewhere."
+                                        author="James M."
+                                        role="Digital Subscriber since 2019"
+                                    />
+                                    <Testimonial
+                                        quote="I rely on the morning briefings to start my day. In an era of clickbait, their commitment to depth and facts is refreshing and essential."
+                                        author="Sarah K."
+                                        role="All-Access Subscriber since 2021"
+                                    />
+                                    <Testimonial
+                                        quote="The opinion section consistently challenges my perspective. It's the only news subscription I actually feel good about paying for every month."
+                                        author="Dr. Robert L."
+                                        role="Digital Subscriber since 2018"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* FAQ accordion */}
+                        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20 section-fade-in">
+                            <h2 className="font-serif text-3xl font-bold text-meridian-900 text-center mb-10">Frequently Asked Questions</h2>
+                            <div className="bg-white border border-gray-200 rounded-sm p-6 shadow-sm">
+                                <FAQItem
+                                    question="Can I cancel my subscription at any time?"
+                                    answer="Yes. You can cancel your subscription anytime online through your Account Settings. Your access will remain active until the end of your current billing period."
+                                />
+                                <FAQItem
+                                    question="Do you offer student or educator discounts?"
+                                    answer="Yes, we offer a 50% discount on the Digital Standard plan for verified students and educators. Please sign up using a valid .edu email address or contact support for verification instructions."
+                                />
+                                <FAQItem
+                                    question="What devices can I use to access my account?"
+                                    answer="You can access The Meridian on any web browser via desktop, tablet, or smartphone. We also offer native iOS and Android apps for all paying subscribers."
+                                />
+                                <FAQItem
+                                    question="Are the crosswords included in the basic Digital plan?"
+                                    answer="No, The Meridian Crossword and our suite of logic games are exclusively available in the All-Access subscription tier alongside our premium audio features."
+                                />
+                            </div>
+
+                            <div className="mt-12 text-center text-sm text-gray-600">
+                                <p>Still have questions? Our customer care team is here to help.</p>
+                                <a href="#" className="font-bold text-meridian-subscription hover:underline mt-2 inline-block focus-visible-outline">Contact Support</a>
+                            </div>
+                        </div>
+
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<SubscriptionApp />);
+    </script>
+</body>
+
+</html>

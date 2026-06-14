@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Folia - Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAFAFA;
+            color: #18181B;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState } = React;
+
+        const Icons = {
+            Home: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
+            Explore: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
+            Bell: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>,
+            Mail: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>,
+            User: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
+            Settings: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+            More: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" /></svg>,
+            Heart: ({ filled }) => <svg className="w-5 h-5" fill={filled ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
+            MessageCircle: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
+            Share: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>,
+            Bookmark: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>,
+            Image: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+            Plus: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
+            Link: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
+        };
+
+        const Navigation = ({ currentPath }) => {
+            const navItems = [
+                { name: 'Home', path: 'index.html', icon: Icons.Home },
+                { name: 'Explore', path: 'explore.html', icon: Icons.Explore },
+                { name: 'Notifications', path: 'notifications.html', icon: Icons.Bell },
+                { name: 'Messages', path: 'messages.html', icon: Icons.Mail },
+                { name: 'Profile', path: 'profile.html', icon: Icons.User },
+                { name: 'Settings', path: 'settings.html', icon: Icons.Settings },
+            ];
+
+            return (
+                <>
+                    <nav className="hidden sm:flex flex-col h-screen fixed w-[80px] lg:w-[260px] bg-white border-r border-zinc-200 z-40">
+                        <div className="pt-8 pb-4 lg:px-6 px-4 flex items-center justify-center lg:justify-start gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-zinc-900 text-white flex items-center justify-center font-bold text-xl leading-none shrink-0">F</div>
+                            <span className="text-2xl font-bold tracking-tight text-zinc-900 hidden lg:block">Folia</span>
+                        </div>
+
+                        <div className="flex-1 mt-6 px-3 space-y-1 overflow-y-auto hide-scrollbar">
+                            {navItems.map(item => {
+                                const active = currentPath === item.path;
+                                const Icon = item.icon;
+                                return (
+                                    <a key={item.name} href={item.path}
+                                        className={`flex items-center lg:justify-start justify-center gap-4 px-3 lg:px-4 py-3.5 rounded-2xl transition-all duration-200 group
+                                        ${active ? 'bg-zinc-100 text-zinc-900 font-semibold' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900'}`}>
+                                        <span className={`transition-transform duration-200 group-hover:scale-110 ${active ? 'scale-110 text-zinc-900' : ''}`}>
+                                            <Icon />
+                                        </span>
+                                        <span className="hidden lg:block text-[16px]">{item.name}</span>
+                                    </a>
+                                );
+                            })}
+
+                            <button className="mt-8 w-full bg-zinc-900 text-white rounded-2xl py-3.5 font-semibold shadow-md shadow-zinc-900/10 hover:bg-zinc-800 hover:shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                                <Icons.Plus />
+                                <span className="hidden lg:block">New Project</span>
+                            </button>
+                        </div>
+
+                        <div className="p-4 mb-4">
+                            <a href="profile.html" className="flex items-center gap-3 p-2 lg:p-3 -mx-2 lg:mx-0 rounded-2xl hover:bg-zinc-100 transition-colors justify-center lg:justify-start">
+                                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80" alt="Hana Creative" className="w-10 h-10 rounded-full object-cover ring-2 ring-white shadow-sm shrink-0" />
+                                <div className="hidden lg:block flex-1 min-w-0">
+                                    <p className="text-[15px] font-semibold text-zinc-900 truncate">Hana Creative</p>
+                                    <p className="text-[13px] text-zinc-500 truncate">@hanastudios</p>
+                                </div>
+                                <div className="hidden lg:block text-zinc-400">
+                                    <Icons.More />
+                                </div>
+                            </a>
+                        </div>
+                    </nav>
+
+                    <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-zinc-200 flex justify-around p-3 z-50 pb-safe">
+                        {navItems.filter(i => !['Settings', 'Profile'].includes(i.name)).map(item => {
+                            const active = currentPath === item.path;
+                            const Icon = item.icon;
+                            return (
+                                <a key={item.name} href={item.path} className={`p-2.5 rounded-xl transition-colors ${active ? 'text-zinc-900 bg-zinc-100' : 'text-zinc-500'}`}>
+                                    <Icon />
+                                </a>
+                            );
+                        })}
+                        <a href="profile.html" className="p-2.5">
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80" alt="Profile" className="w-7 h-7 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                        </a>
+                    </nav>
+                </>
+            );
+        };
+
+        const MainFeed = () => {
+            const [activeTab, setActiveTab] = useState('For You');
+            const [postText, setPostText] = useState('');
+
+            const posts = [
+                {
+                    id: 1,
+                    author: "Marcus Wei",
+                    handle: "@marcus3d",
+                    avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80",
+                    timeAgo: "2h",
+                    content: "Just wrapped up the lighting tests for 'Solstice III'. The new render engine is completely changing my workflow. 🌌 Thoughts on the god rays in the second shot?",
+                    tags: ["#3DModel", "#OctaneRender", "#SciFi"],
+                    image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80",
+                    likes: 342,
+                    comments: 28,
+                    shares: 12,
+                    hasLiked: true
+                },
+                {
+                    id: 2,
+                    author: "Elena Rossi",
+                    handle: "@elenarossi_art",
+                    avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=150&q=80",
+                    timeAgo: "5h",
+                    content: "Editorial spread concepts for the upcoming issue of VANGUARD. Going for a very brutalist typographic approach to contrast the soft, film photography.",
+                    tags: ["#Typography", "#Editorial", "#GraphicDesign"],
+                    image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=1200&q=80",
+                    likes: 891,
+                    comments: 64,
+                    shares: 45,
+                    hasLiked: false
+                }
+            ];
+
+            return (
+                <div className="max-w-[1000px] mx-auto flex gap-8 w-full">
+                    {/* Feed Content */}
+                    <div className="flex-1 w-full min-w-0 max-w-[640px]">
+                        {/* Feed Toggles */}
+                        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-zinc-200">
+                            <div className="flex px-4 pt-4 pb-0 space-x-6 overflow-x-auto hide-scrollbar">
+                                {['For You', 'Following'].map(tab => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`pb-4 text-[15px] font-semibold transition-colors relative whitespace-nowrap
+                                            ${activeTab === tab ? 'text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'}`}
+                                    >
+                                        {tab}
+                                        {activeTab === tab && (
+                                            <span className="absolute bottom-0 left-0 w-full h-[3px] bg-zinc-900 rounded-t-full"></span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="px-0 sm:px-4 py-6 space-y-6">
+                            {/* Composer */}
+                            <div className="bg-white border-y sm:border border-zinc-200 sm:rounded-2xl p-4 shadow-sm">
+                                <div className="flex gap-4">
+                                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" alt="You" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                                    <div className="flex-1">
+                                        <textarea
+                                            placeholder="Share your work-in-progress, inspiration, or sketches..."
+                                            className="w-full bg-transparent border-none text-[15px] resize-none focus:ring-0 placeholder-zinc-400 p-0 text-zinc-900 min-h-[60px]"
+                                            value={postText}
+                                            onChange={(e) => setPostText(e.target.value)}
+                                        ></textarea>
+
+                                        <div className="mt-2 text-sm text-zinc-400 font-medium border border-dashed border-zinc-300 rounded-lg p-2 inline-block cursor-text hover:bg-zinc-50">
+                                            <span className="text-zinc-400">Add skills: #illustration #procreate</span>
+                                        </div>
+
+                                        <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
+                                            <div className="flex items-center gap-1">
+                                                <button className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-colors font-medium">
+                                                    <Icons.Image />
+                                                </button>
+                                                <button className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-colors font-medium">
+                                                    <Icons.Link />
+                                                </button>
+                                            </div>
+                                            <button className="px-5 py-2 bg-zinc-900 text-white text-sm font-semibold rounded-full hover:bg-zinc-800 transition-colors disabled:opacity-50">
+                                                Post Project
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Feed Generator */}
+                            <div className="space-y-6">
+                                {posts.map(post => (
+                                    <article key={post.id} className="bg-white border-y sm:border border-zinc-200 sm:rounded-2xl overflow-hidden shadow-sm">
+                                        <div className="p-4 flex items-start gap-3">
+                                            <img src={post.avatar} alt={post.author} className="w-10 h-10 rounded-full object-cover shrink-0 hover:opacity-90 cursor-pointer" />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <span className="font-semibold text-[15px] text-zinc-900 hover:underline cursor-pointer truncate">{post.author}</span>
+                                                        <span className="text-sm text-zinc-500 truncate">{post.handle}</span>
+                                                        <span className="text-sm text-zinc-400">· {post.timeAgo}</span>
+                                                    </div>
+                                                    <button className="text-zinc-400 hover:text-zinc-600"><Icons.More /></button>
+                                                </div>
+                                                <p className="mt-1 text-[15px] text-zinc-800 leading-relaxed max-w-xl">
+                                                    {post.content}
+                                                </p>
+                                                <div className="mt-2 flex flex-wrap gap-2 text-sm text-indigo-600 font-medium">
+                                                    {post.tags.map(tag => (
+                                                        <span key={tag} className="hover:underline cursor-pointer">{tag}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Image payload */}
+                                        <div className="sm:px-4">
+                                            <img src={post.image} alt="Project preview" className="w-full sm:rounded-xl object-cover max-h-[500px] border border-zinc-100" />
+                                        </div>
+
+                                        {/* Engagement Bar */}
+                                        <div className="p-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-6">
+                                                <button className={`flex items-center gap-2 group transition-colors ${post.hasLiked ? 'text-pink-600' : 'text-zinc-500 hover:text-pink-600'}`}>
+                                                    <span className="p-2 rounded-full group-hover:bg-pink-50 transition-colors -ml-2">
+                                                        <Icons.Heart filled={post.hasLiked} />
+                                                    </span>
+                                                    <span className="text-sm font-medium -ml-1">{post.likes}</span>
+                                                </button>
+                                                <button className="flex items-center gap-2 text-zinc-500 hover:text-blue-600 group transition-colors">
+                                                    <span className="p-2 rounded-full group-hover:bg-blue-50 transition-colors -ml-2">
+                                                        <Icons.MessageCircle />
+                                                    </span>
+                                                    <span className="text-sm font-medium -ml-1">{post.comments}</span>
+                                                </button>
+                                                <button className="flex items-center gap-2 text-zinc-500 hover:text-green-600 group transition-colors">
+                                                    <span className="p-2 rounded-full group-hover:bg-green-50 transition-colors -ml-2">
+                                                        <Icons.Share />
+                                                    </span>
+                                                    <span className="text-sm font-medium -ml-1">{post.shares}</span>
+                                                </button>
+                                            </div>
+                                            <button className="text-zinc-500 hover:text-zinc-900 group">
+                                                <span className="p-2 rounded-full group-hover:bg-zinc-100 transition-colors inline-block">
+                                                    <Icons.Bookmark />
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Rail (Desktop only) */}
+                    <div className="hidden xl:block w-[320px] shrink-0 pt-6 space-y-6 lg:ml-auto pr-6">
+
+                        {/* Trending Palettes */}
+                        <div className="bg-white rounded-2xl border border-zinc-200 p-5 shadow-sm">
+                            <h3 className="font-bold text-[17px] text-zinc-900 mb-4">Trending Palettes</h3>
+                            <div className="space-y-4">
+                                {[
+                                    { name: "Neo Tokyo", colors: ["#FF2A6D", "#05D9E8", "#01012B", "#D1EDF2"] },
+                                    { name: "Nordic Earth", colors: ["#5D737E", "#A4B494", "#E4E3D3", "#B38D97"] },
+                                    { name: "Brutalist Mono", colors: ["#000000", "#333333", "#CCCCCC", "#EEEEEE"] },
+                                ].map((palette, i) => (
+                                    <div key={i} className="group cursor-pointer">
+                                        <div className="flex h-12 rounded-lg overflow-hidden border border-zinc-200 shadow-sm relative">
+                                            {palette.colors.map((c, j) => (
+                                                <div key={j} className="flex-1 transition-transform group-hover:scale-110" style={{ backgroundColor: c }}></div>
+                                            ))}
+                                        </div>
+                                        <div className="mt-1.5 text-sm font-medium text-zinc-600 group-hover:text-zinc-900">{palette.name}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Rising Creators */}
+                        <div className="bg-white rounded-2xl border border-zinc-200 p-5 shadow-sm">
+                            <h3 className="font-bold text-[17px] text-zinc-900 mb-4">Trending Creators</h3>
+                            <div className="space-y-4">
+                                {[
+                                    { name: "Sarah Jenkins", handle: "@sarahj_art", type: "3D Motion", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80" },
+                                    { name: "Kenzo M.", handle: "@kenzovisuals", type: "Photography", img: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80" },
+                                    { name: "Studio A+", handle: "@studioaplus", type: "Architecture", img: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80" }
+                                ].map((creator, i) => (
+                                    <div key={i} className="flex items-center gap-3">
+                                        <img src={creator.img} alt={creator.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-[15px] text-zinc-900 hover:underline cursor-pointer truncate">{creator.name}</p>
+                                            <p className="text-[13px] text-zinc-500 truncate">{creator.type}</p>
+                                        </div>
+                                        <button className="px-4 py-1.5 rounded-full text-sm font-semibold text-zinc-900 bg-zinc-100 hover:bg-zinc-200 transition-colors">
+                                            Follow
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            return (
+                <div className="min-h-screen flex w-full">
+                    {/* Navigation container reserves layout space on desktop */}
+                    <div className="hidden sm:block w-[80px] lg:w-[260px] shrink-0"></div>
+                    <Navigation currentPath="index.html" />
+
+                    {/* Main content area */}
+                    <div className="flex-1 min-w-0 pb-16 sm:pb-0">
+                        <MainFeed />
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

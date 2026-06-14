@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Products — ThreadHouse</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            forest:   '#2C4A1E',
+            sage:     '#7A9E5A',
+            cream:    '#F8F5EE',
+            gold:     '#D4A853',
+            bark:     '#8B6B4A',
+            charcoal: '#1C1C1C',
+            muted:    '#5A5A5A',
+            border:   '#D8D3CA',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0}
+    :focus-visible{outline:3px solid #2C4A1E;outline-offset:3px;border-radius:2px}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .animate-fade-in{animation:fadeIn .4s ease forwards}
+    input[type=range]{accent-color:#2C4A1E}
+  </style>
+</head>
+<body class="bg-cream text-charcoal font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    /* ── Header ── */
+    function Header() {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [searchOpen, setSearchOpen] = useState(false);
+      const nav = [
+        { label:'New Arrivals', href:'products.html' },
+        { label:'Women',        href:'products.html' },
+        { label:'Men',          href:'products.html' },
+        { label:'Accessories',  href:'products.html' },
+        { label:'Sale',         href:'products.html' },
+      ];
+      return (
+        <header role="banner" className="sticky top-0 z-50 bg-cream border-b border-border shadow-sm">
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-forest focus:text-white focus:px-4 focus:py-2 focus:rounded">Skip to main content</a>
+          <div className="bg-forest text-white text-center text-xs py-2 px-4 tracking-wide">Free shipping on orders over $75 · Use code <strong>SPRING10</strong> for 10% off</div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 gap-4">
+              <a href="index.html" className="flex-shrink-0 font-serif text-2xl font-bold tracking-tight text-forest" aria-label="ThreadHouse Home">Thread<span className="text-gold">House</span></a>
+              <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-6">
+                {nav.map(n => (
+                  <a key={n.label} href={n.href} className={`text-sm font-medium transition-colors ${n.label === 'New Arrivals' ? 'text-forest font-bold' : 'text-charcoal hover:text-forest'}`}>{n.label}</a>
+                ))}
+              </nav>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setSearchOpen(v => !v)} aria-label="Toggle search" aria-expanded={searchOpen} className="p-2 rounded-full hover:bg-border transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </button>
+                <a href="account.html" aria-label="My account" className="p-2 rounded-full hover:bg-border transition-colors hidden sm:block">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </a>
+                <a href="cart.html" aria-label="Shopping cart, 3 items" className="relative p-2 rounded-full hover:bg-border transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                  <span className="absolute -top-0.5 -right-0.5 bg-gold text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold" aria-hidden="true">3</span>
+                </a>
+                <button onClick={() => setMenuOpen(v => !v)} aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} className="lg:hidden p-2 rounded hover:bg-border transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">{menuOpen ? <path d="M6 18L18 6M6 6l12 12"/> : <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>}</svg>
+                </button>
+              </div>
+            </div>
+            {searchOpen && (
+              <div className="pb-3">
+                <label htmlFor="site-search" className="sr-only">Search products</label>
+                <div className="relative">
+                  <input id="site-search" type="search" placeholder="Search ThreadHouse…" autoFocus className="w-full border border-border rounded-full px-5 py-2.5 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-forest bg-white" />
+                  <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </div>
+              </div>
+            )}
+          </div>
+          {menuOpen && (
+            <nav aria-label="Mobile navigation" className="lg:hidden bg-white border-t border-border px-4 py-3">
+              {nav.map(n => <a key={n.label} href={n.href} className="block py-2.5 text-sm font-medium text-charcoal hover:text-forest border-b border-border/50 last:border-0">{n.label}</a>)}
+            </nav>
+          )}
+        </header>
+      );
+    }
+
+    /* ── Footer ── */
+    function Footer() {
+      return (
+        <footer role="contentinfo" className="bg-charcoal text-white mt-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+              <div>
+                <p className="font-serif text-2xl font-bold mb-3">Thread<span className="text-gold">House</span></p>
+                <p className="text-sm text-gray-400 leading-relaxed">Sustainable, independently designed fashion for the conscious generation.</p>
+              </div>
+              <nav aria-label="Shop links">
+                <h3 className="font-semibold text-sm uppercase tracking-widest mb-4 text-gold">Shop</h3>
+                {['New Arrivals','Women','Men','Accessories','Sale','Style Match'].map(l => <a key={l} href="products.html" className="block text-sm text-gray-400 hover:text-white py-1 transition-colors">{l}</a>)}
+              </nav>
+              <nav aria-label="Help links">
+                <h3 className="font-semibold text-sm uppercase tracking-widest mb-4 text-gold">Help</h3>
+                {['Size Guide','Returns & Exchanges','Shipping Info','Track My Order','Contact Us'].map(l => <a key={l} href="#" className="block text-sm text-gray-400 hover:text-white py-1 transition-colors">{l}</a>)}
+              </nav>
+              <div>
+                <h3 className="font-semibold text-sm uppercase tracking-widest mb-4 text-gold">Stay in the Loop</h3>
+                <form onSubmit={e => e.preventDefault()} className="flex gap-2">
+                  <label htmlFor="footer-email" className="sr-only">Email address</label>
+                  <input id="footer-email" type="email" placeholder="your@email.com" required className="flex-1 px-3 py-2 text-sm rounded bg-white/10 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gold" />
+                  <button type="submit" className="px-4 py-2 bg-gold text-white text-sm font-semibold rounded hover:bg-amber-500 transition-colors">Join</button>
+                </form>
+              </div>
+            </div>
+            <div className="border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+              <p>© 2025 ThreadHouse. Certified B Corp. 1% for the Planet member.</p>
+              <div className="flex gap-4">
+                <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── Product Data ── */
+    const ALL_PRODUCTS = [
+      { id:1,  name:'Oversized Linen Shirt',        color:'Sage Green',    category:'Tops',     size:['XS','S','M','L'],         material:'Linen',                price:89,  badge:'Low Stock', seed:'p1'  },
+      { id:2,  name:'Wide Leg Organic Denim',        color:'Indigo',        category:'Bottoms',  size:['XS','S','M','L','XL'],    material:'Organic Cotton',       price:145, badge:null,        seed:'p2'  },
+      { id:3,  name:'Bamboo Ribbed Tank',             color:'Cream',         category:'Tops',     size:['XS','S','M','L','XL','XXL'], material:'Bamboo',            price:42,  badge:'New',       seed:'p3'  },
+      { id:4,  name:'Recycled Fleece Hoodie',         color:'Terracotta',    category:'Outerwear',size:['S','M','L','XL'],         material:'Recycled Polyester',   price:98,  badge:'Low Stock', seed:'p4'  },
+      { id:5,  name:'Linen Blend Trousers',           color:'Sand',          category:'Bottoms',  size:['XS','S','M','L','XL'],    material:'Linen',                price:112, badge:'New',       seed:'p5'  },
+      { id:6,  name:'Organic Cropped Tee',            color:'Forest',        category:'Tops',     size:['XS','S','M','L','XL','XXL'], material:'Organic Cotton',    price:38,  badge:null,        seed:'p6'  },
+      { id:7,  name:'Sustainable Silk Slip Dress',    color:'Ivory',         category:'Dresses',  size:['XS','S','M','L'],         material:'Recycled Polyester',   price:165, badge:'Low Stock', seed:'p7'  },
+      { id:8,  name:'Hemp Canvas Tote',               color:'Natural',       category:'Accessories',size:['One Size'],             material:'Hemp',                 price:55,  badge:'New',       seed:'p8'  },
+      { id:9,  name:'Recycled Wool Sweater',          color:'Slate',         category:'Tops',     size:['XS','S','M','L','XL'],    material:'Recycled Polyester',   price:128, badge:null,        seed:'p9'  },
+      { id:10, name:'Organic Cotton Joggers',         color:'Charcoal',      category:'Bottoms',  size:['XS','S','M','L','XL','XXL'], material:'Organic Cotton',    price:75,  badge:null,        seed:'p10' },
+      { id:11, name:'Linen Midi Skirt',               color:'Dusty Rose',    category:'Bottoms',  size:['XS','S','M','L'],         material:'Linen',                price:95,  badge:'New',       seed:'p11' },
+      { id:12, name:'Bamboo Knit Cardigan',           color:'Oat',           category:'Tops',     size:['XS','S','M','L','XL'],    material:'Bamboo',               price:118, badge:null,        seed:'p12' },
+      { id:13, name:'Recycled Down Puffer Vest',      color:'Olive',         category:'Outerwear',size:['XS','S','M','L','XL','XXL'], material:'Recycled Polyester', price:142, badge:'Low Stock', seed:'p13' },
+      { id:14, name:'Organic Linen Blazer',           color:'Camel',         category:'Outerwear',size:['XS','S','M','L'],         material:'Linen',                price:195, badge:null,        seed:'p14' },
+      { id:15, name:'Hemp Drawstring Shorts',         color:'Stone',         category:'Bottoms',  size:['XS','S','M','L','XL','XXL'], material:'Hemp',              price:65,  badge:'New',       seed:'p15' },
+      { id:16, name:'Bamboo Wrap Dress',              color:'Terracotta',    category:'Dresses',  size:['XS','S','M','L','XL'],    material:'Bamboo',               price:148, badge:null,        seed:'p16' },
+      { id:17, name:'Organic Corduroy Shirt',         color:'Burgundy',      category:'Tops',     size:['S','M','L','XL'],         material:'Organic Cotton',       price:88,  badge:'Low Stock', seed:'p17' },
+      { id:18, name:'Recycled Knit Beanie',           color:'Sage',          category:'Accessories',size:['One Size'],             material:'Recycled Polyester',   price:32,  badge:null,        seed:'p18' },
+      { id:19, name:'Linen Cami Dress',               color:'Wheat',         category:'Dresses',  size:['XS','S','M','L','XL'],    material:'Linen',                price:118, badge:'New',       seed:'p19' },
+      { id:20, name:'Organic Cotton Overalls',        color:'Denim Blue',    category:'Bottoms',  size:['XS','S','M','L','XL'],    material:'Organic Cotton',       price:158, badge:null,        seed:'p20' },
+      { id:21, name:'Bamboo Performance Leggings',    color:'Black',         category:'Bottoms',  size:['XS','S','M','L','XL','XXL'], material:'Bamboo',            price:85,  badge:'New',       seed:'p21' },
+      { id:22, name:'Hemp Linen Co-ord Set',          color:'Ecru',          category:'Tops',     size:['XS','S','M','L'],         material:'Hemp',                 price:175, badge:'Low Stock', seed:'p22' },
+      { id:23, name:'Recycled Fleece Jacket',         color:'Forest Green',  category:'Outerwear',size:['XS','S','M','L','XL','XXL'], material:'Recycled Polyester', price:165, badge:null,       seed:'p23' },
+      { id:24, name:'Organic Waffle Knit Top',        color:'Cream',         category:'Tops',     size:['XS','S','M','L','XL'],    material:'Organic Cotton',       price:62,  badge:'New',       seed:'p24' },
+    ];
+
+    const COLORS = [
+      { name:'Sage Green',    hex:'#7A9E5A' },
+      { name:'Indigo',        hex:'#3B4B9A' },
+      { name:'Cream',         hex:'#F8F5EE' },
+      { name:'Terracotta',    hex:'#C2714F' },
+      { name:'Sand',          hex:'#C8B08A' },
+      { name:'Forest',        hex:'#2C4A1E' },
+      { name:'Ivory',         hex:'#FFFFF0' },
+      { name:'Natural',       hex:'#D4C5A9' },
+      { name:'Slate',         hex:'#708090' },
+      { name:'Charcoal',      hex:'#36454F' },
+    ];
+
+    /* ── Filter Panel ── */
+    function FilterPanel({ filters, setFilters, onClose, isMobile }) {
+      const categories = ['Tops','Bottoms','Dresses','Outerwear','Accessories'];
+      const sizes = ['XS','S','M','L','XL','XXL'];
+      const materials = ['Organic Cotton','Recycled Polyester','Linen','Bamboo','Hemp'];
+
+      const toggle = (key, value) => {
+        setFilters(prev => {
+          const arr = prev[key];
+          return { ...prev, [key]: arr.includes(value) ? arr.filter(x => x !== value) : [...arr, value] };
+        });
+      };
+
+      return (
+        <aside aria-label="Product filters" className={isMobile ? '' : 'w-64 flex-shrink-0'}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="font-semibold text-base text-charcoal">Filters</h2>
+            {isMobile && (
+              <button onClick={onClose} aria-label="Close filters" className="p-1 rounded hover:bg-border">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            )}
+          </div>
+
+          {/* Clothing Type */}
+          <fieldset className="mb-6">
+            <legend className="font-semibold text-xs uppercase tracking-widest text-muted mb-3">Clothing Type</legend>
+            <div className="space-y-2">
+              {categories.map(c => (
+                <label key={c} className="flex items-center gap-2.5 cursor-pointer group">
+                  <input type="checkbox" checked={filters.categories.includes(c)} onChange={() => toggle('categories', c)}
+                         className="w-4 h-4 rounded border-border text-forest focus:ring-forest" />
+                  <span className="text-sm text-charcoal group-hover:text-forest transition-colors">{c}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {/* Size */}
+          <fieldset className="mb-6">
+            <legend className="font-semibold text-xs uppercase tracking-widest text-muted mb-3">Size</legend>
+            <div className="flex flex-wrap gap-2">
+              {sizes.map(s => (
+                <label key={s} className="cursor-pointer">
+                  <input type="checkbox" checked={filters.sizes.includes(s)} onChange={() => toggle('sizes', s)} className="sr-only" />
+                  <span className={`flex items-center justify-center w-12 h-10 border rounded text-xs font-semibold transition-colors ${filters.sizes.includes(s) ? 'bg-forest text-white border-forest' : 'border-border text-charcoal hover:border-forest'}`}
+                        aria-label={`Size ${s}${filters.sizes.includes(s) ? ', selected' : ''}`}>
+                    {s}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {/* Color */}
+          <fieldset className="mb-6">
+            <legend className="font-semibold text-xs uppercase tracking-widest text-muted mb-3">Color</legend>
+            <div className="flex flex-wrap gap-2">
+              {COLORS.map(c => (
+                <label key={c.name} className="cursor-pointer" title={c.name}>
+                  <input type="checkbox" checked={filters.colors.includes(c.name)} onChange={() => toggle('colors', c.name)} className="sr-only" />
+                  <span style={{backgroundColor: c.hex}}
+                        className={`block w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${filters.colors.includes(c.name) ? 'border-forest scale-110 ring-2 ring-forest ring-offset-1' : 'border-border'}`}
+                        aria-label={`${c.name} color${filters.colors.includes(c.name) ? ', selected' : ''}`}
+                        role="img" />
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {/* Material */}
+          <fieldset className="mb-6">
+            <legend className="font-semibold text-xs uppercase tracking-widest text-muted mb-3">Material</legend>
+            <div className="space-y-2">
+              {materials.map(m => (
+                <label key={m} className="flex items-center gap-2.5 cursor-pointer group">
+                  <input type="checkbox" checked={filters.materials.includes(m)} onChange={() => toggle('materials', m)}
+                         className="w-4 h-4 rounded border-border text-forest focus:ring-forest" />
+                  <span className="text-sm text-charcoal group-hover:text-forest transition-colors">{m}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {/* Price Range */}
+          <fieldset className="mb-6">
+            <legend className="font-semibold text-xs uppercase tracking-widest text-muted mb-3">
+              Price Range: <span className="text-forest font-bold">${filters.priceMin} – ${filters.priceMax}</span>
+            </legend>
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="price-min" className="text-xs text-muted">Min price</label>
+                <input id="price-min" type="range" min="0" max="200" step="5"
+                       value={filters.priceMin}
+                       onChange={e => setFilters(p => ({ ...p, priceMin: Number(e.target.value) }))}
+                       className="w-full mt-1" aria-valuetext={`$${filters.priceMin}`} />
+              </div>
+              <div>
+                <label htmlFor="price-max" className="text-xs text-muted">Max price</label>
+                <input id="price-max" type="range" min="0" max="200" step="5"
+                       value={filters.priceMax}
+                       onChange={e => setFilters(p => ({ ...p, priceMax: Number(e.target.value) }))}
+                       className="w-full mt-1" aria-valuetext={`$${filters.priceMax}`} />
+              </div>
+            </div>
+          </fieldset>
+
+          <button onClick={() => setFilters({ categories:[], sizes:[], colors:[], materials:[], priceMin:0, priceMax:200 })}
+                  className="text-sm text-muted underline hover:text-forest transition-colors">
+            Clear all filters
+          </button>
+        </aside>
+      );
+    }
+
+    /* ── Product Card ── */
+    function ProductCard({ product, styleMatch }) {
+      const [wishlist, setWishlist] = useState(false);
+
+      return (
+        <article className="group">
+          <div className="relative rounded-2xl overflow-hidden aspect-[3/4] bg-border mb-3">
+            <a href="product-detail.html" className="block w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-inset" aria-label={`${product.name} in ${product.color}, $${product.price}`}>
+              <img src={`https://picsum.photos/seed/${product.seed}/300/400`}
+                   alt={`${product.name} in ${product.color}`}
+                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            </a>
+
+            {/* Badge */}
+            {product.badge && (
+              <span className={`absolute top-2 left-2 text-xs font-bold px-2.5 py-1 rounded-full pointer-events-none ${product.badge === 'Low Stock' ? 'bg-red-100 text-red-700' : 'bg-forest text-white'}`}
+                    aria-label={product.badge === 'Low Stock' ? 'Low stock remaining' : 'New item'}>
+                {product.badge}
+              </span>
+            )}
+
+            {/* Style Match badge */}
+            {styleMatch && (
+              <span className="absolute top-2 right-10 bg-gold text-white text-xs font-bold px-2 py-1 rounded-full pointer-events-none">Match</span>
+            )}
+
+            {/* Wishlist */}
+            <button onClick={() => setWishlist(v => !v)}
+                    aria-label={wishlist ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+                    aria-pressed={wishlist}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-colors shadow">
+              <svg className={`w-4 h-4 transition-colors ${wishlist ? 'fill-red-500 stroke-red-500' : 'fill-none stroke-charcoal'}`}
+                   strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </button>
+
+            {/* Quick add */}
+            <div className="absolute bottom-0 left-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button className="w-full bg-charcoal/90 text-white text-xs font-semibold py-3 hover:bg-forest transition-colors"
+                      aria-label={`Quick add ${product.name} to cart`}>
+                + Quick Add to Cart
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <a href="product-detail.html" className="font-semibold text-sm text-charcoal hover:text-forest transition-colors focus-visible:underline">{product.name}</a>
+            <p className="text-xs text-muted mt-0.5">{product.color} · {product.material}</p>
+            <div className="flex items-center justify-between mt-1.5">
+              <p className="font-bold text-sm text-charcoal">${product.price}.00</p>
+              {product.badge === 'Low Stock' && <span className="text-xs text-red-600 font-medium">Only a few left</span>}
+            </div>
+          </div>
+        </article>
+      );
+    }
+
+    /* ── Main Products Page ── */
+    function ProductsPage() {
+      const [filters, setFilters] = useState({ categories:[], sizes:[], colors:[], materials:[], priceMin:0, priceMax:200 });
+      const [sort, setSort] = useState('featured');
+      const [styleMatch, setStyleMatch] = useState(false);
+      const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+      const filtered = useMemo(() => {
+        let results = ALL_PRODUCTS.filter(p => {
+          if (filters.categories.length > 0 && !filters.categories.includes(p.category)) return false;
+          if (filters.sizes.length > 0 && !filters.sizes.some(s => p.size.includes(s))) return false;
+          if (filters.colors.length > 0 && !filters.colors.includes(p.color)) return false;
+          if (filters.materials.length > 0 && !filters.materials.includes(p.material)) return false;
+          if (p.price < filters.priceMin || p.price > filters.priceMax) return false;
+          return true;
+        });
+        if (sort === 'price-asc')  results = [...results].sort((a,b) => a.price - b.price);
+        if (sort === 'price-desc') results = [...results].sort((a,b) => b.price - a.price);
+        if (sort === 'newest')     results = [...results].filter(p => p.badge === 'New').concat(results.filter(p => p.badge !== 'New'));
+        return results;
+      }, [filters, sort]);
+
+      const activeFiltersCount = filters.categories.length + filters.sizes.length + filters.colors.length + filters.materials.length;
+
+      return (
+        <main id="main-content">
+          {/* Page header */}
+          <div className="bg-white border-b border-border">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <nav aria-label="Breadcrumb" className="text-xs text-muted mb-3">
+                <ol className="flex items-center gap-1.5">
+                  <li><a href="index.html" className="hover:text-forest transition-colors">Home</a></li>
+                  <li aria-hidden="true">/</li>
+                  <li><span className="text-charcoal font-medium" aria-current="page">All Products</span></li>
+                </ol>
+              </nav>
+              <h1 className="font-serif text-4xl font-bold text-charcoal">All Products</h1>
+              <p className="text-muted mt-1 text-sm">{filtered.length} items · Spring 2025 Collection</p>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Toolbar */}
+            <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                {/* Mobile filter button */}
+                <button onClick={() => setMobileFiltersOpen(true)}
+                        className="lg:hidden flex items-center gap-2 px-4 py-2 border border-border rounded-full text-sm font-medium hover:border-forest transition-colors"
+                        aria-label={`Open filters${activeFiltersCount > 0 ? `, ${activeFiltersCount} active` : ''}`}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                  Filters {activeFiltersCount > 0 && <span className="bg-forest text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">{activeFiltersCount}</span>}
+                </button>
+
+                {/* Style Match toggle */}
+                <div className="flex items-center gap-2 px-4 py-2 border border-border rounded-full">
+                  <span className="text-sm font-medium text-charcoal" id="style-match-label">Style Match</span>
+                  <button role="switch" aria-checked={styleMatch} aria-labelledby="style-match-label"
+                          onClick={() => setStyleMatch(v => !v)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-forest ${styleMatch ? 'bg-forest' : 'bg-gray-300'}`}>
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow ${styleMatch ? 'translate-x-4' : 'translate-x-1'}`} aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label htmlFor="sort-select" className="text-sm text-muted">Sort by:</label>
+                <select id="sort-select" value={sort} onChange={e => setSort(e.target.value)}
+                        className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest bg-white">
+                  <option value="featured">Featured</option>
+                  <option value="newest">Newest</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Active filter chips */}
+            {activeFiltersCount > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6" role="list" aria-label="Active filters">
+                {filters.categories.map(c => (
+                  <span key={c} role="listitem" className="inline-flex items-center gap-1.5 bg-forest/10 text-forest text-xs font-medium px-3 py-1.5 rounded-full">
+                    {c}
+                    <button onClick={() => setFilters(p => ({ ...p, categories: p.categories.filter(x => x !== c) }))}
+                            aria-label={`Remove ${c} filter`} className="hover:text-red-600 transition-colors ml-0.5">×</button>
+                  </span>
+                ))}
+                {filters.sizes.map(s => (
+                  <span key={s} role="listitem" className="inline-flex items-center gap-1.5 bg-forest/10 text-forest text-xs font-medium px-3 py-1.5 rounded-full">
+                    Size {s}
+                    <button onClick={() => setFilters(p => ({ ...p, sizes: p.sizes.filter(x => x !== s) }))}
+                            aria-label={`Remove size ${s} filter`} className="hover:text-red-600 transition-colors ml-0.5">×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-8">
+              {/* Desktop sidebar */}
+              <div className="hidden lg:block">
+                <FilterPanel filters={filters} setFilters={setFilters} isMobile={false} />
+              </div>
+
+              {/* Product grid */}
+              <div className="flex-1 min-w-0">
+                {filtered.length === 0 ? (
+                  <div className="text-center py-20">
+                    <p className="text-4xl mb-4" aria-hidden="true">🔍</p>
+                    <h2 className="font-semibold text-lg text-charcoal mb-2">No products match your filters</h2>
+                    <p className="text-muted text-sm mb-6">Try adjusting or clearing your filters.</p>
+                    <button onClick={() => setFilters({ categories:[], sizes:[], colors:[], materials:[], priceMin:0, priceMax:200 })}
+                            className="px-6 py-3 bg-forest text-white rounded-full text-sm font-semibold hover:bg-sage transition-colors">
+                      Clear All Filters
+                    </button>
+                  </div>
+                ) : (
+                  <ul className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5" aria-label={`${filtered.length} products`}>
+                    {filtered.map(p => (
+                      <li key={p.id}>
+                        <ProductCard product={p} styleMatch={styleMatch && p.id % 3 === 0} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {/* Load more */}
+                {filtered.length > 0 && (
+                  <div className="text-center mt-12">
+                    <button className="px-10 py-4 border-2 border-forest text-forest font-semibold rounded-full text-sm hover:bg-forest hover:text-white transition-colors">
+                      Load More Products
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile filter drawer */}
+          {mobileFiltersOpen && (
+            <div role="dialog" aria-modal="true" aria-label="Product filters" className="fixed inset-0 z-50 flex">
+              <div className="absolute inset-0 bg-black/50" onClick={() => setMobileFiltersOpen(false)} aria-hidden="true" />
+              <div className="relative ml-auto w-80 max-w-full h-full bg-white overflow-y-auto p-6 shadow-xl animate-fade-in">
+                <FilterPanel filters={filters} setFilters={setFilters} isMobile={true} onClose={() => setMobileFiltersOpen(false)} />
+                <div className="sticky bottom-0 bg-white pt-4 mt-4 border-t border-border">
+                  <button onClick={() => setMobileFiltersOpen(false)}
+                          className="w-full bg-forest text-white font-semibold py-3 rounded-full hover:bg-sage transition-colors">
+                    Show {filtered.length} results
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      );
+    }
+
+    function App() {
+      return (
+        <>
+          <Header />
+          <ProductsPage />
+          <Footer />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

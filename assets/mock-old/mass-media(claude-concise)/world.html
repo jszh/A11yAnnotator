@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Tribune – World</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const regions = ['All Regions', 'Europe', 'Asia-Pacific', 'Americas', 'Middle East', 'Africa'];
+
+const leadStory = {
+  region: 'Europe',
+  headline: 'NATO Allies Race to Close Air-Defense Gaps as Threat Calculus Shifts',
+  deck: 'Member states are scrambling to accelerate procurement and interoperability as assessments reveal critical vulnerabilities that existing platforms cannot adequately cover without deep integration.',
+  author: 'Lena Brandt',
+  time: '1 hour ago',
+  readTime: '8 min read',
+};
+
+const stories = [
+  { region: 'Asia-Pacific', headline: 'South China Sea Tensions Flare After Disputed Maritime Incident', deck: 'Diplomatic cables obtained by The Tribune reveal heated exchanges between defense ministries over an encounter that each side interprets differently under international law.', author: 'Liu Mingzhi', time: '3 h ago', readTime: '6 min' },
+  { region: 'Americas', headline: 'Mexico Overhauls Security Strategy After Record Cartel Violence Quarter', deck: 'A bipartisan congressional push has produced the most sweeping reorganization of federal law enforcement in twenty years, with disputed results expected.', author: 'Carlos Vega', time: '4 h ago', readTime: '5 min' },
+  { region: 'Middle East', headline: 'Gulf States Forge New Sovereign Wealth Collaboration Framework', deck: 'The agreement positions combined assets exceeding $3 trillion as a geopolitical tool as well as a financial instrument, alarming Western regulators.', author: 'Fatima Al-Rashid', time: '5 h ago', readTime: '7 min' },
+  { region: 'Africa', headline: 'Sahel Bloc Announces Joint Military Command to Counter Insurgencies', deck: 'Five nations have agreed to unify operational structures following years of costly uncoordinated campaigns that insurgent groups exploited through cross-border movement.', author: 'Kofi Mensah', time: '6 h ago', readTime: '5 min' },
+  { region: 'Europe', headline: 'EU Parliament Passes Digital Sovereignty Act in Landmark Vote', deck: 'The legislation creates new obligations for cloud providers and mandates data residency for critical government systems, setting up a clash with US tech companies.', author: 'Marta Kowalski', time: '8 h ago', readTime: '4 min' },
+  { region: 'Asia-Pacific', headline: 'India Launches Record Lunar Mission as Space Race Intensifies', deck: 'The mission targets the lunar south pole\'s water ice deposits and carries scientific instruments from seven partner nations in a show of emerging multilateral space cooperation.', author: 'Priya Sharma', time: '10 h ago', readTime: '4 min' },
+];
+
+const analysis = [
+  { initials: 'TB', name: 'Thomas Bauer', role: 'Europe Correspondent', headline: 'The EU\'s Expansion Dilemma: How Many New Members Can the Union Actually Absorb?', excerpt: 'Accession talks are moving faster than institutional reform, creating risks that advocates of enlargement are reluctant to discuss publicly.' },
+  { initials: 'AL', name: 'Amara Lawal', role: 'Africa Bureau Chief', headline: 'Why the Coup Belt Is Widening—and What the World Gets Wrong About It', excerpt: 'Western narratives focus on strongmen, but the real driver is a collapsing social contract that decades of conditional aid accelerated rather than repaired.' },
+];
+
+function WorldPage() {
+  const [activeRegion, setActiveRegion] = React.useState('All Regions');
+
+  const filtered = activeRegion === 'All Regions'
+    ? stories
+    : stories.filter(s => s.region === activeRegion);
+
+  return (
+    <Tribune.SiteShell
+      active="world.html"
+      breaking="UN Security Council emergency vote on ceasefire resolution expected within the hour."
+    >
+      {/* ── Category header ── */}
+      <div style={{ borderBottom: '3px solid var(--ink)', paddingBottom: '0.75rem', marginBottom: '1.75rem' }}>
+        <span className="section-label">Section</span>
+        <h1 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, color: 'var(--ink)', lineHeight: 1.1, marginTop: '0.25rem' }}>
+          World
+        </h1>
+      </div>
+
+      {/* ── Lead story ── */}
+      <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: '3fr 1fr', marginBottom: '2.5rem' }}>
+        <div className="hero-card" style={{ minHeight: '360px' }}>
+          <div className="hero-card-bg" style={{ backgroundImage: 'linear-gradient(160deg, #1c2a4a 0%, #0f1117 100%)' }} />
+          <span className="hero-eyebrow">{leadStory.region} · Lead Story</span>
+          <h2 className="hero-headline">{leadStory.headline}</h2>
+          <p className="hero-deck">{leadStory.deck}</p>
+          <div className="hero-meta">
+            <span className="byline">{leadStory.author}</span>
+            <span>·</span>
+            <span>{leadStory.time}</span>
+            <span>·</span>
+            <span>{leadStory.readTime}</span>
+          </div>
+        </div>
+
+        {/* Quick facts panel */}
+        <div className="story-card" style={{ justifyContent: 'flex-start', gap: '0' }}>
+          <div className="section-label" style={{ marginBottom: '0.75rem' }}>World at a Glance</div>
+          {[
+            { label: 'Active Conflicts', value: '24' },
+            { label: 'UN Sessions This Week', value: '7' },
+            { label: 'Displaced Persons (M)', value: '112' },
+            { label: 'New Sanctions Regimes', value: '3' },
+          ].map(item => (
+            <div key={item.label} style={{ padding: '0.85rem 0', borderBottom: '1px solid var(--rule)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>{item.label}</span>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.5rem', fontWeight: 700, color: 'var(--ink)' }}>{item.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Region filter ── */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+        {regions.map(r => (
+          <button
+            key={r}
+            onClick={() => setActiveRegion(r)}
+            style={{
+              fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+              padding: '0.4rem 0.9rem', borderRadius: '2px', border: '1px solid',
+              cursor: 'pointer', transition: 'all 0.15s',
+              background: activeRegion === r ? 'var(--ink)' : 'transparent',
+              color: activeRegion === r ? '#fff' : 'var(--muted)',
+              borderColor: activeRegion === r ? 'var(--ink)' : 'var(--rule)',
+            }}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Stories grid ── */}
+      <div className="section-header">
+        <h2 className="section-title">{activeRegion === 'All Regions' ? 'Latest Stories' : activeRegion}</h2>
+        <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{filtered.length} stories</span>
+      </div>
+      <div className="grid-cols-3" style={{ marginBottom: '2.5rem' }}>
+        {filtered.map(s => (
+          <Tribune.StoryCard key={s.headline} {...s} eyebrow={s.region} href="article.html" />
+        ))}
+      </div>
+
+      {/* ── Analysis strip ── */}
+      <div className="section-header">
+        <h2 className="section-title">World Analysis</h2>
+        <a href="opinion.html" className="section-more">All Analysis →</a>
+      </div>
+      <div className="grid-cols-2">
+        {analysis.map(a => (
+          <Tribune.OpinionCard key={a.name} {...a} href="opinion.html" />
+        ))}
+      </div>
+    </Tribune.SiteShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<WorldPage />);
+</script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City of Lakewood — Official Government Portal</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Configuration -->
+    <script src="./shared/theme.js"></script>
+
+    <!-- React and ReactDOM via CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for in-browser JSX support -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    </style>
+</head>
+<body class="bg-gov-neutral-50 text-gov-neutral-900 flex flex-col min-h-screen">
+    <div id="root" class="flex flex-col flex-1"></div>
+
+    <!-- Shared Components -->
+    <script type="text/babel" src="./shared/components.jsx"></script>
+    
+    <!-- Page Logic -->
+    <script type="text/babel">
+        // Wait for shared components to be defined
+        const checkShared = setInterval(() => {
+            if (window.SharedComponents) {
+                clearInterval(checkShared);
+                renderApp();
+            }
+        }, 50);
+
+        function App() {
+            const { Header, Footer, EmergencyAlert, Icons } = window.SharedComponents;
+            const { ArrowRightIcon, DocumentIcon, AlertTriangleIcon, LayoutGridIcon, CreditCardIcon } = Icons;
+
+            // Quick Access Links Data
+            const quickLinks = [
+                { title: 'Pay a Bill', icon: <CreditCardIcon className="w-8 h-8 text-gov-blue-600 mb-4" />, href: 'service-billing.html', desc: 'Water, sewer, and property taxes' },
+                { title: 'Report an Issue', icon: <AlertTriangleIcon className="w-8 h-8 text-gov-blue-600 mb-4" />, href: '#', desc: 'Potholes, missed trash, graffiti' },
+                { title: 'Apply for a Permit', icon: <DocumentIcon className="w-8 h-8 text-gov-blue-600 mb-4" />, href: 'service-permits.html', desc: 'Building, zoning, and events' },
+                { title: 'Find a Park', icon: <LayoutGridIcon className="w-8 h-8 text-gov-blue-600 mb-4" />, href: '#', desc: 'Parks, trails, and recreation centers' },
+            ];
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    {/* Emergency Alert Context */}
+                    <EmergencyAlert 
+                        active={true}
+                        title="Alert"
+                        message="Road Closure: Main St between 3rd and 5th Ave until Nov 30 for water main repairs. Please seek alternate routes."
+                    />
+                    
+                    <Header currentPath="index.html" />
+
+                    <main className="flex-1">
+                        {/* Hero Section */}
+                        <section className="relative bg-gov-blue-900 pt-20 pb-32 overflow-hidden">
+                            {/* Decorative background overlay */}
+                            <div className="absolute inset-0 opacity-20">
+                                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
+                                        </pattern>
+                                    </defs>
+                                    <rect width="100%" height="100%" fill="url(#grid)" />
+                                </svg>
+                            </div>
+                            
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                                <div className="max-w-3xl">
+                                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white leading-tight mb-6">
+                                        Welcome to the City of <span className="text-gov-blue-200">Lakewood</span>
+                                    </h1>
+                                    <p className="text-lg md:text-xl text-gov-blue-100 mb-10 max-w-2xl">
+                                        Your gateway to municipal services, community programs, and civic information. How can we help you today?
+                                    </p>
+                                    
+                                    {/* Task-based Search Bar */}
+                                    <div className="bg-white p-2 rounded-lg shadow-float flex flex-col sm:flex-row gap-2 max-w-2xl">
+                                        <div className="flex-1 relative">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <Icons.SearchIcon className="h-6 w-6 text-gov-neutral-400" />
+                                            </div>
+                                            <input 
+                                                type="text" 
+                                                className="block w-full pl-12 pr-4 py-4 border-none text-lg text-gov-neutral-900 placeholder-gov-neutral-500 focus:ring-0 focus:outline-none" 
+                                                placeholder="Ask 'How do I pay my water bill?'..."
+                                            />
+                                        </div>
+                                        <button className="bg-gov-blue-700 hover:bg-gov-blue-800 text-white font-semibold py-4 px-8 rounded-md transition-colors text-lg whitespace-nowrap">
+                                            Find Service
+                                        </button>
+                                    </div>
+                                    <div className="mt-4 text-sm text-gov-blue-200 flex flex-wrap gap-2 items-center">
+                                       <span className="font-medium mr-1">Popular searches:</span>
+                                       <a href="service-permits.html" className="bg-gov-blue-800 hover:bg-gov-blue-700 px-3 py-1 rounded-full text-xs transition-colors border border-gov-blue-700">Building Permits</a>
+                                       <a href="#" className="bg-gov-blue-800 hover:bg-gov-blue-700 px-3 py-1 rounded-full text-xs transition-colors border border-gov-blue-700">Trash Schedule</a>
+                                       <a href="#" className="bg-gov-blue-800 hover:bg-gov-blue-700 px-3 py-1 rounded-full text-xs transition-colors border border-gov-blue-700">Jobs</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Quick Access Tiles - Overlapping the Hero */}
+                        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-20 pb-16">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {quickLinks.map((link, idx) => (
+                                    <a key={idx} href={link.href} className="group bg-white rounded-xl shadow-soft p-8 border border-gov-neutral-100 hover:border-gov-blue-300 hover:shadow-float transition-all duration-300 transform hover:-translate-y-1 block h-full">
+                                        {link.icon}
+                                        <h3 className="text-xl font-bold text-gov-blue-900 mb-2 group-hover:text-gov-blue-700">{link.title}</h3>
+                                        <p className="text-gov-neutral-600 mb-6 font-medium">{link.desc}</p>
+                                        <div className="flex items-center text-gov-blue-700 font-semibold group-hover:translate-x-1 transition-transform">
+                                            Start now <ArrowRightIcon className="ml-1 w-4 h-4" />
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+                            <div className="text-center mt-8">
+                               <a href="services.html" className="inline-flex items-center text-gov-blue-700 font-semibold hover:text-gov-blue-800 group">
+                                  View all 140+ City Services 
+                                  <ArrowRightIcon className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                               </a>
+                            </div>
+                        </section>
+
+                        {/* Split News and Events Section */}
+                        <section className="bg-white py-20 border-t border-gov-neutral-200">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                                    
+                                    {/* News Section */}
+                                    <div>
+                                        <div className="flex justify-between items-end mb-8 border-b-2 border-gov-neutral-200 pb-4">
+                                            <h2 className="text-3xl font-serif font-bold text-gov-blue-900">City News</h2>
+                                            <a href="#" className="text-gov-blue-700 font-semibold hover:underline">All News</a>
+                                        </div>
+                                        <div className="space-y-8">
+                                            <article className="group cursor-pointer">
+                                                <p className="text-sm font-semibold text-gov-blue-600 mb-1 uppercase tracking-wider">Public Works • Nov 15, 2026</p>
+                                                <h3 className="text-xl font-bold text-gov-neutral-900 mb-2 group-hover:text-gov-blue-700 transition-colors">Winter Weather Preparedness Plan Activated</h3>
+                                                <p className="text-gov-neutral-600">The Department of Public Works has fully stocked salt reserves and mapped priority plowing routes ahead of the upcoming winter season.</p>
+                                            </article>
+                                            <article className="group cursor-pointer">
+                                                <p className="text-sm font-semibold text-gov-blue-600 mb-1 uppercase tracking-wider">Mayor's Office • Nov 12, 2026</p>
+                                                <h3 className="text-xl font-bold text-gov-neutral-900 mb-2 group-hover:text-gov-blue-700 transition-colors">Grant Secured for Downtown Revitalization</h3>
+                                                <p className="text-gov-neutral-600">Lakewood has been awarded a $2.5 million state grant to upgrade pedestrian walkways and lighting in the historic downtown district.</p>
+                                            </article>
+                                            <article className="group cursor-pointer">
+                                                <p className="text-sm font-semibold text-gov-blue-600 mb-1 uppercase tracking-wider">Parks & Rec • Nov 08, 2026</p>
+                                                <h3 className="text-xl font-bold text-gov-neutral-900 mb-2 group-hover:text-gov-blue-700 transition-colors">Registration Open for Winter Youth Sports</h3>
+                                                <p className="text-gov-neutral-600">Sign up your children for indoor basketball, indoor soccer, and swimming lessons starting December 1st.</p>
+                                            </article>
+                                        </div>
+                                    </div>
+
+                                    {/* Events Section */}
+                                    <div className="bg-gov-neutral-50 rounded-2xl p-8 border border-gov-neutral-200">
+                                        <div className="flex justify-between items-end mb-8 border-b-2 border-gov-neutral-300 pb-4">
+                                            <h2 className="text-3xl font-serif font-bold text-gov-blue-900">Upcoming Events</h2>
+                                            <a href="#" className="text-gov-blue-700 font-semibold hover:underline">Full Calendar</a>
+                                        </div>
+                                        <div className="space-y-6">
+                                            <div className="flex gap-6 bg-white p-4 rounded-xl shadow-sm border border-gov-neutral-100 hover:border-gov-blue-300 transition-colors cursor-pointer group">
+                                                <div className="bg-gov-blue-100 text-gov-blue-900 rounded-lg p-3 text-center min-w-[80px] flex-shrink-0">
+                                                    <span className="block text-sm font-bold uppercase tracking-widest text-gov-blue-700">Nov</span>
+                                                    <span className="block text-3xl font-bold">20</span>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-gov-neutral-900 group-hover:text-gov-blue-700">City Council Public Meeting</h3>
+                                                    <p className="text-gov-neutral-600 text-sm mt-1">7:00 PM • City Hall Chambers</p>
+                                                    <p className="text-gov-neutral-500 text-sm mt-2">Open to the public. Agenda includes zoning updates and the 2027 fiscal budget draft.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-6 bg-white p-4 rounded-xl shadow-sm border border-gov-neutral-100 hover:border-gov-blue-300 transition-colors cursor-pointer group">
+                                                <div className="bg-gov-blue-100 text-gov-blue-900 rounded-lg p-3 text-center min-w-[80px] flex-shrink-0">
+                                                    <span className="block text-sm font-bold uppercase tracking-widest text-gov-blue-700">Nov</span>
+                                                    <span className="block text-3xl font-bold">28</span>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-gov-neutral-900 group-hover:text-gov-blue-700">Holiday Tree Lighting Ceremony</h3>
+                                                    <p className="text-gov-neutral-600 text-sm mt-1">5:30 PM • Centennial Park Square</p>
+                                                    <p className="text-gov-neutral-500 text-sm mt-2">Join Mayor Evans for the annual lighting. Hot cocoa and choir performances.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-6 bg-white p-4 rounded-xl shadow-sm border border-gov-neutral-100 hover:border-gov-blue-300 transition-colors cursor-pointer group">
+                                                <div className="bg-gov-blue-100 text-gov-blue-900 rounded-lg p-3 text-center min-w-[80px] flex-shrink-0">
+                                                    <span className="block text-sm font-bold uppercase tracking-widest text-gov-blue-700">Dec</span>
+                                                    <span className="block text-3xl font-bold">04</span>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-gov-neutral-900 group-hover:text-gov-blue-700">Small Business Workshop</h3>
+                                                    <p className="text-gov-neutral-600 text-sm mt-1">10:00 AM • Municipal Library</p>
+                                                    <p className="text-gov-neutral-500 text-sm mt-2">Free seminar on navigating local permitting for new storefronts.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Get Involved Callout */}
+                        <section className="bg-gov-blue-900 text-white py-16">
+                           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                              <h2 className="text-3xl font-serif font-bold mb-4">Engage With Your City</h2>
+                              <p className="text-xl text-gov-blue-200 mb-8 max-w-2xl mx-auto">Lakewood thrives when our residents get involved. Discover ways to volunteer, join a board, or attend a town hall.</p>
+                              <div className="flex flex-wrap justify-center gap-4">
+                                 <button className="bg-white text-gov-blue-900 hover:bg-gov-neutral-100 font-bold py-3 px-8 rounded-md transition-colors shadow-md">Volunteer Opportunities</button>
+                                 <button className="border-2 border-gov-blue-400 text-gov-blue-100 hover:bg-gov-blue-800 hover:text-white font-bold py-3 px-8 rounded-md transition-colors">Join a Committee</button>
+                              </div>
+                           </div>
+                        </section>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        }
+
+        function renderApp() {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        }
+    </script>
+</body>
+</html>

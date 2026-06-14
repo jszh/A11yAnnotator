@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NovaMart | Cart</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', "sans-serif"]
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="site-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { useMemo, useState } = React;
+      const { Header, Footer, productBySlug, products, formatPrice } = window.NovaMartShared;
+
+      const initialCart = [
+        { ...productBySlug("sony-wh-1000xm5-headphones"), quantity: 1 },
+        { ...products[7], quantity: 1 },
+        { ...products[19], quantity: 2 }
+      ];
+
+      function App() {
+        const [cartItems, setCartItems] = useState(initialCart);
+        const [promoCode, setPromoCode] = useState("");
+
+        const subtotal = useMemo(
+          () => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+          [cartItems]
+        );
+        const shipping = subtotal > 150 ? 0 : 14.99;
+        const total = subtotal + shipping;
+
+        const updateQuantity = (id, delta) => {
+          setCartItems((items) =>
+            items.map((item) =>
+              item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
+            )
+          );
+        };
+
+        const removeItem = (id) => {
+          setCartItems((items) => items.filter((item) => item.id !== id));
+        };
+
+        return (
+          <>
+            <a
+              href="#main-content"
+              className="absolute left-4 top-4 z-50 -translate-y-20 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg focus:translate-y-0 focus-visible:translate-y-0"
+            >
+              Skip to main content
+            </a>
+            <Header activePath="cart.html" />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+              <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-8 shadow-sm">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-700">Your basket</p>
+                <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-slate-950">Shopping cart</h1>
+                <p className="mt-2 text-base leading-7 text-slate-600">
+                  Review items, update quantities, and prepare your order before checkout.
+                </p>
+              </section>
+
+              <section className="mt-8 grid gap-8 xl:grid-cols-[1fr_360px]">
+                <div className="space-y-5">
+                  {cartItems.map((item) => (
+                    <article key={item.id} className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="grid gap-5 md:grid-cols-[180px_1fr]">
+                        <img src={item.image} alt={item.alt} className="product-image w-full rounded-[1.25rem]" />
+                        <div className="flex flex-col justify-between gap-4">
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{item.brand}</p>
+                            <h2 className="text-2xl font-bold text-slate-950">{item.name}</h2>
+                            <p className="text-sm leading-7 text-slate-600">
+                              Ships from NovaMart warehouse within 1-2 business days.
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 p-1">
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(item.id, -1)}
+                                className="rounded-full bg-white px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
+                                aria-label={`Decrease quantity of ${item.name}`}
+                              >
+                                -
+                              </button>
+                              <span className="min-w-[2rem] text-center text-sm font-semibold text-slate-950" aria-live="polite">
+                                {item.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(item.id, 1)}
+                                className="rounded-full bg-white px-3 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
+                                aria-label={`Increase quantity of ${item.name}`}
+                              >
+                                +
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className="text-xl font-extrabold text-slate-950">
+                                {formatPrice(item.price * item.quantity)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removeItem(item.id)}
+                                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <aside className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm" aria-label="Order summary">
+                  <h2 className="text-2xl font-bold text-slate-950">Order summary</h2>
+                  <dl className="mt-6 space-y-4 text-sm text-slate-700">
+                    <div className="flex items-center justify-between">
+                      <dt>Subtotal</dt>
+                      <dd className="font-semibold text-slate-950">{formatPrice(subtotal)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <dt>Shipping estimate</dt>
+                      <dd className="font-semibold text-slate-950">{shipping === 0 ? "Free" : formatPrice(shipping)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-base">
+                      <dt className="font-bold text-slate-950">Total</dt>
+                      <dd className="font-extrabold text-slate-950">{formatPrice(total)}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="mt-6">
+                    <label htmlFor="promo-code" className="mb-2 block text-sm font-semibold text-slate-700">
+                      Promo code
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="promo-code"
+                        type="text"
+                        value={promoCode}
+                        onChange={(event) => setPromoCode(event.target.value)}
+                        placeholder="Enter code"
+                        className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900"
+                      />
+                      <button type="button" className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+
+                  <a
+                    href="account.html"
+                    className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-orange-600 px-6 py-4 text-sm font-bold text-white no-underline hover:bg-orange-700"
+                  >
+                    Proceed to Checkout
+                  </a>
+                  <a
+                    href="products.html"
+                    className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-slate-300 px-6 py-4 text-sm font-semibold text-slate-900 no-underline hover:bg-slate-50"
+                  >
+                    Continue Shopping
+                  </a>
+                </aside>
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

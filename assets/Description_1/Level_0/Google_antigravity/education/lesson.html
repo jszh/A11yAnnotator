@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Learning | LearnPath</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body
+    class="bg-surface-900 antialiased text-surface-900 selection:bg-primary-500 selection:text-white overflow-hidden h-screen flex flex-col">
+    <div id="root" class="h-full flex flex-col"></div>
+
+    <!-- Shared Components -->
+    <script type="text/babel" src="shared.js"></script>
+
+    <!-- Page Component -->
+    <script type="text/babel">
+        const { useState } = React;
+
+        const LessonTopBar = () => {
+            return (
+                <header className="bg-surface-900 text-white border-b border-surface-800 flex items-center justify-between px-4 h-16 flex-shrink-0">
+                    <div className="flex items-center gap-4">
+                        <a href="dashboard.html" className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-800 transition-colors text-surface-400 hover:text-white">
+                            <i className="fas fa-arrow-left"></i>
+                        </a>
+                        <div className="h-6 w-px bg-surface-800 hidden md:block"></div>
+                        <div className="flex flex-col">
+                            <h1 className="font-bold text-sm tracking-wide">Python for Data Science</h1>
+                            <div className="flex items-center text-xs text-surface-400 gap-2 mt-0.5">
+                                <span className="text-primary-400 font-medium">Lesson 4 of 12</span>
+                                <span>— Module 2: Data Structures</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <div className="hidden md:flex items-center gap-3">
+                            <span className="text-sm font-medium text-surface-400">Your Progress</span>
+                            <div className="w-32 h-2 rounded-full border border-surface-700 overflow-hidden bg-surface-800">
+                                <div className="h-full bg-primary-500" style={{ width: '33%' }}></div>
+                            </div>
+                            <span className="text-sm font-bold text-white">33%</span>
+                        </div>
+                        <div className="h-6 w-px bg-surface-800 hidden md:block mx-2"></div>
+                        <a href="dashboard.html" className="text-sm font-medium hover:text-white text-surface-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-surface-800">
+                            Exit Course
+                        </a>
+                    </div>
+                </header>
+            );
+        };
+
+        const LessonSidebar = () => {
+            const modules = [
+                {
+                    title: "Module 1: Introduction",
+                    lessons: [
+                        { title: "Welcome to the Course", duration: "5:30", completed: true },
+                        { title: "Setting up the Environment", duration: "12:15", completed: true },
+                        { title: "Hello World in Python", duration: "8:45", completed: true }
+                    ]
+                },
+                {
+                    title: "Module 2: Data Structures",
+                    lessons: [
+                        { title: "Lists and Tuples", duration: "18:20", active: true },
+                        { title: "Dictionaries and Sets", duration: "15:40" },
+                        { title: "Iterating through Data", duration: "10:15" },
+                        { title: "Module Quiz", duration: "10 Questions" }
+                    ]
+                },
+                {
+                    title: "Module 3: Functions",
+                    lessons: [
+                        { title: "Defining Functions", duration: "14:00" },
+                        { title: "Arguments and Scope", duration: "16:45" },
+                        { title: "Lambda Functions", duration: "9:20" }
+                    ]
+                }
+            ];
+
+            return (
+                <div className="w-full lg:w-80 border-l border-surface-200 bg-surface-50 h-full flex flex-col flex-shrink-0 overflow-hidden z-20 shadow-lg">
+                    <div className="p-4 border-b border-surface-200 bg-white flex-shrink-0">
+                        <h2 className="font-bold text-lg text-surface-900">Course Content</h2>
+                    </div>
+                    <div className="flex-grow overflow-y-auto">
+                        {modules.map((mod, idx) => (
+                            <div key={idx} className="border-b border-surface-200 bg-white">
+                                <div className="p-4 bg-surface-50 font-bold text-surface-900 border-b border-surface-200 shadow-sm z-10 sticky top-0">
+                                    {mod.title}
+                                </div>
+                                <div className="py-2">
+                                    {mod.lessons.map((lesson, jdx) => (
+                                        <div
+                                            key={jdx}
+                                            className={`group px-4 py-3 flex items-start gap-3 cursor-pointer transition-colors border-l-4 ${lesson.active ? 'bg-primary-50 border-primary-500' : 'border-transparent hover:bg-surface-50'}`}
+                                        >
+                                            <div className="mt-0.5 relative">
+                                                {lesson.completed ? (
+                                                    <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs">
+                                                        <i className="fas fa-check"></i>
+                                                    </div>
+                                                ) : lesson.active ? (
+                                                    <div className="w-5 h-5 rounded-full border-2 border-primary-500 text-primary-600 flex items-center justify-center text-xs bg-white">
+                                                        <div className="w-2 h-2 rounded-full bg-primary-500"></div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-5 h-5 rounded-full border-2 border-surface-300 text-surface-300 flex items-center justify-center text-xs group-hover:border-primary-300 transition-colors">
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-grow">
+                                                <p className={`text-sm font-medium leading-tight mb-1 ${lesson.active ? 'text-primary-700 font-bold' : 'text-surface-700 group-hover:text-surface-900'}`}>{lesson.title}</p>
+                                                <div className="flex items-center gap-1.5 text-xs text-surface-400">
+                                                    <i className={`fas ${lesson.title.includes('Quiz') ? 'fa-pen-square' : 'fa-play-circle'}`}></i>
+                                                    {lesson.duration}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const LessonContent = () => {
+            const [activeTab, setActiveTab] = useState('overview');
+            const tabs = [
+                { id: 'overview', label: 'Overview' },
+                { id: 'notes', label: 'Notes' },
+                { id: 'qa', label: 'Q&A' },
+                { id: 'resources', label: 'Resources' }
+            ];
+
+            return (
+                <div className="flex-grow flex flex-col h-full overflow-hidden bg-white relative box-border">
+                    {/* Video Area */}
+                    <div className="bg-black w-full relative group flex-shrink-0" style={{ paddingBottom: '56.25%' /* 16:9 Aspect Ratio */ }}>
+                        <div className="absolute inset-0 flex flex-col">
+                            {/* Dummy Video Display */}
+                            <img src="https://images.unsplash.com/photo-1555949963-aa79dcee981c?auto=format&fit=crop&w=1200&q=80" alt="Video frame" className="w-full h-full object-cover opacity-80" />
+
+                            {/* Video Controls Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-4">
+                                <div className="self-end text-white/80 hover:text-white cursor-pointer bg-black/40 px-3 py-1 rounded-lg backdrop-blur text-sm">
+                                    <i className="fas fa-ellipsis-v"></i> Settings
+                                </div>
+                                <div className="mt-auto">
+                                    <div className="w-full h-1 bg-white/20 rounded-full mb-3 cursor-pointer group/bar relative">
+                                        <div className="absolute h-full bg-white/40 w-1/2 rounded-full"></div>
+                                        <div className="absolute h-full bg-primary-500 w-1/4 rounded-full relative">
+                                            <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow opacity-0 group-hover/bar:opacity-100 transition-opacity"></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between text-white">
+                                        <div className="flex items-center gap-6">
+                                            <button className="text-xl hover:text-primary-400 transition-colors"><i className="fas fa-play"></i></button>
+                                            <div className="flex items-center gap-4 text-sm font-medium">
+                                                <button className="hover:text-primary-400 transition-colors"><i className="fas fa-volume-up"></i></button>
+                                                <span>04:15 / 18:20</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <button className="hover:text-primary-400 transition-colors text-sm font-bold bg-white/20 px-2 py-0.5 rounded">1x</button>
+                                            <button className="hover:text-primary-400 transition-colors"><i className="fas fa-closed-captioning text-lg"></i></button>
+                                            <button className="hover:text-primary-400 transition-colors"><i className="fas fa-expand text-lg"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tabs Section */}
+                    <div className="flex-grow flex flex-col overflow-hidden">
+                        <div className="border-b border-surface-200 px-6 pt-4 flex-shrink-0 bg-white">
+                            <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
+                                {tabs.map(tab => (
+                                    <li className="mr-8" key={tab.id}>
+                                        <button
+                                            className={`inline-block p-4 border-b-2 rounded-t-lg transition-colors ${activeTab === tab.id
+                                                ? 'text-primary-600 border-primary-600'
+                                                : 'text-surface-500 border-transparent hover:text-surface-800 hover:border-surface-300'
+                                                }`}
+                                            onClick={() => setActiveTab(tab.id)}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Tab Content */}
+                        <div className="p-6 md:p-8 overflow-y-auto flex-grow bg-white">
+                            {activeTab === 'overview' && (
+                                <div className="max-w-3xl animate-fade-in">
+                                    <h2 className="text-2xl font-display font-bold text-surface-900 mb-4">Lists and Tuples in Data Analysis</h2>
+                                    <p className="text-surface-600 leading-relaxed mb-6">
+                                        In this lesson, we will dive into Python's built-in data structures. We will explore how to create, manipulate, and leverage Lists and Tuples to organize data before passing them into Pandas DataFrames.
+                                    </p>
+                                    <div className="bg-surface-50 border border-surface-200 rounded-xl p-5">
+                                        <h4 className="font-bold text-surface-900 mb-3">Key Takeaways</h4>
+                                        <ul className="space-y-2 text-surface-600 text-sm">
+                                            <li className="flex items-start gap-2"><i className="fas fa-dot-circle text-primary-500 mt-1 text-[10px]"></i> Lists are mutable, ordered collections of items.</li>
+                                            <li className="flex items-start gap-2"><i className="fas fa-dot-circle text-primary-500 mt-1 text-[10px]"></i> Tuples are immutable, ordered collections, useful for returning multiple values from a function.</li>
+                                            <li className="flex items-start gap-2"><i className="fas fa-dot-circle text-primary-500 mt-1 text-[10px]"></i> List comprehensions offer a concise syntax for creating new lists based on existing lists.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'notes' && (
+                                <div className="max-w-3xl animate-fade-in flex flex-col h-full">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 className="text-xl font-bold text-surface-900">My Notes</h2>
+                                        <Button className="px-3 py-1.5 text-sm"><i className="fas fa-plus mr-1.5"></i> Add Note</Button>
+                                    </div>
+                                    <div className="relative mb-6">
+                                        <textarea className="w-full bg-surface-50 border border-surface-200 rounded-xl p-4 text-surface-900 focus:ring-primary-500 focus:border-primary-500 resize-none h-32" placeholder="Type a new note here... (saved automatically)"></textarea>
+                                        <div className="absolute bottom-3 right-3 text-xs text-surface-400">At 04:15 in video</div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="p-4 border border-surface-200 rounded-xl">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xs font-bold bg-primary-100 text-primary-800 px-2 py-0.5 rounded">02:30</span>
+                                                <div className="flex gap-2">
+                                                    <button className="text-surface-400 hover:text-surface-600"><i className="fas fa-edit"></i></button>
+                                                    <button className="text-surface-400 hover:text-rose-500"><i className="fas fa-trash"></i></button>
+                                                </div>
+                                            </div>
+                                            <p className="text-surface-700 text-sm">Remember that Tuples cannot be modified after creation! Use lists if you need to append/remove items dynamically.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'qa' && (
+                                <div className="max-w-3xl animate-fade-in">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-xl font-bold text-surface-900">Questions & Answers</h2>
+                                        <div className="relative">
+                                            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-surface-400"></i>
+                                            <input type="text" placeholder="Search Q&A..." className="pl-9 pr-4 py-2 border border-surface-200 rounded-lg text-sm focus:ring-primary-500" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-6">
+                                        <div className="flex gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold flex-shrink-0">JS</div>
+                                            <div>
+                                                <h4 className="font-bold text-surface-900 text-sm mb-1">When should I use a Tuple over a List?</h4>
+                                                <p className="text-surface-600 text-sm mb-3">I understand they are immutable, but in practice, what are the performance implications?</p>
+                                                <div className="bg-surface-50 border border-surface-200 rounded-lg p-4">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80" alt="Instructor" className="w-5 h-5 rounded-full" />
+                                                        <span className="font-bold text-sm text-surface-900">Dr. Angela Yu <Badge className="ml-1 text-[10px] py-0 px-1.5" color="primary">Instructor</Badge></span>
+                                                    </div>
+                                                    <p className="text-sm text-surface-700">Great question! Tuples are slightly faster and more memory-efficient than Lists. Use them for fixed collections of data, like geographic coordinates (lat, long) or returning multiple items from a function.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="mt-8">
+                                        <Button variant="secondary" className="w-full py-2">Ask a new question</Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'resources' && (
+                                <div className="max-w-3xl animate-fade-in">
+                                    <h2 className="text-xl font-bold text-surface-900 mb-4">Lesson Resources</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <a href="#" className="flex items-center p-4 border border-surface-200 rounded-xl hover:bg-surface-50 hover:border-primary-300 transition-colors group">
+                                            <div className="w-10 h-10 rounded-lg bg-red-100 text-red-500 flex items-center justify-center text-lg mr-4 group-hover:bg-red-500 group-hover:text-white transition-colors">
+                                                <i className="far fa-file-pdf"></i>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-surface-900 text-sm">Data_Structures_Cheatsheet.pdf</p>
+                                                <p className="text-xs text-surface-400">1.2 MB</p>
+                                            </div>
+                                            <i className="fas fa-download ml-auto text-surface-300 group-hover:text-primary-500 transition-colors"></i>
+                                        </a>
+                                        <a href="#" className="flex items-center p-4 border border-surface-200 rounded-xl hover:bg-surface-50 hover:border-primary-300 transition-colors group">
+                                            <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-500 flex items-center justify-center text-lg mr-4 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                                <i className="far fa-file-code"></i>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-surface-900 text-sm">lesson_4_source_code.zip</p>
+                                                <p className="text-xs text-surface-400">450 KB</p>
+                                            </div>
+                                            <i className="fas fa-download ml-auto text-surface-300 group-hover:text-primary-500 transition-colors"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ActiveLearningPage = () => {
+            return (
+                <div className="h-full flex flex-col font-sans">
+                    <LessonTopBar />
+                    <div className="flex-grow flex flex-col lg:flex-row h-[calc(100vh-64px)] overflow-hidden">
+                        <LessonContent />
+                        <LessonSidebar />
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ActiveLearningPage />);
+    </script>
+</body>
+
+</html>

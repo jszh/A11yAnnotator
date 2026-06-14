@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study — Python for Data Science · LearnPath</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 font-sans antialiased">
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/* ── Compact Header for study mode ── */
+const StudyHeader = ({ currentLesson, totalLessons, moduleName, progress }) => (
+  <header className="bg-slate-950 border-b border-slate-800 px-4 py-3 flex items-center justify-between gap-4">
+    <div className="flex items-center gap-3 min-w-0">
+      <a href="index.html" className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center">
+          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+        </div>
+        <span className="text-white font-bold text-sm hidden sm:block">LearnPath</span>
+      </a>
+      <span className="text-slate-700 hidden sm:block">|</span>
+      <a href="course-detail.html" className="text-slate-400 hover:text-white text-xs sm:text-sm truncate transition-colors hidden sm:block">Python for Data Science</a>
+    </div>
+    <div className="flex-1 max-w-sm hidden md:block">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+          <div className="h-full bg-indigo-500 rounded-full transition-all" style={{width:`${progress}%`}}></div>
+        </div>
+        <span className="text-xs text-slate-400 whitespace-nowrap">{Math.round(progress)}% complete</span>
+      </div>
+    </div>
+    <div className="flex items-center gap-2">
+      <a href="dashboard.html" className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors">Dashboard</a>
+      <button className="text-xs font-medium bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors">My Learning</button>
+    </div>
+  </header>
+);
+
+const modules = [
+  {
+    title: 'Module 1: Python Foundations',
+    lessons: [
+      { title: 'Welcome & Course Overview', duration: '5:20', completed: true },
+      { title: 'Setting Up Your Environment', duration: '8:45', completed: true },
+      { title: 'Python Basics: Variables & Types', duration: '14:30', completed: true },
+      { title: 'Control Flow: if/else & Loops', duration: '18:15', completed: false, active: false },
+    ]
+  },
+  {
+    title: 'Module 2: Data Structures & Pandas',
+    lessons: [
+      { title: 'Introduction to NumPy', duration: '22:10', completed: false, active: true },
+      { title: 'Arrays & Vectorized Operations', duration: '19:40', completed: false },
+      { title: 'Pandas DataFrames', duration: '28:55', completed: false },
+      { title: 'Data Cleaning Techniques', duration: '24:10', completed: false },
+      { title: 'Merging & Grouping Data', duration: '21:30', completed: false },
+    ]
+  },
+  {
+    title: 'Module 3: Data Visualization',
+    lessons: [
+      { title: 'Matplotlib Fundamentals', duration: '16:45', completed: false },
+      { title: 'Advanced Plotting Techniques', duration: '20:30', completed: false },
+      { title: 'Seaborn for Statistical Plots', duration: '18:20', completed: false },
+    ]
+  },
+  {
+    title: 'Module 4: Machine Learning Basics',
+    lessons: [
+      { title: 'What is Machine Learning?', duration: '12:00', completed: false },
+      { title: 'Scikit-Learn Overview', duration: '15:30', completed: false },
+      { title: 'Regression Models', duration: '25:45', completed: false },
+    ]
+  },
+];
+
+const resources = [
+  { name: 'NumPy Cheat Sheet.pdf', size: '1.2 MB', type: 'PDF' },
+  { name: 'Module 2 Starter Code.zip', size: '4.8 MB', type: 'ZIP' },
+  { name: 'Dataset: Housing Prices.csv', size: '890 KB', type: 'CSV' },
+  { name: 'Pandas Reference Guide.pdf', size: '2.1 MB', type: 'PDF' },
+];
+
+const App = () => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [openModules, setOpenModules] = useState([0, 1]);
+  const [activeLesson, setActiveLesson] = useState({ mod: 1, lesson: 0 });
+  const [noteText, setNoteText] = useState('Vectorized operations in NumPy are much faster than Python loops because they call optimized C code under the hood.\n\nKey concept: Broadcasting — allows arrays of different shapes to work together.');
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(28);
+
+  const toggleModule = (i) => setOpenModules(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]);
+
+  const completedCount = modules.flatMap(m => m.lessons).filter(l => l.completed).length;
+  const totalLessons = modules.flatMap(m => m.lessons).length;
+  const currentLesson = modules[activeLesson.mod]?.lessons[activeLesson.lesson];
+
+  const qaItems = [
+    { user: 'Tom K.', avatar: 'TK', color: 'bg-blue-500', time: '2 days ago', question: 'Why does np.array([[1,2],[3,4]]) give a 2D array? I thought it would be 1D with tuples.', answers: 2 },
+    { user: 'Maria L.', avatar: 'ML', color: 'bg-rose-500', time: '1 week ago', question: 'Can we use NumPy arrays with Pandas DataFrames directly? Or do we need to convert first?', answers: 3 },
+    { user: 'Priya S.', avatar: 'PS', color: 'bg-violet-500', time: '2 weeks ago', question: 'What\'s the performance difference between a list comprehension vs vectorized NumPy operation on 1M elements?', answers: 1 },
+  ];
+
+  return (
+    <>
+      <StudyHeader currentLesson={4} totalLessons={totalLessons} moduleName="Data Structures" progress={progress} />
+
+      {/* Progress Banner */}
+      <div className="bg-indigo-900/60 border-b border-indigo-800/50 px-4 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-3 text-sm">
+          <span className="text-indigo-300 font-medium">Lesson 4 of {totalLessons}</span>
+          <span className="text-indigo-600">·</span>
+          <span className="text-white font-semibold">Module 2: Data Structures & Pandas</span>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-indigo-400">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <span>Next: Arrays & Vectorized Operations</span>
+        </div>
+      </div>
+
+      <div className="flex h-[calc(100vh-100px)]">
+        {/* Main Video + Tabs Column */}
+        <div className="flex-1 min-w-0 overflow-y-auto">
+          {/* Video Player */}
+          <div className="bg-black relative" style={{aspectRatio:'16/9', maxHeight:'56vh'}}>
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-indigo-950 flex flex-col items-center justify-center">
+              {/* Fake video content */}
+              <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-8 left-12 w-40 h-40 rounded-full bg-blue-400 blur-3xl"></div>
+                  <div className="absolute bottom-8 right-12 w-32 h-32 rounded-full bg-indigo-400 blur-3xl"></div>
+                </div>
+                {/* Code-like overlay */}
+                <div className="relative bg-slate-900/80 rounded-xl px-8 py-5 font-mono text-sm text-left max-w-lg w-full mx-8">
+                  <div className="text-slate-500 mb-2 text-xs"># NumPy Array Creation</div>
+                  <div><span className="text-violet-400">import</span> <span className="text-white">numpy</span> <span className="text-violet-400">as</span> <span className="text-cyan-400">np</span></div>
+                  <div className="mt-2"><span className="text-amber-300">arr</span> <span className="text-white">=</span> <span className="text-cyan-400">np</span><span className="text-white">.</span><span className="text-yellow-300">array</span><span className="text-white">([</span><span className="text-emerald-400">1</span><span className="text-white">, </span><span className="text-emerald-400">2</span><span className="text-white">, </span><span className="text-emerald-400">3</span><span className="text-white">, </span><span className="text-emerald-400">4</span><span className="text-white">, </span><span className="text-emerald-400">5</span><span className="text-white">])</span></div>
+                  <div className="mt-1"><span className="text-blue-300">print</span><span className="text-white">(</span><span className="text-amber-300">arr</span><span className="text-white"> * </span><span className="text-emerald-400">2</span><span className="text-white">)</span></div>
+                  <div className="mt-2 text-slate-500"># Output: [ 2  4  6  8 10]</div>
+                </div>
+              </div>
+            </div>
+            {/* Video Controls */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+              <div className="h-1 bg-white/20 rounded-full mb-3 cursor-pointer">
+                <div className="h-full bg-indigo-400 rounded-full" style={{width:'32%'}}></div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button className="text-white hover:text-indigo-300 transition-colors">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
+                  </button>
+                  <button onClick={() => setPlaying(!playing)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-indigo-100 transition-colors">
+                    {playing ? (
+                      <svg className="w-5 h-5 text-slate-900" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-slate-900 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    )}
+                  </button>
+                  <button className="text-white hover:text-indigo-300 transition-colors">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                  </button>
+                  <span className="text-white text-xs font-mono">7:02 / 22:10</span>
+                  <div className="flex items-center gap-1 text-white">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button className="text-white text-xs font-medium bg-white/10 px-2 py-1 rounded hover:bg-white/20 transition-colors">CC</button>
+                  <button className="text-white text-xs font-medium bg-white/10 px-2 py-1 rounded hover:bg-white/20 transition-colors">1x</button>
+                  <button className="text-white">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="bg-slate-900 border-b border-slate-800">
+            <div className="flex overflow-x-auto">
+              {[['overview','Overview'],['notes','Notes'],['qa','Q&A'],['resources','Resources']].map(([id, label]) => (
+                <button key={id} onClick={() => setActiveTab(id)}
+                  className={`px-5 py-3.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${activeTab===id ? 'border-indigo-400 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                >{label}</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-slate-900 min-h-[300px]">
+            {activeTab === 'overview' && (
+              <div className="p-6 text-slate-300 max-w-3xl">
+                <h2 className="text-white text-xl font-bold mb-1">Introduction to NumPy</h2>
+                <p className="text-slate-500 text-sm mb-5">Module 2, Lesson 1 · 22 min · Last updated March 2026</p>
+                <p className="text-sm leading-relaxed mb-4">NumPy (Numerical Python) is the foundational library for scientific computing in Python. In this lesson, we'll explore why NumPy arrays are dramatically faster than Python lists for numerical operations, and learn the core concepts you'll use throughout your data science work.</p>
+                <p className="text-sm leading-relaxed mb-6">By the end of this lesson, you'll understand array creation, shape manipulation, basic mathematical operations, and the concept of broadcasting — all core tools for working with datasets efficiently.</p>
+                <h3 className="text-white font-semibold mb-3">Lesson Objectives</h3>
+                <ul className="space-y-2">
+                  {['Understand what NumPy arrays are and why they\'re faster than Python lists','Create arrays using np.array(), np.zeros(), np.ones(), and np.arange()','Perform element-wise operations and understand broadcasting','Use array slicing and indexing to access subsets of data','Apply common NumPy math functions like mean, sum, min, max'].map(obj => (
+                    <li key={obj} className="flex items-start gap-2 text-sm">
+                      <svg className="w-4 h-4 text-indigo-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      {obj}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {activeTab === 'notes' && (
+              <div className="p-6 max-w-3xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-white font-bold text-lg">My Notes</h2>
+                  <span className="text-xs text-slate-500">Auto-saved</span>
+                </div>
+                <p className="text-xs text-slate-500 mb-3">Notes are timestamped to the current video position.</p>
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-1 mb-4">
+                  <div className="flex items-center gap-2 px-2 py-1.5 border-b border-slate-700 mb-1">
+                    <button className="text-slate-400 hover:text-white text-xs font-bold">B</button>
+                    <button className="text-slate-400 hover:text-white text-xs italic">I</button>
+                    <button className="text-slate-400 hover:text-white text-xs">U</button>
+                    <span className="w-px h-4 bg-slate-600"></span>
+                    <button className="text-slate-400 hover:text-white text-xs">• List</button>
+                    <button className="text-slate-400 hover:text-white text-xs">{ }</button>
+                  </div>
+                  <textarea
+                    value={noteText}
+                    onChange={e => setNoteText(e.target.value)}
+                    className="w-full bg-transparent text-slate-300 text-sm p-3 resize-none focus:outline-none min-h-[120px]"
+                    placeholder="Take notes here..."
+                  />
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Previous Notes</h3>
+                  {[
+                    { time: '3:14', text: 'np.linspace(0, 1, 50) creates 50 evenly spaced values between 0 and 1.' },
+                    { time: '1:55', text: 'dtype parameter controls data type: np.array([1,2,3], dtype=float64)' },
+                  ].map((n, i) => (
+                    <div key={i} className="bg-slate-800 rounded-xl p-3 flex gap-3">
+                      <button className="text-indigo-400 text-xs font-mono bg-slate-700 px-2 py-0.5 rounded flex-shrink-0 hover:bg-indigo-900 transition-colors">{n.time}</button>
+                      <p className="text-slate-300 text-xs">{n.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {activeTab === 'qa' && (
+              <div className="p-6 max-w-3xl">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-white font-bold text-lg">Q&A</h2>
+                  <button className="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors">Ask a Question</button>
+                </div>
+                <div className="mb-5">
+                  <input type="text" placeholder="Search questions..." className="w-full bg-slate-800 border border-slate-700 text-slate-300 text-sm px-4 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500" />
+                </div>
+                <div className="space-y-4">
+                  {qaItems.map((q, i) => (
+                    <div key={i} className="bg-slate-800 rounded-2xl p-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-full ${q.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>{q.avatar}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-white text-sm font-medium">{q.user}</span>
+                            <span className="text-slate-500 text-xs">{q.time}</span>
+                          </div>
+                          <p className="text-slate-300 text-sm mb-3">{q.question}</p>
+                          <div className="flex items-center gap-3">
+                            <button className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                              {q.answers} {q.answers === 1 ? 'answer' : 'answers'}
+                            </button>
+                            <button className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-indigo-400 transition-colors">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>
+                              Helpful
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {activeTab === 'resources' && (
+              <div className="p-6 max-w-3xl">
+                <h2 className="text-white font-bold text-lg mb-5">Lesson Resources</h2>
+                <div className="space-y-3">
+                  {resources.map((r, i) => (
+                    <div key={i} className="bg-slate-800 rounded-xl p-4 flex items-center justify-between gap-4 hover:bg-slate-700/80 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold ${r.type==='PDF'?'bg-rose-900 text-rose-300':r.type==='ZIP'?'bg-amber-900 text-amber-300':'bg-emerald-900 text-emerald-300'}`}>{r.type}</div>
+                        <div>
+                          <p className="text-white text-sm font-medium">{r.name}</p>
+                          <p className="text-slate-500 text-xs">{r.size}</p>
+                        </div>
+                      </div>
+                      <button className="text-slate-400 hover:text-white transition-colors">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Lesson Sidebar */}
+        <div className="w-72 flex-shrink-0 bg-slate-950 border-l border-slate-800 overflow-y-auto hidden lg:block">
+          <div className="p-4 border-b border-slate-800">
+            <h3 className="text-white font-bold text-sm">Course Content</h3>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500 rounded-full" style={{width:'28%'}}></div>
+              </div>
+              <span className="text-xs text-slate-400 whitespace-nowrap">{completedCount}/{totalLessons} lessons</span>
+            </div>
+          </div>
+          <div className="overflow-y-auto">
+            {modules.map((mod, mi) => (
+              <div key={mi}>
+                <button
+                  onClick={() => toggleModule(mi)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-slate-900/50 hover:bg-slate-800/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <svg className={`w-3.5 h-3.5 text-slate-500 flex-shrink-0 transition-transform ${openModules.includes(mi) ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    <span className="text-slate-300 text-xs font-semibold truncate">{mod.title}</span>
+                  </div>
+                  <span className="text-xs text-slate-500 flex-shrink-0 ml-2">{mod.lessons.filter(l=>l.completed).length}/{mod.lessons.length}</span>
+                </button>
+                {openModules.includes(mi) && (
+                  <div>
+                    {mod.lessons.map((lesson, li) => {
+                      const isActive = mi === activeLesson.mod && li === activeLesson.lesson;
+                      return (
+                        <button
+                          key={li}
+                          onClick={() => setActiveLesson({mod: mi, lesson: li})}
+                          className={`w-full flex items-start gap-3 px-4 py-2.5 text-left transition-colors ${isActive ? 'bg-indigo-900/40 border-r-2 border-indigo-500' : 'hover:bg-slate-800/30'}`}
+                        >
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${lesson.completed ? 'bg-emerald-500' : isActive ? 'bg-indigo-600 ring-2 ring-indigo-400' : 'bg-slate-700'}`}>
+                            {lesson.completed ? (
+                              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                            ) : isActive ? (
+                              <div className="w-2 h-2 rounded-full bg-white"></div>
+                            ) : (
+                              <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-medium leading-tight ${isActive ? 'text-indigo-300' : lesson.completed ? 'text-slate-400' : 'text-slate-300'}`}>{lesson.title}</p>
+                            <p className="text-xs text-slate-600 mt-0.5">{lesson.duration}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="p-4 border-t border-slate-800">
+            <a href="course-detail.html" className="block w-full text-center text-xs font-medium text-slate-400 hover:text-white py-2 rounded-lg hover:bg-slate-800 transition-colors">← Back to Course Overview</a>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Nav */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 flex">
+        {[['overview','Overview'],['notes','Notes'],['qa','Q&A'],['resources','Files']].map(([id, label]) => (
+          <button key={id} onClick={() => setActiveTab(id)}
+            className={`flex-1 py-3 text-xs font-medium transition-colors ${activeTab===id ? 'text-indigo-400' : 'text-slate-500'}`}
+          >{label}</button>
+        ))}
+      </div>
+    </>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

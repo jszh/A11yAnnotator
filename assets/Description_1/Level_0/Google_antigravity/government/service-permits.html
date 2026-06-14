@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permits & Licenses - City of Lakewood</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700;900&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./shared/theme.js"></script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+
+<body class="bg-gov-neutral-50 text-gov-neutral-900 flex flex-col min-h-screen">
+    <div id="root" class="flex flex-col flex-1"></div>
+
+    <script type="text/babel" src="./shared/components.jsx"></script>
+
+    <script type="text/babel">
+        const checkShared = setInterval(() => {
+            if (window.SharedComponents) {
+                clearInterval(checkShared);
+                renderApp();
+            }
+        }, 50);
+
+        function App() {
+            const { Header, Footer, Icons } = window.SharedComponents;
+            const { DocumentIcon, ArrowRightIcon, ChevronDownIcon } = Icons;
+            const [step, setStep] = React.useState(1); // 1 = form, 2 = success
+
+            const handleFormSubmit = (e) => {
+                e.preventDefault();
+                setStep(2);
+                window.scrollTo(0, 0);
+            };
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header currentPath="service-permits.html" />
+
+                    {/* Breadcrumbs */}
+                    <div className="bg-white border-b border-gov-neutral-200 py-3">
+                        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-sm text-gov-neutral-500">
+                            <a href="index.html" className="hover:text-gov-blue-700">Home</a>
+                            <span className="mx-2">/</span>
+                            <a href="services.html" className="hover:text-gov-blue-700">Services</a>
+                            <span className="mx-2">/</span>
+                            <span className="text-gov-neutral-900 font-medium">Permits & Licenses</span>
+                        </div>
+                    </div>
+
+                    <main className="flex-1 py-10">
+                        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                            <div className="mb-10">
+                                <h1 className="text-4xl font-serif font-bold text-gov-blue-900 mb-4">Building Permits Application</h1>
+                                <p className="text-lg text-gov-neutral-600">Submit plans and apply for residential and commercial building permits online.</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {/* Form Area */}
+                                <div className="md:col-span-2">
+                                    {step === 1 ? (
+                                        <div className="bg-white rounded-xl shadow-soft border border-gov-neutral-200 overflow-hidden">
+                                            <div className="bg-gov-blue-50 border-b border-gov-neutral-200 px-6 py-4">
+                                                <h2 className="text-xl font-bold text-gov-blue-900">New Permit Application</h2>
+                                            </div>
+                                            <form className="p-6 md:p-8 space-y-6" onSubmit={handleFormSubmit}>
+
+                                                {/* Applicant Info */}
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-gov-neutral-900 mb-4 border-b pb-2">1. Applicant Information</h3>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gov-neutral-700 mb-1">First Name <span className="text-red-500">*</span></label>
+                                                            <input required type="text" className="w-full border border-gov-neutral-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gov-blue-500" placeholder="Jane" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gov-neutral-700 mb-1">Last Name <span className="text-red-500">*</span></label>
+                                                            <input required type="text" className="w-full border border-gov-neutral-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gov-blue-500" placeholder="Doe" />
+                                                        </div>
+                                                        <div className="sm:col-span-2">
+                                                            <label className="block text-sm font-medium text-gov-neutral-700 mb-1">Email Address <span className="text-red-500">*</span></label>
+                                                            <input required type="email" className="w-full border border-gov-neutral-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gov-blue-500" placeholder="jane.doe@example.com" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Project Info */}
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-gov-neutral-900 mb-4 border-b pb-2 mt-8">2. Project Details</h3>
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gov-neutral-700 mb-1">Project Type <span className="text-red-500">*</span></label>
+                                                            <div className="relative">
+                                                                <select required className="w-full border border-gov-neutral-300 rounded-md py-2 pl-3 pr-10 appearance-none focus:outline-none focus:ring-2 focus:ring-gov-blue-500 bg-white">
+                                                                    <option value="">Select a project type...</option>
+                                                                    <option value="residential_new">Residential - New Construction</option>
+                                                                    <option value="residential_alt">Residential - Alteration/Addition</option>
+                                                                    <option value="commercial_new">Commercial - New Construction</option>
+                                                                    <option value="commercial_alt">Commercial - Alteration/Tenant Finish</option>
+                                                                    <option value="deck_fence">Fence / Deck / Shed</option>
+                                                                    <option value="roofing">Roofing / Siding</option>
+                                                                </select>
+                                                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gov-neutral-500">
+                                                                    <ChevronDownIcon />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gov-neutral-700 mb-1">Project Address (must be within Lakewood limits) <span className="text-red-500">*</span></label>
+                                                            <input required type="text" className="w-full border border-gov-neutral-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gov-blue-500" placeholder="123 Main St, Lakewood, OH 44107" />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gov-neutral-700 mb-1">Detailed Description of Work <span className="text-red-500">*</span></label>
+                                                            <textarea required rows="4" className="w-full border border-gov-neutral-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-gov-blue-500" placeholder="Describe the scope of the project..."></textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Documents */}
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-gov-neutral-900 mb-4 border-b pb-2 mt-8">3. Upload Documents</h3>
+                                                    <p className="text-sm text-gov-neutral-600 mb-3">Please provide site plans, architectural drawings, or material specifications as PDF files.</p>
+                                                    <div className="mt-1 flex justify-center px-6 py-8 border-2 border-gov-neutral-300 border-dashed rounded-md bg-gov-neutral-50 hover:bg-gov-neutral-100 transition-colors cursor-pointer">
+                                                        <div className="space-y-1 text-center">
+                                                            <DocumentIcon className="mx-auto h-12 w-12 text-gov-neutral-400" />
+                                                            <div className="flex text-sm text-gov-neutral-600 justify-center">
+                                                                <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-gov-blue-600 hover:text-gov-blue-500 px-1 focus-within:outline-none">
+                                                                    <span>Upload a file</span>
+                                                                    <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple />
+                                                                </label>
+                                                                <p className="pl-1">or drag and drop</p>
+                                                            </div>
+                                                            <p className="text-xs text-gov-neutral-500">PDF, JPG, PNG up to 10MB</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-6 border-t border-gov-neutral-200 flex justify-end">
+                                                    <button type="button" className="bg-white border border-gov-neutral-300 text-gov-neutral-700 px-6 py-2 rounded-md font-medium hover:bg-gov-neutral-50 mr-4 transition-colors">Cancel</button>
+                                                    <button type="submit" className="bg-gov-blue-700 hover:bg-gov-blue-800 text-white px-8 py-2 rounded-md font-medium shadow-sm transition-colors">Submit Application</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    ) : (
+                                        /* Success Screen */
+                                        <div className="bg-white rounded-xl shadow-soft border border-green-200 overflow-hidden text-center py-16 px-6">
+                                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600">
+                                                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                            </div>
+                                            <h2 className="text-3xl font-bold text-gov-blue-900 mb-4">Application Submitted!</h2>
+                                            <p className="text-lg text-gov-neutral-600 mb-8 max-w-lg mx-auto">Your permit application has been received successfully. A confirmation email has been sent to your inbox.</p>
+
+                                            <div className="bg-gov-neutral-50 border border-gov-neutral-200 rounded-lg p-6 max-w-sm mx-auto mb-8 text-left">
+                                                <p className="text-sm text-gov-neutral-500 uppercase tracking-wide font-semibold mb-1">Confirmation Number</p>
+                                                <p className="text-2xl font-mono font-bold text-gov-blue-800">LKW-26-4901</p>
+                                                <p className="text-sm text-gov-neutral-600 mt-3 pt-3 border-t border-gov-neutral-200">Keep this number to track your application status.</p>
+                                            </div>
+
+                                            <button onClick={() => setStep(1)} className="text-gov-blue-700 font-semibold hover:underline">Submit another application</button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Sidebar / Tracker */}
+                                <div className="md:col-span-1 space-y-6">
+                                    <div className="bg-gov-blue-900 text-white rounded-xl shadow-soft p-6">
+                                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                            <Icons.SearchIcon className="w-5 h-5 text-gov-blue-300" />
+                                            Track Existing Permit
+                                        </h3>
+                                        <p className="text-sm text-gov-blue-200 mb-4">Already submitted? Check the review status of your permit.</p>
+                                        <form className="flex flex-col gap-3">
+                                            <input type="text" placeholder="Enter Permit #" className="w-full px-3 py-2 rounded text-gov-neutral-900 focus:outline-none" />
+                                            <button type="button" className="bg-gov-blue-600 hover:bg-gov-blue-500 font-medium py-2 rounded transition-colors border border-gov-blue-500">Check Status</button>
+                                        </form>
+                                    </div>
+
+                                    <div className="bg-white rounded-xl shadow-soft border border-gov-neutral-200 p-6">
+                                        <h3 className="font-bold text-gov-blue-900 mb-4 border-b border-gov-neutral-200 pb-2">Need Help?</h3>
+                                        <div className="space-y-4 text-sm text-gov-neutral-600">
+                                            <p><strong>Building Department</strong></p>
+                                            <p className="flex items-center gap-2"><Icons.PhoneIcon className="w-4 h-4" /> (216) 555-0210</p>
+                                            <p>Monday - Friday<br />8:00 AM - 4:00 PM</p>
+                                            <p className="pt-2">Or visit us at City Hall, Room 204.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        }
+
+        function renderApp() {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        }
+    </script>
+</body>
+
+</html>

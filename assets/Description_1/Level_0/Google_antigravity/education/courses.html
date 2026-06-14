@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore Courses | LearnPath</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body class="bg-surface-50 antialiased text-surface-900 selection:bg-primary-500 selection:text-white">
+    <div id="root"></div>
+
+    <!-- Shared Components -->
+    <script type="text/babel" src="shared.js"></script>
+
+    <!-- Page Component -->
+    <script type="text/babel">
+        const { useState } = React;
+
+        const FilterSidebar = () => {
+            const filters = [
+                {
+                    title: "Category",
+                    options: ["Web Development", "Data Science", "UX Design", "Business", "Photography", "Self Development"]
+                },
+                {
+                    title: "Level",
+                    options: ["Beginner", "Intermediate", "Advanced", "All Levels"]
+                },
+                {
+                    title: "Duration",
+                    options: ["0-2 Hours", "3-5 Hours", "6-10 Hours", "10+ Hours"]
+                },
+                {
+                    title: "Rating",
+                    options: ["4.5 & up", "4.0 & up", "3.0 & up"]
+                },
+                {
+                    title: "Price",
+                    options: ["Free", "Paid"]
+                }
+            ];
+
+            return (
+                <div className="w-full lg:w-64 flex-shrink-0 mb-8 lg:mb-0">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-surface-200">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-display font-bold">Filters</h2>
+                            <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">Clear All</button>
+                        </div>
+
+                        <div className="space-y-6">
+                            {filters.map((filter, idx) => (
+                                <div key={idx} className="border-t border-surface-100 pt-6 first:border-0 first:pt-0">
+                                    <h3 className="font-semibold text-surface-900 mb-4">{filter.title}</h3>
+                                    <div className="space-y-3">
+                                        {filter.options.map((opt, optIdx) => (
+                                            <label key={optIdx} className="flex items-center group cursor-pointer">
+                                                <input type="checkbox" className="w-4 h-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500 transition-colors" />
+                                                <span className="ml-3 text-sm text-surface-600 group-hover:text-surface-900 transition-colors">
+                                                    {filter.title === 'Rating' ? (
+                                                        <span className="flex items-center">
+                                                            <i className="fas fa-star text-amber-500 mr-1 text-xs"></i> {opt}
+                                                        </span>
+                                                    ) : opt}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CourseGrid = () => {
+            const courses = [
+                {
+                    title: "Python for Data Science — Intermediate",
+                    instructor: "Dr. Angela Yu",
+                    rating: 4.8,
+                    students: "10k+",
+                    duration: "24 hours",
+                    level: "Intermediate",
+                    price: "$89.99",
+                    badge: "Bestseller",
+                    image: "https://images.unsplash.com/photo-1526379095098-d400fd0bfce8?auto=format&fit=crop&w=800&q=80"
+                },
+                {
+                    title: "Complete Web Developer 2026 Bootcamp",
+                    instructor: "Andrei Neagoie",
+                    rating: 4.9,
+                    students: "50k+",
+                    duration: "65 hours",
+                    level: "Beginner",
+                    price: "$94.99",
+                    badge: "Highest Rated",
+                    image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80"
+                },
+                {
+                    title: "UI/UX Design Masterclass: Strategy to Figma",
+                    instructor: "Gary Simon",
+                    rating: 4.7,
+                    students: "8k+",
+                    duration: "18 hours",
+                    level: "All Levels",
+                    price: "$74.99",
+                    image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=800&q=80"
+                },
+                {
+                    title: "Digital Marketing Strategy for 2026",
+                    instructor: "Seth Godin",
+                    rating: 4.8,
+                    students: "12k+",
+                    duration: "12 hours",
+                    level: "Intermediate",
+                    price: "Free",
+                    badge: "New",
+                    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80"
+                },
+                {
+                    title: "Advanced React Patterns",
+                    instructor: "Kent C. Dodds",
+                    rating: 4.9,
+                    students: "15k+",
+                    duration: "20 hours",
+                    level: "Advanced",
+                    price: "$120.00",
+                    image: "https://images.unsplash.com/photo-1555099962-4199c345e5dd?auto=format&fit=crop&w=800&q=80"
+                },
+                {
+                    title: "Financial Accounting Basics",
+                    instructor: "Thomas Ittelson",
+                    rating: 4.6,
+                    students: "4k+",
+                    duration: "8 hours",
+                    level: "Beginner",
+                    price: "$49.99",
+                    image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80"
+                }
+            ];
+
+            return (
+                <div className="flex-grow">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 pb-6 border-b border-surface-200 gap-4">
+                        <p className="text-surface-600 font-medium">Showing <span className="text-surface-900 font-bold">1-6</span> of 2,450 results</p>
+                        <div className="flex items-center gap-4">
+                            <label className="text-sm font-medium text-surface-600">Sort by:</label>
+                            <select className="bg-white border border-surface-300 text-surface-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5 shadow-sm">
+                                <option>Most Popular</option>
+                                <option>Highest Rated</option>
+                                <option>Newest</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {courses.map((course, idx) => (
+                            <CourseCard key={idx} {...course} />
+                        ))}
+                    </div>
+
+                    <div className="mt-12 flex justify-center">
+                        <nav className="flex items-center gap-2">
+                            <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-surface-200 text-surface-500 hover:bg-surface-100 transition-colors">
+                                <i className="fas fa-chevron-left"></i>
+                            </button>
+                            <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-600 text-white font-medium shadow-md">1</button>
+                            <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-surface-200 text-surface-700 hover:bg-surface-100 transition-colors font-medium">2</button>
+                            <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-surface-200 text-surface-700 hover:bg-surface-100 transition-colors font-medium">3</button>
+                            <span className="text-surface-500 mx-2">...</span>
+                            <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-surface-200 text-surface-700 hover:bg-surface-100 transition-colors font-medium">24</button>
+                            <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-surface-200 text-surface-500 hover:bg-surface-100 transition-colors">
+                                <i className="fas fa-chevron-right"></i>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+            );
+        };
+
+        const CoursesPage = () => {
+            return (
+                <div className="flex flex-col min-h-screen">
+                    {/* Reusing existing Header component, but we will wrap it in a div to preserve its fixed positioning and add top padding */}
+                    <div className="bg-surface-900 pb-20 pt-32 px-4 sm:px-6 lg:px-8">
+                        <Header />
+                        <div className="max-w-7xl mx-auto relative z-10 animate-fade-in">
+                            <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4">Explore Courses</h1>
+                            <p className="text-xl text-surface-300 max-w-2xl">Discover thousands of expert-led courses and take the next step in your career.</p>
+                        </div>
+                    </div>
+
+                    <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full flex flex-col lg:flex-row gap-8">
+                        <FilterSidebar />
+                        <CourseGrid />
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CoursesPage />);
+    </script>
+</body>
+
+</html>

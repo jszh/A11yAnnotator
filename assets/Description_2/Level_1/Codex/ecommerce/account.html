@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ThreadHouse | Account</title>
+    <meta name="description" content="Manage orders, saved outfits, loyalty rewards, and referrals from your ThreadHouse account dashboard." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { theme: { extend: { colors: { stone: tailwind.colors.stone, slate: tailwind.colors.slate, rose: tailwind.colors.rose, amber: tailwind.colors.amber } } } };</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="bg-stone-100 text-slate-900">
+    <header class="sticky top-0 z-40 border-b border-stone-200 bg-[rgba(247,244,239,0.94)] backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <a href="./index.html" class="focus-ring inline-flex items-center gap-3 rounded-full"><span class="rounded-full bg-rose-700 px-3 py-2 text-xs font-bold uppercase tracking-[0.3em] text-white">TH</span><span><span class="font-display block text-2xl leading-none">ThreadHouse</span><span class="text-xs uppercase tracking-[0.24em] text-slate-500">Sustainable Marketplace</span></span></a>
+        <nav aria-label="Primary" class="hidden items-center gap-2 md:flex">
+          <a href="./index.html" class="focus-ring rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">Home</a>
+          <a href="./products.html" class="focus-ring rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">Shop</a>
+          <a href="./product-detail.html" class="focus-ring rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">Featured Product</a>
+          <a href="./cart.html" class="focus-ring rounded-full px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white">Cart</a>
+          <a href="./account.html" aria-current="page" class="focus-ring rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Account</a>
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div id="account-root"></div>
+    </main>
+    <footer class="border-t border-stone-200 bg-slate-950 text-stone-200">
+      <div class="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.4fr,1fr,1fr] lg:px-8">
+        <div><h2 class="font-display text-3xl text-white">ThreadHouse</h2><p class="mt-4 max-w-md text-sm leading-7 text-stone-300">Independent fashion, transparent sourcing, and wardrobe staples that feel current without chasing wasteful cycles.</p></div>
+        <div><h3 class="text-sm font-bold uppercase tracking-[0.24em] text-stone-100">Shop</h3><ul class="mt-4 space-y-3 text-sm"><li><a href="./products.html" class="focus-ring rounded text-stone-300 hover:text-white">New arrivals</a></li><li><a href="./product-detail.html" class="focus-ring rounded text-stone-300 hover:text-white">Featured linen shirt</a></li><li><a href="./cart.html" class="focus-ring rounded text-stone-300 hover:text-white">Cart and checkout</a></li></ul></div>
+        <div><h3 class="text-sm font-bold uppercase tracking-[0.24em] text-stone-100">Support</h3><ul class="mt-4 space-y-3 text-sm"><li><a href="./account.html" class="focus-ring rounded text-stone-300 hover:text-white">Account dashboard</a></li><li><a href="./products.html" class="focus-ring rounded text-stone-300 hover:text-white">Size and fit help</a></li><li><a href="./index.html#mission" class="focus-ring rounded text-stone-300 hover:text-white">Our mission</a></li></ul></div>
+      </div>
+    </footer>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel">
+      const { useState } = React;
+      const orders = [
+        { id: "TH-20318", item: "Soft Structure Blazer", status: "In Transit", eta: "Arrives Apr 2" },
+        { id: "TH-19984", item: "Cloud Knit Cardigan", status: "Delivered", eta: "Delivered Mar 18" },
+        { id: "TH-19742", item: "Patchwork Tote", status: "Processing Return", eta: "Refund by Apr 5" },
+      ];
+      const outfits = [
+        { title: "Gallery Day Set", pieces: "Oversized Linen Shirt + Tailored Utility Trouser + Patchwork Tote", image: "https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&w=900&q=80" },
+        { title: "Studio Commute Set", pieces: "Soft Structure Blazer + Cropped Rib Tank + Weekend Barrel Jean", image: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80" },
+      ];
+
+      function AccountPage() {
+        const [copyLabel, setCopyLabel] = useState("Copy link");
+
+        function handleCopy() {
+          const link = "https://threadhouse.example/invite/MQISHI20";
+          if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(link);
+            setCopyLabel("Copied");
+          } else {
+            setCopyLabel("Share manually");
+          }
+          window.setTimeout(() => setCopyLabel("Copy link"), 1500);
+        }
+
+        return (
+          <>
+            <section className="rounded-[2rem] bg-slate-950 p-8 text-white shadow-soft sm:p-10">
+              <p className="text-sm font-bold uppercase tracking-[0.26em] text-rose-300">My ThreadHouse</p>
+              <h1 className="font-display mt-3 text-5xl">Account Dashboard</h1>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-stone-300">Track orders, save outfits, refine your style profile, and share your referral link with friends who shop consciously.</p>
+            </section>
+            <div className="mt-8 grid gap-6 xl:grid-cols-2">
+              <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-soft"><h2 className="text-2xl font-semibold">My Orders</h2><ul className="mt-5 space-y-4">{orders.map((order) => <li key={order.id} className="rounded-[1.5rem] bg-stone-100 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm font-bold uppercase tracking-[0.18em] text-rose-700">{order.id}</p><p className="mt-1 font-semibold">{order.item}</p></div><div className="text-right"><p className="font-semibold">{order.status}</p><p className="text-sm text-slate-600">{order.eta}</p></div></div></li>)}</ul></section>
+              <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-soft"><h2 className="text-2xl font-semibold">Style Profile</h2><dl className="mt-5 grid gap-4 sm:grid-cols-2"><div className="rounded-[1.5rem] bg-stone-100 p-4"><dt className="text-sm font-semibold">Preferred Fits</dt><dd className="mt-2 text-sm text-slate-600">Oversized tops, straight-leg bottoms, relaxed tailoring</dd></div><div className="rounded-[1.5rem] bg-stone-100 p-4"><dt className="text-sm font-semibold">Favorite Materials</dt><dd className="mt-2 text-sm text-slate-600">Organic cotton, linen, recycled technical blends</dd></div><div className="rounded-[1.5rem] bg-stone-100 p-4"><dt className="text-sm font-semibold">Saved Colors</dt><dd className="mt-2 text-sm text-slate-600">Sage, stone, charcoal, rust</dd></div><div className="rounded-[1.5rem] bg-stone-100 p-4"><dt className="text-sm font-semibold">Sizing Notes</dt><dd className="mt-2 text-sm text-slate-600">Usually M in shirts, 28 in denim, EU 39 footwear</dd></div></dl></section>
+              <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-soft"><h2 className="text-2xl font-semibold">Loyalty Rewards</h2><p className="mt-4 text-4xl font-bold text-rose-700">1,840 points</p><p className="mt-3 text-sm leading-7 text-slate-600">Redeem for shipping upgrades, limited-edition totes, or early access to capsule drops.</p><a href="./cart.html" className="focus-ring mt-5 inline-flex rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-slate-700">Use rewards</a></section>
+              <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-soft"><h2 className="text-2xl font-semibold">Saved Outfits</h2><div className="mt-5 grid gap-4 sm:grid-cols-2">{outfits.map((set) => <article key={set.title} className="overflow-hidden rounded-[1.5rem] bg-stone-100"><img src={set.image} alt={`${set.title} saved outfit inspiration`} className="h-44 w-full object-cover" /><div className="p-4"><h3 className="font-semibold">{set.title}</h3><p className="mt-2 text-sm text-slate-600">{set.pieces}</p></div></article>)}</div></section>
+              <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-soft xl:col-span-2"><h2 className="text-2xl font-semibold">Referral Program</h2><p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">Invite a friend and both of you get $20 toward your next independent-label order once their first purchase ships.</p><label htmlFor="referral-link" className="mt-5 block text-sm font-semibold">Unique share link</label><div className="mt-2 flex flex-col gap-3 sm:flex-row"><input id="referral-link" type="text" value="https://threadhouse.example/invite/MQISHI20" readOnly className="focus-ring w-full rounded-full border border-stone-300 bg-stone-100 px-4 py-3 text-sm text-slate-700" /><button type="button" onClick={handleCopy} className="focus-ring rounded-full bg-slate-950 px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-white">{copyLabel}</button></div></section>
+            </div>
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("account-root")).render(<AccountPage />);
+    </script>
+  </body>
+</html>

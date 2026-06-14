@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Apply for a building permit or check the status of an existing permit — City of Lakewood, Colorado." />
+  <title>Permits &amp; Licenses — City of Lakewood, CO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { 'lk-navy': '#0d2340', 'lk-blue': '#1a3a6b', 'lk-brand': '#1a56db' } } }
+    }
+  </script>
+  <style>
+    :focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; }
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="components.js"></script>
+
+<script type="text/babel">
+
+const PROJECT_TYPES = [
+  'Select project type…',
+  'New Single-Family Residence',
+  'Addition / Expansion',
+  'Deck or Patio',
+  'Fence',
+  'Garage or Carport',
+  'Roofing Replacement',
+  'Plumbing',
+  'Electrical',
+  'HVAC / Mechanical',
+  'Interior Remodel',
+  'Commercial Build-Out',
+  'Demolition',
+  'Sign Installation',
+  'Other',
+];
+
+const STATUSES = [
+  { id: 'BLD-2025-08847', type: 'Deck Addition',      submitted: 'Oct 28, 2025', status: 'Under Review',     step: 2 },
+  { id: 'BLD-2025-07312', type: 'Roofing Replacement', submitted: 'Oct 5, 2025',  status: 'Approved',         step: 4 },
+  { id: 'BLD-2025-05901', type: 'Fence',               submitted: 'Aug 12, 2025', status: 'Inspection Scheduled', step: 3 },
+];
+
+const STEPS = ['Submitted', 'Under Review', 'Inspection Scheduled', 'Approved', 'Closed'];
+const STATUS_COLORS = {
+  'Under Review':          'bg-blue-100 text-blue-800',
+  'Approved':              'bg-green-100 text-green-800',
+  'Inspection Scheduled':  'bg-amber-100 text-amber-800',
+  'Closed':                'bg-gray-100 text-gray-700',
+  'Rejected':              'bg-red-100 text-red-800',
+};
+
+// ── Application Form ─────────────────────────────────────────
+function ApplicationForm() {
+  const [form, setForm] = React.useState({
+    firstName: '', lastName: '', email: '', phone: '',
+    projectType: '', address: '', description: '',
+    files: [],
+  });
+  const [errors, setErrors]     = React.useState({});
+  const [submitted, setSubmitted] = React.useState(false);
+  const [confNumber]              = React.useState(() =>
+    'BLD-2025-' + Math.floor(10000 + Math.random() * 90000)
+  );
+
+  const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
+
+  const validate = () => {
+    const e = {};
+    if (!form.firstName.trim()) e.firstName = 'First name is required.';
+    if (!form.lastName.trim())  e.lastName  = 'Last name is required.';
+    if (!form.email.trim())     e.email     = 'Email address is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email address.';
+    if (!form.projectType || form.projectType === PROJECT_TYPES[0]) e.projectType = 'Please select a project type.';
+    if (!form.address.trim())   e.address   = 'Project address is required.';
+    return e;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const e2 = validate();
+    if (Object.keys(e2).length) {
+      setErrors(e2);
+      // Focus first error
+      const first = Object.keys(e2)[0];
+      document.getElementById(`field-${first}`)?.focus();
+      return;
+    }
+    setErrors({});
+    setSubmitted(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const Field = ({ id, label, required, error, children }) => (
+    <div>
+      <label htmlFor={`field-${id}`} className="block text-sm font-semibold text-gray-700 mb-1.5">
+        {label}{required && <span className="text-red-600 ml-1" aria-label="required">*</span>}
+      </label>
+      {children}
+      {error && (
+        <p id={`err-${id}`} role="alert" className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+          <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+
+  const inputClass = (id) =>
+    `w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+      errors[id] ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white hover:border-gray-400'
+    }`;
+
+  if (submitted) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        aria-label="Application submitted successfully"
+        className="bg-green-50 border-2 border-green-300 rounded-2xl p-10 text-center"
+      >
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6" aria-hidden="true">
+          <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-green-800 mb-2">Application Submitted!</h2>
+        <p className="text-green-700 mb-1">Your permit application has been received.</p>
+        <p className="text-gray-700 mt-4">
+          Confirmation number:{' '}
+          <span className="font-bold font-mono text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{confNumber}</span>
+        </p>
+        <p className="text-sm text-gray-600 mt-2">
+          A confirmation email has been sent to <strong>{form.email}</strong>.<br />
+          Applications are typically reviewed within <strong>5–7 business days</strong>.
+        </p>
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            type="button"
+            onClick={() => { setSubmitted(false); setForm({ firstName: '', lastName: '', email: '', phone: '', projectType: '', address: '', description: '', files: [] }); }}
+            className="px-6 py-2.5 bg-blue-700 text-white font-semibold rounded-xl hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Submit Another Application
+          </button>
+          <a href="services.html" className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 text-center">
+            Back to Services
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      aria-label="Permit application form"
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+    >
+      <div className="px-8 py-6 bg-gray-50 border-b border-gray-200">
+        <h2 className="text-xl font-bold text-gray-900">New Permit Application</h2>
+        <p className="text-sm text-gray-500 mt-1">Fields marked with <span className="text-red-600 font-bold">*</span> are required.</p>
+      </div>
+
+      <div className="px-8 py-8 space-y-8">
+
+        {/* Section: Applicant */}
+        <fieldset>
+          <legend className="text-base font-bold text-gray-900 mb-5 flex items-center gap-2">
+            <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-800 text-xs font-bold flex items-center justify-center" aria-hidden="true">1</span>
+            Applicant Information
+          </legend>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <Field id="firstName" label="First Name" required error={errors.firstName}>
+              <input
+                id="field-firstName"
+                type="text"
+                value={form.firstName}
+                onChange={set('firstName')}
+                autoComplete="given-name"
+                aria-required="true"
+                aria-describedby={errors.firstName ? 'err-firstName' : undefined}
+                className={inputClass('firstName')}
+              />
+            </Field>
+            <Field id="lastName" label="Last Name" required error={errors.lastName}>
+              <input
+                id="field-lastName"
+                type="text"
+                value={form.lastName}
+                onChange={set('lastName')}
+                autoComplete="family-name"
+                aria-required="true"
+                aria-describedby={errors.lastName ? 'err-lastName' : undefined}
+                className={inputClass('lastName')}
+              />
+            </Field>
+            <Field id="email" label="Email Address" required error={errors.email}>
+              <input
+                id="field-email"
+                type="email"
+                value={form.email}
+                onChange={set('email')}
+                autoComplete="email"
+                aria-required="true"
+                aria-describedby={errors.email ? 'err-email' : undefined}
+                className={inputClass('email')}
+              />
+            </Field>
+            <Field id="phone" label="Phone Number" error={errors.phone}>
+              <input
+                id="field-phone"
+                type="tel"
+                value={form.phone}
+                onChange={set('phone')}
+                autoComplete="tel"
+                placeholder="(303) 555-0100"
+                aria-describedby={errors.phone ? 'err-phone' : undefined}
+                className={inputClass('phone')}
+              />
+            </Field>
+          </div>
+        </fieldset>
+
+        <hr className="border-gray-100" aria-hidden="true" />
+
+        {/* Section: Project */}
+        <fieldset>
+          <legend className="text-base font-bold text-gray-900 mb-5 flex items-center gap-2">
+            <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-800 text-xs font-bold flex items-center justify-center" aria-hidden="true">2</span>
+            Project Details
+          </legend>
+          <div className="grid grid-cols-1 gap-5">
+            <Field id="projectType" label="Project Type" required error={errors.projectType}>
+              <select
+                id="field-projectType"
+                value={form.projectType}
+                onChange={set('projectType')}
+                aria-required="true"
+                aria-describedby={errors.projectType ? 'err-projectType' : undefined}
+                className={inputClass('projectType')}
+              >
+                {PROJECT_TYPES.map(t => <option key={t} value={t === PROJECT_TYPES[0] ? '' : t}>{t}</option>)}
+              </select>
+            </Field>
+            <Field id="address" label="Project Address" required error={errors.address}>
+              <input
+                id="field-address"
+                type="text"
+                value={form.address}
+                onChange={set('address')}
+                autoComplete="street-address"
+                placeholder="123 Main St, Lakewood, CO 80226"
+                aria-required="true"
+                aria-describedby={errors.address ? 'err-address' : undefined}
+                className={inputClass('address')}
+              />
+            </Field>
+            <Field id="description" label="Project Description" error={errors.description}>
+              <textarea
+                id="field-description"
+                value={form.description}
+                onChange={set('description')}
+                rows={4}
+                placeholder="Briefly describe the scope of work, materials, and any relevant details…"
+                className={`${inputClass('description')} resize-none`}
+              />
+            </Field>
+          </div>
+        </fieldset>
+
+        <hr className="border-gray-100" aria-hidden="true" />
+
+        {/* Section: Documents */}
+        <fieldset>
+          <legend className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
+            <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-800 text-xs font-bold flex items-center justify-center" aria-hidden="true">3</span>
+            Supporting Documents
+          </legend>
+          <p className="text-sm text-gray-500 mb-5">Upload site plans, drawings, or other supporting materials. Accepted: PDF, PNG, JPG (max 20 MB each).</p>
+
+          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 focus-within:border-blue-500 transition-colors">
+            <label
+              htmlFor="field-files"
+              className="cursor-pointer flex flex-col items-center gap-3"
+            >
+              <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center" aria-hidden="true">
+                <svg className="w-7 h-7 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+              </div>
+              <div>
+                <span className="text-blue-700 font-semibold text-sm">Click to upload documents</span>
+                <p className="text-sm text-gray-500 mt-1">or drag and drop</p>
+              </div>
+            </label>
+            <input
+              id="field-files"
+              type="file"
+              multiple
+              accept=".pdf,.png,.jpg,.jpeg"
+              onChange={(e) => setForm(f => ({ ...f, files: Array.from(e.target.files) }))}
+              className="sr-only"
+              aria-label="Upload supporting documents"
+            />
+            {form.files.length > 0 && (
+              <ul className="mt-4 text-sm text-left space-y-1" role="list" aria-label="Selected files">
+                {form.files.map((file, i) => (
+                  <li key={i} className="flex items-center gap-2 text-gray-700 bg-gray-50 rounded px-3 py-1.5">
+                    <span aria-hidden="true">📄</span> {file.name}
+                    <span className="ml-auto text-gray-400 text-xs">{(file.size / 1024).toFixed(0)} KB</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </fieldset>
+      </div>
+
+      {/* Submit */}
+      <div className="px-8 py-6 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <p className="text-xs text-gray-500">By submitting you agree to the City's permit application terms and conditions.</p>
+        <button
+          type="submit"
+          className="px-8 py-3 bg-blue-700 hover:bg-blue-600 focus:bg-blue-600 text-white font-bold rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"
+        >
+          Submit Application
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ── Status Tracker ───────────────────────────────────────────
+function StatusTracker() {
+  const [lookupId, setLookupId] = React.useState('');
+  const [result, setResult]     = React.useState(null);
+  const [notFound, setNotFound] = React.useState(false);
+
+  const handleLookup = (e) => {
+    e.preventDefault();
+    const found = STATUSES.find(s => s.id.toLowerCase() === lookupId.trim().toLowerCase());
+    if (found) { setResult(found); setNotFound(false); }
+    else        { setResult(null); setNotFound(true); }
+  };
+
+  return (
+    <section aria-labelledby="tracker-heading" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="px-8 py-6 bg-amber-50 border-b border-amber-200">
+        <h2 id="tracker-heading" className="text-xl font-bold text-gray-900">Check Application Status</h2>
+        <p className="text-sm text-gray-600 mt-1">Enter your permit number to see the current status.</p>
+      </div>
+
+      <div className="px-8 py-8">
+        <form onSubmit={handleLookup} className="flex gap-3" aria-label="Permit status lookup">
+          <label htmlFor="lookup-input" className="sr-only">Permit number</label>
+          <input
+            id="lookup-input"
+            type="text"
+            value={lookupId}
+            onChange={e => setLookupId(e.target.value)}
+            placeholder="e.g. BLD-2025-08847"
+            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 font-mono"
+            aria-label="Enter permit number"
+          />
+          <button
+            type="submit"
+            className="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+          >
+            Look Up
+          </button>
+        </form>
+
+        {notFound && (
+          <p role="alert" className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+            No permit found with that number. Please check and try again, or <a href="contact.html" className="underline font-semibold">contact us</a>.
+          </p>
+        )}
+
+        {result && (
+          <div role="status" aria-live="polite" className="mt-6">
+            <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">Permit Number</p>
+                <p className="text-lg font-bold font-mono text-gray-900">{result.id}</p>
+                <p className="text-sm text-gray-600 mt-1">{result.type} · Submitted {result.submitted}</p>
+              </div>
+              <span className={`text-sm font-bold px-3 py-1.5 rounded-full ${STATUS_COLORS[result.status] || 'bg-gray-100 text-gray-700'}`}>
+                {result.status}
+              </span>
+            </div>
+
+            {/* Progress bar */}
+            <div aria-label={`Step ${result.step} of ${STEPS.length}: ${result.status}`}>
+              <div className="flex items-center justify-between mb-3" aria-hidden="true">
+                {STEPS.map((step, i) => {
+                  const done    = i + 1 < result.step;
+                  const current = i + 1 === result.step;
+                  return (
+                    <React.Fragment key={step}>
+                      <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 text-xs font-bold transition-all ${
+                          done    ? 'bg-green-600 border-green-600 text-white' :
+                          current ? 'bg-blue-600 border-blue-600 text-white ring-4 ring-blue-100' :
+                                    'bg-white border-gray-300 text-gray-400'
+                        }`}>
+                          {done ? '✓' : i + 1}
+                        </div>
+                        <span className={`text-[10px] font-semibold text-center leading-tight max-w-[60px] ${current ? 'text-blue-700' : done ? 'text-green-700' : 'text-gray-400'}`}>
+                          {step}
+                        </span>
+                      </div>
+                      {i < STEPS.length - 1 && (
+                        <div className={`flex-1 h-0.5 mx-1 mb-5 ${i + 1 < result.step ? 'bg-green-400' : 'bg-gray-200'}`} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sample permit quick-load */}
+        <div className="mt-6 pt-6 border-t border-gray-100">
+          <p className="text-xs text-gray-500 mb-3 font-semibold uppercase tracking-wide">Recent Applications</p>
+          <ul className="space-y-2" role="list">
+            {STATUSES.map(s => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => { setLookupId(s.id); setResult(s); setNotFound(false); }}
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-sm bg-gray-50 hover:bg-gray-100 focus:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 text-left"
+                  aria-label={`Load permit ${s.id} — ${s.type}, status: ${s.status}`}
+                >
+                  <span>
+                    <span className="font-mono font-semibold text-gray-800">{s.id}</span>
+                    <span className="ml-2 text-gray-500">{s.type}</span>
+                  </span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[s.status]}`}>{s.status}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────
+function PermitsPage() {
+  const [activeTab, setActiveTab] = React.useState('apply');
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <CityHeader currentPage="services" />
+
+      <main id="main-content" tabIndex={-1} className="flex-1 pb-16">
+        {/* Page header */}
+        <div className="bg-gradient-to-r from-[#0d2340] to-[#1a3a6b] text-white py-14 px-4">
+          <div className="max-w-7xl mx-auto">
+            <nav aria-label="Breadcrumb" className="mb-4">
+              <ol className="flex items-center gap-2 text-sm text-blue-300" role="list">
+                <li><a href="index.html" className="hover:text-white focus:text-white focus:outline-none hover:underline">Home</a></li>
+                <li aria-hidden="true"><span className="text-blue-500">›</span></li>
+                <li><a href="services.html" className="hover:text-white focus:text-white focus:outline-none hover:underline">Services</a></li>
+                <li aria-hidden="true"><span className="text-blue-500">›</span></li>
+                <li><span className="text-white font-medium" aria-current="page">Permits &amp; Licenses</span></li>
+              </ol>
+            </nav>
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 bg-amber-500/20 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0" aria-hidden="true">📋</div>
+              <div>
+                <h1 className="text-4xl font-bold mb-2">Permits &amp; Licenses</h1>
+                <p className="text-blue-200 max-w-2xl">
+                  Apply for building permits, business licenses, and other municipal authorizations online.
+                  Most standard permits are reviewed within 5–7 business days.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+
+          {/* Info cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+            {[
+              { icon: '⏱', label: '5–7 Days', desc: 'Standard review time' },
+              { icon: '📱', label: 'Track Online', desc: 'Real-time status updates' },
+              { icon: '💬', label: 'Expert Help', desc: 'Call (303) 987-7140' },
+            ].map(item => (
+              <div key={item.label} className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-4">
+                <span className="text-2xl" aria-hidden="true">{item.icon}</span>
+                <div>
+                  <p className="font-bold text-gray-900 text-sm">{item.label}</p>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabs */}
+          <div role="tablist" aria-label="Permit services" className="flex border-b border-gray-200 mb-8 gap-1">
+            {[
+              { id: 'apply',  label: '📝  Apply for Permit' },
+              { id: 'status', label: '🔍  Check Status' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`panel-${tab.id}`}
+                id={`tab-${tab.id}`}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-3 text-sm font-semibold border-b-2 -mb-px transition-all focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400 rounded-t ${
+                  activeTab === tab.id
+                    ? 'border-blue-600 text-blue-700 bg-blue-50'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab panels */}
+          <div id="panel-apply" role="tabpanel" aria-labelledby="tab-apply" hidden={activeTab !== 'apply'}>
+            <ApplicationForm />
+          </div>
+          <div id="panel-status" role="tabpanel" aria-labelledby="tab-status" hidden={activeTab !== 'status'}>
+            <StatusTracker />
+          </div>
+
+        </div>
+      </main>
+      <CityFooter />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PermitsPage />);
+</script>
+</body>
+</html>

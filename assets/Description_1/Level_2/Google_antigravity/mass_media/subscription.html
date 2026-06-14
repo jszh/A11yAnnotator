@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe | The Meridian</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    },
+                    colors: {
+                        meridian: {
+                            50: '#f4f6f8',
+                            100: '#e3e8ee',
+                            500: '#64748b',
+                            800: '#1d2939',
+                            900: '#0f172a',
+                            accent: '#b91c1c'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fcfcfc;
+            color: #0f172a;
+            scroll-padding-top: 80px;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        .font-serif {
+            font-family: 'Merriweather', serif;
+        }
+
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .focus-outline:focus-visible {
+            outline: 3px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        /* Plan selection transition */
+        .plan-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        // Shared Components
+        const Header = () => (
+            <header className="sticky-header">
+                <div className="bg-meridian-900 text-white text-xs py-1 px-4 flex justify-between items-center">
+                    <div>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                    <div className="flex space-x-4">
+                        <a href="subscription.html" className="hover:text-meridian-100 focus-outline">Subscribe</a>
+                        <a href="#" className="hover:text-meridian-100 focus-outline">Log In</a>
+                    </div>
+                </div>
+                <div className="max-w-7xl mx-auto px-4 py-6 text-center border-b border-gray-200">
+                    <a href="index.html" className="inline-block focus-outline">
+                        <h1 className="text-5xl font-serif font-black tracking-tight text-meridian-900">The Meridian</h1>
+                    </a>
+                </div>
+                <nav className="max-w-7xl mx-auto px-4 border-b border-gray-200" aria-label="Main Navigation">
+                    <ul className="flex flex-wrap justify-center space-x-6 py-3 font-medium text-sm text-meridian-800 uppercase tracking-wider">
+                        <li><a href="index.html" className="hover:text-meridian-accent focus-outline">Home</a></li>
+                        <li><a href="category.html" className="hover:text-meridian-accent focus-outline">World</a></li>
+                        <li><a href="#" className="hover:text-meridian-accent focus-outline">Politics</a></li>
+                        <li><a href="#" className="hover:text-meridian-accent focus-outline">Tech</a></li>
+                        <li><a href="#" className="hover:text-meridian-accent focus-outline">Culture</a></li>
+                        <li><a href="opinion.html" className="hover:text-meridian-accent focus-outline">Opinion</a></li>
+                    </ul>
+                </nav>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="bg-meridian-900 text-white mt-16 pt-12 pb-8 border-t-4 border-meridian-accent">
+                <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                    <div>
+                        <h2 className="text-2xl font-serif font-bold mb-4">The Meridian</h2>
+                        <p className="text-gray-400 text-sm mb-4">Independent digital news outlet covering global affairs, politics, technology, and culture.</p>
+                        <div className="flex space-x-4">
+                            <a href="#" className="text-gray-400 hover:text-white focus-outline" aria-label="Share on Twitter"><i className="fab fa-twitter"></i></a>
+                            <a href="#" className="text-gray-400 hover:text-white focus-outline" aria-label="Share on Facebook"><i className="fab fa-facebook"></i></a>
+                            <a href="#" className="text-gray-400 hover:text-white focus-outline" aria-label="Share on Instagram"><i className="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg mb-4">Sections</h3>
+                        <ul className="space-y-2 text-gray-400 text-sm">
+                            <li><a href="category.html" className="hover:text-white focus-outline">World</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Politics</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Tech</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Culture</a></li>
+                            <li><a href="opinion.html" className="hover:text-white focus-outline">Opinion</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg mb-4">Company</h3>
+                        <ul className="space-y-2 text-gray-400 text-sm">
+                            <li><a href="#" className="hover:text-white focus-outline">About Us</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Careers</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Code of Ethics</a></li>
+                            <li><a href="#" className="hover:text-white focus-outline">Contact</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-lg mb-4">Newsletter</h3>
+                        <p className="text-gray-400 text-sm mb-4">Get the latest news delivered to your inbox daily.</p>
+                        <form className="flex flex-col space-y-2" aria-label="Newsletter Signup">
+                            <input
+                                type="email"
+                                placeholder="Your email address"
+                                className="px-4 py-2 bg-gray-800 text-white border border-gray-700 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus-outline"
+                                aria-label="Email address for newsletter"
+                                required
+                            />
+                            <button type="submit" className="px-4 py-2 bg-meridian-accent text-white font-bold rounded hover:bg-red-800 transition focus-outline">
+                                Subscribe
+                            </button>
+                        </form>
+                        <div aria-live="polite" className="sr-only"></div>
+                    </div>
+                </div>
+                <div className="max-w-7xl mx-auto px-4 border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between text-xs text-gray-500">
+                    <p>&copy; {new Date().getFullYear()} The Meridian. All rights reserved.</p>
+                    <div className="flex space-x-4 mt-4 md:mt-0">
+                        <a href="#" className="hover:text-white focus-outline">Privacy Policy</a>
+                        <a href="#" className="hover:text-white focus-outline">Terms of Service</a>
+                        <a href="#" className="hover:text-white focus-outline">Cookie Settings</a>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        const AccordionItem = ({ question, answer }) => {
+            const [isOpen, setIsOpen] = React.useState(false);
+            const contentId = `content-${Math.random().toString(36).substr(2, 9)}`;
+
+            return (
+                <div className="border-b border-gray-200 py-4">
+                    <h3>
+                        <button
+                            className="flex justify-between items-center w-full text-left font-bold text-lg focus-outline p-2 rounded hover:bg-gray-50 transition"
+                            onClick={() => setIsOpen(!isOpen)}
+                            aria-expanded={isOpen}
+                            aria-controls={contentId}
+                        >
+                            <span className="font-serif">{question}</span>
+                            <span className="ml-6 flex-shrink-0 text-meridian-accent">
+                                <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'}`}></i>
+                            </span>
+                        </button>
+                    </h3>
+                    <div
+                        id={contentId}
+                        className={`mt-2 p-2 text-gray-600 leading-relaxed ${isOpen ? 'block' : 'hidden'}`}
+                    >
+                        <p>{answer}</p>
+                    </div>
+                </div>
+            );
+        };
+
+        const SubscriptionPage = () => {
+            const [selectedPlan, setSelectedPlan] = React.useState('digital');
+            const [errors, setErrors] = React.useState({});
+
+            const handlePlanSelect = (plan) => {
+                setSelectedPlan(plan);
+                // Clear plan error if selecting
+                if (errors.plan) {
+                    setErrors({ ...errors, plan: null });
+                }
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const newErrors = {};
+
+                if (!formData.get('email')) newErrors.email = "Email address is required.";
+                else if (!/\S+@\S+\.\S+/.test(formData.get('email'))) newErrors.email = "Please enter a valid email address.";
+
+                if (!formData.get('name')) newErrors.name = "Full name is required.";
+
+                if (!formData.get('password')) newErrors.password = "Password is required.";
+                else if (formData.get('password').length < 8) newErrors.password = "Password must be at least 8 characters.";
+
+                if (Object.keys(newErrors).length > 0) {
+                    setErrors(newErrors);
+                    // Announce errors to screen reader
+                    const errorMsg = document.getElementById('form-errors-announcer');
+                    if (errorMsg) errorMsg.textContent = `Form submission failed. There are ${Object.keys(newErrors).length} errors to correct.`;
+                } else {
+                    setErrors({});
+                    alert('Subscription submitted successfully for mockup purposes!');
+                }
+            };
+
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+
+                    <main className="flex-grow max-w-7xl mx-auto px-4 py-12">
+                        {/* Hero Header */}
+                        <div className="text-center max-w-3xl mx-auto mb-16">
+                            <h1 className="text-5xl font-serif font-black mb-6">Support Independent Journalism</h1>
+                            <p className="text-xl text-gray-600">Get unlimited access to award-winning reporting, exclusive analysis, and subscriber-only events.</p>
+                        </div>
+
+                        {/* Pricing Tiers (Accessible Group) */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20 max-w-5xl mx-auto" role="radiogroup" aria-labelledby="pricing-heading">
+                            <h2 id="pricing-heading" className="sr-only">Choose a subscription tier</h2>
+
+                            {/* Free Tier */}
+                            <div
+                                className={`plan-card border-2 rounded-lg p-8 relative flex flex-col ${selectedPlan === 'free' ? 'border-meridian-900 ring-2 ring-meridian-900 bg-meridian-50' : 'border-gray-200 bg-white'}`}
+                                onClick={() => handlePlanSelect('free')}
+                                role="radio"
+                                aria-checked={selectedPlan === 'free'}
+                                tabIndex={0}
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePlanSelect('free'); } }}
+                                aria-labelledby="plan-free-title"
+                                aria-describedby="plan-free-desc"
+                            >
+                                <h3 id="plan-free-title" className="text-2xl font-serif font-bold mb-2">Basic</h3>
+                                <div className="text-4xl font-black mb-4">$0<span className="text-lg text-gray-500 font-normal">/mo</span></div>
+                                <p id="plan-free-desc" className="text-gray-600 mb-6 flex-grow">Limited access to daily headlines and breaking news alerts.</p>
+                                <ul className="space-y-3 mb-8">
+                                    <li className="flex items-start"><i className="fas fa-check text-green-500 mt-1 mr-3"></i> <span>3 articles per month</span></li>
+                                    <li className="flex items-start"><i className="fas fa-check text-green-500 mt-1 mr-3"></i> <span>Daily newsletter</span></li>
+                                    <li className="flex items-start text-gray-400"><i className="fas fa-times mt-1 mr-3"></i> <span>Ad-free experience</span></li>
+                                    <li className="flex items-start text-gray-400"><i className="fas fa-times mt-1 mr-3"></i> <span>Subscriber comments</span></li>
+                                </ul>
+                                <button className={`w-full py-3 rounded font-bold transition focus-outline shadow-sm ${selectedPlan === 'free' ? 'bg-meridian-900 text-white' : 'bg-white text-meridian-900 border border-meridian-900'}`} disabled={true} aria-hidden="true">
+                                    {selectedPlan === 'free' ? 'Selected' : 'Select Basic'}
+                                </button>
+                            </div>
+
+                            {/* Digital Tier */}
+                            <div
+                                className={`plan-card border-2 rounded-lg p-8 relative flex flex-col ${selectedPlan === 'digital' ? 'border-meridian-accent ring-2 ring-meridian-accent bg-red-50' : 'border-gray-200 bg-white'}`}
+                                onClick={() => handlePlanSelect('digital')}
+                                role="radio"
+                                aria-checked={selectedPlan === 'digital'}
+                                tabIndex={0}
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePlanSelect('digital'); } }}
+                                aria-labelledby="plan-digital-title"
+                                aria-describedby="plan-digital-desc"
+                            >
+                                <div className="absolute top-0 right-0 bg-meridian-accent text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-md">Most Popular</div>
+                                <h3 id="plan-digital-title" className="text-2xl font-serif font-bold mb-2">Digital</h3>
+                                <div className="text-4xl font-black mb-4">$9.99<span className="text-lg text-gray-500 font-normal">/mo</span></div>
+                                <p id="plan-digital-desc" className="text-gray-600 mb-6 flex-grow">Unlimited website and app access. Join the conversation.</p>
+                                <ul className="space-y-3 mb-8">
+                                    <li className="flex items-start"><i className="fas fa-check text-green-500 mt-1 mr-3"></i> <span>Unlimited articles</span></li>
+                                    <li className="flex items-start"><i className="fas fa-check text-green-500 mt-1 mr-3"></i> <span>All newsletters</span></li>
+                                    <li className="flex items-start"><i className="fas fa-check text-green-500 mt-1 mr-3"></i> <span>Ad-lite experience</span></li>
+                                    <li className="flex items-start"><i className="fas fa-check text-green-500 mt-1 mr-3"></i> <span>Subscriber comments</span></li>
+                                </ul>
+                                <button className={`w-full py-3 rounded font-bold transition focus-outline shadow-sm ${selectedPlan === 'digital' ? 'bg-meridian-accent text-white' : 'bg-gray-100 text-gray-800'}`} disabled={true} aria-hidden="true">
+                                    {selectedPlan === 'digital' ? 'Selected' : 'Select Digital'}
+                                </button>
+                            </div>
+
+                            {/* All Access Tier */}
+                            <div
+                                className={`plan-card border-2 rounded-lg p-8 relative flex flex-col ${selectedPlan === 'all-access' ? 'border-meridian-900 ring-2 ring-meridian-900 bg-meridian-50' : 'border-gray-200 bg-white'}`}
+                                onClick={() => handlePlanSelect('all-access')}
+                                role="radio"
+                                aria-checked={selectedPlan === 'all-access'}
+                                tabIndex={0}
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePlanSelect('all-access'); } }}
+                                aria-labelledby="plan-all-title"
+                                aria-describedby="plan-all-desc"
+                            >
+                                <h3 id="plan-all-title" className="text-2xl font-serif font-bold mb-2">All-Access</h3>
+                                <div className="text-4xl font-black mb-4">$19.99<span className="text-lg text-gray-500 font-normal">/mo</span></div>
+                                <p id="plan-all-desc" className="text-gray-600 mb-6 flex-grow">The ultimate package for true news aficionados.</p>
+                                <ul className="space-y-3 mb-8">
+                                    <li className="flex items-start"><i className="fas fa-check text-green-500 mt-1 mr-3"></i> <span>Everything in Digital</span></li>
+                                    <li className="flex items-start"><i className="fas fa-check text-green-500 mt-1 mr-3"></i> <span>100% Ad-free experience</span></li>
+                                    <li className="flex items-start"><i className="fas fa-check text-green-500 mt-1 mr-3"></i> <span>Gift 10 articles/month</span></li>
+                                    <li className="flex items-start"><i className="fas fa-check text-green-500 mt-1 mr-3"></i> <span>Exclusive live events</span></li>
+                                </ul>
+                                <button className={`w-full py-3 rounded font-bold transition focus-outline shadow-sm ${selectedPlan === 'all-access' ? 'bg-meridian-900 text-white' : 'bg-white text-meridian-900 border border-meridian-900'}`} disabled={true} aria-hidden="true">
+                                    {selectedPlan === 'all-access' ? 'Selected' : 'Select All-Access'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Sign-up Form */}
+                        <div className="bg-gray-50 rounded-lg p-8 md:p-12 mb-20 max-w-3xl mx-auto border border-gray-200">
+                            <h2 className="text-3xl font-serif font-bold mb-8 text-center">Create Your Account</h2>
+                            <div id="form-errors-announcer" className="sr-only" aria-live="assertive"></div>
+
+                            <form onSubmit={handleSubmit} noValidate>
+                                <div className="mb-6">
+                                    <label htmlFor="name" className="block text-sm font-bold text-gray-700 mb-2">Full Name <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text"
+                                        id="name"
+                                        name="name"
+                                        className={`w-full px-4 py-3 rounded border ${errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus-outline`}
+                                        aria-required="true"
+                                        aria-invalid={!!errors.name}
+                                        aria-describedby={errors.name ? "name-error" : undefined}
+                                    />
+                                    {errors.name && <p id="name-error" className="text-red-600 text-sm mt-1"><i className="fas fa-exclamation-circle mr-1"></i> {errors.name}</p>}
+                                </div>
+                                <div className="mb-6">
+                                    <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-2">Email Address <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="email"
+                                        id="email"
+                                        name="email"
+                                        className={`w-full px-4 py-3 rounded border ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus-outline`}
+                                        aria-required="true"
+                                        aria-invalid={!!errors.email}
+                                        aria-describedby={errors.email ? "email-error" : undefined}
+                                    />
+                                    {errors.email && <p id="email-error" className="text-red-600 text-sm mt-1"><i className="fas fa-exclamation-circle mr-1"></i> {errors.email}</p>}
+                                </div>
+                                <div className="mb-8">
+                                    <label htmlFor="password" className="block text-sm font-bold text-gray-700 mb-2">Password <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="password"
+                                        id="password"
+                                        name="password"
+                                        className={`w-full px-4 py-3 rounded border ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 focus-outline`}
+                                        aria-required="true"
+                                        aria-invalid={!!errors.password}
+                                        aria-describedby={errors.password ? "password-error" : "password-hint"}
+                                    />
+                                    {errors.password
+                                        ? <p id="password-error" className="text-red-600 text-sm mt-1"><i className="fas fa-exclamation-circle mr-1"></i> {errors.password}</p>
+                                        : <p id="password-hint" className="text-gray-500 text-sm mt-1">Must be at least 8 characters long.</p>
+                                    }
+                                </div>
+
+                                <div className="bg-white p-4 rounded border border-gray-200 mb-8 flex items-center justify-between">
+                                    <div>
+                                        <div className="font-bold">Selected Plan</div>
+                                        <div className="text-gray-600 capitalize">{selectedPlan.replace('-', ' ')}</div>
+                                    </div>
+                                    <div className="font-bold text-xl">
+                                        {selectedPlan === 'free' ? '$0' : selectedPlan === 'digital' ? '$9.99' : '$19.99'}/mo
+                                    </div>
+                                </div>
+
+                                <button type="submit" className="w-full bg-meridian-accent text-white font-bold text-lg py-4 rounded hover:bg-red-800 transition focus-outline">
+                                    Complete Subscription
+                                </button>
+                                <p className="text-center text-xs text-gray-500 mt-4">By subscribing, you agree to our Terms of Service and Privacy Policy. You can cancel your subscription at any time.</p>
+                            </form>
+                        </div>
+
+                        {/* Feature Comparison */}
+                        <div className="mb-20 overflow-x-auto">
+                            <h2 className="text-3xl font-serif font-bold mb-8 text-center">Compare Features</h2>
+                            <table className="w-full min-w-max text-left border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th className="p-4 border-b-2 border-gray-300 w-1/4"></th>
+                                        <th className="p-4 border-b-2 border-gray-300 text-xl font-bold font-serif w-1/4">Basic</th>
+                                        <th className="p-4 border-b-2 border-meridian-accent text-xl font-bold font-serif text-meridian-accent w-1/4">Digital</th>
+                                        <th className="p-4 border-b-2 border-gray-300 text-xl font-bold font-serif w-1/4">All-Access</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-gray-700">
+                                    <tr className="border-b border-gray-200 hover:bg-gray-50">
+                                        <td className="p-4 font-bold">Article Access</td>
+                                        <td className="p-4">3 per month</td>
+                                        <td className="p-4 font-bold text-meridian-900">Unlimited</td>
+                                        <td className="p-4 font-bold text-meridian-900">Unlimited</td>
+                                    </tr>
+                                    <tr className="border-b border-gray-200 hover:bg-gray-50">
+                                        <td className="p-4 font-bold">Ad Experience</td>
+                                        <td className="p-4">Standard ads</td>
+                                        <td className="p-4">Limited ads</td>
+                                        <td className="p-4 font-bold text-meridian-900">Ad-free</td>
+                                    </tr>
+                                    <tr className="border-b border-gray-200 hover:bg-gray-50">
+                                        <td className="p-4 font-bold">Newsletters</td>
+                                        <td className="p-4">Daily Briefing only</td>
+                                        <td className="p-4"><i className="fas fa-check text-green-500"></i> All 12 lists</td>
+                                        <td className="p-4"><i className="fas fa-check text-green-500"></i> All 12 lists</td>
+                                    </tr>
+                                    <tr className="border-b border-gray-200 hover:bg-gray-50">
+                                        <td className="p-4 font-bold">Live Events Archive</td>
+                                        <td className="p-4 text-gray-300"><i className="fas fa-times"></i></td>
+                                        <td className="p-4 text-gray-300"><i className="fas fa-times"></i></td>
+                                        <td className="p-4"><i className="fas fa-check text-green-500"></i> Included</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Testimonials */}
+                        <div className="bg-meridian-900 text-white rounded-lg p-10 mb-20">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-center md:text-left">
+                                <div>
+                                    <div className="text-4xl text-meridian-accent mb-4 font-serif">"</div>
+                                    <p className="text-lg italic mb-6">"The Meridian provides the kind of deep, uncompromising journalism that is increasingly rare today. It's the only news subscription I consider absolutely essential."</p>
+                                    <div className="font-bold">Sarah Jenkins</div>
+                                    <div className="text-gray-400 text-sm">Subscriber since 2021</div>
+                                </div>
+                                <div>
+                                    <div className="text-4xl text-meridian-accent mb-4 font-serif">"</div>
+                                    <p className="text-lg italic mb-6">"I switched to the All-Access tier and the ad-free experience is a game-changer. The exclusive live events have been incredibly insightful."</p>
+                                    <div className="font-bold">Marcus T.</div>
+                                    <div className="text-gray-400 text-sm">Subscriber since 2024</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* FAQ Section */}
+                        <div className="max-w-3xl mx-auto">
+                            <h2 className="text-3xl font-serif font-bold mb-8 text-center border-b border-black pb-4">Frequently Asked Questions</h2>
+                            <div className="space-y-2">
+                                <AccordionItem
+                                    question="Can I cancel my subscription at any time?"
+                                    answer="Yes, you can cancel your subscription at any time from your account settings. If you cancel, you will continue to have access to your tier's benefits until the end of your current billing period."
+                                />
+                                <AccordionItem
+                                    question="Do you offer student or educator discounts?"
+                                    answer="Yes! We believe in accessible information for education. Students and educators with a valid .edu email address or equivalent ID can receive 50% off the Digital tier. Please contact support to set this up."
+                                />
+                                <AccordionItem
+                                    question="How do gift subscriptions work?"
+                                    answer="Gift subscriptions can be purchased for 6-month or 1-year terms. The recipient will receive an email with activation instructions on the date you select."
+                                />
+                                <AccordionItem
+                                    question="What devices will my subscription work on?"
+                                    answer="Your subscription works across all platforms. You can read on our website via any modern browser, and log into our official iOS and Android apps using the same credentials."
+                                />
+                            </div>
+                        </div>
+
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<SubscriptionPage />);
+    </script>
+</body>
+
+</html>

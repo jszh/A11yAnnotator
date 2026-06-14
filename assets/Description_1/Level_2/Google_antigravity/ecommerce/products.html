@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Products & Deals | NovaMart</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' } }, fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        *:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel" src="components.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+        const { Header, Footer, A11yAnnouncer, ProductCard, announceToScreenReader } = window.NovaMart;
+
+        // --- MOCK DATA FOR 20 PRODUCTS ---
+        const generateProducts = () => {
+            const brands = ['Sony', 'Apple', 'Samsung', 'LG', 'Nike', 'Adidas', 'KitchenAid', 'Dyson', 'Bose', 'Nintendo'];
+            const categories = ['Electronics', 'Clothing', 'Kitchen', 'Home', 'Sports'];
+            const adjectives = ['Pro', 'Ultra', 'Max', 'Lite', 'Essential', 'Premium', 'Elite', 'Classic', 'Sport'];
+            const nouns = ['Headphones', 'Laptop', 'TV', 'Sneakers', 'Mixer', 'Vacuum', 'Speaker', 'Console', 'Jacket', 'Watch'];
+
+            return Array.from({ length: 24 }, (_, i) => ({
+                id: `prod-${i + 1}`,
+                name: `${brands[i % brands.length]} ${adjectives[i % adjectives.length]} ${nouns[i % nouns.length]}`,
+                brand: brands[i % brands.length],
+                category: categories[i % categories.length],
+                price: 50 + (i * 45) % 900,
+                originalPrice: i % 3 === 0 ? (50 + (i * 45) % 900) * 1.2 : null,
+                rating: 3.5 + (i % 15) / 10,
+                reviews: 10 + (i * 123) % 2000,
+                discount: i % 3 === 0 ? 20 : 0,
+                isNew: i % 5 === 0,
+                inStock: i % 7 !== 0,
+                image: `https://images.unsplash.com/photo-${1500000000000 + i * 10000}?auto=format&fit=crop&q=80&w=500&h=500` // Mock unsplash
+            }));
+        };
+
+        const PRODUCTS = generateProducts();
+
+        const FilterSidebar = ({ filters, onFilterChange, isOpen, setMobileOpen }) => {
+            const handleCheckbox = (group, value) => {
+                const newGroup = filters[group].includes(value)
+                    ? filters[group].filter(v => v !== value)
+                    : [...filters[group], value];
+                onFilterChange(group, newGroup);
+                announceToScreenReader(`Filter ${value} ${filters[group].includes(value) ? 'removed' : 'applied'}`);
+            };
+
+            const closeRef = useRef(null);
+
+            return (
+                <aside
+                    className={`lg:w-64 flex-shrink-0 ${isOpen ? 'fixed inset-0 z-40 bg-white p-4 overflow-y-auto' : 'hidden lg:block'} lg:relative lg:bg-transparent lg:p-0 lg:z-auto`}
+                    aria-label="Product Filters"
+                >
+                    {isOpen && (
+                        <div className="flex justify-between items-center mb-6 lg:hidden">
+                            <h2 className="text-xl font-bold">Filters</h2>
+                            <button
+                                ref={closeRef}
+                                onClick={() => setMobileOpen(false)}
+                                className="p-2 -mr-2 text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                                aria-label="Close filters"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="space-y-8">
+                        <h2 className="text-lg font-extrabold text-gray-900 border-b border-gray-200 pb-2 hidden lg:block">Filters</h2>
+
+                        {/* Category 2: Semantic fieldsets */}
+                        <fieldset>
+                            <legend className="text-sm font-bold text-gray-900 mb-3">Brand</legend>
+                            <div className="space-y-2">
+                                {['Apple', 'Sony', 'Samsung', 'Nike', 'Dyson'].map(brand => (
+                                    <div className="flex items-center" key={brand}>
+                                        <input
+                                            id={`brand-${brand}`}
+                                            name={`brand-${brand}`}
+                                            type="checkbox"
+                                            checked={filters.brands.includes(brand)}
+                                            onChange={() => handleCheckbox('brands', brand)}
+                                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        />
+                                        <label htmlFor={`brand-${brand}`} className="ml-3 text-sm text-gray-600">{brand}</label>
+                                    </div>
+                                ))}
+                            </div>
+                        </fieldset>
+
+                        <fieldset>
+                            <legend className="text-sm font-bold text-gray-900 mb-3">Price Range</legend>
+                            <div className="space-y-2">
+                                {[
+                                    { value: 'under50', label: 'Under $100' },
+                                    { value: '100-300', label: '$100 to $300' },
+                                    { value: 'over300', label: 'Over $300' }
+                                ].map(range => (
+                                    <div className="flex items-center" key={range.value}>
+                                        <input
+                                            id={`price-${range.value}`}
+                                            name={`price-${range.value}`}
+                                            type="checkbox"
+                                            checked={filters.prices.includes(range.value)}
+                                            onChange={() => handleCheckbox('prices', range.value)}
+                                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        />
+                                        <label htmlFor={`price-${range.value}`} className="ml-3 text-sm text-gray-600">{range.label}</label>
+                                    </div>
+                                ))}
+                            </div>
+                        </fieldset>
+
+                        <fieldset>
+                            <legend className="text-sm font-bold text-gray-900 mb-3">Customer Rating</legend>
+                            <div className="space-y-2">
+                                {[4, 3, 2, 1].map(rating => (
+                                    <div className="flex items-center" key={rating}>
+                                        <input
+                                            id={`rating-${rating}`}
+                                            name={`rating-${rating}`}
+                                            type="checkbox"
+                                            checked={filters.ratings.includes(rating)}
+                                            onChange={() => handleCheckbox('ratings', rating)}
+                                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        />
+                                        <label htmlFor={`rating-${rating}`} className="ml-3 text-sm text-gray-600 flex items-center">
+                                            <div className="flex text-yellow-400 mr-1" aria-hidden="true">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <svg key={i} className={`w-4 h-4 ${i < rating ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                                ))}
+                                            </div>
+                                            <span className="sr-only">{rating} stars</span> &amp; Up
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                        </fieldset>
+
+                        <fieldset>
+                            <legend className="text-sm font-bold text-gray-900 mb-3">Availability</legend>
+                            <div className="flex items-center">
+                                <input
+                                    id="availability-instock"
+                                    name="availability-instock"
+                                    type="checkbox"
+                                    checked={filters.inStockOnly}
+                                    onChange={() => handleCheckbox('inStockOnly', !filters.inStockOnly)}
+                                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <label htmlFor="availability-instock" className="ml-3 text-sm text-gray-600">Exclude Out of Stock</label>
+                            </div>
+                        </fieldset>
+
+                        {isOpen && (
+                            <div className="pt-6 border-t border-gray-200 lg:hidden pb-12">
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileOpen(false)}
+                                    className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-md focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-offset-2"
+                                >
+                                    View Results
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </aside>
+            );
+        };
+
+        const ProductsPage = () => {
+            const [isLoading, setIsLoading] = useState(true);
+            const [filters, setFilters] = useState({ brands: [], prices: [], ratings: [], inStockOnly: false });
+            const [sortStrategy, setSortStrategy] = useState('match');
+            const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+            useEffect(() => {
+                // Simulate network load
+                const timer = setTimeout(() => {
+                    setIsLoading(false);
+                    announceToScreenReader('Products loaded');
+                }, 800);
+                return () => clearTimeout(timer);
+            }, []);
+
+            const handleFilterChange = (group, value) => {
+                if (group === 'inStockOnly') {
+                    setFilters(prev => ({ ...prev, inStockOnly: value }));
+                } else {
+                    setFilters(prev => ({ ...prev, [group]: value }));
+                }
+            };
+
+            const handleSort = (e) => {
+                setSortStrategy(e.target.value);
+                announceToScreenReader(`Sorted by ${e.target.options[e.target.selectedIndex].text}`);
+            };
+
+            // Filter Logic
+            const filteredProducts = useMemo(() => {
+                return PRODUCTS.filter(p => {
+                    if (filters.inStockOnly && !p.inStock) return false;
+                    if (filters.brands.length > 0 && !filters.brands.includes(p.brand)) return false;
+                    if (filters.ratings.length > 0 && p.rating < Math.min(...filters.ratings)) return false;
+
+                    if (filters.prices.length > 0) {
+                        const matchesPrice = filters.prices.some(range => {
+                            if (range === 'under50') return p.price < 100;
+                            if (range === '100-300') return p.price >= 100 && p.price <= 300;
+                            if (range === 'over300') return p.price > 300;
+                            return false;
+                        });
+                        if (!matchesPrice) return false;
+                    }
+                    return true;
+                }).sort((a, b) => {
+                    if (sortStrategy === 'price_low') return a.price - b.price;
+                    if (sortStrategy === 'price_high') return b.price - a.price;
+                    if (sortStrategy === 'rating') return b.rating - a.rating;
+                    return 0; // match
+                });
+            }, [filters, sortStrategy]);
+
+            // Announce filter result changes via live region
+            useEffect(() => {
+                if (!isLoading) {
+                    announceToScreenReader(`Showing ${filteredProducts.length} results`);
+                }
+            }, [filteredProducts.length, isLoading]);
+
+            return (
+                <div className="min-h-screen flex flex-col pt-16"> {/* scroll-mt padding simulation via pt-16 on internal nav if needed */}
+                    <A11yAnnouncer />
+
+                    <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[60] bg-blue-600 text-white px-4 py-2 font-bold rounded shadow-lg outline-none">
+                        Skip to main content
+                    </a>
+
+                    <div className="fixed top-0 left-0 right-0 z-50 bg-white">
+                        <Header activePage="products" />
+                    </div>
+
+                    <main id="main-content" className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full" tabIndex="-1">
+
+                        {/* Breadcrumb & Header */}
+                        <nav aria-label="Breadcrumb" className="text-sm mb-4">
+                            <ol className="flex items-center space-x-2 text-gray-500">
+                                <li><a href="index.html" className="hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">Home</a></li>
+                                <li><span aria-hidden="true">&rsaquo;</span></li>
+                                <li><span aria-current="page" className="text-gray-900 font-medium">All Products</span></li>
+                            </ol>
+                        </nav>
+
+                        <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-gray-200 pb-6 mb-8 gap-4">
+                            <div>
+                                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Deals & Products</h1>
+                                <p className="mt-2 text-sm text-gray-500" aria-live="polite" aria-atomic="true">
+                                    Showing {filteredProducts.length} results
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <button
+                                    type="button"
+                                    className="lg:hidden flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onClick={() => setMobileFiltersOpen(true)}
+                                    aria-expanded={mobileFiltersOpen}
+                                    aria-controls="mobile-filters"
+                                >
+                                    <svg className="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" /></svg>
+                                    Filters
+                                </button>
+
+                                <div className="flex items-center gap-2">
+                                    <label htmlFor="sort-options" className="text-sm font-medium text-gray-700 whitespace-nowrap">Sort by</label>
+                                    <select
+                                        id="sort-options"
+                                        value={sortStrategy}
+                                        onChange={handleSort}
+                                        className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm border"
+                                    >
+                                        <option value="match">Best Match</option>
+                                        <option value="price_low">Price: Low to High</option>
+                                        <option value="price_high">Price: High to Low</option>
+                                        <option value="rating">Customer Rating</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-x-8">
+                            {/* Sidebar */}
+                            <div id="mobile-filters">
+                                <FilterSidebar filters={filters} onFilterChange={handleFilterChange} isOpen={mobileFiltersOpen} setMobileOpen={setMobileFiltersOpen} />
+                            </div>
+
+                            {/* Product Grid */}
+                            <div className="flex-1" aria-live="polite" aria-busy={isLoading}>
+                                {isLoading ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {[...Array(8)].map((_, i) => (
+                                            <div key={i} className="animate-pulse bg-white rounded-xl shadow-sm border border-gray-100 p-4 h-[350px]">
+                                                <div className="bg-gray-200 h-48 rounded mb-4 w-full"></div>
+                                                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                                                <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
+                                                <div className="h-6 bg-gray-200 rounded w-1/3 mt-auto"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : filteredProducts.length === 0 ? (
+                                    <div className="text-center py-20 bg-white rounded-xl border border-gray-100 p-8">
+                                        <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <h3 className="text-lg font-medium text-gray-900 mb-1">No products found</h3>
+                                        <p className="text-gray-500">Try adjusting your filters or search criteria.</p>
+                                        <button
+                                            onClick={() => setFilters({ brands: [], prices: [], ratings: [], inStockOnly: false })}
+                                            className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        >
+                                            Clear all filters
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {filteredProducts.map(product => (
+                                            <ProductCard key={product.id} product={product} />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ProductsPage />);
+    </script>
+</body>
+
+</html>

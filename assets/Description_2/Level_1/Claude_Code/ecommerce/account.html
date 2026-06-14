@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account — ThreadHouse</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            forest:   '#2C4A1E',
+            sage:     '#7A9E5A',
+            cream:    '#F8F5EE',
+            gold:     '#D4A853',
+            bark:     '#8B6B4A',
+            charcoal: '#1C1C1C',
+            muted:    '#5A5A5A',
+            border:   '#D8D3CA',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    body{margin:0}
+    :focus-visible{outline:3px solid #2C4A1E;outline-offset:3px;border-radius:2px}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .animate-fade-in{animation:fadeIn .35s ease forwards}
+  </style>
+</head>
+<body class="bg-cream text-charcoal font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ── Header ── */
+    function Header() {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const nav = [
+        { label:'New Arrivals', href:'products.html' },
+        { label:'Women',        href:'products.html' },
+        { label:'Men',          href:'products.html' },
+        { label:'Accessories',  href:'products.html' },
+        { label:'Sale',         href:'products.html' },
+      ];
+      return (
+        <header role="banner" className="sticky top-0 z-50 bg-cream border-b border-border shadow-sm">
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-forest focus:text-white focus:px-4 focus:py-2 focus:rounded">Skip to main content</a>
+          <div className="bg-forest text-white text-center text-xs py-2 px-4 tracking-wide">Free shipping on orders over $75 · Use code <strong>SPRING10</strong> for 10% off</div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16 gap-4">
+              <a href="index.html" className="flex-shrink-0 font-serif text-2xl font-bold tracking-tight text-forest" aria-label="ThreadHouse Home">Thread<span className="text-gold">House</span></a>
+              <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-6">
+                {nav.map(n => <a key={n.label} href={n.href} className="text-sm font-medium text-charcoal hover:text-forest transition-colors">{n.label}</a>)}
+              </nav>
+              <div className="flex items-center gap-2">
+                <a href="account.html" aria-label="My account — current page" aria-current="page" className="p-2 rounded-full bg-border transition-colors hidden sm:block">
+                  <svg className="w-5 h-5 text-forest" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </a>
+                <a href="cart.html" aria-label="Shopping cart, 3 items" className="relative p-2 rounded-full hover:bg-border transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                  <span className="absolute -top-0.5 -right-0.5 bg-gold text-white text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold" aria-hidden="true">3</span>
+                </a>
+                <button onClick={() => setMenuOpen(v => !v)} aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} className="lg:hidden p-2 rounded hover:bg-border transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">{menuOpen ? <path d="M6 18L18 6M6 6l12 12"/> : <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>}</svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          {menuOpen && (
+            <nav aria-label="Mobile navigation" className="lg:hidden bg-white border-t border-border px-4 py-3">
+              {nav.map(n => <a key={n.label} href={n.href} className="block py-2.5 text-sm font-medium text-charcoal hover:text-forest border-b border-border/50 last:border-0">{n.label}</a>)}
+            </nav>
+          )}
+        </header>
+      );
+    }
+
+    /* ── Footer ── */
+    function Footer() {
+      return (
+        <footer role="contentinfo" className="bg-charcoal text-white mt-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+              <div>
+                <p className="font-serif text-2xl font-bold mb-3">Thread<span className="text-gold">House</span></p>
+                <p className="text-sm text-gray-400 leading-relaxed">Sustainable, independently designed fashion for the conscious generation.</p>
+              </div>
+              <nav aria-label="Shop links"><h3 className="font-semibold text-sm uppercase tracking-widest mb-4 text-gold">Shop</h3>{['New Arrivals','Women','Men','Accessories','Sale'].map(l => <a key={l} href="products.html" className="block text-sm text-gray-400 hover:text-white py-1 transition-colors">{l}</a>)}</nav>
+              <nav aria-label="Help links"><h3 className="font-semibold text-sm uppercase tracking-widest mb-4 text-gold">Help</h3>{['Size Guide','Returns & Exchanges','Shipping Info','Contact Us'].map(l => <a key={l} href="#" className="block text-sm text-gray-400 hover:text-white py-1 transition-colors">{l}</a>)}</nav>
+              <div>
+                <h3 className="font-semibold text-sm uppercase tracking-widest mb-4 text-gold">Stay in the Loop</h3>
+                <form onSubmit={e => e.preventDefault()} className="flex gap-2">
+                  <label htmlFor="footer-email" className="sr-only">Email address</label>
+                  <input id="footer-email" type="email" placeholder="your@email.com" required className="flex-1 px-3 py-2 text-sm rounded bg-white/10 border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gold" />
+                  <button type="submit" className="px-4 py-2 bg-gold text-white text-sm font-semibold rounded hover:bg-amber-500 transition-colors">Join</button>
+                </form>
+              </div>
+            </div>
+            <div className="border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+              <p>© 2025 ThreadHouse. Certified B Corp.</p>
+              <div className="flex gap-4"><a href="#" className="hover:text-white transition-colors">Privacy Policy</a><a href="#" className="hover:text-white transition-colors">Terms</a></div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── My Orders Panel ── */
+    function MyOrders() {
+      const orders = [
+        { id:'TH-29481', date:'March 18, 2025', status:'Delivered',   total:231,  items:['Oversized Linen Shirt','Wide Leg Organic Denim'], trackingNumber:'1Z999AA10123456784' },
+        { id:'TH-28103', date:'Feb 26, 2025',   status:'In Transit',  total:98,   items:['Recycled Fleece Hoodie'], trackingNumber:'1Z999AA10123456785' },
+        { id:'TH-26774', date:'Jan 14, 2025',   status:'Delivered',   total:148,  items:['Bamboo Wrap Dress'], trackingNumber:null },
+        { id:'TH-25390', date:'Dec 28, 2024',   status:'Delivered',   total:330,  items:['Organic Linen Blazer','Hemp Canvas Tote'], trackingNumber:null },
+      ];
+
+      const statusStyle = {
+        'Delivered':  'bg-green-100 text-green-700',
+        'In Transit': 'bg-blue-100 text-blue-700',
+        'Processing': 'bg-yellow-100 text-yellow-700',
+        'Returned':   'bg-red-100 text-red-700',
+      };
+
+      return (
+        <div>
+          <h2 className="font-serif text-2xl font-bold text-charcoal mb-6">My Orders</h2>
+          <div className="space-y-4">
+            {orders.map(order => (
+              <article key={order.id} className="bg-white rounded-2xl border border-border p-5 hover:shadow-sm transition-shadow">
+                <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-sm text-charcoal">Order #{order.id}</p>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusStyle[order.status]}`}
+                            aria-label={`Status: ${order.status}`}>
+                        {order.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted mt-0.5">Placed {order.date}</p>
+                  </div>
+                  <p className="font-bold text-charcoal">${order.total}.00</p>
+                </div>
+                <p className="text-sm text-muted mb-3">{order.items.join(' · ')}</p>
+                <div className="flex flex-wrap gap-2">
+                  <a href="product-detail.html" className="px-4 py-2 text-xs font-semibold border border-border rounded-full hover:border-forest hover:text-forest transition-colors">View Details</a>
+                  <a href="product-detail.html" className="px-4 py-2 text-xs font-semibold border border-border rounded-full hover:border-forest hover:text-forest transition-colors">Buy Again</a>
+                  {order.status === 'Delivered' && (
+                    <a href="product-detail.html" className="px-4 py-2 text-xs font-semibold border border-border rounded-full hover:border-forest hover:text-forest transition-colors">Leave a Review</a>
+                  )}
+                  {order.status === 'In Transit' && order.trackingNumber && (
+                    <button className="px-4 py-2 text-xs font-semibold bg-forest text-white rounded-full hover:bg-sage transition-colors"
+                            aria-label={`Track order ${order.id}, tracking number ${order.trackingNumber}`}>
+                      Track Package →
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="text-center mt-6">
+            <button className="px-6 py-3 border border-border rounded-full text-sm font-medium hover:border-forest hover:text-forest transition-colors">
+              Load older orders
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Style Profile Panel ── */
+    function StyleProfile() {
+      const [editing, setEditing] = useState(false);
+      const [profile, setProfile] = useState({
+        styles: ['Minimalist','Workwear'],
+        sizes: { tops:'S', bottoms:'27', shoes:'8' },
+        colors: ['Sage Green','Sand','Ivory','Forest'],
+        materials: ['Organic Cotton','Linen'],
+      });
+
+      const allStyles = ['Minimalist','Streetwear','Workwear','Weekend','Boho','Smart Casual'];
+      const allColors = ['Sage Green','Sand','Ivory','Forest','Terracotta','Slate','Indigo','Black','Cream','Oat'];
+      const allMaterials = ['Organic Cotton','Linen','Bamboo','Hemp','Recycled Polyester'];
+
+      const toggle = (key, value) => {
+        setProfile(prev => {
+          const arr = prev[key];
+          return { ...prev, [key]: arr.includes(value) ? arr.filter(x => x !== value) : [...arr, value] };
+        });
+      };
+
+      return (
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-serif text-2xl font-bold text-charcoal">Style Profile</h2>
+            <button onClick={() => setEditing(v => !v)}
+                    aria-pressed={editing}
+                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${editing ? 'bg-forest text-white' : 'border border-border hover:border-forest hover:text-forest'}`}>
+              {editing ? '✓ Save Profile' : 'Edit Profile'}
+            </button>
+          </div>
+
+          <p className="text-sm text-muted mb-6">Your style profile helps us personalise recommendations and the Style Match feature on the product page.</p>
+
+          <div className="grid sm:grid-cols-2 gap-6">
+            {/* Preferred styles */}
+            <div className="bg-white rounded-2xl border border-border p-5">
+              <h3 className="font-semibold text-sm text-charcoal mb-4">Preferred Styles</h3>
+              <div className="flex flex-wrap gap-2">
+                {allStyles.map(s => (
+                  <button key={s} onClick={() => editing && toggle('styles', s)}
+                          aria-pressed={profile.styles.includes(s)}
+                          disabled={!editing}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${profile.styles.includes(s) ? 'bg-forest text-white' : 'bg-cream text-muted border border-border'} ${editing ? 'hover:border-forest cursor-pointer' : 'cursor-default'}`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sizes */}
+            <div className="bg-white rounded-2xl border border-border p-5">
+              <h3 className="font-semibold text-sm text-charcoal mb-4">My Sizes</h3>
+              <div className="space-y-3">
+                {[
+                  { label:'Tops',    key:'tops',    options:['XS','S','M','L','XL','XXL'] },
+                  { label:'Bottoms', key:'bottoms', options:['24','25','26','27','28','30','32'] },
+                  { label:'Shoes',   key:'shoes',   options:['5','6','7','8','9','10','11'] },
+                ].map(cat => (
+                  <div key={cat.key}>
+                    <label htmlFor={`size-${cat.key}`} className="text-xs text-muted font-medium block mb-1">{cat.label}</label>
+                    <select id={`size-${cat.key}`}
+                            value={profile.sizes[cat.key]}
+                            onChange={e => setProfile(p => ({ ...p, sizes: { ...p.sizes, [cat.key]: e.target.value } }))}
+                            disabled={!editing}
+                            className="border border-border rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-forest disabled:bg-cream disabled:cursor-default">
+                      {cat.options.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Preferred colors */}
+            <div className="bg-white rounded-2xl border border-border p-5">
+              <h3 className="font-semibold text-sm text-charcoal mb-4">Colour Preferences</h3>
+              <div className="flex flex-wrap gap-2">
+                {allColors.map(c => (
+                  <button key={c} onClick={() => editing && toggle('colors', c)}
+                          aria-pressed={profile.colors.includes(c)}
+                          disabled={!editing}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${profile.colors.includes(c) ? 'bg-forest text-white' : 'bg-cream text-muted border border-border'} ${editing ? 'hover:border-forest cursor-pointer' : 'cursor-default'}`}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Preferred materials */}
+            <div className="bg-white rounded-2xl border border-border p-5">
+              <h3 className="font-semibold text-sm text-charcoal mb-4">Material Preferences</h3>
+              <div className="space-y-2">
+                {allMaterials.map(m => (
+                  <label key={m} className="flex items-center gap-2.5 cursor-pointer">
+                    <input type="checkbox" checked={profile.materials.includes(m)} disabled={!editing}
+                           onChange={() => editing && toggle('materials', m)}
+                           className="w-4 h-4 rounded border-border text-forest focus:ring-forest" />
+                    <span className="text-sm text-charcoal">{m}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Loyalty Rewards Panel ── */
+    function LoyaltyRewards() {
+      const balance = 380;
+      const tier = balance >= 500 ? 'Gold' : balance >= 250 ? 'Silver' : 'Bronze';
+      const nextTierPoints = tier === 'Bronze' ? 250 : tier === 'Silver' ? 500 : 1000;
+      const tierColors = { Bronze:'from-amber-600 to-amber-800', Silver:'from-gray-400 to-gray-600', Gold:'from-yellow-400 to-amber-500' };
+      const pct = Math.min(100, (balance / nextTierPoints) * 100);
+
+      const rewards = [
+        { name:'Free Tote Bag',        points:500,  icon:'👜', available: balance >= 500 },
+        { name:'$10 Off Next Order',   points:300,  icon:'💚', available: balance >= 300 },
+        { name:'Free Express Shipping',points:200,  icon:'🚀', available: balance >= 200 },
+        { name:'Early Access Drop',    points:150,  icon:'⚡', available: balance >= 150 },
+        { name:'10% Birthday Discount',points:0,    icon:'🎂', available: true, note:'Auto-applied on your birthday' },
+      ];
+
+      const history = [
+        { date:'Mar 18, 2025', desc:'Order #TH-29481',         points:'+231', type:'earn' },
+        { date:'Feb 26, 2025', desc:'Order #TH-28103',         points:'+98',  type:'earn' },
+        { date:'Feb 20, 2025', desc:'Referral bonus — Alex M.',points:'+50',  type:'bonus' },
+        { date:'Jan 14, 2025', desc:'Redeemed: $10 Off',       points:'−300', type:'redeem' },
+        { date:'Jan 14, 2025', desc:'Order #TH-26774',         points:'+148', type:'earn' },
+      ];
+
+      return (
+        <div>
+          <h2 className="font-serif text-2xl font-bold text-charcoal mb-6">Loyalty Rewards</h2>
+
+          {/* Balance card */}
+          <div className={`bg-gradient-to-br ${tierColors[tier]} rounded-2xl p-6 text-white mb-8 relative overflow-hidden`}
+               aria-label={`Loyalty balance: ${balance} points. ${tier} tier member.`}>
+            <div className="absolute inset-0 opacity-10" aria-hidden="true"
+                 style={{backgroundImage:'radial-gradient(circle at 80% 20%, white 0%, transparent 60%)'}}>
+            </div>
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <p className="text-white/70 text-xs uppercase tracking-widest">Your Balance</p>
+                  <p className="font-serif text-5xl font-bold mt-1">{balance.toLocaleString()}</p>
+                  <p className="text-white/80 text-sm">points</p>
+                </div>
+                <div className="text-right">
+                  <span className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide">{tier} Member</span>
+                  <p className="text-white/70 text-xs mt-2">Member since Jan 2024</p>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs text-white/70 mb-1.5">
+                  <span>{balance} pts</span>
+                  <span>{nextTierPoints} pts {tier === 'Bronze' ? '→ Silver' : tier === 'Silver' ? '→ Gold' : '→ Platinum'}</span>
+                </div>
+                <div className="h-2 bg-white/20 rounded-full overflow-hidden" role="progressbar"
+                     aria-valuenow={balance} aria-valuemin="0" aria-valuemax={nextTierPoints}
+                     aria-label={`${balance} of ${nextTierPoints} points to next tier`}>
+                  <div className="h-full bg-white rounded-full transition-all duration-500" style={{width:`${pct}%`}} aria-hidden="true" />
+                </div>
+                <p className="text-xs text-white/70 mt-1.5">{nextTierPoints - balance} points to {tier === 'Bronze' ? 'Silver' : tier === 'Silver' ? 'Gold' : 'Platinum'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-8">
+            {/* Available rewards */}
+            <div>
+              <h3 className="font-semibold text-sm uppercase tracking-widest text-muted mb-4">Available Rewards</h3>
+              <ul className="space-y-3" aria-label="Rewards catalogue">
+                {rewards.map(r => (
+                  <li key={r.name} className={`bg-white rounded-xl border p-4 flex items-center gap-4 ${r.available ? 'border-forest/30' : 'border-border opacity-60'}`}>
+                    <span className="text-2xl flex-shrink-0" aria-hidden="true">{r.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-charcoal">{r.name}</p>
+                      <p className="text-xs text-muted">{r.note || `${r.points} points`}</p>
+                    </div>
+                    <button disabled={!r.available || r.points === 0}
+                            aria-label={r.available && r.points > 0 ? `Redeem ${r.name} for ${r.points} points` : r.points === 0 ? r.note : `${r.points - balance} more points needed`}
+                            className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${r.available && r.points > 0 ? 'bg-forest text-white hover:bg-sage' : r.points === 0 ? 'bg-gold/20 text-gold cursor-default' : 'bg-border text-muted cursor-not-allowed'}`}>
+                      {r.available && r.points > 0 ? 'Redeem' : r.points === 0 ? 'Auto' : `Need ${r.points - balance} pts`}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Points history */}
+            <div>
+              <h3 className="font-semibold text-sm uppercase tracking-widest text-muted mb-4">Points History</h3>
+              <div className="bg-white rounded-xl border border-border overflow-hidden">
+                <table className="w-full text-sm" aria-label="Loyalty points transaction history">
+                  <thead>
+                    <tr className="bg-cream border-b border-border">
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase">Date</th>
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase">Activity</th>
+                      <th scope="col" className="px-4 py-3 text-right text-xs font-semibold text-muted uppercase">Points</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((h, i) => (
+                      <tr key={i} className="border-b border-border last:border-0">
+                        <td className="px-4 py-3 text-xs text-muted whitespace-nowrap">{h.date}</td>
+                        <td className="px-4 py-3 text-xs text-charcoal">{h.desc}</td>
+                        <td className={`px-4 py-3 text-xs font-bold text-right ${h.type === 'redeem' ? 'text-red-600' : 'text-forest'}`}>{h.points}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Saved Outfits Panel ── */
+    function SavedOutfits() {
+      const outfits = [
+        { name:'Spring Office Look', items:3, seed:'outfit1', date:'Mar 15, 2025' },
+        { name:'Weekend Casual',     items:4, seed:'outfit2', date:'Feb 20, 2025' },
+        { name:'Summer Minimalist',  items:2, seed:'outfit3', date:'Jan 30, 2025' },
+      ];
+
+      return (
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-serif text-2xl font-bold text-charcoal">Saved Outfits</h2>
+            <a href="products.html" className="px-4 py-2 bg-forest text-white text-sm font-semibold rounded-full hover:bg-sage transition-colors">Browse Style Match</a>
+          </div>
+          <p className="text-sm text-muted mb-6">Outfits you've saved using our Style Match feature. Share them with friends or shop the full look.</p>
+
+          {outfits.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-2xl border border-border">
+              <span className="text-5xl mb-4 block" aria-hidden="true">👗</span>
+              <h3 className="font-semibold text-charcoal mb-2">No saved outfits yet</h3>
+              <p className="text-sm text-muted mb-4">Use Style Match on the product listing page to curate your looks.</p>
+              <a href="products.html" className="inline-block px-6 py-3 bg-forest text-white text-sm font-semibold rounded-full hover:bg-sage transition-colors">Try Style Match</a>
+            </div>
+          ) : (
+            <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5" aria-label="Saved outfits">
+              {outfits.map(outfit => (
+                <li key={outfit.name}>
+                  <article className="bg-white rounded-2xl border border-border overflow-hidden group hover:shadow-md transition-shadow">
+                    <div className="relative aspect-[4/3] bg-border overflow-hidden">
+                      <img src={`https://picsum.photos/seed/${outfit.seed}/400/300`}
+                           alt={`Saved outfit: ${outfit.name}`}
+                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" aria-hidden="true" />
+                      <div className="absolute bottom-0 left-0 p-4">
+                        <p className="font-semibold text-sm text-white">{outfit.name}</p>
+                        <p className="text-xs text-white/70">{outfit.items} items · {outfit.date}</p>
+                      </div>
+                    </div>
+                    <div className="p-4 flex gap-2">
+                      <a href="products.html" className="flex-1 text-center px-3 py-2 text-xs font-semibold bg-forest text-white rounded-full hover:bg-sage transition-colors">Shop Look</a>
+                      <button className="flex-1 text-center px-3 py-2 text-xs font-semibold border border-border rounded-full hover:border-forest hover:text-forest transition-colors"
+                              aria-label={`Share ${outfit.name} outfit`}>Share</button>
+                      <button className="p-2 border border-border rounded-full hover:border-red-300 hover:text-red-600 transition-colors"
+                              aria-label={`Delete ${outfit.name} outfit`}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                      </button>
+                    </div>
+                  </article>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    }
+
+    /* ── Referral Program Panel ── */
+    function ReferralProgram() {
+      const [copied, setCopied] = useState(false);
+      const referralLink = 'https://threadhouse.co/ref/maya-t-8f2k';
+
+      const copyLink = () => {
+        // In a real app this would use clipboard API
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      };
+
+      const referrals = [
+        { name:'Alex M.',    status:'Signed up',    earned:50,  date:'Feb 20, 2025' },
+        { name:'Jess R.',    status:'First purchase',earned:100, date:'Jan 8, 2025'  },
+        { name:'Chris W.',   status:'Signed up',    earned:50,  date:'Dec 3, 2024'  },
+      ];
+
+      return (
+        <div>
+          <h2 className="font-serif text-2xl font-bold text-charcoal mb-2">Referral Program</h2>
+          <p className="text-muted text-sm mb-8">Earn rewards when you share ThreadHouse with friends. They save 15% on their first order, you earn points.</p>
+
+          {/* How it works */}
+          <section aria-labelledby="how-heading" className="mb-8">
+            <h3 id="how-heading" className="font-semibold text-sm uppercase tracking-widest text-muted mb-4">How it Works</h3>
+            <ol className="grid sm:grid-cols-3 gap-4" aria-label="Referral program steps">
+              {[
+                { step:1, icon:'🔗', title:'Share your link',    desc:'Send your unique referral link to friends' },
+                { step:2, icon:'🛍️', title:'They shop & save',   desc:'Your friend gets 15% off their first order' },
+                { step:3, icon:'⭐', title:'You earn rewards',   desc:'+50 pts when they sign up, +100 pts on first purchase' },
+              ].map(s => (
+                <li key={s.step} className="bg-white rounded-2xl border border-border p-5 text-center">
+                  <div className="w-8 h-8 bg-forest text-white text-sm font-bold rounded-full flex items-center justify-center mx-auto mb-3" aria-hidden="true">{s.step}</div>
+                  <span className="text-3xl mb-2 block" aria-hidden="true">{s.icon}</span>
+                  <h4 className="font-semibold text-sm text-charcoal mb-1">{s.title}</h4>
+                  <p className="text-xs text-muted">{s.desc}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          {/* Referral link */}
+          <section aria-labelledby="link-heading" className="bg-white rounded-2xl border border-forest/30 p-6 mb-8">
+            <h3 id="link-heading" className="font-semibold text-sm text-charcoal mb-3">Your Unique Referral Link</h3>
+            <div className="flex gap-3 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <label htmlFor="referral-link" className="sr-only">Your referral link</label>
+                <input id="referral-link" type="text" value={referralLink} readOnly
+                       className="w-full border border-border rounded-xl px-4 py-3 text-sm text-muted bg-cream focus:outline-none focus:ring-2 focus:ring-forest" />
+              </div>
+              <button onClick={copyLink}
+                      aria-label={copied ? 'Link copied!' : 'Copy referral link'}
+                      className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all ${copied ? 'bg-sage text-white' : 'bg-forest text-white hover:bg-sage'}`}>
+                {copied ? '✓ Copied!' : 'Copy Link'}
+              </button>
+            </div>
+            {copied && <p role="status" aria-live="polite" className="text-xs text-forest font-medium mt-2">Link copied to clipboard!</p>}
+
+            {/* Share buttons */}
+            <div className="flex flex-wrap gap-2 mt-4">
+              <span className="text-xs text-muted self-center">Share via:</span>
+              {['WhatsApp','Instagram','Twitter','Email'].map(platform => (
+                <button key={platform}
+                        aria-label={`Share referral link via ${platform}`}
+                        className="px-4 py-2 border border-border rounded-full text-xs font-medium hover:border-forest hover:text-forest transition-colors">
+                  {platform}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Referral history */}
+          <section aria-labelledby="referrals-heading">
+            <h3 id="referrals-heading" className="font-semibold text-sm uppercase tracking-widest text-muted mb-4">Your Referrals</h3>
+            <div className="bg-white rounded-2xl border border-border overflow-hidden">
+              <table className="w-full text-sm" aria-label="Referral history">
+                <thead>
+                  <tr className="bg-cream border-b border-border">
+                    <th scope="col" className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase">Friend</th>
+                    <th scope="col" className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase">Status</th>
+                    <th scope="col" className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase">Date</th>
+                    <th scope="col" className="px-5 py-3 text-right text-xs font-semibold text-muted uppercase">Points Earned</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {referrals.map((r, i) => (
+                    <tr key={i} className="border-b border-border last:border-0">
+                      <td className="px-5 py-3.5 font-medium text-charcoal">{r.name}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${r.status === 'First purchase' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-muted">{r.date}</td>
+                      <td className="px-5 py-3.5 text-right font-bold text-forest">+{r.earned} pts</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-forest/5">
+                    <td colSpan="3" className="px-5 py-3.5 font-semibold text-sm text-charcoal">Total earned from referrals</td>
+                    <td className="px-5 py-3.5 text-right font-bold text-forest">+{referrals.reduce((s,r) => s + r.earned, 0)} pts</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
+    /* ── Main Account Page ── */
+    function AccountPage() {
+      const [activeSection, setActiveSection] = useState('orders');
+
+      const navItems = [
+        { id:'orders',   label:'My Orders',       icon:'📦' },
+        { id:'profile',  label:'Style Profile',   icon:'👤' },
+        { id:'loyalty',  label:'Loyalty Rewards', icon:'⭐' },
+        { id:'outfits',  label:'Saved Outfits',   icon:'👗' },
+        { id:'referral', label:'Referral Program',icon:'🔗' },
+      ];
+
+      const sections = {
+        orders:   <MyOrders />,
+        profile:  <StyleProfile />,
+        loyalty:  <LoyaltyRewards />,
+        outfits:  <SavedOutfits />,
+        referral: <ReferralProgram />,
+      };
+
+      return (
+        <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          {/* Breadcrumb */}
+          <nav aria-label="Breadcrumb" className="text-xs text-muted mb-6">
+            <ol className="flex items-center gap-1.5">
+              <li><a href="index.html" className="hover:text-forest transition-colors">Home</a></li>
+              <li aria-hidden="true">/</li>
+              <li><span className="text-charcoal font-medium" aria-current="page">My Account</span></li>
+            </ol>
+          </nav>
+
+          {/* Profile header */}
+          <div className="flex items-center gap-5 mb-8">
+            <div className="w-16 h-16 bg-forest rounded-full flex items-center justify-center flex-shrink-0" aria-hidden="true">
+              <span className="font-serif font-bold text-2xl text-white">M</span>
+            </div>
+            <div>
+              <h1 className="font-serif text-2xl font-bold text-charcoal">Welcome back, Maya</h1>
+              <p className="text-sm text-muted">maya.torres@email.com · Silver Member · 380 pts</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Sidebar nav */}
+            <nav aria-label="Account sections" className="lg:w-56 flex-shrink-0">
+              <ul className="bg-white rounded-2xl border border-border overflow-hidden lg:sticky lg:top-24">
+                {navItems.map(item => (
+                  <li key={item.id}>
+                    <button onClick={() => setActiveSection(item.id)}
+                            aria-current={activeSection === item.id ? 'page' : undefined}
+                            className={`w-full flex items-center gap-3 px-5 py-4 text-sm font-medium transition-colors text-left border-b border-border last:border-0 ${activeSection === item.id ? 'bg-forest text-white' : 'text-charcoal hover:bg-cream hover:text-forest'}`}>
+                      <span className="text-base w-5 text-center" aria-hidden="true">{item.icon}</span>
+                      {item.label}
+                      {activeSection === item.id && (
+                        <svg className="w-4 h-4 ml-auto" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                      )}
+                    </button>
+                  </li>
+                ))}
+                <li className="border-t border-border">
+                  <button className="w-full flex items-center gap-3 px-5 py-4 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors text-left">
+                    <span className="text-base w-5 text-center" aria-hidden="true">🚪</span>
+                    Sign Out
+                  </button>
+                </li>
+              </ul>
+            </nav>
+
+            {/* Mobile nav (horizontal scroll) */}
+            <div className="lg:hidden -mx-4 px-4">
+              <nav aria-label="Account sections mobile" className="flex gap-2 overflow-x-auto pb-4">
+                {navItems.map(item => (
+                  <button key={item.id} onClick={() => setActiveSection(item.id)}
+                          aria-current={activeSection === item.id ? 'page' : undefined}
+                          className={`flex-none flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${activeSection === item.id ? 'bg-forest text-white' : 'bg-white border border-border text-charcoal hover:border-forest'}`}>
+                    <span aria-hidden="true">{item.icon}</span>
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Content panel */}
+            <div className="flex-1 min-w-0 animate-fade-in" key={activeSection}
+                 role="region" aria-label={navItems.find(n => n.id === activeSection)?.label}>
+              <div className="bg-cream">
+                {sections[activeSection]}
+              </div>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
+    function App() {
+      return (
+        <>
+          <Header />
+          <AccountPage />
+          <Footer />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

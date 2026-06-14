@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Market | Your Orders</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../styles/main.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { DEFAULT: '#1a1f2c', 800: '#232f3e', 900: '#131a22' },
+                        cta: { DEFAULT: '#ffd814', hover: '#f7ca00' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body id="top" class="bg-gray-100 flex flex-col min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel" src="../components/Header.js"></script>
+    <script type="text/babel" src="../components/NavBar.js"></script>
+    <script type="text/babel" src="../components/Footer.js"></script>
+
+    <script type="text/babel">
+        const OrderItem = ({ status, date, total, orderId, items }) => (
+            <div className="bg-white border border-gray-200 rounded-system-md shadow-sm mb-6 overflow-hidden">
+                <div className="bg-gray-100 px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between text-sm text-gray-600">
+                    <div className="flex gap-8 mb-2 md:mb-0">
+                        <div>
+                            <p className="uppercase font-semibold text-xs">Order placed</p>
+                            <p>{date}</p>
+                        </div>
+                        <div>
+                            <p className="uppercase font-semibold text-xs">Total</p>
+                            <p>${total}</p>
+                        </div>
+                        <div>
+                            <p className="uppercase font-semibold text-xs">Ship to</p>
+                            <a href="#" className="text-blue-600 hover:underline">User Name ▾</a>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <p className="uppercase font-semibold text-xs text-gray-800">Order # {orderId}</p>
+                        <div className="flex gap-2 justify-end mt-1">
+                            <a href="#" className="text-blue-600 hover:underline">View order details</a>
+                            <span>|</span>
+                            <a href="#" className="text-blue-600 hover:underline">Invoice</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6">
+                    <h3 className="font-bold text-lg text-gray-900 mb-4">{status}</h3>
+                    <div className="flex flex-col md:flex-row gap-6">
+                        <div className="flex flex-1 gap-4">
+                            {items.map((item, idx) => (
+                                <div key={idx} className="w-24 h-24 bg-gray-50 flex items-center justify-center p-2 rounded">
+                                    <img src={item.img} alt={item.title} className="max-w-full h-auto mix-blend-multiply" />
+                                </div>
+                            ))}
+                            <div className="flex-1">
+                                {items.map((item, idx) => (
+                                    <div key={idx} className="mb-2">
+                                        <a href="../products/detail.html" className="text-blue-600 hover:underline font-medium">{item.title}</a>
+                                        <p className="text-sm text-gray-500">Sold by: {item.seller}</p>
+                                    </div>
+                                ))}
+                                <button className="mt-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-1 px-4 border border-gray-300 rounded shadow-sm text-sm">
+                                    Buy it again
+                                </button>
+                            </div>
+                        </div>
+                        <div className="w-full md:w-64 flex flex-col gap-2">
+                            <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 border border-gray-300 rounded shadow-sm text-sm">
+                                Track package
+                            </button>
+                            <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 border border-gray-300 rounded shadow-sm text-sm">
+                                Return or replace items
+                            </button>
+                            <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 border border-gray-300 rounded shadow-sm text-sm">
+                                Write a product review
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const App = () => {
+            return (
+                <React.Fragment>
+                    <Header />
+                    <NavBar />
+
+                    <main className="flex-grow container mx-auto px-4 py-8 max-w-5xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h1 className="text-3xl font-normal text-gray-900">Your Orders</h1>
+                            <div className="flex items-center gap-2">
+                                <label className="text-sm font-bold text-gray-700">Search orders:</label>
+                                <div className="flex">
+                                    <input type="text" className="border border-gray-300 px-3 py-1 rounded-l-md focus:ring-2 focus:ring-navy focus:outline-none" />
+                                    <button className="bg-gray-800 text-white px-4 py-1 rounded-r-md hover:bg-gray-700">Search</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* order tabs */}
+                        <div className="border-b border-gray-200 mb-6 flex gap-6 text-sm">
+                            <button className="text-blue-600 font-bold border-b-2 border-orange-500 pb-2">Orders</button>
+                            <button className="text-blue-600 hover:underline hover:text-orange-500 pb-2">Buy Again</button>
+                            <button className="text-blue-600 hover:underline hover:text-orange-500 pb-2">Not Yet Shipped</button>
+                            <button className="text-blue-600 hover:underline hover:text-orange-500 pb-2">Cancelled Orders</button>
+                        </div>
+
+                        <div>
+                            <OrderItem
+                                status="Delivered yesterday"
+                                date="February 25, 2026"
+                                total="199.99"
+                                orderId="114-1234567-8901234"
+                                items={[
+                                    { img: "https://via.placeholder.com/100?text=Headphones", title: "Wireless Noise Cancelling Headphones", seller: "Sonic Store" }
+                                ]}
+                            />
+
+                            <OrderItem
+                                status="Delivered Feb 20"
+                                date="February 18, 2026"
+                                total="49.00"
+                                orderId="114-9876543-2109876"
+                                items={[
+                                    { img: "https://via.placeholder.com/100?text=Speaker", title: "Smart Home Speaker", seller: "SmartTech Inc" }
+                                ]}
+                            />
+                        </div>
+                    </main>
+
+                    <Footer />
+                </React.Fragment>
+            );
+        };
+
+        setTimeout(() => {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        }, 100);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feed — Folia Creative Community</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'folia-bg':     '#FAF9F7',
+            'folia-surf':   '#F2EFEA',
+            'folia-border': '#E4DFD8',
+            'folia-text':   '#1C1917',
+            'folia-muted':  '#78716C',
+            'folia-accent': '#7C3AED',
+            'folia-accent-h':'#6D28D9',
+            'folia-rose':   '#F43F5E',
+            'folia-amber':  '#D97706',
+            'folia-sidebar':'#161514',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #FAF9F7; color: #1C1917; }
+    :focus-visible { outline: 3px solid #7C3AED !important; outline-offset: 2px !important; }
+    .skip-link { position:absolute;top:-52px;left:8px;background:#7C3AED;color:#fff;padding:10px 18px;z-index:9999;border-radius:6px;font-weight:600;transition:top 0.15s;text-decoration:none;font-size:14px; }
+    .skip-link:focus { top:8px; }
+    .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+    .sidebar-link { display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;font-size:15px;font-weight:500;color:#a8a29e;transition:all 0.15s;text-decoration:none; }
+    .sidebar-link:hover { background:rgba(255,255,255,0.07);color:#fff; }
+    .sidebar-link.active { background:rgba(124,58,237,0.15);color:#c4b5fd; }
+    .bottom-nav-link { display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;color:#78716c;font-size:10px;font-weight:500;text-decoration:none;transition:color 0.15s; }
+    .bottom-nav-link.active { color:#7C3AED; }
+    .bottom-nav-link:hover { color:#7C3AED; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    /* ── Sidebar nav ───────────────────────────────────────────── */
+    function Sidebar({ current = 'feed' }) {
+      const NAV = [
+        { key:'feed',    label:'Feed',          href:'index.html',         icon:'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+        { key:'explore', label:'Explore',       href:'explore.html',       icon:'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
+        { key:'notifs',  label:'Notifications', href:'notifications.html', icon:'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', badge: 3 },
+        { key:'messages',label:'Messages',      href:'messages.html',      icon:'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', badge: 2 },
+        { key:'profile', label:'Profile',       href:'profile.html',       icon:'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+        { key:'settings',label:'Settings',      href:'settings.html',      icon:'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+      ];
+      return (
+        <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-60 bg-folia-sidebar text-white z-40 py-6 px-3" aria-label="Primary navigation">
+          {/* Logo */}
+          <a href="index.html" className="flex items-center gap-2.5 px-3 mb-8" aria-label="Folia — go to feed">
+            <div className="w-9 h-9 bg-gradient-to-br from-folia-accent to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0" aria-hidden="true">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+            </div>
+            <span className="font-extrabold text-xl tracking-tight">folia</span>
+          </a>
+
+          {/* Nav links */}
+          <nav aria-label="Main site navigation">
+            <ul className="space-y-1" role="list">
+              {NAV.map(n => (
+                <li key={n.key}>
+                  <a
+                    href={n.href}
+                    className={`sidebar-link ${current===n.key?'active':''}`}
+                    aria-current={current===n.key?'page':undefined}
+                    aria-label={n.badge ? `${n.label} — ${n.badge} unread` : n.label}
+                  >
+                    <div className="relative flex-shrink-0">
+                      <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {n.icon.includes('M15 12') ? (
+                          <>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </>
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={n.icon} />
+                        )}
+                      </svg>
+                      {n.badge && <span aria-hidden="true" className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-folia-rose text-white text-[10px] font-bold rounded-full flex items-center justify-center">{n.badge}</span>}
+                    </div>
+                    <span>{n.label}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* User avatar */}
+          <a href="profile.html" className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors" aria-label="My profile — Kai Rivera">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0" role="img" aria-label="Kai Rivera's avatar">KR</div>
+            <div className="min-w-0">
+              <p className="font-semibold text-sm text-white truncate">Kai Rivera</p>
+              <p className="text-xs text-folia-muted truncate">@kairivera</p>
+            </div>
+          </a>
+        </aside>
+      );
+    }
+
+    /* ── Bottom nav (mobile) ───────────────────────────────────── */
+    function BottomNav({ current = 'feed' }) {
+      const NAV = [
+        { key:'feed',    href:'index.html',        icon:'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', label:'Feed' },
+        { key:'explore', href:'explore.html',      icon:'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', label:'Explore' },
+        { key:'notifs',  href:'notifications.html',icon:'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', label:'Activity' },
+        { key:'messages',href:'messages.html',     icon:'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', label:'Messages' },
+        { key:'profile', href:'profile.html',      icon:'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', label:'Profile' },
+      ];
+      return (
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-folia-border z-40 flex" aria-label="Mobile navigation">
+          {NAV.map(n => (
+            <a key={n.key} href={n.href} className={`bottom-nav-link flex-1 ${current===n.key?'active':''}`} aria-current={current===n.key?'page':undefined} aria-label={n.label}>
+              <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={current===n.key?2.5:2} d={n.icon} /></svg>
+              <span>{n.label}</span>
+            </a>
+          ))}
+        </nav>
+      );
+    }
+
+    /* ── Post card ─────────────────────────────────────────────── */
+    const POSTS = [
+      { id:1, author:'Maya Chen', handle:'@mayachen', discipline:'Digital Illustration', avatarColor:'from-purple-400 to-pink-500', time:'2h',
+        caption:'Final render of "Solstice III" — been working on this series exploring the relationship between light and memory. The warm golds took forever to get right. 🌅',
+        tags:['#illustration','#procreate','#digitalart','#solstice'],
+        imgGrad:'from-amber-300 via-orange-400 to-rose-500', appreciates:284, collects:47, comments:31 },
+      { id:2, author:'Hiroshi Tanaka', handle:'@hiroshit', discipline:'Film Photography', avatarColor:'from-teal-400 to-cyan-500', time:'5h',
+        caption:'Early morning fog on the Kamo River. Shot on expired Kodak Portra — love the grain on these. This city never gets old.',
+        tags:['#filmphotography','#35mm','#kodak','#kyoto'],
+        imgGrad:'from-slate-300 via-blue-200 to-slate-400', appreciates:519, collects:88, comments:52 },
+      { id:3, author:'Linh Nguyen', handle:'@linhdraws', discipline:'Motion & 3D', avatarColor:'from-emerald-400 to-teal-500', time:'9h',
+        caption:'WIP loop from my "Botanic Systems" project. Still tweaking the particle behaviour — feedback welcome! Built in Blender + After Effects.',
+        tags:['#3d','#motiondesign','#blender','#WIP'],
+        imgGrad:'from-emerald-300 via-teal-400 to-cyan-500', appreciates:167, collects:29, comments:44 },
+      { id:4, author:'Priya Sharma', handle:'@priyaillust', discipline:'Editorial Illustration', avatarColor:'from-rose-400 to-orange-400', time:'1d',
+        caption:'"After the Rain" — editorial piece for a magazine feature on solitude. Gouache + digital finishing.',
+        tags:['#editorialillustration','#gouache','#solitude'],
+        imgGrad:'from-rose-200 via-pink-300 to-fuchsia-400', appreciates:342, collects:61, comments:27 },
+    ];
+
+    function PostCard({ post }) {
+      const [appreciated, setAppreciated] = useState(false);
+      const [collected, setCollected] = useState(false);
+      const [liveMsg, setLiveMsg] = useState('');
+      const [menuOpen, setMenuOpen] = useState(false);
+      const menuRef = useRef(null);
+      const menuBtnRef = useRef(null);
+
+      useEffect(() => {
+        if (menuOpen) menuRef.current?.querySelector('button')?.focus();
+      }, [menuOpen]);
+
+      function handleAppreciate() {
+        setAppreciated(a => !a);
+        setLiveMsg(appreciated ? `Removed appreciate from ${post.author}'s post` : `Appreciated ${post.author}'s post`);
+        setTimeout(() => setLiveMsg(''), 2000);
+      }
+
+      function handleCollect() {
+        setCollected(c => !c);
+        setLiveMsg(collected ? `Removed from collection` : `Saved to your collection`);
+        setTimeout(() => setLiveMsg(''), 2000);
+      }
+
+      return (
+        <article className="bg-white border border-folia-border rounded-2xl overflow-hidden" aria-label={`Post by ${post.author}: ${post.caption.slice(0,60)}…`}>
+          {/* Live region */}
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{liveMsg}</div>
+
+          {/* Author row */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-4">
+            <a href="profile.html" className="flex items-center gap-3 hover:opacity-80 transition-opacity" aria-label={`View ${post.author}'s profile`}>
+              <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${post.avatarColor} flex items-center justify-center text-white font-bold text-sm flex-shrink-0`} role="img" aria-label={`${post.author}'s profile picture`}>
+                {post.author.split(' ').map(w=>w[0]).join('')}
+              </div>
+              <div>
+                <h2 className="font-semibold text-sm text-folia-text">{post.author}</h2>
+                <p className="text-xs text-folia-muted">{post.discipline} · {post.time}</p>
+              </div>
+            </a>
+            <div className="relative">
+              <button
+                ref={menuBtnRef}
+                onClick={() => setMenuOpen(o=>!o)}
+                aria-label={`More options for post by ${post.author}`}
+                aria-expanded={menuOpen}
+                aria-haspopup="menu"
+                className="p-1.5 rounded-lg text-folia-muted hover:bg-folia-surf hover:text-folia-text transition-colors"
+              >
+                <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01" /></svg>
+              </button>
+              {menuOpen && (
+                <div
+                  ref={menuRef}
+                  role="menu"
+                  aria-label={`Options for post by ${post.author}`}
+                  className="absolute right-0 top-9 bg-white border border-folia-border rounded-xl shadow-lg py-1 z-10 w-44"
+                  onKeyDown={e => { if(e.key==='Escape'){setMenuOpen(false);menuBtnRef.current?.focus();} }}
+                >
+                  {['Save post','Copy link','Report post','Not interested'].map(opt => (
+                    <button key={opt} role="menuitem" onClick={()=>setMenuOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-folia-text hover:bg-folia-surf transition-colors">
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Post image */}
+          <a href="explore.html" aria-label={`View full post by ${post.author}`} className="block">
+            <div className={`w-full aspect-[4/3] bg-gradient-to-br ${post.imgGrad} relative overflow-hidden`} role="img" aria-label={`Artwork by ${post.author}`}>
+              <div aria-hidden="true" className="absolute inset-0 opacity-20 mix-blend-overlay" style={{backgroundImage:'radial-gradient(circle at 30% 40%, rgba(255,255,255,0.4) 0%, transparent 60%)'}}></div>
+            </div>
+          </a>
+
+          {/* Caption */}
+          <div className="px-5 py-4">
+            <p className="text-sm text-folia-text leading-relaxed">{post.caption}</p>
+            <div className="flex flex-wrap gap-1.5 mt-3" aria-label="Post tags">
+              {post.tags.map(t => (
+                <a key={t} href="explore.html" className="text-xs text-folia-accent hover:underline font-medium" aria-label={`Browse posts tagged ${t}`}>{t}</a>
+              ))}
+            </div>
+          </div>
+
+          {/* Engagement bar */}
+          <div className="px-5 pb-5 flex items-center gap-1 border-t border-folia-border/60 pt-3.5" role="group" aria-label={`Engagement actions for ${post.author}'s post`}>
+            {/* Appreciate */}
+            <button
+              onClick={handleAppreciate}
+              aria-pressed={appreciated}
+              aria-label={`${appreciated?'Remove appreciation from':'Appreciate'} post by ${post.author} — currently ${post.appreciates + (appreciated?1:0)} appreciations`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${appreciated?'bg-red-50 text-folia-rose':'text-folia-muted hover:bg-folia-surf hover:text-folia-rose'}`}
+            >
+              <svg aria-hidden="true" className="w-4 h-4" fill={appreciated?'currentColor':'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+              <span aria-live="polite" aria-atomic="true">{post.appreciates + (appreciated ? 1 : 0)}</span>
+            </button>
+
+            {/* Comment */}
+            <button
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-folia-muted hover:bg-folia-surf hover:text-folia-accent transition-colors"
+              aria-label={`Comment on post by ${post.author} — ${post.comments} comments`}
+            >
+              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+              {post.comments}
+            </button>
+
+            {/* Collect */}
+            <button
+              onClick={handleCollect}
+              aria-pressed={collected}
+              aria-label={`${collected?'Remove from collection':'Collect'} post by ${post.author} — ${post.collects} collections`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${collected?'bg-amber-50 text-folia-amber':'text-folia-muted hover:bg-folia-surf hover:text-folia-amber'}`}
+            >
+              <svg aria-hidden="true" className="w-4 h-4" fill={collected?'currentColor':'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+              <span aria-live="polite" aria-atomic="true">{post.collects + (collected ? 1 : 0)}</span>
+            </button>
+
+            {/* Share */}
+            <button
+              className="ml-auto p-2 rounded-lg text-folia-muted hover:bg-folia-surf hover:text-folia-accent transition-colors"
+              aria-label={`Share post by ${post.author}`}
+            >
+              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+            </button>
+          </div>
+        </article>
+      );
+    }
+
+    /* ── Composer ──────────────────────────────────────────────── */
+    function Composer() {
+      const [caption, setCaption] = useState('');
+      const [tagInput, setTagInput] = useState('');
+      const [tags, setTags] = useState([]);
+      const [charWarn, setCharWarn] = useState('');
+      const MAX = 500;
+      const WARN_AT = 450;
+
+      function handleCaption(e) {
+        const val = e.target.value;
+        if (val.length > MAX) return;
+        setCaption(val);
+        if (val.length >= WARN_AT) {
+          setCharWarn(`${MAX - val.length} characters remaining`);
+        } else {
+          setCharWarn('');
+        }
+      }
+
+      function handleTagKey(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          const val = tagInput.trim().replace(/^#*/,'');
+          if (val && !tags.includes('#'+val)) {
+            setTags(t => [...t, '#'+val]);
+          }
+          setTagInput('');
+        }
+        if (e.key === 'Backspace' && !tagInput && tags.length) {
+          setTags(t => t.slice(0,-1));
+        }
+      }
+
+      function removeTag(tag) {
+        setTags(t => t.filter(x=>x!==tag));
+      }
+
+      function handleSubmit(e) {
+        e.preventDefault();
+        alert('Post shared! (demo)');
+        setCaption('');
+        setTags([]);
+        setTagInput('');
+      }
+
+      return (
+        <form onSubmit={handleSubmit} aria-label="Create a new post" className="bg-white border border-folia-border rounded-2xl p-5 mb-6">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0" role="img" aria-label="Your profile picture">KR</div>
+            <div className="flex-1 min-w-0">
+              <label htmlFor="post-caption" className="sr-only">Write a caption for your post (max 500 characters)</label>
+              <textarea
+                id="post-caption"
+                value={caption}
+                onChange={handleCaption}
+                placeholder="Share your work, process, or WIP…"
+                rows={3}
+                className="w-full resize-none text-sm text-folia-text placeholder-folia-muted bg-folia-surf rounded-xl px-4 py-3 border border-folia-border focus:ring-2 focus:ring-folia-accent focus:border-transparent transition-colors"
+                aria-describedby={charWarn ? 'char-count' : undefined}
+              />
+              {charWarn && (
+                <p id="char-count" role="status" aria-live="polite" className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                  <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  {charWarn}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Tag input */}
+          <div className="mb-4">
+            <label htmlFor="tag-input" className="block text-xs font-medium text-folia-muted mb-1.5">
+              Add skills &amp; tags
+            </label>
+            <div className="flex flex-wrap gap-1.5 items-center min-h-9 px-3 py-1.5 border border-folia-border rounded-xl bg-folia-surf" role="group" aria-label="Post tags">
+              {tags.map(t => (
+                <span key={t} className="inline-flex items-center gap-1 bg-folia-accent/10 text-folia-accent text-xs font-medium px-2 py-0.5 rounded-full">
+                  {t}
+                  <button type="button" onClick={() => removeTag(t)} aria-label={`Remove tag ${t}`} className="hover:text-red-500 transition-colors text-xs leading-none">×</button>
+                </span>
+              ))}
+              <input
+                id="tag-input"
+                type="text"
+                value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+                onKeyDown={handleTagKey}
+                placeholder={tags.length === 0 ? '#illustration #procreate…' : ''}
+                className="flex-1 min-w-20 bg-transparent text-sm outline-none text-folia-text placeholder-folia-muted"
+                aria-label="Add a tag — press Enter or comma to confirm"
+              />
+            </div>
+            <p className="text-xs text-folia-muted mt-1">Press Enter or comma to add a tag</p>
+          </div>
+
+          {/* Actions row */}
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 rounded-xl border border-folia-border text-sm font-medium text-folia-muted hover:bg-folia-surf hover:text-folia-accent transition-colors" htmlFor="file-upload">
+              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              Add Image
+              <input id="file-upload" type="file" accept="image/*" className="sr-only" aria-label="Upload an image for your post" />
+            </label>
+            <button type="button" className="px-3 py-2 rounded-xl border border-folia-border text-sm font-medium text-folia-muted hover:bg-folia-surf hover:text-folia-accent transition-colors" aria-label="Open emoji picker">
+              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </button>
+            <button
+              type="submit"
+              disabled={!caption.trim()}
+              className="ml-auto bg-folia-accent text-white font-semibold text-sm px-5 py-2 rounded-xl hover:bg-folia-accent-h disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Share your post"
+            >
+              Share Work
+            </button>
+          </div>
+        </form>
+      );
+    }
+
+    /* ── Right sidebar ─────────────────────────────────────────── */
+    function RightSidebar() {
+      const [following, setFollowing] = useState({});
+      const [liveMsg, setLiveMsg] = useState('');
+
+      const SUGGESTIONS = [
+        { name:'Zara Osei',    handle:'@zaraosei',    disc:'Typography',         avatarColor:'from-yellow-400 to-orange-400' },
+        { name:'Marco Reyes',  handle:'@marcoreyes',  disc:'3D & Motion',        avatarColor:'from-blue-400 to-indigo-500'   },
+        { name:'Suki Mori',    handle:'@sukimori',    disc:'Watercolour',        avatarColor:'from-pink-300 to-rose-400'     },
+        { name:'Tom Nash',     handle:'@tomnash',     disc:'Street Photography', avatarColor:'from-green-400 to-teal-500'    },
+      ];
+
+      function toggleFollow(handle) {
+        const name = SUGGESTIONS.find(s=>s.handle===handle)?.name;
+        setFollowing(f => {
+          const next = { ...f, [handle]: !f[handle] };
+          setLiveMsg(next[handle] ? `Now following ${name}` : `Unfollowed ${name}`);
+          setTimeout(() => setLiveMsg(''), 2000);
+          return next;
+        });
+      }
+
+      return (
+        <aside className="hidden xl:block w-72 flex-shrink-0" aria-label="Suggestions sidebar">
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{liveMsg}</div>
+          <div className="bg-white border border-folia-border rounded-2xl p-5 sticky top-6">
+            <h2 className="font-bold text-sm text-folia-text mb-4">Creators to Follow</h2>
+            <ul className="space-y-4" role="list" aria-label="Suggested creators">
+              {SUGGESTIONS.map(s => (
+                <li key={s.handle} className="flex items-center gap-3">
+                  <a href="profile.html" aria-label={`View ${s.name}'s profile`}>
+                    <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${s.avatarColor} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`} role="img" aria-label={`${s.name}'s avatar`}>
+                      {s.name.split(' ').map(w=>w[0]).join('')}
+                    </div>
+                  </a>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-xs text-folia-text truncate">{s.name}</p>
+                    <p className="text-xs text-folia-muted truncate">{s.disc}</p>
+                  </div>
+                  <button
+                    onClick={() => toggleFollow(s.handle)}
+                    aria-pressed={!!following[s.handle]}
+                    aria-label={`${following[s.handle]?'Unfollow':'Follow'} ${s.name}`}
+                    className={`flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${following[s.handle]?'bg-folia-accent text-white border-folia-accent':'border-folia-border text-folia-muted hover:border-folia-accent hover:text-folia-accent'}`}
+                  >
+                    {following[s.handle] ? 'Following' : 'Follow'}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <a href="explore.html" className="mt-5 block text-center text-xs text-folia-accent font-semibold hover:underline" aria-label="Discover more creators on the Explore page">Discover more →</a>
+          </div>
+
+          {/* Trending tags */}
+          <div className="bg-white border border-folia-border rounded-2xl p-5 mt-4">
+            <h2 className="font-bold text-sm text-folia-text mb-3">Trending This Week</h2>
+            <ul className="space-y-2" role="list" aria-label="Trending tags">
+              {[['#WIPwednesday','2.4k posts'],['#procreate','18k posts'],['#abstractart','5.1k posts'],['#filmisnotdead','12k posts'],['#typographydesign','3.2k posts']].map(([tag,count]) => (
+                <li key={tag}>
+                  <a href="explore.html" className="flex items-center justify-between text-sm hover:bg-folia-surf rounded-lg px-2 py-1.5 -mx-2 transition-colors" aria-label={`Browse ${tag} — ${count}`}>
+                    <span className="text-folia-accent font-medium">{tag}</span>
+                    <span className="text-xs text-folia-muted">{count}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      );
+    }
+
+    /* ── Feed Page ─────────────────────────────────────────────── */
+    function FeedPage() {
+      const [feedTab, setFeedTab] = useState('foryou');
+
+      return (
+        <div className="min-h-screen bg-folia-bg">
+          <Sidebar current="feed" />
+
+          {/* Main layout */}
+          <div className="lg:pl-60">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-20 lg:pb-6">
+              <div className="flex gap-6">
+                {/* Feed column */}
+                <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none">
+                  {/* Feed tabs */}
+                  <div className="mb-6">
+                    <h1 className="sr-only">Folia Feed</h1>
+                    <div role="tablist" aria-label="Feed filter" className="flex gap-1 bg-white border border-folia-border rounded-xl p-1 w-fit">
+                      {[{key:'foryou',label:'For You'},{key:'following',label:'Following'}].map(t => (
+                        <button
+                          key={t.key}
+                          role="tab"
+                          aria-selected={feedTab===t.key}
+                          aria-controls={`panel-${t.key}`}
+                          onClick={()=>setFeedTab(t.key)}
+                          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${feedTab===t.key?'bg-folia-accent text-white shadow-sm':'text-folia-muted hover:text-folia-text'}`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Composer */}
+                  <Composer />
+
+                  {/* Post feed */}
+                  <div
+                    id={`panel-${feedTab}`}
+                    role="tabpanel"
+                    aria-label={`${feedTab === 'foryou' ? 'For You' : 'Following'} feed`}
+                  >
+                    <section aria-labelledby="feed-heading">
+                      <h2 id="feed-heading" className="sr-only">{feedTab === 'foryou' ? 'For You' : 'Following'} posts</h2>
+                      <div className="space-y-5" role="feed" aria-label="Creative posts from the community" aria-busy="false">
+                        {POSTS.map(p => <PostCard key={p.id} post={p} />)}
+                      </div>
+                    </section>
+                  </div>
+                </main>
+
+                <RightSidebar />
+              </div>
+            </div>
+          </div>
+
+          <BottomNav current="feed" />
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<FeedPage />);
+  </script>
+</body>
+</html>

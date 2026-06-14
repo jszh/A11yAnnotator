@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Dashboard | SkillForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'sf-navy':   '#1B3F6B',
+            'sf-navy-h': '#254F82',
+            'sf-amber':  '#E8760A',
+            'sf-amber-h':'#D06508',
+            'sf-teal':   '#1D7A8A',
+            'sf-light':  '#F0F4F8',
+            'sf-green':  '#1A7F4B',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #F0F4F8; color: #111827; }
+    :focus-visible { outline: 3px solid #E8760A !important; outline-offset: 2px !important; }
+    .skip-link { position: absolute; top: -56px; left: 8px; background: #1B3F6B; color: #fff; padding: 10px 18px; z-index: 9999; border-radius: 6px; font-weight: 600; transition: top 0.15s; text-decoration: none; font-size: 0.9rem; }
+    .skip-link:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    /* cat_8: achievement animations must not flash > 3 times/sec */
+    @keyframes achievement-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.85;transform:scale(1.04)} }
+    .achievement-unlock { animation: achievement-pulse 1.2s ease-in-out 1; }
+    /* Slow, single-cycle fade — safe for photosensitivity */
+    @keyframes badge-reveal { 0%{opacity:0;transform:scale(0.8)} 100%{opacity:1;transform:scale(1)} }
+    .badge-reveal { animation: badge-reveal 0.5s ease forwards; }
+    .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+    .card-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    /* ─── Shared Header ─────────────────────────────────────────────── */
+    function Header({ current = 'dashboard' }) {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const toggleRef = useRef(null);
+      const navLinks = [
+        { label: 'Home',      href: 'index.html',     key: 'home' },
+        { label: 'Courses',   href: 'courses.html',   key: 'courses' },
+        { label: 'Pricing',   href: 'pricing.html',   key: 'pricing' },
+        { label: 'Dashboard', href: 'dashboard.html', key: 'dashboard' },
+      ];
+      useEffect(() => {
+        function h(e) { if (e.key === 'Escape' && menuOpen) { setMenuOpen(false); toggleRef.current?.focus(); } }
+        document.addEventListener('keydown', h);
+        return () => document.removeEventListener('keydown', h);
+      }, [menuOpen]);
+      return (
+        <header className="sticky top-0 z-50 shadow-lg">
+          <div className="bg-sf-navy text-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-4">
+              <a href="index.html" className="font-extrabold text-xl tracking-tight" aria-label="SkillForge — Go to homepage">
+                Skill<span className="text-sf-amber">Forge</span>
+              </a>
+              <nav aria-label="Primary navigation" className="hidden md:flex items-center gap-1">
+                {navLinks.map(l => (
+                  <a key={l.key} href={l.href} aria-current={current === l.key ? 'page' : undefined}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${current === l.key ? 'bg-sf-amber text-white' : 'text-gray-200 hover:bg-sf-navy-h'}`}>
+                    {l.label}
+                  </a>
+                ))}
+              </nav>
+              <div className="hidden md:flex items-center gap-3">
+                <span className="text-sm text-gray-200">👋 Maria G.</span>
+                <button className="text-sm text-gray-300 hover:text-white px-3 py-1.5 rounded border border-gray-500 hover:border-gray-300">Sign Out</button>
+              </div>
+              <button ref={toggleRef} aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen}
+                onClick={() => setMenuOpen(o => !o)} className="md:hidden p-2 rounded-md text-gray-200 hover:bg-sf-navy-h">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  {menuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                             : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
+                </svg>
+              </button>
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    /* ─── Footer ────────────────────────────────────────────────────── */
+    function Footer() {
+      return (
+        <footer className="bg-gray-900 text-gray-300 pt-8 pb-5" aria-label="Site footer">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-gray-700 pb-5 mb-5">
+              <p className="font-extrabold text-lg text-white">Skill<span className="text-sf-amber">Forge</span></p>
+              <nav aria-label="Footer navigation" className="flex flex-wrap gap-4 text-sm">
+                <a href="courses.html" className="hover:text-white">Browse Courses</a>
+                <a href="classroom.html" className="hover:text-white">Classroom</a>
+                <a href="pricing.html" className="hover:text-white">Pricing</a>
+                <a href="#" className="hover:text-white">Help</a>
+              </nav>
+            </div>
+            <p className="text-xs text-gray-500 text-center">© 2026 SkillForge Inc. All rights reserved.</p>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ─── Office Hours Modal ─────────────────────────────────────────── */
+    /* cat_5: focus trap + return focus on close */
+    function OfficeHoursModal({ open, onClose }) {
+      const firstRef = useRef(null);
+      const lastRef = useRef(null);
+      const [selected, setSelected] = useState('');
+      const [booked, setBooked] = useState(false);
+      const liveRef = useRef(null);
+
+      useEffect(() => {
+        if (open) setTimeout(() => firstRef.current?.focus(), 50);
+      }, [open]);
+
+      useEffect(() => {
+        function onKey(e) {
+          if (!open) return;
+          if (e.key === 'Escape') onClose();
+          if (e.key === 'Tab') {
+            const modal = document.querySelector('[data-oh-modal]');
+            if (!modal) return;
+            const focusable = modal.querySelectorAll('button, input, select, a[href], [tabindex]:not([tabindex="-1"])');
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+          }
+        }
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+      }, [open, onClose]);
+
+      if (!open) return null;
+
+      const slots = ['Tue Mar 11, 12:00 PM ET','Tue Mar 11, 12:30 PM ET','Thu Mar 13, 6:00 PM ET','Thu Mar 13, 6:30 PM ET'];
+
+      return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden="true" />
+          <div data-oh-modal role="dialog" aria-modal="true" aria-labelledby="oh-title"
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+            <div ref={liveRef} aria-live="polite" aria-atomic="true" className="sr-only">
+              {booked ? 'Office hours session booked successfully!' : ''}
+            </div>
+            <button ref={firstRef} onClick={onClose} aria-label="Close office hours booking"
+              className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:bg-gray-100">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h2 id="oh-title" className="text-xl font-bold text-sf-navy mb-1">Book Office Hours</h2>
+            <p className="text-sm text-gray-500 mb-6">with Dr. Angela Reyes, MHA, CPC</p>
+            {booked ? (
+              <div className="text-center py-4">
+                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3" aria-hidden="true">
+                  <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="font-bold text-sf-navy mb-1">Session Booked!</p>
+                <p className="text-sm text-gray-500 mb-5">{selected} · Zoom link sent to your email.</p>
+                <button ref={lastRef} onClick={onClose} className="bg-sf-amber text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-sf-amber-h">Done</button>
+              </div>
+            ) : (
+              <form onSubmit={e => { e.preventDefault(); if (selected) setBooked(true); }} aria-label="Office hours booking form">
+                <fieldset className="mb-5">
+                  <legend className="text-sm font-medium text-gray-700 mb-2">Available time slots</legend>
+                  <div className="space-y-2">
+                    {slots.map(s => (
+                      <label key={s} className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-colors ${selected === s ? 'border-sf-amber bg-amber-50' : 'border-gray-100 hover:border-gray-200'}`}>
+                        <input type="radio" name="slot" value={s} checked={selected === s} onChange={() => setSelected(s)} className="accent-sf-amber" />
+                        <span className="text-sm font-medium text-sf-navy">{s}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <button ref={lastRef} type="submit" disabled={!selected}
+                  className="w-full bg-sf-amber disabled:opacity-50 hover:bg-sf-amber-h text-white font-bold py-3 rounded-xl transition-colors">
+                  Confirm Booking
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── Mini Calendar ─────────────────────────────────────────────── */
+    function MiniCalendar() {
+      const days = ['S','M','T','W','T','F','S'];
+      // March 2026 starts on Sunday (day 0)
+      const dates = Array.from({ length: 31 }, (_, i) => i + 1);
+      const startOffset = 0; // March 1 = Sunday
+      const dueDates = [12, 19]; // assignment due dates
+      const eventDates = [11, 18, 25]; // live sessions
+
+      return (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h3 className="font-bold text-sf-navy mb-4 text-sm">March 2026</h3>
+          <div className="grid grid-cols-7 gap-1 text-center text-xs">
+            {days.map(d => (
+              <div key={d} className="font-semibold text-gray-400 py-1" aria-hidden="true">{d}</div>
+            ))}
+            {Array.from({ length: startOffset }).map((_, i) => <div key={`empty-${i}`} />)}
+            {dates.map(d => {
+              const isToday = d === 10;
+              const isDue = dueDates.includes(d);
+              const isEvent = eventDates.includes(d);
+              let label = `March ${d}`;
+              if (isToday) label += ' — Today';
+              if (isDue) label += ' — Assignment due';
+              if (isEvent) label += ' — Live session';
+              return (
+                <button key={d} aria-label={label}
+                  className={`w-7 h-7 rounded-full mx-auto flex items-center justify-center text-xs font-medium transition-colors
+                    ${isToday ? 'bg-sf-navy text-white' :
+                      isDue ? 'bg-red-100 text-red-700 font-bold' :
+                      isEvent ? 'bg-amber-100 text-amber-700 font-bold' :
+                      'text-gray-600 hover:bg-sf-light'}`}>
+                  {d}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-sf-navy inline-block" aria-hidden="true"></span>Today</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-200 inline-block" aria-hidden="true"></span>Live session</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-200 inline-block" aria-hidden="true"></span>Due date</span>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── Peer Cohort Avatars ────────────────────────────────────────── */
+    function CohortAvatars() {
+      const peers = [
+        { initials: 'JT', name: 'James T.', status: 'active' },
+        { initials: 'PS', name: 'Priya S.', status: 'active' },
+        { initials: 'CR', name: 'Carlos R.', status: 'away' },
+        { initials: 'LK', name: 'Lisa K.', status: 'active' },
+        { initials: 'DM', name: 'Dani M.', status: 'active' },
+        { initials: 'TW', name: 'Tomas W.', status: 'away' },
+        { initials: 'AJ', name: 'Aisha J.', status: 'active' },
+      ];
+      return (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h3 className="font-bold text-sf-navy mb-4 text-sm">Your Cohort</h3>
+          <p className="text-xs text-gray-400 mb-4">16 learners · 11 active this week</p>
+          <ul className="flex flex-wrap gap-2" aria-label="Cohort members">
+            {peers.map(p => (
+              <li key={p.name}>
+                <button aria-label={`${p.name} — ${p.status === 'active' ? 'Active this week' : 'Away'}`}
+                  className="relative group">
+                  <div className={`w-10 h-10 rounded-full text-white text-xs font-bold flex items-center justify-center transition-transform group-hover:scale-110
+                    ${p.status === 'active' ? 'bg-sf-teal' : 'bg-gray-300'}`} aria-hidden="true">
+                    {p.initials}
+                  </div>
+                  <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white
+                    ${p.status === 'active' ? 'bg-sf-green' : 'bg-gray-400'}`} aria-hidden="true"></span>
+                  <span className="sr-only">{p.name}</span>
+                </button>
+              </li>
+            ))}
+            <li>
+              <button aria-label="View all 16 cohort members"
+                className="w-10 h-10 rounded-full bg-sf-light border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-100 transition-colors">
+                +9
+              </button>
+            </li>
+          </ul>
+        </div>
+      );
+    }
+
+    /* ─── Certificate Preview ────────────────────────────────────────── */
+    function CertificatePreview() {
+      return (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h3 className="font-bold text-sf-navy mb-4 text-sm">Your Certificate Preview</h3>
+          <div className="border-4 border-sf-amber rounded-xl p-5 text-center bg-gradient-to-br from-amber-50 to-white"
+            role="img" aria-label="Certificate of Completion preview for Medical Administrative Assistant, projected completion April 18, 2026">
+            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Certificate of Completion</p>
+            <p className="text-lg font-extrabold text-sf-navy leading-tight mb-1">Medical Administrative<br />Assistant</p>
+            <p className="text-xs text-gray-500 mb-3">Awarded to <strong>Maria Garcia</strong></p>
+            <div className="text-2xl mb-2" aria-hidden="true">🏆</div>
+            <p className="text-xs font-semibold text-sf-amber">SkillForge · Accredited by ACCET</p>
+          </div>
+          <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+            <span className="text-sf-green text-lg" aria-hidden="true">📅</span>
+            <div>
+              <p className="text-xs font-semibold text-sf-green">Projected Completion</p>
+              <p className="text-sm font-bold text-sf-navy">April 18, 2026</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── Dashboard Tabs ────────────────────────────────────────────── */
+    /* cat_4, cat_5: keyboard-accessible, no focus loss on switch */
+    function DashboardTabs({ tabs, active, onSwitch, tabRefs }) {
+      function handleKey(e, idx) {
+        let next = idx;
+        if (e.key === 'ArrowRight') next = (idx + 1) % tabs.length;
+        else if (e.key === 'ArrowLeft') next = (idx - 1 + tabs.length) % tabs.length;
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = tabs.length - 1;
+        else return;
+        e.preventDefault();
+        onSwitch(tabs[next].key);
+        tabRefs.current[next]?.focus();
+      }
+      return (
+        <div role="tablist" aria-label="Dashboard sections" className="flex border-b border-gray-200 bg-white rounded-t-xl overflow-hidden">
+          {tabs.map((t, i) => (
+            <button key={t.key} ref={el => tabRefs.current[i] = el}
+              role="tab" id={`dash-tab-${t.key}`} aria-controls={`dash-panel-${t.key}`} aria-selected={active === t.key}
+              tabIndex={active === t.key ? 0 : -1}
+              onClick={() => onSwitch(t.key)} onKeyDown={e => handleKey(e, i)}
+              className={`flex-1 px-4 py-3.5 text-sm font-semibold transition-colors border-b-2 ${active === t.key ? 'border-sf-amber text-sf-amber bg-amber-50' : 'border-transparent text-gray-500 hover:text-sf-navy'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    /* ─── In-Progress Section ────────────────────────────────────────── */
+    function InProgressSection() {
+      return (
+        <section aria-labelledby="inprogress-heading">
+          <h2 id="inprogress-heading" className="text-xl font-bold text-sf-navy mb-5">In Progress</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 card-hover">
+            <div className="flex flex-col sm:flex-row gap-5 items-start">
+              <div className="w-16 h-16 rounded-xl bg-sf-navy flex items-center justify-center text-white text-2xl flex-shrink-0" aria-hidden="true">🏥</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <span className="text-xs bg-amber-100 text-amber-800 font-semibold px-2.5 py-0.5 rounded-full">Cohort</span>
+                  <span className="text-xs bg-green-100 text-green-700 font-semibold px-2.5 py-0.5 rounded-full">On Track</span>
+                </div>
+                <h3 className="font-bold text-sf-navy text-lg">Medical Administrative Assistant Certificate</h3>
+                <p className="text-sm text-gray-500 mt-0.5">Instructor: Dr. Angela Reyes · Cohort A · Spring 2026</p>
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>Week 3 of 8 — Medical Billing Fundamentals</span>
+                    <span className="font-semibold text-sf-navy">37% complete</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2" role="progressbar" aria-valuenow={37} aria-valuemin={0} aria-valuemax={100} aria-label="Course progress: 37% complete">
+                    <div className="bg-sf-amber h-2 rounded-full transition-all" style={{ width: '37%' }}></div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-4 mt-4">
+                  <a href="classroom.html" className="bg-sf-navy text-white text-sm font-bold px-5 py-2 rounded-lg hover:bg-sf-navy-h transition-colors">
+                    Continue Learning →
+                  </a>
+                  <a href="course-detail.html" className="text-sf-amber text-sm font-semibold hover:underline self-center">Course Details</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ─── Recommended Section ────────────────────────────────────────── */
+    function RecommendedSection() {
+      const recs = [
+        { title: 'Medical Billing & Coding Specialist', weeks: 10, price: '$399', starts: 'Apr 7', field: 'Healthcare' },
+        { title: 'QuickBooks Pro & Payroll Essentials', weeks: 6,  price: '$279', starts: 'Apr 14', field: 'Business' },
+        { title: 'Phlebotomy Technician Training',      weeks: 6,  price: '$299', starts: 'May 5', field: 'Healthcare' },
+      ];
+      return (
+        <section aria-labelledby="recommended-heading">
+          <h2 id="recommended-heading" className="text-xl font-bold text-sf-navy mb-5">Recommended Next Steps</h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-3 gap-4" aria-label="Recommended courses">
+            {recs.map(r => (
+              <li key={r.title}>
+                <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 card-hover" aria-label={r.title}>
+                  <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">{r.field}</span>
+                  <h3 className="font-bold text-sf-navy text-sm mt-2 mb-1 leading-snug">{r.title}</h3>
+                  <div className="flex justify-between text-xs text-gray-400 mb-4">
+                    <span>{r.weeks}w · {r.starts}</span>
+                    <span className="font-semibold text-gray-700">{r.price}</span>
+                  </div>
+                  <a href="course-detail.html" aria-label={`Explore ${r.title}`}
+                    className="block w-full text-center text-sm border-2 border-sf-navy text-sf-navy font-semibold py-2 rounded-lg hover:bg-sf-light transition-colors">
+                    Explore
+                  </a>
+                </article>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    }
+
+    /* ─── Achievements Section ───────────────────────────────────────── */
+    function AchievementsSection() {
+      const badges = [
+        { title: 'First Lesson Complete', earned: true,  icon: '⭐', date: 'Mar 3' },
+        { title: 'Week 1 Graduate',       earned: true,  icon: '🎯', date: 'Mar 7' },
+        { title: 'Discussion Contributor', earned: true, icon: '💬', date: 'Mar 9' },
+        { title: 'Week 3 Complete',        earned: false, icon: '🏅', date: null },
+        { title: 'Perfect Attendance',     earned: false, icon: '📅', date: null },
+        { title: 'Course Completion',      earned: false, icon: '🏆', date: null },
+      ];
+      return (
+        <section aria-labelledby="achievements-heading">
+          <h2 id="achievements-heading" className="text-xl font-bold text-sf-navy mb-5">Achievements</h2>
+          <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4" aria-label="Earned and upcoming badges">
+            {badges.map(b => (
+              <li key={b.title}>
+                <div className={`bg-white rounded-xl border p-4 text-center transition-all ${b.earned ? 'border-amber-200 shadow-sm badge-reveal' : 'border-gray-100 opacity-50'}`}
+                  role="img"
+                  aria-label={b.earned ? `Badge earned: ${b.title} — ${b.date}` : `Badge locked: ${b.title}`}>
+                  <div className={`text-3xl mb-2 ${!b.earned ? 'grayscale' : ''}`} aria-hidden="true">{b.icon}</div>
+                  <p className="text-xs font-semibold text-sf-navy leading-tight">{b.title}</p>
+                  {b.earned
+                    ? <p className="text-xs text-sf-amber mt-1">{b.date}</p>
+                    : <p className="text-xs text-gray-400 mt-1">Locked</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    }
+
+    /* ─── Dashboard Page ─────────────────────────────────────────────── */
+    function DashboardPage() {
+      const [ohOpen, setOhOpen] = useState(false);
+      const ohTriggerRef = useRef(null);
+      const [activeTab, setActiveTab] = useState('overview');
+      const tabRefs = useRef([]);
+      const dashTabs = [
+        { key: 'overview',  label: 'Overview' },
+        { key: 'schedule',  label: 'Schedule' },
+        { key: 'progress',  label: 'Progress' },
+      ];
+
+      function closeOH() {
+        setOhOpen(false);
+        ohTriggerRef.current?.focus();
+      }
+
+      return (
+        <>
+          <Header current="dashboard" />
+          <OfficeHoursModal open={ohOpen} onClose={closeOH} />
+
+          <main id="main-content" tabIndex={-1}>
+
+            {/* cat_10: greeting → in-progress → recommended → achievements */}
+            {/* Greeting */}
+            <div className="bg-sf-navy text-white py-8">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-extrabold">Good morning, Maria! 👋</h1>
+                    <p className="text-blue-200 text-sm mt-1">Your program: Medical Admin Certificate · Week 3 of 8</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <a href="classroom.html" className="bg-sf-amber hover:bg-sf-amber-h text-white font-bold px-5 py-2.5 rounded-lg transition-colors text-sm">
+                      Continue Learning →
+                    </a>
+                    <button ref={ohTriggerRef} onClick={() => setOhOpen(true)}
+                      className="border border-white/30 text-white hover:bg-white/10 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                      Book Office Hours
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Upcoming session alert */}
+            <div className="bg-amber-50 border-b border-amber-200" role="alert" aria-live="polite">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center gap-3 text-sm">
+                <span className="text-sf-amber font-bold text-base" aria-hidden="true">🔴</span>
+                <strong className="text-sf-navy">Live session tomorrow:</strong>
+                <span className="text-gray-700">Medical Billing Fundamentals — Tue Mar 11, 7:00 PM ET</span>
+                <a href="classroom.html" className="ml-auto bg-sf-amber text-white font-semibold px-4 py-1.5 rounded-lg text-xs hover:bg-sf-amber-h transition-colors">
+                  Add to Calendar
+                </a>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="flex flex-col lg:flex-row gap-6">
+
+                {/* Main column */}
+                <div className="flex-1 min-w-0 space-y-8">
+
+                  {/* Tabs */}
+                  <div>
+                    <DashboardTabs tabs={dashTabs} active={activeTab} onSwitch={setActiveTab} tabRefs={tabRefs} />
+
+                    {/* Overview tab */}
+                    <div id="dash-panel-overview" role="tabpanel" aria-labelledby="dash-tab-overview" hidden={activeTab !== 'overview'}
+                      className="bg-white rounded-b-xl border border-t-0 border-gray-100 p-6 space-y-8">
+                      <InProgressSection />
+                      <RecommendedSection />
+                      <AchievementsSection />
+                    </div>
+
+                    {/* Schedule tab */}
+                    <div id="dash-panel-schedule" role="tabpanel" aria-labelledby="dash-tab-schedule" hidden={activeTab !== 'schedule'}
+                      className="bg-white rounded-b-xl border border-t-0 border-gray-100 p-6">
+                      <section aria-labelledby="upcoming-heading">
+                        <h2 id="upcoming-heading" className="text-xl font-bold text-sf-navy mb-5">Upcoming This Week</h2>
+                        <ul className="space-y-3" aria-label="Upcoming deadlines and sessions">
+                          {[
+                            { date: 'Mon Mar 10', task: 'Complete Lesson 7: Billing Fundamentals Pt 1', type: 'Lesson', urgent: false },
+                            { date: 'Tue Mar 11', task: 'Live Q&A — Medical Billing, 7:00 PM ET', type: 'Live', urgent: true },
+                            { date: 'Wed Mar 12', task: 'Assignment Due: Insurance Claims Simulation', type: 'Due', urgent: true },
+                            { date: 'Thu Mar 13', task: 'Office Hours with Dr. Reyes (optional)', type: 'Office Hrs', urgent: false },
+                            { date: 'Fri Mar 14', task: 'Post in Week 3 discussion board', type: 'Discussion', urgent: false },
+                          ].map(item => (
+                            <li key={item.task} className={`flex gap-4 p-4 rounded-xl border ${item.urgent ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-sf-light'}`}>
+                              <span className="text-xs font-semibold text-gray-500 min-w-20 mt-0.5">{item.date}</span>
+                              <span className="flex-1 text-sm text-gray-700 font-medium">{item.task}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 self-start
+                                ${item.type === 'Live' ? 'bg-red-100 text-red-700' :
+                                  item.type === 'Due' ? 'bg-amber-100 text-amber-800' :
+                                  item.type === 'Discussion' ? 'bg-purple-100 text-purple-800' :
+                                  item.type === 'Office Hrs' ? 'bg-teal-100 text-teal-800' :
+                                  'bg-blue-100 text-blue-700'}`}>
+                                {item.type}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    </div>
+
+                    {/* Progress tab */}
+                    <div id="dash-panel-progress" role="tabpanel" aria-labelledby="dash-tab-progress" hidden={activeTab !== 'progress'}
+                      className="bg-white rounded-b-xl border border-t-0 border-gray-100 p-6">
+                      <section aria-labelledby="progress-heading">
+                        <h2 id="progress-heading" className="text-xl font-bold text-sf-navy mb-5">Your Learning Progress</h2>
+                        <div className="space-y-5">
+                          {[
+                            { label: 'Lessons Completed', val: 6, max: 10, pct: 60 },
+                            { label: 'Assignments Submitted', val: 2, max: 8, pct: 25 },
+                            { label: 'Live Sessions Attended', val: 2, max: 8, pct: 25 },
+                            { label: 'Discussion Posts', val: 4, max: 16, pct: 25 },
+                          ].map(p => (
+                            <div key={p.label}>
+                              <div className="flex justify-between text-sm mb-1.5">
+                                <span className="font-medium text-gray-700">{p.label}</span>
+                                <span className="text-gray-500">{p.val} / {p.max}</span>
+                              </div>
+                              <div className="w-full bg-gray-100 rounded-full h-2.5" role="progressbar"
+                                aria-valuenow={p.pct} aria-valuemin={0} aria-valuemax={100}
+                                aria-label={`${p.label}: ${p.val} of ${p.max} (${p.pct}%)`}>
+                                <div className="bg-sf-amber h-2.5 rounded-full transition-all" style={{ width: `${p.pct}%` }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Right sidebar */}
+                <aside aria-label="Dashboard sidebar" className="lg:w-72 xl:w-80 flex-shrink-0 space-y-5">
+
+                  {/* Projected completion */}
+                  <div className="bg-sf-navy text-white rounded-xl p-5">
+                    <p className="text-xs text-blue-200 font-semibold uppercase tracking-wide mb-2">Projected Completion</p>
+                    <p className="text-2xl font-extrabold">April 18, 2026</p>
+                    <p className="text-sm text-blue-200 mt-1">5 weeks remaining · On track</p>
+                    <div className="mt-3 bg-white/10 rounded-full h-1.5">
+                      <div className="bg-sf-amber h-1.5 rounded-full" style={{ width: '37%' }} aria-hidden="true"></div>
+                    </div>
+                  </div>
+
+                  {/* Quick stats */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                    <h3 className="font-bold text-sf-navy text-sm mb-4">Quick Stats</h3>
+                    <dl className="grid grid-cols-2 gap-4">
+                      {[
+                        { label: 'Streak', val: '7 days' },
+                        { label: 'Hours Learned', val: '18.5' },
+                        { label: 'Cohort Rank', val: '#3 / 16' },
+                        { label: 'Badges Earned', val: '3' },
+                      ].map(s => (
+                        <div key={s.label} className="text-center">
+                          <dt className="text-xs text-gray-400">{s.label}</dt>
+                          <dd className="text-xl font-extrabold text-sf-navy mt-0.5">{s.val}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+
+                  <MiniCalendar />
+                  <CohortAvatars />
+                  <CertificatePreview />
+
+                  {/* Office hours CTA */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+                    <h3 className="font-bold text-sf-navy text-sm mb-2">Instructor Office Hours</h3>
+                    <p className="text-xs text-gray-600 mb-3">Dr. Angela Reyes is available for 1-on-1 Zoom sessions this week.</p>
+                    <p className="text-xs text-gray-500 mb-4">Tue 12–1 PM · Thu 6–7 PM</p>
+                    <button ref={ohTriggerRef} onClick={() => setOhOpen(true)}
+                      className="w-full bg-sf-amber text-white font-bold py-2.5 rounded-lg hover:bg-sf-amber-h transition-colors text-sm">
+                      Book a Session
+                    </button>
+                  </div>
+
+                </aside>
+              </div>
+            </div>
+          </main>
+          <Footer />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<DashboardPage />);
+  </script>
+</body>
+</html>

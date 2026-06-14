@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse - Notifications</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        darkBg: '#0f172a',
+                        darkCard: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="bg-white text-gray-900 dark:bg-darkBg dark:text-gray-100 antialiased transition-colors duration-200">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+        const currentPath = 'notifications.html';
+
+        const Sidebar = () => {
+            const navItems = [
+                { name: 'Home', path: 'index.html', icon: 'ph-house' },
+                { name: 'Explore', path: 'explore.html', icon: 'ph-compass' },
+                { name: 'Notifications', path: 'notifications.html', icon: 'ph-bell' },
+                { name: 'Messages', path: 'messages.html', icon: 'ph-envelope-simple' },
+                { name: 'Profile', path: 'profile.html', icon: 'ph-user' },
+                { name: 'Settings', path: 'settings.html', icon: 'ph-gear' },
+            ];
+
+            return (
+                <nav className="fixed bottom-0 w-full bg-white dark:bg-darkBg border-t border-gray-200 dark:border-gray-800 md:relative md:w-20 lg:w-64 md:h-screen md:border-t-0 md:border-r z-50 flex md:flex-col justify-around md:justify-start px-2 lg:px-6 py-2 md:py-6">
+                    <div className="hidden md:flex items-center gap-3 mb-8 lg:px-2 justify-center lg:justify-start cursor-pointer hover:opacity-80 transition-opacity">
+                        <i className="ph-fill ph-pulse text-primary text-4xl"></i>
+                        <span className="hidden lg:block text-2xl font-bold tracking-tight">Pulse</span>
+                    </div>
+                    {navItems.map(item => {
+                        const isActive = currentPath.includes(item.path);
+                        return (
+                            <a
+                                key={item.name}
+                                href={item.path}
+                                className={`flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-4 lg:py-3 rounded-full md:mb-2 transition-colors duration-200 w-fit lg:w-full mx-auto lg:mx-0 group
+                                    ${isActive
+                                        ? 'text-gray-900 dark:text-white font-bold'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'}`}
+                                aria-label={item.name}
+                            >
+                                <div className="relative">
+                                    <i className={`${item.icon} ${isActive ? 'ph-fill' : ''} text-2xl lg:text-3xl transition-transform group-hover:scale-105`}></i>
+                                </div>
+                                <span className="hidden lg:block text-xl">{item.name}</span>
+                            </a>
+                        );
+                    })}
+                    <button className="hidden md:block w-12 h-12 lg:w-full lg:h-auto mt-4 mx-auto lg:mx-0 bg-primary hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-full transition-colors focus:ring-4 focus:ring-blue-300 shadow-md shadow-blue-500/30">
+                        <i className="ph ph-plus text-2xl lg:hidden"></i>
+                        <span className="hidden lg:block">Post</span>
+                    </button>
+
+                    <a href="profile.html" className="hidden md:flex items-center justify-center lg:justify-start gap-3 mt-auto p-3 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-full cursor-pointer transition-colors group mx-auto lg:w-full w-fit">
+                        <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Alex Profile" className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 group-hover:opacity-90 transition-opacity" />
+                        <div className="hidden lg:block flex-1 min-w-0">
+                            <p className="font-bold text-sm truncate">Alex Chen</p>
+                            <p className="text-gray-500 text-sm truncate">@alexc</p>
+                        </div>
+                        <i className="ph ph-dots-three text-xl hidden lg:block ml-auto text-gray-500"></i>
+                    </a>
+                </nav>
+            );
+        };
+
+        const RightPanel = () => {
+            const suggestions = [
+                { name: 'Sarah Drasner', handle: '@sarah_edo', avatar: 'https://i.pravatar.cc/150?u=1' },
+                { name: 'Design Co.', handle: '@DesignCo', avatar: 'https://i.pravatar.cc/150?u=2' },
+            ];
+
+            return (
+                <aside className="hidden lg:block w-80 xl:w-96 p-4 h-screen sticky top-0 overflow-y-auto hide-scroll px-6 mt-16">
+                    <div className="bg-gray-50 dark:bg-darkCard rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                        <h2 className="font-extrabold text-xl p-4 pb-2">Suggested for You</h2>
+                        {suggestions.map((user, i) => (
+                            <div key={i} className="flex items-center justify-between px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                <a href="profile.html" className="flex items-center gap-3 group min-w-0">
+                                    <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full group-hover:opacity-90 transition-opacity" />
+                                    <div className="truncate pr-2">
+                                        <p className="font-bold text-[15px] hover:underline cursor-pointer truncate">{user.name}</p>
+                                        <p className="text-gray-500 text-sm truncate">{user.handle}</p>
+                                    </div>
+                                </a>
+                                <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-bold py-1.5 px-4 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+                                    Follow
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </aside>
+            );
+        };
+
+        const Layout = ({ children }) => {
+            return (
+                <div className="max-w-[1280px] mx-auto flex min-h-screen">
+                    <Sidebar />
+                    <main className="flex-1 w-full md:w-[600px] md:max-w-[600px] border-x-0 md:border-r border-gray-100 dark:border-gray-800 pb-20 md:pb-0 shrink-0">
+                        {children}
+                    </main>
+                    <RightPanel />
+                </div>
+            );
+        };
+
+        const App = () => {
+            const tabs = ["All", "Mentions", "Likes", "Follows"];
+            const [activeTab, setActiveTab] = useState("All");
+
+            const notifications = [
+                {
+                    id: 1,
+                    type: "like",
+                    icon: "ph-fill ph-heart",
+                    iconColor: "text-pink-600",
+                    users: [
+                        { name: "Maya Jenkins", avatar: "https://i.pravatar.cc/150?u=4" }
+                    ],
+                    actionText: "Maya Jenkins liked your post · 2h",
+                    snippet: "Just launched my new design system kit! 🎉 Super excited to see what everyone builds with it..."
+                },
+                {
+                    id: 2,
+                    type: "follow",
+                    icon: "ph-fill ph-user",
+                    iconColor: "text-primary",
+                    users: [
+                        { name: "David Kim", avatar: "https://i.pravatar.cc/150?u=5" }
+                    ],
+                    actionText: "David Kim followed you · 4h",
+                    snippet: null
+                },
+                {
+                    id: 3,
+                    type: "mention",
+                    icon: "ph-fill ph-at",
+                    iconColor: "text-purple-500",
+                    users: [
+                        { name: "Elena Rodriguez", avatar: "https://i.pravatar.cc/150?u=6" }
+                    ],
+                    actionText: "Elena Rodriguez replied to you · 8h",
+                    snippet: "@alexc This looks incredible! Does it support Tailwind out of the box?"
+                },
+                {
+                    id: 4,
+                    type: "like",
+                    icon: "ph-fill ph-heart",
+                    iconColor: "text-pink-600",
+                    users: [
+                        { name: "TechInsider", avatar: "https://i.pravatar.cc/150?u=7" },
+                        { name: "DesignDaily", avatar: "https://i.pravatar.cc/150?u=8" }
+                    ],
+                    actionText: "TechInsider and 4 others liked your post · 1d",
+                    snippet: "Here's a thread on how to structure scalable React applications 🧵👇"
+                }
+            ];
+
+            const filteredNotifications = activeTab === "All"
+                ? notifications
+                : activeTab === "Mentions" ? notifications.filter(n => n.type === "mention")
+                    : activeTab === "Likes" ? notifications.filter(n => n.type === "like")
+                        : notifications.filter(n => n.type === "follow");
+
+            return (
+                <Layout>
+                    <div className="sticky top-0 z-20 bg-white/80 dark:bg-darkBg/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+                        <div className="px-4 py-3 flex justify-between items-center">
+                            <h1 className="font-bold text-xl">Notifications</h1>
+                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors" aria-label="Settings">
+                                <i className="ph ph-gear text-xl"></i>
+                            </button>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex px-4 justify-between font-medium text-[15px]">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`relative py-3 flex-1 text-center transition-colors ${activeTab === tab ? 'text-gray-900 dark:text-white font-bold' : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'}`}
+                                >
+                                    {tab}
+                                    {activeTab === tab && (
+                                        <div className="absolute bottom-0 left-[20%] right-[20%] h-1 bg-primary rounded-t-full"></div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Notification List */}
+                    <div>
+                        {filteredNotifications.length > 0 ? filteredNotifications.map(notification => (
+                            <div key={notification.id} className="p-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/20 cursor-pointer transition-colors flex gap-4">
+                                <div className="flex-shrink-0 w-10 flex justify-end pt-1">
+                                    <i className={`${notification.icon} ${notification.iconColor} text-2xl`}></i>
+                                </div>
+                                <div className="flex-1 min-w-0 pb-1">
+                                    <div className="flex gap-2 mb-2">
+                                        {notification.users.map((user, i) => (
+                                            <a key={i} href="profile.html">
+                                                <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full hover:opacity-90 transition-opacity" />
+                                            </a>
+                                        ))}
+                                    </div>
+                                    <p className="text-[15px] text-gray-900 dark:text-gray-100 mb-1">
+                                        {notification.actionText.split(notification.users[0].name).map((part, index) =>
+                                            index === 0 ? <span key={index} className="font-bold">{notification.users[0].name}</span> : part
+                                        )}
+                                    </p>
+                                    {notification.snippet && (
+                                        <p className="text-[15px] text-gray-500 line-clamp-2">
+                                            {notification.snippet}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="p-10 text-center text-gray-500 flex flex-col items-center">
+                                <i className="ph ph-bell-slash text-5xl mb-4 text-gray-300 dark:text-gray-700"></i>
+                                <h2 className="font-bold text-xl text-gray-900 dark:text-white mb-2">Nothing to see here — yet</h2>
+                                <p>When you get {(activeTab !== 'All' ? activeTab.toLowerCase() : 'new notifications')}, they'll show up here.</p>
+                            </div>
+                        )}
+                    </div>
+                </Layout>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

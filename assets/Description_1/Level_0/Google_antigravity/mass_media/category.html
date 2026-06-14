@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World News | The Meridian</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="./live-server-compat.js"></script>
+
+    <style>
+        body {
+            background-color: #fdfdfc;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    
+
+    <script type="text/babel">
+
+    const { useState, useEffect } = React;
+    const { Menu, Search, User, Facebook, Twitter, Instagram, Clock } = window.IconCompat;
+
+    // --- Header Component ---
+    function Header() {
+      const [isScrolled, setIsScrolled] = useState(false);
+
+      useEffect(() => {
+        const handleScroll = () => {
+          setIsScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
+
+      return (
+        <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-2' : 'bg-white/95 backdrop-blur-sm py-4 border-b border-gray-200'}`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center">
+              {/* Left: Mobile Menu & Date */}
+              <div className="flex items-center space-x-4 flex-1">
+                <button className="p-2 -ml-2 text-gray-700 hover:text-black focus:outline-none">
+                  <Menu size={24} />
+                </button>
+                <span className="hidden md:block text-xs font-inter text-gray-500 uppercase tracking-wider">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </span>
+              </div>
+
+              {/* Center: Logo */}
+              <div className="flex-1 text-center flex justify-center">
+                <a href="index.html" className="font-playfair font-black text-3xl md:text-5xl tracking-tight text-gray-900 hover:text-red-700 transition-colors">
+                  The Meridian
+                </a>
+              </div>
+
+              {/* Right: Actions */}
+              <div className="flex items-center justify-end space-x-4 flex-1">
+                <a href="subscription.html" className="hidden sm:flex text-sm font-semibold text-gray-700 hover:text-red-700 transition-colors uppercase tracking-wider font-inter">
+                  Subscribe
+                </a>
+                <button className="p-2 text-gray-700 hover:text-black focus:outline-none hidden sm:block">
+                  <Search size={20} />
+                </button>
+                <button className="text-gray-700 hover:text-black focus:outline-none flex items-center space-x-1">
+                  <User size={20} />
+                  <span className="hidden md:inline-block text-sm font-inter">Sign In</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Global Navigation */}
+            <nav className={`hidden md:block mt-4 pt-4 border-t border-gray-100 transition-all duration-300 ${isScrolled ? 'hidden' : 'block'}`}>
+              <ul className="flex justify-center space-x-8 text-sm font-inter font-medium text-gray-800 tracking-wide uppercase">
+                <li><a href="index.html" className="hover:text-red-700 transition-colors">Home</a></li>
+                <li><a href="category.html" className="hover:text-red-700 transition-colors">World</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Politics</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Business</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Tech</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Science</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Culture</a></li>
+                <li><a href="opinion.html" className="hover:text-red-700 transition-colors">Opinion</a></li>
+              </ul>
+            </nav>
+          </div>
+        </header>
+      );
+    }
+
+    // --- Footer Component ---
+    function Footer() {
+      return (
+        <footer className="bg-slate-950 text-white pt-16 pb-8 border-t-4 border-red-700 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+            {/* Newsletter Pitch */}
+            <div className="w-full max-w-2xl text-center mb-16">
+              <h3 className="font-playfair text-3xl font-bold mb-4">The World in Your Inbox</h3>
+              <p className="font-inter text-gray-400 mb-8">Sign up for the Daily Meridian newsletter to get the top stories of the day delivered straight to you.</p>
+              <form className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
+                <input 
+                  type="email" 
+                  placeholder="Your email address" 
+                  className="flex-1 px-4 py-3 bg-slate-800 border-none text-white focus:ring-2 focus:ring-red-600 font-inter outline-none"
+                />
+                <button type="submit" className="px-6 py-3 bg-red-700 hover:bg-red-600 font-inter font-bold uppercase tracking-wider transition-colors">
+                  Subscribe
+                </button>
+              </form>
+            </div>
+
+            <div className="w-full border-t border-slate-800 mb-12"></div>
+
+            <div className="w-full grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 font-inter text-sm">
+              <div className="col-span-2 md:col-span-4 lg:col-span-1">
+                 <a href="index.html" className="font-playfair font-black text-2xl tracking-tight text-white block mb-6">
+                  The Meridian
+                </a>
+                <p className="text-gray-400 mb-6 font-merriweather text-sm leading-relaxed">
+                  Independent journalism holding power to account.
+                </p>
+                <div className="flex space-x-4 text-gray-400">
+                  <a href="#" className="hover:text-white transition-colors"><Facebook size={20} /></a>
+                  <a href="#" className="hover:text-white transition-colors"><Twitter size={20} /></a>
+                  <a href="#" className="hover:text-white transition-colors"><Instagram size={20} /></a>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Sections</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="category.html" className="hover:text-white transition-colors">World</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Politics</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Business</a></li>
+                  <li><a href="opinion.html" className="hover:text-white transition-colors">Opinion</a></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">About</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="#" className="hover:text-white transition-colors">Our Story</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Journalistic Ethics</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+                </ul>
+              </div>
+              
+               <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Legal</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Cookie Policy</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Accessibility</a></li>
+                </ul>
+              </div>
+
+               <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Account</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="subscription.html" className="text-red-500 hover:text-red-400 transition-colors font-semibold">Subscribe</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Manage Subscription</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="w-full border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 font-inter">
+              <p>&copy; {new Date().getFullYear()} The Meridian Media Company. All rights reserved.</p>
+              <p className="mt-2 md:mt-0">Powered by Antigravity</p>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+
+                
+        tailwind.config = {
+            theme: { extend: { fontFamily: { playfair: ['"Playfair Display"', 'serif'], merriweather: ['Merriweather', 'serif'], inter: ['Inter', 'sans-serif'] } } }
+        };
+
+        function CategoryPage() {
+            const activeFilter = 'All';
+            const filters = ['All', 'Asia', 'Europe', 'Americas', 'Middle East', 'Africa'];
+
+            return (
+                <div className="min-h-screen flex flex-col font-merriweather text-gray-900">
+                    <Header />
+
+                    <main className="flex-grow pt-28 md:pt-32">
+
+                        {/* Category Header */}
+                        <div className="bg-slate-50 border-b border-gray-200 py-12">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-3xl">
+                                <h1 className="font-playfair font-black text-5xl md:text-6xl mb-4 text-slate-900">World</h1>
+                                <p className="font-inter text-gray-600 text-lg leading-relaxed">
+                                    In-depth reporting and analysis on global affairs, international diplomacy, and the events shaping our world.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Topic Filter Bar */}
+                        <div className="border-b border-gray-200 sticky top-16 md:top-20 bg-white/95 backdrop-blur z-30">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <ul className="flex flex-wrap lg:justify-center items-center py-4 gap-6 font-inter text-sm font-semibold uppercase tracking-wider overflow-x-auto whitespace-nowrap hide-scrollbar">
+                                    {filters.map(f => (
+                                        <li key={f}>
+                                            <a href="#" className={`pb-1 ${activeFilter === f ? 'text-red-700 border-b-2 border-red-700' : 'text-gray-500 hover:text-black transition-colors'}`}>
+                                                {f}
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+                            {/* Lead Story */}
+                            <article className="mb-16 border-b border-gray-200 pb-16">
+                                <a href="article.html" className="group block grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                                    <div className="lg:col-span-8 overflow-hidden bg-gray-100 aspect-[16/9]">
+                                        <img src="https://images.unsplash.com/photo-1574359411659-15573a27fd0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Diplomacy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                    </div>
+                                    <div className="lg:col-span-4">
+                                        <span className="font-inter text-xs font-bold uppercase tracking-wider text-red-700 mb-3 block">Europe</span>
+                                        <h2 className="font-playfair font-bold text-3xl lg:text-4xl leading-tight mb-4 group-hover:text-slate-600 transition-colors">
+                                            Coalition Unity Tested as Energy Package Debated in Brussels
+                                        </h2>
+                                        <p className="font-merriweather text-gray-600 leading-relaxed mb-6">
+                                            Fractures emerge in the continental bloc as eastern states resist proposed emission mandates that could sharply increase winter heating costs.
+                                        </p>
+                                        <div className="font-inter text-xs text-gray-500 flex items-center gap-4">
+                                            <span className="font-medium text-gray-800">By Elena Rostov</span>
+                                            <span className="flex items-center gap-1"><Clock size={12} /> 3h ago</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            </article>
+
+                            {/* Story Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
+                                {[
+                                    { title: "Elections in Sub-Saharan Africa Mark Shift from Traditional Alliances", img: "https://images.unsplash.com/photo-1489749798305-4fea3ae63d43?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", time: "5h ago", author: "James Mwangi", region: "Africa" },
+                                    { title: "Diplomatic Thaw Reported Following Unprecedented Border Talks", img: "https://images.unsplash.com/photo-1520697960351-40b43bb6ebcd?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", time: "7h ago", author: "Sarah Li", region: "Asia" },
+                                    { title: "Central Bank Coordination Falters Amid Inflationary Pressures", img: "https://images.unsplash.com/photo-1541887089898-144e47417e07?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", time: "8h ago", author: "Markus Webber", region: "Europe" },
+                                    { title: "New Trade Corridors Proposed to Bypass Congested Straits", img: "https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", time: "11h ago", author: "Aisha Rahman", region: "Middle East" },
+                                    { title: "Protests Over Austerity Measures Continue for Fourth Week", img: "https://images.unsplash.com/photo-1526470608155-61f22e70e27c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", time: "Yesterday", author: "Carlos Gomez", region: "Americas" },
+                                    { title: "Multinational Summit Concludes with Modest Commitments", img: "https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", time: "Yesterday", author: "Editorial Board", region: "World" }
+                                ].map((story, i) => (
+                                    <article key={i} className="group cursor-pointer">
+                                        <div className="aspect-[4/3] bg-gray-100 mb-4 overflow-hidden">
+                                            <img src={story.img} alt={story.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        </div>
+                                        <span className="font-inter text-xs font-bold uppercase tracking-wider text-red-700 mb-2 block">{story.region}</span>
+                                        <h3 className="font-playfair font-bold text-xl leading-snug mb-3 group-hover:text-slate-600 transition-colors">
+                                            <a href="article.html">{story.title}</a>
+                                        </h3>
+                                        <div className="font-inter text-xs text-gray-500 flex items-center justify-between">
+                                            <span className="font-medium text-gray-800">By {story.author}</span>
+                                            <span className="flex items-center gap-1"><Clock size={12} /> {story.time}</span>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+
+                            {/* Load More Button */}
+                            <div className="mt-16 text-center border-t border-gray-200 pt-10">
+                                <button className="font-inter text-sm font-bold uppercase tracking-wider text-slate-800 border-2 border-slate-800 px-8 py-3 hover:bg-slate-800 hover:text-white transition-colors">
+                                    Load More Stories
+                                </button>
+                            </div>
+                        </div>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CategoryPage />);
+    </script>
+</body>
+
+</html>

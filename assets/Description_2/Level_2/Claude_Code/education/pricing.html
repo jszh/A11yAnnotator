@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plans & Pricing | SkillForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'sf-navy':   '#1B3F6B',
+            'sf-navy-h': '#254F82',
+            'sf-amber':  '#E8760A',
+            'sf-amber-h':'#D06508',
+            'sf-teal':   '#1D7A8A',
+            'sf-light':  '#F0F4F8',
+            'sf-green':  '#1A7F4B',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #F0F4F8; color: #111827; }
+    :focus-visible { outline: 3px solid #E8760A !important; outline-offset: 2px !important; }
+    .skip-link { position: absolute; top: -56px; left: 8px; background: #1B3F6B; color: #fff; padding: 10px 18px; z-index: 9999; border-radius: 6px; font-weight: 600; transition: top 0.15s; text-decoration: none; font-size: 0.9rem; }
+    .skip-link:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .card-highlight { box-shadow: 0 0 0 2px #E8760A, 0 16px 40px rgba(0,0,0,0.12); }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    /* ─── Shared Header ─────────────────────────────────────────────── */
+    function Header({ current = 'pricing' }) {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const toggleRef = useRef(null);
+      const navLinks = [
+        { label: 'Home',      href: 'index.html',     key: 'home' },
+        { label: 'Courses',   href: 'courses.html',   key: 'courses' },
+        { label: 'Pricing',   href: 'pricing.html',   key: 'pricing' },
+        { label: 'Dashboard', href: 'dashboard.html', key: 'dashboard' },
+      ];
+      useEffect(() => {
+        function h(e) { if (e.key === 'Escape' && menuOpen) { setMenuOpen(false); toggleRef.current?.focus(); } }
+        document.addEventListener('keydown', h);
+        return () => document.removeEventListener('keydown', h);
+      }, [menuOpen]);
+      return (
+        <header className="sticky top-0 z-50 shadow-lg">
+          <div className="bg-sf-amber text-white text-xs text-center py-2 px-4 font-semibold" role="note">
+            🎓 Spring Cohort starting March 3 — only <strong>4 seats left!</strong>&nbsp;
+            <a href="course-detail.html" className="underline hover:no-underline">Enroll now →</a>
+          </div>
+          <div className="bg-sf-navy text-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 gap-4">
+              <a href="index.html" className="font-extrabold text-xl tracking-tight" aria-label="SkillForge — Go to homepage">
+                Skill<span className="text-sf-amber">Forge</span>
+              </a>
+              <nav aria-label="Primary navigation" className="hidden md:flex items-center gap-1">
+                {navLinks.map(l => (
+                  <a key={l.key} href={l.href} aria-current={current === l.key ? 'page' : undefined}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${current === l.key ? 'bg-sf-amber text-white' : 'text-gray-200 hover:bg-sf-navy-h'}`}>
+                    {l.label}
+                  </a>
+                ))}
+              </nav>
+              <div className="hidden md:flex items-center gap-3">
+                <a href="dashboard.html" className="text-sm text-gray-200 hover:text-white px-3 py-1.5">Sign In</a>
+                <a href="courses.html" className="bg-sf-amber hover:bg-sf-amber-h text-white text-sm font-semibold px-5 py-2 rounded-lg">Browse Courses</a>
+              </div>
+              <button ref={toggleRef} aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen}
+                onClick={() => setMenuOpen(o => !o)} className="md:hidden p-2 text-gray-200 hover:bg-sf-navy-h rounded-md">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  {menuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                             : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
+                </svg>
+              </button>
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    /* ─── Footer ────────────────────────────────────────────────────── */
+    function Footer() {
+      return (
+        <footer className="bg-gray-900 text-gray-300 pt-10 pb-6" aria-label="Site footer">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-gray-700 pb-6 mb-6">
+              <p className="font-extrabold text-xl text-white">Skill<span className="text-sf-amber">Forge</span></p>
+              <nav aria-label="Footer navigation" className="flex flex-wrap gap-4 text-sm">
+                <a href="courses.html" className="hover:text-white">Browse Courses</a>
+                <a href="course-detail.html" className="hover:text-white">Enroll Now</a>
+                <a href="dashboard.html" className="hover:text-white">Dashboard</a>
+                <a href="#" className="hover:text-white">Help Center</a>
+              </nav>
+            </div>
+            <p className="text-xs text-gray-500 text-center">© 2026 SkillForge Inc. All rights reserved.</p>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ─── Financing Calculator ──────────────────────────────────────── */
+    function FinancingCalc() {
+      const [amount, setAmount] = useState(349);
+      const [months, setMonths] = useState(3);
+      const monthly = Math.ceil(amount / months);
+
+      return (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <h3 className="text-xl font-bold text-sf-navy mb-6">Monthly Payment Estimator</h3>
+          <div className="space-y-6">
+            <div>
+              <label htmlFor="calc-amount" className="block text-sm font-medium text-gray-700 mb-2">
+                Total Program Cost: <strong className="text-sf-navy">${amount}</strong>
+              </label>
+              <input id="calc-amount" type="range" min={149} max={999} step={50} value={amount}
+                onChange={e => setAmount(Number(e.target.value))}
+                aria-valuetext={`$${amount} program cost`}
+                className="w-full accent-sf-amber" />
+              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>$149</span><span>$999</span></div>
+            </div>
+            <div>
+              <fieldset>
+                <legend className="text-sm font-medium text-gray-700 mb-2">Payment Term</legend>
+                <div className="flex gap-2 flex-wrap">
+                  {[1, 3, 6, 12].map(m => (
+                    <label key={m} className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-colors
+                      ${months === m ? 'border-sf-amber bg-amber-50 font-semibold text-sf-navy' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      <input type="radio" name="months" value={m} checked={months === m}
+                        onChange={() => setMonths(m)} className="sr-only" />
+                      {m === 1 ? '1 mo (Full)' : `${m} mo`}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+            <div className="bg-sf-navy text-white rounded-xl p-6 text-center">
+              <p className="text-sm text-blue-200 mb-1">Your monthly payment</p>
+              <p className="text-4xl font-extrabold">${monthly}<span className="text-2xl text-blue-200">/mo</span></p>
+              <p className="text-sm text-blue-200 mt-2">
+                {months === 1 ? 'One-time payment — best value!' : `${months} payments of $${monthly} · Total: $${monthly * months}`}
+              </p>
+            </div>
+            <a href="course-detail.html"
+              className="block w-full text-center bg-sf-amber hover:bg-sf-amber-h text-white font-bold py-3 rounded-xl transition-colors">
+              Enroll Now with This Plan →
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── Advisor Chat Widget ────────────────────────────────────────── */
+    function AdvisorWidget() {
+      const [open, setOpen] = useState(false);
+      const [msg, setMsg] = useState('');
+      const [messages, setMessages] = useState([
+        { from: 'advisor', text: 'Hi! I\'m Morgan, your SkillForge Enrollment Advisor. How can I help you today?' }
+      ]);
+      const firstRef = useRef(null);
+      const liveRef = useRef(null);
+
+      useEffect(() => {
+        if (open) firstRef.current?.focus();
+      }, [open]);
+
+      function send(e) {
+        e.preventDefault();
+        if (!msg.trim()) return;
+        setMessages(m => [...m, { from: 'you', text: msg }]);
+        setMsg('');
+        setTimeout(() => {
+          setMessages(m => [...m, { from: 'advisor', text: 'Great question! Our advisor team can connect you with the right program. Could you share your career goals?' }]);
+        }, 1000);
+      }
+
+      return (
+        <>
+          {/* Floating button */}
+          <button onClick={() => setOpen(true)} aria-label="Open live chat with an advisor"
+            className="fixed bottom-6 right-6 z-40 bg-sf-amber text-white rounded-full p-4 shadow-xl hover:bg-sf-amber-h transition-colors flex items-center gap-2 font-semibold text-sm">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span className="hidden sm:inline">Talk to an Advisor</span>
+          </button>
+
+          {/* Chat panel */}
+          {open && (
+            <div className="fixed bottom-24 right-6 z-50 w-80 sm:w-96" role="dialog" aria-modal="true" aria-label="Live chat with enrollment advisor">
+              <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col" style={{ height: '400px' }}>
+                <div className="bg-sf-navy text-white px-4 py-3 flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold text-sm">Talk to an Advisor</p>
+                    <p className="text-xs text-blue-200">Usually replies in &lt; 2 min</p>
+                  </div>
+                  <button ref={firstRef} onClick={() => setOpen(false)} aria-label="Close advisor chat"
+                    className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div ref={liveRef} aria-live="polite" className="sr-only">{messages[messages.length - 1]?.text}</div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {messages.map((m, i) => (
+                    <div key={i} className={`flex ${m.from === 'you' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] px-3 py-2 rounded-xl text-sm leading-relaxed
+                        ${m.from === 'you' ? 'bg-sf-navy text-white' : 'bg-sf-light text-gray-700'}`}>
+                        {m.text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <form onSubmit={send} className="px-3 py-3 border-t border-gray-100 flex gap-2">
+                  <label htmlFor="chat-input" className="sr-only">Type your message</label>
+                  <input id="chat-input" type="text" value={msg} onChange={e => setMsg(e.target.value)}
+                    placeholder="Type a message…"
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sf-amber" />
+                  <button type="submit" aria-label="Send message"
+                    className="bg-sf-amber text-white p-2 rounded-lg hover:bg-sf-amber-h transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    /* ─── Pricing Page ───────────────────────────────────────────────── */
+    function PricingPage() {
+      const [track, setTrack] = useState('individual');
+      const tracks = [
+        { key: 'individual', label: 'Individual' },
+        { key: 'employer',   label: 'Employer Sponsored' },
+        { key: 'nonprofit',  label: 'Non-profit / Government' },
+      ];
+      const tabRefs = useRef([]);
+
+      function handleTabKey(e, idx) {
+        let next = idx;
+        if (e.key === 'ArrowRight') next = (idx + 1) % tracks.length;
+        else if (e.key === 'ArrowLeft') next = (idx - 1 + tracks.length) % tracks.length;
+        else return;
+        e.preventDefault();
+        setTrack(tracks[next].key);
+        tabRefs.current[next]?.focus();
+      }
+
+      const plans = {
+        individual: [
+          {
+            name: 'Free Access',
+            price: '$0',
+            desc: 'Explore SkillForge with no commitment',
+            features: ['Access to 6 free courses','Community forums','1 career assessment','Certificate preview'],
+            cta: 'Start Free',
+            href: 'courses.html',
+            highlight: false,
+          },
+          {
+            name: 'Individual Enrollment',
+            price: '$149–$499',
+            desc: 'Per-program pricing — pay only for what you take',
+            features: ['Full program access','Live cohort sessions','Instructor feedback','Certificate upon completion','Employer referral network','CMAA exam prep (select programs)'],
+            cta: 'Enroll Now',
+            href: 'course-detail.html',
+            highlight: true,
+          },
+          {
+            name: 'All-Access Pass',
+            price: '$79/mo',
+            desc: 'Unlimited self-paced learning all year',
+            features: ['All 40+ self-paced courses','Progress saved across courses','Priority forum support','Monthly career webinars','Digital badge portfolio'],
+            cta: 'Try Free for 7 Days',
+            href: 'courses.html',
+            highlight: false,
+          },
+        ],
+        employer: [
+          {
+            name: 'Team Starter',
+            price: '$199/seat',
+            desc: 'For teams of 1–10 employees',
+            features: ['All Individual Enrollment benefits','Cohort scheduling per team','Manager progress dashboard','Skills gap assessment tools','Invoiced billing'],
+            cta: 'Contact Sales',
+            href: '#',
+            highlight: false,
+          },
+          {
+            name: 'Enterprise',
+            price: 'Custom',
+            desc: 'For organizations of 11+ learners',
+            features: ['Custom learning pathways','Dedicated account manager','Branded learner portal','API & LMS integration','Volume discounts','Compliance reporting'],
+            cta: 'Request a Quote',
+            href: '#',
+            highlight: true,
+          },
+          {
+            name: 'Reimbursement Program',
+            price: '$0 upfront',
+            desc: 'Employees enroll, you pay after',
+            features: ['No upfront employer cost','Direct employee invoicing','Monthly reimbursement reporting','Pre-approval workflow','HR onboarding support'],
+            cta: 'Set Up Reimbursement',
+            href: '#',
+            highlight: false,
+          },
+        ],
+        nonprofit: [
+          {
+            name: 'Nonprofit Rate',
+            price: '50% off',
+            desc: 'Verified nonprofits and government agencies',
+            features: ['50% off all program pricing','Cohort priority access','Dedicated case manager','Grant documentation support','Group enrollment tools'],
+            cta: 'Apply for Discount',
+            href: '#',
+            highlight: false,
+          },
+          {
+            name: 'Workforce Grant',
+            price: 'Free',
+            desc: 'For qualifying workforce development programs',
+            features: ['Fully subsidized enrollment','Community cohorts','Employer-connected certificates','Grant reporting toolkit','Program coordinator support'],
+            cta: 'Apply Now',
+            href: '#',
+            highlight: true,
+          },
+          {
+            name: 'Government Partnership',
+            price: 'Custom',
+            desc: 'State and municipal workforce initiatives',
+            features: ['Bulk seat purchasing','Custom curriculum tracks','Progress & outcome reporting','Legislative compliance docs','Dedicated government liaison'],
+            cta: 'Contact Partnerships',
+            href: '#',
+            highlight: false,
+          },
+        ],
+      };
+
+      const accreditations = [
+        { label: 'ACCET Accredited', abbr: 'ACCET', color: 'bg-blue-50 border-blue-100' },
+        { label: 'NCCT Exam Partner', abbr: 'NCCT', color: 'bg-green-50 border-green-100' },
+        { label: 'SHRM Education Partner', abbr: 'SHRM', color: 'bg-purple-50 border-purple-100' },
+        { label: 'CompTIA Authorized Partner', abbr: 'CompTIA', color: 'bg-amber-50 border-amber-100' },
+      ];
+
+      return (
+        <>
+          <Header current="pricing" />
+          <main id="main-content" tabIndex={-1}>
+
+            {/* Hero */}
+            <div className="bg-sf-navy text-white py-14 text-center">
+              <div className="max-w-3xl mx-auto px-4">
+                <h1 className="text-4xl font-extrabold mb-3">Simple, Transparent Pricing</h1>
+                <p className="text-blue-200 text-lg mb-2">Pay per program or explore free. No surprises — no subscription traps.</p>
+                <p className="text-sm text-blue-300">Financial aid · Employer reimbursement · Scholarships available</p>
+              </div>
+            </div>
+
+            {/* Pricing track tabs */}
+            <div className="bg-sf-light border-b border-gray-200 py-4">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-center">
+                <div role="tablist" aria-label="Pricing track options" className="flex bg-white border border-gray-200 rounded-xl p-1 gap-1">
+                  {tracks.map((t, i) => (
+                    <button key={t.key} ref={el => tabRefs.current[i] = el}
+                      role="tab" aria-selected={track === t.key} aria-controls={`track-panel-${t.key}`}
+                      tabIndex={track === t.key ? 0 : -1}
+                      onClick={() => setTrack(t.key)} onKeyDown={e => handleTabKey(e, i)}
+                      className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${track === t.key ? 'bg-sf-navy text-white' : 'text-gray-500 hover:text-sf-navy'}`}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Plans grid */}
+            <section className="py-14" aria-label="Pricing plans">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {tracks.map(t => (
+                  <div key={t.key} id={`track-panel-${t.key}`} role="tabpanel" aria-labelledby={t.key} hidden={track !== t.key}>
+                    <ul className="grid grid-cols-1 md:grid-cols-3 gap-6" aria-label={`${t.label} pricing plans`}>
+                      {plans[t.key].map(plan => (
+                        <li key={plan.name}>
+                          <article
+                            className={`bg-white rounded-2xl border p-7 flex flex-col h-full relative ${plan.highlight ? 'card-highlight border-sf-amber' : 'border-gray-100 shadow-sm'}`}
+                            aria-label={`${plan.name} plan: ${plan.price}`}>
+                            {plan.highlight && (
+                              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                                <span className="bg-sf-amber text-white text-xs font-bold px-4 py-1 rounded-full">Most Popular</span>
+                              </div>
+                            )}
+                            <div className="mb-5">
+                              <h2 className="text-xl font-bold text-sf-navy">{plan.name}</h2>
+                              <p className="text-3xl font-extrabold text-sf-amber mt-2">{plan.price}</p>
+                              <p className="text-sm text-gray-500 mt-1">{plan.desc}</p>
+                            </div>
+                            <ul className="space-y-2.5 mb-8 flex-1" aria-label={`${plan.name} features`}>
+                              {plan.features.map(f => (
+                                <li key={f} className="flex items-start gap-2 text-sm text-gray-700">
+                                  <span className="text-sf-green font-bold mt-0.5 flex-shrink-0" aria-hidden="true">✓</span>
+                                  {f}
+                                </li>
+                              ))}
+                            </ul>
+                            <a href={plan.href}
+                              aria-label={`${plan.cta} — ${plan.name} plan`}
+                              className={`block w-full text-center font-bold py-3 rounded-xl transition-colors ${plan.highlight ? 'bg-sf-amber hover:bg-sf-amber-h text-white' : 'border-2 border-sf-navy text-sf-navy hover:bg-sf-light'}`}>
+                              {plan.cta}
+                            </a>
+                          </article>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Financing calculator */}
+            <section className="pb-14" aria-labelledby="calc-heading">
+              <div className="max-w-2xl mx-auto px-4">
+                <div className="text-center mb-8">
+                  <h2 id="calc-heading" className="text-3xl font-bold text-sf-navy">Calculate Your Monthly Payment</h2>
+                  <p className="text-gray-500 mt-2">Estimate installments for any SkillForge program</p>
+                </div>
+                <FinancingCalc />
+              </div>
+            </section>
+
+            {/* Scholarship */}
+            <section className="bg-sf-navy text-white py-14" aria-labelledby="scholarship-heading">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-10 items-center">
+                <div>
+                  <h2 id="scholarship-heading" className="text-3xl font-bold mb-3">Scholarships &amp; Financial Aid</h2>
+                  <p className="text-blue-200 mb-5 leading-relaxed">
+                    SkillForge believes career-changing education should be accessible to everyone.
+                    Income-based scholarships cover up to 75% of tuition for qualifying learners.
+                  </p>
+                  <ul className="space-y-2 text-sm text-blue-100 mb-6">
+                    {['Income-based scholarships (up to 75% off)','Workforce development grants for qualifying regions','Veteran &amp; military spouse discount (20% off)','Single-parent learner support fund'].map(i => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span aria-hidden="true" className="text-sf-amber mt-0.5">✓</span>
+                        <span dangerouslySetInnerHTML={{ __html: i }} />
+                      </li>
+                    ))}
+                  </ul>
+                  <a href="#" className="inline-block bg-white text-sf-navy font-bold px-8 py-3 rounded-xl hover:bg-blue-50 transition-colors">
+                    Apply for Scholarship →
+                  </a>
+                </div>
+                <div className="bg-white/10 rounded-2xl p-6 border border-white/20">
+                  <h3 className="font-bold text-lg mb-4">Quick Eligibility Check</h3>
+                  <form aria-label="Scholarship eligibility form" onSubmit={e => e.preventDefault()} className="space-y-4">
+                    <div>
+                      <label htmlFor="elig-income" className="block text-sm text-blue-200 mb-1">Household annual income</label>
+                      <select id="elig-income" className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sf-amber">
+                        <option value="">Select range…</option>
+                        <option>Under $25,000</option>
+                        <option>$25,000–$50,000</option>
+                        <option>$50,000–$75,000</option>
+                        <option>$75,000+</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="elig-state" className="block text-sm text-blue-200 mb-1">State of residence</label>
+                      <select id="elig-state" className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sf-amber">
+                        <option value="">Select state…</option>
+                        <option>California</option><option>Texas</option><option>Florida</option><option>New York</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
+                    <button type="submit" className="w-full bg-sf-amber hover:bg-sf-amber-h text-white font-bold py-3 rounded-xl transition-colors">
+                      Check My Eligibility
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </section>
+
+            {/* Accreditation badges */}
+            <section className="py-12 bg-white" aria-labelledby="accred-heading">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 id="accred-heading" className="text-xl font-bold text-sf-navy mb-8">Accreditation &amp; Partnerships</h2>
+                <ul className="flex flex-wrap justify-center gap-4" role="list" aria-label="Accreditation and partner badges">
+                  {accreditations.map(a => (
+                    <li key={a.label}>
+                      <div className={`border-2 rounded-xl px-6 py-4 ${a.color} text-center min-w-32`}
+                        role="img" aria-label={a.label}>
+                        <p className="font-extrabold text-sf-navy text-lg">{a.abbr}</p>
+                        <p className="text-xs text-gray-500 mt-1">{a.label}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-gray-400 mt-6 max-w-xl mx-auto">
+                  SkillForge is accredited by ACCET and holds active partnerships with NCCT, SHRM, and CompTIA for credential recognition and exam preparation.
+                </p>
+              </div>
+            </section>
+
+            {/* FAQ */}
+            <section className="py-14 bg-sf-light" aria-labelledby="faq-heading">
+              <div className="max-w-3xl mx-auto px-4">
+                <h2 id="faq-heading" className="text-3xl font-bold text-sf-navy text-center mb-10">Frequently Asked Questions</h2>
+                <div className="space-y-4">
+                  {[
+                    { q: 'Can I get a refund if the program isn\'t right for me?', a: 'Yes. We offer a 30-day full refund guarantee, no questions asked. After 30 days, prorated refunds are available through the end of Week 4.' },
+                    { q: 'Does my employer have to pre-approve reimbursement?', a: 'For employer reimbursement billing, we work directly with your HR team. You enroll, we invoice your employer — you focus on learning.' },
+                    { q: 'Are the certificates recognized by employers?', a: 'Our certificates are accredited by ACCET and aligned with national exam bodies like NCCT. 92% of graduates are placed within 3 months through our employer network.' },
+                    { q: 'Can I take more than one course at a time?', a: 'Self-paced learners can enroll in multiple courses simultaneously. Cohort learners are advised to take one cohort at a time for best outcomes.' },
+                  ].map(item => (
+                    <details key={item.q} className="bg-white rounded-xl border border-gray-100 shadow-sm">
+                      <summary className="px-6 py-4 text-sm font-semibold text-sf-navy cursor-pointer hover:text-sf-amber transition-colors list-none flex justify-between items-center gap-3">
+                        {item.q}
+                        <span aria-hidden="true" className="text-sf-amber text-lg flex-shrink-0">+</span>
+                      </summary>
+                      <div className="px-6 pb-5 pt-1 text-sm text-gray-600 leading-relaxed">{item.a}</div>
+                    </details>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+          </main>
+          <Footer />
+          <AdvisorWidget />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<PricingPage />);
+  </script>
+</body>
+</html>

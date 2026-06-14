@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Courses — LearnPath</title>
+  <meta name="description" content="Browse 5,000+ expert-led courses in web development, data science, design, business, and more." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { sans: ['Inter','system-ui','sans-serif'] } } }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    *:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; border-radius: 4px; }
+    .skip-link { position:absolute; top:-100%; left:8px; background:#4f46e5; color:#fff; padding:8px 16px; border-radius:0 0 8px 8px; font-weight:600; font-size:14px; z-index:9999; }
+    .skip-link:focus { top:0; }
+    .custom-checkbox:checked { accent-color: #4f46e5; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 antialiased">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    /* ─── ICONS ─────────────────────────────────────────────── */
+    const Logo = () => (
+      <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+        <path d="M7 20 L16 9 L25 20" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        <path d="M11 20 L21 20" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="16" cy="23" r="1.5" fill="white"/>
+      </svg>
+    );
+    const StarIcon = ({ cls='w-3.5 h-3.5' }) => (
+      <svg className={cls} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+      </svg>
+    );
+    const MenuIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    );
+    const CloseIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    );
+    const FilterIcon = () => (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+      </svg>
+    );
+    const SearchIcon = () => (
+      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+      </svg>
+    );
+
+    /* ─── SHARED HEADER ──────────────────────────────────────── */
+    const Header = () => {
+      const [open, setOpen] = useState(false);
+      const nav = [
+        { href:'courses.html', label:'Browse Courses' },
+        { href:'pricing.html', label:'Pricing' },
+        { href:'dashboard.html', label:'My Learning' },
+      ];
+      return (
+        <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <a href="index.html" className="flex items-center gap-2.5 rounded-lg" aria-label="LearnPath – go to homepage">
+                <Logo /><span className="text-xl font-bold text-gray-900">Learn<span className="text-indigo-600">Path</span></span>
+              </a>
+              <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
+                {nav.map(l=>(
+                  <a key={l.href} href={l.href}
+                    className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors hover:text-indigo-600 hover:bg-indigo-50 ${l.href==='courses.html'?'text-indigo-600 bg-indigo-50':'text-gray-600'}`}
+                    aria-current={l.href==='courses.html'?'page':undefined}>{l.label}</a>
+                ))}
+              </nav>
+              <div className="hidden md:flex items-center gap-2">
+                <a href="#" className="text-sm font-medium text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-lg transition-colors">Sign In</a>
+                <a href="#" className="bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Get Started</a>
+              </div>
+              <button onClick={()=>setOpen(!open)} className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                aria-label={open?'Close menu':'Open navigation menu'} aria-expanded={open} aria-controls="mobile-nav">
+                {open?<CloseIcon/>:<MenuIcon/>}
+              </button>
+            </div>
+          </div>
+          {open && (
+            <nav id="mobile-nav" className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-1" aria-label="Mobile navigation">
+              {nav.map(l=>(
+                <a key={l.href} href={l.href} className="block py-2.5 px-3 text-sm font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">{l.label}</a>
+              ))}
+              <div className="pt-3 space-y-2 border-t border-gray-100">
+                <a href="#" className="block text-center py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50">Sign In</a>
+                <a href="#" className="block text-center py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Get Started Free</a>
+              </div>
+            </nav>
+          )}
+        </header>
+      );
+    };
+
+    /* ─── SHARED FOOTER ──────────────────────────────────────── */
+    const Footer = () => (
+      <footer className="bg-gray-900 text-gray-400" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex flex-col md:flex-row justify-between gap-8 mb-8">
+            <a href="index.html" className="flex items-center gap-2" aria-label="LearnPath home">
+              <Logo /><span className="text-lg font-bold text-white">Learn<span className="text-indigo-400">Path</span></span>
+            </a>
+            <div className="flex flex-wrap gap-8 text-sm">
+              {[['courses.html','Browse Courses'],['pricing.html','Pricing'],['dashboard.html','Dashboard'],['#','About'],['#','Help']].map(([href,label])=>(
+                <a key={label} href={href} className="hover:text-white transition-colors">{label}</a>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-sm">
+            <p>© 2025 LearnPath, Inc. All rights reserved.</p>
+            <div className="flex gap-6">{['Terms','Privacy','Cookies'].map(t=><a key={t} href="#" className="hover:text-white transition-colors">{t}</a>)}</div>
+          </div>
+        </div>
+      </footer>
+    );
+
+    /* ─── DATA ───────────────────────────────────────────────── */
+    const ALL_COURSES = [
+      { id:1,  title:'Python for Data Science',        instructor:'Dr. Sarah Chen',    rating:4.8, enrolled:'128K', price:49.99, duration:'24h', level:'Intermediate', cat:'Data Science',    emoji:'🐍', grad:'from-green-100 to-emerald-200' },
+      { id:2,  title:'UX Design Fundamentals',          instructor:'Marcus Rivera',      rating:4.7, enrolled:'89K',  price:44.99, duration:'18h', level:'Beginner',     cat:'Design',          emoji:'🎨', grad:'from-pink-100 to-rose-200' },
+      { id:3,  title:'React & Next.js Masterclass',     instructor:'Emily Zhang',        rating:4.9, enrolled:'215K', price:59.99, duration:'32h', level:'Intermediate', cat:'Development',     emoji:'⚛️', grad:'from-blue-100 to-cyan-200' },
+      { id:4,  title:'Business Strategy Essentials',    instructor:'Prof. James Howard', rating:4.6, enrolled:'67K',  price:39.99, duration:'12h', level:'Beginner',     cat:'Business',        emoji:'📊', grad:'from-amber-100 to-orange-200' },
+      { id:5,  title:'Machine Learning A–Z',            instructor:'Andrew Kim',         rating:4.9, enrolled:'312K', price:69.99, duration:'40h', level:'Advanced',     cat:'Data Science',    emoji:'🤖', grad:'from-violet-100 to-purple-200' },
+      { id:6,  title:'Figma: Complete UI/UX Design',   instructor:'Lena Santos',        rating:4.7, enrolled:'94K',  price:0,     duration:'14h', level:'Beginner',     cat:'Design',          emoji:'✏️', grad:'from-rose-100 to-pink-200' },
+      { id:7,  title:'Node.js & Express API Dev',       instructor:'Chris Park',         rating:4.8, enrolled:'77K',  price:54.99, duration:'28h', level:'Intermediate', cat:'Development',     emoji:'🟢', grad:'from-lime-100 to-green-200' },
+      { id:8,  title:'Digital Marketing Bootcamp',      instructor:'Rachel Turner',      rating:4.5, enrolled:'51K',  price:34.99, duration:'16h', level:'Beginner',     cat:'Business',        emoji:'📣', grad:'from-orange-100 to-yellow-200' },
+      { id:9,  title:'Photography Masterclass',         instructor:'David Lee',          rating:4.8, enrolled:'113K', price:29.99, duration:'20h', level:'Beginner',     cat:'Photography',     emoji:'📷', grad:'from-sky-100 to-blue-200' },
+      { id:10, title:'TypeScript Deep Dive',            instructor:'Emma Wilson',        rating:4.7, enrolled:'63K',  price:44.99, duration:'22h', level:'Intermediate', cat:'Development',     emoji:'📘', grad:'from-cyan-100 to-sky-200' },
+      { id:11, title:'Data Visualization with D3.js',  instructor:'Omar Hassan',        rating:4.6, enrolled:'38K',  price:49.99, duration:'18h', level:'Advanced',     cat:'Data Science',    emoji:'📈', grad:'from-teal-100 to-emerald-200' },
+      { id:12, title:'Brand Identity Design',           instructor:'Sofia Chen',         rating:4.7, enrolled:'44K',  price:0,     duration:'10h', level:'Beginner',     cat:'Design',          emoji:'🎭', grad:'from-purple-100 to-violet-200' },
+    ];
+
+    const CATEGORIES = ['All','Development','Data Science','Design','Business','Photography'];
+    const LEVELS     = ['Beginner','Intermediate','Advanced'];
+    const SORT_OPTS  = [
+      { value:'popular',  label:'Most Popular' },
+      { value:'rating',   label:'Highest Rated' },
+      { value:'newest',   label:'Newest' },
+      { value:'price_lo', label:'Price: Low to High' },
+      { value:'price_hi', label:'Price: High to Low' },
+    ];
+
+    /* ─── FILTER SIDEBAR ─────────────────────────────────────── */
+    const FilterGroup = ({ title, children }) => {
+      const [open, setOpen] = useState(true);
+      return (
+        <div className="border-b border-gray-100 py-4">
+          <button onClick={()=>setOpen(!open)}
+            className="flex items-center justify-between w-full text-sm font-semibold text-gray-900 hover:text-indigo-600 transition-colors"
+            aria-expanded={open}>
+            {title}
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${open?'rotate-180':''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          {open && <div className="mt-3">{children}</div>}
+        </div>
+      );
+    };
+
+    const CheckboxItem = ({ label, checked, onChange, count }) => (
+      <label className="flex items-center justify-between py-1 cursor-pointer group">
+        <span className="flex items-center gap-2.5">
+          <input type="checkbox" checked={checked} onChange={onChange}
+            className="custom-checkbox w-4 h-4 rounded border-gray-300 text-indigo-600 cursor-pointer" />
+          <span className="text-sm text-gray-700 group-hover:text-gray-900">{label}</span>
+        </span>
+        {count && <span className="text-xs text-gray-400">{count}</span>}
+      </label>
+    );
+
+    /* ─── COURSE CARD ────────────────────────────────────────── */
+    const CourseCard = ({ c }) => {
+      const lc = {Beginner:'bg-emerald-100 text-emerald-700',Intermediate:'bg-amber-100 text-amber-700',Advanced:'bg-red-100 text-red-700'};
+      return (
+        <article className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all group flex flex-col">
+          <a href="course-detail.html" aria-label={`View: ${c.title}`}>
+            <div className={`aspect-video bg-gradient-to-br ${c.grad} flex items-center justify-center text-5xl relative overflow-hidden`} aria-hidden="true">
+              {c.emoji}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"/>
+            </div>
+          </a>
+          <div className="p-5 flex flex-col flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${lc[c.level]}`}>{c.level}</span>
+              <span className="text-xs text-gray-500">{c.cat}</span>
+            </div>
+            <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-1 flex-1">
+              <a href="course-detail.html" className="hover:text-indigo-600 transition-colors">{c.title}</a>
+            </h3>
+            <p className="text-xs text-gray-500 mb-3">{c.instructor}</p>
+            <div className="flex items-center gap-1.5 mb-3">
+              <div className="flex" aria-label={`Rating: ${c.rating} out of 5`}>
+                {[1,2,3,4,5].map(i=><StarIcon key={i} cls={`w-3.5 h-3.5 ${i<=Math.round(c.rating)?'text-amber-400':'text-gray-200'}`}/>)}
+              </div>
+              <span className="text-xs font-semibold text-gray-700">{c.rating}</span>
+              <span className="text-xs text-gray-400">({c.enrolled})</span>
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-auto">
+              <span className="text-base font-bold text-gray-900">{c.price===0?<span className="text-emerald-600">Free</span>:`$${c.price}`}</span>
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {c.duration}
+              </span>
+            </div>
+          </div>
+        </article>
+      );
+    };
+
+    /* ─── MAIN PAGE ──────────────────────────────────────────── */
+    const CoursesPage = () => {
+      const [selectedCats, setSelectedCats]   = useState([]);
+      const [selectedLevels, setSelectedLevels] = useState([]);
+      const [priceFilter, setPriceFilter]     = useState('all');
+      const [sortBy, setSortBy]               = useState('popular');
+      const [minRating, setMinRating]         = useState(0);
+      const [query, setQuery]                 = useState('');
+      const [sidebarOpen, setSidebarOpen]     = useState(false);
+
+      const toggle = (arr, setArr, val) => setArr(arr.includes(val) ? arr.filter(x=>x!==val) : [...arr, val]);
+
+      const filtered = useMemo(() => {
+        let result = [...ALL_COURSES];
+        if (query.trim()) result = result.filter(c => c.title.toLowerCase().includes(query.toLowerCase()) || c.instructor.toLowerCase().includes(query.toLowerCase()));
+        if (selectedCats.length)   result = result.filter(c => selectedCats.includes(c.cat));
+        if (selectedLevels.length) result = result.filter(c => selectedLevels.includes(c.level));
+        if (priceFilter==='free')  result = result.filter(c => c.price===0);
+        if (priceFilter==='paid')  result = result.filter(c => c.price>0);
+        if (minRating>0)           result = result.filter(c => c.rating>=minRating);
+        switch(sortBy) {
+          case 'rating':   result.sort((a,b)=>b.rating-a.rating); break;
+          case 'price_lo': result.sort((a,b)=>a.price-b.price); break;
+          case 'price_hi': result.sort((a,b)=>b.price-a.price); break;
+          case 'popular':  result.sort((a,b)=>parseInt(b.enrolled)-parseInt(a.enrolled)); break;
+          default: break;
+        }
+        return result;
+      }, [query, selectedCats, selectedLevels, priceFilter, minRating, sortBy]);
+
+      const catCounts = CATEGORIES.filter(c=>c!=='All').reduce((acc,c)=>({...acc,[c]:ALL_COURSES.filter(x=>x.cat===c).length}),{});
+
+      const SidebarContent = () => (
+        <aside aria-label="Course filters" className="space-y-0">
+          <FilterGroup title="Category">
+            {CATEGORIES.filter(c=>c!=='All').map(c=>(
+              <CheckboxItem key={c} label={c} count={catCounts[c]}
+                checked={selectedCats.includes(c)}
+                onChange={()=>toggle(selectedCats,setSelectedCats,c)}/>
+            ))}
+          </FilterGroup>
+          <FilterGroup title="Level">
+            {LEVELS.map(l=>(
+              <CheckboxItem key={l} label={l}
+                checked={selectedLevels.includes(l)}
+                onChange={()=>toggle(selectedLevels,setSelectedLevels,l)}/>
+            ))}
+          </FilterGroup>
+          <FilterGroup title="Price">
+            {[['all','All courses'],['free','Free only'],['paid','Paid only']].map(([val,lbl])=>(
+              <label key={val} className="flex items-center gap-2.5 py-1 cursor-pointer">
+                <input type="radio" name="price" value={val} checked={priceFilter===val} onChange={()=>setPriceFilter(val)}
+                  className="w-4 h-4 text-indigo-600 border-gray-300" />
+                <span className="text-sm text-gray-700">{lbl}</span>
+              </label>
+            ))}
+          </FilterGroup>
+          <FilterGroup title="Minimum Rating">
+            {[4.5,4.0,3.5,0].map(r=>(
+              <label key={r} className="flex items-center gap-2.5 py-1 cursor-pointer">
+                <input type="radio" name="rating" checked={minRating===r} onChange={()=>setMinRating(r)}
+                  className="w-4 h-4 text-indigo-600 border-gray-300"/>
+                <span className="flex items-center gap-1 text-sm text-gray-700">
+                  {r===0?'Any rating':<><span className="text-amber-400 font-bold">{r}+</span><StarIcon cls="w-3.5 h-3.5 text-amber-400"/></>}
+                </span>
+              </label>
+            ))}
+          </FilterGroup>
+          {(selectedCats.length||selectedLevels.length||priceFilter!=='all'||minRating>0) && (
+            <div className="pt-4">
+              <button onClick={()=>{setSelectedCats([]);setSelectedLevels([]);setPriceFilter('all');setMinRating(0);}}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 underline underline-offset-2">
+                Clear all filters
+              </button>
+            </div>
+          )}
+        </aside>
+      );
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <main id="main-content" tabIndex="-1">
+            {/* Page Header */}
+            <div className="bg-gradient-to-r from-indigo-700 to-purple-700 text-white py-12">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav aria-label="Breadcrumb" className="mb-4">
+                  <ol className="flex items-center gap-2 text-sm text-indigo-200">
+                    <li><a href="index.html" className="hover:text-white transition-colors">Home</a></li>
+                    <li aria-hidden="true"><span>/</span></li>
+                    <li className="text-white font-medium" aria-current="page">Courses</li>
+                  </ol>
+                </nav>
+                <h1 className="text-3xl font-extrabold mb-3">Browse All Courses</h1>
+                <p className="text-indigo-200 text-lg">Explore 5,000+ courses from world-class instructors</p>
+                {/* Search */}
+                <div className="mt-6 relative max-w-2xl">
+                  <label htmlFor="course-search" className="sr-only">Search courses</label>
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2"><SearchIcon /></div>
+                  <input id="course-search" type="search" placeholder="Search for courses, skills, instructors…"
+                    value={query} onChange={e=>setQuery(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white text-gray-900 placeholder-gray-400 text-sm font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                </div>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              {/* Mobile filter toggle */}
+              <div className="lg:hidden mb-4">
+                <button onClick={()=>setSidebarOpen(!sidebarOpen)}
+                  className="flex items-center gap-2 bg-indigo-50 text-indigo-700 font-semibold text-sm px-4 py-2.5 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors"
+                  aria-expanded={sidebarOpen} aria-controls="mobile-filters">
+                  <FilterIcon /> {sidebarOpen?'Hide Filters':'Show Filters'}
+                </button>
+                {sidebarOpen && (
+                  <div id="mobile-filters" className="mt-4 bg-gray-50 rounded-xl p-5 border border-gray-100">
+                    <SidebarContent />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-8">
+                {/* Desktop Sidebar */}
+                <div className="hidden lg:block w-60 shrink-0">
+                  <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm sticky top-20">
+                    <h2 className="text-base font-bold text-gray-900 mb-1">Filters</h2>
+                    <SidebarContent />
+                  </div>
+                </div>
+
+                {/* Main Content */}
+                <div className="flex-1 min-w-0">
+                  {/* Sort bar */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <p className="text-sm text-gray-600">
+                      Showing <strong className="text-gray-900">{filtered.length}</strong> of {ALL_COURSES.length} courses
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <label htmlFor="sort-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">Sort by:</label>
+                      <select id="sort-select" value={sortBy} onChange={e=>setSortBy(e.target.value)}
+                        className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        {SORT_OPTS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Grid */}
+                  {filtered.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5" role="list" aria-label="Course results">
+                      {filtered.map(c=>(
+                        <div key={c.id} role="listitem"><CourseCard c={c}/></div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-20">
+                      <div className="text-5xl mb-4" aria-hidden="true">🔍</div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No courses found</h3>
+                      <p className="text-gray-500 text-sm">Try adjusting your filters or search query.</p>
+                      <button onClick={()=>{setSelectedCats([]);setSelectedLevels([]);setPriceFilter('all');setMinRating(0);setQuery('');}}
+                        className="mt-4 text-sm text-indigo-600 font-semibold hover:text-indigo-700 underline underline-offset-2">
+                        Reset all filters
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  {filtered.length > 0 && (
+                    <nav className="mt-10 flex justify-center" aria-label="Pagination">
+                      <ol className="flex items-center gap-1" role="list">
+                        <li>
+                          <button className="px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-40" disabled aria-label="Previous page">← Prev</button>
+                        </li>
+                        {[1,2,3,4,5].map(n=>(
+                          <li key={n}>
+                            <button className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${n===1?'bg-indigo-600 text-white':'text-gray-700 hover:bg-gray-100'}`}
+                              aria-label={`Page ${n}`} aria-current={n===1?'page':undefined}>{n}</button>
+                          </li>
+                        ))}
+                        <li>
+                          <button className="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100" aria-label="Next page">Next →</button>
+                        </li>
+                      </ol>
+                    </nav>
+                  )}
+                </div>
+              </div>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<CoursesPage />);
+  </script>
+</body>
+</html>

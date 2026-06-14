@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Services | City of Lakewood — Official Government Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa', 100: '#ccfbf1', 300: '#5eead4', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a',
+                        },
+                        navy: { 800: '#1e3a8a', 900: '#1e3a5f', }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Merriweather', 'serif'], }
+                }
+            }
+        }
+    </script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap"
+        rel="stylesheet">
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Merriweather', serif;
+        }
+
+        *:focus-visible {
+            outline: 3px solid #fde047;
+            outline-offset: 2px;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #000;
+            color: white;
+            padding: 8px;
+            z-index: 100;
+            transition: top 0.2s;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 antialiased flex flex-col min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const AlertBanner = () => {
+            const [visible, setVisible] = useState(true);
+            if (!visible) return null;
+            return (
+                <div role="alert" className="bg-red-700 text-white px-4 py-3 sm:px-6 lg:px-8 flex items-start sm:items-center justify-between shadow-md">
+                    <div className="flex items-center space-x-3 max-w-7xl mx-auto w-full">
+                        <i data-lucide="alert-triangle" className="w-6 h-6 flex-shrink-0" aria-hidden="true"></i>
+                        <span className="font-medium text-sm sm:text-base">
+                            <span className="font-bold">Emergency Alert:</span> Road Closure: Main St between 3rd and 5th Ave until Nov 30
+                        </span>
+                    </div>
+                    <button onClick={() => setVisible(false)} aria-label="Dismiss alert" className="text-white hover:text-red-200 focus:outline-none focus:ring-2 focus:ring-white rounded p-1 ml-4 transition-colors">
+                        <i data-lucide="x" className="w-6 h-6" aria-hidden="true"></i>
+                    </button>
+                </div>
+            );
+        };
+
+        const Header = () => {
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            return (
+                <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm relative">
+                    <a href="#main-content" className="skip-link sr-only focus:not-sr-only p-4 bg-navy-900 text-white font-bold absolute top-0 left-0 z-50 rounded-br">Skip to main content</a>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between h-20 items-center">
+                            <div className="flex items-center space-x-3">
+                                <i data-lucide="landmark" className="w-8 h-8 text-navy-800" aria-hidden="true"></i>
+                                <a href="index.html" className="text-2xl font-bold text-navy-900 tracking-tight focus:outline-none focus:ring-2 focus:ring-navy-800 rounded px-1 font-serif">
+                                    City of Lakewood
+                                </a>
+                            </div>
+                            <nav aria-label="Main Navigation" className="hidden md:flex space-x-8">
+                                <a href="index.html" className="text-gray-600 hover:text-navy-800 hover:border-brand-300 font-medium py-2 px-1 border-b-2 border-transparent transition-colors focus:outline-none rounded">Home</a>
+                                <a href="services.html" className="text-navy-800 font-semibold border-b-2 border-brand-500 py-2 px-1 focus:outline-none rounded transition-colors" aria-current="page">Services</a>
+                                <a href="about.html" className="text-gray-600 hover:text-navy-800 hover:border-brand-300 font-medium py-2 px-1 border-b-2 border-transparent transition-colors focus:outline-none rounded">About</a>
+                                <a href="contact.html" className="text-gray-600 hover:text-navy-800 hover:border-brand-300 font-medium py-2 px-1 border-b-2 border-transparent transition-colors focus:outline-none rounded">Contact</a>
+                            </nav>
+                            <div className="md:hidden">
+                                <button aria-expanded={isMenuOpen} aria-label="Toggle navigation menu" onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy-800 rounded p-2">
+                                    <i data-lucide={isMenuOpen ? "x" : "menu"} className="w-6 h-6" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {isMenuOpen && (
+                        <nav aria-label="Mobile Navigation" className="md:hidden bg-white border-t border-gray-100 flex flex-col space-y-1 p-4 shadow-inner">
+                            <a href="index.html" className="text-gray-600 hover:text-navy-800 hover:bg-gray-50 py-3 px-4 rounded-md">Home</a>
+                            <a href="services.html" className="text-navy-800 font-semibold py-3 px-4 bg-brand-50 rounded-md" aria-current="page">Services</a>
+                            <a href="about.html" className="text-gray-600 hover:text-navy-800 hover:bg-gray-50 py-3 px-4 rounded-md">About</a>
+                            <a href="contact.html" className="text-gray-600 hover:text-navy-800 hover:bg-gray-50 py-3 px-4 rounded-md">Contact</a>
+                        </nav>
+                    )}
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-navy-900 text-slate-300 pt-16 pb-8 mt-auto border-t-[6px] border-brand-500">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                            <div>
+                                <div className="flex items-center space-x-2 mb-6 text-white bg-navy-800 inline-block p-2 rounded">
+                                    <i data-lucide="landmark" className="w-6 h-6 inline mr-2" aria-hidden="true"></i>
+                                    <span className="text-lg font-bold font-serif">City of Lakewood</span>
+                                </div>
+                                <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                                    Dedicated to serving our 160,000 residents with transparency, efficiency, and community spirit.
+                                </p>
+                            </div>
+                            <div>
+                                <h2 className="text-white text-sm font-bold uppercase tracking-wider mb-6 bg-navy-800 inline-block px-2 py-1 rounded">Departments</h2>
+                                <ul className="space-y-3">
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Mayor's Office</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Public Works</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Parks & Recreation</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Police Department</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Fire Department</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h2 className="text-white text-sm font-bold uppercase tracking-wider mb-6 bg-navy-800 inline-block px-2 py-1 rounded">Quick Links</h2>
+                                <ul className="space-y-3">
+                                    <li><a href="services.html" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">All Services</a></li>
+                                    <li><a href="service-permits.html" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Apply for Permits</a></li>
+                                    <li><a href="service-bill.html" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Pay a Bill</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Employment</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">City Council Meetings</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h2 className="text-white text-sm font-bold uppercase tracking-wider mb-6 bg-navy-800 inline-block px-2 py-1 rounded">Contact Us</h2>
+                                <address className="not-italic text-sm space-y-4 text-slate-400">
+                                    <p className="flex items-start">
+                                        <i data-lucide="map-pin" className="w-5 h-5 mr-3 flex-shrink-0 text-slate-500" aria-hidden="true"></i>
+                                        <span>123 City Hall Plaza<br />Lakewood, ST 12345</span>
+                                    </p>
+                                    <p className="flex items-center">
+                                        <i data-lucide="phone" className="w-5 h-5 mr-3 flex-shrink-0 text-slate-500" aria-hidden="true"></i>
+                                        <span>(555) 123-4567</span>
+                                    </p>
+                                    <p className="flex items-center">
+                                        <i data-lucide="mail" className="w-5 h-5 mr-3 flex-shrink-0 text-slate-500" aria-hidden="true"></i>
+                                        <a href="mailto:info@lakewood.gov" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">info@lakewood.gov</a>
+                                    </p>
+                                </address>
+                            </div>
+                        </div>
+                        <div className="border-t border-navy-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs">
+                            <p>&copy; {new Date().getFullYear()} City of Lakewood. All rights reserved.</p>
+                            <div className="flex space-x-6 mt-4 md:mt-0">
+                                <a href="#" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Privacy Policy</a>
+                                <a href="#" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Accessibility</a>
+                                <a href="#" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Terms of Use</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        const PageHeader = () => (
+            <div className="bg-navy-800 py-12 border-t border-navy-900">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <nav aria-label="Breadcrumb" className="mb-4">
+                        <ol className="flex items-center space-x-2 text-sm text-brand-100">
+                            <li><a href="index.html" className="hover:text-white focus:outline-none focus:underline rounded flex items-center"><i data-lucide="home" className="w-4 h-4 mr-1" aria-hidden="true"></i>Home</a></li>
+                            <li><i data-lucide="chevron-right" className="w-4 h-4" aria-hidden="true"></i></li>
+                            <li aria-current="page" className="text-white font-medium">Services</li>
+                        </ol>
+                    </nav>
+                    <h1 className="text-4xl font-extrabold text-white font-serif mb-2">City Services</h1>
+                    <p className="text-lg text-navy-100 max-w-2xl">Find what you need quickly, from paying utility bills to applying for building permits.</p>
+                </div>
+            </div>
+        );
+
+        const ServiceCategory = ({ id, title, icon, links, mainLink }) => {
+            return (
+                <section aria-labelledby={id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center">
+                        <div className="bg-brand-50 p-3 rounded-lg mr-4 text-brand-600 border border-brand-100">
+                            <i data-lucide={icon} className="w-8 h-8" aria-hidden="true"></i>
+                        </div>
+                        <h2 id={id} className="text-xl font-bold text-navy-900">{title}</h2>
+                    </div>
+                    <div className="p-6">
+                        <ul className="space-y-4" aria-label={`Links for ${title}`}>
+                            {links.map((link, idx) => (
+                                <li key={idx} className="flex">
+                                    <a href={link.url} className="flex items-center text-brand-700 hover:text-brand-900 group focus:outline-none focus:ring-2 focus:ring-brand-500 rounded w-full py-1">
+                                        <i data-lucide="arrow-right-circle" className="w-5 h-5 mr-3 text-brand-500 group-hover:translate-x-1 transition-transform" aria-hidden="true"></i>
+                                        <span className="font-medium underline decoration-brand-300 decoration-2 underline-offset-4 group-hover:decoration-brand-600">{link.text}</span>
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </section>
+            );
+        };
+
+        const MainContent = () => {
+            return (
+                <main id="main-content" className="flex-grow focus:outline-none bg-gray-50 pb-20" tabIndex="-1">
+                    <PageHeader />
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+                        {/* Task-based Search inside Services */}
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-12">
+                            <form className="max-w-3xl mx-auto flex flex-col sm:flex-row gap-4" onSubmit={(e) => e.preventDefault()} aria-label="Search services">
+                                <label htmlFor="service-search" className="sr-only">Search for a specific service</label>
+                                <div className="relative flex-grow">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <i data-lucide="search" className="h-5 w-5 text-gray-400" aria-hidden="true"></i>
+                                    </div>
+                                    <input
+                                        id="service-search"
+                                        type="text"
+                                        className="block w-full pl-12 pr-4 py-3 rounded-md border-0 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-brand-500 shadow-sm sm:leading-6"
+                                        placeholder="Find a service (e.g. 'Dog license', 'Trash pickup')"
+                                    />
+                                </div>
+                                <button type="submit" aria-label="Search" className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-md font-bold transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                                    Search
+                                </button>
+                            </form>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <ServiceCategory
+                                id="utilities-billing"
+                                title="Utilities & Billing"
+                                icon="droplets"
+                                links={[
+                                    { text: 'Pay Utility Bill Online', url: 'service-bill.html' },
+                                    { text: 'Start/Stop Water Service', url: '#' },
+                                    { text: 'Pay Property Taxes', url: '#' },
+                                    { text: 'Trash & Recycling Schedule', url: '#' }
+                                ]}
+                            />
+                            <ServiceCategory
+                                id="permits-licenses"
+                                title="Permits & Licenses"
+                                icon="file-signature"
+                                links={[
+                                    { text: 'Apply for Building Permits', url: 'service-permits.html' },
+                                    { text: 'Business Licensing', url: '#' },
+                                    { text: 'Pet Licenses', url: '#' },
+                                    { text: 'Special Event Permits', url: '#' }
+                                ]}
+                            />
+                            <ServiceCategory
+                                id="public-safety"
+                                title="Public Safety"
+                                icon="shield-half"
+                                links={[
+                                    { text: 'File a Police Report', url: '#' },
+                                    { text: 'Request Police Records', url: '#' },
+                                    { text: 'Fire Station Tours', url: '#' },
+                                    { text: 'Emergency Preparedness', url: '#' }
+                                ]}
+                            />
+                            <ServiceCategory
+                                id="transportation"
+                                title="Transportation"
+                                icon="bus"
+                                links={[
+                                    { text: 'Report a Pothole', url: '#' },
+                                    { text: 'Parking Citations', url: '#' },
+                                    { text: 'City Transit Shedules', url: '#' },
+                                    { text: 'Street Sweeping Maps', url: '#' }
+                                ]}
+                            />
+                            <ServiceCategory
+                                id="parks-recreation"
+                                title="Parks & Recreation"
+                                icon="tree-deciduous"
+                                links={[
+                                    { text: 'Find a Park or Trail', url: '#' },
+                                    { text: 'Register for Classes', url: '#' },
+                                    { text: 'Reserve a Picnic Shelter', url: '#' },
+                                    { text: 'Community Centers', url: '#' }
+                                ]}
+                            />
+                            <ServiceCategory
+                                id="social-services"
+                                title="Social Services"
+                                icon="heart-handshake"
+                                links={[
+                                    { text: 'Housing Assistance', url: '#' },
+                                    { text: 'Senior Center Programs', url: '#' },
+                                    { text: 'Youth Employment', url: '#' },
+                                    { text: 'Utility Discount Program', url: '#' }
+                                ]}
+                            />
+                        </div>
+                    </div>
+                </main>
+            );
+        };
+
+        const App = () => {
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <div className="min-h-screen flex flex-col font-sans text-gray-800">
+                    <AlertBanner />
+                    <Header />
+                    <MainContent />
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

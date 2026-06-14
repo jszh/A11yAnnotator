@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meridian – Course Detail</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const CURRICULUM = [
+  { section: 'Getting Started', lessons: [
+    { title: 'Welcome & Course Overview', dur: '5:20', free: true },
+    { title: 'Setting Up Your Environment', dur: '12:45', free: true },
+    { title: 'Python Basics Refresher', dur: '28:10', free: false },
+  ]},
+  { section: 'Data Manipulation with Pandas', lessons: [
+    { title: 'Introduction to DataFrames', dur: '22:35', free: false },
+    { title: 'Cleaning and Transforming Data', dur: '35:18', free: false },
+    { title: 'Merging & Joining Datasets', dur: '29:04', free: false },
+    { title: 'Project: Exploratory Data Analysis', dur: '45:00', free: false },
+  ]},
+  { section: 'Data Visualization', lessons: [
+    { title: 'Matplotlib Fundamentals', dur: '18:50', free: false },
+    { title: 'Seaborn for Statistical Plots', dur: '21:30', free: false },
+    { title: 'Interactive Charts with Plotly', dur: '26:45', free: false },
+  ]},
+  { section: 'Machine Learning Foundations', lessons: [
+    { title: 'What is ML? Conceptual Overview', dur: '15:00', free: false },
+    { title: 'Linear & Logistic Regression', dur: '40:22', free: false },
+    { title: 'Decision Trees & Random Forests', dur: '38:10', free: false },
+    { title: 'Model Evaluation & Cross-Validation', dur: '32:05', free: false },
+  ]},
+  { section: 'Neural Networks & Deep Learning', lessons: [
+    { title: 'Introduction to Neural Networks', dur: '25:00', free: false },
+    { title: 'Building Your First Network in PyTorch', dur: '42:18', free: false },
+    { title: 'Convolutional Neural Networks', dur: '48:30', free: false },
+    { title: 'Capstone: End-to-End ML Project', dur: '75:00', free: false },
+  ]},
+];
+
+const REVIEWS = [
+  { initials: 'MJ', name: 'Mia Johnson', rating: 5, date: 'Feb 2026', color: '#4f46e5', body: 'Hands-down the best Python course on the internet. The ML section is thorough without being overwhelming. I landed a data analyst role three months after finishing.' },
+  { initials: 'RP', name: 'Raj Patel', rating: 5, date: 'Jan 2026', color: '#059669', body: 'The projects are what set this apart. Not just toy datasets — real, messy, interesting problems. Dr. Chen explains everything clearly.' },
+  { initials: 'FL', name: 'Fiona Lehmann', rating: 4, date: 'Jan 2026', color: '#7c3aed', body: 'Excellent course overall. Some of the later ML sections could use more depth but the foundation is rock solid. Would recommend for beginners.' },
+];
+
+function CourseDetailPage() {
+  const [openSection, setOpenSection] = React.useState(0);
+  const [enrolled, setEnrolled] = React.useState(false);
+
+  const totalLessons = CURRICULUM.reduce((acc, s) => acc + s.lessons.length, 0);
+  const totalHours = 42;
+
+  return (
+    <Meridian.Shell>
+      {/* ── Hero bar ── */}
+      <div style={{ background: '#1e1b4b', color: '#fff', padding: '2.5rem 0' }}>
+        <div className="container">
+          <div style={{ display: 'flex', gap: '3rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '280px' }}>
+              {/* Breadcrumb */}
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.85rem' }}>
+                <a href="index.html" style={{ color: 'inherit' }}>Home</a><span>›</span>
+                <a href="courses.html" style={{ color: 'inherit' }}>Courses</a><span>›</span>
+                <span style={{ color: 'rgba(255,255,255,0.8)' }}>Data Science</span>
+              </div>
+              <span className="badge badge-amber" style={{ marginBottom: '0.75rem', display: 'inline-flex' }}>Bestseller</span>
+              <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', fontWeight: 800, lineHeight: 1.2, marginBottom: '0.85rem' }}>
+                Python for Data Science &amp; Machine Learning Bootcamp
+              </h1>
+              <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: '1rem', lineHeight: 1.65, marginBottom: '1.1rem', maxWidth: '560px' }}>
+                Master Python, Pandas, NumPy, Matplotlib, Seaborn, Machine Learning, Tensorflow, and more with
+                hands-on projects using real-world datasets.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+                <Meridian.Stars rating={4.8} />
+                <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)' }}>(18,432 ratings) · 124,000 students</span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '0.82rem', color: 'rgba(255,255,255,0.65)' }}>
+                <span>👩‍🏫 Dr. Sarah Chen</span>
+                <span>·</span>
+                <span>⏱ {totalHours} hours</span>
+                <span>·</span>
+                <span>📚 {totalLessons} lessons</span>
+                <span>·</span>
+                <span>🏆 Certificate</span>
+                <span>·</span>
+                <span>🌐 English</span>
+              </div>
+              <div style={{ marginTop: '0.6rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+                Last updated: February 2026
+              </div>
+            </div>
+
+            {/* ── Sticky enroll card ── */}
+            <div style={{ background: 'var(--white)', borderRadius: 'var(--r-xl)', padding: '1.75rem', width: '300px', flexShrink: 0, boxShadow: 'var(--shadow-lg)', color: 'var(--ink)' }}>
+              {/* Preview */}
+              <div style={{ background: 'linear-gradient(135deg, var(--indigo-lt), #f5f3ff)', borderRadius: 'var(--r-md)', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', marginBottom: '1.1rem', position: 'relative' }}>
+                📊
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.0)' }}>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(79,70,229,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', backdropFilter: 'blur(4px)' }}>▶</div>
+                </div>
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.15rem' }}>$89</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '1rem' }}>
+                <span style={{ textDecoration: 'line-through', marginRight: '0.35rem' }}>$179</span>
+                <span className="badge badge-amber">50% off</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--rose)', fontWeight: 600, marginBottom: '1rem' }}>
+                ⏰ 2 days left at this price
+              </div>
+              <button
+                onClick={() => setEnrolled(!enrolled)}
+                className={`btn btn-lg w-full ${enrolled ? 'btn-emerald' : 'btn-primary'}`}
+                style={{ justifyContent: 'center', marginBottom: '0.6rem' }}
+              >
+                {enrolled ? '✓ Enrolled – Go to Course' : 'Enroll Now'}
+              </button>
+              <a href="plans.html" className="btn btn-secondary btn-lg w-full" style={{ justifyContent: 'center', marginBottom: '1rem' }}>
+                Try with Pro Plan
+              </a>
+              <p style={{ fontSize: '0.72rem', color: 'var(--muted)', textAlign: 'center', marginBottom: '1rem' }}>
+                30-day money-back guarantee
+              </p>
+              <hr className="divider" style={{ marginBottom: '1rem' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                {[
+                  ['📹', `${totalHours} hours on-demand video`],
+                  ['📄', '32 articles & resources'],
+                  ['⬇️', 'Downloadable notebooks'],
+                  ['📱', 'Access on mobile & desktop'],
+                  ['♾️', 'Full lifetime access'],
+                  ['🏆', 'Certificate of completion'],
+                ].map(([icon, text]) => (
+                  <div key={text} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--ink-3)' }}>
+                    <span>{icon}</span><span>{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main content ── */}
+      <div className="container" style={{ padding: '2.5rem 1.5rem' }}>
+        <div style={{ maxWidth: '760px' }}>
+
+          {/* What you'll learn */}
+          <div style={{ background: 'var(--white)', border: '1px solid var(--rule)', borderRadius: 'var(--r-lg)', padding: '1.75rem', marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.1rem' }}>What you'll learn</h2>
+            <div className="grid-2">
+              {[
+                'Use Python for real-world data analysis',
+                'Build & deploy machine learning models',
+                'Visualize data with Matplotlib & Seaborn',
+                'Work with Pandas DataFrames confidently',
+                'Understand core ML algorithms deeply',
+                'Train neural networks with PyTorch',
+                'Complete end-to-end ML projects',
+                'Ace data science interview questions',
+              ].map(item => (
+                <div key={item} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', fontSize: '0.85rem' }}>
+                  <span style={{ color: 'var(--emerald)', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Curriculum */}
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.5rem' }}>Course Curriculum</h2>
+          <p style={{ fontSize: '0.82rem', color: 'var(--muted)', marginBottom: '1.25rem' }}>
+            {CURRICULUM.length} sections · {totalLessons} lessons · {totalHours}h total
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '2rem' }}>
+            {CURRICULUM.map((sec, si) => (
+              <div key={si} style={{ border: '1px solid var(--rule)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
+                <button
+                  onClick={() => setOpenSection(openSection === si ? -1 : si)}
+                  style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', background: openSection === si ? 'var(--indigo-lt)' : 'var(--surface)', border: 'none', cursor: 'pointer', gap: '1rem' }}
+                >
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)', textAlign: 'left' }}>{sec.section}</span>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{sec.lessons.length} lessons</span>
+                    <span style={{ color: 'var(--indigo)', fontWeight: 700 }}>{openSection === si ? '−' : '+'}</span>
+                  </div>
+                </button>
+                {openSection === si && (
+                  <div>
+                    {sec.lessons.map((l, li) => (
+                      <div key={li} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1.25rem', borderTop: '1px solid var(--rule)', fontSize: '0.84rem' }}>
+                        <span>{l.free ? '▶' : '🔒'}</span>
+                        <span style={{ flex: 1, color: l.free ? 'var(--indigo)' : 'var(--ink-3)', fontWeight: l.free ? 500 : 400 }}>{l.title}</span>
+                        {l.free && <span className="badge badge-emerald">Preview</span>}
+                        <span style={{ color: 'var(--subtle)', flexShrink: 0 }}>{l.dur}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Instructor */}
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.25rem' }}>Your Instructor</h2>
+          <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', marginBottom: '2rem' }}>
+            <div className="avatar" style={{ width: '4rem', height: '4rem', background: 'var(--indigo)', fontSize: '1.4rem' }}>SC</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--indigo)' }}>Dr. Sarah Chen</div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>Senior Data Scientist · Stanford PhD · 8 years teaching</div>
+              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--muted)', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                <span>⭐ 4.8 instructor rating</span>
+                <span>👤 312,000 students</span>
+                <span>🎓 7 courses</span>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--ink-3)', lineHeight: 1.7 }}>
+                Dr. Sarah Chen holds a PhD in Computer Science from Stanford and spent five years as a data scientist
+                at Google before founding her own ML consultancy. She specializes in making complex ML concepts
+                accessible through hands-on, project-driven teaching.
+              </p>
+            </div>
+          </div>
+
+          {/* Reviews */}
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.25rem' }}>
+            Student Reviews <span style={{ color: 'var(--amber)', marginLeft: '0.5rem' }}>★ 4.8</span>
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {REVIEWS.map(r => (
+              <div key={r.name} style={{ borderBottom: '1px solid var(--rule)', paddingBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'center', marginBottom: '0.6rem' }}>
+                  <div className="avatar" style={{ background: r.color }}>{r.initials}</div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{r.name}</div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <Meridian.Stars rating={r.rating} />
+                      <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{r.date}</span>
+                    </div>
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.88rem', color: 'var(--ink-3)', lineHeight: 1.7 }}>{r.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Meridian.Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<CourseDetailPage />);
+</script>
+</body>
+</html>

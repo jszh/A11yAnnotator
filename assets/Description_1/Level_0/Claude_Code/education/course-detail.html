@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python for Data Science — LearnPath</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 font-sans antialiased">
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const Header = () => {
+  const nav = [
+    { label: 'Courses', href: 'courses.html' },
+    { label: 'Pricing', href: 'pricing.html' },
+    { label: 'Dashboard', href: 'dashboard.html' },
+  ];
+  return (
+    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <a href="index.html" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            </div>
+            <span className="text-xl font-bold text-slate-900">LearnPath</span>
+          </a>
+          <nav className="hidden md:flex items-center gap-8">
+            {nav.map(n => <a key={n.label} href={n.href} className="text-sm font-medium text-slate-600 hover:text-slate-900">{n.label}</a>)}
+          </nav>
+          <div className="hidden md:flex items-center gap-3">
+            <a href="dashboard.html" className="text-sm font-medium text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg hover:bg-slate-100">Sign In</a>
+            <a href="pricing.html" className="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow-sm">Start Free Trial</a>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+const Footer = () => (
+  <footer className="bg-slate-900 text-slate-300 mt-20">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="flex flex-col md:flex-row justify-between gap-8">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+          </div>
+          <span className="text-white font-bold text-lg">LearnPath</span>
+        </div>
+        <div className="flex flex-wrap gap-6 text-sm text-slate-400">
+          {[['Home','index.html'],['Courses','courses.html'],['Pricing','pricing.html'],['Dashboard','dashboard.html']].map(([l,h]) =>
+            <a key={l} href={h} className="hover:text-white">{l}</a>
+          )}
+        </div>
+      </div>
+      <div className="border-t border-slate-800 mt-8 pt-8 text-sm text-slate-500">© 2026 LearnPath, Inc. All rights reserved.</div>
+    </div>
+  </footer>
+);
+
+const Stars = ({ rating, size = 'sm' }) => {
+  const full = Math.floor(rating);
+  const s = size === 'lg' ? 'w-5 h-5' : 'w-4 h-4';
+  return (
+    <span className="flex items-center gap-0.5">
+      {[1,2,3,4,5].map(i => <svg key={i} className={`${s} ${i <= full ? 'text-amber-400' : 'text-slate-300'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
+    </span>
+  );
+};
+
+const curriculum = [
+  { title: 'Module 1: Python Foundations', lessons: ['Welcome & Course Overview','Setting Up Your Environment','Python Basics: Variables & Types','Control Flow: if/else & Loops','Functions & Modules','Lists, Tuples & Dictionaries','Practice Project: Data Calculator'], duration: '3h 20m' },
+  { title: 'Module 2: Data Structures & Pandas', lessons: ['Introduction to NumPy','Arrays & Vectorized Operations','Pandas DataFrames','Data Cleaning Techniques','Merging & Grouping Data','Time Series Analysis','Project: Analyzing Real Datasets'], duration: '5h 45m' },
+  { title: 'Module 3: Data Visualization', lessons: ['Matplotlib Fundamentals','Advanced Plotting Techniques','Seaborn for Statistical Plots','Interactive Charts with Plotly','Dashboard Design Principles','Project: Visual Data Story'], duration: '4h 10m' },
+  { title: 'Module 4: Machine Learning Basics', lessons: ['What is Machine Learning?','Scikit-Learn Overview','Regression Models','Classification Algorithms','Model Evaluation Metrics','Cross-Validation & Overfitting','Project: Predictive Model'], duration: '6h 30m' },
+  { title: 'Module 5: Advanced ML & Capstone', lessons: ['Ensemble Methods','Clustering & Dimensionality Reduction','Feature Engineering','Hyperparameter Tuning','Deploying a Model with Flask','Capstone: End-to-End ML Pipeline'], duration: '4h 20m' },
+];
+
+const reviews = [
+  { name: 'Priya S.', avatar: 'PS', color: 'bg-violet-500', rating: 5, date: 'Feb 2026', text: "Best Python course I've taken. Dr. Chen's explanations are crystal clear and the hands-on projects are directly applicable to real work. Went from zero Python to deploying my first ML model!" },
+  { name: 'Tom K.', avatar: 'TK', color: 'bg-blue-500', rating: 5, date: 'Jan 2026', text: "Incredibly well-structured. The progression from Python basics to machine learning is smooth and logical. I finished this in 3 weeks and immediately got a data analyst interview." },
+  { name: 'Maria L.', avatar: 'ML', color: 'bg-rose-500', rating: 4, date: 'Jan 2026', text: "Great course overall! The content is comprehensive and the instructor is very knowledgeable. I docked one star because a few advanced sections move a bit fast, but the Q&A support is helpful." },
+  { name: 'David W.', avatar: 'DW', color: 'bg-emerald-500', rating: 5, date: 'Dec 2025', text: "Worth every penny. The Pandas section alone saved me dozens of hours at work. The capstone project is challenging but extremely rewarding. Highly recommend to anyone entering data science." },
+];
+
+const includes = [
+  { icon: '🎥', label: '24 hours of HD video lectures' },
+  { icon: '📁', label: '15 downloadable project files' },
+  { icon: '💻', label: '32 coding exercises & quizzes' },
+  { icon: '📱', label: 'Full mobile & tablet access' },
+  { icon: '🔄', label: 'Lifetime access & free updates' },
+  { icon: '🏆', label: 'Certificate of completion' },
+];
+
+const App = () => {
+  const [openSection, setOpenSection] = useState(0);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const totalLessons = curriculum.reduce((acc, m) => acc + m.lessons.length, 0);
+
+  return (
+    <>
+      <Header />
+      <main>
+        {/* Breadcrumb */}
+        <div className="bg-white border-b border-slate-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <nav className="flex items-center gap-2 text-sm text-slate-500">
+              <a href="index.html" className="hover:text-indigo-600">Home</a>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              <a href="courses.html" className="hover:text-indigo-600">Courses</a>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              <span className="text-slate-900 font-medium">Data Science</span>
+            </nav>
+          </div>
+        </div>
+
+        {/* Hero */}
+        <div className="bg-gradient-to-br from-slate-900 to-indigo-900 text-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="max-w-3xl">
+              <div className="flex flex-wrap gap-2 mb-4">
+                <span className="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">⭐ Bestseller</span>
+                <span className="bg-indigo-700 text-indigo-200 text-xs font-medium px-2.5 py-1 rounded-full">Data Science</span>
+                <span className="bg-amber-700/50 text-amber-300 text-xs font-medium px-2.5 py-1 rounded-full">Intermediate</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-4">Python for Data Science — Intermediate · 24 hours</h1>
+              <p className="text-indigo-200 text-lg leading-relaxed mb-6">Master Python, Pandas, NumPy, Matplotlib, and Scikit-Learn. Build real-world machine learning projects and earn a certificate recognized by top employers.</p>
+              <div className="flex flex-wrap items-center gap-4 text-sm mb-6">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-amber-400 text-lg">4.8</span>
+                  <Stars rating={4.8} />
+                  <span className="text-indigo-300">(12,847 ratings)</span>
+                </div>
+                <span className="text-indigo-300">·</span>
+                <span className="text-indigo-200">124,302 students enrolled</span>
+                <span className="text-indigo-300">·</span>
+                <span className="text-indigo-200">Last updated March 2026</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">SC</div>
+                <div>
+                  <p className="text-sm text-indigo-300">Instructor</p>
+                  <p className="font-semibold">Dr. Sarah Chen</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="flex flex-col lg:flex-row gap-10">
+            {/* Main Content */}
+            <div className="flex-1 min-w-0">
+              {/* What You'll Learn */}
+              <section className="bg-white rounded-2xl border border-slate-200 p-6 mb-8">
+                <h2 className="text-xl font-bold text-slate-900 mb-5">What You'll Learn</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    'Master Python programming from scratch to advanced level',
+                    'Work with Pandas & NumPy for data manipulation',
+                    'Create stunning visualizations with Matplotlib & Seaborn',
+                    'Build and evaluate machine learning models',
+                    'Apply regression, classification & clustering algorithms',
+                    'Deploy ML models to production with Flask',
+                    'Complete 5 real-world data science projects',
+                    'Earn an industry-recognized certificate of completion',
+                  ].map(item => (
+                    <div key={item} className="flex items-start gap-2.5">
+                      <svg className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                      <span className="text-sm text-slate-700">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Tabs */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-8">
+                <div className="flex border-b border-slate-200">
+                  {[['overview','Overview'],['curriculum','Curriculum'],['instructor','Instructor'],['reviews','Reviews']].map(([id, label]) => (
+                    <button key={id} onClick={() => setActiveTab(id)}
+                      className={`px-5 py-4 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab===id ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-600 hover:text-slate-900'}`}
+                    >{label}</button>
+                  ))}
+                </div>
+
+                <div className="p-6">
+                  {activeTab === 'overview' && (
+                    <div className="space-y-5">
+                      <div>
+                        <h3 className="font-bold text-slate-900 mb-2">Course Description</h3>
+                        <p className="text-sm text-slate-600 leading-relaxed">This comprehensive Python for Data Science course is designed to take you from a complete beginner to a confident data scientist. Whether you're looking to change careers, upskill, or explore data science for the first time, this course provides a structured, project-driven learning path.</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-600 leading-relaxed">You'll work with industry-standard tools including Pandas, NumPy, Matplotlib, Seaborn, and Scikit-Learn. Each module builds on the last, culminating in a full end-to-end machine learning pipeline capstone project that you can add directly to your portfolio.</p>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 mb-3">Requirements</h3>
+                        <ul className="space-y-1.5">
+                          {['Basic computer skills (no programming experience needed)','A computer with internet access (Mac, Windows, or Linux)','Enthusiasm to learn and practice consistently'].map(r => (
+                            <li key={r} className="flex items-start gap-2 text-sm text-slate-600">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5 flex-shrink-0"></span>
+                              {r}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900 mb-3">This course includes</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {includes.map(inc => (
+                            <div key={inc.label} className="flex items-center gap-3">
+                              <span className="text-xl">{inc.icon}</span>
+                              <span className="text-sm text-slate-700">{inc.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'curriculum' && (
+                    <div>
+                      <div className="flex items-center gap-4 mb-5 text-sm text-slate-500">
+                        <span>{curriculum.length} sections</span>
+                        <span>·</span>
+                        <span>{totalLessons} lessons</span>
+                        <span>·</span>
+                        <span>24h 5m total length</span>
+                      </div>
+                      <div className="space-y-3">
+                        {curriculum.map((section, i) => (
+                          <div key={i} className="border border-slate-200 rounded-xl overflow-hidden">
+                            <button
+                              onClick={() => setOpenSection(openSection === i ? -1 : i)}
+                              className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+                            >
+                              <div className="flex items-center gap-3">
+                                <svg className={`w-4 h-4 text-slate-500 transition-transform ${openSection === i ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                <span className="font-semibold text-slate-900 text-sm text-left">{section.title}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-slate-500 flex-shrink-0">
+                                <span>{section.lessons.length} lessons</span>
+                                <span>{section.duration}</span>
+                              </div>
+                            </button>
+                            {openSection === i && (
+                              <div className="divide-y divide-slate-100">
+                                {section.lessons.map((lesson, j) => (
+                                  <div key={j} className="flex items-center gap-3 px-5 py-3">
+                                    <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <span className="text-sm text-slate-700">{lesson}</span>
+                                    {j === 0 && <span className="ml-auto text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Preview</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'instructor' && (
+                    <div>
+                      <div className="flex items-start gap-5 mb-6">
+                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">SC</div>
+                        <div>
+                          <h3 className="text-xl font-bold text-slate-900">Dr. Sarah Chen</h3>
+                          <p className="text-slate-500 text-sm mt-0.5">PhD Computer Science · Former Lead Data Scientist at Google</p>
+                          <div className="flex flex-wrap gap-4 mt-3 text-sm text-slate-600">
+                            <span className="flex items-center gap-1"><svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>4.9 Instructor Rating</span>
+                            <span>👥 287,450 Students</span>
+                            <span>📚 8 Courses</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-600 leading-relaxed mb-4">Dr. Sarah Chen holds a PhD in Computer Science from MIT and spent over a decade as a Lead Data Scientist at Google, where she built large-scale ML systems for Search and Ads. She is passionate about making data science accessible to everyone and has taught over 287,000 students worldwide.</p>
+                      <p className="text-sm text-slate-600 leading-relaxed">Her teaching philosophy focuses on practical, project-based learning — every concept is immediately reinforced with real-world exercises. She actively participates in Q&A forums and releases regular course updates to reflect the latest industry tools and techniques.</p>
+                    </div>
+                  )}
+
+                  {activeTab === 'reviews' && (
+                    <div>
+                      <div className="flex flex-col sm:flex-row gap-8 mb-8">
+                        <div className="text-center">
+                          <div className="text-6xl font-extrabold text-slate-900 leading-none">4.8</div>
+                          <Stars rating={4.8} size="lg" />
+                          <p className="text-sm text-slate-500 mt-1">Course Rating</p>
+                        </div>
+                        <div className="flex-1">
+                          {[5,4,3,2,1].map(star => {
+                            const pct = star===5?68:star===4?22:star===3?7:star===2?2:1;
+                            return (
+                              <div key={star} className="flex items-center gap-3 mb-2">
+                                <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                  <div className="h-full bg-amber-400 rounded-full" style={{width:`${pct}%`}}></div>
+                                </div>
+                                <div className="flex gap-0.5">
+                                  {[1,2,3,4,5].map(i => <svg key={i} className={`w-3 h-3 ${i<=star?'text-amber-400':'text-slate-300'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
+                                </div>
+                                <span className="text-xs text-slate-500">{pct}%</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="space-y-5">
+                        {reviews.map((r, i) => (
+                          <div key={i} className="flex gap-4 pb-5 border-b border-slate-100 last:border-0">
+                            <div className={`w-10 h-10 rounded-full ${r.color} flex items-center justify-center text-white font-bold text-xs flex-shrink-0`}>{r.avatar}</div>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-slate-900 text-sm">{r.name}</span>
+                                <Stars rating={r.rating} />
+                                <span className="text-xs text-slate-400">{r.date}</span>
+                              </div>
+                              <p className="text-sm text-slate-600 leading-relaxed">{r.text}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Sticky Sidebar */}
+            <div className="lg:w-80 flex-shrink-0">
+              <div className="sticky top-24">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+                  <div className="bg-gradient-to-br from-blue-600 to-indigo-700 h-36 flex items-center justify-center">
+                    <span className="text-6xl">🐍</span>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-baseline gap-3 mb-1">
+                      <span className="text-3xl font-extrabold text-slate-900">$89</span>
+                      <span className="text-base text-slate-400 line-through">$179</span>
+                      <span className="text-sm font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg">50% OFF</span>
+                    </div>
+                    <p className="text-xs text-rose-600 font-medium mb-5">⏰ Offer ends in 2 days</p>
+                    <a href="study.html" className="block w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl text-center hover:bg-indigo-700 transition-colors shadow-sm mb-3">
+                      Enroll Now — $89
+                    </a>
+                    <a href="study.html" className="block w-full border-2 border-indigo-600 text-indigo-600 font-bold py-3 rounded-xl text-center hover:bg-indigo-50 transition-colors mb-5">
+                      Try Free Preview
+                    </a>
+                    <p className="text-xs text-slate-500 text-center mb-6">30-Day Money-Back Guarantee</p>
+                    <div className="space-y-3">
+                      <h4 className="font-bold text-slate-900 text-sm">This course includes:</h4>
+                      {includes.map(inc => (
+                        <div key={inc.label} className="flex items-center gap-2.5 text-xs text-slate-600">
+                          <span className="text-base">{inc.icon}</span>
+                          {inc.label}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-5 pt-5 border-t border-slate-100 flex justify-center gap-4 text-xs text-slate-500">
+                      <button className="hover:text-indigo-600">Share</button>
+                      <button className="hover:text-indigo-600">Gift this course</button>
+                      <button className="hover:text-indigo-600">Apply coupon</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-100 rounded-2xl p-4 mt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-emerald-600">✓</span>
+                    <span className="text-sm font-semibold text-slate-900">Training 5+ people?</span>
+                  </div>
+                  <p className="text-xs text-slate-600 mb-3">Get team access with LearnPath Teams for streamlined reporting and group discounts.</p>
+                  <a href="pricing.html" className="text-xs font-semibold text-indigo-600 hover:underline">Explore Teams Plan →</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

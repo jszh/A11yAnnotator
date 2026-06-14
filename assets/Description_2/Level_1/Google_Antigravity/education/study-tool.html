@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom - Medical Administrative Assistant Certificate</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                            950: '#042f2e',
+                        },
+                        accent: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        condensed: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f8fafc;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Common SVG Icons ---
+        const Icons = {
+            Menu: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
+            X: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
+            CheckCircle: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            PlayCircle: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            FileText: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+            Clock: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            Calendar: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+            Upload: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>,
+            MessageSquare: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>,
+            Download: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
+            ChevronDown: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
+            ChevronRight: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>,
+            Link: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>,
+            Video: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        };
+
+        // --- Lean App Header specific for classroom ---
+        const AppHeader = () => {
+            return (
+                <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50">
+                    <div className="max-w-[1600px] mx-auto px-4 sm:px-6">
+                        <div className="flex justify-between items-center h-16">
+                            <div className="flex-shrink-0 flex items-center gap-4">
+                                <a href="dashboard.html" className="flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-brand-500 rounded p-1">
+                                    <Icons.ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-white transform rotate-180 transition-colors" />
+                                    <div className="w-8 h-8 bg-brand-500 rounded flex items-center justify-center text-white font-bold text-xs">SF</div>
+                                </a>
+                                <div className="h-6 w-px bg-slate-700 hidden sm:block"></div>
+                                <div className="hidden sm:block">
+                                    <h1 className="text-sm font-semibold truncate max-w-xs md:max-w-md">Medical Administrative Assistant Certificate</h1>
+                                    <div className="flex items-center text-xs text-brand-300">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-brand-400 mr-1.5 animate-pulse"></div>
+                                        Cohort C-942
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <span className="text-sm font-medium hidden sm:inline-block">Week 3 of 8 <span className="text-slate-500 mx-2">|</span> 38% Complete</span>
+                                <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white border-2 border-slate-800 font-bold text-sm cursor-pointer shadow-sm hover:ring-2 hover:ring-brand-500 transition-all">
+                                    JS
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        // --- Component: Sidebar Agenda ---
+        const SidebarAgenda = ({ activeItem, setActiveItem }) => {
+            const modules = [
+                { id: 'w1', title: 'Week 1: Healthcare Ecosystem', completed: true },
+                { id: 'w2', title: 'Week 2: Patient Interaction', completed: true },
+                {
+                    id: 'w3',
+                    title: 'Week 3: Medical Billing Fundamentals',
+                    active: true,
+                    items: [
+                        { id: 'w3-1', type: 'video', title: '1. Introduction to Insurance Types', duration: '14 min', completed: true },
+                        { id: 'w3-2', type: 'reading', title: '2. Understanding Deductibles & Co-pays', duration: '20 min', completed: true },
+                        { id: 'w3-3', type: 'video', title: '3. Navigating Provider Portals', duration: '18 min', completed: false, isCurrent: true },
+                        { id: 'w3-4', type: 'assignment', title: '4. Practice: Verification Worksheet', duration: '45 min', completed: false },
+                        { id: 'w3-5', type: 'discussion', title: '5. Module Discussion', duration: 'Required', completed: false }
+                    ]
+                },
+                { id: 'w4', title: 'Week 4: HIPAA & Compliance', locked: true },
+                { id: 'w5', title: 'Week 5: Insurance Claims Lifecycle', locked: true },
+            ];
+
+            return (
+                <div className="w-full lg:w-80 border-r border-slate-200 bg-white h-full lg:h-[calc(100vh-64px)] overflow-y-auto flex-shrink-0 hidden lg:block pb-10">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50 sticky top-0 z-10 font-medium flex justify-between items-center text-sm">
+                        <span>Course Agenda</span>
+                        <span className="text-xs text-slate-500">Expand All</span>
+                    </div>
+
+                    <div className="divide-y divide-slate-100">
+                        {modules.map((mod) => (
+                            <div key={mod.id} className="">
+                                <button className={`w-full text-left px-4 py-3 flex items-center justify-between focus:outline-none focus:bg-slate-50 ${mod.active ? 'bg-brand-50/50' : 'hover:bg-slate-50'} ${mod.locked ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                                    <div className="flex items-center gap-2">
+                                        {mod.completed && <Icons.CheckCircle className="h-4 w-4 text-emerald-500" />}
+                                        {!mod.completed && !mod.locked && <div className="h-4 w-4 rounded-full border-2 border-slate-300"></div>}
+                                        {mod.locked && <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>}
+                                        <span className={`text-sm font-semibold ${mod.active ? 'text-brand-900' : 'text-slate-700'}`}>{mod.title}</span>
+                                    </div>
+                                    <Icons.ChevronDown className={`h-4 w-4 text-slate-400 ${mod.active ? 'transform rotate-180' : ''}`} />
+                                </button>
+
+                                {mod.active && mod.items && (
+                                    <div className="bg-white py-1 pb-2">
+                                        {mod.items.map(item => (
+                                            <button
+                                                key={item.id}
+                                                onClick={() => !item.locked && setActiveItem(item)}
+                                                className={`w-full text-left pl-8 pr-4 py-2.5 flex items-start gap-3 hover:bg-slate-50 focus:outline-none focus:bg-slate-50 ${item.isCurrent ? 'bg-brand-50 border-l-2 border-brand-500' : 'border-l-2 border-transparent'}`}
+                                            >
+                                                <div className="mt-0.5">
+                                                    {item.completed ? (
+                                                        <Icons.CheckCircle className="h-4 w-4 text-emerald-500" />
+                                                    ) : item.type === 'video' ? (
+                                                        <Icons.PlayCircle className={`h-4 w-4 ${item.isCurrent ? 'text-brand-600' : 'text-slate-400'}`} />
+                                                    ) : item.type === 'reading' ? (
+                                                        <Icons.FileText className={`h-4 w-4 ${item.isCurrent ? 'text-brand-600' : 'text-slate-400'}`} />
+                                                    ) : item.type === 'assignment' ? (
+                                                        <Icons.Upload className={`h-4 w-4 ${item.isCurrent ? 'text-brand-600' : 'text-slate-400'}`} />
+                                                    ) : (
+                                                        <Icons.MessageSquare className={`h-4 w-4 ${item.isCurrent ? 'text-brand-600' : 'text-slate-400'}`} />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className={`text-sm leading-tight ${item.isCurrent ? 'font-bold text-brand-900' : 'font-medium text-slate-700'}`}>{item.title}</p>
+                                                    <p className="text-xs text-slate-500 mt-1">{item.duration}</p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Component: Main Content Area ---
+        const MainContentArea = () => {
+            const [countdown, setCountdown] = useState({ hrs: 4, mins: 32, secs: 15 });
+
+            // Mock countdown effect
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setCountdown(prev => {
+                        let { hrs, mins, secs } = prev;
+                        if (secs > 0) secs--;
+                        else if (mins > 0) { mins--; secs = 59; }
+                        else if (hrs > 0) { hrs--; mins = 59; secs = 59; }
+                        return { hrs, mins, secs };
+                    });
+                }, 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            return (
+                <div className="flex-1 overflow-y-auto h-full lg:h-[calc(100vh-64px)] pb-12">
+                    <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+
+                        {/* Header Banner - Progress & Context */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-sm font-bold text-brand-600 uppercase tracking-wider mb-1">Week 3 Module</h2>
+                                <h1 className="text-3xl font-extrabold text-slate-900 font-condensed">Medical Billing Fundamentals</h1>
+                            </div>
+                            <div className="bg-white border border-slate-200 px-4 py-2 rounded-lg shadow-sm flex items-center gap-3">
+                                <Icons.Clock className="h-5 w-5 text-slate-400" />
+                                <div className="text-sm">
+                                    <span className="text-slate-500">Suggested pacing:</span>
+                                    <strong className="block text-slate-900">Due Sunday, 11:59 PM</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Live Session Alert Panel */}
+                        <div className="bg-slate-900 text-white rounded-xl shadow-lg border border-slate-800 p-1 overflow-hidden relative isolate">
+                            <div className="absolute inset-0 bg-brand-500/10 z-0"></div>
+                            <div className="relative z-10 bg-slate-900 rounded-lg p-5 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                                <div className="flex items-start gap-4 w-full md:w-auto">
+                                    <div className="h-12 w-12 rounded-full bg-accent-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-accent-500/30">
+                                        <Icons.Video className="h-6 w-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg mb-1 flex items-center">
+                                            Live Q&A Session <span className="ml-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded animate-pulse">LIVE SOON</span>
+                                        </h3>
+                                        <p className="text-slate-400 text-sm">Instructor Elena Rostova · Topic: Navigating Provider Portals</p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                                    <div className="flex gap-2 text-center">
+                                        <div className="bg-slate-800 rounded px-3 py-1.5 min-w-[50px] border border-slate-700">
+                                            <div className="text-xl font-bold font-condensed">{String(countdown.hrs).padStart(2, '0')}</div>
+                                            <div className="text-[10px] text-slate-400 uppercase font-bold">hrs</div>
+                                        </div>
+                                        <div className="text-xl font-bold font-condensed py-1.5">:</div>
+                                        <div className="bg-slate-800 rounded px-3 py-1.5 min-w-[50px] border border-slate-700">
+                                            <div className="text-xl font-bold font-condensed">{String(countdown.mins).padStart(2, '0')}</div>
+                                            <div className="text-[10px] text-slate-400 uppercase font-bold">min</div>
+                                        </div>
+                                        <div className="text-xl font-bold font-condensed py-1.5">:</div>
+                                        <div className="bg-slate-800 rounded px-3 py-1.5 min-w-[50px] border border-slate-700">
+                                            <div className="text-xl font-bold text-accent-400 font-condensed">{String(countdown.secs).padStart(2, '0')}</div>
+                                            <div className="text-[10px] text-slate-400 uppercase font-bold">sec</div>
+                                        </div>
+                                    </div>
+                                    <button className="w-full sm:w-auto bg-brand-500 hover:bg-brand-400 text-slate-900 font-bold px-6 py-2.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-slate-900">
+                                        Join Zoom Link
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Current Content Display (Mock Video) */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            {/* Video Placeholder */}
+                            <div className="aspect-video bg-slate-900 relative group flex items-center justify-center cursor-pointer">
+                                <img
+                                    src="https://images.unsplash.com/photo-1516542076529-1ea3854896f2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
+                                    alt="Video thumbnail of medical coding software"
+                                    className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+                                <div className="relative z-10 h-16 w-16 bg-brand-600/90 text-white rounded-full flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform shadow-xl">
+                                    <Icons.PlayCircle className="h-8 w-8 ml-1" />
+                                </div>
+                                <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center text-white z-10">
+                                    <div className="flex items-center gap-3">
+                                        <Icons.PlayCircle className="h-5 w-5" />
+                                        <div className="h-1.5 w-48 bg-slate-600 rounded-full overflow-hidden">
+                                            <div className="bg-brand-400 h-full w-0"></div>
+                                        </div>
+                                        <span className="text-xs font-medium">0:00 / 18:42</span>
+                                    </div>
+                                    <div className="text-xs font-semibold bg-black/50 px-2 py-1 rounded">CC</div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 md:p-8">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="bg-brand-50 text-brand-700 text-xs font-bold px-2.5 py-1 rounded uppercase tracking-wide">Video Lesson</span>
+                                            <span className="text-slate-500 text-sm flex items-center"><Icons.Clock className="h-4 w-4 mr-1" /> 18 min</span>
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-slate-900 font-condensed">3. Navigating Provider Portals</h3>
+                                    </div>
+                                    <button className="text-slate-400 hover:text-slate-600 focus:outline-none p-2 border border-slate-200 rounded hover:bg-slate-50" aria-label="Mark as complete">
+                                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                    </button>
+                                </div>
+                                <div className="prose prose-slate max-w-none text-slate-600">
+                                    <p>In this lesson, we walk through the interface of three major insurance provider portals (BlueCross, United, Aetna). You will learn how to verify patient eligibility before their appointment, check referral status, and locate the digital explanation of benefits (EOB).</p>
+                                    <p><strong>Key takeaways:</strong></p>
+                                    <ul>
+                                        <li>Identifying active vs inactive coverage statuses</li>
+                                        <li>Locating the specific plan deductible tracking</li>
+                                        <li>Downloading standard pre-authorization forms</li>
+                                    </ul>
+                                </div>
+
+                                <div className="mt-8 pt-6 border-t border-slate-200 flex justify-between items-center">
+                                    <button className="text-brand-600 font-medium hover:text-brand-800 focus:outline-none focus:underline flex items-center text-sm">
+                                        <svg className="h-4 w-4 mr-1 transform rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                        Previous: Deductibles
+                                    </button>
+                                    <button className="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-sm flex items-center">
+                                        Next Item <Icons.ChevronRight className="h-4 w-4 ml-1" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Interactive Widgets Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                            {/* Assignment Portal Widget */}
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                                <h3 className="font-bold text-slate-900 mb-4 flex items-center border-b border-slate-100 pb-3">
+                                    <Icons.Upload className="h-5 w-5 mr-2 text-indigo-500" />
+                                    Current Assignment
+                                </h3>
+                                <div>
+                                    <h4 className="font-bold text-sm text-slate-800 mb-1">Practice: Verification Worksheet</h4>
+                                    <p className="text-xs text-slate-500 mb-4 flex items-center">
+                                        <Icons.Calendar className="h-3 w-3 mr-1" /> Due: Sunday at 11:59 PM
+                                    </p>
+
+                                    <div className="bg-slate-50 border border-slate-200 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center">
+                                        <div className="w-10 h-10 bg-white shadow-sm border border-slate-200 rounded-full flex items-center justify-center mb-3 text-slate-400">
+                                            <Icons.Upload className="h-5 w-5" />
+                                        </div>
+                                        <p className="text-sm font-medium text-slate-700 mb-1">Upload completed worksheet here</p>
+                                        <p className="text-xs text-slate-500 mb-4">Accepts .pdf, .docx, .xlsx</p>
+                                        <button className="border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 px-4 py-2 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                            Browse Files
+                                        </button>
+                                    </div>
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded">Not Submitted</span>
+                                        <a href="#" className="text-xs text-brand-600 font-medium hover:underline flex items-center">
+                                            <Icons.Download className="h-3 w-3 mr-1" /> Download blank worksheet
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Module Resources & Discussion */}
+                            <div className="space-y-6 flex flex-col">
+                                {/* Resource Library */}
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex-1">
+                                    <h3 className="font-bold text-slate-900 mb-4 flex items-center border-b border-slate-100 pb-3">
+                                        <Icons.FileText className="h-5 w-5 mr-2 text-emerald-500" />
+                                        Module Resources
+                                    </h3>
+                                    <ul className="space-y-3">
+                                        {[
+                                            { icon: <Icons.FileText className="h-4 w-4 text-rose-500" />, name: 'Provider Portals Slide Deck.pdf' },
+                                            { icon: <Icons.FileText className="h-4 w-4 text-emerald-500" />, name: 'Common Denial Codes Cheat Sheet.xlsx' },
+                                            { icon: <Icons.Link className="h-4 w-4 text-blue-500" />, name: 'CMS.gov Official Billing Guidelines' }
+                                        ].map((r, i) => (
+                                            <li key={i}>
+                                                <a href="#" className="flex items-center text-sm text-slate-600 hover:text-brand-600 group focus:outline-none focus:text-brand-600">
+                                                    <span className="p-1.5 bg-slate-100 rounded mr-3 group-hover:bg-brand-50">{r.icon}</span>
+                                                    <span className="truncate group-hover:underline">{r.name}</span>
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                {/* Mini Discussion Board */}
+                                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex-1">
+                                    <h3 className="font-bold text-slate-900 mb-4 flex items-center border-b border-slate-100 pb-3">
+                                        <Icons.MessageSquare className="h-5 w-5 mr-2 text-amber-500" />
+                                        Cohort Discussion
+                                    </h3>
+                                    <div className="space-y-4 mb-4">
+                                        <div className="flex gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-xs text-slate-500 flex-shrink-0">
+                                                TJ
+                                            </div>
+                                            <div>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-xs font-bold text-slate-900">Tom J.</span>
+                                                    <span className="text-[10px] text-slate-500">2 hrs ago</span>
+                                                </div>
+                                                <p className="text-sm text-slate-600 mt-0.5 line-clamp-2">Does anyone have a good trick for remembering the difference between HMO and PPO auth requirements?</p>
+                                                <div className="mt-1 text-[11px] font-medium text-brand-600 cursor-pointer">3 replies</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button className="w-full border border-slate-200 bg-slate-50 text-slate-600 text-sm font-medium hover:bg-slate-100 px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                        Open Discussion Board
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ClassroomApp = () => {
+            const [activeItem, setActiveItem] = useState(null);
+
+            return (
+                <div className="min-h-screen flex flex-col font-sans overflow-hidden">
+                    <AppHeader />
+                    <div className="flex flex-1 overflow-hidden h-full">
+                        <SidebarAgenda activeItem={activeItem} setActiveItem={setActiveItem} />
+                        <MainContentArea />
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ClassroomApp />);
+    </script>
+</body>
+
+</html>

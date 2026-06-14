@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact — Vermont.gov</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1B5E20',
+            'primary-dark': '#145016',
+            'primary-light': '#E8F5E9',
+            'primary-mid': '#2E7D32',
+            secondary: '#1A2744',
+            accent: '#C8860A',
+            'accent-light': '#FFF8E1',
+            danger: '#B71C1C',
+            'danger-light': '#FFEBEE',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    :focus-visible { outline: 3px solid #C8860A !important; outline-offset: 2px !important; border-radius: 4px; }
+    .skip-link { position: absolute; top: -100%; left: 0.5rem; background: #C8860A; color: #000; padding: 0.5rem 1rem; font-weight: 600; border-radius: 0 0 4px 4px; z-index: 9999; text-decoration: none; }
+    .skip-link:focus { top: 0; }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .pulse-dot { animation: pulse-dot 2s infinite; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    const SkipNav = () => <a href="#main-content" className="skip-link">Skip to main content</a>;
+
+    const OfficialBanner = () => {
+      const [open, setOpen] = useState(false);
+      return (
+        <div className="bg-gray-700 text-white text-xs">
+          <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center gap-3">
+            <span className="flex items-center gap-1.5 font-medium">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944z" clipRule="evenodd" />
+              </svg>
+              An official website of the State of Vermont
+            </span>
+            <button onClick={() => setOpen(!open)} aria-expanded={open}
+              className="text-blue-300 underline hover:no-underline text-xs">Here's how you know</button>
+          </div>
+          {open && (
+            <div className="max-w-7xl mx-auto px-4 py-4 grid sm:grid-cols-2 gap-5 border-t border-gray-600 text-gray-300">
+              <div className="flex gap-3">
+                <svg className="w-6 h-6 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <div><p className="font-semibold text-white mb-0.5">Official websites use .gov</p><p>A .gov website belongs to an official government organization.</p></div>
+              </div>
+              <div className="flex gap-3">
+                <svg className="w-6 h-6 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <div><p className="font-semibold text-white mb-0.5">Secure .gov websites use HTTPS</p><p>Share sensitive info only on official, secure sites.</p></div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const Header = ({ current }) => {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [lang, setLang] = useState('EN');
+      const navLinks = [
+        { href: 'index.html', label: 'Home' },
+        { href: 'services.html', label: 'Services' },
+        { href: 'about.html', label: 'About Vermont' },
+        { href: 'contact.html', label: 'Contact' },
+      ];
+      return (
+        <header className="bg-white border-b-2 border-primary sticky top-0 z-40 shadow-sm" role="banner">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <a href="index.html" className="flex items-center gap-3" aria-label="Vermont.gov — Home">
+                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">VT</div>
+                <div>
+                  <div className="font-bold text-lg text-primary leading-none">Vermont.gov</div>
+                  <div className="text-xs text-gray-500 leading-none mt-0.5">Official State Portal</div>
+                </div>
+              </a>
+              <nav aria-label="Main navigation" className="hidden md:flex items-center gap-1">
+                {navLinks.map(link => (
+                  <a key={link.href} href={link.href} aria-current={current === link.label ? 'page' : undefined}
+                    className={`px-4 py-2 rounded text-sm font-medium transition-colors ${current === link.label ? 'bg-primary-light text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-primary'}`}>
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex gap-1" role="group" aria-label="Select language">
+                  {['EN','ES','FR'].map(l => (
+                    <button key={l} onClick={() => setLang(l)} aria-pressed={lang === l}
+                      aria-label={`Switch to ${l === 'EN' ? 'English' : l === 'ES' ? 'Spanish' : 'French'}`}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded border ${lang === l ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-300 hover:border-primary'}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen}
+                  aria-controls="mobile-nav-contact" aria-label="Toggle navigation menu"
+                  className="md:hidden p-2 rounded text-gray-600 hover:bg-gray-100">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    {menuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>}
+                  </svg>
+                </button>
+              </div>
+            </div>
+            {menuOpen && (
+              <nav id="mobile-nav-contact" aria-label="Mobile navigation" className="md:hidden py-3 border-t border-gray-100">
+                {navLinks.map(link => (
+                  <a key={link.href} href={link.href} aria-current={current === link.label ? 'page' : undefined}
+                    className={`block px-4 py-2.5 text-sm font-medium rounded mb-1 ${current === link.label ? 'bg-primary-light text-primary' : 'text-gray-700 hover:bg-gray-100'}`}>
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
+            )}
+          </div>
+        </header>
+      );
+    };
+
+    const Footer = () => (
+      <footer className="bg-secondary text-gray-300 pt-12 pb-6" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">VT</div>
+                <span className="font-bold text-white text-lg">Vermont.gov</span>
+              </div>
+              <p className="text-sm text-gray-400">Official portal for Vermont state government services.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Quick Links</h3>
+              <ul className="space-y-2 text-sm">
+                {["Renew Driver's License","Apply for Benefits","Register to Vote","Find a School","Business Licenses"].map(t => (
+                  <li key={t}><a href="#" className="hover:text-white">{t}</a></li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Departments</h3>
+              <ul className="space-y-2 text-sm">
+                {['DMV','Health','Education','Human Services','Tax Department'].map(t => (
+                  <li key={t}><a href="#" className="hover:text-white">{t}</a></li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">About</h3>
+              <ul className="space-y-2 text-sm">
+                {['Accessibility Statement','Privacy Policy','Site Disclaimer','Open Data','Site Map'].map(t => (
+                  <li key={t}><a href="#" className="hover:text-white">{t}</a></li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-600 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+            <p>© 2025 State of Vermont. All rights reserved.</p>
+            <p>Vermont State House · 115 State Street · Montpelier, VT 05633 · (802) 828-1110</p>
+          </div>
+        </div>
+      </footer>
+    );
+
+    /* ── Live Chat Widget ── */
+    const ChatWidget = () => {
+      const [open, setOpen] = useState(false);
+      const [messages, setMessages] = useState([
+        { from: 'agent', text: 'Hello! Welcome to Vermont Resident Services. How can I help you today?', time: '10:02 AM' }
+      ]);
+      const [input, setInput] = useState('');
+      const endRef = useRef(null);
+
+      const sendMessage = (e) => {
+        e.preventDefault();
+        if (!input.trim()) return;
+        const userMsg = { from: 'user', text: input.trim(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+        setMessages(prev => [...prev, userMsg]);
+        setInput('');
+        setTimeout(() => {
+          const replies = [
+            "I'd be happy to help you with that! Could you provide your case number or date of birth so I can look up your information?",
+            "That's a great question. You can renew your driver's license online at service-license.html or visit any DMV location.",
+            "For benefits questions, I recommend using our eligibility screener at service-benefits.html or I can connect you with a caseworker.",
+            "Let me look that up for you. One moment please…",
+          ];
+          setMessages(prev => [...prev, { from: 'agent', text: replies[Math.floor(Math.random() * replies.length)], time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+        }, 1200);
+      };
+
+      useEffect(() => {
+        if (endRef.current) endRef.current.scrollIntoView({ behavior: 'smooth' });
+      }, [messages]);
+
+      return (
+        <div className="fixed bottom-6 right-6 z-50" role="region" aria-label="Live chat with resident services">
+          {open && (
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-80 sm:w-96 mb-4 flex flex-col overflow-hidden"
+              role="dialog" aria-label="Live chat window" aria-modal="false">
+              {/* Chat Header */}
+              <div className="bg-primary px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white" aria-hidden="true">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+                        <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
+                      </svg>
+                    </div>
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-primary pulse-dot" aria-hidden="true"></span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white text-sm">Vermont Resident Services</p>
+                    <p className="text-green-200 text-xs flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block" aria-hidden="true"></span>
+                      Live · Mon–Fri 8am–5pm
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setOpen(false)} aria-label="Close chat window"
+                  className="text-white/80 hover:text-white p-1 rounded transition-colors">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-72 min-h-48" aria-live="polite" aria-label="Chat messages">
+                {messages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {msg.from === 'agent' && (
+                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold mr-2 flex-shrink-0 mt-1" aria-hidden="true">VT</div>
+                    )}
+                    <div className={`max-w-xs rounded-2xl px-3.5 py-2.5 ${msg.from === 'user' ? 'bg-primary text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'}`}>
+                      <p className="text-sm leading-relaxed">{msg.text}</p>
+                      <p className={`text-xs mt-1 ${msg.from === 'user' ? 'text-green-200' : 'text-gray-400'}`}>{msg.time}</p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={endRef} />
+              </div>
+
+              {/* Input */}
+              <div className="border-t border-gray-100 p-3">
+                <form onSubmit={sendMessage} aria-label="Send a message" className="flex gap-2">
+                  <label htmlFor="chat-input" className="sr-only">Type your message</label>
+                  <input id="chat-input" type="text" value={input} onChange={e => setInput(e.target.value)}
+                    placeholder="Type a message…"
+                    className="flex-1 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    aria-label="Type your message" />
+                  <button type="submit" disabled={!input.trim()}
+                    aria-label="Send message"
+                    className="bg-primary text-white p-2.5 rounded-xl hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                  </button>
+                </form>
+                <p className="text-xs text-gray-400 text-center mt-2">
+                  <svg className="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
+                  </svg>
+                  Secure · Encrypted · No account required
+                </p>
+              </div>
+            </div>
+          )}
+
+          <button onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            aria-label={open ? 'Close live chat' : 'Open live chat with a Vermont representative'}
+            className="bg-primary text-white w-16 h-16 rounded-full shadow-xl hover:bg-primary-dark transition-all flex items-center justify-center group relative">
+            {open
+              ? <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+              : <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/></svg>
+            }
+            {!open && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center" aria-hidden="true">
+                <span className="w-2 h-2 bg-white rounded-full pulse-dot"></span>
+              </span>
+            )}
+          </button>
+        </div>
+      );
+    };
+
+    /* ── Page: Contact ── */
+    const deptContacts = [
+      { dept: 'General Services', phone: '(802) 828-2229', tty: '(800) 253-0191', hours: 'Mon–Fri 8am–5pm', icon: '🏛️' },
+      { dept: "Dept. of Motor Vehicles", phone: '(802) 828-2000', tty: '(802) 828-2000', hours: 'Mon–Fri 7:45am–4:30pm', icon: '🚗' },
+      { dept: 'Dept. of Health', phone: '(802) 863-7240', tty: '(888) 253-8799', hours: 'Mon–Fri 8am–4:30pm', icon: '🏥' },
+      { dept: 'Agency of Human Services', phone: '(800) 287-0589', tty: '(800) 253-0191', hours: 'Mon–Fri 7:45am–4:30pm', icon: '🤝' },
+      { dept: 'Dept. of Taxes', phone: '(802) 828-2865', tty: '(800) 253-0191', hours: 'Mon–Fri 7:45am–4:30pm', icon: '📋' },
+      { dept: 'Agency of Education', phone: '(802) 479-1030', tty: '(800) 253-0191', hours: 'Mon–Fri 7:45am–4:30pm', icon: '🎓' },
+      { dept: 'Dept. of Labor', phone: '(877) 214-3330', tty: '(800) 639-6360', hours: 'Mon–Fri 8am–4pm', icon: '👷' },
+      { dept: 'Vermont State Police', phone: '(802) 244-8727', tty: 'Dial 711', hours: '24/7 Non-emergency', icon: '🛡️' },
+    ];
+
+    const ContactPage = () => {
+      const [formData, setFormData] = useState({ name: '', email: '', dept: '', category: '', message: '' });
+      const [errors, setErrors] = useState({});
+      const [submitted, setSubmitted] = useState(false);
+      const [searchDept, setSearchDept] = useState('');
+
+      const filteredDepts = searchDept.trim()
+        ? deptContacts.filter(d => d.dept.toLowerCase().includes(searchDept.toLowerCase()))
+        : deptContacts;
+
+      const validate = () => {
+        const e = {};
+        if (!formData.name.trim()) e.name = 'Your name is required.';
+        if (!formData.email.trim()) e.email = 'Your email address is required.';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = 'Please enter a valid email address.';
+        if (!formData.category) e.category = 'Please select a feedback category.';
+        if (!formData.message.trim()) e.message = 'Please describe your feedback or question.';
+        else if (formData.message.trim().length < 10) e.message = 'Please provide at least 10 characters.';
+        setErrors(e);
+        return Object.keys(e).length === 0;
+      };
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (validate()) setSubmitted(true);
+      };
+
+      return (
+        <main id="main-content" tabIndex={-1}>
+          {/* Page Header */}
+          <div className="bg-secondary text-white py-10 px-4">
+            <div className="max-w-7xl mx-auto">
+              <nav aria-label="Breadcrumb" className="text-sm text-gray-400 mb-3">
+                <ol className="flex items-center gap-2" role="list">
+                  <li><a href="index.html" className="hover:text-white">Home</a></li>
+                  <li aria-hidden="true">/</li>
+                  <li aria-current="page" className="text-white font-medium">Contact</li>
+                </ol>
+              </nav>
+              <h1 className="text-3xl sm:text-4xl font-extrabold mb-2">Contact Vermont.gov</h1>
+              <p className="text-gray-300 text-lg max-w-2xl">Find the right number, start a live chat, or send us feedback. We're here to help.</p>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            {/* Chat CTA */}
+            <div className="bg-primary text-white rounded-2xl p-6 sm:p-8 mb-10">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+                      <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold mb-1">Live Chat</h2>
+                    <p className="text-green-100 text-sm">Chat with a Vermont representative right now</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="w-2 h-2 bg-green-400 rounded-full pulse-dot" aria-hidden="true"></span>
+                      <span className="text-green-200 text-sm font-medium">Online now · Mon–Fri 8am–5pm EST</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-green-200">
+                  <p className="font-semibold text-white mb-1">Available for:</p>
+                  <ul className="space-y-1">
+                    {['Service questions','Application status','Benefits navigation','General guidance'].map(item => (
+                      <li key={item} className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                        </svg>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <p className="text-green-200 text-xs mt-4">
+                <svg className="w-3.5 h-3.5 inline mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
+                </svg>
+                Chat is secure and encrypted. No account required. Chat widget is available in the bottom-right corner of this page.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-10">
+              {/* Department Phone Directory */}
+              <section aria-labelledby="phone-heading">
+                <h2 id="phone-heading" className="text-2xl font-bold text-gray-900 mb-2">Department Phone Directory</h2>
+                <p className="text-gray-500 mb-5">Direct helpline numbers for each state department</p>
+
+                <div className="mb-4">
+                  <label htmlFor="dept-search" className="sr-only">Search departments</label>
+                  <div className="relative">
+                    <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+                    </svg>
+                    <input id="dept-search" type="search" value={searchDept} onChange={e => setSearchDept(e.target.value)}
+                      placeholder="Search departments…"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" />
+                  </div>
+                </div>
+
+                <ul className="space-y-3" role="list" aria-label="Department contact information">
+                  {filteredDepts.map(dept => (
+                    <li key={dept.dept}>
+                      <div className="bg-white rounded-xl border border-gray-200 p-4 hover:border-gray-300 transition-colors">
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl flex-shrink-0" aria-hidden="true">{dept.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 text-sm">{dept.dept}</p>
+                            <p className="text-xs text-gray-400 mb-2">{dept.hours}</p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-1">
+                              <a href={`tel:${dept.phone.replace(/\D/g,'')}`}
+                                className="flex items-center gap-1.5 text-primary font-semibold text-sm hover:underline"
+                                aria-label={`Call ${dept.dept} at ${dept.phone}`}>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                                </svg>
+                                {dept.phone}
+                              </a>
+                              <span className="text-xs text-gray-400 flex items-center gap-1">
+                                TTY: {dept.tty}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                {filteredDepts.length === 0 && (
+                  <p className="text-gray-500 text-center py-8">No departments found for "{searchDept}"</p>
+                )}
+
+                {/* Multilingual Support */}
+                <div className="mt-6 bg-accent-light border border-yellow-200 rounded-xl p-5">
+                  <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                    <span aria-hidden="true">🌐</span> Multilingual Support Available
+                  </h3>
+                  <p className="text-gray-600 text-sm leading-relaxed mb-3">
+                    Vermont resident services are available in <strong>English</strong>, <strong>Spanish (Español)</strong>, and <strong>French (Français)</strong>. When you call, say your preferred language and an interpreter will be connected.
+                  </p>
+                  <ul className="space-y-1 text-sm">
+                    <li className="flex items-center gap-2 text-gray-700"><span className="text-base" aria-hidden="true">🇺🇸</span> English: <a href="tel:18008282229" className="text-primary font-semibold hover:underline">(800) 828-2229</a></li>
+                    <li className="flex items-center gap-2 text-gray-700"><span className="text-base" aria-hidden="true">🇪🇸</span> Español: <a href="tel:18008282229" className="text-primary font-semibold hover:underline">(800) 828-2229</a> — Diga "Español"</li>
+                    <li className="flex items-center gap-2 text-gray-700"><span className="text-base" aria-hidden="true">🇫🇷</span> Français: <a href="tel:18008282229" className="text-primary font-semibold hover:underline">(800) 828-2229</a> — Dites "Français"</li>
+                    <li className="flex items-center gap-2 text-gray-700"><span className="text-base" aria-hidden="true">♿</span> TTY: <a href="tel:18002530191" className="text-primary font-semibold hover:underline">(800) 253-0191</a></li>
+                  </ul>
+                </div>
+              </section>
+
+              {/* Feedback Form */}
+              <section aria-labelledby="feedback-heading">
+                <h2 id="feedback-heading" className="text-2xl font-bold text-gray-900 mb-2">Website Feedback</h2>
+                <p className="text-gray-500 mb-5">Help us improve Vermont.gov. Your feedback goes directly to the Agency of Digital Services.</p>
+
+                {submitted ? (
+                  <div className="bg-primary-light border border-green-300 rounded-2xl p-8 text-center" role="alert" aria-live="polite">
+                    <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-primary mb-2">Thank You for Your Feedback!</h3>
+                    <p className="text-gray-600 mb-2">Your message has been submitted to the Vermont Agency of Digital Services.</p>
+                    <p className="text-gray-500 text-sm">We typically respond within 2–3 business days. A confirmation has been sent to <strong>{formData.email}</strong>.</p>
+                    <button onClick={() => { setSubmitted(false); setFormData({ name: '', email: '', dept: '', category: '', message: '' }); }}
+                      className="mt-6 text-primary font-semibold border-2 border-primary px-5 py-2 rounded-lg hover:bg-primary-light transition-colors text-sm">
+                      Submit Another Response
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} noValidate aria-describedby="feedback-note"
+                    className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
+                    <p id="feedback-note" className="text-xs text-gray-400">Fields marked with <span className="text-danger" aria-label="required">*</span> are required.</p>
+
+                    {/* Name */}
+                    <div>
+                      <label htmlFor="feedback-name" className="font-semibold text-gray-700 block text-sm mb-1.5">
+                        Your Name <span className="text-danger" aria-hidden="true">*</span>
+                      </label>
+                      {errors.name && <p role="alert" className="text-danger text-xs mb-1.5">{errors.name}</p>}
+                      <input id="feedback-name" type="text" value={formData.name}
+                        onChange={e => setFormData(p => ({...p, name: e.target.value}))}
+                        aria-required="true" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'name-error' : undefined}
+                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${errors.name ? 'border-danger' : 'border-gray-300'}`}
+                        placeholder="Jane Smith" />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label htmlFor="feedback-email" className="font-semibold text-gray-700 block text-sm mb-1.5">
+                        Email Address <span className="text-danger" aria-hidden="true">*</span>
+                      </label>
+                      {errors.email && <p role="alert" className="text-danger text-xs mb-1.5">{errors.email}</p>}
+                      <input id="feedback-email" type="email" value={formData.email}
+                        onChange={e => setFormData(p => ({...p, email: e.target.value}))}
+                        aria-required="true" aria-invalid={!!errors.email}
+                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${errors.email ? 'border-danger' : 'border-gray-300'}`}
+                        placeholder="jane@example.com" />
+                    </div>
+
+                    {/* Department (optional) */}
+                    <div>
+                      <label htmlFor="feedback-dept" className="font-semibold text-gray-700 block text-sm mb-1.5">
+                        Related Department <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                      </label>
+                      <select id="feedback-dept" value={formData.dept}
+                        onChange={e => setFormData(p => ({...p, dept: e.target.value}))}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                        <option value="">Select a department…</option>
+                        {['General Services','DMV','Dept. of Health','Agency of Human Services','Dept. of Taxes','Agency of Education','Dept. of Labor','Other'].map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <label htmlFor="feedback-category" className="font-semibold text-gray-700 block text-sm mb-1.5">
+                        Feedback Category <span className="text-danger" aria-hidden="true">*</span>
+                      </label>
+                      {errors.category && <p role="alert" className="text-danger text-xs mb-1.5">{errors.category}</p>}
+                      <select id="feedback-category" value={formData.category}
+                        onChange={e => setFormData(p => ({...p, category: e.target.value}))}
+                        aria-required="true" aria-invalid={!!errors.category}
+                        className={`w-full border rounded-lg px-4 py-2.5 text-sm text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${errors.category ? 'border-danger' : 'border-gray-300'}`}>
+                        <option value="">Select a category…</option>
+                        {['Website usability','Incorrect information','Broken link or error','Accessibility issue','Service improvement suggestion','Compliment','Other'].map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Message */}
+                    <div>
+                      <label htmlFor="feedback-message" className="font-semibold text-gray-700 block text-sm mb-1.5">
+                        Your Message <span className="text-danger" aria-hidden="true">*</span>
+                      </label>
+                      {errors.message && <p role="alert" className="text-danger text-xs mb-1.5">{errors.message}</p>}
+                      <textarea id="feedback-message" value={formData.message}
+                        onChange={e => setFormData(p => ({...p, message: e.target.value}))}
+                        rows={5} aria-required="true" aria-invalid={!!errors.message}
+                        aria-describedby="message-hint"
+                        placeholder="Describe your feedback, suggestion, or question in detail…"
+                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary resize-y ${errors.message ? 'border-danger' : 'border-gray-300'}`} />
+                      <p id="message-hint" className="text-xs text-gray-400 mt-1">
+                        {formData.message.length} characters · Please do not include personal information such as Social Security numbers.
+                      </p>
+                    </div>
+
+                    <button type="submit"
+                      className="w-full bg-primary text-white py-3.5 rounded-xl font-bold hover:bg-primary-dark transition-colors">
+                      Submit Feedback
+                    </button>
+                  </form>
+                )}
+              </section>
+            </div>
+          </div>
+          <ChatWidget />
+        </main>
+      );
+    };
+
+    const App = () => (
+      <div className="min-h-screen flex flex-col">
+        <SkipNav />
+        <OfficialBanner />
+        <Header current="Contact" />
+        <div className="flex-1"><ContactPage /></div>
+        <Footer />
+      </div>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

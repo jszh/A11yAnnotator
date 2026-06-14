@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard | LearnPath</title>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        secondary: {
+                            500: '#ec4899',
+                            600: '#db2777',
+                        },
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-heading {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .focus-ring {
+            @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+        }
+
+        /* Progress Ring Implementation */
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 flex flex-col min-h-screen pt-16">
+    <div id="root" class="flex items-start flex-grow max-w-[1600px] w-full mx-auto"></div>
+
+    <script type="text/babel">
+        // Icons Component Helper
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconRef = React.useRef(null);
+
+            React.useEffect(() => {
+                if (iconRef.current) {
+                    iconRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
+                    lucide.createIcons({
+                        icons: { [name]: lucide.icons[name] },
+                        nameAttr: 'data-lucide',
+                        attrs: {
+                            class: className,
+                            width: size,
+                            height: size,
+                            'stroke-width': 2
+                        }
+                    });
+                    
+                }
+            }, [name, size, className]);
+
+            return <span ref={iconRef} className="inline-flex items-center justify-center"></span>;
+        };
+
+        const TopNav = () => (
+            <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm h-16" role="banner">
+                <div className="flex justify-between items-center h-full px-4 sm:px-6">
+                    <div className="flex-shrink-0 flex items-center gap-2">
+                        <button className="lg:hidden text-gray-500 hover:text-dark-900 focus-ring rounded-md p-1 mr-2" aria-label="Open sidebar menu" aria-expanded="false" aria-controls="main-sidebar">
+                            <Icon name="Menu" size={24} />
+                        </button>
+                        <a href="index.html" className="flex items-center gap-2 focus-ring rounded-md" aria-label="LearnPath Homepage">
+                            <div className="bg-primary-600 text-white p-1.5 rounded-lg">
+                                <Icon name="BookOpen" size={20} />
+                            </div>
+                            <span className="font-heading font-bold text-xl text-dark-900 tracking-tight hidden sm:block">LearnPath</span>
+                        </a>
+                    </div>
+
+                    <div className="flex-grow max-w-xl mx-8 hidden md:block">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Icon name="Search" size={16} className="text-gray-400" />
+                            </div>
+                            <input type="search" className="form-input block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors" placeholder="Search courses, skills, and tools..." aria-label="Search all content" />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 border-l border-gray-200 pl-4 ml-auto md:ml-0">
+                        <button className="text-gray-500 hover:text-primary-600 focus-ring rounded-full p-1 relative" aria-label="Notifications, 3 unread">
+                            <Icon name="Bell" size={20} />
+                            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                        </button>
+                        <div className="flex items-center gap-2 cursor-pointer focus-ring rounded-md p-1" tabIndex="0" role="button" aria-haspopup="menu" aria-expanded="false" aria-label="User profile menu: Jordan">
+                            <img src="https://i.pravatar.cc/100?img=15" alt="Jordan's profile avatar" className="w-8 h-8 rounded-full border border-gray-200 object-cover" />
+                            <Icon name="ChevronDown" size={16} className="text-gray-500" />
+                        </div>
+                    </div>
+                </div>
+            </header>
+        );
+
+        const SidebarNav = () => (
+            <nav id="main-sidebar" className="hidden lg:flex flex-col w-64 fixed top-16 bottom-0 left-0 bg-white border-r border-gray-200 pt-6 px-4 z-40" aria-label="Sidebar Navigation">
+                <ul className="space-y-1">
+                    {[
+                        { name: "Dashboard", href: "#", icon: "LayoutDashboard", current: true },
+                        { name: "My Learning", href: "#", icon: "BookOpen", current: false },
+                        { name: "Certificates", href: "#", icon: "Award", current: false },
+                        { name: "Messages", href: "#", icon: "MessageSquare", current: false },
+                        { name: "Wishlist", href: "#", icon: "Heart", current: false },
+                        { name: "Account Settings", href: "#", icon: "Settings", current: false }
+                    ].map((item, idx) => (
+                        <li key={idx}>
+                            <a
+                                href={item.href}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors focus-ring ${item.current ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50 hover:text-dark-900'}`}
+                                aria-current={item.current ? "page" : undefined}
+                            >
+                                <Icon name={item.icon} size={20} className={item.current ? "text-primary-600" : "text-gray-400"} />
+                                {item.name}
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+
+                <div className="mt-auto pb-6">
+                    <div className="bg-gradient-to-r from-primary-600 to-indigo-700 rounded-xl p-4 text-white">
+                        <h4 className="font-heading font-bold mb-1">Go Pro!</h4>
+                        <p className="text-xs text-primary-100 mb-3 opacity-90">Unlock all 5,000+ courses and certificates.</p>
+                        <a href="pricing.html" className="block text-center w-full px-3 py-2 text-xs font-bold bg-white text-primary-700 rounded-lg hover:bg-gray-50 focus-ring transition-colors shadow-sm">Upgrade Plan</a>
+                    </div>
+                </div>
+            </nav>
+        );
+
+        const ProgressRing = ({ radius, stroke, progress, colorClass }) => {
+            const normalizedRadius = radius - stroke * 2;
+            const circumference = normalizedRadius * 2 * Math.PI;
+            const strokeDashoffset = circumference - progress / 100 * circumference;
+
+            return (
+                <svg
+                    height={radius * 2}
+                    width={radius * 2}
+                    className="progress-ring"
+                    aria-label={`Progress: ${progress}%`}
+                    role="progressbar"
+                    aria-valuenow={progress}
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                >
+                    <circle
+                        stroke="#f1f5f9"
+                        fill="transparent"
+                        strokeWidth={stroke}
+                        r={normalizedRadius}
+                        cx={radius}
+                        cy={radius}
+                    />
+                    <circle
+                        stroke="currentColor"
+                        fill="transparent"
+                        strokeWidth={stroke}
+                        strokeDasharray={circumference + ' ' + circumference}
+                        style={{ strokeDashoffset }}
+                        strokeLinecap="round"
+                        r={normalizedRadius}
+                        cx={radius}
+                        cy={radius}
+                        className={`progress-ring__circle ${colorClass}`}
+                    />
+                </svg>
+            );
+        };
+
+        const Dashboard = () => {
+            return (
+                <div className="flex w-full">
+                    <TopNav />
+                    <SidebarNav />
+
+                    {/* Main Content Area (Reading Order: Greeting -> In-Progress -> Recommended -> Achievements) */}
+                    <main id="main-content" className="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8 w-full max-w-5xl overflow-hidden" tabIndex="-1">
+
+                        {/* 1. Personalized Greeting Section */}
+                        <section aria-label="Welcome section" className="mb-8">
+                            <h1 className="text-3xl font-heading font-extrabold text-dark-900 mb-2">Welcome back, Jordan 👋</h1>
+                            <p className="text-gray-500">You're making great progress! Keep up the momentum.</p>
+
+                            {/* Streak Tracker */}
+                            <div className="mt-6 flex bg-white border border-gray-200 rounded-xl p-4 shadow-sm w-max" aria-label="Learning streak: 5 days">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-500">
+                                        <Icon name="Flame" size={24} className="fill-current" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-0.5">Current Streak</p>
+                                        <p className="font-heading font-bold text-xl text-dark-900">5 Days</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-1.5 ml-8 border-l border-gray-100 pl-6 my-1">
+                                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+                                        <div key={i} className="flex flex-col items-center gap-1" aria-label={`${day} ${i < 5 ? 'completed' : 'not completed'}`}>
+                                            <span className="text-[10px] text-gray-400 font-bold">{day}</span>
+                                            {i < 5 ? (
+                                                <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center">
+                                                    <Icon name="Check" size={12} />
+                                                </div>
+                                            ) : (
+                                                <div className="w-6 h-6 rounded-full bg-gray-100"></div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* 2. Overarching Grid for layout */}
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
+
+                            {/* Left Column (In-Progress) */}
+                            <div className="xl:col-span-2 flex flex-col gap-8">
+
+                                {/* In Progress Section */}
+                                <section aria-labelledby="in-progress-heading">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 id="in-progress-heading" className="text-xl font-heading font-bold text-dark-900">Continue Learning</h2>
+                                        <a href="#" className="text-sm font-semibold text-primary-600 hover:text-primary-700 focus-ring rounded-sm">View all</a>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {/* Course Card 1 */}
+                                        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row gap-5 items-start sm:items-center hover:shadow-md transition-shadow">
+                                            <div className="relative w-full sm:w-40 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                                                <img src="https://images.unsplash.com/photo-1555949963-aa79dcee981c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="" className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
+                                                    <div className="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center text-dark-900 shadow-md">
+                                                        <Icon name="Play" size={18} className="translate-x-0.5" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex-grow min-w-0">
+                                                <h3 className="font-heading font-bold text-lg text-dark-900 mb-1 truncate">Python for Data Science — Intermediate</h3>
+                                                <p className="text-sm text-gray-500 mb-3 truncate">Next up: Variables and Data Types</p>
+
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="relative w-10 h-10 flex items-center justify-center">
+                                                            <ProgressRing radius={20} stroke={4} progress={33} colorClass="text-primary-500" />
+                                                            <span className="absolute text-[10px] font-bold text-dark-900">33%</span>
+                                                        </div>
+                                                        <span className="text-xs text-gray-500 font-medium">4 of 12 lessons</span>
+                                                    </div>
+                                                    <a href="study-tool.html" className="bg-dark-900 hover:bg-black text-white text-sm font-semibold py-2 px-4 rounded-lg focus-ring transition-colors shadow" aria-label="Resume Python for Data Science course">
+                                                        Resume
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Course Card 2 */}
+                                        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row gap-5 items-start sm:items-center hover:shadow-md transition-shadow">
+                                            <div className="relative w-full sm:w-40 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                                                <img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="" className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
+                                                    <div className="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center text-dark-900 shadow-md">
+                                                        <Icon name="Play" size={18} className="translate-x-0.5" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex-grow min-w-0">
+                                                <h3 className="font-heading font-bold text-lg text-dark-900 mb-1 truncate">Complete UI/UX Design Masterclass</h3>
+                                                <p className="text-sm text-gray-500 mb-3 truncate">Next up: Wireframing basics</p>
+
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="relative w-10 h-10 flex items-center justify-center">
+                                                            <ProgressRing radius={20} stroke={4} progress={78} colorClass="text-emerald-500" />
+                                                            <span className="absolute text-[10px] font-bold text-dark-900">78%</span>
+                                                        </div>
+                                                        <span className="text-xs text-gray-500 font-medium">9 of 12 lessons</span>
+                                                    </div>
+                                                    <a href="#" className="bg-white border border-gray-300 text-dark-900 hover:bg-gray-50 text-sm font-semibold py-2 px-4 rounded-lg focus-ring transition-colors shadow-sm" aria-label="Resume UI/UX Design Masterclass course">
+                                                        Resume
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* 3. Recommended Section */}
+                                <section aria-labelledby="recommended-heading">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h2 id="recommended-heading" className="text-xl font-heading font-bold text-dark-900">Recommended for You</h2>
+                                        <div className="flex gap-2">
+                                            <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-dark-900 hover:bg-gray-50 focus-ring" aria-label="Previous recommended items">
+                                                <Icon name="ChevronLeft" size={16} />
+                                            </button>
+                                            <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:text-dark-900 hover:bg-gray-50 focus-ring" aria-label="Next recommended items">
+                                                <Icon name="ChevronRight" size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Rec 1 */}
+                                        <a href="course-detail.html" className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow group focus-ring block" aria-label="Recommended course: Machine Learning A-Z">
+                                            <div className="h-32 bg-gray-200 overflow-hidden relative">
+                                                <img src="https://images.unsplash.com/photo-1515879218367-8466d910aaa4?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            </div>
+                                            <div className="p-4">
+                                                <h3 className="font-heading font-bold text-dark-900 text-sm mb-1 truncate group-hover:text-primary-600 transition-colors">Machine Learning A-Z: Python & R</h3>
+                                                <div className="flex items-center gap-1 text-xs text-amber-500 font-semibold mb-2">
+                                                    <span>4.5</span>
+                                                    <Icon name="Star" size={12} className="fill-current" />
+                                                    <span className="text-gray-400 font-normal ml-1">(15k)</span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 truncate">Because you enrolled in Python Data Science</p>
+                                            </div>
+                                        </a>
+
+                                        {/* Rec 2 */}
+                                        <a href="#" className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow group focus-ring block hidden md:block" aria-label="Recommended course: Product Design Process">
+                                            <div className="h-32 bg-gray-200 overflow-hidden relative">
+                                                <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            </div>
+                                            <div className="p-4">
+                                                <h3 className="font-heading font-bold text-dark-900 text-sm mb-1 truncate group-hover:text-primary-600 transition-colors">Product Design Process Masters</h3>
+                                                <div className="flex items-center gap-1 text-xs text-amber-500 font-semibold mb-2">
+                                                    <span>4.9</span>
+                                                    <Icon name="Star" size={12} className="fill-current" />
+                                                    <span className="text-gray-400 font-normal ml-1">(8.2k)</span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 truncate">Because you enrolled in UI/UX Design</p>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </section>
+
+                            </div>
+
+                            {/* Right Column (Achievements & Stats) */}
+                            <div className="xl:col-span-1 flex flex-col gap-8">
+
+                                {/* 4. Achievements Section */}
+                                <section aria-labelledby="achievements-heading">
+                                    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h2 id="achievements-heading" className="text-lg font-heading font-bold text-dark-900">Your Achievements</h2>
+                                            <a href="#" className="text-sm font-semibold text-primary-600 hover:text-primary-700 focus-ring rounded-sm">See all</a>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-4 text-center">
+                                            <div className="flex flex-col items-center">
+                                                <div className="w-14 h-14 rounded-full bg-yellow-100 border-2 border-yellow-300 flex items-center justify-center text-yellow-600 mb-2 shadow-sm" aria-label="Achievement unlocked: First Course Completed, Gold Medal">
+                                                    <Icon name="Medal" size={24} className="fill-current" />
+                                                </div>
+                                                <span className="text-xs font-semibold text-dark-900">Initiator</span>
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <div className="w-14 h-14 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center text-blue-600 mb-2 shadow-sm" aria-label="Achievement unlocked: 3 Day Streak">
+                                                    <Icon name="Zap" size={24} className="fill-current" />
+                                                </div>
+                                                <span className="text-xs font-semibold text-dark-900">Spark</span>
+                                            </div>
+                                            <div className="flex flex-col items-center opacity-40 grayscale group" aria-label="Locked achievement: Complete 5 courses">
+                                                <div className="w-14 h-14 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center relative mb-2">
+                                                    <Icon name="Target" size={24} className="text-gray-400" />
+                                                    <div className="absolute top-0 right-0 -mr-1 -mt-1 bg-gray-500 text-white rounded-full p-0.5" aria-hidden="true"><Icon name="Lock" size={10} /></div>
+                                                </div>
+                                                <span className="text-xs font-semibold text-gray-500">Scholar</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-8 pt-6 border-t border-gray-100">
+                                            <h3 className="text-sm font-semibold text-gray-500 mb-4 uppercase tracking-wider">Weekly Goals</h3>
+
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <div className="flex justify-between text-sm mb-1 font-medium">
+                                                        <span className="text-dark-900">Study Time (4h / 5h)</span>
+                                                        <span className="text-primary-600">80%</span>
+                                                    </div>
+                                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden" aria-label="Study Time Progress Bar" role="progressbar" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100">
+                                                        <div className="h-full bg-primary-500 rounded-full" style={{ width: '80%' }}></div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="flex justify-between text-sm mb-1 font-medium">
+                                                        <span className="text-dark-900">Lessons Completed (12 / 10)</span>
+                                                        <span className="text-emerald-600 text-xs py-0.5 px-1.5 bg-emerald-50 rounded">Goal Met!</span>
+                                                    </div>
+                                                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden" aria-label="Lessons Completed Progress Bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                                                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: '100%' }}></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Dashboard />);
+    </script>
+</body>
+
+</html>

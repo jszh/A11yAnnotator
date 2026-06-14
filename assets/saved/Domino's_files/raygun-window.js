@@ -1,0 +1,1 @@
+!(function(a,e,h){(a.RaygunObject=e),(a[e]=a[e]||function(){(a[e].o=a[e].o||[]).push(arguments);}),(h=a.onerror),(a.onerror=function(b,c,d,f,g){h&&h(b,c,d,f,g),g||(g=newError(b)),(a[e].q=a[e].q||[]),a[e].q.push({e:g,});});})(window,"rg4js");

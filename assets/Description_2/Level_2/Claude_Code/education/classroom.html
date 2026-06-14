@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Classroom — Week 3 | SkillForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'sf-navy':   '#1B3F6B',
+            'sf-navy-h': '#254F82',
+            'sf-amber':  '#E8760A',
+            'sf-amber-h':'#D06508',
+            'sf-teal':   '#1D7A8A',
+            'sf-light':  '#F0F4F8',
+            'sf-green':  '#1A7F4B',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #F0F4F8; color: #111827; }
+    :focus-visible { outline: 3px solid #E8760A !important; outline-offset: 2px !important; }
+    .skip-link { position: absolute; top: -56px; left: 8px; background: #1B3F6B; color: #fff; padding: 10px 18px; z-index: 9999; border-radius: 6px; font-weight: 600; transition: top 0.15s; text-decoration: none; font-size: 0.9rem; }
+    .skip-link:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    /* cat_6: floating progress bar must not obscure focused lesson items */
+    .progress-bar-float { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; pointer-events: none; }
+    /* Video player */
+    .video-player:focus-within { outline: 3px solid #E8760A; }
+    /* lesson nav — cat_10: sidebar after main content in DOM */
+    @media (min-width: 1024px) {
+      .classroom-layout { display: grid; grid-template-columns: 1fr 18rem; gap: 1.5rem; }
+      .lesson-sidebar { order: 2; }
+      .lesson-main { order: 1; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    /* ─── Shared Header ─────────────────────────────────────────────── */
+    function Header() {
+      return (
+        <header className="bg-sf-navy text-white sticky top-0 z-50 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14 gap-4">
+            <a href="index.html" className="font-extrabold text-lg tracking-tight" aria-label="SkillForge — Go to homepage">
+              Skill<span className="text-sf-amber">Forge</span>
+            </a>
+            <div className="flex items-center gap-2 text-xs text-blue-200">
+              <span>Medical Admin Certificate</span>
+              <span aria-hidden="true">·</span>
+              <span className="font-semibold text-white">Week 3 of 8</span>
+            </div>
+            <nav aria-label="Classroom navigation" className="flex items-center gap-3">
+              <a href="dashboard.html" className="text-sm text-gray-200 hover:text-white">Dashboard</a>
+              <a href="courses.html" className="text-sm text-gray-200 hover:text-white">Browse</a>
+            </nav>
+          </div>
+        </header>
+      );
+    }
+
+    /* ─── Countdown Timer ───────────────────────────────────────────── */
+    function CountdownTimer() {
+      // Fixed target: 2 days, 4 hours, 27 minutes from "now" in the mockup
+      const [secs, setSecs] = useState(2 * 86400 + 4 * 3600 + 27 * 60 + 14);
+
+      useEffect(() => {
+        const t = setInterval(() => setSecs(s => Math.max(0, s - 1)), 1000);
+        return () => clearInterval(t);
+      }, []);
+
+      const d = Math.floor(secs / 86400);
+      const h = Math.floor((secs % 86400) / 3600);
+      const m = Math.floor((secs % 3600) / 60);
+      const s = secs % 60;
+      const pad = n => String(n).padStart(2, '0');
+
+      return (
+        <div className="bg-sf-navy rounded-xl p-5 text-white" aria-label="Countdown to next live session">
+          <p className="text-xs font-semibold text-blue-200 uppercase tracking-wide mb-3">Next Live Session</p>
+          <p className="font-bold text-sm mb-3">Medical Billing Fundamentals — Tue, Mar 11 · 7:00 PM ET</p>
+          <div className="flex gap-3 text-center" aria-label={`${d} days, ${h} hours, ${m} minutes, ${s} seconds remaining`}>
+            {[['Days', d], ['Hours', h], ['Mins', m], ['Secs', s]].map(([label, val]) => (
+              <div key={label} aria-hidden="true">
+                <div className="bg-white/10 rounded-lg px-3 py-2 text-2xl font-extrabold">{pad(val)}</div>
+                <div className="text-xs text-blue-300 mt-1">{label}</div>
+              </div>
+            ))}
+          </div>
+          <a href="#" aria-label="Join the live session for Medical Billing Fundamentals"
+            className="block mt-4 w-full text-center bg-sf-amber hover:bg-sf-amber-h text-white font-bold py-2.5 rounded-lg transition-colors text-sm">
+            Join Live Session
+          </a>
+        </div>
+      );
+    }
+
+    /* ─── Video Player ──────────────────────────────────────────────── */
+    /* cat_1, cat_4, cat_6: labeled controls, keyboard shortcuts, visible focus */
+    function VideoPlayer({ lesson }) {
+      const [playing, setPlaying] = useState(false);
+      const [progress, setProgress] = useState(32); // percentage
+      const [volume, setVolume] = useState(80);
+      const [muted, setMuted] = useState(false);
+      const [fullscreen, setFullscreen] = useState(false);
+      const progressBarRef = useRef(null);
+      const liveRef = useRef(null);
+
+      // cat_7: loading state via aria-busy
+      const [loading, setLoading] = useState(false);
+
+      function togglePlay() {
+        setPlaying(p => !p);
+      }
+
+      function seek(delta) {
+        setProgress(p => Math.min(100, Math.max(0, p + delta)));
+      }
+
+      // cat_4: keyboard shortcuts for video player
+      useEffect(() => {
+        function onKey(e) {
+          const el = document.activeElement;
+          const inPlayer = el?.closest('[data-player]');
+          if (!inPlayer) return;
+          if (e.key === ' ' || e.key === 'k') { e.preventDefault(); togglePlay(); }
+          if (e.key === 'ArrowRight') { e.preventDefault(); seek(2); }
+          if (e.key === 'ArrowLeft')  { e.preventDefault(); seek(-2); }
+          if (e.key === 'm')          { e.preventDefault(); setMuted(m => !m); }
+          if (e.key === 'f')          { e.preventDefault(); setFullscreen(f => !f); }
+        }
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+      }, []);
+
+      function handleProgressKey(e) {
+        if (e.key === 'ArrowRight') { e.preventDefault(); seek(2); }
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); seek(-2); }
+        if (e.key === 'Home')       { e.preventDefault(); setProgress(0); }
+        if (e.key === 'End')        { e.preventDefault(); setProgress(100); }
+      }
+
+      const totalMinutes = 28;
+      const elapsed = Math.round(totalMinutes * progress / 100);
+
+      return (
+        <div data-player className="bg-black rounded-xl overflow-hidden" aria-label={`Video player: ${lesson}`}>
+          {/* Video area */}
+          <div className="relative aspect-video bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center" aria-hidden="true">
+            <div className="text-center text-white/60">
+              <div className="text-6xl mb-2">🎓</div>
+              <p className="text-sm font-medium text-white/80">{lesson}</p>
+              <p className="text-xs mt-1">{playing ? '▶ Playing…' : '⏸ Paused'}</p>
+            </div>
+            {loading && (
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-sf-amber border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+          </div>
+
+          {/* cat_7: aria-busy on content region */}
+          <div aria-live="polite" aria-atomic="true" className="sr-only" ref={liveRef}>
+            {playing ? `Now playing: ${lesson}` : `Paused: ${lesson}, at ${elapsed} of ${totalMinutes} minutes`}
+          </div>
+
+          {/* Controls */}
+          {/* cat_6: controls must not permanently hide focus indicators */}
+          <div className="bg-gray-900 px-4 py-3 space-y-2">
+            {/* Progress */}
+            <div className="flex items-center gap-3">
+              <span className="text-gray-400 text-xs tabular-nums min-w-8">{elapsed}m</span>
+              <div className="flex-1 relative">
+                <label htmlFor="video-progress" className="sr-only">Video progress: {elapsed} of {totalMinutes} minutes</label>
+                <input id="video-progress" type="range" min={0} max={100} value={progress}
+                  ref={progressBarRef}
+                  aria-valuetext={`${elapsed} minutes of ${totalMinutes} minutes played`}
+                  onChange={e => setProgress(Number(e.target.value))}
+                  onKeyDown={handleProgressKey}
+                  className="w-full accent-sf-amber h-1.5 rounded-full cursor-pointer"
+                  style={{ background: `linear-gradient(to right, #E8760A ${progress}%, #4B5563 ${progress}%)` }} />
+              </div>
+              <span className="text-gray-400 text-xs tabular-nums min-w-8">{totalMinutes}m</span>
+            </div>
+
+            {/* Buttons row */}
+            <div className="flex items-center gap-2">
+              <button onClick={togglePlay} aria-label={playing ? 'Pause video' : 'Play video'}
+                className="text-white hover:text-sf-amber p-1.5 rounded transition-colors">
+                {playing
+                  ? <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                  : <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>}
+              </button>
+
+              <button aria-label="Rewind 10 seconds" onClick={() => seek(-5)}
+                className="text-white hover:text-sf-amber p-1.5 rounded transition-colors">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+              </button>
+
+              <button aria-label="Fast forward 10 seconds" onClick={() => seek(5)}
+                className="text-white hover:text-sf-amber p-1.5 rounded transition-colors">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6z"/></svg>
+              </button>
+
+              {/* Volume */}
+              <div className="flex items-center gap-1.5 ml-1">
+                <button aria-label={muted ? 'Unmute video' : 'Mute video'} onClick={() => setMuted(m => !m)}
+                  className="text-white hover:text-sf-amber p-1.5 rounded transition-colors">
+                  {muted
+                    ? <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06A8.99 8.99 0 0 0 17.73 18 17.6 17.6 0 0 0 19.73 3L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/></svg>
+                    : <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>}
+                </button>
+                <label htmlFor="video-volume" className="sr-only">Volume: {volume}%</label>
+                <input id="video-volume" type="range" min={0} max={100} value={muted ? 0 : volume}
+                  aria-label="Volume"
+                  onChange={e => { setVolume(Number(e.target.value)); if (Number(e.target.value) > 0) setMuted(false); }}
+                  className="w-16 accent-sf-amber h-1" />
+              </div>
+
+              <div className="flex-1" />
+              <span className="text-gray-400 text-xs">Space=Play · ← →=Seek · M=Mute · F=Fullscreen</span>
+
+              <button aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} onClick={() => setFullscreen(f => !f)}
+                className="text-white hover:text-sf-amber p-1.5 rounded transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  {fullscreen
+                    ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9H4m5 0V4M15 9h5m-5 0V4M9 15H4m5 0v5M15 15h5m-5 0v5" />
+                    : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />}
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── Lessons sidebar ──────────────────────────────────────────── */
+    /* cat_1, cat_7: lesson completion with aria-checked / aria-label */
+    const lessons = [
+      { id: 1,  title: 'Welcome & Program Overview',           done: true,  mins: 8 },
+      { id: 2,  title: 'US Healthcare System Structure',       done: true,  mins: 22 },
+      { id: 3,  title: 'Medical Terminology: Prefixes',        done: true,  mins: 18 },
+      { id: 4,  title: 'Medical Terminology: Suffixes',        done: true,  mins: 16 },
+      { id: 5,  title: 'HIPAA Basics & Patient Privacy',       done: true,  mins: 25 },
+      { id: 6,  title: 'EHR Software Walkthrough',             done: true,  mins: 30 },
+      { id: 7,  title: 'Medical Billing Fundamentals — Pt 1',  done: false, mins: 28, active: true },
+      { id: 8,  title: 'Medical Billing Fundamentals — Pt 2',  done: false, mins: 32 },
+      { id: 9,  title: 'Insurance Claims Processing',          done: false, mins: 26 },
+      { id: 10, title: 'Denial Management Strategies',         done: false, mins: 20 },
+    ];
+
+    function LessonSidebar({ currentId, onSelect }) {
+      return (
+        <nav aria-label="Course lessons" className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-sf-light px-5 py-4 border-b border-gray-100">
+            <p className="font-bold text-sf-navy text-sm">Week 3 of 8</p>
+            <p className="text-xs text-gray-500 mt-0.5">Medical Billing Fundamentals</p>
+            <div className="mt-2 bg-gray-200 rounded-full h-1.5" aria-hidden="true">
+              <div className="bg-sf-amber h-1.5 rounded-full" style={{ width: '60%' }} />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">6 of 10 lessons complete</p>
+          </div>
+          <ol className="divide-y divide-gray-50">
+            {lessons.map(l => {
+              const isCurrent = l.id === currentId;
+              return (
+                <li key={l.id}>
+                  <button
+                    onClick={() => onSelect(l.id)}
+                    aria-label={`${l.title}${l.done ? ' — Completed' : ''}${isCurrent ? ' — Currently playing' : ''} — ${l.mins} minutes`}
+                    aria-current={isCurrent ? 'true' : undefined}
+                    aria-pressed={isCurrent}
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors text-sm
+                      ${isCurrent ? 'bg-amber-50 border-l-4 border-sf-amber' : 'hover:bg-gray-50'}
+                    `}>
+                    {/* cat_1: progress indicator conveys meaning */}
+                    <span
+                      aria-hidden="true"
+                      role="img"
+                      className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs
+                        ${l.done ? 'bg-sf-green text-white' : isCurrent ? 'bg-sf-amber text-white' : 'bg-gray-100 text-gray-400'}`}>
+                      {l.done ? '✓' : isCurrent ? '▶' : l.id}
+                    </span>
+                    <span className={`flex-1 leading-snug ${l.done ? 'line-through text-gray-400' : isCurrent ? 'font-semibold text-sf-navy' : 'text-gray-600'}`}>
+                      {l.title}
+                    </span>
+                    <span className="text-xs text-gray-400 flex-shrink-0">{l.mins}m</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      );
+    }
+
+    /* ─── Discussion Board ─────────────────────────────────────────── */
+    function DiscussionBoard() {
+      const [posts, setPosts] = useState([
+        { id: 1, author: 'Maria G.', time: '2h ago', content: 'Quick question — does EHR cover all the billing codes or do we need a separate tool?', replies: 3 },
+        { id: 2, author: 'James T.', time: '4h ago', content: 'The ICD-10 section was really helpful. Does anyone know a good app to practice codes?', replies: 1 },
+        { id: 3, author: 'Dr. Angela Reyes', time: '5h ago', content: 'Great work this week everyone! Reminder: Q&A session is Tuesday at 7PM ET. Come prepared with billing questions!', replies: 5, instructor: true },
+      ]);
+      const [reply, setReply] = useState('');
+      const liveRef = useRef(null);
+
+      function submitPost(e) {
+        e.preventDefault();
+        if (!reply.trim()) return;
+        const newPost = { id: Date.now(), author: 'You', time: 'Just now', content: reply, replies: 0 };
+        setPosts(p => [newPost, ...p]);
+        setReply('');
+        liveRef.current?.setAttribute('aria-label', 'Post submitted successfully');
+      }
+
+      return (
+        <section aria-labelledby="discussion-heading" className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div ref={liveRef} aria-live="polite" className="sr-only"></div>
+          <h2 id="discussion-heading" className="text-xl font-bold text-sf-navy mb-5">Peer Discussion — Week 3</h2>
+          <form onSubmit={submitPost} aria-label="Post to discussion board" className="mb-6">
+            <label htmlFor="discussion-post" className="text-sm font-medium text-gray-700 mb-2 block">Share a question or insight</label>
+            <textarea id="discussion-post" value={reply} onChange={e => setReply(e.target.value)}
+              rows={3} placeholder="Ask a question or share what you learned…"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sf-amber resize-none"
+              aria-required="true" />
+            <div className="flex justify-end mt-2">
+              <button type="submit"
+                className="bg-sf-navy text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-sf-navy-h transition-colors">
+                Post
+              </button>
+            </div>
+          </form>
+          <ul className="space-y-4" aria-label="Discussion posts">
+            {posts.map(p => (
+              <li key={p.id} className={`rounded-lg p-4 border ${p.instructor ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-sf-light'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center ${p.instructor ? 'bg-sf-amber text-white' : 'bg-sf-navy text-white'}`} aria-hidden="true">
+                    {p.author.charAt(0)}
+                  </div>
+                  <span className="text-sm font-semibold text-sf-navy">{p.author}</span>
+                  {p.instructor && <span className="text-xs bg-sf-amber text-white px-1.5 py-0.5 rounded-full font-medium">Instructor</span>}
+                  <span className="text-xs text-gray-400 ml-auto">{p.time}</span>
+                </div>
+                <p className="text-sm text-gray-700 leading-relaxed">{p.content}</p>
+                <button aria-label={`Reply to ${p.author}'s post — ${p.replies} ${p.replies === 1 ? 'reply' : 'replies'}`}
+                  className="mt-2 text-xs text-sf-teal hover:underline font-medium">
+                  {p.replies} {p.replies === 1 ? 'Reply' : 'Replies'} · Reply
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    }
+
+    /* ─── Resource Library ─────────────────────────────────────────── */
+    function ResourceLibrary() {
+      const resources = [
+        { type: 'PDF', title: 'Week 3 Slides — Medical Billing Fundamentals', size: '2.1 MB', icon: '📄' },
+        { type: 'PDF', title: 'ICD-10 Quick Reference Guide', size: '880 KB', icon: '📋' },
+        { type: 'XLS', title: 'Billing Practice Worksheet', size: '340 KB', icon: '📊' },
+        { type: 'LINK', title: 'CMS Medical Billing Resources', size: 'External', icon: '🔗' },
+        { type: 'PDF', title: 'HIPAA Compliance Checklist', size: '420 KB', icon: '✅' },
+        { type: 'VIDEO', title: 'Supplemental: EHR Kareo Demo', size: '18 min', icon: '▶️' },
+      ];
+      return (
+        <section aria-labelledby="resources-heading" className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 id="resources-heading" className="text-xl font-bold text-sf-navy mb-5">Resource Library</h2>
+          <ul className="space-y-2" aria-label="Downloadable course resources">
+            {resources.map(r => (
+              <li key={r.title}>
+                <a href="#" aria-label={`Download ${r.title} — ${r.size}`}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-sf-light transition-colors group border border-transparent hover:border-gray-100">
+                  <span className="text-xl flex-shrink-0" aria-hidden="true">{r.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-sf-navy group-hover:text-sf-amber transition-colors truncate">{r.title}</p>
+                    <p className="text-xs text-gray-400">{r.type} · {r.size}</p>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-300 group-hover:text-sf-amber flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    }
+
+    /* ─── Assignment Submission ────────────────────────────────────── */
+    function AssignmentPortal() {
+      const [submitted, setSubmitted] = useState(false);
+      const [file, setFile] = useState(null);
+      const liveRef = useRef(null);
+
+      function submit(e) {
+        e.preventDefault();
+        setSubmitted(true);
+      }
+
+      return (
+        <section aria-labelledby="assignment-heading" className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div ref={liveRef} aria-live="polite" aria-atomic="true" className="sr-only">
+            {submitted ? 'Assignment submitted successfully!' : ''}
+          </div>
+          <div className="flex justify-between items-start mb-4">
+            <h2 id="assignment-heading" className="text-xl font-bold text-sf-navy">Week 3 Assignment</h2>
+            <span className="text-xs bg-red-100 text-red-700 font-semibold px-2.5 py-1 rounded-full">Due Mar 12</span>
+          </div>
+          <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+            Complete the insurance claims simulation in Kareo (simulated). Submit a PDF of your completed claim form and a 150-word reflection on the billing workflow.
+          </p>
+          {submitted ? (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3" role="status">
+              <span className="text-2xl" aria-hidden="true">✅</span>
+              <div>
+                <p className="font-semibold text-sf-green text-sm">Assignment Submitted!</p>
+                <p className="text-xs text-green-700">Submitted on Mar 10. Instructor feedback due within 48 hours.</p>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={submit} aria-label="Assignment submission form">
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center mb-4 hover:border-sf-amber transition-colors">
+                <input type="file" id="assignment-file" accept=".pdf,.doc,.docx"
+                  aria-required="true"
+                  aria-describedby="file-hint"
+                  onChange={e => setFile(e.target.files[0])}
+                  className="sr-only" />
+                <label htmlFor="assignment-file" className="cursor-pointer">
+                  <div className="text-3xl mb-2" aria-hidden="true">📤</div>
+                  <p className="text-sm font-medium text-gray-700">{file ? file.name : 'Click to upload your assignment'}</p>
+                  <p id="file-hint" className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX · Max 10MB</p>
+                </label>
+              </div>
+              <button type="submit"
+                className="w-full bg-sf-navy text-white font-bold py-2.5 rounded-lg hover:bg-sf-navy-h transition-colors text-sm">
+                Submit Assignment
+              </button>
+            </form>
+          )}
+        </section>
+      );
+    }
+
+    /* ─── Classroom Page ─────────────────────────────────────────────── */
+    function ClassroomPage() {
+      const [currentLesson, setCurrentLesson] = useState(7);
+      const lessonTitle = lessons.find(l => l.id === currentLesson)?.title ?? '';
+      const nextLessonRef = useRef(null);
+
+      // cat_5: after completing a lesson, focus moves to next lesson item
+      function markComplete() {
+        const next = lessons.find(l => l.id > currentLesson);
+        if (next) {
+          setCurrentLesson(next.id);
+          setTimeout(() => {
+            const nextBtn = document.querySelector(`[aria-label*="${next.title}"]`);
+            nextBtn?.focus();
+          }, 100);
+        }
+      }
+
+      return (
+        <>
+          <Header />
+          <main id="main-content" tabIndex={-1} aria-label="Classroom" aria-busy="false">
+            {/* Progress banner */}
+            <div className="bg-sf-light border-b border-gray-200 py-3" aria-label="Overall course progress">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center gap-4 text-sm">
+                <span className="font-semibold text-sf-navy">Medical Administrative Assistant Certificate</span>
+                <span aria-hidden="true">·</span>
+                <span className="text-gray-600">Week 3 of 8 — Medical Billing Fundamentals</span>
+                <div className="ml-auto flex items-center gap-2">
+                  <div className="w-32 bg-gray-200 rounded-full h-1.5" aria-hidden="true">
+                    <div className="bg-sf-amber h-1.5 rounded-full" style={{ width: '37%' }}></div>
+                  </div>
+                  <span className="text-xs text-gray-500">37% complete</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              {/* cat_10: main content first in DOM, sidebar second */}
+              <div className="classroom-layout">
+
+                {/* Main content */}
+                <div className="lesson-main space-y-6">
+                  {/* Video player */}
+                  <div>
+                    <h1 className="text-2xl font-bold text-sf-navy mb-3">{lessonTitle}</h1>
+                    <VideoPlayer lesson={lessonTitle} />
+                    <div className="flex justify-between items-center mt-3">
+                      <button onClick={() => setCurrentLesson(id => Math.max(1, id - 1))}
+                        aria-label="Go to previous lesson"
+                        className="text-sm text-gray-500 hover:text-sf-navy flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-sf-light transition-colors">
+                        ← Previous
+                      </button>
+                      <button onClick={markComplete}
+                        className="bg-sf-green text-white text-sm font-semibold px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        Mark Complete &amp; Continue →
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Countdown Timer */}
+                  <CountdownTimer />
+
+                  {/* Weekly agenda */}
+                  <section aria-labelledby="agenda-heading" className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h2 id="agenda-heading" className="text-xl font-bold text-sf-navy mb-4">This Week's Agenda</h2>
+                    <ol className="space-y-3" aria-label="Weekly schedule">
+                      {[
+                        { day: 'Mon Mar 10', task: 'Complete Lesson 7: Billing Fundamentals Pt 1', type: 'Self-Paced', done: false, current: true },
+                        { day: 'Tue Mar 11', task: 'Live Q&A Session — 7:00 PM ET', type: 'Live', done: false },
+                        { day: 'Wed Mar 12', task: 'Submit Week 3 Assignment', type: 'Assignment', done: false },
+                        { day: 'Thu Mar 13', task: 'Lesson 8–9: Billing Pt 2 + Claims Processing', type: 'Self-Paced', done: false },
+                        { day: 'Fri Mar 14', task: 'Peer Discussion: Share billing workflow questions', type: 'Discussion', done: false },
+                      ].map(item => (
+                        <li key={item.day} className={`flex gap-4 p-3 rounded-lg border ${item.current ? 'border-sf-amber bg-amber-50' : 'border-gray-100 bg-sf-light'}`}>
+                          <span className="text-xs font-medium text-gray-500 min-w-20 mt-0.5">{item.day}</span>
+                          <span className={`flex-1 text-sm ${item.current ? 'font-semibold text-sf-navy' : 'text-gray-700'}`}>{item.task}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 self-start
+                            ${item.type === 'Live' ? 'bg-red-100 text-red-700' :
+                              item.type === 'Assignment' ? 'bg-amber-100 text-amber-800' :
+                              item.type === 'Discussion' ? 'bg-purple-100 text-purple-800' :
+                              'bg-teal-100 text-teal-800'}`}>
+                            {item.type}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+
+                  <AssignmentPortal />
+                  <DiscussionBoard />
+                  <ResourceLibrary />
+                </div>
+
+                {/* Lesson sidebar — cat_10: after main in DOM order for screen readers */}
+                <div className="lesson-sidebar">
+                  <div className="sticky" style={{ top: '4rem' }}>
+                    <LessonSidebar currentId={currentLesson} onSelect={setCurrentLesson} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+
+          {/* cat_6: floating progress bar must not cover keyboard-focused lesson items */}
+          {/* Using pointer-events:none so it doesn't intercept clicks or focus */}
+          <div className="progress-bar-float" aria-hidden="true">
+            <div className="bg-sf-navy/90 h-1" style={{ width: '37%' }}></div>
+          </div>
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ClassroomPage />);
+  </script>
+</body>
+</html>

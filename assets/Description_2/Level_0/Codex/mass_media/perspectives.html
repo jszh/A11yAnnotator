@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Groundwork | Perspectives</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              groundwork: {
+                sand: "#f5f1e8",
+                paper: "#f9f7f1",
+                ink: "#122028",
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./shared.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+    <script src="./shared.js"></script>
+    <script>
+      const { html, PageShell, SectionHeading, perspectiveEssays } = window.Groundwork;
+
+      function App() {
+        return html`
+          <${PageShell} current="./perspectives.html">
+            <section className="mx-auto max-w-7xl px-4 py-10 md:px-6 lg:px-8">
+              <${SectionHeading}
+                eyebrow="Perspectives"
+                title="Essays from scientists, policymakers, and community voices."
+                blurb="Groundwork's opinion section is a forum for evidence-based arguments and lived experience from the people closest to environmental change."
+              />
+
+              <div className="mt-8 grid gap-6 lg:grid-cols-3">
+                ${perspectiveEssays.map(
+                  (essay, index) => html`
+                    <article key=${essay.title} className="shell-card flex h-full flex-col rounded-[1.75rem] border border-stone-300/80 shadow-[0_22px_60px_rgba(18,32,40,0.08)]">
+                      <div className=${`story-photo h-56 rounded-t-[1.75rem] ${["", "alt-a", "alt-b"][index]}`}></div>
+                      <div className="flex flex-1 flex-col p-6">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">${essay.date}</p>
+                        <h2 className="serif-display mt-4 text-4xl leading-none text-slate-900">${essay.title}</h2>
+                        <div className="mt-5 rounded-[1.5rem] border border-stone-300 bg-white/70 p-4">
+                          <p className="font-semibold text-slate-900">${essay.author}</p>
+                          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.24em] text-teal-800">${essay.role}</p>
+                          <p className="mt-3 text-sm leading-6 text-slate-700">${essay.bio}</p>
+                        </div>
+                        <p className="mt-5 text-sm leading-6 text-slate-700">
+                          Groundwork invited this contributor to respond to the policy and human consequences emerging in our recent climate investigations.
+                        </p>
+                        <a href="#" className="mt-6 inline-flex rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white">Respond to This Piece</a>
+                      </div>
+                    </article>
+                  `
+                )}
+              </div>
+            </section>
+          </${PageShell}>
+        `;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThreadHouse — Oversized Linen Shirt, Sage Green</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'th-green': '#2D4A3E',
+            'th-green-h': '#3D6454',
+            'th-gold': '#C8A96E',
+            'th-cream': '#FAF9F6',
+            'th-beige': '#E8DDD0',
+            'th-charcoal': '#2A2A2A',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #FAF9F6; color: #2A2A2A; }
+    :focus-visible { outline: 3px solid #C8A96E !important; outline-offset: 2px !important; }
+    .skip-link { position: absolute; top: -48px; left: 8px; background: #2D4A3E; color: #fff; padding: 10px 18px; z-index: 9999; border-radius: 4px; font-weight: 600; transition: top 0.15s; text-decoration: none; }
+    .skip-link:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .star { color: #C8A96E; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useCallback } = React;
+
+    /* ── Shared Header ─────────────────────────────────────────── */
+    function Header() {
+      const [cartCount, setCartCount] = useState(2);
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [searchOpen, setSearchOpen] = useState(false);
+      const searchRef = useRef(null);
+      useEffect(() => { if (searchOpen) searchRef.current?.focus(); }, [searchOpen]);
+      const navLinks = [
+        { label: 'Home', href: 'index.html', key: 'home' },
+        { label: 'Shop', href: 'products.html', key: 'shop' },
+        { label: 'Collections', href: 'products.html', key: 'collections' },
+        { label: 'Sale', href: 'products.html', key: 'sale' },
+      ];
+      return (
+        <header className="sticky top-0 z-50 shadow-md">
+          <div className="bg-th-gold text-th-charcoal text-xs text-center py-2 px-4 font-medium" role="banner" aria-label="Promotional announcement">
+            Free shipping on orders over $75 &nbsp;·&nbsp; Code <strong>SPRING25</strong> for 15% off
+          </div>
+          <div className="bg-th-green text-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16 gap-4">
+                <a href="index.html" className="flex-shrink-0 font-extrabold text-xl sm:text-2xl tracking-tight" aria-label="ThreadHouse – Go to homepage">THREAD<span className="text-th-gold">HOUSE</span></a>
+                <nav aria-label="Main navigation" className="hidden md:block">
+                  <ul className="flex space-x-6" role="list">
+                    {navLinks.map(l => <li key={l.key}><a href={l.href} className="text-sm font-medium transition-colors hover:text-th-gold">{l.label}</a></li>)}
+                  </ul>
+                </nav>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {searchOpen ? (
+                    <div className="flex items-center gap-1" role="search">
+                      <label htmlFor="site-search" className="sr-only">Search products</label>
+                      <input ref={searchRef} id="site-search" type="search" placeholder="Search…" className="bg-white/10 border border-white/30 text-white placeholder-white/60 rounded px-3 py-1.5 text-sm w-40 sm:w-56" onKeyDown={e => e.key === 'Escape' && setSearchOpen(false)} />
+                      <button onClick={() => setSearchOpen(false)} aria-label="Close search" className="p-1.5 hover:text-th-gold transition-colors"><svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setSearchOpen(true)} aria-label="Open product search" className="p-1.5 hover:text-th-gold transition-colors"><svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></button>
+                  )}
+                  <a href="cart.html" className="relative p-1.5 hover:text-th-gold transition-colors" aria-label={`Shopping cart — ${cartCount} items`}>
+                    <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                    <span aria-hidden="true" className="absolute -top-1 -right-1 bg-th-gold text-th-charcoal text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
+                  </a>
+                  <a href="account.html" className="p-1.5 hover:text-th-gold transition-colors" aria-label="My account"><svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></a>
+                  <button className="md:hidden p-1.5 hover:text-th-gold" aria-expanded={menuOpen} aria-controls="mobile-menu" aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'} onClick={() => setMenuOpen(o => !o)}>
+                    <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            {menuOpen && <nav id="mobile-menu" aria-label="Mobile navigation"><ul className="bg-th-green-h border-t border-white/10 px-4 py-3 space-y-1" role="list">{navLinks.map(l => <li key={l.key}><a href={l.href} className="block py-2 text-sm font-medium hover:text-th-gold transition-colors">{l.label}</a></li>)}</ul></nav>}
+          </div>
+        </header>
+      );
+    }
+
+    /* ── Shared Footer ─────────────────────────────────────────── */
+    function Footer() {
+      return (
+        <footer className="bg-th-charcoal text-white mt-20" role="contentinfo">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+              <div><p className="font-extrabold text-xl mb-2">THREAD<span className="text-th-gold">HOUSE</span></p><p className="text-sm text-white/60 leading-relaxed">Sustainable fashion for a generation that refuses to compromise on style or values.</p></div>
+              <nav aria-label="Shop navigation"><h2 className="font-semibold text-sm uppercase tracking-wider text-th-gold mb-4">Shop</h2><ul className="space-y-2" role="list">{['New Arrivals','Tops','Bottoms','Outerwear','Accessories','Sale'].map(l=><li key={l}><a href="products.html" className="text-sm text-white/60 hover:text-white transition-colors">{l}</a></li>)}</ul></nav>
+              <nav aria-label="Help navigation"><h2 className="font-semibold text-sm uppercase tracking-wider text-th-gold mb-4">Help</h2><ul className="space-y-2" role="list">{['Size Guide','Shipping & Returns','Sustainability','FAQ','Contact Us'].map(l=><li key={l}><a href="#" className="text-sm text-white/60 hover:text-white transition-colors">{l}</a></li>)}</ul></nav>
+              <div><h2 className="font-semibold text-sm uppercase tracking-wider text-th-gold mb-4">Stay in the Loop</h2><form aria-label="Email newsletter subscription" onSubmit={e=>{e.preventDefault();}}><label htmlFor="footer-email" className="sr-only">Email address</label><input id="footer-email" type="email" required aria-required="true" placeholder="your@email.com" className="w-full bg-white/10 border border-white/20 text-white placeholder-white/40 rounded px-3 py-2 text-sm mb-2" /><button type="submit" className="w-full bg-th-gold text-th-charcoal font-semibold text-sm rounded px-4 py-2 hover:bg-th-gold/90 transition-colors">Subscribe</button></form></div>
+            </div>
+            <div className="border-t border-white/10 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <p className="text-xs text-white/40">© 2025 ThreadHouse. All rights reserved.</p>
+              <div className="flex gap-6">{['Privacy Policy','Terms of Use','Accessibility'].map(l=><a key={l} href="#" className="text-xs text-white/40 hover:text-white transition-colors">{l}</a>)}</div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── Photo thumbnails ──────────────────────────────────────── */
+    const PHOTO_GRADS = [
+      'from-emerald-200 to-teal-400',
+      'from-teal-300 to-emerald-500',
+      'from-green-100 to-emerald-300',
+      'from-emerald-300 to-teal-600',
+    ];
+    const PHOTO_LABELS = [
+      'Front view of Oversized Linen Shirt in Sage Green',
+      'Back view of Oversized Linen Shirt in Sage Green',
+      'Detail shot of collar and chest pocket',
+      'Model wearing shirt with wide-leg trousers in outdoor setting',
+    ];
+
+    /* ── Size Guide Modal ──────────────────────────────────────── */
+    function SizeGuideModal({ onClose, triggerRef }) {
+      const dialogRef = useRef(null);
+      const closeBtnRef = useRef(null);
+
+      useEffect(() => {
+        closeBtnRef.current?.focus();
+        const prev = document.activeElement;
+
+        function trapFocus(e) {
+          if (!dialogRef.current) return;
+          const focusable = dialogRef.current.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (e.key === 'Tab') {
+            if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
+            else { if (document.activeElement === last) { e.preventDefault(); first.focus(); } }
+          }
+          if (e.key === 'Escape') { onClose(); triggerRef.current?.focus(); }
+        }
+        document.addEventListener('keydown', trapFocus);
+        return () => { document.removeEventListener('keydown', trapFocus); };
+      }, []);
+
+      function handleClose() { onClose(); triggerRef.current?.focus(); }
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog" aria-labelledby="size-guide-title">
+          <div className="absolute inset-0 bg-black/50" onClick={handleClose} aria-hidden="true"></div>
+          <div ref={dialogRef} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 id="size-guide-title" className="text-xl font-bold text-th-charcoal">Size Guide</h2>
+              <button ref={closeBtnRef} onClick={handleClose} aria-label="Close size guide" className="p-2 hover:bg-th-beige rounded-lg transition-colors">
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">Measurements are in inches. For the best fit, measure over your undergarments.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" aria-label="ThreadHouse size guide measurements">
+                <thead>
+                  <tr className="bg-th-green text-white">
+                    <th scope="col" className="text-left py-2.5 px-3 font-semibold rounded-tl-lg">Size</th>
+                    <th scope="col" className="text-center py-2.5 px-3 font-semibold">Chest</th>
+                    <th scope="col" className="text-center py-2.5 px-3 font-semibold">Waist</th>
+                    <th scope="col" className="text-center py-2.5 px-3 font-semibold">Hips</th>
+                    <th scope="col" className="text-center py-2.5 px-3 font-semibold rounded-tr-lg">Length</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ['XS','30–32','24–26','34–36','26'],
+                    ['S', '32–34','26–28','36–38','27'],
+                    ['M', '34–36','28–30','38–40','28'],
+                    ['L', '36–38','30–32','40–42','29'],
+                    ['XL','38–40','32–34','42–44','30'],
+                    ['XXL','40–42','34–36','44–46','31'],
+                  ].map(([s,...m], i) => (
+                    <tr key={s} className={i % 2 === 0 ? 'bg-th-beige/30' : 'bg-white'}>
+                      <th scope="row" className="py-2.5 px-3 font-semibold text-left">{s}</th>
+                      {m.map((v,j) => <td key={j} className="py-2.5 px-3 text-center text-gray-700">{v}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-gray-500 mt-4">This shirt has an oversized fit. We recommend sizing down if you prefer a more fitted look.</p>
+            <button onClick={handleClose} className="mt-6 w-full bg-th-green text-white font-semibold py-3 rounded-xl hover:bg-th-green-h transition-colors">Got it, thanks!</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Product Detail Page ───────────────────────────────────── */
+    const COMPLETE_LOOK = [
+      { id: 2, name: 'Wide-Leg Trousers',    color: 'Oatmeal',    price: 115, grad: 'from-amber-100 to-amber-300' },
+      { id: 11, name: 'Structured Tote',     color: 'Natural Tan', price: 75, grad: 'from-orange-100 to-orange-300' },
+      { id: 12, name: 'Canvas Bucket Hat',   color: 'Sage',        price: 38, grad: 'from-lime-200 to-green-300' },
+    ];
+
+    const REVIEWS = [
+      { id: 1, author: 'Maya R.', rating: 5, date: 'March 12, 2025', size: 'S', body: 'Absolutely love this shirt! The linen is so soft and breathable — perfect for spring. The sage green is even more beautiful in person.', photo: 'from-teal-200 to-emerald-300' },
+      { id: 2, author: 'Jordan T.', rating: 4, date: 'February 28, 2025', size: 'M', body: 'Great quality and the oversized fit is exactly what I wanted. Runs true to size. Docking one star only because shipping took longer than expected.', photo: 'from-sky-200 to-blue-300' },
+      { id: 3, author: 'Priya L.', rating: 5, date: 'February 14, 2025', size: 'XS', body: 'Third ThreadHouse purchase and they just keep getting better. This shirt pairs perfectly with their wide-leg trousers!', photo: 'from-violet-200 to-purple-300' },
+    ];
+
+    function StarRating({ rating, max = 5 }) {
+      return (
+        <div className="flex items-center gap-0.5" aria-label={`${rating} out of ${max} stars`} role="img">
+          {[...Array(max)].map((_, i) => (
+            <svg key={i} aria-hidden="true" className={`w-4 h-4 ${i < rating ? 'text-th-gold' : 'text-gray-200'}`} fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          ))}
+        </div>
+      );
+    }
+
+    function ProductDetailPage() {
+      const [selectedPhoto, setSelectedPhoto] = useState(0);
+      const [selectedSize, setSelectedSize] = useState('');
+      const [quantity, setQuantity] = useState(1);
+      const [activeTab, setActiveTab] = useState('description');
+      const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+      const [wishlist, setWishlist] = useState(false);
+      const [liveMsg, setLiveMsg] = useState('');
+      const [sizeError, setSizeError] = useState('');
+      const sizeGuideTriggerRef = useRef(null);
+      const cartMsgRef = useRef(null);
+
+      const SIZES = ['XS', 'S', 'M', 'L', 'XL'];
+
+      function handleAddToCart() {
+        if (!selectedSize) {
+          setSizeError('Please select a size before adding to cart.');
+          document.getElementById('size-selector')?.focus();
+          return;
+        }
+        setSizeError('');
+        setLiveMsg(`Oversized Linen Shirt in ${selectedSize} has been added to your cart.`);
+        setTimeout(() => setLiveMsg(''), 4000);
+      }
+
+      function handleWishlist() {
+        setWishlist(w => !w);
+        setLiveMsg(wishlist ? 'Removed from wishlist.' : 'Oversized Linen Shirt saved to your wishlist.');
+        setTimeout(() => setLiveMsg(''), 3000);
+      }
+
+      function handleQty(delta) {
+        setQuantity(q => Math.max(1, Math.min(10, q + delta)));
+      }
+
+      const tabs = [
+        { key: 'description', label: 'Description' },
+        { key: 'materials', label: 'Materials & Care' },
+        { key: 'shipping', label: 'Shipping & Returns' },
+      ];
+
+      return (
+        <>
+          <Header />
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{liveMsg}</div>
+
+          <main id="main-content" tabIndex={-1}>
+            {/* Breadcrumb */}
+            <nav aria-label="Breadcrumb" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <ol className="flex items-center gap-2 text-sm text-gray-500" role="list">
+                <li><a href="index.html" className="hover:text-th-green transition-colors">Home</a></li>
+                <li aria-hidden="true"><span>/</span></li>
+                <li><a href="products.html" className="hover:text-th-green transition-colors">Shop</a></li>
+                <li aria-hidden="true"><span>/</span></li>
+                <li><a href="products.html" className="hover:text-th-green transition-colors">Tops</a></li>
+                <li aria-hidden="true"><span>/</span></li>
+                <li aria-current="page" className="text-th-charcoal font-medium truncate">Oversized Linen Shirt</li>
+              </ol>
+            </nav>
+
+            {/* Product section */}
+            <section aria-labelledby="product-name" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+              <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
+
+                {/* Left — image gallery */}
+                <div>
+                  {/* Main image */}
+                  <div className={`rounded-2xl overflow-hidden aspect-[4/5] bg-gradient-to-br ${PHOTO_GRADS[selectedPhoto]} flex items-center justify-center relative`} role="img" aria-label={PHOTO_LABELS[selectedPhoto]}>
+                    <div aria-hidden="true" className="absolute inset-0 opacity-10" style={{backgroundImage:'repeating-linear-gradient(45deg,#000 0,#000 1px,transparent 0,transparent 8px)'}}></div>
+                    <span className="text-white/30 text-sm font-medium">{selectedPhoto + 1} / {PHOTO_GRADS.length}</span>
+                    {/* Carousel arrows */}
+                    <button
+                      onClick={() => setSelectedPhoto(p => (p - 1 + PHOTO_GRADS.length) % PHOTO_GRADS.length)}
+                      aria-label="Previous product photo"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-th-charcoal rounded-full w-9 h-9 flex items-center justify-center shadow transition-all"
+                    >
+                      <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <button
+                      onClick={() => setSelectedPhoto(p => (p + 1) % PHOTO_GRADS.length)}
+                      aria-label="Next product photo"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-th-charcoal rounded-full w-9 h-9 flex items-center justify-center shadow transition-all"
+                    >
+                      <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                  </div>
+
+                  {/* Thumbnails */}
+                  <div className="grid grid-cols-4 gap-2 mt-3" role="list" aria-label="Product photo thumbnails">
+                    {PHOTO_GRADS.map((grad, i) => (
+                      <button
+                        key={i}
+                        role="listitem"
+                        onClick={() => setSelectedPhoto(i)}
+                        aria-label={PHOTO_LABELS[i]}
+                        aria-pressed={selectedPhoto === i}
+                        className={`rounded-xl overflow-hidden aspect-square bg-gradient-to-br ${grad} flex items-center justify-center border-2 transition-all ${selectedPhoto === i ? 'border-th-green' : 'border-transparent hover:border-th-beige'}`}
+                      >
+                        <span className="sr-only">{PHOTO_LABELS[i]}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right — product info */}
+                <div>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs text-th-green font-semibold uppercase tracking-widest mb-1">ThreadHouse Originals</p>
+                      <h1 id="product-name" className="text-2xl sm:text-3xl font-extrabold text-th-charcoal leading-tight">Oversized Linen Shirt</h1>
+                      <p className="text-gray-500 mt-1">Sage Green · SKU: TH-OLS-SG</p>
+                    </div>
+                    <button
+                      onClick={handleWishlist}
+                      aria-label={wishlist ? 'Remove Oversized Linen Shirt from wishlist' : 'Save Oversized Linen Shirt to wishlist'}
+                      aria-pressed={wishlist}
+                      className={`flex-shrink-0 p-2.5 rounded-xl border-2 transition-all ${wishlist ? 'bg-red-50 border-red-300 text-red-500' : 'border-gray-200 text-gray-400 hover:border-gray-400'}`}
+                    >
+                      <svg aria-hidden="true" className="w-5 h-5" fill={wishlist ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                    </button>
+                  </div>
+
+                  {/* Price + rating */}
+                  <div className="flex items-center gap-4 mt-4">
+                    <p className="text-3xl font-extrabold text-th-green">$89.00</p>
+                    <div className="flex items-center gap-1.5">
+                      <StarRating rating={4} />
+                      <a href="#reviews" className="text-sm text-gray-500 hover:text-th-green transition-colors">4.7 (128 reviews)</a>
+                    </div>
+                  </div>
+
+                  {/* Low stock alert */}
+                  <div role="alert" className="mt-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm font-medium px-4 py-2.5 rounded-lg">
+                    <svg aria-hidden="true" className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    Only 4 left in stock — order soon!
+                  </div>
+
+                  {/* Color */}
+                  <div className="mt-6">
+                    <p className="text-sm font-semibold text-th-charcoal mb-2">Color: <span className="font-normal text-gray-600">Sage Green</span></p>
+                    <div className="flex gap-2" role="list" aria-label="Available color options">
+                      {[
+                        { name:'Sage Green', hex:'#87A98A', active:true },
+                        { name:'Chalk White', hex:'#F0EDE6', active:false },
+                        { name:'Warm Stone', hex:'#C4B5A2', active:false },
+                        { name:'Midnight Navy', hex:'#2C3E5D', active:false },
+                      ].map(c => (
+                        <button
+                          key={c.name}
+                          role="listitem"
+                          aria-label={`Select color: ${c.name}${c.active ? ' (currently selected)' : ''}`}
+                          aria-pressed={c.active}
+                          className={`w-9 h-9 rounded-full border-2 transition-all ${c.active ? 'border-th-green ring-2 ring-th-green ring-offset-2 scale-110' : 'border-gray-200 hover:border-gray-400'}`}
+                          style={{ backgroundColor: c.hex }}
+                          title={c.name}
+                        ></button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Size selector */}
+                  <div className="mt-6" id="size-selector">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-semibold text-th-charcoal">Size</p>
+                      <button
+                        ref={sizeGuideTriggerRef}
+                        onClick={() => setSizeGuideOpen(true)}
+                        className="text-xs text-th-green font-semibold underline hover:no-underline flex items-center gap-1"
+                        aria-label="Open size guide"
+                      >
+                        <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        Size Guide
+                      </button>
+                    </div>
+                    <fieldset>
+                      <legend className="sr-only">Select a size for Oversized Linen Shirt</legend>
+                      <div className="flex flex-wrap gap-2" role="group" aria-describedby={sizeError ? 'size-error' : undefined}>
+                        {SIZES.map(s => {
+                          const unavailable = s === 'XXL';
+                          return (
+                            <button
+                              key={s}
+                              onClick={() => { if (!unavailable) { setSelectedSize(s); setSizeError(''); } }}
+                              aria-pressed={selectedSize === s}
+                              aria-disabled={unavailable}
+                              disabled={unavailable}
+                              aria-label={`Size ${s}${unavailable ? ' — sold out' : selectedSize === s ? ' — selected' : ''}`}
+                              className={`w-12 h-12 text-sm font-semibold rounded-xl border-2 transition-all
+                                ${unavailable ? 'opacity-40 cursor-not-allowed line-through border-gray-200 text-gray-400' :
+                                  selectedSize === s ? 'bg-th-green text-white border-th-green' :
+                                  'bg-white text-th-charcoal border-gray-300 hover:border-th-green'}`}
+                            >
+                              {s}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                    {sizeError && (
+                      <p id="size-error" role="alert" className="mt-2 text-red-600 text-sm flex items-center gap-1.5">
+                        <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {sizeError}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Quantity */}
+                  <div className="mt-6">
+                    <p className="text-sm font-semibold text-th-charcoal mb-2">Quantity</p>
+                    <div className="flex items-center gap-0 w-fit border-2 border-gray-200 rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => handleQty(-1)}
+                        aria-label={`Decrease quantity, currently ${quantity}`}
+                        disabled={quantity <= 1}
+                        className="px-4 py-2.5 text-lg font-bold hover:bg-th-beige disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >−</button>
+                      <span aria-live="polite" aria-atomic="true" aria-label={`Quantity: ${quantity}`} className="w-12 text-center font-semibold text-sm py-2.5">{quantity}</span>
+                      <button
+                        onClick={() => handleQty(1)}
+                        aria-label={`Increase quantity, currently ${quantity}`}
+                        disabled={quantity >= 10}
+                        className="px-4 py-2.5 text-lg font-bold hover:bg-th-beige disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >+</button>
+                    </div>
+                  </div>
+
+                  {/* Add to cart */}
+                  <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={handleAddToCart}
+                      className="flex-1 bg-th-green text-white font-bold py-4 px-6 rounded-xl hover:bg-th-green-h transition-colors flex items-center justify-center gap-2 text-sm"
+                      aria-label="Add Oversized Linen Shirt in Sage Green to cart"
+                    >
+                      <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                      Add to Cart
+                    </button>
+                    <a href="cart.html" className="flex-1 border-2 border-th-green text-th-green font-bold py-4 px-6 rounded-xl hover:bg-th-green hover:text-white transition-colors text-center text-sm">
+                      Buy Now
+                    </a>
+                  </div>
+
+                  {/* Trust badges */}
+                  <div className="mt-6 grid grid-cols-3 gap-3 text-center" aria-label="Product guarantees" role="list">
+                    {[
+                      {icon:'🌿', label:'Organic Linen'},
+                      {icon:'🔄', label:'Free Returns'},
+                      {icon:'🚚', label:'Free Shipping $75+'},
+                    ].map(b => (
+                      <div key={b.label} role="listitem" className="bg-th-beige/50 rounded-xl p-3">
+                        <p aria-hidden="true" className="text-xl mb-1">{b.icon}</p>
+                        <p className="text-xs font-medium text-gray-600">{b.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Product tabs */}
+            <section aria-labelledby="details-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+              <h2 id="details-heading" className="sr-only">Product details</h2>
+              <div className="border-b border-th-beige">
+                <div role="tablist" aria-label="Product details sections" className="flex gap-0">
+                  {tabs.map(t => (
+                    <button
+                      key={t.key}
+                      role="tab"
+                      id={`tab-${t.key}`}
+                      aria-selected={activeTab === t.key}
+                      aria-controls={`panel-${t.key}`}
+                      onClick={() => setActiveTab(t.key)}
+                      className={`px-6 py-4 text-sm font-semibold border-b-2 transition-colors -mb-px ${activeTab === t.key ? 'border-th-green text-th-green' : 'border-transparent text-gray-500 hover:text-th-charcoal'}`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {tabs.map(t => (
+                <div
+                  key={t.key}
+                  role="tabpanel"
+                  id={`panel-${t.key}`}
+                  aria-labelledby={`tab-${t.key}`}
+                  hidden={activeTab !== t.key}
+                  className="py-8"
+                >
+                  {t.key === 'description' && (
+                    <div className="max-w-2xl space-y-4 text-gray-700 leading-relaxed">
+                      <p>The Oversized Linen Shirt is the quintessential ThreadHouse summer piece — relaxed, breathable, and endlessly versatile. Crafted from 100% GOTS-certified organic linen, it gets softer and more beautiful with every wash.</p>
+                      <p>The relaxed silhouette features a slightly dropped shoulder, a single chest pocket, and a curved hem that looks equally good tucked or untucked. Available in four seasonless colourways.</p>
+                      <h3 className="font-semibold text-th-charcoal">Features</h3>
+                      <ul className="list-disc list-inside space-y-1 text-sm" aria-label="Product features">
+                        <li>100% GOTS-certified organic linen</li>
+                        <li>Relaxed, oversized fit — size down for fitted look</li>
+                        <li>Single chest patch pocket</li>
+                        <li>Curved hem, slightly longer at back</li>
+                        <li>Mother-of-pearl buttons</li>
+                        <li>Available in XS–XL (XXL currently out of stock)</li>
+                      </ul>
+                    </div>
+                  )}
+                  {t.key === 'materials' && (
+                    <div className="max-w-2xl space-y-6 text-gray-700">
+                      <div>
+                        <h3 className="font-semibold text-th-charcoal mb-2">Material</h3>
+                        <p className="text-sm leading-relaxed">100% Organic Linen — GOTS Certified. Grown without pesticides or synthetic fertilisers on a family farm in Normandy, France. Woven in a fair-wage mill in Portugal.</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-th-charcoal mb-2">Care Instructions</h3>
+                        <ul className="text-sm space-y-1.5" aria-label="Care instructions">
+                          {['Machine wash cold (30°C / 86°F)','Tumble dry low or lay flat to dry','Warm iron if needed','Do not bleach','Do not dry clean'].map(c => (
+                            <li key={c} className="flex items-center gap-2">
+                              <svg aria-hidden="true" className="w-4 h-4 text-th-green flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                              {c}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="bg-th-beige/50 rounded-xl p-4 text-sm">
+                        <p className="font-semibold text-th-charcoal mb-1">Sustainability Note</p>
+                        <p>Linen is one of the most sustainable fibres in the world — it requires minimal water and no irrigation, and every part of the flax plant is used.</p>
+                      </div>
+                    </div>
+                  )}
+                  {t.key === 'shipping' && (
+                    <div className="max-w-2xl space-y-4 text-sm text-gray-700 leading-relaxed">
+                      <h3 className="font-semibold text-th-charcoal">Shipping</h3>
+                      <ul className="space-y-2" aria-label="Shipping options">
+                        {[
+                          { method: 'Standard (3–5 business days)', cost: 'Free on orders $75+, $5.99 otherwise' },
+                          { method: 'Express (1–2 business days)', cost: '$12.99' },
+                          { method: 'Overnight', cost: '$24.99' },
+                        ].map(o => <li key={o.method} className="flex flex-col sm:flex-row sm:justify-between gap-0.5"><span className="font-medium">{o.method}</span><span className="text-gray-500">{o.cost}</span></li>)}
+                      </ul>
+                      <h3 className="font-semibold text-th-charcoal mt-4">Returns</h3>
+                      <p>We offer free returns within 30 days of delivery. Items must be unworn, unwashed, and in original packaging with tags attached. Start a return from your <a href="account.html" className="text-th-green underline hover:no-underline">account page</a>.</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+
+            {/* Complete the Look */}
+            <section aria-labelledby="complete-heading" className="bg-th-beige/40 py-16">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 id="complete-heading" className="text-2xl font-bold text-th-charcoal mb-8">Complete the Look</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6" role="list" aria-label="Suggested products to complete the outfit">
+                  {COMPLETE_LOOK.map(p => (
+                    <article key={p.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow" role="listitem" aria-label={p.name}>
+                      <a href="product-detail.html" aria-label={`View ${p.name} details`} className="block">
+                        <div className={`bg-gradient-to-br ${p.grad} aspect-[4/3] flex items-center justify-center`} role="img" aria-label={`${p.name} product photo`}>
+                          <div aria-hidden="true" className="w-8 h-8 rounded-full bg-white/20"></div>
+                        </div>
+                      </a>
+                      <div className="p-4 flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-sm">{p.name}</h3>
+                          <p className="text-xs text-gray-500">{p.color}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-th-green text-sm">${p.price}</p>
+                          <a href="product-detail.html" className="text-xs text-th-green underline hover:no-underline" aria-label={`View ${p.name}`}>View</a>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Reviews */}
+            <section id="reviews" aria-labelledby="reviews-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+                <div>
+                  <h2 id="reviews-heading" className="text-2xl font-bold text-th-charcoal">Customer Reviews</h2>
+                  <div className="flex items-center gap-3 mt-2">
+                    <StarRating rating={5} />
+                    <p className="text-sm text-gray-500">4.7 average · 128 reviews</p>
+                  </div>
+                </div>
+                <button className="border-2 border-th-green text-th-green font-semibold px-5 py-2.5 rounded-xl hover:bg-th-green hover:text-white transition-colors text-sm" aria-label="Write a review for Oversized Linen Shirt">Write a Review</button>
+              </div>
+
+              {/* Rating breakdown */}
+              <div className="bg-th-beige/40 rounded-2xl p-6 mb-8 max-w-sm" aria-label="Rating breakdown">
+                <h3 className="font-semibold text-sm text-th-charcoal mb-3">Rating Breakdown</h3>
+                {[[5,72],[4,34],[3,14],[2,5],[1,3]].map(([stars, pct]) => (
+                  <div key={stars} className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xs text-gray-500 w-4">{stars}</span>
+                    <svg aria-hidden="true" className="w-3 h-3 text-th-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                    <div className="flex-1 bg-gray-200 rounded-full h-1.5" role="presentation">
+                      <div className="bg-th-gold h-1.5 rounded-full" style={{width:`${pct}%`}} aria-hidden="true"></div>
+                    </div>
+                    <span className="text-xs text-gray-500 w-6 text-right" aria-label={`${pct} percent for ${stars} stars`}>{pct}%</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Review cards */}
+              <div className="space-y-6" role="list" aria-label="Customer review list">
+                {REVIEWS.map(rev => (
+                  <article key={rev.id} className="bg-white rounded-2xl p-6 shadow-sm border border-th-beige/80" role="listitem" aria-label={`Review by ${rev.author}`}>
+                    <div className="flex items-start gap-4">
+                      {/* Customer photo */}
+                      <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${rev.photo} flex-shrink-0 flex items-center justify-center text-white font-bold text-sm`} role="img" aria-label={`${rev.author}'s profile photo`}>
+                        {rev.author.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 justify-between">
+                          <div>
+                            <p className="font-semibold text-sm text-th-charcoal">{rev.author}</p>
+                            <p className="text-xs text-gray-500">{rev.date} · Purchased size {rev.size}</p>
+                          </div>
+                          <StarRating rating={rev.rating} />
+                        </div>
+                        <p className="mt-3 text-sm text-gray-700 leading-relaxed">{rev.body}</p>
+                        {/* Customer photo thumbnail */}
+                        <div className="mt-3 flex gap-2">
+                          <div className={`w-16 h-16 rounded-lg bg-gradient-to-br ${rev.photo} opacity-80`} role="img" aria-label={`Photo submitted with ${rev.author}'s review`}></div>
+                        </div>
+                        <div className="mt-3 flex items-center gap-4">
+                          <button className="text-xs text-gray-500 hover:text-th-green transition-colors flex items-center gap-1" aria-label={`Mark ${rev.author}'s review as helpful`}>
+                            <svg aria-hidden="true" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>
+                            Helpful (12)
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <button className="mt-8 border-2 border-gray-300 text-gray-600 font-semibold px-8 py-3 rounded-xl hover:border-th-green hover:text-th-green transition-colors w-full sm:w-auto" aria-label="Load more customer reviews">Load More Reviews</button>
+            </section>
+          </main>
+
+          {sizeGuideOpen && <SizeGuideModal onClose={() => setSizeGuideOpen(false)} triggerRef={sizeGuideTriggerRef} />}
+          <Footer />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<ProductDetailPage />);
+  </script>
+</body>
+</html>

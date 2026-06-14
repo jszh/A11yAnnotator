@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Invisible Flood | Groundwork Journalism</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Custom Compiled CSS -->
+    <link href="styles.css" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons (Phosphor) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        body {
+            background-color: #F5F5F3;
+            color: #111111;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Custom stylizations for long form reading */
+        ::selection {
+            background-color: #D32F2F;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ---------------------------------------------------------
+        // SHARED COMPONENTS
+        // ---------------------------------------------------------
+        const Header = () => (
+            <header className="border-b-[6px] border-gw-dark pb-4 mb-4 pt-6 px-4 md:px-8 max-w-[1400px] mx-auto bg-gw-light">
+                <div className="flex justify-between items-center mb-4 border-b border-gray-300 pb-2">
+                    <div className="text-xs font-bold tracking-[0.2em] uppercase text-gw-red flex items-center gap-2">
+                        <i className="ph ph-detective"></i> Independent Investigative Journalism
+                    </div>
+                    <div className="flex gap-4 items-center">
+                        <a href="subscription.html" className="text-sm font-bold bg-gw-red text-white px-3 py-1 rounded-sm hover:bg-black transition-colors flex items-center gap-1">
+                            <i className="ph ph-heart-straight-fill"></i> Donate
+                        </a>
+                        <a href="#" className="text-sm font-bold hover:text-gw-red transition-colors hidden sm:flex items-center gap-1">
+                            <i className="ph ph-envelope-open"></i> Newsletters
+                        </a>
+                    </div>
+                </div>
+                <div className="flex flex-col lg:flex-row justify-between items-end gap-6 pt-2">
+                    <a href="index.html" className="block outline-none shrink-0">
+                        <h1 className="font-serif text-4xl md:text-5xl font-black tracking-tight leading-none text-gw-dark hover:text-gw-red transition-colors">
+                            GROUNDWORK
+                        </h1>
+                    </a>
+                    <nav className="flex gap-4 lg:gap-8 pb-1 overflow-x-auto w-full lg:w-auto scrollbar-hide text-gw-dark items-center">
+                        <a href="category.html" className="font-sans font-bold text-sm uppercase tracking-wider hover:text-gw-red whitespace-nowrap border-b-2 border-transparent hover:border-gw-red pb-1 transition-all">Climate</a>
+                        <a href="#" className="font-sans font-bold text-sm uppercase tracking-wider hover:text-gw-red whitespace-nowrap border-b-2 border-transparent hover:border-gw-red pb-1 transition-all">Energy</a>
+                        <a href="#" className="font-sans font-bold text-sm uppercase tracking-wider hover:text-gw-red whitespace-nowrap border-b-2 border-transparent hover:border-gw-red pb-1 transition-all">Policy</a>
+                        <a href="#" className="font-sans font-bold text-sm uppercase tracking-wider hover:text-gw-red whitespace-nowrap border-b-2 border-transparent hover:border-gw-red pb-1 transition-all">Science</a>
+                        <a href="#" className="font-sans font-bold text-sm uppercase tracking-wider hover:text-gw-red whitespace-nowrap border-b-2 border-transparent hover:border-gw-red pb-1 transition-all">Data</a>
+                        <a href="opinion.html" className="font-serif font-black italic text-base hover:text-gw-red whitespace-nowrap border-l-2 border-gray-300 pl-4 lg:pl-6 ml-2 lg:ml-2 text-gray-600 transition-colors">Perspectives</a>
+                    </nav>
+                </div>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="bg-gw-dark text-white py-20 px-4 md:px-8 border-t-8 border-gw-red">
+                <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-12">
+                    <div className="md:col-span-5 pr-0 md:pr-12">
+                        <h2 className="font-serif text-5xl font-black mb-6 tracking-tight">GROUNDWORK</h2>
+                        <p className="font-sans text-gray-400 text-lg mb-8 leading-relaxed">
+                            Data-driven investigative journalism focused on climate, science, and environmental policy. We report the facts, independent of corporate influence or political bias. Our work relies on reader support.
+                        </p>
+                        <div className="flex gap-4">
+                            <a href="subscription.html" className="bg-gw-red text-white px-8 py-4 font-bold rounded-sm hover:bg-white hover:text-gw-dark transition-colors flex items-center justify-center gap-2 group text-lg w-full sm:w-auto">
+                                <i className="ph-fill ph-hand-heart group-hover:scale-110 transition-transform"></i>
+                                Become a Supporter
+                            </a>
+                        </div>
+                    </div>
+                    <div className="md:col-span-2">
+                        <h3 className="font-bold text-sm uppercase tracking-widest mb-6 text-gray-500 border-b border-gray-800 pb-3">Sections</h3>
+                        <ul className="space-y-3 flex flex-col font-sans text-gray-300 font-medium">
+                            <li><a href="index.html" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Home</a></li>
+                            <li><a href="category.html" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Climate</a></li>
+                            <li><a href="#" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Energy</a></li>
+                            <li><a href="opinion.html" className="hover:text-gw-red hover:translate-x-1 transition-all inline-block">Perspectives</a></li>
+                        </ul>
+                    </div>
+                    <div className="md:col-span-5">
+                        <div className="bg-gray-900 p-6 rounded-sm border border-gray-800">
+                            <h3 className="font-bold text-lg mb-2 text-white flex items-center gap-2">
+                                <i className="ph-fill ph-envelope-simple-open text-gw-red"></i> Daily Briefing
+                            </h3>
+                            <p className="text-gray-400 text-sm mb-4">Get our latest investigations delivered to your inbox.</p>
+                            <form className="flex flex-col sm:flex-row gap-3">
+                                <input type="email" placeholder="Your email address" className="bg-gray-800 text-white px-4 py-3 border border-gray-700 outline-none focus:border-gw-red transition-colors w-full rounded-sm" />
+                                <button type="button" className="bg-white text-gw-dark font-bold px-6 py-3 hover:bg-gray-200 transition-colors rounded-sm shrink-0">Subscribe</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div className="max-w-[1400px] mx-auto mt-16 pt-8 border-t border-gray-800 text-center text-gray-500 font-sans text-sm">
+                    &copy; {new Date().getFullYear()} Groundwork Journalism. Mockup for demonstration purposes.
+                </div>
+            </footer>
+        );
+
+        // ---------------------------------------------------------
+        // ARTICLE PAGE COMPONENT
+        // ---------------------------------------------------------
+        const ArticlePage = () => {
+            return (
+                <div className="min-h-screen flex flex-col pt-1 bg-white">
+                    <Header />
+                    <main className="flex-grow w-full">
+
+                        {/* Progress Bar (Mock) */}
+                        <div className="fixed top-0 left-0 h-1 bg-gw-red w-1/3 z-[100] shadow-sm"></div>
+
+                        {/* Article Header (Full width) */}
+                        <header className="max-w-[1000px] mx-auto px-4 md:px-8 mt-12 mb-12 text-center">
+                            <div className="font-sans text-gw-red font-bold text-sm uppercase tracking-widest mb-6 flex justify-center items-center gap-2">
+                                <a href="category.html" className="hover:underline">Climate</a>
+                                <span className="text-gray-300">/</span>
+                                <span className="text-gray-500">Natural Resources</span>
+                            </div>
+                            <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl font-black leading-tight text-gw-dark mb-6">
+                                The Invisible Flood: How Groundwater Collapse Is Reshaping the American West
+                            </h1>
+                            <p className="font-sans text-xl md:text-3xl text-gray-600 max-w-[800px] mx-auto leading-normal mb-10 font-medium">
+                                Decades of unchecked agricultural pumping have triggered a slow-motion geological disaster. As the bedrock fractures, communities are forced to confront an irreversible reality.
+                            </p>
+
+                            <div className="flex flex-col md:flex-row items-center justify-center gap-6 border-y border-gray-200 py-6 font-sans text-sm mt-12 bg-gray-50">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 rounded-full overflow-hidden border border-gray-300 shadow-sm">
+                                        <img src="https://i.pravatar.cc/150?img=33" alt="Reporter" className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-bold text-base hover:text-gw-red cursor-pointer transition-colors text-gw-dark">By Sarah Jenkins</div>
+                                        <div className="text-gray-500 font-medium">Lead Investigative Reporter</div>
+                                    </div>
+                                </div>
+                                <div className="hidden md:block h-10 w-px bg-gray-300"></div>
+                                <div className="text-gray-500 flex items-center gap-4 font-medium uppercase tracking-wider text-xs">
+                                    <span>Published Oct 14, 2024</span>
+                                    <span className="hidden md:inline text-gray-300">|</span>
+                                    <span>18 min read</span>
+                                </div>
+                            </div>
+                        </header>
+
+                        {/* Hero Image */}
+                        <figure className="w-full max-w-[1400px] mx-auto mb-16 relative px-0 md:px-8">
+                            <div className="h-[400px] md:h-[700px] overflow-hidden bg-gray-100 md:rounded-sm w-full">
+                                <img src="https://images.unsplash.com/photo-1541888043695-176880fcac7d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" alt="Cracked earth" className="w-full h-full object-cover" />
+                            </div>
+                            <figcaption className="max-w-[800px] mx-auto px-4 md:px-0 mt-4 font-sans text-sm text-gray-500 flex gap-4">
+                                <span className="shrink-0"><i className="ph-fill ph-camera text-gray-400"></i></span>
+                                Alkali sink near Corcoran, California, in the Central Valley, where the ground has sunk over 11 feet in the last decade. (Photograph by Michael Chen for Groundwork)
+                            </figcaption>
+                        </figure>
+
+                        {/* Article Content Wrapper */}
+                        <div className="max-w-[1000px] mx-auto px-4 md:px-8 flex flex-col lg:flex-row gap-12 lg:gap-20 relative">
+
+                            {/* Share Sidebar (Sticky) */}
+                            <div className="hidden lg:block w-12 shrink-0 relative order-2 lg:order-1">
+                                <div className="sticky top-32 flex flex-col gap-5 items-center">
+                                    <button title="Share on Twitter" className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 hover:text-gw-red transition-all cursor-pointer bg-white text-gray-600">
+                                        <i className="ph-fill ph-twitter-logo text-lg"></i>
+                                    </button>
+                                    <button title="Share on Facebook" className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 hover:text-gw-red transition-all cursor-pointer bg-white text-gray-600">
+                                        <i className="ph-fill ph-facebook-logo text-lg"></i>
+                                    </button>
+                                    <button title="Email" className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 hover:text-gw-red transition-all cursor-pointer bg-white text-gray-600">
+                                        <i className="ph-fill ph-envelope-simple text-lg"></i>
+                                    </button>
+                                    <div className="w-8 h-px bg-gray-200 my-2"></div>
+                                    <button title="Save Article" className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gw-dark text-gray-400 hover:text-white transition-all cursor-pointer bg-white">
+                                        <i className="ph-fill ph-bookmark-simple text-lg"></i>
+                                    </button>
+                                    <button title="Print" className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 text-gray-400 hover:text-gw-dark transition-all cursor-pointer bg-white">
+                                        <i className="ph-fill ph-printer text-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Main Text */}
+                            <article className="font-serif text-[21px] leading-[1.8] text-gray-800 flex-grow max-w-[720px] order-1 lg:order-2">
+
+                                <p className="mb-8"><span className="float-left text-7xl font-black leading-none pr-3 text-gw-red font-serif mt-2">D</span>riving down State Route 43 through the heart of the San Joaquin Valley, the landscape appears unchanging: endless rows of remarkably neat almond trees, dusty tractors, and an expansive sky that blurs into the horizon. But beneath the surface, the very foundation of this agricultural powerhouse is collapsing.</p>
+
+                                <p className="mb-8">For over a century, farmers here have relied on a vast, ancient aquifer to irrigate their crops when surface water runs scarce. It was treated as an infinite resource, a subterranean safety net. Now, after decades of extracting more water than nature replaces, communities are paying the price in the form of <strong className="font-bold text-gw-dark bg-yellow-100 px-1 py-0.5">subsidence</strong>—the gradual, permanent sinking of the Earth's surface.</p>
+
+                                <p className="mb-12">This is not a theoretical model. Groundwork has spent six months analyzing high-resolution satellite radar data, uncovering a silent infrastructure crisis that threatens the economic viability of the entire region.</p>
+
+                                {/* Interactive Data Block (Embedded Chart) */}
+                                <figure className="my-14 -mx-4 md:-mx-8 lg:-mx-16 bg-gw-dark text-white p-6 md:p-10 shadow-lg border-t-4 border-gw-red rounded-sm">
+                                    <div className="font-sans text-[11px] uppercase tracking-[0.2em] text-gray-400 font-bold mb-5 flex items-center gap-2">
+                                        <i className="ph-fill ph-chart-polar text-gw-red text-lg"></i> Interactive Data Visual
+                                    </div>
+                                    <h3 className="font-serif text-3xl font-bold mb-2 leading-tight">Central Valley Elevation Decline vs. Groundwater Pumping</h3>
+                                    <p className="font-sans text-gray-400 mb-6 text-sm">Use the slider to see the correlation between annual extraction rates and ground subsidence from 2004 to 2024.</p>
+
+                                    <div className="w-full bg-gray-950 border border-gray-800 p-6 flex flex-col items-center justify-center mb-6 relative group rounded-sm h-[350px]">
+                                        {/* Mock Data Vis */}
+                                        <div className="w-full h-full relative flex items-end justify-between px-4 pb-8">
+                                            {/* Grid lines */}
+                                            <div className="absolute top-0 w-full border-b border-gray-800 h-1/4"></div>
+                                            <div className="absolute top-1/4 w-full border-b border-gray-800 h-1/4"></div>
+                                            <div className="absolute top-2/4 w-full border-b border-gray-800 h-1/4"></div>
+                                            <div className="absolute top-3/4 w-full border-b border-gray-800 h-1/4"></div>
+
+                                            {/* Declining line graph mock */}
+                                            <svg className="absolute inset-0 w-full h-full z-10" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                                <path d="M0,20 Q10,25 20,30 T40,45 T60,70 T80,85 T100,95" fill="none" stroke="#D32F2F" strokeWidth="2" />
+                                                <circle cx="20" cy="30" r="1.5" fill="#fff" />
+                                                <circle cx="40" cy="45" r="1.5" fill="#fff" />
+                                                <circle cx="60" cy="70" r="1.5" fill="#fff" />
+                                                <circle cx="80" cy="85" r="1.5" fill="#D32F2F" stroke="#fff" strokeWidth="0.5" />
+                                                <circle cx="100" cy="95" r="1.5" fill="#fff" />
+
+                                                {/* Tooltip mock */}
+                                                <g transform="translate(68, 65)">
+                                                    <rect x="0" y="0" width="24" height="12" fill="#fff" rx="1" />
+                                                    <text x="12" y="8" fontSize="4" fontWeight="bold" fill="#111" textAnchor="middle">-4.2 ft</text>
+                                                    <path d="M12,12 L9,15 L15,15 Z" fill="#fff" transform="translate(0, 1) rotate(180 12 13.5)" />
+                                                </g>
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <figcaption className="font-sans text-xs text-gray-500 flex justify-between items-center">
+                                        <span>Source: California Department of Water Resources; NASA JPL.</span>
+                                        <button className="text-white hover:text-gw-red font-bold uppercase tracking-widest bg-gray-800 px-3 py-1 flex items-center gap-1">
+                                            <i className="ph-fill ph-download-simple"></i> Download Data
+                                        </button>
+                                    </figcaption>
+                                </figure>
+
+                                <p className="mb-8">"It's like drinking a milkshake from a cracked cup," says Dr. Elena Rostova, a hydrogeologist at UC Davis. "Eventually, the cup itself loses structural integrity. The clay layers deep underground are compacting permanently. Even if we have a decade of record, biblical rainfall, that storage capacity is completely gone."</p>
+
+                                <h2 className="font-black text-4xl font-serif text-gw-dark mt-16 mb-8 border-b-2 border-gw-dark inline-block pb-2">The Infrastructure Toll</h2>
+
+                                <p className="mb-8">The consequences are profoundly visible if you know where to look. Critical infrastructure—canals, bridges, roads, and wells—is buckling under the shifting terrain. The Delta-Mendota Canal, a vital artery moving water south from the Sacramento River, has lost nearly 20% of its carrying capacity simply because the ground beneath it has sunk, reducing the gradient needed for gravity flow.</p>
+
+                                {/* Pull Quote */}
+                                <blockquote className="my-14 border-l-[6px] border-gw-red pl-8 md:pl-12 py-4 relative md:-ml-12 lg:-ml-20">
+                                    <div className="absolute -left-6 md:-left-8 top-0 text-7xl text-gw-red font-serif leading-none opacity-40">"</div>
+                                    <p className="font-serif text-2xl md:text-[32px] font-black text-gw-dark leading-tight italic">
+                                        We're watching the slow erasure of a farming empire, drafted in inches per year. Nature is simply foreclosing on a loan we stopped paying.
+                                    </p>
+                                </blockquote>
+
+                                <p className="mb-8">But the most devastating human impact is often hidden. Domestic wells in disadvantaged, unincorporated communities are running dry by the thousands as the water table drops below their reach. In Tombstone Territory, a small enclave near Sanger, residents rely entirely on bottled water deliveries subsidized by the state to drink, bathe, and cook.</p>
+
+                                <p className="mb-12">"Nobody told us the ground was falling," says Maria Gonzalez, a 20-year resident whose well failed last August. "They just told us the water was gone. Now the walls of my house are cracking, and I can't drink from the tap."<sup className="text-white bg-gw-red px-1 py-0.5 text-xs font-bold font-sans ml-1 hover:bg-black cursor-pointer rounded-sm shadow-sm" title="Interview conducted Sept 12, 2024 at Ms. Gonzalez's residence">[1]</sup></p>
+
+                                {/* Methodology Note */}
+                                <section className="bg-[#f0ede5] border border-[#d6d0c4] rounded-sm p-8 my-16 font-sans">
+                                    <h4 className="font-black uppercase tracking-widest text-gw-dark text-sm mb-4 flex items-center gap-2 border-b border-[#d6d0c4] pb-3">
+                                        <i className="ph-fill ph-check-circle text-gw-red text-xl"></i> How We Reported This Story
+                                    </h4>
+                                    <p className="text-gray-800 leading-relaxed mb-4 text-[15px]">
+                                        This investigation is based on an analysis of over 500,000 satellite radar image data points acquired between 2014 and 2024, provided by the European Space Agency and processed by NASA's Jet Propulsion Laboratory. We cross-referenced this subsidence data with 42,000 public well completion reports obtained from the Department of Water Resources via public records requests.
+                                    </p>
+                                    <p className="text-gray-800 leading-relaxed text-[15px]">
+                                        Our data processing scripts, methodology documentation, and the complete unredacted dataset of municipal well failures are available for public review in the <a href="#" className="text-gw-red hover:text-black hover:underline font-bold transition-colors">Groundwork Transparency Hub</a>.
+                                    </p>
+                                </section>
+
+                            </article>
+                        </div>
+
+                        {/* Support Donation Widget (Inline End of Article) */}
+                        <div className="bg-gw-dark text-white py-16 px-4 md:px-8 mt-12 mb-20 relative overflow-hidden">
+                            <div className="absolute -right-20 -top-20 text-[250px] text-white opacity-5 leading-none font-headline tracking-tighter pointer-events-none">
+                                SUPPORT
+                            </div>
+                            <div className="max-w-[800px] mx-auto text-center relative z-10">
+                                <i className="ph-fill ph-shield-check text-5xl text-gw-red mb-6 inline-block"></i>
+                                <h2 className="font-serif text-3xl md:text-5xl font-black mb-6 leading-tight">Investigative Journalism Costs Time and Money.</h2>
+                                <p className="font-sans text-gray-300 text-lg md:text-xl mb-10 max-w-[650px] mx-auto leading-relaxed">
+                                    It took our reporter six months and three public records lawsuits to obtain the internal documents that formed the basis of this report. If you believe this work is essential, please consider supporting Groundwork today.
+                                </p>
+
+                                <div className="bg-gray-900 border border-gray-700 p-8 rounded-sm max-w-[500px] mx-auto shadow-2xl">
+                                    <div className="flex justify-between gap-4 mb-6 font-sans">
+                                        <button className="flex-1 border-2 border-gray-600 hover:border-gw-red bg-gray-800 hover:bg-gw-red focus:bg-gw-red focus:border-gw-red text-white py-3 font-bold transition-all">$15</button>
+                                        <button className="flex-1 border-2 border-gw-red bg-gw-red text-white py-3 font-bold shadow-[0_0_15px_rgba(211,47,47,0.5)] transition-all scale-105">$35</button>
+                                        <button className="flex-1 border-2 border-gray-600 hover:border-gw-red bg-gray-800 hover:bg-gw-red focus:bg-gw-red focus:border-gw-red text-white py-3 font-bold transition-all">$75</button>
+                                    </div>
+                                    <input type="number" placeholder="Other amount" className="w-full bg-gray-800 border-2 border-gray-700 text-white px-4 py-3 mb-6 focus:border-white outline-none" />
+                                    <a href="subscription.html" className="block w-full bg-white text-gw-dark font-black uppercase tracking-widest text-lg px-8 py-4 hover:bg-gw-red hover:text-white transition-all shadow-md">
+                                        Support This Reporting
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Related Investigations */}
+                        <aside className="bg-gray-100 py-20 border-t border-gray-300">
+                            <div className="max-w-[1400px] mx-auto px-4 md:px-8">
+                                <h3 className="font-serif text-2xl md:text-3xl font-black mb-10 inline-block uppercase tracking-tight text-gw-dark border-b-[4px] border-gw-red pb-2">Continue Reading in this Series</h3>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <article className="bg-white p-6 shadow-sm hover:shadow-xl transition-all group border border-gray-200 cursor-pointer h-full flex flex-col">
+                                        <div className="font-sans text-gw-red text-[11px] font-bold uppercase tracking-widest mb-3 border border-gw-red self-start px-2 py-1">Part 2</div>
+                                        <h4 className="font-serif text-3xl font-bold leading-tight mb-4 group-hover:text-gw-red transition-colors">
+                                            The Water Barons: Who Profited While the Valley Sank?
+                                        </h4>
+                                        <p className="font-sans text-gray-600 mb-6 text-base leading-relaxed grow">Tracing the convoluted flow of money, campaign donations, and water rights among the five largest agribusiness conglomerates.</p>
+                                        <div className="font-sans text-xs font-bold uppercase text-gray-500 tracking-wider">Read Full Investigation →</div>
+                                    </article>
+
+                                    <article className="bg-white p-6 shadow-sm hover:shadow-xl transition-all group border border-gray-200 cursor-pointer h-full flex flex-col">
+                                        <div className="font-sans text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-3 bg-gray-200 self-start px-2 py-1">Policy Brief</div>
+                                        <h4 className="font-serif text-3xl font-bold leading-tight mb-4 group-hover:text-gw-red transition-colors">
+                                            Inside the Stalled Effort to Regulate Agricultural Pumping
+                                        </h4>
+                                        <p className="font-sans text-gray-600 mb-6 text-base leading-relaxed grow">Lobbying records reveal how key groundwater legislation was systematically watered down over a decade behind closed doors.</p>
+                                        <div className="font-sans text-xs font-bold uppercase text-gray-500 tracking-wider">Read Full Investigation →</div>
+                                    </article>
+
+                                    <article className="bg-gw-dark text-white p-6 shadow-sm hover:shadow-xl transition-all group border border-gray-900 cursor-pointer h-full flex flex-col relative overflow-hidden">
+                                        <div className="absolute right-[-20px] top-[-20px] text-gray-800 text-8xl opacity-50 group-hover:scale-110 transition-transform">
+                                            <i className="ph-fill ph-database"></i>
+                                        </div>
+                                        <div className="relative z-10">
+                                            <div className="font-sans text-gw-red text-[11px] font-bold uppercase tracking-widest mb-3 self-start px-2 py-1 border border-gw-red bg-black/50 inline-block">Data Center</div>
+                                            <h4 className="font-serif text-3xl font-bold leading-tight mb-4">
+                                                Interactive: Is Your Local Well at Risk of Failure?
+                                            </h4>
+                                            <p className="font-sans text-gray-400 mb-6 text-base leading-relaxed">Search by zip code using our predictive modeling tool based on state groundwater depth records.</p>
+                                        </div>
+                                        <div className="font-sans text-xs font-bold uppercase text-white tracking-wider mt-auto relative z-10 border-t border-gray-800 pt-4 group-hover:text-gw-red transition-colors">Open Tool <i className="ph-bold ph-arrow-up-right"></i></div>
+                                    </article>
+                                </div>
+                            </div>
+                        </aside>
+
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ArticlePage />);
+    </script>
+</body>
+
+</html>

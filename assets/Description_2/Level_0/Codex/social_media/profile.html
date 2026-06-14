@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Folia | Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./shared.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+    <script src="./shared.js"></script>
+    <script>
+      const { html, AppShell, Card, featuredWorks, projectGrid } = window.Folia;
+
+      function PortfolioHeader() {
+        return html`
+          <section className="portfolio-banner overflow-hidden rounded-[2rem] p-8 text-white shadow-[0_24px_70px_rgba(15,23,42,0.14)]">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.34em] text-amber-200">Portfolio Header</p>
+                <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">Mira Sol builds painterly digital portraits with editorial framing and tactile color.</h1>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200">Works in: Procreate, Figma, Film Photography. Based in Seoul and currently sharing a series on cinematic lighting studies for print and web.</p>
+              </div>
+              <div className="glass-card rounded-[1.75rem] p-5 text-slate-900">
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">Bio</p>
+                <p className="mt-3 text-sm leading-7 text-slate-600">Art director and illustrator exploring portraiture, editorial systems, and analog texture. Open to commissions and collaborative zines.</p>
+              </div>
+            </div>
+          </section>
+        `;
+      }
+
+      function Featured() {
+        return html`
+          <${Card}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-lg font-semibold text-slate-950">Featured Work</p>
+                <p className="mt-1 text-sm text-slate-500">Pinned pieces that define the current portfolio direction.</p>
+              </div>
+              <span className="rounded-full bg-amber-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-amber-900">Pinned</span>
+            </div>
+            <div className="mt-5 grid gap-4 lg:grid-cols-3">
+              ${featuredWorks.map(
+                (work, index) => html`
+                  <div key=${work.title} className="rounded-[1.75rem] bg-white p-4">
+                    <div className=${`artwork-panel ${index === 1 ? "alt-b" : index === 2 ? "alt-c" : "alt-a"} relative aspect-[4/3] overflow-hidden rounded-[1.5rem]`}></div>
+                    <p className="mt-4 text-lg font-semibold text-slate-900">${work.title}</p>
+                    <p className="mt-1 text-sm text-slate-500">${work.views}</p>
+                    <p className="mt-1 text-sm text-slate-500">${work.stats}</p>
+                  </div>
+                `
+              )}
+            </div>
+          </${Card}>
+        `;
+      }
+
+      function Projects() {
+        return html`
+          <${Card}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-lg font-semibold text-slate-950">Project Grid</p>
+                <p className="mt-1 text-sm text-slate-500">Scrollable archive of studies, client work, and personal experiments.</p>
+              </div>
+              <a href="./explore.html" className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">See Explore</a>
+            </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              ${projectGrid.map(
+                (project, index) => html`
+                  <div key=${project.title} className="rounded-[1.75rem] bg-white p-4">
+                    <div className=${`artwork-panel ${index % 3 === 1 ? "alt-b" : index % 3 === 2 ? "alt-c" : "alt-a"} relative aspect-[4/5] overflow-hidden rounded-[1.5rem]`}></div>
+                    <div className="mt-4 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-slate-900">${project.title}</p>
+                        <p className="mt-1 text-sm text-slate-500">${project.views} views</p>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-700">${project.appreciates} appreciates</p>
+                    </div>
+                  </div>
+                `
+              )}
+            </div>
+          </${Card}>
+        `;
+      }
+
+      function Aside() {
+        return html`
+          <${Card}>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Studio Stats</p>
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-[1.5rem] bg-amber-50 p-4">
+                <p className="text-2xl font-bold text-amber-950">48.3k</p>
+                <p className="text-sm text-amber-900">Portfolio views this month</p>
+              </div>
+              <div className="rounded-[1.5rem] bg-slate-100 p-4">
+                <p className="text-2xl font-bold text-slate-900">Open for Work</p>
+                <p className="text-sm text-slate-600">Editorial illustration and art direction</p>
+              </div>
+            </div>
+          </${Card}>
+        `;
+      }
+
+      function App() {
+        return html`
+          <${AppShell}
+            current="./profile.html"
+            title="Profile"
+            subtitle="A full-width portfolio view with featured work, toolset, and project archive."
+            actionLabel="Edit Settings"
+            actionHref="./settings.html"
+            aside=${html`<${Aside} />`}
+          >
+            <${PortfolioHeader} />
+            <${Featured} />
+            <${Projects} />
+          </${AppShell}>
+        `;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+    </script>
+  </body>
+</html>

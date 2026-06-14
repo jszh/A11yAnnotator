@@ -1,0 +1,38 @@
+# Warning this hides checkouts from the Github commits view
+# So unless you record a latter ref you will not be able to revert to the pre rollback state
+
+name: Rollback Website
+
+on:
+  workflow_dispatch:
+    inputs:
+      targetRef:
+        description: 'The git ref to roll back too (Hint: Use the "clipboard" icon on right of commits list and then paste)'
+        required: true
+      areYouSure:
+        description: 'Type "yes" to confirm. Commits that happened after the selected ref will be lost'
+        required: true
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check confirmation
+      run: |
+        test "yes" == "${{ github.event.inputs.areYouSure }}"
+    - uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        fetch-depth: 10
+    - name: Reset gh-pages history
+      run: |
+        git reset --hard ${{ github.event.inputs.targetRef }}
+        git push -f
+    - name: Update URL mapping on W3C site
+      uses: fjogeleit/http-request-action@v1
+      with:
+        url: 'https://www.w3.org/services/update-wai-map'
+        method: 'POST'
+        timeout: 30000

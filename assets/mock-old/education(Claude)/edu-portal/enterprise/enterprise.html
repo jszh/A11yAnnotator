@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Enterprise – EduPortal for Organizations</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{50:'#EFF6FF',600:'#2563EB',700:'#1D4ED8'},secondary:{600:'#7C3AED'}},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+  <link rel="stylesheet" href="../styles/main.css"/>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+    const BP = '../';
+
+    const GlobalHeader = ({basePath=''}) => {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const links=[
+        {label:'Courses',    href:basePath+'courses/courses.html'},
+        {label:'Subjects',   href:basePath+'subjects/subjects.html'},
+        {label:'Plans',      href:basePath+'plans/plans.html'},
+        {label:'Enterprise', href:basePath+'enterprise/enterprise.html',active:true},
+        {label:'Dashboard',  href:basePath+'dashboard/dashboard.html'},
+      ];
+      return (
+        <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm" role="banner">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center h-16 gap-4">
+              <a href={basePath+'index.html'} className="flex items-center gap-2 flex-shrink-0" aria-label="EduPortal home">
+                <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center"><span className="text-white font-bold text-sm">E</span></div>
+                <span className="text-xl font-bold text-gray-900 hidden sm:block">EduPortal</span>
+              </a>
+              <nav className="hidden md:flex items-center gap-0.5 flex-1" aria-label="Primary navigation">
+                {links.map(l=><a key={l.label} href={l.href} aria-current={l.active?'page':undefined}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${l.active?'text-blue-600 bg-blue-50':'text-gray-700 hover:text-blue-600 hover:bg-blue-50'}`}>{l.label}</a>)}
+              </nav>
+              <div className="hidden md:flex items-center gap-2">
+                <a href={basePath+'account/account.html'} className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg hover:bg-gray-100">Log in</a>
+                <a href="#contact" className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Contact Sales</a>
+              </div>
+              <button onClick={()=>setMenuOpen(!menuOpen)} aria-label={menuOpen?'Close menu':'Open menu'} aria-expanded={menuOpen}
+                className="md:hidden p-2 text-gray-700 rounded-lg hover:bg-gray-100">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  {menuOpen?<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>:<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>}
+                </svg>
+              </button>
+            </div>
+            {menuOpen&&<nav className="md:hidden py-3 border-t border-gray-100 space-y-1" aria-label="Mobile navigation">
+              {links.map(l=><a key={l.label} href={l.href} className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 rounded-lg">{l.label}</a>)}
+            </nav>}
+          </div>
+        </header>
+      );
+    };
+
+    const Footer = ({basePath=''}) => (
+      <footer className="bg-gray-900 text-gray-400 py-10" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap gap-8 mb-8">
+          {[{t:'Learn',ls:[['Courses',basePath+'courses/courses.html'],['Subjects',basePath+'subjects/subjects.html']]},
+            {t:'Plans',ls:[['Pricing',basePath+'plans/plans.html'],['Enterprise',basePath+'enterprise/enterprise.html']]},
+            {t:'Company',ls:[['About','#'],['Careers','#'],['Contact','#']]}].map(col=>(
+            <div key={col.t}>
+              <h3 className="text-white font-semibold text-sm mb-3">{col.t}</h3>
+              <ul className="space-y-2">{col.ls.map(([l,h])=><li key={l}><a href={h} className="text-sm hover:text-white">{l}</a></li>)}</ul>
+            </div>
+          ))}
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 border-t border-gray-800 flex items-center justify-between">
+          <p className="text-sm text-gray-500">© 2024 EduPortal, Inc.</p>
+          <div className="flex gap-4">{['Privacy','Terms','Security'].map(t=><a key={t} href="#" className="text-sm text-gray-500 hover:text-gray-300">{t}</a>)}</div>
+        </div>
+      </footer>
+    );
+
+    const solutions = [
+      {icon:'🔐',title:'Enterprise Security',     color:'from-blue-600 to-blue-800',  desc:'SOC 2 Type II, SSO/SAML, LDAP integration, role-based access controls, and data encryption at rest and in transit.'},
+      {icon:'📊',title:'Advanced Analytics',      color:'from-purple-600 to-purple-800',desc:'Real-time learning dashboards, completion reports, skill gap analysis, and custom data exports for HR and compliance.'},
+      {icon:'🏫',title:'LMS Integration',         color:'from-teal-600 to-teal-800',  desc:'Native integrations with Canvas, Blackboard, Moodle, Schoology, and custom LTI-compatible platforms.'},
+      {icon:'👤',title:'Student Data Privacy',    color:'from-green-600 to-green-800', desc:'FERPA, COPPA, GDPR compliant. Granular data controls. Zero data brokering. Student data never used for ads.'},
+      {icon:'📈',title:'Performance Tracking',    color:'from-orange-600 to-red-700',  desc:'Individual learner progress, cohort comparisons, intervention alerts, and longitudinal outcome tracking.'},
+      {icon:'🎓',title:'Professional Development',color:'from-indigo-600 to-blue-700', desc:'Curated PD pathways for educators, customizable course libraries, and tracked credit hours for recertification.'},
+      {icon:'🔧',title:'API & Customization',     color:'from-gray-600 to-gray-800',   desc:'Full REST API access, white-label options, custom domain support, and bespoke content development services.'},
+      {icon:'🌐',title:'Multi-Site Management',   color:'from-cyan-600 to-teal-700',   desc:'Centralized admin for multiple schools or campuses. District-wide reporting. Unified user management.'},
+    ];
+
+    const testimonials = [
+      {quote:"EduPortal transformed how our 12,000 students access learning. The analytics dashboard alone is worth every penny — we've seen a 34% improvement in completion rates.",name:"Dr. Sarah Chen",title:"Chief Academic Officer, Metro School District",org:"Metro SD"},
+      {quote:"The security and FERPA compliance features gave our board the confidence to roll out district-wide. Implementation was seamless, and support was phenomenal.",name:"James Okafor",title:"CTO, Riverside Unified Schools",org:"Riverside USD"},
+      {quote:"We integrated EduPortal with Canvas in just two weeks. The LTI support is best-in-class. Our faculty adoption rate jumped from 45% to 89% within the first semester.",name:"Prof. Amelia Watts",title:"Director of eLearning, Pacific University",org:"Pacific U"},
+    ];
+
+    const App = () => {
+      const [activeTab, setActiveTab] = useState('schools');
+      const [formData, setFormData] = useState({name:'',email:'',org:'',size:'',message:''});
+      const [submitted, setSubmitted] = useState(false);
+
+      const handleSubmit = (e) => { e.preventDefault(); setSubmitted(true); };
+
+      const audiences = {
+        schools:    { headline:'Scalable learning solutions for K–12 schools and districts', sub:'From 50 to 500,000 students — EduPortal Enterprise grows with your district. FERPA compliant, LMS-integrated, and backed by dedicated support.' },
+        higher_ed:  { headline:'Empower your campus with enterprise-grade learning tools', sub:'Integrate with your existing LMS, give faculty analytics insights, and provide students with 24/7 access to world-class content.' },
+        corporate:  { headline:'Upskill your workforce with industry-leading content', sub:'Build custom learning pathways, track skills development, and demonstrate ROI to leadership with our enterprise analytics suite.' },
+      };
+
+      return (
+        <>
+          <GlobalHeader basePath={BP}/>
+          <main id="main-content">
+            {/* Hero D – Enterprise SaaS (full-width) */}
+            <section className="relative min-h-screen bg-gray-950 text-white overflow-hidden flex items-center" aria-labelledby="enterprise-hero-heading">
+              {/* Background pattern */}
+              <div className="absolute inset-0 opacity-20" aria-hidden="true" style={{backgroundImage:'radial-gradient(circle at 20% 30%, #2563EB 0%, transparent 50%),radial-gradient(circle at 80% 70%, #7C3AED 0%, transparent 50%)'}}>
+                <div className="absolute inset-0" style={{backgroundImage:'repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(255,255,255,.01) 40px, rgba(255,255,255,.01) 80px)'}}/>
+              </div>
+              <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-20 w-full">
+                <div className="max-w-3xl">
+                  <span className="badge bg-blue-500/20 text-blue-300 mb-5 inline-flex text-sm">🏫 For schools, universities & enterprise</span>
+                  <h1 id="enterprise-hero-heading" className="text-5xl sm:text-6xl font-extrabold leading-tight mb-6">
+                    Education technology<br/>that <span className="text-blue-400">actually works</span><br/>at scale.
+                  </h1>
+                  <p className="text-gray-300 text-xl mb-10 max-w-2xl leading-relaxed">
+                    EduPortal Enterprise delivers FERPA-compliant learning management, real-time analytics, and seamless LMS integration — purpose-built for institutions that demand more.
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <a href="#contact" className="px-8 py-4 bg-blue-600 hover:bg-blue-500 font-bold rounded-xl transition-colors text-lg shadow-lg shadow-blue-900/30 focus-visible:ring-2 focus-visible:ring-white">
+                      Request a demo
+                    </a>
+                    <a href={BP+'plans/plans.html'} className="px-8 py-4 bg-white/10 hover:bg-white/20 font-semibold rounded-xl border border-white/20 transition-colors focus-visible:ring-2 focus-visible:ring-white">
+                      View pricing →
+                    </a>
+                  </div>
+                </div>
+
+                {/* Floating stat cards */}
+                <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {[{n:'5,000+',l:'Institutions',icon:'🏫'},{n:'12M+',l:'Students served',icon:'👩‍🎓'},{n:'99.9%',l:'Uptime SLA',icon:'⚡'},{n:'SOC 2',l:'Type II certified',icon:'🔐'}].map(s=>(
+                    <div key={s.l} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 text-center hover:bg-white/15 transition-colors">
+                      <div className="text-2xl mb-2" aria-hidden="true">{s.icon}</div>
+                      <div className="text-2xl font-extrabold">{s.n}</div>
+                      <div className="text-gray-400 text-xs mt-1">{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Audience tabs */}
+            <section className="bg-white border-b border-gray-200 py-4 sticky top-16 z-40" aria-label="Select audience">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6">
+                <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Audience segments">
+                  {[{id:'schools',label:'K–12 Schools & Districts'},{id:'higher_ed',label:'Higher Education'},{id:'corporate',label:'Corporate & Enterprise'}].map(tab=>(
+                    <button key={tab.id} role="tab" aria-selected={activeTab===tab.id} onClick={()=>setActiveTab(tab.id)}
+                      className={`flex-shrink-0 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 ${activeTab===tab.id?'bg-blue-600 text-white':'text-gray-600 hover:bg-gray-100'}`}>
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Audience message */}
+            <section className="bg-gradient-to-r from-blue-50 to-purple-50 py-14" aria-live="polite">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">{audiences[activeTab].headline}</h2>
+                <p className="text-gray-600 text-lg">{audiences[activeTab].sub}</p>
+              </div>
+            </section>
+
+            {/* Solution modules grid */}
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16" aria-labelledby="solutions-heading">
+              <h2 id="solutions-heading" className="text-3xl font-bold text-gray-900 text-center mb-3">Enterprise solution modules</h2>
+              <p className="text-gray-500 text-center mb-10 max-w-xl mx-auto">Mix and match modules to build the exact solution your institution needs.</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {solutions.map((s,i)=>(
+                  <div key={i} className="card bg-white rounded-2xl overflow-hidden group">
+                    <div className={`h-16 bg-gradient-to-r ${s.color} flex items-center justify-start px-5`} aria-hidden="true">
+                      <span className="text-3xl">{s.icon}</span>
+                    </div>
+                    <div className="p-5">
+                      <h3 className="font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">{s.title}</h3>
+                      <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Testimonials */}
+            <section className="bg-gray-950 text-white py-16" aria-labelledby="testimonials-heading">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6">
+                <h2 id="testimonials-heading" className="text-3xl font-bold text-center mb-12">Trusted by leading institutions</h2>
+                <div className="grid md:grid-cols-3 gap-6">
+                  {testimonials.map((t,i)=>(
+                    <blockquote key={i} className="bg-white/5 border border-white/10 rounded-2xl p-7">
+                      <p className="text-gray-300 text-sm leading-relaxed mb-6 italic">"{t.quote}"</p>
+                      <footer>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0" aria-hidden="true">
+                            {t.name.split(' ').map(n=>n[0]).join('').slice(0,2)}
+                          </div>
+                          <div>
+                            <cite className="not-italic font-semibold text-sm text-white">{t.name}</cite>
+                            <p className="text-xs text-gray-400 mt-0.5">{t.title}</p>
+                          </div>
+                        </div>
+                      </footer>
+                    </blockquote>
+                  ))}
+                </div>
+
+                {/* Logo strip */}
+                <div className="mt-12 flex flex-wrap justify-center gap-4">
+                  {['Harvard','MIT','Stanford','Yale','Arizona State','University of Texas','LAUSD','Chicago Public Schools'].map(org=>(
+                    <span key={org} className="px-4 py-2 bg-white/10 border border-white/10 rounded-full text-sm text-gray-300">{org}</span>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Contact form */}
+            <section id="contact" className="max-w-2xl mx-auto px-4 sm:px-6 py-16" aria-labelledby="contact-heading">
+              <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
+                <h2 id="contact-heading" className="text-2xl font-bold text-gray-900 mb-2 text-center">Request a demo</h2>
+                <p className="text-gray-500 text-center mb-8 text-sm">Get a personalized walkthrough of EduPortal Enterprise. No commitment required.</p>
+                {submitted ? (
+                  <div className="text-center py-8">
+                    <div className="text-5xl mb-4" aria-hidden="true">✅</div>
+                    <h3 className="font-bold text-gray-900 mb-2">Thank you! We'll be in touch within 24 hours.</h3>
+                    <button onClick={()=>setSubmitted(false)} className="text-blue-600 text-sm hover:underline mt-3">Submit another request</button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="ent-name" className="block text-sm font-medium text-gray-700 mb-1">Full name *</label>
+                        <input id="ent-name" type="text" required value={formData.name} onChange={e=>setFormData({...formData,name:e.target.value})}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Dr. Jane Smith"/>
+                      </div>
+                      <div>
+                        <label htmlFor="ent-email" className="block text-sm font-medium text-gray-700 mb-1">Work email *</label>
+                        <input id="ent-email" type="email" required value={formData.email} onChange={e=>setFormData({...formData,email:e.target.value})}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="jane@school.edu"/>
+                      </div>
+                    </div>
+                    <div>
+                      <label htmlFor="ent-org" className="block text-sm font-medium text-gray-700 mb-1">Organization name *</label>
+                      <input id="ent-org" type="text" required value={formData.org} onChange={e=>setFormData({...formData,org:e.target.value})}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Metro School District"/>
+                    </div>
+                    <div>
+                      <label htmlFor="ent-size" className="block text-sm font-medium text-gray-700 mb-1">Organization size</label>
+                      <select id="ent-size" value={formData.size} onChange={e=>setFormData({...formData,size:e.target.value})}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">Select size…</option>
+                        <option>50–200 students/employees</option>
+                        <option>200–1,000</option>
+                        <option>1,000–10,000</option>
+                        <option>10,000+</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="ent-msg" className="block text-sm font-medium text-gray-700 mb-1">Tell us about your needs</label>
+                      <textarea id="ent-msg" rows={3} value={formData.message} onChange={e=>setFormData({...formData,message:e.target.value})}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="What are your main learning goals or challenges?"/>
+                    </div>
+                    <button type="submit" className="w-full py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+                      Request demo
+                    </button>
+                    <p className="text-xs text-gray-400 text-center">By submitting, you agree to our Privacy Policy. We'll never share your data.</p>
+                  </form>
+                )}
+              </div>
+            </section>
+          </main>
+          <Footer basePath={BP}/>
+        </>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

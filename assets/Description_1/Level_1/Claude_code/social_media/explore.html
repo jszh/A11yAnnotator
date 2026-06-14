@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse — Explore</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class', theme: { extend: {} } }</script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *:focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; border-radius: 6px; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .skip-link { position: absolute; top: -40px; left: 0; background: #7c3aed; color: white; padding: 8px 16px; border-radius: 0 0 8px 0; font-weight: 600; z-index: 100; }
+    .skip-link:focus { top: 0; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/* ── ICONS ─────────────────────────────────────────────── */
+const Ic = {
+  Home:     () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
+  Compass:  () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/></svg>,
+  Bell:     () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>,
+  Msg:      () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>,
+  User:     () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
+  Gear:     () => <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
+  Heart:    ({ f }) => <svg className="w-4 h-4" fill={f?"currentColor":"none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>,
+  Comment:  () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
+  Plus:     () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>,
+  Search:   () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>,
+  Verified: () => <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+  Lightning:() => <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>,
+  Img:      () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+};
+
+/* ── AVATAR ─────────────────────────────────────────────── */
+const AVATAR_COLORS = {
+  AC:'from-violet-500 to-purple-700', MR:'from-rose-500 to-pink-700',
+  JP:'from-blue-500 to-cyan-700',    ST:'from-emerald-500 to-teal-700',
+  RK:'from-amber-500 to-orange-600', PK:'from-indigo-500 to-blue-700',
+  LS:'from-fuchsia-500 to-purple-700',ZW:'from-sky-500 to-blue-600',
+  DL:'from-lime-500 to-green-600',   NP:'from-red-500 to-rose-700',
+  CP:'from-cyan-500 to-teal-600',    AO:'from-orange-500 to-red-600',
+};
+const SZ = { xs:'w-7 h-7 text-xs', sm:'w-8 h-8 text-xs', md:'w-10 h-10 text-sm', lg:'w-14 h-14 text-lg', xl:'w-20 h-20 text-2xl' };
+const Avatar = ({ user, size='md' }) => {
+  const initials = user.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  const g = AVATAR_COLORS[initials] || 'from-violet-500 to-purple-700';
+  return <div className={`${SZ[size]} rounded-full bg-gradient-to-br ${g} flex items-center justify-center font-bold text-white flex-shrink-0 select-none`} aria-hidden="true">{initials}</div>;
+};
+
+/* ── NAV ────────────────────────────────────────────────── */
+const NAV_ITEMS = [
+  { icon:'Home',    label:'Home',          href:'index.html' },
+  { icon:'Compass', label:'Explore',       href:'explore.html' },
+  { icon:'Bell',    label:'Notifications', href:'notifications.html', badge:3 },
+  { icon:'Msg',     label:'Messages',      href:'messages.html',      badge:5 },
+  { icon:'User',    label:'Profile',       href:'profile.html' },
+  { icon:'Gear',    label:'Settings',      href:'settings.html' },
+];
+const ME = { name:'Alex Chen', handle:'@alexchen' };
+
+const Navigation = ({ cur }) => (
+  <nav className="fixed left-0 top-0 h-full w-64 bg-slate-900 border-r border-slate-800 flex flex-col p-4 z-40 hidden lg:flex" aria-label="Main navigation">
+    <a href="index.html" className="flex items-center gap-2 mb-8 px-2" aria-label="Pulse — go to home feed">
+      <span className="text-violet-500"><Ic.Lightning /></span>
+      <span className="text-2xl font-extrabold tracking-tight text-white">Pulse</span>
+    </a>
+    <ul className="space-y-1 flex-1" role="list">
+      {NAV_ITEMS.map(({ icon, label, href, badge }) => {
+        const Icon = Ic[icon]; const active = cur === href;
+        return (
+          <li key={label}>
+            <a href={href} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${active ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`} aria-current={active ? 'page' : undefined}>
+              <Icon /><span className="font-semibold">{label}</span>
+              {badge > 0 && <span className="ml-auto bg-violet-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1" aria-label={`${badge} unread`}>{badge}</span>}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+    <button className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 rounded-xl mb-4 flex items-center justify-center gap-2 transition-colors" aria-label="Create new post">
+      <Ic.Plus /><span>New Post</span>
+    </button>
+    <a href="profile.html" className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-800 transition-colors">
+      <Avatar user={ME} size="sm" />
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm text-white truncate">{ME.name}</p>
+        <p className="text-slate-500 text-xs truncate">{ME.handle}</p>
+      </div>
+    </a>
+  </nav>
+);
+
+const MobileNav = ({ cur }) => (
+  <nav className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800 flex lg:hidden z-40" aria-label="Mobile navigation">
+    {NAV_ITEMS.slice(0,5).map(({ icon, label, href, badge }) => {
+      const Icon = Ic[icon]; const active = cur === href;
+      return (
+        <a key={label} href={href} className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 relative transition-colors ${active ? 'text-violet-400' : 'text-slate-500 hover:text-slate-300'}`}
+          aria-label={label} aria-current={active ? 'page' : undefined}>
+          <Icon />
+          <span className="text-[10px] font-medium">{label}</span>
+          {badge > 0 && <span className="absolute top-1.5 left-1/2 translate-x-1.5 bg-violet-500 text-white text-[9px] rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5" aria-label={`${badge} unread`}>{badge}</span>}
+        </a>
+      );
+    })}
+  </nav>
+);
+
+/* ── DATA ───────────────────────────────────────────────── */
+const HASHTAGS = [
+  { tag:'#ClimateWeek', color:'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
+  { tag:'#WorldCup2026', color:'bg-blue-500/15 text-blue-300 border-blue-500/30' },
+  { tag:'#AIArt', color:'bg-violet-500/15 text-violet-300 border-violet-500/30' },
+  { tag:'#TechLayoffs', color:'bg-rose-500/15 text-rose-300 border-rose-500/30' },
+  { tag:'#MindfulMonday', color:'bg-amber-500/15 text-amber-300 border-amber-500/30' },
+  { tag:'#Photography', color:'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' },
+  { tag:'#WebDev', color:'bg-indigo-500/15 text-indigo-300 border-indigo-500/30' },
+  { tag:'#Sustainability', color:'bg-green-500/15 text-green-300 border-green-500/30' },
+];
+const USERS = [
+  { name:'Priya Kapoor',  handle:'@priyak',      bio:'Climate scientist & author',          followers:'24.1K' },
+  { name:'Leo Santos',    handle:'@leosantos',   bio:'Open-source dev, TypeScript & Rust',  followers:'18.3K' },
+  { name:'Zoe Williams',  handle:'@zoewrites',   bio:'Tech journalist @ The Verge',         followers:'52.7K' },
+  { name:'Diego Lima',    handle:'@diegolima',   bio:'Street photographer, São Paulo',      followers:'89.2K' },
+  { name:'Nina Park',     handle:'@ninapark',    bio:'UX designer & accessibility advocate',followers:'31.6K' },
+  { name:'Chris Osei',    handle:'@chrisosei',   bio:'Game dev, indie studio founder',      followers:'14.9K' },
+  { name:'Aiko Tanaka',   handle:'@aikot',       bio:'Marine biologist & ocean advocate',   followers:'41.0K' },
+  { name:'Omar Rashid',   handle:'@omarrashid',  bio:'AI researcher, NLP & vision models',  followers:'67.3K' },
+];
+const GRID_POSTS = [
+  { id:1,  author:'Maya Rodriguez', handle:'@maya_creates', text:'Golden hour in the city never gets old 📸', grad:'from-amber-800 via-orange-700 to-rose-900', alt:'City at golden hour', likes:2100, comments:287, tall:true },
+  { id:2,  author:'Jordan Park',    handle:'@jordanpark',   text:'Climate Week: every small action counts 🌱',  grad:'from-emerald-900 to-teal-800',            alt:'Green landscape', likes:1400, comments:203 },
+  { id:3,  author:'Sam Taylor',     handle:'@sam_t',        text:'console.log is still king 😅 #DevLife',      grad:'from-slate-800 to-indigo-900',            alt:'Dark terminal code view', likes:3200, comments:445 },
+  { id:4,  author:'Riley Kim',      handle:'@rileykim',     text:'Stadium energy is UNREAL #WorldCup2026 ⚽', grad:'from-emerald-900 to-green-800',           alt:'Stadium crowd', likes:5600, comments:823, tall:true },
+  { id:5,  author:'Alex Chen',      handle:'@alexchen',     text:'AI progress is staggering 🤖✨ #AIResearch',  grad:'from-violet-900 to-purple-800',           alt:'Abstract AI visualization', likes:847,  comments:124 },
+  { id:6,  author:'Priya Kapoor',   handle:'@priyak',       text:'Ocean temps hit record highs again 🌊',     grad:'from-blue-900 to-cyan-800',               alt:'Ocean surface with light', likes:2900, comments:378 },
+  { id:7,  author:'Diego Lima',     handle:'@diegolima',    text:'Street photography — finding beauty in the mundane 🎞️', grad:'from-gray-900 to-slate-800', alt:'Monochrome street scene', likes:4100, comments:512, tall:true },
+  { id:8,  author:'Zoe Williams',   handle:'@zoewrites',    text:'The future of journalism is community-led 📰', grad:'from-rose-900 to-pink-800',           alt:'Open newspaper on desk', likes:1800, comments:267 },
+  { id:9,  author:'Omar Rashid',    handle:'@omarrashid',   text:'New SOTA on multilingual NLP benchmarks 🔬', grad:'from-indigo-900 to-blue-800',           alt:'Data visualization chart', likes:920,  comments:183 },
+];
+
+/* ── EXPLORE PAGE ───────────────────────────────────────── */
+const ExplorePage = () => {
+  const [query, setQuery] = useState('');
+  const [followed, setFollowed] = useState({});
+  const [likedPosts, setLikedPosts] = useState({});
+
+  const toggleFollow = h => setFollowed(p => ({ ...p, [h]: !p[h] }));
+  const toggleLike   = id => setLikedPosts(p => ({ ...p, [id]: !p[id] }));
+
+  return (
+    <div className="min-h-screen bg-slate-950">
+      <Navigation cur="explore.html" />
+      <MobileNav cur="explore.html" />
+      <div className="lg:ml-64">
+        <main id="main-content" className="max-w-4xl mx-auto px-4 py-6 pb-24 lg:pb-8">
+          {/* Search bar */}
+          <section aria-label="Search" className="mb-8">
+            <h1 className="text-2xl font-extrabold text-white mb-4">Explore</h1>
+            <div className="relative">
+              <label htmlFor="explore-search" className="sr-only">Search posts, users, and hashtags</label>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"><Ic.Search /></span>
+              <input id="explore-search" type="search" value={query} onChange={e => setQuery(e.target.value)}
+                placeholder="Search posts, users, and hashtags…"
+                className="w-full bg-slate-800 text-slate-100 placeholder-slate-500 pl-12 pr-4 py-3.5 rounded-2xl text-base outline-none focus:ring-2 focus:ring-violet-500 border border-slate-700 focus:border-violet-500" />
+            </div>
+          </section>
+
+          {/* Trending hashtags */}
+          <section aria-labelledby="hashtags-heading" className="mb-8">
+            <h2 id="hashtags-heading" className="text-lg font-bold text-white mb-3">🔥 Trending Hashtags</h2>
+            <div className="flex flex-wrap gap-2" role="list">
+              {HASHTAGS.map(({ tag, color }) => (
+                <div key={tag} role="listitem">
+                  <a href="#" className={`inline-flex items-center px-4 py-2 rounded-full border text-sm font-semibold ${color} hover:opacity-80 transition-opacity`} aria-label={`Explore ${tag}`}>{tag}</a>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Suggested users */}
+          <section aria-labelledby="users-heading" className="mb-8">
+            <h2 id="users-heading" className="text-lg font-bold text-white mb-4">👥 Suggested for You</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {USERS.map(u => (
+                <div key={u.handle} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col items-center text-center hover:border-slate-700 transition-colors">
+                  <Avatar user={u} size="lg" />
+                  <p className="font-bold text-white mt-3 text-sm">{u.name}</p>
+                  <p className="text-violet-400 text-xs mb-1">{u.handle}</p>
+                  <p className="text-slate-400 text-xs mb-1 line-clamp-2 leading-tight">{u.bio}</p>
+                  <p className="text-slate-500 text-xs mb-3">{u.followers} followers</p>
+                  <button onClick={() => toggleFollow(u.handle)}
+                    className={`w-full py-1.5 rounded-full text-xs font-bold transition-colors ${followed[u.handle] ? 'bg-violet-600 text-white' : 'border border-slate-600 text-slate-200 hover:bg-slate-700'}`}
+                    aria-label={`${followed[u.handle] ? 'Unfollow' : 'Follow'} ${u.name}`} aria-pressed={!!followed[u.handle]}>
+                    {followed[u.handle] ? 'Following' : 'Follow'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Popular posts grid */}
+          <section aria-labelledby="popular-heading">
+            <h2 id="popular-heading" className="text-lg font-bold text-white mb-4">🌟 Popular Posts</h2>
+            <div className="columns-2 lg:columns-3 gap-3 space-y-3">
+              {GRID_POSTS.map(p => {
+                const isLiked = !!likedPosts[p.id];
+                return (
+                  <article key={p.id} className="break-inside-avoid bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-700 transition-colors">
+                    <div className={`w-full ${p.tall ? 'h-48' : 'h-32'} bg-gradient-to-br ${p.grad} flex items-center justify-center`} role="img" aria-label={p.alt}>
+                      <span className="text-white/20"><Ic.Img /></span>
+                    </div>
+                    <div className="p-3">
+                      <p className="text-slate-100 text-xs leading-relaxed mb-2 line-clamp-2">{p.text}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 text-xs">{p.handle}</span>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => toggleLike(p.id)}
+                            className={`flex items-center gap-1 text-xs transition-colors ${isLiked ? 'text-rose-500' : 'text-slate-400 hover:text-rose-400'}`}
+                            aria-label={`${isLiked ? 'Unlike' : 'Like'} — ${p.likes + (isLiked ? 1 : 0)} likes`} aria-pressed={isLiked}>
+                            <Ic.Heart f={isLiked} />
+                            <span>{isLiked ? p.likes + 1 : p.likes}</span>
+                          </button>
+                          <span className="flex items-center gap-1 text-xs text-slate-400">
+                            <Ic.Comment />{p.comments}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<ExplorePage />);
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+name: Deploy
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+        fetch-depth: 0
+    - name: Set up Ruby 3.4.8
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.4.8' # matches Netlify ruby version
+        bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+    - name: Build and test with Jekyll
+      run: |
+        export WAI_LIVE_SITE=true
+        bundle exec jekyll build --config "_config.yml,_config_prod.yml" --profile
+    - name: Generate list of resources
+      run: |
+        find ./_site -type f | sed 's,^\.\/_site,,' | sort > ./_site/manifest.txt
+    - name: Publish to gh-pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: _site
+    - name: Zip Files
+      uses: montudor/action-zip@v1
+      with:
+        args: zip -r build.zip ./_site
+    - name: Upload zip file to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: build.zip
+        asset_name: build.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+    - name: Wait for gh-pages to be updated
+      run: sleep 90s
+      shell: bash
+    - name: Update URL mapping on W3C site
+      uses: fjogeleit/http-request-action@v1
+      with:
+        url: 'https://www.w3.org/services/update-wai-map'
+        method: 'POST'
+        timeout: 70000

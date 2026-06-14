@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Red Sea Crisis — The Meridian</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['Playfair Display', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .font-serif { font-family: 'Playfair Display', Georgia, serif; }
+    .article-body p { margin-bottom: 1.5rem; line-height: 1.85; font-size: 1.0625rem; color: #1f2937; }
+    .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: #b91c1c; z-index: 9999; transition: width 0.1s; }
+  </style>
+</head>
+<body class="bg-white text-gray-900">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function Header() {
+  return (
+    <header className="bg-slate-900 text-white">
+      <div className="border-b border-slate-700">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-9 text-xs text-slate-400">
+          <span>Monday, March 16, 2026</span>
+          <div className="flex gap-5">
+            <a href="#" className="hover:text-white">Sign In</a>
+            <a href="subscribe.html" className="hover:text-white">Subscribe</a>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">
+        <a href="index.html" className="font-serif text-4xl font-black tracking-tight text-white hover:text-slate-200">The Meridian</a>
+        <div className="hidden md:flex items-center gap-3">
+          <a href="subscribe.html" className="bg-red-700 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2 transition-colors">Subscribe</a>
+        </div>
+      </div>
+      <nav className="border-t border-slate-700">
+        <div className="max-w-7xl mx-auto px-4">
+          <ul className="hidden md:flex">
+            {[['World', 'world.html'], ['Politics', '#'], ['Technology', '#'], ['Culture', '#'], ['Opinion', 'opinion.html'], ['Video', '#']].map(([l, h]) => (
+              <li key={l}><a href={h} className="block px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 tracking-wide uppercase transition-colors">{l}</a></li>
+            ))}
+          </ul>
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+function ReadingProgress() {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const update = () => {
+      const el = document.documentElement;
+      const scrolled = el.scrollTop / (el.scrollHeight - el.clientHeight);
+      setWidth(Math.min(100, scrolled * 100));
+    };
+    window.addEventListener('scroll', update);
+    return () => window.removeEventListener('scroll', update);
+  }, []);
+  return <div className="progress-bar" style={{ width: `${width}%` }} />;
+}
+
+function Comments() {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [comments, setComments] = useState([
+    { name: 'David K.', time: '1h ago', text: 'Exceptional reporting. The context around Bab-el-Mandeb is crucial and rarely explained this clearly.', likes: 42 },
+    { name: 'Priya R.', time: '2h ago', text: 'I\'d push back on the framing that the UN session is purely reactive. There have been months of quiet back-channel work.', likes: 31 },
+    { name: 'Thomas W.', time: '3h ago', text: 'What\'s missing here is the role of the insurance markets — Lloyd\'s reclassified the strait weeks ago and that triggered everything.', likes: 18 },
+  ]);
+  const submit = e => {
+    e.preventDefault();
+    if (!text.trim()) return;
+    setComments(c => [{ name: 'You', time: 'Just now', text, likes: 0 }, ...c]);
+    setText('');
+  };
+  return (
+    <div className="mt-12 border-t border-gray-200 pt-10">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="font-serif text-xl font-bold">Comments <span className="text-gray-400 font-normal text-base">({comments.length})</span></h3>
+        <button onClick={() => setOpen(!open)} className="text-sm text-red-700 font-semibold hover:text-red-900 transition-colors">
+          {open ? 'Close' : 'Add a Comment'}
+        </button>
+      </div>
+      {open && (
+        <form onSubmit={submit} className="mb-8 bg-gray-50 p-5 border border-gray-200">
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            rows={4}
+            placeholder="Share your perspective..."
+            className="w-full bg-white border border-gray-300 text-sm p-3 resize-none focus:outline-none focus:border-slate-500"
+          />
+          <div className="flex justify-end mt-3">
+            <button type="submit" className="bg-slate-900 hover:bg-slate-700 text-white text-sm font-semibold px-5 py-2 transition-colors">Post Comment</button>
+          </div>
+        </form>
+      )}
+      <div className="space-y-6">
+        {comments.map((c, i) => (
+          <div key={i} className="border-b border-gray-100 pb-6 last:border-0">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-full bg-slate-300 flex items-center justify-center text-slate-700 text-xs font-bold">{c.name[0]}</div>
+              <span className="font-semibold text-sm text-gray-900">{c.name}</span>
+              <span className="text-gray-400 text-xs">{c.time}</span>
+            </div>
+            <p className="text-gray-700 text-sm leading-relaxed">{c.text}</p>
+            <button className="mt-2 text-xs text-gray-400 hover:text-red-700 transition-colors">♥ {c.likes}</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-slate-950 text-slate-400 py-8 mt-0">
+      <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <a href="index.html" className="font-serif text-2xl font-black text-white">The Meridian</a>
+        <div className="flex gap-6 text-xs">
+          {['World', 'Politics', 'Technology', 'Culture', 'Opinion'].map(l => (
+            <a key={l} href={l === 'World' ? 'world.html' : l === 'Opinion' ? 'opinion.html' : '#'} className="hover:text-white transition-colors">{l}</a>
+          ))}
+        </div>
+        <p className="text-xs text-slate-600">© 2026 The Meridian Media Group</p>
+      </div>
+    </footer>
+  );
+}
+
+function App() {
+  const relatedInText = [
+    { title: 'A Brief History of Houthi Maritime Operations', href: '#' },
+    { title: 'Oil Markets and the Strait Calculus', href: '#' },
+  ];
+
+  const moreFromWorld = [
+    { title: 'Eastern Ukraine Ceasefire Collapses: What Happened in the Final 72 Hours', author: 'Nadia Petrov', seed: 'mw1', region: 'Europe' },
+    { title: 'China Signals New Position on Taiwan Strait Ahead of G20 Summit', author: 'Mei Zhang', seed: 'mw2', region: 'Asia' },
+    { title: 'Sudan Humanitarian Corridor Blocked as RSF Forces Advance', author: 'Amara Osei', seed: 'mw3', region: 'Africa' },
+    { title: 'India\'s General Election: A Billion Voters and a Fractured Opposition', author: 'Raj Patel', seed: 'mw4', region: 'Asia' },
+  ];
+
+  return (
+    <>
+      <ReadingProgress />
+      <Header />
+
+      {/* Breadcrumb */}
+      <div className="border-b border-gray-200 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 py-3 text-xs text-gray-500 flex items-center gap-2">
+          <a href="index.html" className="hover:text-gray-900">Home</a>
+          <span>›</span>
+          <a href="world.html" className="hover:text-gray-900 text-red-700 font-semibold">World</a>
+          <span>›</span>
+          <span>Red Sea Crisis</span>
+        </div>
+      </div>
+
+      {/* Article */}
+      <article className="max-w-3xl mx-auto px-4 py-10">
+        {/* Header */}
+        <span className="inline-block bg-red-700 text-white text-xs font-black px-3 py-1 tracking-widest uppercase mb-5">World</span>
+        <h1 className="font-serif text-3xl md:text-5xl font-black leading-tight mb-4 text-gray-950">
+          Red Sea Crisis Escalates as UN Security Council Convenes Emergency Session
+        </h1>
+        <p className="font-serif text-xl text-gray-600 leading-relaxed mb-6 italic">
+          Shipping lanes through the Bab-el-Mandeb strait remain disrupted as Houthi attacks continue, prompting emergency diplomacy across three continents and sending oil prices to a six-month high.
+        </p>
+
+        {/* Byline */}
+        <div className="flex items-center gap-4 border-y border-gray-200 py-4 mb-8">
+          <img src="https://picsum.photos/seed/amara-av/80/80" alt="Amara Osei" className="w-12 h-12 rounded-full object-cover" />
+          <div>
+            <a href="opinion.html" className="font-semibold text-sm text-gray-900 hover:text-red-700">Amara Osei</a>
+            <p className="text-xs text-gray-500">Senior World Correspondent, Cairo Bureau</p>
+          </div>
+          <div className="ml-auto text-xs text-gray-500 text-right">
+            <p>March 16, 2026, 06:42 GMT</p>
+            <p className="text-gray-400">8 min read · Updated 2h ago</p>
+          </div>
+        </div>
+
+        {/* Share bar */}
+        <div className="flex items-center gap-3 mb-8">
+          {['X / Twitter', 'Facebook', 'Copy Link', 'Email'].map(s => (
+            <button key={s} className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 hover:bg-gray-100 transition-colors">{s}</button>
+          ))}
+        </div>
+
+        {/* Hero image */}
+        <figure className="mb-8 -mx-4 md:mx-0">
+          <img src="https://picsum.photos/seed/redsea-hero/1200/680" alt="A cargo vessel in the Red Sea" className="w-full object-cover" style={{maxHeight: '480px'}} />
+          <figcaption className="text-xs text-gray-400 mt-2 px-4 md:px-0">
+            A container vessel navigates under escort through the southern Red Sea corridor. Photograph: Maritime Safety Authority / AP
+          </figcaption>
+        </figure>
+
+        {/* Article body */}
+        <div className="article-body max-w-2xl">
+          <p>
+            The United Nations Security Council convened an emergency session on Sunday after a series of drone and missile strikes on commercial shipping in the southern Red Sea raised the prospect of a prolonged disruption to one of the world's most critical maritime chokepoints. Fifteen vessels were targeted in the past seventy-two hours alone, according to a joint statement from the United Kingdom Maritime Trade Operations and the US Naval Forces Central Command.
+          </p>
+          <p>
+            The escalation comes as the Houthi movement in Yemen, emboldened by regional dynamics and a perceived withdrawal of international pressure following the Gaza ceasefire, has resumed and intensified its maritime campaign. The group claims its operations target ships with ties to Israel, the United States, or the United Kingdom — though independent shipping logs reviewed by The Meridian show that numerous vessels with no such affiliations have been struck in recent weeks.
+          </p>
+
+          {/* Inline related links */}
+          <div className="bg-slate-50 border-l-4 border-red-700 p-4 my-6 text-sm">
+            <p className="font-semibold text-gray-900 mb-2 text-xs tracking-widest uppercase">Related</p>
+            {relatedInText.map((r, i) => (
+              <a key={i} href={r.href} className="block text-red-700 hover:text-red-900 hover:underline mb-1 last:mb-0">{r.title}</a>
+            ))}
+          </div>
+
+          <p>
+            The economic consequences are already being felt globally. Brent crude futures climbed to $94.40 per barrel on Monday morning — a six-month high — while shipping insurance premiums for vessels transiting the strait have quadrupled since January. The Bab-el-Mandeb, a narrow waterway between Yemen and Djibouti, handles approximately 10% of global seaborne oil trade and 12% of total container shipping, including a significant share of Europe-Asia commerce.
+          </p>
+
+          {/* Pull quote */}
+          <blockquote className="font-serif text-xl md:text-2xl font-bold text-slate-900 border-l-4 border-red-700 pl-6 my-8 py-2 italic leading-snug">
+            "The calculus has changed. What was once a regional disruption is now a structural threat to global supply chains."
+            <footer className="font-sans text-sm text-gray-500 not-italic mt-2 font-normal">— Dr. Hana Al-Rashid, Gulf Studies Centre, Oxford</footer>
+          </blockquote>
+
+          <p>
+            Diplomatic responses have been swift but largely uncoordinated. The United States announced it would deploy an additional carrier group to the region, a move that drew criticism from China and Russia at the Security Council session as "escalatory." France and Germany pressed for a renewed ceasefire framework tied to humanitarian guarantees, while Saudi Arabia — which shares a lengthy border with Yemen — maintained its public neutrality while privately lobbying Gulf partners for a de-escalation pathway, according to three diplomatic sources familiar with the discussions.
+          </p>
+          <p>
+            "The calculus has changed," said Dr. Hana Al-Rashid, a senior fellow at the Gulf Studies Centre at Oxford. "What was once a regional disruption is now a structural threat to global supply chains. Every week this continues, the cost of resolution increases — economically and diplomatically."
+          </p>
+          <p>
+            At the Security Council, the session ended without a formal resolution, blocked by vetoes from China and Russia over language characterizing the Houthi operations as "terrorism." The council did issue a non-binding presidential statement calling for "immediate cessation of attacks on civilian vessels" and tasked the Secretary-General with presenting options for a maritime monitoring mechanism within 30 days.
+          </p>
+        </div>
+
+        {/* Tags */}
+        <div className="mt-10 pt-6 border-t border-gray-200">
+          <p className="text-xs text-gray-500 font-semibold mb-3 tracking-wide uppercase">Tags</p>
+          <div className="flex flex-wrap gap-2">
+            {['Red Sea', 'Houthi', 'United Nations', 'Shipping', 'Yemen', 'Oil Markets', 'Middle East'].map(t => (
+              <span key={t} className="bg-gray-100 text-gray-600 text-xs px-3 py-1.5 hover:bg-red-700 hover:text-white cursor-pointer transition-colors">{t}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Author bio */}
+        <div className="mt-8 bg-slate-50 border border-gray-200 p-6 flex gap-5">
+          <img src="https://picsum.photos/seed/amara-av/80/80" alt="Amara Osei" className="w-16 h-16 rounded-full object-cover shrink-0" />
+          <div>
+            <a href="opinion.html" className="font-serif font-bold text-gray-900 hover:text-red-700 text-lg">Amara Osei</a>
+            <p className="text-xs text-gray-500 mb-2">Senior World Correspondent, Cairo Bureau</p>
+            <p className="text-sm text-gray-600 leading-relaxed">Amara covers the Middle East and North Africa for The Meridian. Previously with Reuters in Nairobi and Beirut. Winner of the 2024 Kurt Schork Award for International Journalism.</p>
+          </div>
+        </div>
+
+        {/* Comments */}
+        <Comments />
+      </article>
+
+      {/* More from World */}
+      <section className="bg-slate-50 border-t border-gray-200 py-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-8">
+            <h2 className="font-serif text-2xl font-bold">More from World</h2>
+            <a href="world.html" className="text-xs font-semibold text-slate-500 hover:text-red-700 tracking-wide uppercase transition-colors">All World Stories →</a>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {moreFromWorld.map((s, i) => (
+              <a href="article.html" key={i} className="group">
+                <div className="overflow-hidden mb-3">
+                  <img src={`https://picsum.photos/seed/${s.seed}/400/260`} alt="" className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300" />
+                </div>
+                <span className="text-red-700 text-xs font-black tracking-widest uppercase">{s.region}</span>
+                <h3 className="font-serif text-sm font-semibold leading-snug mt-1 group-hover:text-slate-600 transition-colors">{s.title}</h3>
+                <p className="text-gray-400 text-xs mt-2">{s.author}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

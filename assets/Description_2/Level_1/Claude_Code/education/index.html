@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkillForge — Your Next Career Starts Here</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"DM Sans"', 'system-ui', 'sans-serif'],
+            body: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #F8FAFC; color: #0F172A; font-family: 'Inter', system-ui, sans-serif; }
+    *:focus-visible { outline: 2px solid #4F46E5; outline-offset: 3px; border-radius: 4px; }
+    img { display: block; max-width: 100%; }
+    .font-display { font-family: 'DM Sans', system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useId } = React;
+
+/* ── Icons ────────────────────────────────────────────────── */
+const IconMenu = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>;
+const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>;
+const IconChevR = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>;
+const IconChevL = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>;
+const IconStar = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 fill-orange-400 text-orange-400" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.006Z" clipRule="evenodd" /></svg>;
+const IconCheck = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>;
+const IconArrow = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>;
+const IconClock = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
+const IconUsers = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>;
+const IconBriefcase = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z" /></svg>;
+const IconHospital = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" /></svg>;
+const IconComputer = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0H3" /></svg>;
+const IconWrench = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" /></svg>;
+
+/* ── NAV ──────────────────────────────────────────────────── */
+const NAV_LINKS = [
+  { label: 'Explore Courses', href: 'courses.html' },
+  { label: 'How It Works', href: '#how-it-works' },
+  { label: 'Employer Partners', href: '#partners' },
+  { label: 'Pricing', href: 'pricing.html' },
+];
+
+function Header() {
+  const [open, setOpen] = useState(false);
+  return (
+    <header className="bg-white border-b border-slate-100 sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+        <a href="index.html" aria-label="SkillForge — home" className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center" aria-hidden="true">
+            <span className="text-white font-bold text-sm font-display">SF</span>
+          </div>
+          <span className="font-display font-bold text-lg text-slate-900">SkillForge</span>
+        </a>
+        <nav aria-label="Primary navigation" className="hidden md:flex items-center gap-1">
+          {NAV_LINKS.map(({ label, href }) => (
+            <a key={label} href={href} className="px-3 py-2 text-sm font-medium text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">{label}</a>
+          ))}
+        </nav>
+        <div className="flex items-center gap-3">
+          <a href="dashboard.html" className="hidden sm:block text-sm font-medium text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg transition-colors">Sign In</a>
+          <a href="courses.html" className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">Start Free</a>
+          <button onClick={() => setOpen(p => !p)} aria-expanded={open} aria-controls="mobile-nav" aria-label={open ? 'Close menu' : 'Open menu'} className="md:hidden p-2 text-slate-600">
+            {open ? <IconX /> : <IconMenu />}
+          </button>
+        </div>
+      </div>
+      {open && (
+        <div id="mobile-nav" className="md:hidden border-t border-slate-100 bg-white px-4 pb-4 pt-2">
+          <nav aria-label="Mobile navigation">
+            <ul className="space-y-1" role="list">
+              {NAV_LINKS.map(({ label, href }) => (
+                <li key={label}><a href={href} className="block px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg">{label}</a></li>
+              ))}
+              <li><a href="dashboard.html" className="block px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg">Sign In</a></li>
+              <li className="pt-2"><a href="courses.html" className="block bg-indigo-600 text-white text-sm font-semibold px-4 py-3 rounded-lg text-center">Start Free</a></li>
+            </ul>
+          </nav>
+        </div>
+      )}
+    </header>
+  );
+}
+
+/* ── Urgency Banner ──────────────────────────────────────────── */
+function UrgencyBanner() {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+  return (
+    <div role="alert" aria-live="polite" className="bg-orange-500 text-white text-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between py-2.5 gap-3">
+        <p className="font-medium">
+          🔥 <strong>Medical Admin cohort starting March 3 — only 4 seats left.</strong>{' '}
+          <a href="course-detail.html" className="underline hover:no-underline font-semibold">Reserve your spot →</a>
+        </p>
+        <button onClick={() => setDismissed(true)} aria-label="Dismiss banner" className="flex-shrink-0 text-white/70 hover:text-white">
+          <IconX />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+function Hero() {
+  return (
+    <section aria-labelledby="hero-heading" className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-indigo-800 text-white py-20 sm:py-28 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-10" aria-hidden="true" style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, #818CF8 0%, transparent 60%)' }} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
+        <div className="max-w-3xl">
+          <span className="inline-block font-body text-xs font-bold text-indigo-300 bg-indigo-800/60 border border-indigo-600/40 px-3 py-1.5 rounded-full mb-6 uppercase tracking-wide">
+            Vocational & Professional Certification
+          </span>
+          <h1 id="hero-heading" className="font-display text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.05] mb-6 tracking-tight">
+            Your Next Career<br />
+            <span className="text-orange-400">Starts Here.</span>
+          </h1>
+          <p className="font-body text-xl text-indigo-200 leading-relaxed mb-8 max-w-2xl">
+            Earn industry-recognized certificates in as little as 8 weeks. Flexible formats, expert instructors, and real job placement support — built for working adults.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 mb-10">
+            <a href="courses.html" className="font-display font-bold bg-orange-500 hover:bg-orange-400 text-white px-8 py-4 rounded-xl text-lg transition-colors text-center flex items-center justify-center gap-2">
+              Explore Programs <IconArrow />
+            </a>
+            <a href="#quiz" className="font-display font-semibold border-2 border-indigo-400 text-indigo-200 hover:bg-indigo-800 px-8 py-4 rounded-xl text-lg transition-colors text-center">
+              Find My Path →
+            </a>
+          </div>
+          <div className="flex flex-wrap gap-x-8 gap-y-3">
+            {[
+              { n: '94%', label: 'job placement rate' },
+              { n: '8 weeks', label: 'average certificate time' },
+              { n: '40,000+', label: 'graduates placed' },
+            ].map(({ n, label }) => (
+              <div key={label}>
+                <p className="font-display text-2xl font-extrabold text-white">{n}</p>
+                <p className="font-body text-sm text-indigo-300">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Partner Logos ────────────────────────────────────────────── */
+const PARTNERS = [
+  { name: 'Google', abbr: 'Goo' },
+  { name: 'Mayo Clinic', abbr: 'Mayo' },
+  { name: 'Deloitte', abbr: 'Dltte' },
+  { name: 'Kaiser Permanente', abbr: 'KP' },
+  { name: 'Amazon', abbr: 'Amzn' },
+  { name: 'CVS Health', abbr: 'CVS' },
+];
+
+function Partners() {
+  return (
+    <section aria-labelledby="partners-heading" id="partners" className="bg-white py-10 border-y border-slate-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <p id="partners-heading" className="font-body text-xs text-slate-400 uppercase tracking-widest font-semibold text-center mb-7">Hiring our graduates</p>
+        <ul className="flex flex-wrap justify-center items-center gap-x-10 gap-y-6" role="list" aria-label="Employer partners">
+          {PARTNERS.map(({ name, abbr }) => (
+            <li key={name}>
+              <div
+                className="h-8 px-4 bg-slate-100 rounded-lg flex items-center justify-center"
+                role="img"
+                aria-label={name}
+              >
+                <span className="font-display font-extrabold text-slate-500 text-sm tracking-tight">{name}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ── Career Fields ────────────────────────────────────────────── */
+const FIELDS = [
+  { name: 'Healthcare Support', icon: IconHospital, count: 14, color: 'bg-rose-50 text-rose-700 border-rose-100', href: 'courses.html' },
+  { name: 'Information Technology', icon: IconComputer, count: 11, color: 'bg-sky-50 text-sky-700 border-sky-100', href: 'courses.html' },
+  { name: 'Business Administration', icon: IconBriefcase, count: 9, color: 'bg-amber-50 text-amber-700 border-amber-100', href: 'courses.html' },
+  { name: 'Skilled Trades', icon: IconWrench, count: 7, color: 'bg-emerald-50 text-emerald-700 border-emerald-100', href: 'courses.html' },
+];
+
+function CareerFields() {
+  return (
+    <section aria-labelledby="fields-heading" className="py-16 max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="text-center mb-10">
+        <h2 id="fields-heading" className="font-display text-3xl font-extrabold text-slate-900 mb-3">Find Your Career Field</h2>
+        <p className="font-body text-slate-500 text-lg">Explore programs built around in-demand industries with strong job markets.</p>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {FIELDS.map(({ name, icon: Icon, count, color, href }) => (
+          <a key={name} href={href}
+            aria-label={`${name} — ${count} programs available`}
+            className={`group flex flex-col items-center text-center gap-3 p-6 rounded-2xl border ${color} hover:shadow-md transition-all`}>
+            <div className={`p-3 rounded-xl ${color}`}><Icon /></div>
+            <span className="font-display font-bold text-base text-slate-800">{name}</span>
+            <span className="font-body text-sm text-slate-500">{count} programs</span>
+            <span className="font-body text-xs text-indigo-600 font-semibold flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              Browse <IconChevR />
+            </span>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ── Path Quiz ────────────────────────────────────────────────── */
+const QUIZ_STEPS = [
+  {
+    q: 'What best describes your current situation?',
+    options: ['Currently employed, seeking career change', 'Recently unemployed or laid off', 'Just graduated, entering workforce', 'Returning to work after a break'],
+  },
+  {
+    q: 'What is your primary goal?',
+    options: ['Higher pay in a new field', 'More stable / predictable work', 'Work in healthcare', 'Work remotely or flexibly'],
+  },
+  {
+    q: 'How much time can you commit per week?',
+    options: ['Under 5 hours', '5–10 hours', '10–20 hours', '20+ hours'],
+  },
+];
+
+function PathQuiz() {
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [done, setDone] = useState(false);
+  const current = QUIZ_STEPS[step];
+
+  const select = (opt) => {
+    const next = [...answers, opt];
+    setAnswers(next);
+    if (step < QUIZ_STEPS.length - 1) { setStep(s => s + 1); }
+    else { setDone(true); }
+  };
+
+  return (
+    <section id="quiz" aria-labelledby="quiz-heading" className="bg-indigo-950 text-white py-16">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center">
+        <p className="font-body text-indigo-300 text-xs uppercase tracking-widest font-semibold mb-2">3-Question Quiz</p>
+        <h2 id="quiz-heading" className="font-display text-3xl font-extrabold mb-3">Find Your Path</h2>
+        <p className="font-body text-indigo-300 mb-8">Answer 3 quick questions and we'll recommend the right program for you.</p>
+
+        {!done ? (
+          <div aria-live="polite" aria-atomic="true">
+            {/* Progress */}
+            <div className="flex gap-1.5 justify-center mb-8" role="group" aria-label={`Step ${step + 1} of ${QUIZ_STEPS.length}`}>
+              {QUIZ_STEPS.map((_, i) => (
+                <div key={i} className={`h-1.5 rounded-full transition-all ${i <= step ? 'bg-orange-400' : 'bg-indigo-700'} ${i === step ? 'w-8' : 'w-4'}`} aria-hidden="true" />
+              ))}
+            </div>
+            <p className="font-display text-xl font-bold mb-6">{current.q}</p>
+            <div className="grid gap-3">
+              {current.options.map(opt => (
+                <button key={opt} onClick={() => select(opt)}
+                  className="font-body text-sm text-left px-5 py-3.5 bg-indigo-800/60 hover:bg-indigo-700 border border-indigo-700 rounded-xl transition-colors text-indigo-100 hover:text-white">
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div aria-live="polite" aria-atomic="true">
+            <div className="text-6xl mb-4" aria-hidden="true">🎯</div>
+            <p className="font-display text-xl font-bold mb-2">We've got a match!</p>
+            <p className="font-body text-indigo-200 mb-6">Based on your answers, we recommend the <strong className="text-white">Medical Administrative Assistant Certificate</strong> — perfect for flexible scheduling and in-demand healthcare work.</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a href="course-detail.html" className="font-display font-bold bg-orange-500 hover:bg-orange-400 text-white px-6 py-3 rounded-xl transition-colors">
+                View Recommended Course
+              </a>
+              <a href="courses.html" className="font-body border border-indigo-500 text-indigo-200 hover:bg-indigo-800 px-6 py-3 rounded-xl transition-colors">
+                Browse All Programs
+              </a>
+            </div>
+            <button onClick={() => { setStep(0); setAnswers([]); setDone(false); }} className="font-body text-sm text-indigo-400 hover:text-indigo-200 mt-4 underline">
+              Retake quiz
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ── Success Stories ─────────────────────────────────────────── */
+const STORIES = [
+  {
+    name: 'Rosa Martinez',
+    before: 'Retail Store Manager',
+    after: 'Medical Administrative Assistant',
+    outcome: 'Increased salary by 34% in 6 months',
+    quote: 'SkillForge fit around my life — I studied during nap times and lunch breaks. The instructors were real professionals, not just teachers.',
+    avatar: 'https://picsum.photos/seed/rosa/80/80',
+    field: 'Healthcare',
+    weeks: 8,
+  },
+  {
+    name: 'James Okafor',
+    before: 'Warehouse Associate',
+    after: 'IT Support Specialist',
+    outcome: 'Now employed at Google partner firm',
+    quote: 'I had zero IT background. Eight weeks later I had a job offer. The hands-on labs made all the difference.',
+    avatar: 'https://picsum.photos/seed/james/80/80',
+    field: 'IT',
+    weeks: 12,
+  },
+  {
+    name: 'Priya Patel',
+    before: 'Stay-at-home parent',
+    after: 'Certified Bookkeeper',
+    outcome: 'Started own bookkeeping practice',
+    quote: 'The self-paced format meant I could learn while my kids were at school. The certification opened every door I knocked on.',
+    avatar: 'https://picsum.photos/seed/priya_patel/80/80',
+    field: 'Business',
+    weeks: 6,
+  },
+  {
+    name: 'DeShawn Brooks',
+    before: 'Restaurant Cook',
+    after: 'HVAC Service Technician',
+    outcome: '58% salary increase, union benefits',
+    quote: 'The trades track was intense but the instructors had my back. I got my EPA 608 cert and had three offers before I even graduated.',
+    avatar: 'https://picsum.photos/seed/deshawn/80/80',
+    field: 'Trades',
+    weeks: 16,
+  },
+];
+
+function SuccessStories() {
+  const [idx, setIdx] = useState(0);
+  const story = STORIES[idx];
+
+  const prev = () => setIdx(i => (i - 1 + STORIES.length) % STORIES.length);
+  const next = () => setIdx(i => (i + 1) % STORIES.length);
+
+  return (
+    <section aria-labelledby="stories-heading" className="bg-white py-16">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        <div className="text-center mb-10">
+          <h2 id="stories-heading" className="font-display text-3xl font-extrabold text-slate-900 mb-3">Real People. Real Outcomes.</h2>
+          <p className="font-body text-slate-500 text-lg">Hear from graduates who transformed their careers.</p>
+        </div>
+
+        <div className="bg-slate-50 rounded-3xl p-8 sm:p-12" aria-live="polite" aria-atomic="true">
+          <div className="grid sm:grid-cols-2 gap-10 items-center">
+            <div>
+              <div className="flex items-center gap-4 mb-6">
+                <img src={story.avatar} alt={`${story.name}'s photo`} className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-md" />
+                <div>
+                  <p className="font-display font-extrabold text-lg text-slate-900">{story.name}</p>
+                  <p className="font-body text-sm text-indigo-600 font-semibold">{story.field} · {story.weeks}-week certificate</p>
+                </div>
+              </div>
+              <blockquote className="font-body text-slate-700 text-lg leading-relaxed italic mb-5">
+                "{story.quote}"
+              </blockquote>
+              <div className="flex gap-1 mb-2" aria-label="5 out of 5 stars">
+                {[...Array(5)].map((_, i) => <IconStar key={i} />)}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                <p className="font-body text-xs text-slate-400 uppercase tracking-wide font-semibold mb-1">Before SkillForge</p>
+                <p className="font-display font-bold text-slate-700">{story.before}</p>
+              </div>
+              <div className="flex justify-center" aria-hidden="true">
+                <div className="w-px h-6 bg-slate-200" />
+              </div>
+              <div className="bg-indigo-50 rounded-2xl p-5 border border-indigo-100 shadow-sm">
+                <p className="font-body text-xs text-indigo-600 uppercase tracking-wide font-semibold mb-1">After SkillForge</p>
+                <p className="font-display font-bold text-indigo-800">{story.after}</p>
+                <p className="font-body text-sm text-indigo-600 mt-1 font-medium">{story.outcome}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-200">
+            <div className="flex gap-1.5" role="group" aria-label="Story selector">
+              {STORIES.map((s, i) => (
+                <button key={i} onClick={() => setIdx(i)}
+                  aria-label={`Show ${s.name}'s story`}
+                  aria-pressed={i === idx}
+                  className={`h-2 rounded-full transition-all ${i === idx ? 'w-6 bg-indigo-600' : 'w-2 bg-slate-300 hover:bg-slate-400'}`} />
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={prev} aria-label="Previous story" className="p-2 border border-slate-200 hover:border-indigo-300 rounded-lg text-slate-600 hover:text-indigo-600 transition-colors">
+                <IconChevL />
+              </button>
+              <button onClick={next} aria-label="Next story" className="p-2 border border-slate-200 hover:border-indigo-300 rounded-lg text-slate-600 hover:text-indigo-600 transition-colors">
+                <IconChevR />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── How It Works ────────────────────────────────────────────── */
+const STEPS = [
+  { n: '01', title: 'Choose Your Program', body: 'Browse 40+ certificate programs across healthcare, IT, business, and trades. Filter by format, duration, and cost.' },
+  { n: '02', title: 'Learn at Your Pace', body: 'Join a live cohort or learn self-paced. Access instructor-led sessions, labs, and peer collaboration tools.' },
+  { n: '03', title: 'Earn Your Certificate', body: 'Complete your program and receive an industry-recognized certificate. Some programs include exam prep for national certifications.' },
+  { n: '04', title: 'Get Placed', body: 'Tap into our employer partner network. Our career team provides resume help, interview coaching, and job placement support.' },
+];
+
+function HowItWorks() {
+  return (
+    <section id="how-it-works" aria-labelledby="how-heading" className="py-16 max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="text-center mb-12">
+        <h2 id="how-heading" className="font-display text-3xl font-extrabold text-slate-900 mb-3">How SkillForge Works</h2>
+        <p className="font-body text-slate-500 text-lg max-w-xl mx-auto">From enrollment to job offer — we're with you every step.</p>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {STEPS.map(({ n, title, body }) => (
+          <div key={n} className="relative">
+            <div className="font-display text-5xl font-extrabold text-indigo-100 mb-3" aria-hidden="true">{n}</div>
+            <h3 className="font-display font-bold text-lg text-slate-900 mb-2">{title}</h3>
+            <p className="font-body text-sm text-slate-500 leading-relaxed">{body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ── CTA Banner ──────────────────────────────────────────────── */
+function CTABanner() {
+  return (
+    <section aria-labelledby="cta-heading" className="bg-indigo-600 py-16">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+        <h2 id="cta-heading" className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-4">
+          Ready to Start? Next cohort begins March 3.
+        </h2>
+        <p className="font-body text-indigo-200 text-lg mb-8">Only 4 seats remain in the Medical Administrative Assistant cohort. Don't miss your spot.</p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a href="course-detail.html" className="font-display font-bold bg-orange-500 hover:bg-orange-400 text-white px-8 py-4 rounded-xl text-lg transition-colors">
+            Enroll Now — $349
+          </a>
+          <a href="pricing.html" className="font-body border-2 border-indigo-400 text-indigo-200 hover:bg-indigo-700 px-8 py-4 rounded-xl text-lg transition-colors">
+            View All Plans
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+function Footer() {
+  const emailId = useId();
+  return (
+    <footer className="bg-slate-900 text-slate-400 py-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+          <div className="lg:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center" aria-hidden="true">
+                <span className="text-white font-bold text-sm font-display">SF</span>
+              </div>
+              <span className="font-display font-bold text-lg text-white">SkillForge</span>
+            </div>
+            <p className="font-body text-sm text-slate-400 leading-relaxed max-w-sm mb-5">
+              Vocational and professional certification for adult learners and career-changers. Accredited, affordable, and built for real life.
+            </p>
+            <div>
+              <label htmlFor={emailId} className="font-body block text-sm font-semibold text-slate-300 mb-2">Get career insights weekly</label>
+              <div className="flex gap-2">
+                <input id={emailId} type="email" placeholder="you@email.com" autoComplete="email"
+                  className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 rounded-lg px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none" />
+                <button className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors">Subscribe</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 className="font-display font-bold text-white text-sm uppercase tracking-wide mb-4">Programs</h3>
+            <ul className="space-y-2 font-body text-sm" role="list">
+              {['Healthcare Support', 'Information Technology', 'Business Administration', 'Skilled Trades', 'All Programs'].map(l => (
+                <li key={l}><a href="courses.html" className="hover:text-white transition-colors">{l}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-display font-bold text-white text-sm uppercase tracking-wide mb-4">About</h3>
+            <ul className="space-y-2 font-body text-sm" role="list">
+              {['Our Mission', 'Accreditation', 'Employer Partners', 'Scholarships', 'Talk to an Advisor'].map(l => (
+                <li key={l}><a href={l === 'Talk to an Advisor' ? 'pricing.html' : '#'} className="hover:text-white transition-colors">{l}</a></li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-slate-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <p className="font-body text-xs text-slate-500">© 2026 SkillForge, Inc. Accredited by ACCET. All rights reserved.</p>
+          <nav aria-label="Legal links" className="flex gap-5 font-body text-xs text-slate-500">
+            <a href="#" className="hover:text-slate-300">Privacy</a>
+            <a href="#" className="hover:text-slate-300">Terms</a>
+            <a href="#" className="hover:text-slate-300">Accessibility</a>
+          </nav>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ── App ─────────────────────────────────────────────────────── */
+function App() {
+  return (
+    <>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-1/2 focus:-translate-x-1/2 focus:z-50 focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:font-body focus:text-sm">
+        Skip to main content
+      </a>
+      <UrgencyBanner />
+      <Header />
+      <main id="main-content">
+        <Hero />
+        <Partners />
+        <CareerFields />
+        <PathQuiz />
+        <SuccessStories />
+        <HowItWorks />
+        <CTABanner />
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

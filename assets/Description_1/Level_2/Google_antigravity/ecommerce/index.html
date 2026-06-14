@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NovaMart | Home</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    /* Accessibility: Visible focus rings */
+    *:focus-visible {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+    
+    /* Smooth scrolling for anchor links */
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    /* Hide scrollbar for horizontal scrolling containers but keep functionality */
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+  
+  <div id="root"></div>
+
+  <!-- Shared Components Script -->
+  <script type="text/babel" src="components.js"></script>
+  
+  <!-- Page Specific Script -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+    const { Header, Footer, A11yAnnouncer, ProductCard, announceToScreenReader } = window.NovaMart;
+
+    // --- MOCK DATA ---
+    const HERO_SLIDES = [
+      {
+        id: 1,
+        title: "Flash Sale: Up to 50% off Electronics",
+        subtitle: "Upgrade your tech with our biggest deals of the season.",
+        image: "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&q=80&w=1200",
+        cta: "Shop Electronics",
+        link: "products.html?category=electronics"
+      },
+      {
+        id: 2,
+        title: "New Arrivals in Home Goods",
+        subtitle: "Refresh your living space with modern kitchenware and decor.",
+        image: "https://images.unsplash.com/photo-1556910110-a5a63dfd393c?auto=format&fit=crop&q=80&w=1200",
+        cta: "Explore Home",
+        link: "products.html?category=home"
+      },
+      {
+        id: 3,
+        title: "Spring Apparel Collection",
+        subtitle: "Get ready for warmer weather with trending styles.",
+        image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1200",
+        cta: "View Clothing",
+        link: "products.html?category=clothing"
+      }
+    ];
+
+    const CATEGORIES = [
+      { name: 'Electronics', image: 'https://images.unsplash.com/photo-1550009158-9fff16efa3e4?auto=format&fit=crop&q=80&w=400', link: 'products.html?category=electronics' },
+      { name: 'Kitchen & Dining', image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=400', link: 'products.html?category=kitchen' },
+      { name: 'Clothing', image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=400', link: 'products.html?category=clothing' },
+      { name: 'Sports & Outdoors', image: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=400', link: 'products.html?category=sports' },
+    ];
+
+    const TODAY_DEALS = [
+      { id: '1', name: 'Sony WH-1000XM5 Headphones', brand: 'Sony', price: 279.99, originalPrice: 399.99, rating: 4.8, reviews: 1245, discount: 30, image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=500' },
+      { id: '2', name: 'MacBook Air M2', brand: 'Apple', price: 999.00, originalPrice: 1199.00, rating: 4.9, reviews: 890, discount: 15, image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=500' },
+      { id: '3', name: 'Dyson V15 Detect Vacuum', brand: 'Dyson', price: 549.99, originalPrice: 749.99, rating: 4.7, reviews: 532, discount: 25, isNew: true, image: 'https://images.unsplash.com/photo-1558317374-067fb5f30001?auto=format&fit=crop&q=80&w=500' },
+      { id: '4', name: 'Samsung 65" OLED TV', brand: 'Samsung', price: 1499.99, originalPrice: 2099.99, rating: 4.6, reviews: 320, discount: 28, image: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&q=80&w=500' },
+      { id: '5', name: 'Fitbit Charge 6', brand: 'Fitbit', price: 129.95, originalPrice: 159.95, rating: 4.5, reviews: 2100, discount: 18, image: 'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?auto=format&fit=crop&q=80&w=500' },
+    ];
+
+    // --- COMPONENTS ---
+
+    const HeroSection = () => {
+      const [currentSlide, setCurrentSlide] = useState(0);
+      const [isAutoplay, setIsAutoplay] = useState(true);
+
+      useEffect(() => {
+        if (!isAutoplay) return;
+        const interval = setInterval(() => {
+          setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+        }, 5000);
+        return () => clearInterval(interval);
+      }, [isAutoplay]);
+
+      const goToSlide = (index) => {
+        setCurrentSlide(index);
+        announceToScreenReader(`Showing slide ${index + 1} of ${HERO_SLIDES.length}: ${HERO_SLIDES[index].title}`);
+      };
+
+      return (
+        <section aria-labelledby="hero-heading" className="relative bg-gray-900 group">
+          <h2 id="hero-heading" className="sr-only">Featured Promotions</h2>
+          
+          <div className="relative h-[400px] sm:h-[500px] lg:h-[600px] overflow-hidden">
+            {HERO_SLIDES.map((slide, index) => (
+              <div 
+                key={slide.id}
+                className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                aria-hidden={index !== currentSlide}
+              >
+                <div className="absolute inset-0 bg-black/40"></div>
+                <img src={slide.image} alt="" className="w-full h-full object-cover" />
+                
+                <div className="absolute inset-0 flex items-center justify-center md:justify-start">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                    <div className="max-w-xl text-center md:text-left text-white transform transition-transform duration-700 translate-y-0 opacity-100">
+                      <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-4 drop-shadow-md">
+                        {slide.title}
+                      </h3>
+                      <p className="text-lg sm:text-xl md:text-2xl mb-8 font-medium drop-shadow-sm text-gray-100">
+                        {slide.subtitle}
+                      </p>
+                      <a 
+                        href={slide.link}
+                        className="inline-flex items-center justify-center px-8 py-4 border border-transparent text-base font-bold rounded-md text-gray-900 bg-white hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all outline-none focus-visible:ring-4 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+                        tabIndex={index === currentSlide ? 0 : -1}
+                      >
+                        {slide.cta}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Carousel Controls (Cat 8: Pause Control, Cat 4: Keyboard accessible) */}
+          <div className="absolute bottom-6 inset-x-0 z-20 flex justify-center items-center gap-4">
+            <button 
+              onClick={() => setIsAutoplay(!isAutoplay)}
+              className="p-2 rounded-full bg-black/50 text-white hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-white transition-colors"
+              aria-label={isAutoplay ? "Pause slider" : "Play slider"}
+              aria-pressed={!isAutoplay}
+            >
+              {isAutoplay ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              )}
+            </button>
+            <div className="flex space-x-2" role="group" aria-label="Slider controls">
+              {HERO_SLIDES.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToSlide(index)}
+                  className={`w-3 h-3 rounded-full focus:outline-none focus:ring-2 focus:ring-white transition-all ${index === currentSlide ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/75'}`}
+                  aria-label={`Go to slide ${index + 1}`}
+                  aria-current={index === currentSlide ? 'true' : 'false'}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const TrendingCategories = () => (
+      <section aria-labelledby="trending-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <h2 id="trending-heading" className="text-2xl font-bold text-gray-900 mb-8">Trending Categories</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {CATEGORIES.map((cat, index) => (
+            <a 
+              key={index} 
+              href={cat.link}
+              className="group relative rounded-xl h-48 sm:h-64 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 outline-none focus-visible:ring-4 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              aria-label={`Shop ${cat.name}`}
+            >
+              <img src={cat.image} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-80 group-hover:opacity-100 transition-opacity"></div>
+              <div className="absolute inset-0 flex items-end p-6">
+                 <h3 className="text-white text-xl font-bold translate-y-0 group-hover:-translate-y-2 transition-transform duration-300">
+                   {cat.name}
+                 </h3>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    );
+
+    const DealsSection = () => {
+      const scrollRef = useRef(null);
+      
+      const scroll = (direction) => {
+        if (!scrollRef.current) return;
+        const scrollAmount = direction === 'left' ? -400 : 400;
+        scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        announceToScreenReader(`Scrolled ${direction === 'left' ? 'left' : 'right'} to show more deals`);
+      };
+
+      return (
+        <section aria-labelledby="deals-heading" className="bg-white py-16 border-y border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center mb-8">
+               <h2 id="deals-heading" className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                 Today's Deals <span className="text-red-600 bg-red-100 px-2 py-1 rounded text-xs tracking-wider uppercase" aria-hidden="true">Live</span>
+               </h2>
+               <div className="flex gap-2">
+                 <button 
+                   onClick={() => scroll('left')} 
+                   className="p-2 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                   aria-label="Scroll deals left"
+                 >
+                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
+                 </button>
+                 <button 
+                   onClick={() => scroll('right')} 
+                   className="p-2 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                   aria-label="Scroll deals right"
+                 >
+                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                 </button>
+               </div>
+            </div>
+            
+            <div 
+              ref={scrollRef} 
+              className="flex overflow-x-auto hide-scrollbar gap-6 pb-8 -mb-8 snap-x snap-mandatory"
+              tabIndex="0"
+              aria-label="Scrollable list of today's deals"
+              role="region"
+            >
+              {TODAY_DEALS.map((product) => (
+                <div key={product.id} className="min-w-[260px] max-w-[260px] flex-shrink-0 snap-start">
+                  <ProductCard product={product} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+    
+    // --- MAIN APP ---
+    const App = () => {
+      return (
+        <div className="min-h-screen flex flex-col">
+          <A11yAnnouncer />
+          
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[60] bg-blue-600 text-white px-4 py-2 font-bold rounded shadow-lg outline-none">
+            Skip to main content
+          </a>
+
+          <Header activePage="home" />
+          
+          <main id="main-content" className="flex-grow flex flex-col" tabIndex="-1">
+            <HeroSection />
+            <TrendingCategories />
+            <DealsSection />
+            
+            <section aria-labelledby="value-props-heading" className="bg-gray-50 py-16">
+               <h2 id="value-props-heading" className="sr-only">Why Shop With Us</h2>
+               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+                 <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                    <div className="w-12 h-12 mx-auto bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4" aria-hidden="true">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Free Shipping</h3>
+                    <p className="text-gray-600 text-sm">On all orders over $50. Track your delivery easily.</p>
+                 </div>
+                 <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                    <div className="w-12 h-12 mx-auto bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4" aria-hidden="true">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Secure Payment</h3>
+                    <p className="text-gray-600 text-sm">Your information is protected with advanced encryption.</p>
+                 </div>
+                 <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                    <div className="w-12 h-12 mx-auto bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4" aria-hidden="true">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Easy Returns</h3>
+                    <p className="text-gray-600 text-sm">Not satisfied? Return it within 30 days hassle-free.</p>
+                 </div>
+               </div>
+            </section>
+          </main>
+          
+          <Footer />
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

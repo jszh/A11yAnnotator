@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python for Data Science — Lesson 4: Indexing & Slicing | LearnPath</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+    .video-player { background: #0f0f1a; border-radius: 16px; overflow: hidden; position: relative; padding-bottom: 56.25%; }
+    .video-player-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .progress-track { height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; cursor: pointer; }
+    .progress-fill { height: 4px; background: #4f46e5; border-radius: 2px; transition: width 0.1s; }
+    [role="tab"][aria-selected="true"] { border-bottom: 2px solid #4f46e5; color: #4f46e5; }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const LESSONS = [
+      { id:1,  title:'Introduction & Setup',     duration:'12 min', module:1, completed:true  },
+      { id:2,  title:'Your First Python Script', duration:'18 min', module:1, completed:true  },
+      { id:3,  title:'Python Syntax Basics',     duration:'22 min', module:1, completed:true  },
+      { id:4,  title:'Indexing & Slicing',       duration:'20 min', module:2, completed:false, current:true },
+      { id:5,  title:'List Comprehensions',      duration:'22 min', module:2, completed:false },
+      { id:6,  title:'Dictionaries & Sets',      duration:'24 min', module:2, completed:false },
+      { id:7,  title:'Defining Functions',       duration:'25 min', module:3, completed:false },
+      { id:8,  title:'Arguments & Return Values',duration:'22 min', module:3, completed:false },
+      { id:9,  title:'Lambda Functions',         duration:'15 min', module:3, completed:false },
+      { id:10, title:'Importing Modules',        duration:'18 min', module:3, completed:false },
+      { id:11, title:'Introduction to Pandas',   duration:'30 min', module:4, completed:false },
+      { id:12, title:'DataFrames & Series',      duration:'35 min', module:4, completed:false },
+    ];
+
+    const MODULES = [
+      { id:1, title:'Module 1: Python Fundamentals' },
+      { id:2, title:'Module 2: Data Structures' },
+      { id:3, title:'Module 3: Functions & Modules' },
+      { id:4, title:'Module 4: Data Analysis with Pandas' },
+    ];
+
+    const TABS = ['Overview', 'Notes', 'Q&A', 'Resources'];
+
+    function StudyPage() {
+      const [lessons, setLessons] = useState(LESSONS);
+      const [currentId, setCurrentId] = useState(4);
+      const [playing, setPlaying] = useState(false);
+      const [progress, setProgress] = useState(0);
+      const [volume, setVolume] = useState(80);
+      const [muted, setMuted] = useState(false);
+      const [fullscreen, setFullscreen] = useState(false);
+      const [activeTab, setActiveTab] = useState('Overview');
+      const [note, setNote] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [announcement, setAnnouncement] = useState('');
+      const progressInterval = useRef(null);
+      const lessonRefs = useRef({});
+      const tabRefs = useRef({});
+
+      const current = lessons.find(l => l.id === currentId);
+      const completedCount = lessons.filter(l => l.completed).length;
+      const totalCount = lessons.length;
+      const progressPct = Math.round((completedCount / totalCount) * 100);
+
+      function announce(msg) {
+        setAnnouncement('');
+        setTimeout(() => setAnnouncement(msg), 50);
+      }
+
+      function navigateToLesson(id) {
+        if (id === currentId) return;
+        setLoading(true);
+        setPlaying(false);
+        setProgress(0);
+        clearInterval(progressInterval.current);
+        announce(`Loading: ${lessons.find(l => l.id === id)?.title}`);
+        setTimeout(() => {
+          setCurrentId(id);
+          setLoading(false);
+          announce(`Now playing: ${lessons.find(l => l.id === id)?.title}`);
+          // Move focus to the new active lesson (cat_5)
+          setTimeout(() => {
+            if (lessonRefs.current[id]) lessonRefs.current[id].focus();
+          }, 100);
+        }, 600);
+      }
+
+      function markCompleteAndAdvance() {
+        setLessons(prev => prev.map(l => l.id === currentId ? { ...l, completed: true } : l));
+        announce(`${current.title} marked as complete`);
+        const idx = lessons.findIndex(l => l.id === currentId);
+        const next = lessons[idx + 1];
+        if (next) {
+          setTimeout(() => navigateToLesson(next.id), 400);
+        }
+      }
+
+      function togglePlay() {
+        if (playing) {
+          clearInterval(progressInterval.current);
+          setPlaying(false);
+          announce('Paused');
+        } else {
+          setPlaying(true);
+          announce('Playing');
+          progressInterval.current = setInterval(() => {
+            setProgress(p => {
+              if (p >= 100) {
+                clearInterval(progressInterval.current);
+                setPlaying(false);
+                markCompleteAndAdvance();
+                return 100;
+              }
+              return p + 0.5;
+            });
+          }, 100);
+        }
+      }
+
+      function seekBackward() {
+        setProgress(p => Math.max(0, p - 5));
+        announce('Seeked back 15 seconds');
+      }
+
+      function seekForward() {
+        setProgress(p => Math.min(100, p + 5));
+        announce('Seeked forward 15 seconds');
+      }
+
+      useEffect(() => {
+        function handleKey(e) {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+          if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+          if (e.code === 'ArrowLeft') { e.preventDefault(); seekBackward(); }
+          if (e.code === 'ArrowRight') { e.preventDefault(); seekForward(); }
+        }
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+      }, [playing]);
+
+      useEffect(() => () => clearInterval(progressInterval.current), []);
+
+      function handleTabKey(e, tab) {
+        const tabList = TABS;
+        const idx = tabList.indexOf(tab);
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          const next = tabList[(idx + 1) % tabList.length];
+          setActiveTab(next);
+          tabRefs.current[next]?.focus();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const prev = tabList[(idx - 1 + tabList.length) % tabList.length];
+          setActiveTab(prev);
+          tabRefs.current[prev]?.focus();
+        }
+      }
+
+      return (
+        <div className="min-h-screen bg-gray-900">
+          {/* Announcer */}
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{announcement}</div>
+
+          {/* Top bar */}
+          <header className="bg-gray-950 border-b border-gray-800 px-4 py-3 flex items-center gap-4" role="banner">
+            <a href="index.html" className="text-indigo-400 font-bold text-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded px-1" aria-label="LearnPath — Go to homepage">
+              LearnPath
+            </a>
+            <div className="h-5 w-px bg-gray-700 hidden sm:block" aria-hidden="true"></div>
+            <div className="flex-1 min-w-0 hidden sm:block">
+              <p className="text-sm text-gray-300 truncate">Python for Data Science</p>
+            </div>
+            <a href="course-detail.html" className="text-sm text-indigo-400 hover:text-indigo-300 focus:outline-none focus-visible:underline">← Course Overview</a>
+          </header>
+
+          {/* Progress Bar */}
+          <div className="bg-gray-950 border-b border-gray-800 px-4 py-2" aria-label="Course progress">
+            <div className="max-w-screen-xl mx-auto flex items-center gap-3">
+              <span className="text-xs text-gray-400 whitespace-nowrap">
+                <span aria-label={`Lesson ${completedCount + 1} of ${totalCount}`}>Lesson {completedCount + 1} of {totalCount}</span>
+                {' · '}<span>Module 2: Data Structures</span>
+              </span>
+              <div className="flex-1 bg-gray-700 rounded-full h-2 relative" role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100} aria-label={`Overall course progress: ${progressPct}% complete`}>
+                <div className="bg-indigo-500 h-2 rounded-full transition-all" style={{ width: `${progressPct}%` }}></div>
+              </div>
+              <span className="text-xs text-indigo-400 font-semibold whitespace-nowrap">{progressPct}% complete</span>
+            </div>
+          </div>
+
+          {/* Main layout */}
+          <div className="max-w-screen-xl mx-auto flex flex-col lg:flex-row h-[calc(100vh-8rem)]">
+            {/* Video + Tabs — main content first in DOM */}
+            <main id="main-content" className="flex-1 overflow-y-auto p-4 lg:p-6" aria-label="Lesson content">
+              {/* Video Player */}
+              <div aria-busy={loading} aria-label={loading ? 'Loading lesson content' : undefined}>
+                <div className="video-player mb-4 shadow-2xl" role="region" aria-label={`Video player — ${current?.title || 'Loading...'}`}>
+                  <div className="video-player-inner">
+                    {loading ? (
+                      <div className="text-center">
+                        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" aria-hidden="true"></div>
+                        <p className="text-gray-400 text-sm">Loading lesson…</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="w-24 h-24 bg-indigo-900 bg-opacity-60 rounded-full flex items-center justify-center mb-4 mx-auto" aria-hidden="true">
+                              <span className="text-4xl">📊</span>
+                            </div>
+                            <p className="text-white font-semibold text-lg">{current?.title}</p>
+                            <p className="text-gray-400 text-sm mt-1">{current?.duration}</p>
+                          </div>
+                        </div>
+
+                        {/* Video Controls */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                          {/* Progress scrubber */}
+                          <div className="progress-track mb-3 group" role="slider" aria-label="Video playback progress"
+                            aria-valuenow={Math.round(progress)} aria-valuemin={0} aria-valuemax={100}
+                            tabIndex={0}
+                            onKeyDown={e => {
+                              if (e.key === 'ArrowRight') { e.preventDefault(); seekForward(); }
+                              if (e.key === 'ArrowLeft') { e.preventDefault(); seekBackward(); }
+                            }}
+                            onClick={e => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setProgress(((e.clientX - rect.left) / rect.width) * 100);
+                            }}>
+                            <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            {/* Seek backward */}
+                            <button onClick={seekBackward} aria-label="Seek backward 15 seconds"
+                              className="text-white hover:text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded p-1">
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                            </button>
+
+                            {/* Play / Pause */}
+                            <button onClick={togglePlay} aria-label={playing ? 'Pause video' : 'Play video'}
+                              className="bg-white text-gray-900 hover:bg-indigo-100 w-10 h-10 rounded-full flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                              {playing ? (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                              ) : (
+                                <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                              )}
+                            </button>
+
+                            {/* Seek forward */}
+                            <button onClick={seekForward} aria-label="Seek forward 15 seconds"
+                              className="text-white hover:text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded p-1">
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/></svg>
+                            </button>
+
+                            {/* Volume */}
+                            <div className="flex items-center gap-1.5">
+                              <button onClick={() => setMuted(m => !m)} aria-label={muted ? 'Unmute audio' : 'Mute audio'}
+                                className="text-white hover:text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded p-1">
+                                {muted ? (
+                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                                ) : (
+                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                                )}
+                              </button>
+                              <label htmlFor="volume-slider" className="sr-only">Volume: {volume}%</label>
+                              <input id="volume-slider" type="range" min="0" max="100" value={muted ? 0 : volume}
+                                onChange={e => { setVolume(Number(e.target.value)); if (Number(e.target.value) > 0) setMuted(false); }}
+                                aria-label={`Volume control, currently ${muted ? 0 : volume}%`}
+                                className="w-16 h-1 accent-indigo-500 cursor-pointer" />
+                            </div>
+
+                            <div className="flex-1 text-xs text-gray-300 text-center">{current?.duration}</div>
+
+                            {/* Fullscreen */}
+                            <button onClick={() => setFullscreen(f => !f)} aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                              className="text-white hover:text-indigo-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded p-1">
+                              {fullscreen ? (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div>
+                <div role="tablist" aria-label="Lesson content sections" className="flex border-b border-gray-700 mb-4">
+                  {TABS.map(tab => (
+                    <button key={tab} role="tab" id={`tab-${tab}`} aria-selected={activeTab === tab}
+                      aria-controls={`tabpanel-${tab}`}
+                      ref={el => { tabRefs.current[tab] = el; }}
+                      tabIndex={activeTab === tab ? 0 : -1}
+                      onClick={() => setActiveTab(tab)}
+                      onKeyDown={e => handleTabKey(e, tab)}
+                      className={`px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-inset ${activeTab === tab ? 'text-indigo-400 border-b-2 border-indigo-500' : 'text-gray-400 hover:text-gray-200'}`}>
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                <div id={`tabpanel-Overview`} role="tabpanel" aria-labelledby="tab-Overview" hidden={activeTab !== 'Overview'} tabIndex={0}>
+                  <h2 className="text-lg font-bold text-white mb-3">{current?.title}</h2>
+                  <p className="text-gray-300 leading-relaxed mb-4">
+                    In this lesson, you'll master Python's indexing and slicing syntax — one of the most powerful features for working with sequences. You'll learn how to extract elements, reverse sequences, and use step values to skip items.
+                  </p>
+                  <h3 className="font-semibold text-white mb-2">What you'll learn</h3>
+                  <ul className="space-y-2 text-gray-300 text-sm">
+                    {['Zero-based indexing and negative indexing','Slicing syntax: start, stop, step','Slicing lists, tuples, and strings','Common slice patterns used in data science'].map(item => (
+                      <li key={item} className="flex items-start gap-2"><span className="text-indigo-400 mt-0.5" aria-hidden="true">✓</span>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div id="tabpanel-Notes" role="tabpanel" aria-labelledby="tab-Notes" hidden={activeTab !== 'Notes'} tabIndex={0}>
+                  <h2 className="text-lg font-bold text-white mb-3">Your Notes</h2>
+                  <label htmlFor="lesson-notes" className="block text-sm text-gray-400 mb-2">Add notes for this lesson (auto-saved)</label>
+                  <textarea id="lesson-notes" value={note} onChange={e => setNote(e.target.value)}
+                    className="w-full h-48 bg-gray-800 border border-gray-700 rounded-xl p-4 text-gray-200 text-sm resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Type your notes here…" aria-describedby="notes-hint" />
+                  <p id="notes-hint" className="text-xs text-gray-500 mt-1">{note.length} characters — notes are saved automatically</p>
+                </div>
+
+                <div id="tabpanel-Q&A" role="tabpanel" aria-labelledby="tab-Q&A" hidden={activeTab !== 'Q&A'} tabIndex={0}>
+                  <h2 className="text-lg font-bold text-white mb-3">Questions & Answers</h2>
+                  <div className="bg-gray-800 rounded-xl p-5 text-center text-gray-400">
+                    <p className="text-2xl mb-2" aria-hidden="true">💬</p>
+                    <p className="font-medium text-gray-300 mb-1">248 questions for this lesson</p>
+                    <p className="text-sm">Ask the community or browse existing answers.</p>
+                    <button className="mt-4 bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                      Ask a Question
+                    </button>
+                  </div>
+                </div>
+
+                <div id="tabpanel-Resources" role="tabpanel" aria-labelledby="tab-Resources" hidden={activeTab !== 'Resources'} tabIndex={0}>
+                  <h2 className="text-lg font-bold text-white mb-3">Downloadable Resources</h2>
+                  <ul className="space-y-3">
+                    {['Lesson slides — Indexing & Slicing.pdf','Practice exercises — Lesson 4.py','Cheat sheet — Python slicing syntax.pdf'].map(r => (
+                      <li key={r}>
+                        <a href="#" className="flex items-center gap-3 bg-gray-800 hover:bg-gray-750 rounded-xl px-4 py-3 text-sm text-gray-200 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                          aria-label={`Download ${r}`}>
+                          <span aria-hidden="true" className="text-indigo-400">⬇</span>
+                          {r}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Complete & continue */}
+              <div className="mt-6 flex gap-3">
+                <button onClick={markCompleteAndAdvance}
+                  className="bg-indigo-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-indigo-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  aria-label={`Mark "${current?.title}" as complete and continue to next lesson`}>
+                  Mark Complete & Continue →
+                </button>
+              </div>
+            </main>
+
+            {/* Lesson Sidebar — appears after main content in DOM for screen readers (cat_10) */}
+            <aside className="lg:w-80 bg-gray-950 border-l border-gray-800 overflow-y-auto shrink-0" aria-label="Course lessons">
+              <div className="p-4 border-b border-gray-800">
+                <h2 className="font-bold text-white text-sm">Course Content</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{completedCount} of {totalCount} lessons complete</p>
+              </div>
+
+              <nav aria-label="Lesson navigation">
+                {MODULES.map(mod => {
+                  const modLessons = lessons.filter(l => l.module === mod.id);
+                  return (
+                    <div key={mod.id}>
+                      <h3 className="px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-900 border-b border-gray-800">
+                        {mod.title}
+                      </h3>
+                      <ul aria-label={`Lessons in ${mod.title}`}>
+                        {modLessons.map(lesson => (
+                          <li key={lesson.id}>
+                            <button
+                              ref={el => { lessonRefs.current[lesson.id] = el; }}
+                              onClick={() => navigateToLesson(lesson.id)}
+                              aria-label={`${lesson.title} — ${lesson.duration}${lesson.completed ? ' — Completed' : lesson.id === currentId ? ' — Currently playing' : ''}`}
+                              aria-checked={lesson.completed}
+                              aria-current={lesson.id === currentId ? 'true' : undefined}
+                              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-inset
+                                ${lesson.id === currentId ? 'bg-indigo-900 bg-opacity-50 border-l-2 border-indigo-500' : 'hover:bg-gray-800'}`}>
+                              <span className="shrink-0">
+                                {lesson.completed ? (
+                                  <span className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center" aria-hidden="true">
+                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                                  </span>
+                                ) : lesson.id === currentId ? (
+                                  <span className="w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center" aria-hidden="true">
+                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                  </span>
+                                ) : (
+                                  <span className="w-5 h-5 border-2 border-gray-600 rounded-full" aria-hidden="true"></span>
+                                )}
+                              </span>
+                              <span className="flex-1 min-w-0">
+                                <span className={`text-sm block truncate ${lesson.id === currentId ? 'text-white font-medium' : 'text-gray-300'}`}>
+                                  {lesson.title}
+                                </span>
+                                <span className="text-xs text-gray-500">{lesson.duration}</span>
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </nav>
+            </aside>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      return (
+        <>
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 bg-indigo-600 text-white px-4 py-2 rounded-lg z-50">Skip to lesson content</a>
+          <StudyPage />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

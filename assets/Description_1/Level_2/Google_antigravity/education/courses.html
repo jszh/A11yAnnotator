@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Courses | LearnPath</title>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        secondary: {
+                            500: '#ec4899',
+                            600: '#db2777',
+                        },
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-heading {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .focus-ring {
+            @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+        }
+
+        /* Custom checkbox styles */
+        .custom-checkbox {
+            appearance: none;
+            background-color: #fff;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 0.25em;
+            display: grid;
+            place-content: center;
+        }
+
+        .custom-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            background-color: white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+
+        .custom-checkbox:checked {
+            background-color: #4f46e5;
+            border-color: #4f46e5;
+        }
+
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+
+        .custom-checkbox:focus-visible {
+            outline: 2px solid #6366f1;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Icons Component Helper
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconRef = React.useRef(null);
+
+            React.useEffect(() => {
+                if (iconRef.current) {
+                    iconRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
+                    lucide.createIcons({
+                        icons: { [name]: lucide.icons[name] },
+                        nameAttr: 'data-lucide',
+                        attrs: {
+                            class: className,
+                            width: size,
+                            height: size,
+                            'stroke-width': 2
+                        }
+                    });
+                    
+                }
+            }, [name, size, className]);
+
+            return <span ref={iconRef} className="inline-flex items-center justify-center"></span>;
+        };
+
+        const Header = () => {
+            return (
+                <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-16">
+                            <div className="flex-shrink-0 flex items-center">
+                                <a href="index.html" className="flex items-center gap-2 focus-ring rounded-md" aria-label="LearnPath Homepage">
+                                    <div className="bg-primary-600 text-white p-1.5 rounded-lg">
+                                        <Icon name="BookOpen" size={24} />
+                                    </div>
+                                    <span className="font-heading font-bold text-xl text-dark-900 tracking-tight">LearnPath</span>
+                                </a>
+                            </div>
+
+                            <nav className="hidden md:flex space-x-8" aria-label="Main Navigation">
+                                <a href="courses.html" className="text-primary-600 font-medium transition-colors focus-ring rounded-md px-2 py-1" aria-current="page">Explore Courses</a>
+                                <a href="pricing.html" className="text-gray-600 hover:text-primary-600 font-medium transition-colors focus-ring rounded-md px-2 py-1">Pricing</a>
+                                <a href="#" className="flex items-center gap-1 text-gray-600 hover:text-primary-600 font-medium transition-colors focus-ring rounded-md px-2 py-1">
+                                    Study Tools
+                                    <Icon name="ChevronDown" size={16} />
+                                </a>
+                            </nav>
+
+                            <div className="hidden md:flex items-center space-x-4">
+                                <button className="text-gray-600 hover:text-dark-900 font-medium focus-ring rounded-md px-3 py-2" aria-label="Search">
+                                    <Icon name="Search" size={20} />
+                                </button>
+                                <a href="dashboard.html" className="text-primary-600 hover:text-primary-700 font-medium focus-ring rounded-md px-3 py-2">Log in</a>
+                                <a href="dashboard.html" className="bg-primary-600 hover:bg-primary-700 text-white font-medium px-5 py-2 rounded-full transition-colors focus-ring shadow-md hover:shadow-lg">
+                                    Sign up free
+                                </a>
+                            </div>
+
+                            <div className="md:hidden flex items-center">
+                                <button className="text-gray-600 hover:text-dark-900 focus-ring rounded-md p-2" aria-label="Open menu">
+                                    <Icon name="Menu" size={24} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-dark-900 text-gray-300 pt-16 pb-8 border-t border-dark-800 relative z-10">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+                            <div className="lg:col-span-2">
+                                <a href="index.html" className="flex items-center gap-2 mb-4 focus-ring rounded-md w-max">
+                                    <div className="bg-primary-500 text-white p-1.5 rounded-lg">
+                                        <Icon name="BookOpen" size={24} />
+                                    </div>
+                                    <span className="font-heading font-bold text-2xl text-white tracking-tight">LearnPath</span>
+                                </a>
+                                <p className="text-gray-400 mb-6 max-w-sm">
+                                    Empowering global learners with skills for the future. Unlock your potential at your own pace with expert-led courses.
+                                </p>
+                            </div>
+                            <div>
+                                <h3 className="text-white font-heading font-semibold mb-4 text-lg">Platform</h3>
+                                <ul className="space-y-3">
+                                    <li><a href="courses.html" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Browse Courses</a></li>
+                                    <li><a href="pricing.html" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Pricing Plans</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="border-t border-dark-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
+                            <p>&copy; {new Date().getFullYear()} LearnPath Inc. All rights reserved.</p>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        const CoursesPage = () => {
+            const allCourses = [
+                { id: 101, title: "Python for Data Science — Intermediate", instructor: "Dr. Sarah Chen", rating: 4.8, reviews: 12450, duration: "24 hours", level: "Intermediate", price: "$49", image: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", badge: "Bestseller", category: "Data Science" },
+                { id: 102, title: "Advanced React Patterns & State Management", instructor: "Marcus Johnson", rating: 4.9, reviews: 8320, duration: "18 hours", level: "Advanced", price: "$59", image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", badge: "Highest Rated", category: "Web Development" },
+                { id: 103, title: "Complete UI/UX Design Masterclass", instructor: "Elena Rodriguez", rating: 4.7, reviews: 9150, duration: "32 hours", level: "Beginner", price: "$45", image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", badge: "New", category: "Design" },
+                { id: 104, title: "Strategic Business Management 101", instructor: "Prof. David Miller", rating: 4.6, reviews: 5400, duration: "12 hours", level: "Beginner", price: "Free", image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", badge: null, category: "Business" },
+                { id: 105, title: "Machine Learning A-Z: Python & R", instructor: "Alex Mercer", rating: 4.5, reviews: 15200, duration: "44 hours", level: "Intermediate", price: "$89", image: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", badge: "Updated", category: "Data Science" },
+                { id: 106, title: "Digital Marketing Masterclass", instructor: "Sophia Williams", rating: 4.7, reviews: 6800, duration: "20 hours", level: "Beginner", price: "$29", image: "https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", badge: null, category: "Marketing" }
+            ];
+
+            const [searchTerm, setSearchTerm] = React.useState("");
+
+            const filteredCourses = allCourses.filter(course =>
+                course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                course.instructor.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <Header />
+
+                    {/* Header Banner */}
+                    <div className="bg-dark-900 border-b border-dark-800 text-white py-12">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <nav aria-label="Breadcrumb" className="mb-4 text-sm text-gray-400">
+                                <ol className="flex items-center space-x-2">
+                                    <li><a href="index.html" className="hover:text-white focus-ring rounded-sm">Home</a></li>
+                                    <li><span className="mx-2">/</span></li>
+                                    <li><span className="text-white font-medium" aria-current="page">Courses</span></li>
+                                </ol>
+                            </nav>
+                            <h1 className="text-3xl lg:text-4xl font-heading font-bold mb-4">Browse All Courses</h1>
+                            <p className="text-gray-400 max-w-2xl text-lg">Explore thousands of courses on highly sought-after skills and certifications.</p>
+                        </div>
+                    </div>
+
+                    <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col lg:flex-row gap-8">
+                        {/* Sidebar */}
+                        <aside className="w-full lg:w-64 flex-shrink-0">
+                            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm lg:sticky lg:top-24">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="font-heading font-bold text-lg text-dark-900 flex items-center gap-2">
+                                        <Icon name="Filter" size={18} /> Filters
+                                    </h2>
+                                    <button className="text-sm text-primary-600 hover:text-primary-700 font-medium focus-ring rounded-sm">Clear all</button>
+                                </div>
+
+                                <form className="space-y-6">
+                                    {/* Category Filter */}
+                                    <fieldset className="space-y-3">
+                                        <legend className="font-semibold text-dark-900 mb-2 w-full border-b border-gray-100 pb-2">Category</legend>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="cat-dev" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="cat-dev" className="ml-3 text-sm text-gray-600 flex-grow cursor-pointer">Web Development</label>
+                                            <span className="text-xs text-gray-400">1.2k</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="cat-data" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="cat-data" className="ml-3 text-sm text-gray-600 flex-grow cursor-pointer">Data Science</label>
+                                            <span className="text-xs text-gray-400">850</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="cat-design" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="cat-design" className="ml-3 text-sm text-gray-600 flex-grow cursor-pointer">UX Design</label>
+                                            <span className="text-xs text-gray-400">540</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="cat-biz" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="cat-biz" className="ml-3 text-sm text-gray-600 flex-grow cursor-pointer">Business</label>
+                                            <span className="text-xs text-gray-400">920</span>
+                                        </div>
+                                    </fieldset>
+
+                                    {/* Level Filter */}
+                                    <fieldset className="space-y-3">
+                                        <legend className="font-semibold text-dark-900 mb-2 w-full border-b border-gray-100 pb-2">Level</legend>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="lvl-beg" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="lvl-beg" className="ml-3 text-sm text-gray-600 cursor-pointer">Beginner</label>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="lvl-int" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="lvl-int" className="ml-3 text-sm text-gray-600 cursor-pointer">Intermediate</label>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="lvl-adv" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="lvl-adv" className="ml-3 text-sm text-gray-600 cursor-pointer">Advanced</label>
+                                        </div>
+                                    </fieldset>
+
+                                    {/* Duration Filter */}
+                                    <fieldset className="space-y-3">
+                                        <legend className="font-semibold text-dark-900 mb-2 w-full border-b border-gray-100 pb-2">Duration</legend>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="dur-short" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="dur-short" className="ml-3 text-sm text-gray-600 cursor-pointer">0-5 Hours</label>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="dur-med" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="dur-med" className="ml-3 text-sm text-gray-600 cursor-pointer">5-15 Hours</label>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="dur-long" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="dur-long" className="ml-3 text-sm text-gray-600 cursor-pointer">15+ Hours</label>
+                                        </div>
+                                    </fieldset>
+
+                                    {/* Rating Filter */}
+                                    <fieldset className="space-y-3">
+                                        <legend className="font-semibold text-dark-900 mb-2 w-full border-b border-gray-100 pb-2">Rating</legend>
+                                        <div className="flex items-center">
+                                            <input type="radio" name="rating" id="rate-45" className="focus-ring h-4 w-4 text-primary-600 border-gray-300" />
+                                            <label htmlFor="rate-45" className="ml-3 text-sm text-gray-600 flex items-center gap-1 cursor-pointer">
+                                                4.5 & up <Icon name="Star" size={14} className="fill-amber-400 text-amber-400" />
+                                            </label>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <input type="radio" name="rating" id="rate-40" className="focus-ring h-4 w-4 text-primary-600 border-gray-300" />
+                                            <label htmlFor="rate-40" className="ml-3 text-sm text-gray-600 flex items-center gap-1 cursor-pointer">
+                                                4.0 & up <Icon name="Star" size={14} className="fill-amber-400 text-amber-400" />
+                                            </label>
+                                        </div>
+                                    </fieldset>
+
+                                    {/* Price Filter */}
+                                    <fieldset className="space-y-3">
+                                        <legend className="font-semibold text-dark-900 mb-2 w-full border-b border-gray-100 pb-2">Price</legend>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="price-free" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="price-free" className="ml-3 text-sm text-gray-600 cursor-pointer">Free</label>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <input type="checkbox" id="price-paid" className="custom-checkbox focus-ring" />
+                                            <label htmlFor="price-paid" className="ml-3 text-sm text-gray-600 cursor-pointer">Paid</label>
+                                        </div>
+                                    </fieldset>
+                                </form>
+                            </div>
+                        </aside>
+
+                        {/* Main Grid */}
+                        <div className="flex-grow">
+                            {/* Toolbar */}
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                <div className="relative w-full sm:w-72">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                        <Icon name="Search" size={18} />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        className="pl-10 pr-4 py-2 w-full bg-white border border-gray-200 rounded-lg text-sm text-dark-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow"
+                                        placeholder="Search courses..."
+                                        aria-label="Search courses"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    <label htmlFor="sort-by" className="text-sm text-gray-600 whitespace-nowrap">Sort by:</label>
+                                    <select id="sort-by" className="w-full sm:w-auto bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-dark-900 focus-ring cursor-pointer">
+                                        <option value="popular">Most Popular</option>
+                                        <option value="highest-rated">Highest Rated</option>
+                                        <option value="newest">Newest</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Course Grid */}
+                            {filteredCourses.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {filteredCourses.map(course => (
+                                        <div key={course.id} className="group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300">
+                                            <div className="relative h-48 overflow-hidden">
+                                                <img src={course.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                {course.badge && (
+                                                    <span className={`absolute top-3 left-3 px-2 py-1 text-xs font-bold rounded-md bg-white/90 backdrop-blur text-dark-900`}>
+                                                        {course.badge}
+                                                    </span>
+                                                )}
+                                                <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-white transition-colors focus-ring" aria-label={`Save ${course.title} to wishlist`}>
+                                                    <Icon name="Heart" size={16} />
+                                                </button>
+                                            </div>
+                                            <div className="p-5 flex flex-col flex-grow">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-primary-600 bg-primary-50 px-2 py-0.5 rounded-sm">{course.level}</span>
+                                                    <span className="text-xs text-gray-500 flex items-center gap-1"><Icon name="Clock" size={12} /> {course.duration}</span>
+                                                </div>
+                                                <h3 className="font-heading font-bold text-lg text-dark-900 mb-1 leading-tight group-hover:text-primary-600 transition-colors">
+                                                    <a href="course-detail.html" className="focus-ring rounded-sm before:absolute before:inset-0" aria-label={`${course.title} course instructed by ${course.instructor}`}>
+                                                        {course.title}
+                                                    </a>
+                                                </h3>
+                                                <p className="text-sm text-gray-500 mb-3">{course.instructor}</p>
+
+                                                <div className="flex items-center gap-1 text-amber-500 mb-4 text-sm font-semibold">
+                                                    <span className="text-dark-900">{course.rating}</span>
+                                                    <Icon name="Star" size={14} className="fill-current" />
+                                                    <span className="text-gray-400 font-normal ml-1">({course.reviews})</span>
+                                                </div>
+
+                                                <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+                                                    <span className="font-bold text-lg text-dark-900">{course.price}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-20 bg-white border border-gray-200 rounded-2xl flex flex-col items-center justify-center">
+                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                                        <Icon name="SearchX" size={32} />
+                                    </div>
+                                    <h3 className="text-xl font-heading font-bold text-dark-900 mb-2">No courses found</h3>
+                                    <p className="text-gray-500">We couldn't find any courses matching "{searchTerm}". Try adjusting your filters or search term.</p>
+                                </div>
+                            )}
+
+                            {/* Pagination */}
+                            {filteredCourses.length > 0 && (
+                                <div className="mt-12 flex justify-center">
+                                    <nav className="flex items-center gap-2" aria-label="Pagination">
+                                        <button className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 focus-ring disabled:opacity-50" disabled aria-label="Previous page">
+                                            <Icon name="ChevronLeft" size={20} />
+                                        </button>
+                                        <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-600 text-white font-medium focus-ring" aria-current="page">1</button>
+                                        <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium focus-ring">2</button>
+                                        <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium focus-ring">3</button>
+                                        <span className="text-gray-400">...</span>
+                                        <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium focus-ring">12</button>
+                                        <button className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 focus-ring" aria-label="Next page">
+                                            <Icon name="ChevronRight" size={20} />
+                                        </button>
+                                    </nav>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CoursesPage />);
+    </script>
+</body>
+
+</html>

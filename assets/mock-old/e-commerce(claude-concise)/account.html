@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexora – My Account</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT: "#f97316", dark: "#ea580c", light: "#fff7ed" },
+            ink: "#1c1917"
+          },
+          fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-stone-50 font-sans text-ink antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const NAV = [
+      { href: "index.html", label: "Home" },
+      { href: "products.html", label: "Shop" },
+      { href: "product.html", label: "Product" },
+      { href: "cart.html", label: "Cart" },
+      { href: "account.html", label: "Account" },
+    ];
+
+    function Header({ active = "account.html" }) {
+      const [searchVal, setSearchVal] = useState("");
+      return (
+        <header className="sticky top-0 z-30 bg-white shadow-sm">
+          <div className="bg-ink text-white text-xs py-1.5 text-center tracking-wide">
+            Free shipping on orders over $50 &mdash; Use code <span className="font-bold text-orange-400">NEXORA10</span> for 10% off
+          </div>
+          <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
+            <a href="index.html" className="flex items-center gap-1.5 shrink-0">
+              <span className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white font-black text-sm">N</span>
+              <span className="text-xl font-black tracking-tight text-ink">nexora</span>
+            </a>
+            <div className="flex-1 flex items-center gap-2 rounded-xl border-2 border-stone-200 bg-stone-50 px-3 py-2 focus-within:border-brand transition-colors">
+              <svg className="w-4 h-4 text-stone-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+              <input className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-400" placeholder="Search millions of products…" value={searchVal} onChange={e => setSearchVal(e.target.value)} />
+            </div>
+            <nav className="hidden md:flex items-center gap-1">
+              {NAV.map(n => (
+                <a key={n.href} href={n.href} className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active === n.href ? "bg-brand text-white" : "text-stone-600 hover:bg-stone-100"}`}>{n.label}</a>
+              ))}
+            </nav>
+            <a href="cart.html" className="relative shrink-0">
+              <svg className="w-6 h-6 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 7h13M7 13H5.4M10 21a1 1 0 1 0 2 0M17 21a1 1 0 1 0 2 0"/></svg>
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-brand text-white text-[10px] font-bold flex items-center justify-center">3</span>
+            </a>
+          </div>
+        </header>
+      );
+    }
+
+    function Footer() {
+      return (
+        <footer className="mt-16 bg-ink text-stone-400">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { title: "Shop", links: ["New Arrivals","Best Sellers","Deals","Gift Cards"] },
+              { title: "Support", links: ["Help Center","Returns","Track Order","Shipping Info"] },
+              { title: "Company", links: ["About Us","Careers","Press","Affiliates"] },
+              { title: "Legal", links: ["Privacy Policy","Terms of Use","Cookie Settings","Accessibility"] },
+            ].map(col => (
+              <div key={col.title}>
+                <p className="text-white font-semibold text-sm mb-3">{col.title}</p>
+                <ul className="space-y-2">{col.links.map(l => <li key={l}><a href="#" className="text-xs hover:text-white transition-colors">{l}</a></li>)}</ul>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-stone-800">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <span className="text-xs">© 2026 Nexora Marketplace. All rights reserved.</span>
+              <div className="flex gap-3">{["Visa","Mastercard","PayPal","Apple Pay"].map(p => <span key={p} className="text-[10px] bg-stone-800 px-2 py-1 rounded text-stone-300">{p}</span>)}</div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    const ORDERS = [
+      {
+        id: "NXR-2026-84732", date: "Feb 22, 2026", status: "Delivered", total: "$388.42",
+        items: [
+          { name: "AirPods Pro Wireless Earbuds", qty: 1, price: "$199", image: "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?auto=format&fit=crop&w=200&q=80" },
+          { name: "Mechanical Gaming Keyboard", qty: 2, price: "$89", image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=200&q=80" },
+        ]
+      },
+      {
+        id: "NXR-2026-72019", date: "Jan 15, 2026", status: "Shipped", total: "$145.00",
+        items: [
+          { name: "Premium Yoga Mat 6mm", qty: 1, price: "$45", image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=200&q=80" },
+          { name: "Smart LED Desk Lamp", qty: 2, price: "$55", image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=200&q=80" },
+        ]
+      },
+      {
+        id: "NXR-2025-61432", date: "Dec 10, 2025", status: "Delivered", total: "$62.00",
+        items: [
+          { name: "Insulated Travel Tumbler", qty: 1, price: "$32", image: "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&w=200&q=80" },
+          { name: "Minimalist Leather Wallet", qty: 1, price: "$38", image: "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=200&q=80" },
+        ]
+      },
+    ];
+
+    const WISHLIST = [
+      { name: "Sony WH-1000XM5 Headphones", price: "$279", image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80" },
+      { name: "Bose QuietComfort Earbuds II", price: "$239", image: "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?auto=format&fit=crop&w=400&q=80" },
+      { name: "Running Shoes Lightweight", price: "$79", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80" },
+    ];
+
+    const SIDEBAR_ITEMS = [
+      { id: "overview", icon: "🏠", label: "Overview" },
+      { id: "orders", icon: "📦", label: "My Orders" },
+      { id: "wishlist", icon: "❤️", label: "Wishlist" },
+      { id: "addresses", icon: "📍", label: "Addresses" },
+      { id: "payment", icon: "💳", label: "Payment Methods" },
+      { id: "settings", icon: "⚙️", label: "Settings" },
+    ];
+
+    function StatusBadge({ status }) {
+      const map = {
+        Delivered: "bg-emerald-100 text-emerald-700",
+        Shipped: "bg-blue-100 text-blue-700",
+        Processing: "bg-amber-100 text-amber-700",
+        Cancelled: "bg-red-100 text-red-700",
+      };
+      return <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${map[status] || "bg-stone-100 text-stone-600"}`}>{status}</span>;
+    }
+
+    function AccountPage() {
+      const [activeSection, setActiveSection] = useState("overview");
+      const [editProfile, setEditProfile] = useState(false);
+      const [expandedOrder, setExpandedOrder] = useState(null);
+
+      return (
+        <>
+          <Header active="account.html" />
+          <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+            {/* Header banner */}
+            <div className="bg-gradient-to-r from-ink to-stone-800 text-white rounded-3xl p-6 mb-6 flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center text-3xl font-black shrink-0">J</div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-black">Jane Smith</h1>
+                <p className="text-stone-400 text-sm">jane@email.com · Member since Jan 2024</p>
+                <div className="flex gap-4 mt-2 text-xs text-stone-400">
+                  <span><span className="text-white font-bold">12</span> Orders</span>
+                  <span><span className="text-white font-bold">3</span> Wishlist</span>
+                  <span><span className="text-amber-400 font-bold">Gold</span> Member</span>
+                </div>
+              </div>
+              <div className="hidden sm:flex flex-col items-end gap-1">
+                <div className="bg-amber-400/20 border border-amber-400/30 rounded-xl px-4 py-2 text-center">
+                  <p className="text-amber-400 text-xl font-black">2,840</p>
+                  <p className="text-xs text-stone-400">Reward Points</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-6">
+              {/* Sidebar */}
+              <aside className="sm:w-52 shrink-0">
+                <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
+                  {SIDEBAR_ITEMS.map(item => (
+                    <button key={item.id} onClick={() => setActiveSection(item.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors text-left border-b border-stone-50 last:border-0 ${activeSection === item.id ? "bg-brand/5 text-brand font-semibold border-l-2 border-brand" : "text-stone-600 hover:bg-stone-50"}`}>
+                      <span>{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                  <div className="border-t border-stone-100">
+                    <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors">
+                      <span>🚪</span><span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              </aside>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+
+                {/* Overview */}
+                {activeSection === "overview" && (
+                  <div className="space-y-5">
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { label: "Total Orders", value: "12", icon: "📦", color: "bg-blue-50 text-blue-600" },
+                        { label: "Total Spent", value: "$1,842", icon: "💰", color: "bg-emerald-50 text-emerald-600" },
+                        { label: "Reward Points", value: "2,840", icon: "⭐", color: "bg-amber-50 text-amber-600" },
+                        { label: "Saved Items", value: "3", icon: "❤️", color: "bg-rose-50 text-rose-600" },
+                      ].map(s => (
+                        <div key={s.label} className={`${s.color} rounded-2xl p-4`}>
+                          <p className="text-2xl mb-1">{s.icon}</p>
+                          <p className="text-2xl font-black text-ink">{s.value}</p>
+                          <p className="text-xs font-medium opacity-70">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Recent orders */}
+                    <div className="bg-white rounded-2xl border border-stone-100 p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-bold text-ink">Recent Orders</h2>
+                        <button onClick={() => setActiveSection("orders")} className="text-xs text-brand font-semibold hover:underline">View all</button>
+                      </div>
+                      <div className="space-y-3">
+                        {ORDERS.slice(0, 2).map(order => (
+                          <div key={order.id} className="flex items-center gap-3 p-3 bg-stone-50 rounded-xl">
+                            <div className="flex -space-x-2">
+                              {order.items.slice(0,2).map(i => (
+                                <div key={i.name} className="w-10 h-10 rounded-lg overflow-hidden border-2 border-white bg-stone-100">
+                                  <img src={i.image} alt="" className="w-full h-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm text-ink">{order.id}</p>
+                              <p className="text-xs text-stone-400">{order.date}</p>
+                            </div>
+                            <StatusBadge status={order.status} />
+                            <span className="font-bold text-sm text-ink">{order.total}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Profile card */}
+                    <div className="bg-white rounded-2xl border border-stone-100 p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="font-bold text-ink">Profile Information</h2>
+                        <button onClick={() => setEditProfile(!editProfile)} className="text-xs text-brand font-semibold hover:underline">{editProfile ? "Cancel" : "Edit"}</button>
+                      </div>
+                      {editProfile ? (
+                        <div className="grid grid-cols-2 gap-3">
+                          {[["First Name","Jane"],["Last Name","Smith"],["Email","jane@email.com"],["Phone","+1 555 000 0000"]].map(([label, val]) => (
+                            <div key={label}>
+                              <label className="text-xs font-semibold text-stone-500 mb-1 block">{label}</label>
+                              <input className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand transition-colors" defaultValue={val} />
+                            </div>
+                          ))}
+                          <div className="col-span-2 flex gap-3">
+                            <button onClick={() => setEditProfile(false)} className="bg-brand text-white font-semibold text-sm px-5 py-2 rounded-xl hover:bg-brand-dark transition-colors">Save Changes</button>
+                            <button onClick={() => setEditProfile(false)} className="bg-stone-100 text-stone-600 font-semibold text-sm px-5 py-2 rounded-xl hover:bg-stone-200 transition-colors">Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          {[["Name","Jane Smith"],["Email","jane@email.com"],["Phone","+1 555 000 0000"],["Member Since","January 2024"],["Membership","Gold ⭐"],["Reward Points","2,840 pts"]].map(([k, v]) => (
+                            <div key={k}>
+                              <p className="text-xs text-stone-400 font-medium mb-0.5">{k}</p>
+                              <p className="font-semibold text-ink">{v}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Orders */}
+                {activeSection === "orders" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="font-black text-xl text-ink">My Orders</h2>
+                      <div className="flex gap-2">
+                        {["All","Active","Delivered","Cancelled"].map(f => (
+                          <button key={f} className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${f === "All" ? "bg-brand text-white" : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"}`}>{f}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {ORDERS.map(order => (
+                      <div key={order.id} className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
+                        <div className="flex items-center justify-between p-4 gap-3">
+                          <div>
+                            <p className="font-bold text-ink">{order.id}</p>
+                            <p className="text-xs text-stone-400">{order.date} · {order.items.length} items</p>
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap justify-end">
+                            <StatusBadge status={order.status} />
+                            <span className="font-black text-ink">{order.total}</span>
+                            <button onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                              className="text-xs text-brand font-semibold hover:underline">
+                              {expandedOrder === order.id ? "Hide" : "Details"}
+                            </button>
+                          </div>
+                        </div>
+
+                        {expandedOrder === order.id && (
+                          <div className="border-t border-stone-100 p-4 bg-stone-50">
+                            {/* Order tracking */}
+                            <div className="flex items-center gap-0 mb-5">
+                              {["Order Placed","Processing","Shipped","Delivered"].map((s, i) => {
+                                const done = order.status === "Delivered" ? true : i < 2;
+                                return (
+                                  <React.Fragment key={s}>
+                                    <div className="flex flex-col items-center gap-1 text-center flex-1">
+                                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${done ? "bg-brand text-white" : "bg-stone-200 text-stone-400"}`}>{done ? "✓" : i + 1}</div>
+                                      <span className={`text-[10px] font-medium ${done ? "text-brand" : "text-stone-400"}`}>{s}</span>
+                                    </div>
+                                    {i < 3 && <div className={`flex-1 h-0.5 ${done ? "bg-brand" : "bg-stone-200"} -mt-5`} />}
+                                  </React.Fragment>
+                                );
+                              })}
+                            </div>
+
+                            {/* Items */}
+                            <div className="space-y-3">
+                              {order.items.map(item => (
+                                <div key={item.name} className="flex items-center gap-3">
+                                  <img src={item.image} alt="" className="w-14 h-14 rounded-xl object-cover bg-stone-100" />
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-sm text-ink">{item.name}</p>
+                                    <p className="text-xs text-stone-400">Qty: {item.qty}</p>
+                                  </div>
+                                  <span className="font-bold text-sm text-ink">{item.price}</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 mt-4">
+                              {order.status === "Delivered" ? (
+                                <>
+                                  <button className="text-xs bg-brand text-white px-4 py-2 rounded-xl font-semibold">Buy Again</button>
+                                  <button className="text-xs bg-stone-100 text-stone-600 px-4 py-2 rounded-xl font-semibold">Write a Review</button>
+                                  <button className="text-xs bg-stone-100 text-stone-600 px-4 py-2 rounded-xl font-semibold">Return Item</button>
+                                </>
+                              ) : (
+                                <>
+                                  <button className="text-xs bg-brand text-white px-4 py-2 rounded-xl font-semibold">Track Shipment</button>
+                                  <button className="text-xs bg-stone-100 text-stone-600 px-4 py-2 rounded-xl font-semibold">Cancel Order</button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Wishlist */}
+                {activeSection === "wishlist" && (
+                  <div>
+                    <h2 className="font-black text-xl text-ink mb-4">Wishlist <span className="text-stone-400 font-normal text-base">({WISHLIST.length})</span></h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {WISHLIST.map(item => (
+                        <div key={item.name} className="bg-white rounded-2xl border border-stone-100 overflow-hidden group hover:shadow-md transition-all">
+                          <div className="aspect-video overflow-hidden bg-stone-50 relative">
+                            <img src={item.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <button className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white shadow flex items-center justify-center">
+                              <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                            </button>
+                          </div>
+                          <div className="p-4">
+                            <p className="font-semibold text-ink text-sm mb-2 line-clamp-2">{item.name}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="font-black text-ink">{item.price}</span>
+                              <button className="bg-brand text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-brand-dark transition-colors">Add to Cart</button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Addresses */}
+                {activeSection === "addresses" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="font-black text-xl text-ink">Saved Addresses</h2>
+                      <button className="bg-brand text-white text-xs font-bold px-4 py-2 rounded-xl">+ Add Address</button>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {[
+                        { label: "Home", name: "Jane Smith", address: "123 Main St, Apt 4B", city: "New York, NY 10001", country: "United States", default: true },
+                        { label: "Office", name: "Jane Smith", address: "456 Park Ave, Suite 800", city: "New York, NY 10022", country: "United States", default: false },
+                      ].map(addr => (
+                        <div key={addr.label} className={`bg-white rounded-2xl border-2 p-4 ${addr.default ? "border-brand" : "border-stone-100"}`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-ink">{addr.label}</span>
+                              {addr.default && <span className="text-[10px] bg-brand/10 text-brand font-bold px-2 py-0.5 rounded-full">Default</span>}
+                            </div>
+                            <div className="flex gap-2">
+                              <button className="text-xs text-brand font-semibold hover:underline">Edit</button>
+                              {!addr.default && <button className="text-xs text-red-500 font-semibold hover:underline">Delete</button>}
+                            </div>
+                          </div>
+                          <p className="text-sm font-semibold text-ink">{addr.name}</p>
+                          <p className="text-sm text-stone-500">{addr.address}</p>
+                          <p className="text-sm text-stone-500">{addr.city}</p>
+                          <p className="text-sm text-stone-500">{addr.country}</p>
+                          {!addr.default && <button className="mt-3 text-xs text-stone-500 border border-stone-200 px-3 py-1.5 rounded-lg hover:bg-stone-50 transition-colors">Set as Default</button>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment */}
+                {activeSection === "payment" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="font-black text-xl text-ink">Payment Methods</h2>
+                      <button className="bg-brand text-white text-xs font-bold px-4 py-2 rounded-xl">+ Add Card</button>
+                    </div>
+                    <div className="space-y-3">
+                      {[
+                        { type: "Visa", last4: "4242", expiry: "12/28", default: true, color: "from-blue-600 to-blue-800" },
+                        { type: "Mastercard", last4: "8571", expiry: "06/27", default: false, color: "from-rose-500 to-orange-600" },
+                      ].map(card => (
+                        <div key={card.last4} className={`rounded-2xl border-2 p-4 flex items-center gap-4 bg-white ${card.default ? "border-brand" : "border-stone-100"}`}>
+                          <div className={`w-14 h-9 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center text-white text-xs font-black`}>{card.type}</div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm text-ink">{card.type} ending in {card.last4}</p>
+                            <p className="text-xs text-stone-400">Expires {card.expiry}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {card.default && <span className="text-[10px] bg-brand/10 text-brand font-bold px-2 py-0.5 rounded-full">Default</span>}
+                            <button className="text-xs text-stone-400 hover:text-red-500 transition-colors">Remove</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Settings */}
+                {activeSection === "settings" && (
+                  <div className="space-y-5">
+                    <h2 className="font-black text-xl text-ink">Account Settings</h2>
+                    {[
+                      { title: "Notifications", items: [["Order updates","Get notified when your order status changes",true],["Promotions & deals","Receive exclusive deals and offers",true],["Newsletter","Weekly product recommendations",false]] },
+                      { title: "Privacy", items: [["Personalised ads","Allow us to show relevant ads",false],["Data sharing","Share anonymous usage data",true]] },
+                      { title: "Security", items: [["Two-factor authentication","Add an extra layer of security",false]] },
+                    ].map(section => (
+                      <div key={section.title} className="bg-white rounded-2xl border border-stone-100 p-5">
+                        <h3 className="font-bold text-ink mb-4">{section.title}</h3>
+                        <div className="space-y-4">
+                          {section.items.map(([label, desc, on]) => (
+                            <div key={label} className="flex items-center justify-between gap-4">
+                              <div>
+                                <p className="font-medium text-sm text-ink">{label}</p>
+                                <p className="text-xs text-stone-400">{desc}</p>
+                              </div>
+                              <button className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${on ? "bg-brand" : "bg-stone-300"}`}>
+                                <span className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${on ? "left-6" : "left-1"}`} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="bg-white rounded-2xl border border-stone-100 p-5">
+                      <h3 className="font-bold text-ink mb-4">Change Password</h3>
+                      <div className="space-y-3 max-w-sm">
+                        {["Current Password","New Password","Confirm New Password"].map(label => (
+                          <div key={label}>
+                            <label className="text-xs font-semibold text-stone-500 mb-1 block">{label}</label>
+                            <input type="password" className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand transition-colors" placeholder="••••••••" />
+                          </div>
+                        ))}
+                        <button className="bg-brand text-white font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-brand-dark transition-colors">Update Password</button>
+                      </div>
+                    </div>
+                    <div className="bg-red-50 border border-red-100 rounded-2xl p-5">
+                      <h3 className="font-bold text-red-700 mb-1">Danger Zone</h3>
+                      <p className="text-sm text-red-500 mb-4">Once you delete your account, there is no going back.</p>
+                      <button className="bg-red-500 text-white font-semibold text-sm px-5 py-2 rounded-xl hover:bg-red-600 transition-colors">Delete Account</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </main>
+          <Footer />
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<AccountPage />);
+  </script>
+</body>
+</html>

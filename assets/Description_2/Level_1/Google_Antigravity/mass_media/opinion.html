@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perspectives | Groundwork Journalism</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAF9F6;
+            color: #1A1A1A;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-serif {
+            font-family: 'Merriweather', serif;
+        }
+
+        /* Customize scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- Shared Icons ---
+        const MenuIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="18" y2="18" /></svg>;
+        const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>;
+        const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
+        const SendIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" x2="11" y1="2" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>;
+
+        // --- Shared Components ---
+        const Header = () => {
+            return (
+                <header className="sticky top-0 z-50 bg-[#FAF9F6] border-b border-gray-200">
+                    <div className="bg-red-700 text-white text-xs font-semibold uppercase tracking-wider py-2 px-4 text-center">
+                        <span className="opacity-80">Support Our Journalism:</span> <a href="subscription.html" className="underline hover:text-red-100 ml-1">Become an Investigator today</a>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-20">
+                            <div className="flex items-center md:hidden">
+                                <button type="button" className="text-gray-700 hover:text-black p-2 -ml-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black rounded-md" aria-label="Open main menu">
+                                    <MenuIcon />
+                                </button>
+                            </div>
+
+                            <nav className="hidden md:flex space-x-8" aria-label="Main Navigation">
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Climate</a>
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Energy</a>
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Policy</a>
+                                <a href="opinion.html" className="text-sm font-semibold text-red-700 underline underline-offset-4 decoration-2" aria-current="page">Opinion</a>
+                            </nav>
+
+                            <div className="flex-shrink-0 flex items-center justify-center absolute left-1/2 transform -translate-x-1/2">
+                                <a href="index.html" className="font-serif text-3xl font-black tracking-tighter text-black uppercase" aria-label="Groundwork Homepage">
+                                    Groundwork<span className="text-red-700">.</span>
+                                </a>
+                            </div>
+
+                            <div className="flex items-center space-x-5">
+                                <button className="text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-black rounded-full p-1 transition-colors" aria-label="Search">
+                                    <SearchIcon />
+                                </button>
+                                <a href="subscription.html" className="hidden lg:inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-bold rounded-none text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-900 transition-colors uppercase tracking-wide">
+                                    Donate
+                                </a>
+                                <button className="text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-black rounded-full p-1 transition-colors" aria-label="Sign in">
+                                    <UserIcon />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-neutral-900 text-white pt-16 pb-8 border-t-4 border-red-700 mt-20">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 lg:gap-8">
+                            <div className="md:col-span-1">
+                                <a href="index.html" className="font-serif text-2xl font-black tracking-tighter uppercase mb-4 block">
+                                    Groundwork<span className="text-red-500">.</span>
+                                </a>
+                                <p className="text-neutral-400 text-sm leading-relaxed mb-6 font-serif">
+                                    Independent, data-driven investigative journalism focused on climate, science, and environmental policy in the Anthropocene.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">Sections</h3>
+                                <ul className="space-y-3 text-sm">
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Climate</a></li>
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Energy</a></li>
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Data</a></li>
+                                    <li><a href="opinion.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Perspectives</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">About</h3>
+                                <ul className="space-y-3 text-sm">
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Our Mission</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Reporters</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Careers</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Contact</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">Stay Informed</h3>
+                                <p className="text-neutral-400 text-sm mb-4">Get our latest investigations delivered to your inbox.</p>
+                                <form className="flex" onSubmit={(e) => e.preventDefault()}>
+                                    <label htmlFor="email-address" className="sr-only">Email address</label>
+                                    <input
+                                        id="email-address"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        required
+                                        className="w-full min-w-0 px-4 py-2 text-base text-gray-900 bg-white border border-transparent rounded-none focus:outline-none focus:ring-2 focus:ring-white focus:border-white sm:text-sm"
+                                        placeholder="Enter your email"
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="mt-0 ml-3 flex-shrink-0 w-auto flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-none text-white bg-red-700 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 focus:ring-red-500 transition-colors"
+                                    >
+                                        Sign up
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div className="mt-16 pt-8 border-t border-neutral-800 flex flex-col md:flex-row justify-between items-center">
+                            <p className="text-neutral-500 text-sm text-center md:text-left">
+                                &copy; 2026 Groundwork Media Inc. All rights reserved.
+                            </p>
+                            <div className="mt-4 md:mt-0 flex space-x-6 text-sm text-neutral-500">
+                                <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Privacy Policy</a>
+                                <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Terms of Service</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        // --- Opinion Specific Components ---
+
+        const OpinionHeader = () => {
+            return (
+                <div className="py-12 md:py-16 border-b-[6px] border-black text-center bg-[#FAF9F6]">
+                    <h1 className="font-serif text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4">Perspectives</h1>
+                    <p className="font-serif text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                        Essays and arguments from scientists, policymakers, and community leaders on the frontlines of the climate crisis.
+                    </p>
+                </div>
+            );
+        };
+
+        const ContributorBio = ({ author, role, image }) => {
+            return (
+                <div className="flex items-start bg-white p-6 border border-gray-200 shadow-sm mt-6 group-hover:border-black transition-colors">
+                    <img src={image} alt={author} className="w-16 h-16 rounded-full object-cover mr-4 grayscale" />
+                    <div>
+                        <h4 className="font-bold text-base uppercase tracking-wider mb-1 text-black">{author}</h4>
+                        <p className="text-sm font-serif text-gray-600 leading-tight">{role}</p>
+                    </div>
+                </div>
+            );
+        };
+
+        const EssayList = () => {
+            const essays = [
+                {
+                    id: 1,
+                    title: "We Can't Engineer Our Way Out of a Boiling Ocean",
+                    excerpt: "The hubris of massive geoengineering projects ignores the complex biological feedback loops that sustain marine life. Pumping sulfur into the atmosphere while accelerating deep-sea mining is exactly the kind of siloed thinking that got us here.",
+                    date: "Oct 21, 2025",
+                    author: "Dr. Evelyn Ward",
+                    role: "Marine Biologist, Scripps Institution of Oceanography",
+                    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80"
+                },
+                {
+                    id: 2,
+                    title: "The Insurance Crisis is the First Climate Tax",
+                    excerpt: "Before the oceans rise to our doorstep, the economic water mark has already breached. As private insurers abandon coastal states, the federal government is quietly subsidizing managed retreat without calling it that.",
+                    date: "Oct 18, 2025",
+                    author: "Marcus Thorne",
+                    role: "Former Commissioner, State Insurance Board",
+                    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80"
+                },
+                {
+                    id: 3,
+                    title: "I Watched My Farm Turn to Dust. Here's Why I Still Believe in Regeneration.",
+                    excerpt: "When the aquifer beneath my family's 400 acres went dry, the bank told me to walk away. Instead, we spent five years shifting to dryland farming techniques passed down by Indigenous stewards. It's not as profitable, but it survives.",
+                    date: "Oct 12, 2025",
+                    author: "Sarah Jimenez",
+                    role: "Third-generation farmer, Central Valley, CA",
+                    image: "https://images.unsplash.com/photo-1531123897727-8f129e1eb10a?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80"
+                }
+            ];
+
+            return (
+                <div className="lg:col-span-2 space-y-16">
+                    {essays.map(essay => (
+                        <article key={essay.id} className="group border-b border-gray-200 pb-16 last:border-0 relative">
+                            {/* Decorative quotation mark */}
+                            <span className="absolute -left-6 -top-4 text-7xl font-serif text-gray-200 select-none hidden md:block" aria-hidden="true">&ldquo;</span>
+
+                            <div className="flex items-center gap-4 text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">
+                                <span>{essay.date}</span>
+                                <span>&bull;</span>
+                                <span className="text-red-700">Op-Ed</span>
+                            </div>
+
+                            <h2 className="font-serif text-3xl md:text-5xl font-bold mb-6 leading-tight group-hover:underline decoration-2 underline-offset-4 cursor-pointer">
+                                <a href="article.html" className="text-black focus:outline-none">
+                                    {essay.title}
+                                </a>
+                            </h2>
+
+                            <p className="text-lg text-gray-700 font-serif leading-relaxed mb-8 cursor-pointer" onClick={() => window.location.href = 'article.html'}>
+                                {essay.excerpt}
+                            </p>
+
+                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                                <div className="w-full md:w-2/3 cursor-pointer" onClick={() => window.location.href = 'article.html'}>
+                                    <ContributorBio author={essay.author} role={essay.role} image={essay.image} />
+                                </div>
+                                <div className="w-full md:w-1/3 text-right">
+                                    <a href="#" className="inline-flex items-center text-sm font-bold text-red-700 uppercase tracking-widest hover:text-red-900 border-b border-red-700 hover:border-red-900 pb-1 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-900">
+                                        Respond to this piece <SendIcon className="ml-2" />
+                                    </a>
+                                </div>
+                            </div>
+                        </article>
+                    ))}
+
+                    <button className="w-full py-4 border-2 border-black font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300">
+                        Load More Perspectives
+                    </button>
+                </div>
+            );
+        };
+
+        const SubmissionSidebar = () => {
+            return (
+                <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-gray-200 pt-16 lg:pt-0 lg:pl-10 mt-16 lg:mt-0">
+                    <div className="bg-black text-white p-8 sticky top-28">
+                        <h3 className="font-serif text-2xl font-bold mb-4">Submit an Op-Ed</h3>
+                        <p className="text-gray-400 font-serif text-sm leading-relaxed mb-6">
+                            Groundwork welcomes well-researched, persuasive arguments from experts, researchers, and individuals directly impacted by the climate crisis.
+                        </p>
+
+                        <h4 className="font-bold uppercase tracking-widest text-xs mb-3 text-red-500">Guidelines</h4>
+                        <ul className="list-disc pl-4 text-sm text-gray-300 space-y-2 mb-8 font-serif">
+                            <li>Keep submissions between 800 - 1,200 words.</li>
+                            <li>Include verifiable sources for factual claims.</li>
+                            <li>Provide a short, 2-line biography.</li>
+                            <li>We do not accept pieces funded by PR firms or fossil fuel interests.</li>
+                        </ul>
+
+                        <a href="mailto:opinions@groundwork.org" className="block w-full text-center py-3 bg-red-700 hover:bg-red-600 text-white font-bold uppercase tracking-widest text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-red-700">
+                            Pitch Your Essay
+                        </a>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow pb-24">
+                        <OpinionHeader />
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 grid grid-cols-1 lg:grid-cols-3 gap-0">
+                            <EssayList />
+                            <SubmissionSidebar />
+                        </div>
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const rootLayout = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootLayout);
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

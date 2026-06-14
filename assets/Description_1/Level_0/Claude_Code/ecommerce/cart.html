@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Cart – NovaMart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .scroll-hide::-webkit-scrollbar { display: none; }
+    .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<div id="root"></div>
+<script type="text/babel">
+
+const { useState, useMemo } = React;
+
+function Header({ cartCount }) {
+  const [query, setQuery] = useState('');
+  const categories = ['Electronics','Kitchen','Clothing','Sports','Beauty','Books','Toys','Automotive'];
+  return (
+    <header className="bg-blue-900 text-white shadow-lg sticky top-0 z-50">
+      <div className="bg-blue-950 text-xs text-blue-200 py-1">
+        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+          <span>🚚 Free shipping on orders over $35</span>
+          <div className="flex gap-4">
+            <a href="account.html" className="hover:text-yellow-300 transition">Sign In</a>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+        <a href="index.html" className="text-2xl font-extrabold text-yellow-400 tracking-tight whitespace-nowrap hover:text-yellow-300 transition">
+          Nova<span className="text-white">Mart</span>
+        </a>
+        <div className="flex flex-1 max-w-2xl">
+          <select className="bg-gray-100 text-gray-700 text-sm px-2 rounded-l-lg border-r border-gray-300 focus:outline-none">
+            <option>All</option>
+            {categories.map(c=><option key={c}>{c}</option>)}
+          </select>
+          <input type="text" value={query} onChange={e=>setQuery(e.target.value)}
+            placeholder="Search NovaMart..."
+            className="flex-1 px-4 py-2 text-gray-900 text-sm focus:outline-none"/>
+          <button className="bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-semibold px-5 py-2 rounded-r-lg transition text-sm">Search</button>
+        </div>
+        <div className="flex items-center gap-5 ml-2 text-sm">
+          <a href="account.html" className="flex flex-col items-center hover:text-yellow-300 transition leading-tight">
+            <span className="text-lg">👤</span><span className="text-xs">Account</span>
+          </a>
+          <a href="cart.html" className="flex flex-col items-center hover:text-yellow-300 transition leading-tight relative">
+            <span className="text-lg">🛒</span>
+            <span className="absolute -top-1 -right-2 bg-yellow-400 text-blue-900 text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
+            <span className="text-xs">Cart</span>
+          </a>
+        </div>
+      </div>
+      <nav className="bg-blue-800 text-sm">
+        <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto scroll-hide py-1">
+          {['Today\'s Deals','Electronics','Kitchen & Home','Clothing','Sports','Beauty','Books','Toys','Automotive'].map(cat=>(
+            <a key={cat} href="products.html"
+               className="whitespace-nowrap px-3 py-1.5 rounded hover:bg-blue-700 hover:text-yellow-300 transition text-blue-100">{cat}</a>
+          ))}
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-blue-950 text-blue-200 mt-16">
+      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+        <div>
+          <h3 className="text-white font-bold mb-3">Get to Know Us</h3>
+          {['About NovaMart','Careers','Press & Blog','Sustainability'].map(l=><a key={l} href="#" className="block mb-1.5 hover:text-yellow-300 transition">{l}</a>)}
+        </div>
+        <div>
+          <h3 className="text-white font-bold mb-3">Shop With Us</h3>
+          {['Your Account','Track Your Order','Returns','NovaMart Prime'].map(l=><a key={l} href="#" className="block mb-1.5 hover:text-yellow-300 transition">{l}</a>)}
+        </div>
+        <div>
+          <h3 className="text-white font-bold mb-3">Help</h3>
+          {['Help Center','Shipping Rates','Returns Policy','NovaMart App'].map(l=><a key={l} href="#" className="block mb-1.5 hover:text-yellow-300 transition">{l}</a>)}
+        </div>
+        <div>
+          <h3 className="text-white font-bold mb-3">Stay Connected</h3>
+          <div className="flex"><input type="email" placeholder="Your email" className="flex-1 px-3 py-2 rounded-l-lg text-gray-900 text-xs focus:outline-none"/>
+            <button className="bg-yellow-400 text-blue-900 font-semibold px-3 py-2 rounded-r-lg text-xs">Go</button></div>
+        </div>
+      </div>
+      <div className="border-t border-blue-800 py-4 text-center text-xs text-blue-400">
+        © 2026 NovaMart, Inc.
+      </div>
+    </footer>
+  );
+}
+
+const INITIAL_ITEMS = [
+  { id:1, name:'Sony WH-1000XM5 Wireless Noise-Canceling Headphones', brand:'Sony', price:279.99, color:'Midnight Black', qty:1, seed:'sony1', prime:true, inStock:true },
+  { id:2, name:'Apple AirPods Pro (2nd Generation) with MagSafe Case', brand:'Apple', price:189.99, color:'White', qty:1, seed:'apple1', prime:true, inStock:true },
+  { id:3, name:'Anker PowerCore 26800mAh Portable Charger Ultra-High Capacity', brand:'Anker', price:45.99, color:'Black', qty:2, seed:'anker1', prime:false, inStock:true },
+];
+
+const SUGGESTED = [
+  { name:'Sony LinkBuds S True Wireless', brand:'Sony', price:'148.00', seed:'sony3', rating:4.5 },
+  { name:'Beats Studio Buds+ ANC Earbuds', brand:'Beats', price:'99.95', seed:'beats1', rating:4.3 },
+  { name:'Anker Wireless Charging Pad 15W', brand:'Anker', price:'19.99', seed:'anker3', rating:4.6 },
+  { name:'Apple USB-C to Lightning Cable 6ft', brand:'Apple', price:'21.99', seed:'cable1', rating:4.7 },
+];
+
+function CartPage() {
+  const [items, setItems] = useState(INITIAL_ITEMS);
+  const [promo, setPromo] = useState('');
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [promoError, setPromoError] = useState(false);
+  const [savedLater, setSavedLater] = useState([]);
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  function updateQty(id, delta) {
+    setItems(its => its.map(it => it.id===id ? {...it, qty: Math.max(1, it.qty+delta)} : it));
+  }
+
+  function removeItem(id) {
+    setItems(its => its.filter(it => it.id!==id));
+  }
+
+  function saveForLater(item) {
+    setItems(its => its.filter(it => it.id!==item.id));
+    setSavedLater(s => [...s, item]);
+  }
+
+  function moveToCart(item) {
+    setSavedLater(s => s.filter(it => it.id!==item.id));
+    setItems(its => [...its, item]);
+  }
+
+  function applyPromo() {
+    if(promo.toUpperCase() === 'NOVA10') {
+      setPromoApplied(true);
+      setPromoError(false);
+    } else {
+      setPromoError(true);
+      setPromoApplied(false);
+    }
+  }
+
+  const subtotal = useMemo(()=> items.reduce((s,it)=>s+it.price*it.qty, 0), [items]);
+  const shipping = subtotal >= 35 ? 0 : 5.99;
+  const discount = promoApplied ? subtotal * 0.10 : 0;
+  const tax = (subtotal - discount) * 0.08;
+  const total = subtotal - discount + shipping + tax;
+  const totalQty = items.reduce((s,it)=>s+it.qty, 0);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header cartCount={totalQty} />
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
+        {/* Breadcrumb */}
+        <div className="text-xs text-gray-500 flex gap-1 mb-4">
+          <a href="index.html" className="hover:text-blue-600">Home</a><span>›</span>
+          <span className="text-gray-700 font-medium">Shopping Cart</span>
+        </div>
+
+        <h1 className="text-2xl font-bold mb-6">Shopping Cart <span className="text-gray-400 font-normal text-lg">({totalQty} {totalQty===1?'item':'items'})</span></h1>
+
+        {items.length === 0 && savedLater.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-6xl mb-4">🛒</p>
+            <p className="text-xl font-semibold mb-2">Your cart is empty</p>
+            <p className="text-gray-500 mb-6 text-sm">Looks like you haven't added anything yet.</p>
+            <a href="index.html" className="bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-bold px-8 py-3 rounded-xl text-sm transition">Continue Shopping</a>
+          </div>
+        ) : (
+          <div className="flex gap-6 items-start">
+            {/* Left col - items */}
+            <div className="flex-1 min-w-0 space-y-4">
+
+              {/* Free shipping notice */}
+              {shipping > 0
+                ? <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+                    Add <strong>${(35-subtotal).toFixed(2)}</strong> more to qualify for <strong>FREE shipping</strong>!
+                    <a href="products.html" className="ml-2 text-blue-600 underline hover:text-blue-800">Continue shopping →</a>
+                  </div>
+                : <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700 font-medium">
+                    ✓ Your order qualifies for <strong>FREE shipping</strong>!
+                  </div>
+              }
+
+              {/* Cart items */}
+              {items.map(item=>(
+                <div key={item.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="flex gap-5">
+                    <div className="w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50">
+                      <img src={`https://picsum.photos/seed/${item.seed}/160/160`} alt={item.name}
+                           className="w-full h-full object-cover"/>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-xs text-blue-600 font-medium mb-0.5">{item.brand}</p>
+                          <a href="product-detail.html" className="font-semibold text-gray-900 text-sm hover:text-blue-700 leading-snug line-clamp-2 block max-w-md">{item.name}</a>
+                          <p className="text-xs text-gray-500 mt-1">Color: <span className="text-gray-700">{item.color}</span></p>
+                          {item.prime && <span className="inline-block mt-1 text-xs text-blue-600 font-semibold">✦ Prime · FREE One-Day Delivery</span>}
+                          {item.inStock
+                            ? <p className="text-xs text-green-600 font-medium mt-0.5">✓ In Stock</p>
+                            : <p className="text-xs text-red-500 font-medium mt-0.5">✗ Out of Stock</p>
+                          }
+                        </div>
+                        <div className="text-right ml-4 flex-shrink-0">
+                          <p className="text-lg font-extrabold text-gray-900">${(item.price * item.qty).toFixed(2)}</p>
+                          <p className="text-xs text-gray-400">${item.price.toFixed(2)} each</p>
+                        </div>
+                      </div>
+
+                      {/* Controls row */}
+                      <div className="flex items-center gap-4 mt-3 flex-wrap">
+                        {/* Qty control */}
+                        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                          <button onClick={()=>updateQty(item.id,-1)}
+                            className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 transition text-sm font-bold">−</button>
+                          <span className="px-3 py-1.5 font-semibold text-sm border-x border-gray-200 min-w-[2rem] text-center">{item.qty}</span>
+                          <button onClick={()=>updateQty(item.id,1)}
+                            className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 transition text-sm font-bold">+</button>
+                        </div>
+                        <div className="flex gap-1 text-xs">
+                          <button onClick={()=>removeItem(item.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition border border-red-200">
+                            Remove
+                          </button>
+                          <button onClick={()=>saveForLater(item)}
+                            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition border border-blue-200">
+                            Save for Later
+                          </button>
+                          <button className="text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-3 py-1.5 rounded-lg transition border border-gray-200">
+                            ♡ Add to Wishlist
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Saved for later */}
+              {savedLater.length > 0 && (
+                <div>
+                  <h2 className="text-base font-bold text-gray-700 mt-6 mb-3">Saved for Later ({savedLater.length})</h2>
+                  {savedLater.map(item=>(
+                    <div key={item.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex gap-4 items-center mb-3 opacity-75">
+                      <img src={`https://picsum.photos/seed/${item.seed}/80/80`} alt={item.name}
+                           className="w-16 h-16 object-cover rounded-lg flex-shrink-0"/>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800 line-clamp-1">{item.name}</p>
+                        <p className="text-sm font-bold">${item.price.toFixed(2)}</p>
+                      </div>
+                      <button onClick={()=>moveToCart(item)}
+                        className="text-blue-600 text-xs border border-blue-300 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition">
+                        Move to Cart
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Recommended */}
+              <div className="mt-6">
+                <h2 className="text-base font-bold mb-3">Customers also bought</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {SUGGESTED.map((p,i)=>(
+                    <a key={i} href="product-detail.html" className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition overflow-hidden group">
+                      <img src={`https://picsum.photos/seed/${p.seed}/200/150`} alt={p.name}
+                           className="w-full h-28 object-cover group-hover:scale-105 transition-transform duration-200"/>
+                      <div className="p-2">
+                        <p className="text-xs text-blue-600 font-medium">{p.brand}</p>
+                        <p className="text-xs text-gray-700 line-clamp-2 mb-1">{p.name}</p>
+                        <p className="text-sm font-bold">${p.price}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right col - order summary */}
+            <div className="w-80 flex-shrink-0">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sticky top-28">
+                <h2 className="text-base font-bold mb-4 pb-3 border-b border-gray-100">Order Summary</h2>
+
+                <div className="space-y-2.5 text-sm mb-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal ({totalQty} items)</span>
+                    <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  </div>
+                  {promoApplied && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Promo: NOVA10 (–10%)</span>
+                      <span className="font-semibold">–${discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Shipping</span>
+                    <span className={shipping===0?'text-green-600 font-medium':''}>
+                      {shipping===0 ? 'FREE' : `$${shipping.toFixed(2)}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-500 text-xs">
+                    <span>Estimated Tax (8%)</span>
+                    <span>${tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-base border-t border-gray-200 pt-2.5 mt-1">
+                    <span>Order Total</span>
+                    <span className="text-lg text-gray-900">${total.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Promo code */}
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Promo Code</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promo}
+                      onChange={e=>{setPromo(e.target.value);setPromoError(false);}}
+                      placeholder="Enter code"
+                      className={`flex-1 border rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 ${promoError?'border-red-400 focus:ring-red-300':'border-gray-200 focus:ring-blue-300'}`}
+                    />
+                    <button onClick={applyPromo}
+                      className="bg-gray-900 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+                      Apply
+                    </button>
+                  </div>
+                  {promoApplied && <p className="text-xs text-green-600 mt-1">✓ Code applied! You saved ${discount.toFixed(2)}</p>}
+                  {promoError && <p className="text-xs text-red-500 mt-1">✗ Invalid promo code. Try "NOVA10"</p>}
+                </div>
+
+                {/* Checkout button */}
+                <button
+                  onClick={()=>setCheckingOut(true)}
+                  className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-extrabold text-sm rounded-xl transition shadow-md mb-3">
+                  {checkingOut ? '⏳ Processing...' : 'Proceed to Checkout →'}
+                </button>
+                <a href="products.html"
+                   className="block w-full text-center py-2.5 border border-gray-300 text-gray-700 text-sm rounded-xl hover:bg-gray-50 transition mb-4">
+                  Continue Shopping
+                </a>
+
+                {/* Trust signals */}
+                <div className="border-t border-gray-100 pt-4 space-y-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-2"><span>🔒</span><span>SSL encrypted checkout</span></div>
+                  <div className="flex items-center gap-2"><span>🔄</span><span>Free 30-day returns on most items</span></div>
+                  <div className="flex items-center gap-2"><span>📞</span><span>24/7 customer support</span></div>
+                  <div className="flex items-center gap-2"><span>🏷️</span><span>Gift wrapping available at checkout</span></div>
+                </div>
+
+                {/* Payment icons */}
+                <div className="mt-4 border-t border-gray-100 pt-3">
+                  <p className="text-xs text-gray-400 mb-2 text-center">We accept</p>
+                  <div className="flex justify-center gap-2 text-xs">
+                    {['💳 Visa','💳 MC','💳 Amex','🅿️ PayPal','🍎 Pay'].map(p=>(
+                      <span key={p} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">{p}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Prime upsell */}
+              <div className="mt-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-4 text-sm">
+                <p className="font-bold mb-1">⚡ NovaMart Prime</p>
+                <p className="text-xs text-blue-100 mb-3">Get FREE same-day delivery, exclusive deals & unlimited streaming. First month free.</p>
+                <a href="account.html" className="block text-center bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-bold text-xs py-2 rounded-lg transition">
+                  Try Prime Free
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<CartPage />);
+</script>
+</body>
+</html>

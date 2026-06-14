@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account – NovaMart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .scroll-hide::-webkit-scrollbar { display: none; }
+    .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<div id="root"></div>
+<script type="text/babel">
+
+const { useState } = React;
+
+function Header({ cartCount = 3 }) {
+  const [query, setQuery] = useState('');
+  const categories = ['Electronics','Kitchen','Clothing','Sports','Beauty','Books','Toys','Automotive'];
+  return (
+    <header className="bg-blue-900 text-white shadow-lg sticky top-0 z-50">
+      <div className="bg-blue-950 text-xs text-blue-200 py-1">
+        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+          <span>🚚 Free shipping on orders over $35</span>
+          <div className="flex gap-4">
+            <a href="account.html" className="hover:text-yellow-300 transition">My Account</a>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+        <a href="index.html" className="text-2xl font-extrabold text-yellow-400 tracking-tight whitespace-nowrap hover:text-yellow-300 transition">
+          Nova<span className="text-white">Mart</span>
+        </a>
+        <div className="flex flex-1 max-w-2xl">
+          <select className="bg-gray-100 text-gray-700 text-sm px-2 rounded-l-lg border-r border-gray-300 focus:outline-none">
+            <option>All</option>
+            {categories.map(c=><option key={c}>{c}</option>)}
+          </select>
+          <input type="text" value={query} onChange={e=>setQuery(e.target.value)}
+            placeholder="Search NovaMart..."
+            className="flex-1 px-4 py-2 text-gray-900 text-sm focus:outline-none"/>
+          <button className="bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-semibold px-5 py-2 rounded-r-lg transition text-sm">Search</button>
+        </div>
+        <div className="flex items-center gap-5 ml-2 text-sm">
+          <a href="account.html" className="flex flex-col items-center text-yellow-300 transition leading-tight">
+            <span className="text-lg">👤</span><span className="text-xs">Account</span>
+          </a>
+          <a href="cart.html" className="flex flex-col items-center hover:text-yellow-300 transition leading-tight relative">
+            <span className="text-lg">🛒</span>
+            <span className="absolute -top-1 -right-2 bg-yellow-400 text-blue-900 text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
+            <span className="text-xs">Cart</span>
+          </a>
+        </div>
+      </div>
+      <nav className="bg-blue-800 text-sm">
+        <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto scroll-hide py-1">
+          {['Today\'s Deals','Electronics','Kitchen & Home','Clothing','Sports','Beauty','Books','Toys','Automotive'].map(cat=>(
+            <a key={cat} href="products.html"
+               className="whitespace-nowrap px-3 py-1.5 rounded hover:bg-blue-700 hover:text-yellow-300 transition text-blue-100">{cat}</a>
+          ))}
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-blue-950 text-blue-200 mt-16">
+      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+        <div>
+          <h3 className="text-white font-bold mb-3">Get to Know Us</h3>
+          {['About NovaMart','Careers','Press & Blog','Sustainability'].map(l=><a key={l} href="#" className="block mb-1.5 hover:text-yellow-300 transition">{l}</a>)}
+        </div>
+        <div>
+          <h3 className="text-white font-bold mb-3">Shop With Us</h3>
+          {['Your Account','Track Your Order','Returns','NovaMart Prime'].map(l=><a key={l} href="#" className="block mb-1.5 hover:text-yellow-300 transition">{l}</a>)}
+        </div>
+        <div>
+          <h3 className="text-white font-bold mb-3">Help</h3>
+          {['Help Center','Shipping Rates','Returns Policy','NovaMart App'].map(l=><a key={l} href="#" className="block mb-1.5 hover:text-yellow-300 transition">{l}</a>)}
+        </div>
+        <div>
+          <h3 className="text-white font-bold mb-3">Stay Connected</h3>
+          <div className="flex"><input type="email" placeholder="Your email" className="flex-1 px-3 py-2 rounded-l-lg text-gray-900 text-xs focus:outline-none"/>
+            <button className="bg-yellow-400 text-blue-900 font-semibold px-3 py-2 rounded-r-lg text-xs">Go</button></div>
+        </div>
+      </div>
+      <div className="border-t border-blue-800 py-4 text-center text-xs text-blue-400">
+        © 2026 NovaMart, Inc.
+      </div>
+    </footer>
+  );
+}
+
+const ORDERS = [
+  { id:'NM-2026-048291', date:'March 10, 2026', status:'Delivered', statusColor:'green', total:'$279.99', items:['Sony WH-1000XM5 Headphones'], img:'sony1' },
+  { id:'NM-2026-039844', date:'February 25, 2026', status:'Delivered', statusColor:'green', total:'$89.99', items:['Nike Air Zoom Pegasus 40'], img:'nike1' },
+  { id:'NM-2026-031127', date:'February 8, 2026', status:'Delivered', statusColor:'green', total:'$189.99', items:['Apple AirPods Pro (2nd Gen)'], img:'apple1' },
+  { id:'NM-2026-015882', date:'January 14, 2026', status:'Delivered', statusColor:'green', total:'$45.99', items:['Anker PowerCore 26800mAh'], img:'anker1' },
+  { id:'NM-2025-192041', date:'December 22, 2025', status:'Delivered', statusColor:'green', total:'$549.99', items:['Dyson V15 Detect Vacuum'], img:'dyson1' },
+];
+
+const ADDRESSES = [
+  { id:1, label:'Home', name:'Alex Johnson', street:'123 Maple Street, Apt 4B', city:'New York, NY 10001', phone:'(212) 555-0123', default:true },
+  { id:2, label:'Work', name:'Alex Johnson', street:'350 Fifth Avenue, Suite 4100', city:'New York, NY 10118', phone:'(212) 555-0199', default:false },
+];
+
+const PAYMENTS = [
+  { id:1, type:'Visa', last4:'4242', expires:'09/27', icon:'💳', default:true },
+  { id:2, type:'Mastercard', last4:'8888', expires:'12/26', icon:'💳', default:false },
+  { id:3, type:'PayPal', last4:null, email:'alex.johnson@email.com', icon:'🅿️', default:false },
+];
+
+const WISHLIST = [
+  { name:'Garmin Forerunner 955 GPS Watch', brand:'Garmin', price:'449.99', seed:'garmin2', rating:4.7, added:'Feb 28' },
+  { name:'KitchenAid Artisan Stand Mixer 5-Qt', brand:'KitchenAid', price:'379.99', seed:'mixer1', rating:4.8, added:'Feb 15' },
+  { name:'Bose SoundLink Max Portable Speaker', brand:'Bose', price:'299.00', seed:'bose2', rating:4.5, added:'Jan 30' },
+  { name:'Levi\'s 511 Slim Fit Jeans (32x32)', brand:'Levi\'s', price:'39.99', seed:'jeans1', rating:4.5, added:'Jan 12' },
+];
+
+const NAV_ITEMS = [
+  { id:'overview', label:'Overview', icon:'🏠' },
+  { id:'orders', label:'Order History', icon:'📦' },
+  { id:'addresses', label:'Saved Addresses', icon:'📍' },
+  { id:'payments', label:'Payment Methods', icon:'💳' },
+  { id:'wishlist', label:'Wishlist', icon:'❤️' },
+  { id:'settings', label:'Account Settings', icon:'⚙️' },
+];
+
+/* ── SECTION COMPONENTS ── */
+function Overview({ setSection }) {
+  return (
+    <div>
+      {/* Welcome banner */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-6 mb-6 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-blue-200 mb-0.5">Welcome back,</p>
+          <h2 className="text-2xl font-extrabold">Alex Johnson 👋</h2>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="bg-yellow-400 text-blue-900 text-xs font-bold px-2.5 py-1 rounded-full">✦ Prime Member</span>
+            <span className="text-xs text-blue-200">Member since January 2021</span>
+          </div>
+        </div>
+        <div className="text-right hidden md:block">
+          <p className="text-3xl font-extrabold">147</p>
+          <p className="text-xs text-blue-200">Total orders</p>
+        </div>
+      </div>
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {[
+          { label:'Orders this year', value:'12', icon:'📦', color:'bg-blue-50 text-blue-700', border:'border-blue-100' },
+          { label:'Wishlist items', value:'4', icon:'❤️', color:'bg-red-50 text-red-700', border:'border-red-100' },
+          { label:'NovaMart Points', value:'3,240', icon:'⭐', color:'bg-yellow-50 text-yellow-700', border:'border-yellow-100' },
+          { label:'Saved addresses', value:'2', icon:'📍', color:'bg-green-50 text-green-700', border:'border-green-100' },
+        ].map((s,i)=>(
+          <div key={i} className={`bg-white border ${s.border} rounded-xl p-4 flex items-center gap-3`}>
+            <span className={`text-2xl p-2 rounded-lg ${s.color}`}>{s.icon}</span>
+            <div>
+              <p className="text-xl font-extrabold text-gray-900">{s.value}</p>
+              <p className="text-xs text-gray-500">{s.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent orders */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-gray-900">Recent Orders</h3>
+          <button onClick={()=>setSection('orders')} className="text-blue-600 text-xs hover:underline">View all orders →</button>
+        </div>
+        <div className="space-y-3">
+          {ORDERS.slice(0,3).map((o,i)=>(
+            <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition">
+              <img src={`https://picsum.photos/seed/${o.img}/60/60`} alt="" className="w-12 h-12 rounded-lg object-cover"/>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-500">{o.id}</p>
+                <p className="text-sm font-medium text-gray-800 truncate">{o.items[0]}</p>
+                <p className="text-xs text-gray-400">{o.date}</p>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-${o.statusColor}-100 text-${o.statusColor}-700`}>
+                  {o.status}
+                </span>
+                <p className="text-sm font-bold mt-1">{o.total}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {[
+          { label:'Track a Package', icon:'🚚', sub:'See delivery status', section:'orders' },
+          { label:'Start a Return', icon:'🔄', sub:'30-day free returns', section:'orders' },
+          { label:'Manage Addresses', icon:'📍', sub:'Add or edit addresses', section:'addresses' },
+          { label:'Payment Methods', icon:'💳', sub:'Update your cards', section:'payments' },
+          { label:'My Wishlist', icon:'❤️', sub:'4 saved items', section:'wishlist' },
+          { label:'Account Settings', icon:'⚙️', sub:'Privacy & security', section:'settings' },
+        ].map((a,i)=>(
+          <button key={i} onClick={()=>setSection(a.section)}
+            className="bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-3 hover:shadow-md hover:border-blue-200 transition text-left group">
+            <span className="text-2xl bg-gray-50 p-2 rounded-xl group-hover:bg-blue-50 transition">{a.icon}</span>
+            <div>
+              <p className="font-semibold text-sm text-gray-900">{a.label}</p>
+              <p className="text-xs text-gray-400">{a.sub}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OrderHistory() {
+  const [expanded, setExpanded] = useState(null);
+  return (
+    <div>
+      <h2 className="text-xl font-bold mb-5">Order History</h2>
+      <div className="space-y-4">
+        {ORDERS.map((o,i)=>(
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition"
+                 onClick={()=>setExpanded(expanded===i?null:i)}>
+              <div className="flex items-center gap-4">
+                <img src={`https://picsum.photos/seed/${o.img}/60/60`} alt="" className="w-12 h-12 rounded-lg object-cover"/>
+                <div>
+                  <p className="text-xs text-gray-400">Order #{o.id}</p>
+                  <p className="font-semibold text-sm text-gray-900">{o.items[0]}</p>
+                  <p className="text-xs text-gray-400">Placed {o.date}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${o.statusColor==='green'?'bg-green-100 text-green-700':o.statusColor==='blue'?'bg-blue-100 text-blue-700':'bg-yellow-100 text-yellow-700'}`}>
+                  ✓ {o.status}
+                </span>
+                <span className="font-bold text-gray-900">{o.total}</span>
+                <span className="text-gray-400 text-sm">{expanded===i?'▲':'▼'}</span>
+              </div>
+            </div>
+            {expanded===i && (
+              <div className="border-t border-gray-100 p-4 bg-gray-50">
+                <div className="flex gap-4 mb-4">
+                  <img src={`https://picsum.photos/seed/${o.img}/100/100`} alt="" className="w-20 h-20 rounded-xl object-cover"/>
+                  <div>
+                    <p className="font-semibold text-sm">{o.items[0]}</p>
+                    <p className="text-xs text-gray-500 mt-1">Qty: 1</p>
+                    <p className="text-sm font-bold mt-1">{o.total}</p>
+                    <p className="text-xs text-green-600 mt-1 font-medium">✓ Delivered on {o.date}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap text-xs">
+                  <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-white transition">Track Package</button>
+                  <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-white transition">Return Items</button>
+                  <button className="border border-blue-300 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition">Buy Again</button>
+                  <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-white transition">Write a Review</button>
+                  <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-white transition">View Invoice</button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SavedAddresses() {
+  const [addresses, setAddresses] = useState(ADDRESSES);
+  const [adding, setAdding] = useState(false);
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-xl font-bold">Saved Addresses</h2>
+        <button onClick={()=>setAdding(true)}
+          className="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+          + Add New Address
+        </button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {addresses.map((a,i)=>(
+          <div key={i} className={`bg-white rounded-2xl border shadow-sm p-5 relative ${a.default?'border-blue-400':'border-gray-100'}`}>
+            {a.default && (
+              <span className="absolute top-4 right-4 bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-0.5 rounded-full">Default</span>
+            )}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-base">🏠</span>
+              <span className="font-bold text-sm">{a.label}</span>
+            </div>
+            <p className="text-sm font-semibold text-gray-900">{a.name}</p>
+            <p className="text-sm text-gray-600">{a.street}</p>
+            <p className="text-sm text-gray-600">{a.city}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{a.phone}</p>
+            <div className="flex gap-2 mt-4 text-xs">
+              <button className="border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">Edit</button>
+              {!a.default && (
+                <>
+                  <button className="border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">Remove</button>
+                  <button className="border border-blue-300 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition">Set as Default</button>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      {adding && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <h3 className="font-bold mb-4">Add New Address</h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {['Full Name','Phone Number','Street Address','Apt, Suite, etc.','City','State','ZIP Code','Country'].map((f,i)=>(
+              <div key={i} className={i<2||i===2||i===7?'col-span-2':''}>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{f}</label>
+                <input type="text" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3 mt-4">
+            <button className="bg-blue-600 text-white font-semibold px-5 py-2 rounded-lg text-sm hover:bg-blue-700 transition">Save Address</button>
+            <button onClick={()=>setAdding(false)} className="border border-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm hover:bg-gray-50 transition">Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaymentMethods() {
+  const [payments, setPayments] = useState(PAYMENTS);
+  const [addingCard, setAddingCard] = useState(false);
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-xl font-bold">Payment Methods</h2>
+        <button onClick={()=>setAddingCard(true)}
+          className="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+          + Add Payment Method
+        </button>
+      </div>
+      <div className="space-y-4 mb-6">
+        {payments.map((p,i)=>(
+          <div key={i} className={`bg-white rounded-2xl border shadow-sm p-5 flex items-center justify-between ${p.default?'border-blue-400':'border-gray-100'}`}>
+            <div className="flex items-center gap-4">
+              <span className="text-3xl">{p.icon}</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-sm text-gray-900">{p.type}</span>
+                  {p.default && <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">Default</span>}
+                </div>
+                {p.last4
+                  ? <p className="text-sm text-gray-500">•••• •••• •••• {p.last4} · Expires {p.expires}</p>
+                  : <p className="text-sm text-gray-500">{p.email}</p>
+                }
+              </div>
+            </div>
+            <div className="flex gap-2 text-xs">
+              <button className="border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">Edit</button>
+              {!p.default && (
+                <>
+                  <button className="border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">Remove</button>
+                  <button className="border border-blue-300 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition">Set Default</button>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      {addingCard && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <h3 className="font-bold mb-4">Add Credit or Debit Card</h3>
+          <div className="space-y-3 text-sm max-w-md">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Cardholder Name</label>
+              <input type="text" placeholder="As it appears on card" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Card Number</label>
+              <input type="text" placeholder="1234 5678 9012 3456" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Expiry Date</label>
+                <input type="text" placeholder="MM/YY" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">CVV</label>
+                <input type="text" placeholder="•••" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-gray-600">
+              <input type="checkbox" className="rounded text-blue-600"/>
+              Set as default payment method
+            </label>
+          </div>
+          <div className="flex gap-3 mt-4">
+            <button className="bg-blue-600 text-white font-semibold px-5 py-2 rounded-lg text-sm hover:bg-blue-700 transition">Add Card</button>
+            <button onClick={()=>setAddingCard(false)} className="border border-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm hover:bg-gray-50 transition">Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Wishlist() {
+  const [items, setItems] = useState(WISHLIST);
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-xl font-bold">My Wishlist <span className="text-gray-400 font-normal text-base">({items.length})</span></h2>
+        <a href="products.html" className="text-blue-600 text-sm hover:underline">Continue Shopping →</a>
+      </div>
+      {items.length === 0
+        ? <div className="text-center py-16 text-gray-400">
+            <p className="text-4xl mb-3">❤️</p>
+            <p className="font-semibold text-gray-600">Your wishlist is empty.</p>
+          </div>
+        : <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {items.map((item,i)=>(
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-4 group hover:shadow-md transition">
+                <a href="product-detail.html">
+                  <img src={`https://picsum.photos/seed/${item.seed}/100/100`} alt={item.name}
+                       className="w-20 h-20 rounded-xl object-cover group-hover:scale-105 transition-transform duration-200"/>
+                </a>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-blue-600 font-medium">{item.brand}</p>
+                  <a href="product-detail.html" className="text-sm font-semibold text-gray-900 hover:text-blue-700 line-clamp-2 block">{item.name}</a>
+                  <div className="flex items-center gap-0.5 text-xs my-1">
+                    {[1,2,3,4,5].map(j=><span key={j} className={j<=Math.round(item.rating)?'text-yellow-400':'text-gray-300'}>★</span>)}
+                  </div>
+                  <p className="text-base font-bold text-gray-900 mb-2">${item.price}</p>
+                  <div className="flex gap-2 text-xs">
+                    <a href="cart.html" className="bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-semibold px-3 py-1.5 rounded-lg transition">Add to Cart</a>
+                    <button onClick={()=>setItems(it=>it.filter((_,j)=>j!==i))}
+                      className="border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">Remove</button>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-400 whitespace-nowrap">{item.added}</div>
+              </div>
+            ))}
+          </div>
+      }
+    </div>
+  );
+}
+
+function AccountSettings() {
+  const [saved, setSaved] = useState(false);
+  const [notifications, setNotifications] = useState({
+    orderUpdates: true,
+    promotions: true,
+    priceDrops: false,
+    newArrivals: false,
+    securityAlerts: true,
+  });
+  return (
+    <div>
+      <h2 className="text-xl font-bold mb-5">Account Settings</h2>
+      <div className="space-y-5">
+        {/* Profile */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 className="font-bold mb-4 text-gray-900">Personal Information</h3>
+          <div className="flex items-center gap-4 mb-5">
+            <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">AJ</div>
+            <div>
+              <p className="font-semibold">Alex Johnson</p>
+              <p className="text-xs text-gray-500">alex.johnson@email.com</p>
+              <button className="text-xs text-blue-600 hover:underline mt-1">Change profile photo</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {[{label:'First Name',val:'Alex'},{label:'Last Name',val:'Johnson'},{label:'Email Address',val:'alex.johnson@email.com'},{label:'Phone Number',val:'(212) 555-0123'}].map((f,i)=>(
+              <div key={i}>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
+                <input type="text" defaultValue={f.val}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+              </div>
+            ))}
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Date of Birth</label>
+              <input type="date" defaultValue="1991-07-14"
+                className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+            </div>
+          </div>
+          <div className="mt-4 flex gap-3">
+            <button onClick={()=>{setSaved(true);setTimeout(()=>setSaved(false),2500);}}
+              className={`font-semibold px-5 py-2 rounded-lg text-sm transition ${saved?'bg-green-500 text-white':'bg-blue-600 hover:bg-blue-700 text-white'}`}>
+              {saved ? '✓ Changes Saved!' : 'Save Changes'}
+            </button>
+            <button className="border border-gray-300 text-gray-700 px-5 py-2 rounded-lg text-sm hover:bg-gray-50 transition">Discard</button>
+          </div>
+        </div>
+
+        {/* Password */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 className="font-bold mb-4 text-gray-900">Password & Security</h3>
+          <div className="space-y-3 max-w-md">
+            {['Current Password','New Password','Confirm New Password'].map((f,i)=>(
+              <div key={i}>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{f}</label>
+                <input type="password" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3 mt-4 items-center">
+            <button className="bg-blue-600 text-white font-semibold px-5 py-2 rounded-lg text-sm hover:bg-blue-700 transition">Update Password</button>
+            <div className="text-xs text-gray-500">
+              <span className="font-medium text-green-600">✓ Two-factor authentication</span> is enabled
+              <button className="ml-2 text-blue-600 hover:underline">Manage</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Notifications */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h3 className="font-bold mb-4 text-gray-900">Notification Preferences</h3>
+          <div className="space-y-3">
+            {Object.entries(notifications).map(([key, val])=>{
+              const labels = {
+                orderUpdates:'Order status updates',
+                promotions:'Promotions and deals',
+                priceDrops:'Price drop alerts on wishlist items',
+                newArrivals:'New arrivals in your favorite categories',
+                securityAlerts:'Security and account alerts',
+              };
+              return (
+                <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{labels[key]}</p>
+                    {key==='securityAlerts' && <p className="text-xs text-gray-400">Recommended for your security</p>}
+                  </div>
+                  <button onClick={()=>setNotifications(n=>({...n,[key]:!val}))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${val?'bg-blue-600':'bg-gray-200'}`}>
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${val?'translate-x-6':'translate-x-1'}`}/>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Danger zone */}
+        <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-5">
+          <h3 className="font-bold mb-1 text-red-700">Danger Zone</h3>
+          <p className="text-xs text-gray-500 mb-4">These actions are irreversible. Please proceed with caution.</p>
+          <div className="flex gap-3">
+            <button className="border border-red-300 text-red-600 text-sm px-4 py-2 rounded-lg hover:bg-red-50 transition">Deactivate Account</button>
+            <button className="bg-red-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-red-700 transition">Delete Account</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── MAIN APP ── */
+function App() {
+  const [section, setSection] = useState('overview');
+  const sectionMap = {
+    overview: <Overview setSection={setSection} />,
+    orders: <OrderHistory />,
+    addresses: <SavedAddresses />,
+    payments: <PaymentMethods />,
+    wishlist: <Wishlist />,
+    settings: <AccountSettings />,
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header cartCount={3} />
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
+        {/* Breadcrumb */}
+        <div className="text-xs text-gray-500 flex gap-1 mb-5">
+          <a href="index.html" className="hover:text-blue-600">Home</a><span>›</span>
+          <span className="text-gray-700 font-medium">My Account</span>
+        </div>
+        <div className="flex gap-6 items-start">
+          {/* Sidebar */}
+          <aside className="w-52 flex-shrink-0">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden sticky top-28">
+              {/* User info */}
+              <div className="bg-gradient-to-r from-blue-700 to-blue-900 p-4 text-white">
+                <div className="w-10 h-10 rounded-full bg-yellow-400 text-blue-900 flex items-center justify-center font-extrabold text-sm mb-2">AJ</div>
+                <p className="font-bold text-sm">Alex Johnson</p>
+                <p className="text-xs text-blue-200">✦ Prime Member</p>
+              </div>
+              {/* Nav */}
+              <nav className="p-2">
+                {NAV_ITEMS.map(item=>(
+                  <button key={item.id} onClick={()=>setSection(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition mb-0.5 ${section===item.id?'bg-blue-600 text-white shadow-sm':'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+                <div className="border-t border-gray-100 mt-2 pt-2">
+                  <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition">
+                    <span>🚪</span><span>Sign Out</span>
+                  </button>
+                </div>
+              </nav>
+            </div>
+          </aside>
+
+          {/* Main content */}
+          <div className="flex-1 min-w-0">
+            {sectionMap[section]}
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

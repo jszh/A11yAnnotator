@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alex Johnson (@alexj) | Pulse</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+    .skip-link { position: absolute; top: -100%; left: 0; background: #6366f1; color: white; padding: 8px 16px; z-index: 9999; border-radius: 0 0 8px 0; text-decoration: none; font-weight: 600; }
+    .skip-link:focus { top: 0; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <div id="live-region" aria-live="polite" aria-atomic="true" style="position:absolute;left:-9999px;"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+const IconHome = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z"/><path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.432z"/></svg>;
+const IconCompass = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-.53 14.03a.75.75 0 001.06 0l3.5-3.5a.75.75 0 10-1.06-1.06l-2.22 2.22V8.25a.75.75 0 00-1.5 0v5.69l-2.22-2.22a.75.75 0 10-1.06 1.06l3.5 3.5z" clipRule="evenodd"/></svg>;
+const IconBell = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clipRule="evenodd"/></svg>;
+const IconChat = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97z" clipRule="evenodd"/></svg>;
+const IconUser = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd"/></svg>;
+const IconCog = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clipRule="evenodd"/></svg>;
+const IconHeart = ({ filled }) => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={filled ? 0 : 1.5} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>;
+const IconChatBubble = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>;
+const IconLink = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/></svg>;
+const IconCalendar = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>;
+const IconPencil = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg>;
+const IconPlus = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd"/></svg>;
+const IconBolt = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7"><path fillRule="evenodd" d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z" clipRule="evenodd"/></svg>;
+
+function Sidebar({ activePage = 'profile' }) {
+  const navItems = [
+    { id: 'feed', label: 'Home', href: 'index.html', icon: <IconHome /> },
+    { id: 'explore', label: 'Explore', href: 'explore.html', icon: <IconCompass /> },
+    { id: 'notifications', label: 'Notifications', href: 'notifications.html', icon: <IconBell />, badge: 5 },
+    { id: 'messages', label: 'Messages', href: 'messages.html', icon: <IconChat />, badge: 2 },
+    { id: 'profile', label: 'Profile', href: 'profile.html', icon: <IconUser /> },
+    { id: 'settings', label: 'Settings', href: 'settings.html', icon: <IconCog /> },
+  ];
+  return (
+    <nav aria-label="Main navigation" className="fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-100 flex flex-col py-6 px-4 z-40 hidden lg:flex">
+      <a href="index.html" className="flex items-center gap-2 px-2 mb-8" aria-label="Pulse home">
+        <span className="text-indigo-600"><IconBolt /></span>
+        <span className="text-2xl font-bold text-gray-900">Pulse</span>
+      </a>
+      <ul className="flex flex-col gap-1 flex-1" role="list">
+        {navItems.map(item => (
+          <li key={item.id}>
+            <a href={item.href} aria-current={activePage === item.id ? 'page' : undefined}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activePage === item.id ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className={activePage === item.id ? 'text-indigo-600' : 'text-gray-500'}>{item.icon}</span>
+              <span>{item.label}</span>
+              {item.badge && <span className="ml-auto bg-indigo-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1" aria-label={`${item.badge} unread`}>{item.badge}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <button className="mt-4 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors w-full">
+        <IconPlus /> New Post
+      </button>
+      <a href="profile.html" className="mt-6 flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50">
+        <img src="https://i.pravatar.cc/40?img=11" alt="Alex Johnson — your profile" className="w-9 h-9 rounded-full object-cover" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 truncate">Alex Johnson</p>
+          <p className="text-xs text-gray-500 truncate">@alexj</p>
+        </div>
+      </a>
+    </nav>
+  );
+}
+
+function MobileNav({ activePage = 'profile' }) {
+  const items = [
+    { id: 'feed', label: 'Home', href: 'index.html', icon: <IconHome /> },
+    { id: 'explore', label: 'Explore', href: 'explore.html', icon: <IconCompass /> },
+    { id: 'notifications', label: 'Alerts', href: 'notifications.html', icon: <IconBell /> },
+    { id: 'messages', label: 'Messages', href: 'messages.html', icon: <IconChat /> },
+    { id: 'profile', label: 'Profile', href: 'profile.html', icon: <IconUser /> },
+  ];
+  return (
+    <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex lg:hidden z-40">
+      {items.map(item => (
+        <a key={item.id} href={item.href} aria-current={activePage === item.id ? 'page' : undefined}
+          className={`flex-1 flex flex-col items-center py-3 text-xs font-medium ${activePage === item.id ? 'text-indigo-600' : 'text-gray-500'}`}>
+          {item.icon}<span className="mt-0.5">{item.label}</span>
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+const PROFILE_TABS = ['Posts', 'Replies', 'Media', 'Likes'];
+
+const POSTS = [
+  { id: 1, text: 'Reminder that accessibility isn\'t a feature — it\'s the baseline. If your app doesn\'t work with a screen reader or keyboard, it\'s not done. Full stop.', time: '9h', likes: 2341, comments: 178, tags: ['a11y', 'WebDev'], liked: false },
+  { id: 2, text: 'Just wrapped up my talk at #ClimateWeek and the energy in that room was incredible. We\'re seeing real momentum in renewable energy adoption — 2026 is shaping up to be a pivotal year. 🌱', time: '1d', likes: 892, comments: 64, tags: ['ClimateWeek'], liked: false },
+  { id: 3, text: 'Five years of open source and I still get excited every time someone sends a meaningful PR. Community-driven development is the best development.', time: '2d', likes: 1102, comments: 89, tags: [], liked: true },
+  { id: 4, text: 'TypeScript strict mode: still the best decision I\'ve made for any codebase I\'ve worked on. The initial friction is worth every minute saved debugging at runtime.', time: '3d', likes: 543, comments: 112, tags: ['TypeScript', 'DevLife'], liked: false },
+];
+
+const MEDIA_POSTS = [
+  { id: 1, img: 'https://picsum.photos/seed/alex1/300/300', alt: 'Conference stage with presentation slides on accessibility' },
+  { id: 2, img: 'https://picsum.photos/seed/alex2/300/300', alt: 'Developer workspace with multiple monitors showing code' },
+  { id: 3, img: 'https://picsum.photos/seed/alex3/300/300', alt: 'Group photo from tech meetup event' },
+  { id: 4, img: 'https://picsum.photos/seed/alex4/300/300', alt: 'Aerial view of city skyline at golden hour' },
+  { id: 5, img: 'https://picsum.photos/seed/alex5/300/300', alt: 'Close-up of whiteboard with technical diagram' },
+  { id: 6, img: 'https://picsum.photos/seed/alex6/300/300', alt: 'Coffee and laptop on wooden table in a cafe' },
+];
+
+function PostItem({ post }) {
+  const [liked, setLiked] = useState(post.liked);
+  const [likes, setLikes] = useState(post.likes);
+  return (
+    <article aria-label="Post" className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-3">
+      <h3 className="sr-only">Post by Alex Johnson</h3>
+      <p className="text-gray-800 text-sm leading-relaxed mb-3">{post.text}</p>
+      {post.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {post.tags.map(t => <a key={t} href="explore.html" className="text-indigo-600 text-sm hover:underline">#{t}</a>)}
+        </div>
+      )}
+      <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
+        <button onClick={() => { const n = !liked; setLiked(n); setLikes(c => n ? c+1 : c-1); }}
+          aria-label={`Like this post — currently ${likes} like${likes !== 1 ? 's' : ''}`}
+          aria-pressed={liked}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${liked ? 'text-rose-600 bg-rose-50' : 'text-gray-500 hover:text-rose-600 hover:bg-rose-50'}`}>
+          <IconHeart filled={liked} /><span aria-hidden="true">{likes}</span>
+        </button>
+        <button aria-label={`Comment on this post — ${post.comments} comments`}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+          <IconChatBubble /><span aria-hidden="true">{post.comments}</span>
+        </button>
+        <span className="ml-auto text-xs text-gray-400">{post.time}</span>
+      </div>
+    </article>
+  );
+}
+
+function EditProfileModal({ onClose }) {
+  const modalRef = useRef(null);
+  const prevFocus = useRef(document.activeElement);
+  useEffect(() => {
+    modalRef.current?.querySelector('input')?.focus();
+    const trap = (e) => {
+      if (e.key !== 'Tab') return;
+      const els = modalRef.current.querySelectorAll('button, input, textarea, [tabindex]:not([tabindex="-1"])');
+      const first = els[0], last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    const esc = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', trap);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('keydown', trap); document.removeEventListener('keydown', esc); prevFocus.current?.focus(); };
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="edit-profile-title">
+      <div ref={modalRef} className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 id="edit-profile-title" className="text-lg font-bold text-gray-900">Edit Profile</h2>
+          <button onClick={onClose} aria-label="Close edit profile dialog" className="text-gray-400 hover:text-gray-700 rounded-lg p-1 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 011.06 0L12 10.94l5.47-5.47a.75.75 0 111.06 1.06L13.06 12l5.47 5.47a.75.75 0 11-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 01-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 010-1.06z" clipRule="evenodd"/></svg>
+          </button>
+        </div>
+        <div className="space-y-4">
+          {[['display-name','Display name','Alex Johnson'],['handle','Username','@alexj'],['bio-edit','Bio','Software engineer & open-source advocate. Building accessible, beautiful products. he/him']].map(([id, label, val]) => (
+            <div key={id}>
+              <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+              {id === 'bio-edit' ? (
+                <textarea id={id} defaultValue={val} rows={3} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+              ) : (
+                <input id={id} type="text" defaultValue={val} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              )}
+            </div>
+          ))}
+          <div>
+            <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+            <input id="website" type="url" defaultValue="alexj.dev" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+        </div>
+        <div className="flex gap-3 justify-end mt-6">
+          <button onClick={onClose} className="px-5 py-2 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancel</button>
+          <button onClick={onClose} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition-colors">Save changes</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfilePage() {
+  const [activeTab, setActiveTab] = useState('Posts');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const tabRefs = useRef({});
+
+  const handleTabKey = (e, tab) => {
+    const idx = PROFILE_TABS.indexOf(tab);
+    if (e.key === 'ArrowRight') { e.preventDefault(); const n = PROFILE_TABS[(idx+1)%PROFILE_TABS.length]; setActiveTab(n); tabRefs.current[n]?.focus(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); const n = PROFILE_TABS[(idx-1+PROFILE_TABS.length)%PROFILE_TABS.length]; setActiveTab(n); tabRefs.current[n]?.focus(); }
+  };
+
+  return (
+    <main id="main-content" className="max-w-2xl mx-auto" aria-label="Alex Johnson's profile">
+      {/* Cover photo */}
+      <div className="relative h-40 sm:h-52 bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-400 overflow-hidden">
+        <img src="https://picsum.photos/seed/cover/1200/400" alt="Alex Johnson's cover photo — city skyline at dusk" className="w-full h-full object-cover opacity-70" />
+      </div>
+
+      {/* Profile header */}
+      <section aria-label="Profile information" className="bg-white border-b border-gray-100 px-4 pb-4">
+        <div className="flex items-end justify-between -mt-12 sm:-mt-16 mb-3">
+          <div className="relative">
+            <img src="https://i.pravatar.cc/128?img=11" alt="Alex Johnson's profile photo" className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white object-cover shadow-md" />
+            <span className="absolute bottom-1 right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white" aria-label="Online" title="Online"></span>
+          </div>
+          <div className="flex gap-2 mt-14">
+            <button aria-label="Send message to Alex Johnson" className="p-2 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors">
+              <IconChatBubble />
+            </button>
+            <button onClick={() => setShowEditModal(true)}
+              aria-label="Edit your profile"
+              className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors text-sm">
+              <IconPencil /> Edit Profile
+            </button>
+          </div>
+        </div>
+
+        <h1 className="text-xl font-bold text-gray-900">Alex Johnson</h1>
+        <p className="text-gray-500 text-sm">@alexj</p>
+        <p className="text-gray-700 text-sm mt-2 leading-relaxed">Software engineer & open-source advocate. Building accessible, beautiful products. he/him ✨</p>
+
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm text-gray-500">
+          <span className="flex items-center gap-1"><IconLink /> <a href="#" className="text-indigo-600 hover:underline">alexj.dev</a></span>
+          <span className="flex items-center gap-1"><IconCalendar /> Joined January 2019</span>
+        </div>
+
+        <div className="flex gap-5 mt-3">
+          <button aria-label="1,284 following — view following list" className="text-sm hover:underline">
+            <span className="font-bold text-gray-900">1,284</span> <span className="text-gray-500">Following</span>
+          </button>
+          <button aria-label="28,403 followers — view followers list" className="text-sm hover:underline">
+            <span className="font-bold text-gray-900">28.4K</span> <span className="text-gray-500">Followers</span>
+          </button>
+        </div>
+      </section>
+
+      {/* Tabs */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div role="tablist" aria-label="Profile content" className="flex">
+          {PROFILE_TABS.map(tab => (
+            <button key={tab}
+              ref={el => tabRefs.current[tab] = el}
+              role="tab"
+              aria-selected={activeTab === tab}
+              aria-controls={`profile-panel-${tab}`}
+              id={`profile-tab-${tab}`}
+              tabIndex={activeTab === tab ? 0 : -1}
+              onClick={() => setActiveTab(tab)}
+              onKeyDown={e => handleTabKey(e, tab)}
+              className={`flex-1 py-3.5 text-sm font-semibold transition-colors ${activeTab === tab ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab panels */}
+      <div className="px-4 py-4 pb-24 lg:pb-6">
+        <div role="tabpanel" id="profile-panel-Posts" aria-labelledby="profile-tab-Posts" hidden={activeTab !== 'Posts'}>
+          {activeTab === 'Posts' && (
+            <section aria-label="Alex Johnson's posts">
+              {POSTS.map(p => <PostItem key={p.id} post={p} />)}
+            </section>
+          )}
+        </div>
+        <div role="tabpanel" id="profile-panel-Replies" aria-labelledby="profile-tab-Replies" hidden={activeTab !== 'Replies'}>
+          {activeTab === 'Replies' && (
+            <div className="text-center py-16">
+              <p className="text-gray-400 text-sm">Replies will appear here.</p>
+            </div>
+          )}
+        </div>
+        <div role="tabpanel" id="profile-panel-Media" aria-labelledby="profile-tab-Media" hidden={activeTab !== 'Media'}>
+          {activeTab === 'Media' && (
+            <section aria-label="Alex Johnson's media posts">
+              <div className="grid grid-cols-3 gap-1">
+                {MEDIA_POSTS.map(m => (
+                  <button key={m.id} aria-label={`View photo: ${m.alt}`} className="aspect-square overflow-hidden rounded-lg focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    <img src={m.img} alt={m.alt} className="w-full h-full object-cover hover:opacity-90 transition-opacity" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+        <div role="tabpanel" id="profile-panel-Likes" aria-labelledby="profile-tab-Likes" hidden={activeTab !== 'Likes'}>
+          {activeTab === 'Likes' && (
+            <div className="text-center py-16">
+              <p className="text-gray-400 text-sm">Liked posts will appear here.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showEditModal && <EditProfileModal onClose={() => setShowEditModal(false)} />}
+    </main>
+  );
+}
+
+function App() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar activePage="profile" />
+      <div className="lg:ml-64 pb-20 lg:pb-0">
+        <ProfilePage />
+      </div>
+      <MobileNav activePage="profile" />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

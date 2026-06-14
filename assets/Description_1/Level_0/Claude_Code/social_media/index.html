@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse — Home</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            pulse: { 400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7c3aed' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0d0d0f; color: #f1f0f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .card { background: #161618; border: 1px solid #2a2a30; }
+    .card-hover:hover { background: #1c1c1f; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #3a3a42; border-radius: 4px; }
+    .nav-link { transition: all .15s ease; }
+    .nav-link:hover { background: #1e1e24; }
+    .nav-link.active { color: #a855f7; }
+    .compose-area:focus { outline: none; }
+    .post-img { width: 100%; border-radius: 12px; object-fit: cover; max-height: 400px; }
+    .action-btn { transition: all .15s; padding: 6px 12px; border-radius: 9999px; display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #888; }
+    .action-btn:hover { background: #1e1e24; }
+    .like-btn:hover { color: #f43f5e; }
+    .comment-btn:hover { color: #3b82f6; }
+    .share-btn:hover { color: #22c55e; }
+    .bookmark-btn:hover { color: #a855f7; }
+    .pill { background: #1e1e24; border: 1px solid #2a2a30; border-radius: 9999px; padding: 4px 14px; font-size: 0.8rem; cursor: pointer; transition: all .15s; }
+    .pill:hover { border-color: #a855f7; color: #a855f7; }
+    .trending-tag:hover { color: #a855f7; cursor: pointer; }
+    .avatar { border-radius: 9999px; object-fit: cover; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed left-0 top-0 h-full w-16 xl:w-64 flex flex-col py-4 z-50 border-r" style="background:#0d0d0f;border-color:#2a2a30;">
+    <!-- Logo -->
+    <div class="px-3 xl:px-5 mb-6">
+      <a href="index.html" class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
+          <i class="fa-solid fa-bolt text-white text-sm"></i>
+        </div>
+        <span class="hidden xl:block text-xl font-bold tracking-tight text-white">Pulse</span>
+      </a>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 flex flex-col gap-1 px-2 xl:px-3">
+      <a href="index.html" class="nav-link active flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl font-semibold">
+        <i class="fa-solid fa-house w-5 text-center" style="color:#a855f7;"></i>
+        <span class="hidden xl:block" style="color:#a855f7;">Home</span>
+      </a>
+      <a href="explore.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium">
+        <i class="fa-solid fa-compass w-5 text-center"></i>
+        <span class="hidden xl:block">Explore</span>
+      </a>
+      <a href="notifications.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium relative">
+        <i class="fa-solid fa-bell w-5 text-center"></i>
+        <span class="hidden xl:block">Notifications</span>
+        <span class="absolute top-2 left-6 xl:static xl:ml-auto bg-pulse-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center xl:w-auto xl:h-auto xl:px-2 xl:py-0.5">4</span>
+      </a>
+      <a href="messages.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium relative">
+        <i class="fa-solid fa-envelope w-5 text-center"></i>
+        <span class="hidden xl:block">Messages</span>
+        <span class="absolute top-2 left-6 xl:static xl:ml-auto bg-pulse-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center xl:w-auto xl:h-auto xl:px-2 xl:py-0.5">2</span>
+      </a>
+      <a href="profile.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium">
+        <i class="fa-solid fa-user w-5 text-center"></i>
+        <span class="hidden xl:block">Profile</span>
+      </a>
+      <a href="settings.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium">
+        <i class="fa-solid fa-gear w-5 text-center"></i>
+        <span class="hidden xl:block">Settings</span>
+      </a>
+    </nav>
+
+    <!-- Post button -->
+    <div class="px-2 xl:px-3 mb-4">
+      <button onclick="document.getElementById('composer-input').focus()" class="w-full xl:flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white transition-all hover:opacity-90 active:scale-95" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
+        <i class="fa-solid fa-plus xl:hidden"></i>
+        <i class="fa-solid fa-feather hidden xl:block text-sm"></i>
+        <span class="hidden xl:block">New Post</span>
+      </button>
+    </div>
+
+    <!-- User mini -->
+    <div class="px-2 xl:px-3">
+      <a href="profile.html" class="flex items-center gap-3 p-2 rounded-xl card-hover cursor-pointer">
+        <img src="https://i.pravatar.cc/40?img=12" class="avatar w-9 h-9 flex-shrink-0" alt="Alex" />
+        <div class="hidden xl:block min-w-0">
+          <p class="text-sm font-semibold text-white truncate">Alex Rivera</p>
+          <p class="text-xs text-zinc-500 truncate">@alexrivera</p>
+        </div>
+        <i class="fa-solid fa-ellipsis hidden xl:block ml-auto text-zinc-500 text-xs"></i>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main layout -->
+  <div class="ml-16 xl:ml-64 flex min-h-screen">
+
+    <!-- Feed column -->
+    <main class="flex-1 max-w-2xl border-r" style="border-color:#2a2a30;">
+
+      <!-- Top bar -->
+      <div class="sticky top-0 z-30 flex items-center justify-between px-5 py-4 border-b" style="background:rgba(13,13,15,0.85);backdrop-filter:blur(12px);border-color:#2a2a30;">
+        <h1 class="text-lg font-bold text-white">Home</h1>
+        <button class="w-9 h-9 rounded-full flex items-center justify-center card-hover text-zinc-400 hover:text-white">
+          <i class="fa-solid fa-sliders text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Feed tabs -->
+      <div class="flex border-b" style="border-color:#2a2a30;">
+        <button class="flex-1 py-3.5 text-sm font-semibold text-white border-b-2 border-pulse-500 transition-colors">For You</button>
+        <button class="flex-1 py-3.5 text-sm font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 transition-colors">Following</button>
+        <button class="flex-1 py-3.5 text-sm font-medium text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 transition-colors">Trending</button>
+      </div>
+
+      <!-- Composer -->
+      <div class="card-hover border-b px-5 py-4" style="border-color:#2a2a30;">
+        <div class="flex gap-3">
+          <img src="https://i.pravatar.cc/40?img=12" class="avatar w-10 h-10 flex-shrink-0 mt-1" alt="Alex" />
+          <div class="flex-1">
+            <textarea id="composer-input" rows="2" placeholder="What's on your mind, Alex?" class="w-full bg-transparent resize-none text-zinc-200 placeholder-zinc-600 text-base compose-area py-1"></textarea>
+            <div class="flex items-center justify-between mt-3 pt-3 border-t" style="border-color:#2a2a30;">
+              <div class="flex gap-1">
+                <button class="action-btn text-pulse-500 hover:bg-purple-900/20"><i class="fa-solid fa-image"></i></button>
+                <button class="action-btn text-pulse-500 hover:bg-purple-900/20"><i class="fa-solid fa-gif"></i></button>
+                <button class="action-btn text-pulse-500 hover:bg-purple-900/20"><i class="fa-solid fa-chart-bar"></i></button>
+                <button class="action-btn text-pulse-500 hover:bg-purple-900/20"><i class="fa-solid fa-face-smile"></i></button>
+                <button class="action-btn text-pulse-500 hover:bg-purple-900/20"><i class="fa-solid fa-location-dot"></i></button>
+              </div>
+              <button class="px-5 py-2 rounded-full text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">Post</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Post 1 -->
+      <article class="card-hover border-b px-5 py-4" style="border-color:#2a2a30;">
+        <div class="flex gap-3">
+          <img src="https://i.pravatar.cc/40?img=5" class="avatar w-10 h-10 flex-shrink-0" alt="Maya" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 flex-wrap">
+                <a href="profile.html" class="font-semibold text-white hover:underline text-sm">Maya Chen</a>
+                <span class="text-zinc-500 text-sm">@mayachen · 12m</span>
+              </div>
+              <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-500 text-sm">
+                <i class="fa-solid fa-ellipsis"></i>
+              </button>
+            </div>
+            <p class="text-zinc-200 mt-2 text-sm leading-relaxed">The ocean cleanup initiative just surpassed 10 million kg of plastic removed. This is what collective action looks like. 🌊♻️ #ClimateWeek</p>
+            <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80" class="post-img mt-3" alt="Ocean" />
+            <div class="flex items-center justify-between mt-3 -ml-2">
+              <button class="action-btn like-btn"><i class="fa-regular fa-heart"></i><span>2.4K</span></button>
+              <button class="action-btn comment-btn"><i class="fa-regular fa-comment"></i><span>318</span></button>
+              <button class="action-btn share-btn"><i class="fa-solid fa-retweet"></i><span>891</span></button>
+              <button class="action-btn"><i class="fa-solid fa-share-from-square"></i></button>
+              <button class="action-btn bookmark-btn"><i class="fa-regular fa-bookmark"></i></button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Post 2 -->
+      <article class="card-hover border-b px-5 py-4" style="border-color:#2a2a30;">
+        <div class="flex gap-3">
+          <img src="https://i.pravatar.cc/40?img=8" class="avatar w-10 h-10 flex-shrink-0" alt="Jordan" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 flex-wrap">
+                <a href="profile.html" class="font-semibold text-white hover:underline text-sm">Jordan Park</a>
+                <span class="text-zinc-500 text-sm">@jordanpark · 45m</span>
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background:#2a1a3e;color:#c084fc;">Verified</span>
+              </div>
+              <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-500 text-sm">
+                <i class="fa-solid fa-ellipsis"></i>
+              </button>
+            </div>
+            <p class="text-zinc-200 mt-2 text-sm leading-relaxed">Just tried the new Gemini Ultra 2.0 API. The context window is wild — fed in an entire codebase and it understood the architecture immediately. The AI dev tooling space is moving incredibly fast. #TechLayoffs might be missing the bigger story here. 🧵 1/7</p>
+            <div class="mt-3 p-3 rounded-xl border" style="border-color:#2a2a30;background:#0d0d0f;">
+              <p class="text-xs text-zinc-500 mb-1">Replying to @alexrivera</p>
+              <p class="text-sm text-zinc-300">Yeah the infra cost per token is still the bottleneck but it's dropping 40% YoY</p>
+            </div>
+            <div class="flex items-center justify-between mt-3 -ml-2">
+              <button class="action-btn like-btn"><i class="fa-regular fa-heart"></i><span>5.1K</span></button>
+              <button class="action-btn comment-btn"><i class="fa-regular fa-comment"></i><span>742</span></button>
+              <button class="action-btn share-btn"><i class="fa-solid fa-retweet"></i><span>1.2K</span></button>
+              <button class="action-btn"><i class="fa-solid fa-share-from-square"></i></button>
+              <button class="action-btn bookmark-btn"><i class="fa-regular fa-bookmark"></i></button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Post 3 (with image grid) -->
+      <article class="card-hover border-b px-5 py-4" style="border-color:#2a2a30;">
+        <div class="flex gap-3">
+          <img src="https://i.pravatar.cc/40?img=15" class="avatar w-10 h-10 flex-shrink-0" alt="Sam" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <a href="profile.html" class="font-semibold text-white hover:underline text-sm">Sam Torres</a>
+                <span class="text-zinc-500 text-sm">@samtorres · 2h</span>
+              </div>
+              <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-500 text-sm">
+                <i class="fa-solid fa-ellipsis"></i>
+              </button>
+            </div>
+            <p class="text-zinc-200 mt-2 text-sm leading-relaxed">Weekend hiking trip in the Rockies ⛰️ No wifi, no notifications, just trails and altitude sickness. 10/10 would recommend.</p>
+            <div class="grid grid-cols-2 gap-1.5 mt-3 rounded-xl overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=300&q=80" class="w-full h-40 object-cover" alt="Mountain" />
+              <img src="https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=300&q=80" class="w-full h-40 object-cover" alt="Trail" />
+            </div>
+            <div class="flex items-center justify-between mt-3 -ml-2">
+              <button class="action-btn like-btn"><i class="fa-regular fa-heart"></i><span>892</span></button>
+              <button class="action-btn comment-btn"><i class="fa-regular fa-comment"></i><span>64</span></button>
+              <button class="action-btn share-btn"><i class="fa-solid fa-retweet"></i><span>203</span></button>
+              <button class="action-btn"><i class="fa-solid fa-share-from-square"></i></button>
+              <button class="action-btn bookmark-btn"><i class="fa-regular fa-bookmark"></i></button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Post 4 -->
+      <article class="card-hover border-b px-5 py-4" style="border-color:#2a2a30;">
+        <div class="flex gap-3">
+          <img src="https://i.pravatar.cc/40?img=22" class="avatar w-10 h-10 flex-shrink-0" alt="Priya" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <a href="profile.html" class="font-semibold text-white hover:underline text-sm">Priya Nair</a>
+                <span class="text-zinc-500 text-sm">@priyanair · 3h</span>
+              </div>
+              <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-500 text-sm">
+                <i class="fa-solid fa-ellipsis"></i>
+              </button>
+            </div>
+            <p class="text-zinc-200 mt-2 text-sm leading-relaxed">Hot take: remote work didn't kill company culture. Bad management did. The office was never the culture — it was just where culture happened to exist. Build intentional culture and the geography doesn't matter. #TechLayoffs</p>
+            <div class="flex items-center justify-between mt-3 -ml-2">
+              <button class="action-btn like-btn"><i class="fa-solid fa-heart" style="color:#f43f5e;"></i><span style="color:#f43f5e;">7.8K</span></button>
+              <button class="action-btn comment-btn"><i class="fa-regular fa-comment"></i><span>1.3K</span></button>
+              <button class="action-btn share-btn"><i class="fa-solid fa-retweet"></i><span>2.1K</span></button>
+              <button class="action-btn"><i class="fa-solid fa-share-from-square"></i></button>
+              <button class="action-btn bookmark-btn"><i class="fa-solid fa-bookmark" style="color:#a855f7;"></i></button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Post 5 -->
+      <article class="card-hover border-b px-5 py-4" style="border-color:#2a2a30;">
+        <div class="flex gap-3">
+          <img src="https://i.pravatar.cc/40?img=33" class="avatar w-10 h-10 flex-shrink-0" alt="Leo" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <a href="profile.html" class="font-semibold text-white hover:underline text-sm">Leo Müller</a>
+                <span class="text-zinc-500 text-sm">@leomullerfoto · 5h</span>
+              </div>
+              <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-500 text-sm">
+                <i class="fa-solid fa-ellipsis"></i>
+              </button>
+            </div>
+            <p class="text-zinc-200 mt-2 text-sm leading-relaxed">Golden hour in Lisbon never misses 📸 Shot this from Miradouro da Graça right before sunset. The whole city turns amber. #WorldCup2026 fever is hitting different here — Portugal is buzzing.</p>
+            <img src="https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=600&q=80" class="post-img mt-3" alt="Lisbon" />
+            <div class="flex items-center justify-between mt-3 -ml-2">
+              <button class="action-btn like-btn"><i class="fa-regular fa-heart"></i><span>4.2K</span></button>
+              <button class="action-btn comment-btn"><i class="fa-regular fa-comment"></i><span>287</span></button>
+              <button class="action-btn share-btn"><i class="fa-solid fa-retweet"></i><span>634</span></button>
+              <button class="action-btn"><i class="fa-solid fa-share-from-square"></i></button>
+              <button class="action-btn bookmark-btn"><i class="fa-regular fa-bookmark"></i></button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Post 6 -->
+      <article class="card-hover border-b px-5 py-4" style="border-color:#2a2a30;">
+        <div class="flex gap-3">
+          <img src="https://i.pravatar.cc/40?img=47" class="avatar w-10 h-10 flex-shrink-0" alt="Dana" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <a href="profile.html" class="font-semibold text-white hover:underline text-sm">Dana Osei</a>
+                <span class="text-zinc-500 text-sm">@danaosei · 8h</span>
+              </div>
+              <button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-500 text-sm">
+                <i class="fa-solid fa-ellipsis"></i>
+              </button>
+            </div>
+            <p class="text-zinc-200 mt-2 text-sm leading-relaxed">Reminder that you don't have to be productive every single day. Rest is not laziness — it's maintenance. Take care of your nervous system before the quarter does it for you. 💛</p>
+            <div class="flex items-center justify-between mt-3 -ml-2">
+              <button class="action-btn like-btn"><i class="fa-regular fa-heart"></i><span>12.1K</span></button>
+              <button class="action-btn comment-btn"><i class="fa-regular fa-comment"></i><span>944</span></button>
+              <button class="action-btn share-btn"><i class="fa-solid fa-retweet"></i><span>5.3K</span></button>
+              <button class="action-btn"><i class="fa-solid fa-share-from-square"></i></button>
+              <button class="action-btn bookmark-btn"><i class="fa-regular fa-bookmark"></i></button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </main>
+
+    <!-- Right sidebar -->
+    <aside class="hidden lg:block w-80 xl:w-96 flex-shrink-0 px-5 py-5 space-y-5">
+
+      <!-- Search -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
+        <input type="text" placeholder="Search Pulse" class="w-full pl-10 pr-4 py-2.5 rounded-full text-sm text-zinc-200 placeholder-zinc-600 border focus:outline-none focus:border-pulse-500 transition-colors" style="background:#161618;border-color:#2a2a30;" />
+      </div>
+
+      <!-- Trending -->
+      <div class="card rounded-2xl p-4">
+        <h2 class="font-bold text-white mb-4 flex items-center gap-2"><i class="fa-solid fa-fire text-orange-400"></i> Trending Now</h2>
+        <div class="space-y-3">
+          <div class="trending-tag">
+            <p class="text-xs text-zinc-500">Environment · Trending</p>
+            <p class="text-sm font-semibold text-white">#ClimateWeek</p>
+            <p class="text-xs text-zinc-500">84K posts</p>
+          </div>
+          <div class="w-full h-px" style="background:#2a2a30;"></div>
+          <div class="trending-tag">
+            <p class="text-xs text-zinc-500">Technology · Trending</p>
+            <p class="text-sm font-semibold text-white">#TechLayoffs</p>
+            <p class="text-xs text-zinc-500">52K posts</p>
+          </div>
+          <div class="w-full h-px" style="background:#2a2a30;"></div>
+          <div class="trending-tag">
+            <p class="text-xs text-zinc-500">Sports · Trending</p>
+            <p class="text-sm font-semibold text-white">#WorldCup2026</p>
+            <p class="text-xs text-zinc-500">218K posts</p>
+          </div>
+          <div class="w-full h-px" style="background:#2a2a30;"></div>
+          <div class="trending-tag">
+            <p class="text-xs text-zinc-500">Technology · Trending</p>
+            <p class="text-sm font-semibold text-white">#AIWinter</p>
+            <p class="text-xs text-zinc-500">31K posts</p>
+          </div>
+          <div class="w-full h-px" style="background:#2a2a30;"></div>
+          <div class="trending-tag">
+            <p class="text-xs text-zinc-500">Music · Trending</p>
+            <p class="text-sm font-semibold text-white">#Coachella2026</p>
+            <p class="text-xs text-zinc-500">176K posts</p>
+          </div>
+        </div>
+        <a href="explore.html" class="block mt-4 text-sm font-medium" style="color:#a855f7;">Show more</a>
+      </div>
+
+      <!-- Who to follow -->
+      <div class="card rounded-2xl p-4">
+        <h2 class="font-bold text-white mb-4">Who to Follow</h2>
+        <div class="space-y-3">
+          <div class="flex items-center gap-3">
+            <img src="https://i.pravatar.cc/40?img=25" class="avatar w-10 h-10 flex-shrink-0" alt="Kai" />
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-white truncate">Kai Nakamura</p>
+              <p class="text-xs text-zinc-500 truncate">@kainaka · 28.4K followers</p>
+            </div>
+            <button class="px-3 py-1.5 rounded-full text-sm font-semibold border border-pulse-500 text-pulse-400 hover:bg-pulse-500 hover:text-white transition-colors flex-shrink-0">Follow</button>
+          </div>
+          <div class="flex items-center gap-3">
+            <img src="https://i.pravatar.cc/40?img=30" class="avatar w-10 h-10 flex-shrink-0" alt="Elena" />
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-white truncate">Elena Vasquez</p>
+              <p class="text-xs text-zinc-500 truncate">@elenavas · 14.7K followers</p>
+            </div>
+            <button class="px-3 py-1.5 rounded-full text-sm font-semibold border border-pulse-500 text-pulse-400 hover:bg-pulse-500 hover:text-white transition-colors flex-shrink-0">Follow</button>
+          </div>
+          <div class="flex items-center gap-3">
+            <img src="https://i.pravatar.cc/40?img=42" class="avatar w-10 h-10 flex-shrink-0" alt="Omar" />
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-white truncate">Omar Hassan</p>
+              <p class="text-xs text-zinc-500 truncate">@omarhassan · 9.2K followers</p>
+            </div>
+            <button class="px-3 py-1.5 rounded-full text-sm font-semibold border border-pulse-500 text-pulse-400 hover:bg-pulse-500 hover:text-white transition-colors flex-shrink-0">Follow</button>
+          </div>
+        </div>
+        <a href="explore.html" class="block mt-4 text-sm font-medium" style="color:#a855f7;">Show more</a>
+      </div>
+
+      <p class="text-xs text-zinc-600 leading-relaxed">© 2026 Pulse Technologies · <a href="#" class="hover:text-zinc-400">Terms</a> · <a href="#" class="hover:text-zinc-400">Privacy</a> · <a href="#" class="hover:text-zinc-400">Help</a></p>
+    </aside>
+
+  </div>
+
+  <!-- Mobile bottom nav -->
+  <nav class="fixed bottom-0 left-0 right-0 lg:hidden flex border-t z-50" style="background:#0d0d0f;border-color:#2a2a30;">
+    <a href="index.html" class="flex-1 flex flex-col items-center py-3 gap-1" style="color:#a855f7;">
+      <i class="fa-solid fa-house text-lg"></i>
+    </a>
+    <a href="explore.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500">
+      <i class="fa-solid fa-compass text-lg"></i>
+    </a>
+    <a href="notifications.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500">
+      <i class="fa-solid fa-bell text-lg"></i>
+    </a>
+    <a href="messages.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500">
+      <i class="fa-solid fa-envelope text-lg"></i>
+    </a>
+    <a href="profile.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500">
+      <i class="fa-solid fa-user text-lg"></i>
+    </a>
+  </nav>
+
+</body>
+</html>

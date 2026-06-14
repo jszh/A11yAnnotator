@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Nexus Social — Bookmarks. Posts you saved for later." />
+  <title>Bookmarks — Nexus Social</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+  <style>
+    .bookmarks-toolbar {
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--clr-border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .bookmarks-toolbar input {
+      flex: 1;
+      background: var(--clr-surface-2);
+      border: 1.5px solid var(--clr-border);
+      border-radius: 9999px;
+      color: var(--clr-text);
+      padding: 8px 16px;
+      font-size: 0.875rem;
+    }
+    .bookmarks-toolbar input:focus {
+      border-color: var(--clr-accent);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(124,58,237,.2);
+    }
+    .collection-pills {
+      display: flex;
+      gap: 8px;
+      padding: 12px 24px;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--clr-border);
+    }
+    .collection-pill {
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border: 1.5px solid var(--clr-border);
+      color: var(--clr-text-2);
+      white-space: nowrap;
+      transition: background 120ms, color 120ms, border-color 120ms;
+      background: transparent;
+    }
+    .collection-pill:hover { background: var(--clr-surface-2); color: var(--clr-text); }
+    .collection-pill.active {
+      background: var(--clr-accent);
+      color: #fff;
+      border-color: var(--clr-accent);
+    }
+    .bookmarks-stats {
+      padding: 16px 24px;
+      display: flex;
+      gap: 24px;
+      border-bottom: 1px solid var(--clr-border);
+    }
+    .bookmarks-stat {
+      text-align: center;
+    }
+    .bookmarks-stat__value {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--clr-text);
+    }
+    .bookmarks-stat__label {
+      font-size: 0.75rem;
+      color: var(--clr-text-3);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="../components/components.js"></script>
+
+  <script>
+  (function () {
+    const e = React.createElement;
+    const { TopHeader, SidebarNav, SidebarRight, PostCard, MobileBottomNav, SAMPLE_POSTS } = window.NexusComponents;
+
+    const COLLECTIONS = ['All Bookmarks', 'Design', 'Development', 'AI & Tech', 'Reading List'];
+
+    const BOOKMARKED_POSTS = [
+      ...SAMPLE_POSTS,
+      {
+        id: 6,
+        name: 'Priya Singh',
+        handle: '@priya_ml',
+        time: '1d',
+        avatar: 'https://i.pravatar.cc/80?img=45',
+        text: 'We finally cracked the attention mechanism bottleneck at scale. Paper dropping next week. This changes everything for on-device inference. 🧠',
+        hasMedia: false,
+        likes: '5.6K', comments: '412', shares: '1.2K', views: '120K'
+      },
+      {
+        id: 7,
+        name: 'Theo Müller',
+        handle: '@theo_design',
+        time: '2d',
+        avatar: 'https://i.pravatar.cc/80?img=15',
+        text: 'Typography is the silent voice of design. The right typeface doesn\'t shout — it whispers and guides. Thread on type pairings that actually work 🧵',
+        hasMedia: true,
+        mediaEmoji: '🔤',
+        likes: '3.1K', comments: '201', shares: '654', views: '68K'
+      },
+    ];
+
+    function BookmarksPage() {
+      const [activeCollection, setActiveCollection] = React.useState('All Bookmarks');
+      const [search, setSearch] = React.useState('');
+
+      const filtered = BOOKMARKED_POSTS.filter(post =>
+        post.text.toLowerCase().includes(search.toLowerCase()) ||
+        post.name.toLowerCase().includes(search.toLowerCase())
+      );
+
+      return e(React.Fragment, null,
+        e(TopHeader, { activePage: 'bookmarks' }),
+
+        e('div', { className: 'page-shell' },
+          e(SidebarNav, { activePage: 'bookmarks' }),
+
+          e('main', {
+            id: 'main-content',
+            className: 'main-content',
+            role: 'main',
+            'aria-label': 'Bookmarks'
+          },
+            e('div', { className: 'page-header' },
+              e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+                e('div', null,
+                  e('h1', { className: 'page-header__title' }, '🔖 Bookmarks'),
+                  e('p', { className: 'page-header__sub' }, `@jordan_p's saved posts`)
+                ),
+                e('button', {
+                  style: {
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    border: '1.5px solid var(--clr-danger)',
+                    color: 'var(--clr-danger)',
+                    fontSize: '0.8125rem',
+                    fontWeight: '600',
+                    transition: 'background 120ms'
+                  },
+                  'aria-label': 'Clear all bookmarks',
+                  onMouseEnter: ev => ev.currentTarget.style.background = 'rgba(239,68,68,.1)',
+                  onMouseLeave: ev => ev.currentTarget.style.background = ''
+                }, 'Clear all')
+              )
+            ),
+
+            /* Stats bar */
+            e('div', { className: 'bookmarks-stats', role: 'status', 'aria-label': 'Bookmark statistics' },
+              e('div', { className: 'bookmarks-stat' },
+                e('div', { className: 'bookmarks-stat__value' }, BOOKMARKED_POSTS.length),
+                e('div', { className: 'bookmarks-stat__label' }, 'Saved')
+              ),
+              e('div', { className: 'bookmarks-stat' },
+                e('div', { className: 'bookmarks-stat__value' }, '3'),
+                e('div', { className: 'bookmarks-stat__label' }, 'Collections')
+              ),
+              e('div', { className: 'bookmarks-stat' },
+                e('div', { className: 'bookmarks-stat__value' }, 'This week'),
+                e('div', { className: 'bookmarks-stat__label' }, 'Last saved')
+              )
+            ),
+
+            /* Search */
+            e('div', { className: 'bookmarks-toolbar' },
+              e('label', { htmlFor: 'bookmark-search', className: 'visually-hidden' }, 'Search bookmarks'),
+              e('input', {
+                id: 'bookmark-search',
+                type: 'search',
+                placeholder: 'Search your bookmarks…',
+                'aria-label': 'Search bookmarks',
+                value: search,
+                onChange: ev => setSearch(ev.target.value)
+              }),
+              e('button', {
+                style: {
+                  padding: '8px 16px',
+                  borderRadius: '9999px',
+                  background: 'var(--clr-accent)',
+                  color: '#fff',
+                  fontSize: '0.8125rem',
+                  fontWeight: '700'
+                },
+                'aria-label': 'Create new bookmark collection'
+              }, '+ New Collection')
+            ),
+
+            /* Collection tabs */
+            e('div', {
+              className: 'collection-pills',
+              role: 'tablist',
+              'aria-label': 'Bookmark collections'
+            },
+              COLLECTIONS.map(col =>
+                e('button', {
+                  key: col,
+                  role: 'tab',
+                  'aria-selected': activeCollection === col,
+                  className: 'collection-pill' + (activeCollection === col ? ' active' : ''),
+                  onClick: () => setActiveCollection(col)
+                }, col)
+              )
+            ),
+
+            /* Bookmark list */
+            e('div', {
+              role: 'tabpanel',
+              'aria-label': `${activeCollection} bookmarks`,
+              'aria-live': 'polite'
+            },
+              filtered.length
+                ? e(React.Fragment, null,
+                    e('div', { className: 'bookmark-section-title' },
+                      `${filtered.length} saved post${filtered.length !== 1 ? 's' : ''}`
+                    ),
+                    filtered.map(post => e(PostCard, { key: post.id, post, rootPath: '..' }))
+                  )
+                : e('div', { className: 'empty-state' },
+                    e('div', { className: 'empty-state__icon' }, '🔖'),
+                    e('h2', { className: 'empty-state__title' }, 'No bookmarks found'),
+                    e('p', { className: 'empty-state__desc' },
+                      search
+                        ? `No bookmarks match "${search}". Try a different search.`
+                        : 'Save posts to revisit them anytime. Tap the bookmark icon on any post.'
+                    )
+                  )
+            )
+          ),
+
+          e(SidebarRight)
+        ),
+
+        e(MobileBottomNav, { activePage: 'bookmarks' })
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('app'));
+    root.render(e(BookmarksPage));
+  })();
+  </script>
+</body>
+</html>

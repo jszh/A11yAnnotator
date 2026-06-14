@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pay a Bill | City of Lakewood — Official Government Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa', 100: '#ccfbf1', 300: '#5eead4', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a',
+                        },
+                        navy: { 800: '#1e3a8a', 900: '#1e3a5f', }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Merriweather', 'serif'], }
+                }
+            }
+        }
+    </script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap"
+        rel="stylesheet">
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Merriweather', serif;
+        }
+
+        *:focus-visible {
+            outline: 3px solid #fde047;
+            outline-offset: 2px;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #000;
+            color: white;
+            padding: 8px;
+            z-index: 100;
+            transition: top 0.2s;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 antialiased flex flex-col min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const AlertBanner = () => {
+            const [visible, setVisible] = useState(true);
+            if (!visible) return null;
+            return (
+                <div role="alert" className="bg-red-700 text-white px-4 py-3 sm:px-6 lg:px-8 flex items-start sm:items-center justify-between shadow-md">
+                    <div className="flex items-center space-x-3 max-w-7xl mx-auto w-full">
+                        <i data-lucide="alert-triangle" className="w-6 h-6 flex-shrink-0" aria-hidden="true"></i>
+                        <span className="font-medium text-sm sm:text-base">
+                            <span className="font-bold">Emergency Alert:</span> Road Closure: Main St between 3rd and 5th Ave until Nov 30
+                        </span>
+                    </div>
+                    <button onClick={() => setVisible(false)} aria-label="Dismiss alert" className="text-white hover:text-red-200 focus:outline-none focus:ring-2 focus:ring-white rounded p-1 ml-4 transition-colors">
+                        <i data-lucide="x" className="w-6 h-6" aria-hidden="true"></i>
+                    </button>
+                </div>
+            );
+        };
+
+        const Header = () => {
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+            return (
+                <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm relative">
+                    <a href="#main-content" className="skip-link sr-only focus:not-sr-only p-4 bg-navy-900 text-white font-bold absolute top-0 left-0 z-50 rounded-br">Skip to main content</a>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between h-20 items-center">
+                            <div className="flex items-center space-x-3">
+                                <i data-lucide="landmark" className="w-8 h-8 text-navy-800" aria-hidden="true"></i>
+                                <a href="index.html" className="text-2xl font-bold text-navy-900 tracking-tight focus:outline-none focus:ring-2 focus:ring-navy-800 rounded px-1 font-serif">
+                                    City of Lakewood
+                                </a>
+                            </div>
+                            <nav aria-label="Main Navigation" className="hidden md:flex space-x-8">
+                                <a href="index.html" className="text-gray-600 hover:text-navy-800 hover:border-brand-300 font-medium py-2 px-1 border-b-2 border-transparent transition-colors focus:outline-none rounded">Home</a>
+                                <a href="services.html" className="text-navy-800 font-semibold border-b-2 border-brand-500 py-2 px-1 focus:outline-none rounded transition-colors" aria-current="page">Services</a>
+                                <a href="about.html" className="text-gray-600 hover:text-navy-800 hover:border-brand-300 font-medium py-2 px-1 border-b-2 border-transparent transition-colors focus:outline-none rounded">About</a>
+                                <a href="contact.html" className="text-gray-600 hover:text-navy-800 hover:border-brand-300 font-medium py-2 px-1 border-b-2 border-transparent transition-colors focus:outline-none rounded">Contact</a>
+                            </nav>
+                            <div className="md:hidden">
+                                <button aria-expanded={isMenuOpen} aria-label="Toggle navigation menu" onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-navy-800 rounded p-2">
+                                    <i data-lucide={isMenuOpen ? "x" : "menu"} className="w-6 h-6" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {isMenuOpen && (
+                        <nav aria-label="Mobile Navigation" className="md:hidden bg-white border-t border-gray-100 flex flex-col space-y-1 p-4 shadow-inner">
+                            <a href="index.html" className="text-gray-600 hover:text-navy-800 hover:bg-gray-50 py-3 px-4 rounded-md">Home</a>
+                            <a href="services.html" className="text-navy-800 font-semibold py-3 px-4 bg-brand-50 rounded-md" aria-current="page">Services</a>
+                            <a href="about.html" className="text-gray-600 hover:text-navy-800 hover:bg-gray-50 py-3 px-4 rounded-md">About</a>
+                            <a href="contact.html" className="text-gray-600 hover:text-navy-800 hover:bg-gray-50 py-3 px-4 rounded-md">Contact</a>
+                        </nav>
+                    )}
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-navy-900 text-slate-300 pt-16 pb-8 mt-auto border-t-[6px] border-brand-500">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                            <div>
+                                <div className="flex items-center space-x-2 mb-6 text-white bg-navy-800 inline-block p-2 rounded">
+                                    <i data-lucide="landmark" className="w-6 h-6 inline mr-2" aria-hidden="true"></i>
+                                    <span className="text-lg font-bold font-serif">City of Lakewood</span>
+                                </div>
+                                <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                                    Dedicated to serving our 160,000 residents with transparency, efficiency, and community spirit.
+                                </p>
+                            </div>
+                            <div>
+                                <h2 className="text-white text-sm font-bold uppercase tracking-wider mb-6 bg-navy-800 inline-block px-2 py-1 rounded">Departments</h2>
+                                <ul className="space-y-3">
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Mayor's Office</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Public Works</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Parks & Recreation</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Police Department</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Fire Department</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h2 className="text-white text-sm font-bold uppercase tracking-wider mb-6 bg-navy-800 inline-block px-2 py-1 rounded">Quick Links</h2>
+                                <ul className="space-y-3">
+                                    <li><a href="services.html" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">All Services</a></li>
+                                    <li><a href="service-permits.html" className="text-sm hover:text-whites focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors border-b border-brand-500">Apply for Permits</a></li>
+                                    <li><a href="service-bill.html" className="text-white font-bold focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Pay a Bill</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Employment</a></li>
+                                    <li><a href="#" className="text-sm hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">City Council Meetings</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="border-t border-navy-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs">
+                            <p>&copy; {new Date().getFullYear()} City of Lakewood. All rights reserved.</p>
+                            <div className="flex space-x-6 mt-4 md:mt-0">
+                                <a href="#" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Privacy Policy</a>
+                                <a href="#" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-1 transition-colors">Accessibility</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        const PageHeader = () => (
+            <div className="bg-navy-800 py-12 border-t border-navy-900">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <nav aria-label="Breadcrumb" className="mb-4">
+                        <ol className="flex items-center space-x-2 text-sm text-brand-100">
+                            <li><a href="index.html" className="hover:text-white focus:outline-none focus:underline rounded flex items-center"><i data-lucide="home" className="w-4 h-4 mr-1" aria-hidden="true"></i>Home</a></li>
+                            <li><i data-lucide="chevron-right" className="w-4 h-4" aria-hidden="true"></i></li>
+                            <li><a href="services.html" className="hover:text-white focus:outline-none focus:underline rounded flex items-center">Services</a></li>
+                            <li><i data-lucide="chevron-right" className="w-4 h-4" aria-hidden="true"></i></li>
+                            <li aria-current="page" className="text-white font-medium">Pay Utility Bill</li>
+                        </ol>
+                    </nav>
+                    <h1 className="text-4xl font-extrabold text-white font-serif mb-2">Pay Utility Bill</h1>
+                    <p className="text-lg text-navy-100 max-w-2xl">View and pay your Lakewood water, sewer, and trash collection balances securely online.</p>
+                </div>
+            </div>
+        );
+
+        const Modal = ({ isOpen, onClose, children, title }) => {
+            const modalRef = useRef(null);
+
+            useEffect(() => {
+                if (isOpen) {
+                    // Focus Trap Logic
+                    const focusableElements = modalRef.current.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                    const firstElement = focusableElements[0];
+                    const lastElement = focusableElements[focusableElements.length - 1];
+
+                    const handleTabKeyPress = (e) => {
+                        if (e.key === 'Tab') {
+                            if (e.shiftKey && document.activeElement === firstElement) {
+                                e.preventDefault();
+                                lastElement.focus();
+                            } else if (!e.shiftKey && document.activeElement === lastElement) {
+                                e.preventDefault();
+                                firstElement.focus();
+                            }
+                        }
+                    };
+
+                    const handleEscape = (e) => {
+                        if (e.key === 'Escape') onClose();
+                    };
+
+                    document.addEventListener('keydown', handleTabKeyPress);
+                    document.addEventListener('keydown', handleEscape);
+
+                    // Focus modal heading
+                    const heading = document.getElementById('modal-heading');
+                    if (heading) heading.focus();
+
+                    return () => {
+                        document.removeEventListener('keydown', handleTabKeyPress);
+                        document.removeEventListener('keydown', handleEscape);
+                    };
+                }
+            }, [isOpen, onClose]);
+
+            if (!isOpen) return null;
+
+            return ReactDOM.createPortal(
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" onClick={onClose}>
+                    <div
+                        ref={modalRef}
+                        className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-screen overflow-y-auto"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="modal-heading"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-center bg-gray-50 px-6 py-4 border-b border-gray-200 rounded-t-xl">
+                            <h2 id="modal-heading" className="text-xl font-bold text-gray-900 font-serif" tabIndex="-1">{title}</h2>
+                            <button
+                                onClick={onClose}
+                                aria-label="Close dialog"
+                                className="text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 rounded p-1"
+                            >
+                                <i data-lucide="x" className="w-5 h-5" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            {children}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            );
+        };
+
+        const BillPaymentFlow = () => {
+            const [step, setStep] = useState(1); // 1: Lookup, 2: Balance/Payment, 3: Processing
+            const [accountID, setAccountID] = useState('');
+            const [accountError, setAccountError] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [paymentMethod, setPaymentMethod] = useState('credit');
+            const [modalOpen, setModalOpen] = useState(false);
+
+            const handleLookup = (e) => {
+                e.preventDefault();
+                if (!accountID.trim() || accountID.length < 6) {
+                    setAccountError("Please enter a valid account number (minimum 6 characters).");
+                    return;
+                }
+                setAccountError('');
+                setLoading(true);
+                // Simulate network
+                setTimeout(() => {
+                    setLoading(false);
+                    setStep(2);
+                }, 1000);
+            };
+
+            const handlePaymentSubmit = (e) => {
+                e.preventDefault();
+                setModalOpen(true);
+            };
+
+            const confirmPayment = () => {
+                setModalOpen(false);
+                setStep(3);
+                // Simulate processing
+                setTimeout(() => {
+                    setStep('success');
+                }, 2000);
+            };
+
+            if (step === 'success') {
+                return (
+                    <div className="bg-white border text-center border-gray-200 rounded-xl p-10 shadow-sm" role="region" aria-live="polite">
+                        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i data-lucide="check" className="w-10 h-10" aria-hidden="true"></i>
+                        </div>
+                        <h2 className="text-3xl font-bold text-gray-900 mb-2 font-serif" tabIndex="-1">Payment Successful</h2>
+                        <p className="text-gray-600 mb-6 text-lg">Thank you. Your payment of <strong>$142.50</strong> has been processed.</p>
+                        <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 inline-block text-left mb-8 w-full max-w-sm">
+                            <p className="text-sm text-gray-600 flex justify-between mb-2"><span>Confirmation #:</span> <span className="font-mono font-bold">TRX-9824BM-X</span></p>
+                            <p className="text-sm text-gray-600 flex justify-between mb-2"><span>Date:</span> <span className="font-bold">{new Date().toLocaleDateString()}</span></p>
+                            <p className="text-sm text-gray-600 flex justify-between"><span>Account:</span> <span className="font-mono">{accountID}</span></p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <button className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-md font-bold transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-sm flex items-center justify-center">
+                                <i data-lucide="download" className="w-4 h-4 mr-2" aria-hidden="true"></i> Download Receipt
+                            </button>
+                            <button onClick={() => { setStep(1); setAccountID(''); }} className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2 rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-sm">
+                                Pay Another Bill
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden relative">
+                    {/* Stepper Header */}
+                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-navy-900 font-serif" id="flow-heading">
+                            {step === 1 && "Account Lookup"}
+                            {step === 2 && "Payment Details"}
+                            {step === 3 && "Processing Payment"}
+                        </h2>
+                        <div className="flex space-x-2" aria-hidden="true">
+                            <div className={`w-3 h-3 rounded-full ${step >= 1 ? 'bg-brand-500' : 'bg-gray-300'}`}></div>
+                            <div className={`w-3 h-3 rounded-full ${step >= 2 ? 'bg-brand-500' : 'bg-gray-300'}`}></div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 md:p-8 relative">
+                        {/* ARIA Live region for state changes */}
+                        <div className="sr-only" aria-live="polite">
+                            {step === 2 && "Account found. Displaying current balance. Please enter payment details."}
+                            {step === 3 && "Processing your payment. Please do not close the browser."}
+                            {loading && "Looking up account..."}
+                        </div>
+
+                        {step === 1 && (
+                            <form onSubmit={handleLookup} aria-labelledby="flow-heading">
+                                <p className="text-gray-600 mb-6">Enter your account number to view your current balance and make a payment.</p>
+
+                                <div className="mb-6 max-w-md">
+                                    <label htmlFor="accountNumber" className="block text-sm font-semibold text-gray-900 mb-1">Account Number <span className="text-red-500" aria-hidden="true">*</span></label>
+                                    <input
+                                        type="text"
+                                        id="accountNumber"
+                                        value={accountID}
+                                        onChange={(e) => setAccountID(e.target.value)}
+                                        aria-required="true"
+                                        aria-invalid={accountError ? 'true' : 'false'}
+                                        aria-describedby={accountError ? "account-error" : "account-hint"}
+                                        className={`block w-full rounded-md py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset focus:ring-2 focus:ring-inset sm:text-base sm:leading-6 ${accountError ? 'ring-red-300 focus:ring-red-500 bg-red-50' : 'ring-gray-300 focus:ring-brand-500'}`}
+                                    />
+                                    {accountError ? (
+                                        <p className="mt-2 text-sm text-red-600 flex items-center" id="account-error"><i data-lucide="alert-circle" className="w-4 h-4 mr-1" aria-hidden="true"></i>{accountError}</p>
+                                    ) : (
+                                        <p className="mt-2 text-sm text-gray-500" id="account-hint">Found on the top right corner of your paper bill.</p>
+                                    )}
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="bg-brand-600 hover:bg-brand-700 disabled:opacity-70 text-white px-8 py-3 rounded-md font-bold transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-md flex items-center"
+                                >
+                                    {loading ? <><i data-lucide="loader-2" className="w-5 h-5 mr-2 animate-spin" aria-hidden="true"></i> Searching...</> : "Continue"}
+                                </button>
+                            </form>
+                        )}
+
+                        {step === 2 && (
+                            <form onSubmit={handlePaymentSubmit} aria-labelledby="flow-heading">
+                                {/* Balance Summary */}
+                                <div className="bg-brand-50 border border-brand-100 p-6 rounded-lg mb-8 flex flex-col md:flex-row justify-between items-center">
+                                    <div className="mb-4 md:mb-0 text-center md:text-left">
+                                        <p className="text-brand-800 font-semibold mb-1">Current Balance due by <span className="underline decoration-brand-300 decoration-2 underline-offset-2">Dec 01, 2026</span></p>
+                                        <p className="text-sm text-brand-600">Account: {accountID}</p>
+                                        <p className="text-sm text-brand-600">Service Address: 4829 Oak St, Lakewood</p>
+                                    </div>
+                                    <div className="text-4xl font-extrabold text-navy-900 font-mono tracking-tighter">
+                                        $142.50
+                                    </div>
+                                </div>
+
+                                {/* Payment Method Selection */}
+                                <fieldset className="mb-8">
+                                    <legend className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-200 pb-2 block w-full">Select Payment Method</legend>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus-within:ring-2 focus-within:ring-brand-500 ${paymentMethod === 'credit' ? 'border-brand-500 bg-brand-50 cursor-default' : 'border-gray-300 hover:bg-gray-50'}`}>
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="credit"
+                                                className="sr-only"
+                                                checked={paymentMethod === 'credit'}
+                                                onChange={() => setPaymentMethod('credit')}
+                                            />
+                                            <span className="flex flex-1">
+                                                <span className="flex flex-col">
+                                                    <span className="block text-sm font-medium text-gray-900 flex items-center"><i data-lucide="credit-card" className="w-5 h-5 mr-2 text-brand-600"></i> Credit / Debit Card</span>
+                                                    <span className="mt-1 flex items-center text-sm text-gray-500">2.5% convenience fee applies</span>
+                                                </span>
+                                            </span>
+                                            <i data-lucide="check-circle-2" className={`h-5 w-5 text-brand-600 ${paymentMethod === 'credit' ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true"></i>
+                                        </label>
+
+                                        <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus-within:ring-2 focus-within:ring-brand-500 ${paymentMethod === 'bank' ? 'border-brand-500 bg-brand-50 cursor-default' : 'border-gray-300 hover:bg-gray-50'}`}>
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="bank"
+                                                className="sr-only"
+                                                checked={paymentMethod === 'bank'}
+                                                onChange={() => setPaymentMethod('bank')}
+                                            />
+                                            <span className="flex flex-1">
+                                                <span className="flex flex-col">
+                                                    <span className="block text-sm font-medium text-gray-900 flex items-center"><i data-lucide="landmark" className="w-5 h-5 mr-2 text-brand-600"></i> Bank Transfer (e-Check)</span>
+                                                    <span className="mt-1 flex items-center text-sm text-gray-500">No additional fees</span>
+                                                </span>
+                                            </span>
+                                            <i data-lucide="check-circle-2" className={`h-5 w-5 text-brand-600 ${paymentMethod === 'bank' ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true"></i>
+                                        </label>
+                                    </div>
+                                </fieldset>
+
+                                <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => setStep(1)}
+                                        className="text-gray-600 hover:text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 rounded px-2 py-1"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-md font-bold transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-md"
+                                    >
+                                        Review Payment
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {step === 3 && (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <i data-lucide="loader-2" className="w-16 h-16 text-brand-600 animate-spin mb-4" aria-hidden="true"></i>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Processing Payment...</h3>
+                                <p className="text-gray-500">Please do not refresh the page or click back.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Payment Review Modal */}
+                    <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Confirm Payment Details">
+                        <div className="space-y-4">
+                            <div className="flex justify-between pb-4 border-b border-gray-100">
+                                <span className="text-gray-600 font-medium">Payment Amount:</span>
+                                <span className="text-gray-900 font-bold">$142.50</span>
+                            </div>
+                            <div className="flex justify-between pb-4 border-b border-gray-100">
+                                <span className="text-gray-600 font-medium">Service Fee:</span>
+                                <span className="text-gray-900 font-bold">{paymentMethod === 'credit' ? '$3.56' : '$0.00'}</span>
+                            </div>
+                            <div className="flex justify-between pb-4 border-b border-gray-200">
+                                <span className="text-navy-900 font-bold text-lg">Total Charge:</span>
+                                <span className="text-navy-900 font-bold text-lg">{paymentMethod === 'credit' ? '$146.06' : '$142.50'}</span>
+                            </div>
+
+                            <div className="bg-yellow-50 text-yellow-800 p-4 rounded-md text-sm mt-4 flex items-start border border-yellow-200">
+                                <i data-lucide="info" className="w-5 h-5 mr-2 flex-shrink-0" aria-hidden="true"></i>
+                                <p>By clicking "Submit Payment", you authorize the City of Lakewood to charge your selected payment method.</p>
+                            </div>
+
+                            <div className="pt-6 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => setModalOpen(false)}
+                                    className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-md font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmPayment}
+                                    className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-md font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-sm"
+                                >
+                                    Submit Payment
+                                </button>
+                            </div>
+                        </div>
+                    </Modal>
+                </div>
+            );
+        };
+
+        const MainContent = () => {
+            return (
+                <main id="main-content" className="flex-grow focus:outline-none bg-gray-50 pb-20" tabIndex="-1">
+                    <PageHeader />
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                            <div className="lg:col-span-8">
+                                <BillPaymentFlow />
+                            </div>
+                            <div className="lg:col-span-4 space-y-8">
+                                <div className="bg-white border text-center border-gray-200 rounded-xl p-6 shadow-sm flex flex-col items-center">
+                                    <h3 className="text-lg font-bold text-gray-900 font-serif mb-4 w-full border-b border-gray-100 pb-2 flex items-center justify-center">
+                                        <i data-lucide="shield-check" className="w-5 h-5 text-green-600 mr-2" aria-hidden="true"></i> Secure Payment
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mb-4">Your transaction is protected with 256-bit encryption. We do not store your full credit card information.</p>
+                                    <div className="flex space-x-2">
+                                        <div className="w-10 h-6 bg-gray-200 rounded" aria-label="Visa"></div>
+                                        <div className="w-10 h-6 bg-gray-200 rounded" aria-label="MasterCard"></div>
+                                        <div className="w-10 h-6 bg-gray-200 rounded" aria-label="Discover"></div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-navy-50 border border-navy-100 rounded-xl p-6 shadow-sm">
+                                    <h3 className="text-lg font-bold text-navy-900 font-serif mb-4 flex items-center border-b border-navy-200 pb-2">
+                                        <i data-lucide="help-circle" className="w-5 h-5 mr-2 text-brand-600" aria-hidden="true"></i>
+                                        Billing Support
+                                    </h3>
+                                    <ul className="space-y-3 text-sm text-navy-800">
+                                        <li className="flex items-center"><i data-lucide="phone" className="w-4 h-4 mr-2 text-brand-600" aria-hidden="true"></i> (555) 123-4569</li>
+                                        <li className="flex items-center"><i data-lucide="mail" className="w-4 h-4 mr-2 text-brand-600" aria-hidden="true"></i> <a href="mailto:billing@lakewood.gov" className="text-brand-600 hover:underline hover:text-brand-800">billing@lakewood.gov</a></li>
+                                        <li className="flex items-center"><i data-lucide="clock" className="w-4 h-4 mr-2 text-brand-600" aria-hidden="true"></i> Mon-Fri, 8am-5pm</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            );
+        };
+
+        const App = () => {
+            useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <div className="min-h-screen flex flex-col font-sans text-gray-800">
+                    <AlertBanner />
+                    <Header />
+                    <MainContent />
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

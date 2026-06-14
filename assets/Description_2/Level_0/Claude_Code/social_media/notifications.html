@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Folia — Notifications</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            folia: { 50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95' }
+          },
+          fontFamily: { sans: ['Inter','system-ui','sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #faf9ff; }
+    .nav-link { transition: all 0.15s ease; }
+    .nav-link:hover { background: #ede9fe; color: #6d28d9; }
+    .nav-link.active { background: #ede9fe; color: #6d28d9; font-weight: 600; }
+    .tab-btn { transition: all 0.15s; }
+    .tab-btn.active { border-bottom: 2px solid #7c3aed; color: #6d28d9; font-weight: 600; }
+    .notif-item { transition: background 0.15s; }
+    .notif-item:hover { background: #f5f3ff; }
+    .notif-item.unread { background: #f5f3ff; }
+    .tag { background: #ede9fe; color: #6d28d9; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .thumb { width: 48px; height: 48px; border-radius: 8px; flex-shrink: 0; object-fit: cover; }
+  </style>
+</head>
+<body class="min-h-screen bg-[#faf9ff]">
+
+<!-- Sidebar Navigation -->
+<aside class="fixed top-0 left-0 h-full w-60 bg-white border-r border-purple-100 flex flex-col z-30 hidden lg:flex">
+  <div class="px-6 py-5 border-b border-purple-50">
+    <a href="index.html" class="flex items-center gap-2">
+      <div class="w-8 h-8 bg-gradient-to-br from-folia-500 to-folia-700 rounded-lg flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4.5 6.375a4.125 4.125 0 118.25 0 4.125 4.125 0 01-8.25 0zM14.25 8.625a3.375 3.375 0 116.75 0 3.375 3.375 0 01-6.75 0zM1.5 19.125a7.125 7.125 0 0114.25 0v.003l-.001.119a.75.75 0 01-.363.63 13.067 13.067 0 01-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 01-.364-.63l-.001-.122zM17.25 19.128l-.001.144a2.25 2.25 0 01-.233.96 10.088 10.088 0 005.06-1.01.75.75 0 00.42-.643 4.875 4.875 0 00-6.957-4.611 8.586 8.586 0 011.71 5.157v.003z"/></svg>
+      </div>
+      <span class="text-xl font-bold text-folia-700 tracking-tight">folia</span>
+    </a>
+  </div>
+  <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-hide">
+    <a href="index.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Feed
+    </a>
+    <a href="explore.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      Explore
+    </a>
+    <a href="notifications.html" class="nav-link active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+      Notifications
+      <span class="ml-auto bg-folia-500 text-white text-xs rounded-full px-1.5 py-0.5">5</span>
+    </a>
+    <a href="messages.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+      Messages
+    </a>
+    <a href="profile.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      Profile
+    </a>
+    <a href="settings.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="px-3 py-4 border-t border-purple-50">
+    <a href="profile.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-folia-50 transition">
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-folia-400 to-folia-600 flex items-center justify-center text-white text-sm font-semibold">M</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-gray-900 truncate">Maya Reyes</div>
+        <div class="text-xs text-gray-400 truncate">@maya.reyes</div>
+      </div>
+    </a>
+  </div>
+</aside>
+
+<!-- Mobile Top Bar -->
+<header class="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-purple-100 px-4 py-3 flex items-center justify-between">
+  <span class="text-xl font-bold text-folia-700 tracking-tight">folia</span>
+  <a href="profile.html"><div class="w-8 h-8 rounded-full bg-gradient-to-br from-folia-400 to-folia-600 flex items-center justify-center text-white text-sm font-semibold">M</div></a>
+</header>
+
+<main class="lg:ml-60 min-h-screen pt-16 lg:pt-0 pb-16 lg:pb-0">
+  <div class="max-w-2xl mx-auto px-4 py-6">
+
+    <div class="flex items-center justify-between mb-5">
+      <h1 class="text-xl font-bold text-gray-900">Notifications</h1>
+      <button class="text-sm text-folia-600 hover:text-folia-700 font-medium">Mark all read</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b border-purple-100 mb-5">
+      <button id="tab-activity" onclick="switchTab('activity')" class="tab-btn active px-4 py-2.5 text-sm mr-2">Activity</button>
+      <button id="tab-feedback" onclick="switchTab('feedback')" class="tab-btn px-4 py-2.5 text-sm text-gray-500 mr-2">Feedback Requests</button>
+      <button id="tab-collections" onclick="switchTab('collections')" class="tab-btn px-4 py-2.5 text-sm text-gray-500">Collections</button>
+    </div>
+
+    <!-- Activity Tab -->
+    <div id="panel-activity" class="space-y-1">
+      <!-- Unread notifications -->
+      <div class="notif-item unread flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-rose-300 to-fuchsia-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 relative">
+          H
+          <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-folia-500 rounded-full flex items-center justify-center">
+            <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-800"><span class="font-semibold">Hana</span> appreciated your piece <span class="font-medium text-folia-700">'Solstice III'</span></p>
+          <p class="text-xs text-gray-400 mt-0.5">4h</p>
+        </div>
+        <div class="thumb bg-gradient-to-br from-rose-100 to-purple-200 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-purple-300" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 12l-5-6.5-4 5-2.5-3L4 16V6h16v10z"/></svg>
+        </div>
+        <div class="w-2 h-2 bg-folia-500 rounded-full flex-shrink-0 mt-1.5"></div>
+      </div>
+
+      <div class="notif-item unread flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-sky-300 to-indigo-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 relative">
+          L
+          <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-500 rounded-full flex items-center justify-center">
+            <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+          </span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-800"><span class="font-semibold">Luca</span> collected your piece <span class="font-medium text-folia-700">'Midnight Garden Series'</span></p>
+          <p class="text-xs text-gray-400 mt-0.5">6h</p>
+        </div>
+        <div class="thumb bg-gradient-to-br from-sky-100 to-indigo-200 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-indigo-300" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 12l-5-6.5-4 5-2.5-3L4 16V6h16v10z"/></svg>
+        </div>
+        <div class="w-2 h-2 bg-folia-500 rounded-full flex-shrink-0 mt-1.5"></div>
+      </div>
+
+      <div class="notif-item unread flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-300 to-orange-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 relative">
+          S
+          <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-500 rounded-full flex items-center justify-center">
+            <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          </span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-800"><span class="font-semibold">Seo-yeon</span> started following you</p>
+          <p class="text-xs text-gray-400 mt-0.5">8h</p>
+          <button class="mt-1.5 text-xs text-folia-600 font-medium border border-folia-200 px-3 py-1 rounded-lg hover:bg-folia-50 transition">Follow back</button>
+        </div>
+        <div class="w-2 h-2 bg-folia-500 rounded-full flex-shrink-0 mt-1.5"></div>
+      </div>
+
+      <div class="notif-item unread flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-teal-300 to-cyan-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 relative">
+          J
+          <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-folia-500 rounded-full flex items-center justify-center">
+            <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          </span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-800"><span class="font-semibold">Jin</span> commented on <span class="font-medium text-folia-700">'Forest Spirits WIP'</span>: <span class="text-gray-600">"The lighting on the left branch is incredible, how did you get that glow?"</span></p>
+          <p class="text-xs text-gray-400 mt-0.5">12h</p>
+        </div>
+        <div class="thumb bg-gradient-to-br from-amber-100 to-green-100 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-amber-200" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 12l-5-6.5-4 5-2.5-3L4 16V6h16v10z"/></svg>
+        </div>
+        <div class="w-2 h-2 bg-folia-500 rounded-full flex-shrink-0 mt-1.5"></div>
+      </div>
+
+      <!-- Read notifications -->
+      <div class="text-xs text-gray-400 font-medium px-3 pt-4 pb-1">Earlier</div>
+
+      <div class="notif-item flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-300 to-purple-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0 relative">
+          R
+          <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-folia-500 rounded-full flex items-center justify-center">
+            <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Rafael</span> and <span class="font-semibold text-gray-700">3 others</span> appreciated your piece <span class="font-medium">'Autumn Reverie'</span></p>
+          <p class="text-xs text-gray-400 mt-0.5">1d</p>
+        </div>
+        <div class="thumb bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-orange-200" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 12l-5-6.5-4 5-2.5-3L4 16V6h16v10z"/></svg>
+        </div>
+      </div>
+
+      <div class="notif-item flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-300 to-green-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">A</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Amara</span> mentioned you in a comment: <span class="text-gray-500">"@maya.reyes this reminds me of your botanical series!"</span></p>
+          <p class="text-xs text-gray-400 mt-0.5">2d</p>
+        </div>
+      </div>
+
+      <div class="notif-item flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-folia-400 to-folia-600 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-600"><span class="font-semibold text-gray-700">Folia Weekly</span>: Your post <span class="font-medium">'Forest Spirits'</span> was featured in the Digital Art digest</p>
+          <p class="text-xs text-gray-400 mt-0.5">3d</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback Requests Tab (hidden) -->
+    <div id="panel-feedback" class="hidden space-y-1">
+      <div class="notif-item flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-sky-300 to-indigo-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">L</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-800"><span class="font-semibold">Luca</span> is requesting feedback on <span class="font-medium text-folia-700">'Street Light Series'</span></p>
+          <p class="text-xs text-gray-400 mt-0.5">Focus: composition and grain texture · 3h</p>
+          <div class="flex gap-2 mt-2">
+            <button class="text-xs bg-folia-600 text-white px-3 py-1 rounded-lg hover:bg-folia-700 transition">Give Feedback</button>
+            <button class="text-xs border border-gray-200 text-gray-500 px-3 py-1 rounded-lg hover:bg-gray-50 transition">Dismiss</button>
+          </div>
+        </div>
+        <div class="thumb bg-gradient-to-br from-slate-700 to-indigo-900 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-sky-700" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 12l-5-6.5-4 5-2.5-3L4 16V6h16v10z"/></svg>
+        </div>
+      </div>
+      <div class="notif-item flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-300 to-green-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">A</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-800"><span class="font-semibold">Amara</span> is requesting feedback on <span class="font-medium text-folia-700">'Portrait Study No. 7'</span></p>
+          <p class="text-xs text-gray-400 mt-0.5">Focus: color grading and mood · 1d</p>
+          <div class="flex gap-2 mt-2">
+            <button class="text-xs bg-folia-600 text-white px-3 py-1 rounded-lg hover:bg-folia-700 transition">Give Feedback</button>
+            <button class="text-xs border border-gray-200 text-gray-500 px-3 py-1 rounded-lg hover:bg-gray-50 transition">Dismiss</button>
+          </div>
+        </div>
+        <div class="thumb bg-gradient-to-br from-emerald-100 to-teal-200 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-emerald-300" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 12l-5-6.5-4 5-2.5-3L4 16V6h16v10z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collections Tab (hidden) -->
+    <div id="panel-collections" class="hidden space-y-1">
+      <div class="notif-item flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-rose-300 to-fuchsia-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">H</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-800"><span class="font-semibold">Hana</span> added your work to their collection <span class="font-medium text-folia-700">'Dreamscapes'</span></p>
+          <p class="text-xs text-gray-400 mt-0.5">2h</p>
+        </div>
+      </div>
+      <div class="notif-item flex items-start gap-3 p-3 rounded-xl cursor-pointer">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-300 to-purple-500 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">R</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-800"><span class="font-semibold">Rafael</span> added your work to their collection <span class="font-medium text-folia-700">'Typographic Inspiration'</span></p>
+          <p class="text-xs text-gray-400 mt-0.5">5d</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Mobile Bottom Nav -->
+<nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-purple-100 flex z-30">
+  <a href="index.html" class="flex-1 flex flex-col items-center py-2 text-gray-400">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span class="text-xs mt-0.5">Feed</span>
+  </a>
+  <a href="explore.html" class="flex-1 flex flex-col items-center py-2 text-gray-400">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    <span class="text-xs mt-0.5">Explore</span>
+  </a>
+  <a href="messages.html" class="flex-1 flex flex-col items-center py-2 text-gray-400">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+    <span class="text-xs mt-0.5">Messages</span>
+  </a>
+  <a href="profile.html" class="flex-1 flex flex-col items-center py-2 text-gray-400">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+    <span class="text-xs mt-0.5">Profile</span>
+  </a>
+</nav>
+
+<script>
+  function switchTab(tab) {
+    ['activity','feedback','collections'].forEach(t => {
+      document.getElementById('tab-'+t).className = 'tab-btn px-4 py-2.5 text-sm text-gray-500 mr-2';
+      document.getElementById('panel-'+t).classList.add('hidden');
+    });
+    document.getElementById('tab-'+tab).className = 'tab-btn active px-4 py-2.5 text-sm mr-2';
+    document.getElementById('panel-'+tab).classList.remove('hidden');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnPath Study | Python for Data Science</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        primaryHover: '#1d4ed8',
+                        secondary: '#facc15',
+                        dark: '#0f172a',
+                        light: '#f8fafc',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body
+    class="bg-dark text-slate-800 antialiased h-screen overflow-hidden flex flex-col selection:bg-primary selection:text-white">
+    <div id="root" class="h-full flex flex-col"></div>
+
+    <script type="text/babel">
+        const Header = () => {
+            return (
+                <header className="bg-dark border-b border-slate-800 shrink-0 z-50">
+                    <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <a href="dashboard.html" className="text-slate-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded p-1" aria-label="Back to dashboard">
+                                <i className="fas fa-arrow-left"></i>
+                            </a>
+                            <div className="h-6 w-px bg-slate-700"></div>
+                            <div className="flex flex-col">
+                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Python for Data Science</span>
+                                <span className="text-sm font-semibold text-white truncate max-w-[200px] sm:max-w-md">3. Pandas DataFrames</span>
+                            </div>
+                        </div>
+
+                        <div className="hidden md:flex flex-1 max-w-xl mx-8 items-center gap-4">
+                            <div className="w-full bg-slate-800 rounded-full h-1.5 outline outline-1 outline-slate-700">
+                                <div className="bg-primary h-1.5 rounded-full" style={{ width: '35%' }}></div>
+                            </div>
+                            <span className="text-xs font-bold text-slate-400 whitespace-nowrap"><i className="fas fa-trophy text-secondary mr-1"></i> 35% Completed</span>
+                        </div>
+
+                        <div className="flex items-center gap-4 text-white">
+                            <button className="text-slate-400 hover:text-white text-sm font-medium hidden sm:block focus:outline-none focus:underline" aria-label="Share course">
+                                <i className="fas fa-share-alt mr-1.5"></i> Share
+                            </button>
+                            <div className="relative group">
+                                <button className="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                                    J
+                                </button>
+                                <div className="absolute top-full right-0 w-48 bg-white shadow-xl rounded-xl border border-slate-200 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                    <div className="p-4 border-b border-slate-100">
+                                        <p className="font-bold text-slate-900 text-sm">Jordan Lee</p>
+                                        <p className="text-xs text-slate-500 truncate">jordan.lee@example.com</p>
+                                    </div>
+                                    <div className="p-2 space-y-1">
+                                        <a href="dashboard.html" className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary rounded-lg font-medium transition-colors">Dashboard</a>
+                                        <a href="#" className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary rounded-lg font-medium transition-colors">Settings</a>
+                                        <a href="index.html" className="block px-3 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg font-medium transition-colors mt-2">Sign Out</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const LessonSection = ({ title, activeSection, completed, lessons }) => {
+            const [expanded, setExpanded] = React.useState(activeSection);
+
+            return (
+                <div className="border-b border-slate-800">
+                    <button
+                        className={`w-full px-4 py-4 flex items-center justify-between focus:outline-none ${activeSection ? 'bg-slate-800/50' : 'hover:bg-slate-800/30'}`}
+                        onClick={() => setExpanded(!expanded)}
+                        aria-expanded={expanded}
+                    >
+                        <div className="flex flex-col text-left">
+                            <span className={`text-sm font-bold ${activeSection ? 'text-white' : 'text-slate-300'}`}>{title}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{completed}/{lessons.length} | 15min</span>
+                            </div>
+                        </div>
+                        <i className={`fas fa-chevron-${expanded ? 'up' : 'down'} text-xs text-slate-500 transition-transform`}></i>
+                    </button>
+                    {expanded && (
+                        <ul className="bg-dark py-1">
+                            {lessons.map((lesson, idx) => (
+                                <li key={idx}>
+                                    <button
+                                        className={`w-full px-4 py-3 flex gap-3 text-left focus:outline-none focus:bg-slate-800 transition-colors group ${lesson.active ? 'bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent hover:bg-slate-800/50'}`}
+                                        aria-current={lesson.active ? 'page' : undefined}
+                                    >
+                                        <div className="mt-0.5 shrink-0 flex items-center justify-center w-5 h-5">
+                                            {lesson.isCompleted ? (
+                                                <i className="fas fa-check-circle text-green-500 text-sm"></i>
+                                            ) : (
+                                                <div className="w-4 h-4 rounded-full border-2 border-slate-600 group-hover:border-slate-400"></div>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className={`text-sm ${lesson.active ? 'text-white font-bold' : 'text-slate-300'} truncate`}>{lesson.title}</span>
+                                            <span className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
+                                                <i className={`fas ${lesson.type === 'video' ? 'fa-play-circle' : lesson.type === 'reading' ? 'fa-file-alt' : 'fa-code'} text-[10px]`}></i>
+                                                {lesson.duration}
+                                            </span>
+                                        </div>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [sidebarOpen, setSidebarOpen] = React.useState(true);
+            const [activeTab, setActiveTab] = React.useState('overview');
+
+            return (
+                <div className="h-full flex flex-col">
+                    <Header />
+
+                    <main className="flex-1 flex overflow-hidden relative">
+                        {/* Main Content Area (Video + Tabs) */}
+                        <div className={`flex-1 flex flex-col overflow-y-auto bg-slate-950 transition-all duration-300 ${sidebarOpen ? 'lg:pr-80' : ''}`}>
+                            {/* Video Player Area */}
+                            <div className="w-full bg-black aspect-video relative group border-b border-slate-800 shrink-0">
+                                {/* Placeholder for actual video content */}
+                                <img src="https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" alt="Video frame" className="w-full h-full object-cover opacity-60" />
+
+                                {/* Overlay / Player controls mockup */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <button className="w-16 h-16 rounded-full bg-primary/90 text-white flex items-center justify-center text-2xl hover:bg-primaryHover hover:scale-110 transition-all shadow-lg shadow-primary/50 focus:outline-none focus:ring-4 focus:ring-white">
+                                        <i className="fas fa-play ml-1"></i>
+                                    </button>
+                                </div>
+
+                                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end">
+                                    {/* Seek Bar */}
+                                    <div className="w-full h-1 bg-white/30 rounded-full mb-4 cursor-pointer relative group/bar">
+                                        <div className="absolute inset-y-0 left-0 bg-primary w-1/3 rounded-full"></div>
+                                        <div className="absolute top-1/2 -translate-y-1/2 left-1/3 w-3 h-3 bg-white rounded-full scale-0 group-hover/bar:scale-100 transition-transform"></div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-white">
+                                        <div className="flex items-center gap-4">
+                                            <button className="hover:text-primary transition-colors focus:outline-none focus:text-primary"><i className="fas fa-play"></i></button>
+                                            <button className="hover:text-primary transition-colors focus:outline-none focus:text-primary"><i className="fas fa-step-backward text-sm"></i></button>
+                                            <button className="hover:text-primary transition-colors focus:outline-none focus:text-primary"><i className="fas fa-step-forward text-sm"></i></button>
+                                            <button className="hover:text-primary transition-colors focus:outline-none focus:text-primary ml-2"><i className="fas fa-volume-up"></i></button>
+                                            <span className="text-xs font-medium tabular-nums shadow-sm backdrop-blur-sm px-2 py-0.5 rounded bg-black/30 text-slate-200 border border-white/10 hidden sm:block">04:12 / 12:45</span>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <button className="text-sm font-bold bg-black/40 px-2 py-0.5 rounded hover:bg-white/20 transition-colors focus:outline-none">1x</button>
+                                            <button className="hover:text-primary transition-colors focus:outline-none focus:text-primary"><i className="fas fa-closed-captioning"></i></button>
+                                            <button className="hover:text-primary transition-colors focus:outline-none focus:text-primary"><i className="fas fa-cog"></i></button>
+                                            <button className="hover:text-primary transition-colors focus:outline-none focus:text-primary"><i className="fas fa-expand"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Course Content Tabs Below Video */}
+                            <div className="bg-white flex-1 flex flex-col rounded-t-2xl sm:rounded-none relative z-10 -mt-4 sm:mt-0 pt-2 sm:pt-0">
+                                {/* Mobile Sidebar Toggle logic helper handle */}
+                                <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto my-2 sm:hidden"></div>
+
+                                <div className="border-b border-slate-200 px-4 sm:px-8 bg-white sticky top-0 z-20 shadow-sm">
+                                    <nav className="flex space-x-6 overflow-x-auto no-scrollbar scroll-smooth">
+                                        {[
+                                            { id: 'overview', label: 'Overview', icon: 'fa-info-circle' },
+                                            { id: 'notes', label: 'Notes', icon: 'fa-pen' },
+                                            { id: 'qa', label: 'Q&A', icon: 'fa-comments' },
+                                            { id: 'resources', label: 'Resources', icon: 'fa-folder-open' },
+                                        ].map(tab => (
+                                            <button
+                                                key={tab.id}
+                                                onClick={() => setActiveTab(tab.id)}
+                                                className={`py-4 px-1 flex items-center gap-2 font-bold text-sm border-b-2 whitespace-nowrap transition-colors focus:outline-none focus:ring-0 ${activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}
+                                            >
+                                                <i className={`fas ${tab.icon} ${activeTab === tab.id ? 'opacity-100' : 'opacity-70'}`}></i> {tab.label}
+                                            </button>
+                                        ))}
+                                    </nav>
+                                </div>
+
+                                <div className="p-6 sm:p-8 overflow-y-auto max-w-4xl">
+                                    {activeTab === 'overview' && (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                            <div>
+                                                <h1 className="text-2xl font-bold text-slate-900 mb-2">Detailed Introduction to Pandas</h1>
+                                                <div className="flex items-center gap-4 text-sm text-slate-500 border-b border-slate-100 pb-4">
+                                                    <span className="flex items-center gap-1"><i className="fas fa-user-circle"></i> Dr. Angela Yu</span>
+                                                    <span>&bull;</span>
+                                                    <span>Updated Mar 2026</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="prose prose-slate max-w-none text-slate-700 text-sm leading-relaxed">
+                                                <p>In this lesson, we will dive deep into the Pandas library in Python, which is arguably the most important tool at the disposal of Data Scientists and Analysts today.</p>
+                                                <p>Pandas allows for fast analysis and data cleaning and preparation. It excels in performance and productivity, making it an indispensable part of your toolkit.</p>
+                                                <h3 className="text-lg font-bold text-slate-900 mt-6 mb-3">Key Concepts Covered:</h3>
+                                                <ul className="list-disc pl-5 space-y-2 mb-6 text-sm">
+                                                    <li>Creating Series and DataFrames from dictionaries and lists</li>
+                                                    <li>Reading data from CSV and Excel files into DataFrames</li>
+                                                    <li>Understanding DataFrame properties: shape, columns, index, describe, and info</li>
+                                                    <li>Selecting subsets of data using loc and iloc</li>
+                                                </ul>
+                                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 shadow-sm">
+                                                    <h4 className="font-bold text-slate-800 text-sm mb-2 flex items-center gap-2"><i className="fas fa-lightbulb text-secondary"></i> Pro Tip</h4>
+                                                    <p className="text-xs text-slate-600 m-0">Always use <code className="bg-slate-200 px-1 py-0.5 rounded text-primary">df.head()</code> immediately after loading a dataset to ensure the data was parsed correctly by the reading function.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'notes' && (
+                                        <div className="animate-in fade-in duration-300">
+                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-8 shadow-inner shadow-slate-100/50 relative overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all">
+                                                <textarea placeholder="Create a new note at 04:12..." className="w-full bg-transparent border-none focus:ring-0 text-sm text-slate-700 resize-none min-h-[100px]" aria-label="Write a note"></textarea>
+                                                <div className="flex justify-between items-center mt-2 border-t border-slate-200 pt-3">
+                                                    <span className="text-xs font-bold text-slate-500 bg-white px-2 py-1 rounded-md shadow-sm border border-slate-100">04:12</span>
+                                                    <button className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2 text-sm font-bold rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900">Save Note</button>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <h3 className="text-sm font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2">Your saved notes in this lesson</h3>
+
+                                                <div className="flex gap-4 p-4 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors group">
+                                                    <button className="bg-primary/10 text-primary hover:bg-primary/20 hover:text-primaryHover px-2 py-1 h-fit text-xs font-bold rounded transition-colors focus:outline-none">01:45</button>
+                                                    <div>
+                                                        <p className="text-sm text-slate-700 leading-relaxed mb-2">`pd.read_csv()` is used for reading local files, but can also accept a URL directly if the data is hosted online.</p>
+                                                        <div className="flex gap-3 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button className="text-slate-500 hover:text-primary font-medium focus:outline-none"><i className="fas fa-edit mr-1"></i> Edit</button>
+                                                            <button className="text-slate-500 hover:text-red-500 font-medium focus:outline-none"><i className="fas fa-trash-alt mr-1"></i> Delete</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'qa' && (
+                                        <div className="animate-in fade-in duration-300">
+                                            <div className="flex justify-between items-center mb-6">
+                                                <h3 className="text-lg font-bold text-slate-900">Questions & Answers</h3>
+                                                <div className="relative">
+                                                    <select className="text-sm border-slate-300 rounded-lg py-1.5 pl-3 pr-8 focus:ring-primary focus:border-primary text-slate-700 font-medium shadow-sm bg-white cursor-pointer" aria-label="Filter questions">
+                                                        <option>All lectures</option>
+                                                        <option>Current lecture</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div className="relative mb-8">
+                                                <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                                <input type="text" placeholder="Search for questions related to this lesson..." className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-sm bg-slate-50" />
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                {[
+                                                    { user: "Michael S.", initial: "M", title: "Why am I getting a FileNotFoundError?", time: "2 days ago", answers: 3, upvotes: 12 },
+                                                    { user: "Priya P.", initial: "P", title: "Difference between Series and one-column DataFrame?", time: "1 week ago", answers: 1, upvotes: 8 },
+                                                ].map((q, i) => (
+                                                    <div key={i} className="p-5 border border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-md transition-all cursor-pointer bg-white group">
+                                                        <div className="flex gap-4">
+                                                            <div className="w-10 h-10 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center font-bold text-sm shrink-0">{q.initial}</div>
+                                                            <div className="flex-1">
+                                                                <h4 className="font-bold text-slate-900 text-sm mb-1 group-hover:text-primary transition-colors leading-tight">{q.title}</h4>
+                                                                <p className="text-xs text-slate-500 mb-3">{q.user} &bull; {q.time}</p>
+                                                                <div className="flex gap-4 text-xs font-semibold">
+                                                                    <span className="text-slate-600 flex items-center gap-1.5"><i className="far fa-comment-alt text-slate-400"></i> {q.answers} responses</span>
+                                                                    <span className="text-slate-600 flex items-center gap-1.5"><i className="fas fa-arrow-up text-slate-400"></i> {q.upvotes} upvotes</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <button className="w-full mt-6 py-3 border border-slate-300 text-slate-800 font-bold text-sm rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary shadow-sm">
+                                                Ask a new question
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'resources' && (
+                                        <div className="animate-in fade-in duration-300">
+                                            <h3 className="text-lg font-bold text-slate-900 mb-2">Lesson Resources</h3>
+                                            <p className="text-sm text-slate-500 mb-6">Download the files required to follow along with this lesson.</p>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <a href="#" className="flex items-center p-4 border border-slate-200 rounded-xl hover:border-primary hover:shadow-md transition-all group focus:outline-none focus:ring-2 focus:ring-primary bg-white">
+                                                    <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors shadow-sm">
+                                                        <i className="fas fa-file-csv"></i>
+                                                    </div>
+                                                    <div className="ml-4 truncate">
+                                                        <p className="text-sm font-bold text-slate-900 truncate">sales_data_2025.csv</p>
+                                                        <p className="text-xs text-slate-500 mt-0.5">CSV File &bull; 2.4 MB</p>
+                                                    </div>
+                                                    <i className="fas fa-download ml-auto text-slate-300 group-hover:text-primary transition-colors px-2"></i>
+                                                </a>
+                                                <a href="#" className="flex items-center p-4 border border-slate-200 rounded-xl hover:border-primary hover:shadow-md transition-all group focus:outline-none focus:ring-2 focus:ring-primary bg-white">
+                                                    <div className="w-12 h-12 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-xl shrink-0 group-hover:bg-orange-600 group-hover:text-white transition-colors shadow-sm">
+                                                        <i className="fas fa-file-code"></i>
+                                                    </div>
+                                                    <div className="ml-4 truncate">
+                                                        <p className="text-sm font-bold text-slate-900 truncate">jupyter_notebook_starter.ipynb</p>
+                                                        <p className="text-xs text-slate-500 mt-0.5">Jupyter Notebook &bull; 15 KB</p>
+                                                    </div>
+                                                    <i className="fas fa-download ml-auto text-slate-300 group-hover:text-primary transition-colors px-2"></i>
+                                                </a>
+                                                <a href="#" className="flex items-center p-4 border border-slate-200 rounded-xl hover:border-primary hover:shadow-md transition-all group focus:outline-none focus:ring-2 focus:ring-primary bg-white">
+                                                    <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors shadow-sm">
+                                                        <i className="fas fa-link"></i>
+                                                    </div>
+                                                    <div className="ml-4 truncate">
+                                                        <p className="text-sm font-bold text-slate-900 truncate">Pandas Official Documentation</p>
+                                                        <p className="text-xs text-slate-500 mt-0.5">External Link</p>
+                                                    </div>
+                                                    <i className="fas fa-external-link-alt ml-auto text-slate-300 group-hover:text-primary transition-colors px-2"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sidebar (Lesson Navigation) */}
+                        <div
+                            className={`lg:w-80 bg-slate-900 border-l border-slate-800 flex flex-col absolute inset-y-0 right-0 transform transition-transform duration-300 z-30 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : 'translate-x-full'}`}
+                        >
+                            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-dark shrink-0">
+                                <h2 className="font-bold text-white tracking-wide">Course Content</h2>
+                                <button
+                                    className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary lg:hidden"
+                                    onClick={() => setSidebarOpen(false)}
+                                    aria-label="Close sidebar"
+                                >
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
+                                <LessonSection
+                                    title="Section 1: Setup & Python Basics"
+                                    activeSection={false}
+                                    completed={5}
+                                    lessons={[
+                                        { title: "Course Introduction", duration: "2:45", type: "video", isCompleted: true },
+                                        { title: "Installing Anaconda & Jupyter", duration: "10:20", type: "video", isCompleted: true },
+                                        { title: "Jupyter Notebook Basics", duration: "8:15", type: "video", isCompleted: true },
+                                        { title: "Python Crash Course Part 1", duration: "18:30", type: "video", isCompleted: true },
+                                        { title: "Python Crash Course Part 2", duration: "22:15", type: "video", isCompleted: true },
+                                    ]}
+                                />
+
+                                <LessonSection
+                                    title="Section 2: Data Analysis with Pandas"
+                                    activeSection={true}
+                                    completed={2}
+                                    lessons={[
+                                        { title: "Introduction to Pandas", duration: "5:30", type: "video", isCompleted: true },
+                                        { title: "Series in Python", duration: "12:40", type: "video", isCompleted: true },
+                                        { title: "DataFrames - Introduction", duration: "16:20", type: "video", isCompleted: false, active: true },
+                                        { title: "Missing Data", duration: "11:15", type: "video", isCompleted: false },
+                                        { title: "Groupby Operation", duration: "14:50", type: "video", isCompleted: false },
+                                        { title: "Pandas Exercises", duration: "10 Min", type: "code", isCompleted: false },
+                                    ]}
+                                />
+
+                                <LessonSection
+                                    title="Section 3: Data Visualization"
+                                    activeSection={false}
+                                    completed={0}
+                                    lessons={[
+                                        { title: "Matplotlib Crash Course", duration: "25:10", type: "video", isCompleted: false },
+                                        { title: "Seaborn Introduction", duration: "18:45", type: "video", isCompleted: false },
+                                        { title: "Categorical Plots", duration: "15:20", type: "video", isCompleted: false },
+                                        { title: "Matrix Plots & Grids", duration: "12:10", type: "video", isCompleted: false },
+                                    ]}
+                                />
+                                <LessonSection
+                                    title="Section 4: Machine Learning Fundamentals"
+                                    activeSection={false}
+                                    completed={0}
+                                    lessons={[
+                                        { title: "Intro to Machine Learning", duration: "10:10", type: "video", isCompleted: false },
+                                        { title: "Linear Regression Introduction", duration: "18:45", type: "video", isCompleted: false },
+                                        { title: "Train Test Split", duration: "22:20", type: "video", isCompleted: false },
+                                        { title: "Evaluating Models", duration: "15:10", type: "video", isCompleted: false },
+                                    ]}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Toggle Sidebar Button (Floating on desktop corner) */}
+                        {!sidebarOpen && (
+                            <button
+                                className="absolute top-4 right-4 z-20 bg-dark/80 backdrop-blur text-white p-3 rounded-xl shadow-lg hover:bg-slate-800 transition-all border border-slate-700 hidden lg:block focus:outline-none focus:ring-2 focus:ring-primary"
+                                onClick={() => setSidebarOpen(true)}
+                                aria-label="Open sidebar"
+                            >
+                                <i className="fas fa-list-ul"></i>
+                            </button>
+                        )}
+
+                        {/* Overlay for mobile sidebar */}
+                        {sidebarOpen && (
+                            <div
+                                className="lg:hidden absolute inset-0 bg-black/60 z-20 backdrop-blur-sm transition-opacity"
+                                onClick={() => setSidebarOpen(false)}
+                                aria-hidden="true"
+                            ></div>
+                        )}
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

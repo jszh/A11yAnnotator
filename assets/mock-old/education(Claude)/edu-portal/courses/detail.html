@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Machine Learning A–Z – EduPortal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:{50:'#EFF6FF',100:'#DBEAFE',500:'#3B82F6',600:'#2563EB',700:'#1D4ED8'},secondary:{600:'#7C3AED'}},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+  <link rel="stylesheet" href="../styles/main.css"/>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+    const BP = '../';
+
+    const GlobalHeader = ({basePath=''}) => {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const links = [
+        {label:'Courses',href:basePath+'courses/courses.html'},
+        {label:'Subjects',href:basePath+'subjects/subjects.html'},
+        {label:'Plans',href:basePath+'plans/plans.html'},
+        {label:'Enterprise',href:basePath+'enterprise/enterprise.html'},
+        {label:'Dashboard',href:basePath+'dashboard/dashboard.html'},
+      ];
+      return (
+        <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm" role="banner">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center h-16 gap-4">
+              <a href={basePath+'index.html'} className="flex items-center gap-2 flex-shrink-0" aria-label="EduPortal home">
+                <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center"><span className="text-white font-bold text-sm">E</span></div>
+                <span className="text-xl font-bold text-gray-900 hidden sm:block">EduPortal</span>
+              </a>
+              <nav className="hidden md:flex items-center gap-0.5 flex-1" aria-label="Primary navigation">
+                {links.map(l=><a key={l.label} href={l.href} className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">{l.label}</a>)}
+              </nav>
+              <div className="hidden md:flex items-center gap-2">
+                <a href={basePath+'account/account.html'} className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg hover:bg-gray-100">Log in</a>
+                <a href={basePath+'plans/plans.html'} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Start free</a>
+              </div>
+              <button onClick={()=>setMenuOpen(!menuOpen)} aria-label={menuOpen?'Close menu':'Open menu'} aria-expanded={menuOpen}
+                className="md:hidden p-2 text-gray-700 rounded-lg hover:bg-gray-100">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  {menuOpen?<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>:<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>}
+                </svg>
+              </button>
+            </div>
+            {menuOpen&&<nav className="md:hidden py-3 border-t border-gray-100 space-y-1" aria-label="Mobile navigation">
+              {links.map(l=><a key={l.label} href={l.href} className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 rounded-lg">{l.label}</a>)}
+            </nav>}
+          </div>
+        </header>
+      );
+    };
+
+    const Footer = ({basePath=''}) => (
+      <footer className="bg-gray-900 text-gray-400 py-10" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap gap-8">
+          <div>
+            <a href={basePath+'index.html'} className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg gradient-brand flex items-center justify-center"><span className="text-white font-bold text-xs">E</span></div>
+              <span className="text-white font-bold">EduPortal</span>
+            </a>
+          </div>
+          {[{t:'Learn',ls:[['Courses',basePath+'courses/courses.html'],['Subjects',basePath+'subjects/subjects.html']]},
+            {t:'Plans',ls:[['Pricing',basePath+'plans/plans.html'],['Enterprise',basePath+'enterprise/enterprise.html']]},
+            {t:'Company',ls:[['About','#'],['Careers','#']]}].map(col=>(
+            <div key={col.t}>
+              <h3 className="text-white font-semibold text-sm mb-3">{col.t}</h3>
+              <ul className="space-y-2">{col.ls.map(([l,h])=><li key={l}><a href={h} className="text-sm hover:text-white">{l}</a></li>)}</ul>
+            </div>
+          ))}
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 mt-6 border-t border-gray-800 flex items-center justify-between">
+          <p className="text-sm text-gray-500">© 2024 EduPortal, Inc.</p>
+          <div className="flex gap-4">{['Privacy','Terms'].map(t=><a key={t} href="#" className="text-sm text-gray-500 hover:text-gray-300">{t}</a>)}</div>
+        </div>
+      </footer>
+    );
+
+    /* ── Curriculum Accordion ── */
+    const curriculum = [
+      {section:'Module 1: Introduction to ML', lessons:[
+        {title:'What is Machine Learning?',type:'Video',dur:'12 min'},
+        {title:'Types of ML: Supervised vs Unsupervised',type:'Video',dur:'18 min'},
+        {title:'Setting Up Python Environment',type:'Practice',dur:'20 min'},
+        {title:'Module 1 Quiz',type:'Quiz',dur:'10 min'},
+      ]},
+      {section:'Module 2: Regression Models', lessons:[
+        {title:'Linear Regression Deep Dive',type:'Video',dur:'24 min'},
+        {title:'Multiple Regression in Python',type:'Video',dur:'30 min'},
+        {title:'Polynomial Regression',type:'Video',dur:'22 min'},
+        {title:'Regression Lab: Predicting House Prices',type:'Practice',dur:'45 min'},
+      ]},
+      {section:'Module 3: Classification', lessons:[
+        {title:'Logistic Regression',type:'Video',dur:'28 min'},
+        {title:'K-Nearest Neighbors',type:'Video',dur:'20 min'},
+        {title:'Support Vector Machines',type:'Video',dur:'35 min'},
+        {title:'Classification Project',type:'Practice',dur:'60 min'},
+      ]},
+      {section:'Module 4: Neural Networks', lessons:[
+        {title:'Intro to Deep Learning',type:'Video',dur:'32 min'},
+        {title:'Building Your First Neural Network',type:'Video',dur:'40 min'},
+        {title:'Convolutional Neural Networks',type:'Video',dur:'38 min'},
+        {title:'Final Capstone Project',type:'Practice',dur:'90 min'},
+      ]},
+    ];
+
+    const reviews = [
+      {name:'Aditya R.',rating:5,date:'Jan 2024',text:'Best ML course I have ever taken. The explanations are crystal-clear and the projects are industry-relevant.'},
+      {name:'Sophia L.',rating:5,date:'Feb 2024',text:'Prof. Zhang has an incredible teaching style. Concepts that I had struggled with for months clicked in just days.'},
+      {name:'Marcus T.',rating:4,date:'Mar 2024',text:'Solid course. The neural network section especially is outstanding. Could use a few more real-world examples.'},
+    ];
+
+    const App = () => {
+      const [openSection, setOpenSection] = useState(null);
+      const [enrolled, setEnrolled] = useState(false);
+
+      return (
+        <>
+          <GlobalHeader basePath={BP}/>
+          <main id="main-content">
+            {/* Course header banner */}
+            <div className="gradient-hero text-white">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+                <nav aria-label="Breadcrumb" className="text-sm text-blue-200 mb-4">
+                  <ol className="flex items-center gap-2">
+                    <li><a href={BP+'index.html'} className="hover:text-white">Home</a></li>
+                    <li aria-hidden="true">›</li>
+                    <li><a href={BP+'courses/courses.html'} className="hover:text-white">Courses</a></li>
+                    <li aria-hidden="true">›</li>
+                    <li aria-current="page" className="text-white font-medium">Machine Learning A–Z</li>
+                  </ol>
+                </nav>
+                <div className="max-w-3xl">
+                  <span className="badge bg-green-500/20 text-green-200 mb-3 inline-flex">⭐ Top Rated Course</span>
+                  <h1 className="text-3xl sm:text-4xl font-extrabold mb-4">Machine Learning A–Z™: AI, Python & R in Data Science</h1>
+                  <p className="text-blue-100 text-lg mb-5">Learn to create Machine Learning algorithms in Python and R from two expert Data Scientists. Code templates included.</p>
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-blue-200">
+                    <span className="flex items-center gap-1"><span className="text-amber-400 font-bold text-base">4.9</span> ★★★★★ <span className="text-blue-300">(140,000 reviews)</span></span>
+                    <span>👨‍🎓 430,000 students</span>
+                    <span>📅 Last updated March 2024</span>
+                    <span>🌐 English · 12 languages</span>
+                  </div>
+                  <p className="mt-3 text-sm text-blue-200">Created by <a href="#" className="text-white underline">Prof. Ken Zhang</a> · Stanford Online</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+              <div className="flex gap-8 items-start">
+                {/* Main content */}
+                <div className="flex-1 min-w-0">
+                  {/* What you'll learn */}
+                  <section aria-labelledby="learn-heading" className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+                    <h2 id="learn-heading" className="text-xl font-bold text-gray-900 mb-4">What you'll learn</h2>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {['Master Machine Learning on Python & R','Make accurate predictions & powerful analyses','Use ML for personal or professional projects','Handle specific topics like Reinforcement Learning','Build an army of Machine Learning models','Use advanced ML models like Random Forests','Make robust Machine Learning models','Understand Overfitting & Regularization'].map(item=>(
+                        <div key={item} className="flex items-start gap-2 text-sm text-gray-700">
+                          <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  {/* Curriculum accordion */}
+                  <section aria-labelledby="curriculum-heading" className="mb-6">
+                    <h2 id="curriculum-heading" className="text-xl font-bold text-gray-900 mb-4">Course curriculum</h2>
+                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                      {curriculum.map((section, si)=>(
+                        <div key={si} className="border-b border-gray-100 last:border-b-0">
+                          <button
+                            onClick={()=>setOpenSection(openSection===si?null:si)}
+                            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+                            aria-expanded={openSection===si}>
+                            <div className="flex items-center gap-3">
+                              <svg className={`w-4 h-4 text-gray-400 transition-transform ${openSection===si?'rotate-90':''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                              </svg>
+                              <span className="font-semibold text-gray-900 text-sm">{section.section}</span>
+                            </div>
+                            <span className="text-xs text-gray-500 hidden sm:inline">{section.lessons.length} lessons</span>
+                          </button>
+                          {openSection===si && (
+                            <ul className="bg-gray-50 border-t border-gray-100">
+                              {section.lessons.map((lesson, li)=>(
+                                <li key={li} className="flex items-center justify-between px-8 py-3 hover:bg-gray-100 transition-colors">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-lg" aria-hidden="true">
+                                      {lesson.type==='Video'?'🎬':lesson.type==='Quiz'?'📝':'💻'}
+                                    </span>
+                                    <span className="text-sm text-gray-700">{lesson.title}</span>
+                                    <span className={`badge text-xs ${lesson.type==='Video'?'bg-blue-50 text-blue-700':lesson.type==='Quiz'?'bg-purple-50 text-purple-700':'bg-green-50 text-green-700'}`}>
+                                      {lesson.type}
+                                    </span>
+                                  </div>
+                                  <span className="text-xs text-gray-400">{lesson.dur}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  {/* Instructor */}
+                  <section aria-labelledby="instructor-heading" className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+                    <h2 id="instructor-heading" className="text-xl font-bold text-gray-900 mb-4">Your instructor</h2>
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0" aria-hidden="true">KZ</div>
+                      <div>
+                        <h3 className="font-bold text-gray-900">Prof. Ken Zhang</h3>
+                        <p className="text-sm text-blue-600 mb-2">Senior Data Scientist · Stanford Online</p>
+                        <div className="flex flex-wrap gap-4 text-xs text-gray-500 mb-3">
+                          <span>⭐ 4.9 Instructor rating</span>
+                          <span>📝 430,000 students</span>
+                          <span>🎓 12 courses</span>
+                        </div>
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          Prof. Zhang is a Senior Data Scientist with 15+ years of industry experience at Google, DeepMind, and Stanford. He specializes in making complex ML concepts accessible and actionable.
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Reviews */}
+                  <section aria-labelledby="reviews-heading">
+                    <h2 id="reviews-heading" className="text-xl font-bold text-gray-900 mb-4">Student reviews</h2>
+                    <div className="space-y-4">
+                      {reviews.map((r,i)=>(
+                        <div key={i} className="bg-white rounded-2xl border border-gray-200 p-5">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">
+                              {r.name[0]}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm text-gray-900">{r.name}</p>
+                              <div className="flex items-center gap-2">
+                                <span className="text-amber-400 text-sm" aria-label={`${r.rating} out of 5 stars`}>{'★'.repeat(r.rating)}</span>
+                                <span className="text-xs text-gray-400">{r.date}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-700 leading-relaxed">{r.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+
+                {/* Sticky enrollment sidebar */}
+                <aside className="hidden lg:block w-80 flex-shrink-0 sticky top-20" aria-label="Course enrollment">
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div className="h-44 bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center text-6xl" aria-hidden="true">🤖</div>
+                    <div className="p-5">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-3xl font-extrabold text-gray-900">$119</span>
+                        <span className="text-lg text-gray-400 line-through">$199</span>
+                        <span className="badge bg-red-100 text-red-700 text-xs">40% off</span>
+                      </div>
+                      <p className="text-xs text-red-600 font-semibold mb-4">⏰ 2 days left at this price!</p>
+                      <button onClick={()=>setEnrolled(!enrolled)}
+                        className={`w-full py-3.5 font-bold rounded-xl transition-colors mb-3 focus-visible:ring-2 focus-visible:ring-blue-500 ${enrolled?'bg-green-600 hover:bg-green-700 text-white':'bg-blue-600 hover:bg-blue-700 text-white'}`}>
+                        {enrolled?'✓ Enrolled! Go to course':'Enroll now'}
+                      </button>
+                      <a href={BP+'plans/plans.html'} className="block w-full py-3 text-center text-sm font-semibold text-blue-600 border border-blue-300 rounded-xl hover:bg-blue-50 transition-colors mb-5">
+                        Try EduPortal Plus
+                      </a>
+                      <ul className="space-y-2 text-sm text-gray-700">
+                        {[['🎬','45 hours on-demand video'],['📄','20 articles'],['💾','15 downloadable resources'],['📱','Access on mobile & TV'],['🏆','Certificate of completion'],['♾️','Full lifetime access']].map(([icon,text])=>(
+                          <li key={text} className="flex items-center gap-2"><span aria-hidden="true">{icon}</span>{text}</li>
+                        ))}
+                      </ul>
+                      <p className="text-xs text-gray-400 text-center mt-4">30-day money-back guarantee</p>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </main>
+          <Footer basePath={BP}/>
+        </>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

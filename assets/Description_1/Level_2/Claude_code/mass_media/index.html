@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Meridian — Independent Global News</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .ticker-track { animation: ticker-scroll 40s linear infinite; }
+    .ticker-paused .ticker-track { animation-play-state: paused; }
+    .skip-link {
+      position: absolute; top: -100%; left: 0;
+      padding: 0.5rem 1rem; background: #7f1d1d; color: #fff; z-index: 9999;
+      font-weight: 600; text-decoration: none;
+    }
+    .skip-link:focus { top: 0; }
+    html { scroll-padding-top: 76px; }
+    :focus-visible { outline: 3px solid #b91c1c; outline-offset: 2px; }
+    .sticky-header { position: sticky; top: 0; z-index: 100; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    /* ─── Cookie Banner ─── */
+    function CookieBanner() {
+      const [dismissed, setDismissed] = useState(false);
+      const btnRef = useRef(null);
+      useEffect(() => { if (!dismissed && btnRef.current) btnRef.current.focus(); }, []);
+      if (dismissed) return null;
+      return (
+        <div role="region" aria-label="Cookie consent"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 text-white px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl"
+          onKeyDown={e => e.key === 'Escape' && setDismissed(true)}>
+          <p className="text-sm">We use cookies to improve your experience. See our <a href="#" className="underline hover:text-gray-200">Cookie Policy</a>.</p>
+          <div className="flex gap-2 flex-shrink-0">
+            <button ref={btnRef} onClick={() => setDismissed(true)}
+              className="px-4 py-1.5 text-sm bg-white text-gray-900 rounded font-semibold hover:bg-gray-100">Accept</button>
+            <button onClick={() => setDismissed(true)} aria-label="Decline cookies and close banner"
+              className="px-4 py-1.5 text-sm border border-gray-500 rounded hover:border-white">Decline</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── Header ─── */
+    function Header({ current }) {
+      const [open, setOpen] = useState(false);
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const nav = [
+        { label: 'World', href: 'world.html' },
+        { label: 'Politics', href: '#' },
+        { label: 'Tech', href: '#' },
+        { label: 'Culture', href: '#' },
+        { label: 'Opinion', href: 'opinion.html' },
+      ];
+      return (
+        <header className="sticky-header bg-gray-950 text-white">
+          <div className="border-b border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 py-1.5 flex justify-between text-xs text-gray-400">
+              <span>{today}</span>
+              <div className="flex gap-4">
+                {['Twitter','Facebook','Instagram'].map(s => (
+                  <a key={s} href="#" aria-label={`Follow The Meridian on ${s}`} className="hover:text-white transition-colors">{s}</a>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center justify-between py-3">
+              <a href="index.html" className="font-serif text-3xl font-black tracking-tight hover:text-gray-200">THE MERIDIAN</a>
+              <nav aria-label="Main navigation" className="hidden md:flex items-center gap-0.5">
+                {nav.map(({ label, href }) => (
+                  <a key={label} href={href}
+                    className={`px-3 py-2 text-sm font-medium rounded transition-colors ${current === label.toLowerCase() ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
+                    aria-current={current === label.toLowerCase() ? 'page' : undefined}>{label}</a>
+                ))}
+                <a href="subscription.html" className="ml-3 px-4 py-2 text-sm font-bold bg-red-700 text-white rounded hover:bg-red-600 transition-colors">Subscribe</a>
+              </nav>
+              <button className="md:hidden p-2 rounded hover:bg-gray-700" onClick={() => setOpen(!open)}
+                aria-expanded={open} aria-controls="mobile-nav" aria-label="Toggle navigation menu">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {open && (
+            <nav id="mobile-nav" aria-label="Mobile navigation" className="md:hidden border-t border-gray-800 pb-2">
+              {nav.map(({ label, href }) => (
+                <a key={label} href={href} className="block px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white">{label}</a>
+              ))}
+              <a href="subscription.html" className="block px-4 py-2.5 text-sm font-bold text-red-400 hover:bg-gray-800">Subscribe</a>
+            </nav>
+          )}
+        </header>
+      );
+    }
+
+    /* ─── Breaking News Ticker ─── */
+    function BreakingNewsTicker() {
+      const [paused, setPaused] = useState(false);
+      const items = [
+        'BREAKING: UN Emergency Session Called Over Red Sea Tensions',
+        'Markets Rally as Fed Signals Pause in Rate Hikes',
+        'Climate Summit: 140 Nations Sign Historic Emissions Pact',
+        'EU Antitrust Court Rules Against Three Major Tech Giants',
+        'France Faces Political Crisis After Prime Minister Resigns',
+      ];
+      const text = items.join('   ·   ') + '   ·   ' + items.join('   ·   ');
+      return (
+        <div role="region" aria-label="Breaking news ticker" className={`flex items-stretch bg-red-700 text-white overflow-hidden ${paused ? 'ticker-paused' : ''}`}>
+          <div className="flex-shrink-0 bg-red-900 px-4 py-2 flex items-center gap-1.5 z-10">
+            <span className="text-xs font-black tracking-widest uppercase">Breaking</span>
+          </div>
+          <div className="flex-1 overflow-hidden relative" aria-live="off">
+            <div className="ticker-track whitespace-nowrap py-2 px-4 text-sm font-medium" aria-hidden={!paused}>
+              {text}
+            </div>
+            {paused && (
+              <p className="absolute inset-0 flex items-center px-4 text-sm font-medium bg-red-700" aria-live="polite">
+                {items[0]}
+              </p>
+            )}
+          </div>
+          <button onClick={() => setPaused(p => !p)} aria-pressed={paused}
+            aria-label={paused ? 'Resume breaking news ticker' : 'Pause breaking news ticker'}
+            className="flex-shrink-0 px-4 py-2 bg-red-800 hover:bg-red-900 text-xs font-semibold transition-colors">
+            {paused ? '▶ Resume' : '⏸ Pause'}
+          </button>
+        </div>
+      );
+    }
+
+    /* ─── Article Card ─── */
+    function ArticleCard({ article, level = 'h3', showImage = true }) {
+      const H = level;
+      return (
+        <article>
+          {showImage && article.image && (
+            <div className="overflow-hidden rounded mb-3">
+              <img src={article.image} alt={article.imageAlt || ''} loading="lazy"
+                className="w-full h-44 object-cover hover:scale-105 transition-transform duration-300" />
+            </div>
+          )}
+          {article.category && (
+            <span className="text-xs font-bold text-red-700 uppercase tracking-wider">{article.category}</span>
+          )}
+          <H className="font-serif text-base font-bold leading-snug mt-1 mb-1.5">
+            <a href={article.href || 'article.html'} className="hover:text-red-700 transition-colors">{article.headline}</a>
+          </H>
+          {article.summary && <p className="text-sm text-gray-600 leading-relaxed mb-2">{article.summary}</p>}
+          <div className="flex gap-1.5 text-xs text-gray-400 flex-wrap">
+            {article.author && <span>By {article.author}</span>}
+            {article.author && article.timestamp && <span>·</span>}
+            {article.timestamp && <span>{article.timestamp}</span>}
+          </div>
+        </article>
+      );
+    }
+
+    /* ─── Section Strip ─── */
+    function SectionStrip({ title, articles, href }) {
+      const id = `sec-${title.toLowerCase().replace(/\s+/g, '-')}`;
+      return (
+        <section aria-labelledby={id} className="mb-12">
+          <div className="flex items-center justify-between border-b-2 border-gray-900 pb-2 mb-6">
+            <h2 id={id} className="font-serif text-2xl font-bold">{title}</h2>
+            <a href={href || '#'} className="text-sm font-semibold text-red-700 hover:text-red-800">More {title} →</a>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {articles.map((a, i) => <ArticleCard key={i} article={a} showImage={false} />)}
+          </div>
+        </section>
+      );
+    }
+
+    /* ─── Footer ─── */
+    function Footer() {
+      const [email, setEmail] = useState('');
+      const [submitted, setSubmitted] = useState(false);
+      const [error, setError] = useState('');
+      const handleSubmit = e => {
+        e.preventDefault();
+        if (!email || !/\S+@\S+\.\S+/.test(email)) { setError('Please enter a valid email address.'); return; }
+        setError(''); setSubmitted(true);
+      };
+      const sections = [
+        { heading: 'Sections', links: [['World','world.html'],['Politics','#'],['Technology','#'],['Culture','#'],['Opinion','opinion.html']] },
+        { heading: 'Company', links: [['About Us','#'],['Editorial Standards','#'],['Contact','#'],['Careers','#']] },
+        { heading: 'Subscribe', links: [['Digital Access','subscription.html'],['All-Access','subscription.html'],['Gift Subscriptions','#'],['Student Discount','#']] },
+        { heading: 'Legal', links: [['Privacy Policy','#'],['Terms of Service','#'],['Cookie Settings','#'],['Accessibility','#']] },
+      ];
+      return (
+        <footer className="bg-gray-950 text-gray-400 mt-16">
+          <div className="border-b border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <h2 className="font-serif text-2xl text-white font-bold mb-2">Stay Informed</h2>
+                <p className="text-sm">Get The Meridian's top stories delivered to your inbox every morning.</p>
+              </div>
+              <div>
+                <div aria-live="polite" aria-atomic="true">
+                  {submitted && <p className="text-green-400 text-sm mb-2">✓ You've been added to our newsletter.</p>}
+                  {error && <p className="text-red-400 text-sm mb-2" id="nl-err">{error}</p>}
+                </div>
+                {!submitted && (
+                  <form onSubmit={handleSubmit} noValidate className="flex gap-2">
+                    <div className="flex-1">
+                      <label htmlFor="footer-email" className="sr-only">Your email address</label>
+                      <input id="footer-email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+                        placeholder="your@email.com" aria-required="true"
+                        aria-describedby={error ? 'nl-err' : undefined}
+                        className="w-full px-3 py-2 rounded bg-gray-800 text-white placeholder-gray-500 border border-gray-700 focus:outline-none focus:border-red-500 text-sm" />
+                    </div>
+                    <button type="submit" className="px-4 py-2 bg-red-700 text-white rounded text-sm font-bold hover:bg-red-600 transition-colors">Subscribe</button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6">
+            {sections.map(({ heading, links }) => (
+              <div key={heading}>
+                <h3 className="text-white font-semibold text-sm mb-3">{heading}</h3>
+                <ul className="space-y-1.5 text-sm">
+                  {links.map(([label, href]) => (
+                    <li key={label}><a href={href} className="hover:text-white transition-colors">{label}</a></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between gap-2 text-xs text-gray-600">
+              <span>© 2026 The Meridian. All rights reserved.</span>
+              <span>Independent journalism since 2008</span>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ─── App ─── */
+    function App() {
+      const hero = {
+        headline: 'Red Sea Crisis Deepens as Shipping Giants Halt Major Routes',
+        subheadline: 'Global supply chains brace for disruption as Houthi attacks force carriers to reroute around Cape of Good Hope, adding weeks to delivery timelines and billions in added costs.',
+        author: 'Sarah Chen', timestamp: '2 hours ago', category: 'World',
+        image: 'https://picsum.photos/seed/redsea/1400/600',
+        imageAlt: 'Container ships navigating through open ocean waters at dusk',
+        href: 'article.html',
+      };
+      const featured = [
+        { headline: 'Congress Deadlocks on Landmark AI Regulation Bill', category: 'Politics', author: 'Marcus Webb', timestamp: '3 hours ago', image: 'https://picsum.photos/seed/congress/600/400', imageAlt: 'US Capitol building', summary: 'Partisan divisions stall what could be the most significant technology legislation in a generation.', href: '#' },
+        { headline: 'Apple Unveils Spatial Computing Breakthrough at WWDC', category: 'Tech', author: 'Priya Nair', timestamp: '5 hours ago', image: 'https://picsum.photos/seed/apple22/600/400', imageAlt: 'Futuristic AR interface display', summary: "The company's new neural chip promises to reshape how humans interact with digital environments.", href: '#' },
+        { headline: 'Venice Declares Climate Emergency After Record Flooding', category: 'World', author: 'Elena Rossi', timestamp: '6 hours ago', image: 'https://picsum.photos/seed/venice/600/400', imageAlt: 'Flooded streets of Venice, Italy', summary: 'Three consecutive days of acqua alta have overwhelmed the MOSE flood barrier system.', href: '#' },
+      ];
+      const worldArts = [
+        { headline: 'Sahel Alliance Expands Military Cooperation with Russia', author: 'James Adeyemi', timestamp: '4h ago', category: 'Africa', href: '#' },
+        { headline: 'Taiwan Strait: A New Normal of Military Exercises', author: 'Liu Wei', timestamp: '6h ago', category: 'Asia', href: '#' },
+        { headline: "Germany's Energy Transition Hits Industrial Headwinds", author: 'Hannah Müller', timestamp: '8h ago', category: 'Europe', href: '#' },
+        { headline: "Brazil's Amazon Deforestation Drops to Decade Low", author: 'Carlos Lima', timestamp: '12h ago', category: 'Americas', href: '#' },
+      ];
+      const polArts = [
+        { headline: 'Senate Vote on Border Security Bill Delayed Again', author: 'Dana Pierce', timestamp: '1h ago', category: 'Senate', href: '#' },
+        { headline: 'Former President Faces New Federal Indictment', author: 'Michael Torres', timestamp: '3h ago', category: 'Legal', href: '#' },
+        { headline: 'State Department Reshuffles Senior Diplomatic Staff', author: 'Rachel Kim', timestamp: '7h ago', category: 'Diplomacy', href: '#' },
+        { headline: 'Midterm Polling Shows Unprecedented Voter Volatility', author: 'Ben Walsh', timestamp: '9h ago', category: 'Elections', href: '#' },
+      ];
+      const techArts = [
+        { headline: 'OpenAI Releases New Research on AI Alignment Benchmarks', author: 'Sam Patel', timestamp: '2h ago', category: 'AI', href: '#' },
+        { headline: "EU's Digital Markets Act Claims First Major Enforcement", author: 'Nina Kowalski', timestamp: '5h ago', category: 'Regulation', href: '#' },
+        { headline: 'Quantum Startup Achieves 1,000-Qubit Milestone', author: 'Yuki Tanaka', timestamp: '8h ago', category: 'Quantum', href: '#' },
+        { headline: 'The Hidden Environmental Cost of Streaming Video', author: 'Amara Diallo', timestamp: '11h ago', category: 'Environment', href: '#' },
+      ];
+      const cultArts = [
+        { headline: 'The Booker Longlist Champions Debut Novelists', author: 'Fiona Grey', timestamp: '3h ago', category: 'Books', href: '#' },
+        { headline: 'How K-Drama Conquered the Global Streaming Market', author: 'Ji-Yeon Park', timestamp: '6h ago', category: 'Film', href: '#' },
+        { headline: "Renaissance of the Art House: Cinema's Second Wind", author: 'Claude Moreau', timestamp: '9h ago', category: 'Cinema', href: '#' },
+        { headline: 'The Architecture of Memory: Holocaust Museums Today', author: 'Miriam Gold', timestamp: '14h ago', category: 'Architecture', href: '#' },
+      ];
+      const mostRead = [
+        { rank: 1, headline: 'Inside the Chaos of the UN Emergency Session', href: 'article.html' },
+        { rank: 2, headline: 'The Geopolitics of Undersea Cables', href: '#' },
+        { rank: 3, headline: 'How AI Is Rewriting the Rules of Disinformation', href: '#' },
+        { rank: 4, headline: 'The Collapse of the Petrodollar: A New Era?', href: '#' },
+        { rank: 5, headline: 'When Democracy Becomes a Brand', href: '#' },
+      ];
+      const opinions = [
+        { headline: 'The West Must Confront Its Own Fragility', author: 'Eleanor Hart', initials: 'EH' },
+        { headline: 'Why Climate Denial Is Now a Geopolitical Strategy', author: 'Dr. Kwame Asante', initials: 'KA' },
+        { headline: 'In Defense of Slow Journalism', author: 'Margot Lefebvre', initials: 'ML' },
+      ];
+
+      return (
+        <>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+          <CookieBanner />
+          <Header current="home" />
+          <BreakingNewsTicker />
+          <main id="main-content">
+            {/* Hero */}
+            <section aria-labelledby="hero-headline" className="border-b border-gray-100">
+              <div className="max-w-7xl mx-auto px-4 py-8">
+                <article>
+                  <a href={hero.href} className="block group">
+                    <div className="relative overflow-hidden rounded-xl">
+                      <img src={hero.image} alt={hero.imageAlt}
+                        className="w-full h-[420px] md:h-[520px] object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 text-white">
+                        <span className="text-xs font-black text-red-400 uppercase tracking-widest mb-2 block">{hero.category}</span>
+                        <h1 id="hero-headline" className="font-serif text-3xl md:text-5xl font-black leading-tight mb-3 max-w-4xl">
+                          {hero.headline}
+                        </h1>
+                        <p className="text-base md:text-lg text-gray-200 leading-relaxed mb-3 max-w-3xl hidden sm:block">{hero.subheadline}</p>
+                        <p className="text-sm text-gray-300">By {hero.author} · {hero.timestamp}</p>
+                      </div>
+                    </div>
+                  </a>
+                </article>
+              </div>
+            </section>
+
+            <div className="max-w-7xl mx-auto px-4 py-8">
+              {/* 2-col layout: main + sidebar (sidebar in DOM after main for screen readers – cat_10) */}
+              <div className="grid lg:grid-cols-3 gap-10">
+                <div className="lg:col-span-2 min-w-0">
+                  {/* Top Stories */}
+                  <section aria-labelledby="top-stories-heading" className="mb-12">
+                    <h2 id="top-stories-heading" className="font-serif text-2xl font-bold border-b-2 border-gray-900 pb-2 mb-6">Top Stories</h2>
+                    <div className="grid sm:grid-cols-3 gap-6">
+                      {featured.map((a, i) => <ArticleCard key={i} article={a} level="h3" />)}
+                    </div>
+                  </section>
+                  <SectionStrip title="World" articles={worldArts} href="world.html" />
+                  <SectionStrip title="Politics" articles={polArts} href="#" />
+                  <SectionStrip title="Technology" articles={techArts} href="#" />
+                  <SectionStrip title="Culture" articles={cultArts} href="#" />
+                </div>
+
+                {/* Sidebar — after main content in DOM (cat_10) */}
+                <aside aria-label="Supplementary content" className="space-y-8 lg:col-span-1">
+                  {/* Most Read */}
+                  <section aria-labelledby="most-read-heading" className="bg-gray-50 rounded-xl p-6">
+                    <h2 id="most-read-heading" className="font-serif text-xl font-bold mb-4 pb-2 border-b border-gray-200">Most Read</h2>
+                    <ol className="space-y-4">
+                      {mostRead.map(item => (
+                        <li key={item.rank} className="flex gap-3 items-start">
+                          <span className="font-serif text-3xl font-black text-gray-200 leading-none w-7 flex-shrink-0" aria-hidden="true">{item.rank}</span>
+                          <a href={item.href} className="text-sm font-semibold hover:text-red-700 transition-colors leading-snug">{item.headline}</a>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+
+                  {/* Subscribe promo */}
+                  <div className="bg-gray-950 text-white rounded-xl p-6 text-center">
+                    <p className="text-xs font-black text-red-400 uppercase tracking-widest mb-2">Limited Offer</p>
+                    <p className="font-serif text-xl font-bold mb-2">Read Without Limits</p>
+                    <p className="text-sm text-gray-400 mb-4">Full access to The Meridian for $9.99/month.</p>
+                    <a href="subscription.html" className="block w-full py-2.5 bg-red-700 text-white rounded font-bold text-sm hover:bg-red-600 transition-colors">Start Your Free Trial</a>
+                  </div>
+
+                  {/* Opinion sidebar */}
+                  <section aria-labelledby="opinion-sidebar-heading">
+                    <h2 id="opinion-sidebar-heading" className="font-serif text-xl font-bold border-b-2 border-gray-900 pb-2 mb-4">Opinion</h2>
+                    <ul className="space-y-4">
+                      {opinions.map((op, i) => (
+                        <li key={i} className="flex gap-3 items-start">
+                          <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0"
+                            aria-hidden="true">{op.initials}</div>
+                          <div>
+                            <a href="opinion.html" className="text-sm font-semibold hover:text-red-700 transition-colors leading-snug block">{op.headline}</a>
+                            <span className="text-xs text-gray-500">{op.author}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                </aside>
+              </div>
+            </div>
+          </main>
+          <Footer />
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

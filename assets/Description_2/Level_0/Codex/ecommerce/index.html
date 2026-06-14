@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ThreadHouse | Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: "#f8f5ef",
+                500: "#5c7567",
+                700: "#3d5a4e",
+                900: "#1f3a32",
+              },
+            },
+            boxShadow: {
+              float: "0 24px 70px rgba(15, 23, 42, 0.12)",
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./shared.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+    <script src="./shared.js"></script>
+    <script>
+      const { html, Shell, ProductCard, SectionTitle, newArrivals, moodTiles } = window.ThreadHouse;
+
+      function App() {
+        return html`
+          <${Shell} current="./index.html">
+            <section className="px-4 pb-8 pt-6 sm:px-6 lg:px-8">
+              <div className="hero-photo mx-auto flex min-h-[78vh] max-w-7xl items-end overflow-hidden rounded-[2.5rem] shadow-float">
+                <div className="grid w-full gap-8 p-8 text-stone-50 sm:p-12 lg:grid-cols-[1.1fr_0.9fr] lg:p-16">
+                  <div className="space-y-6">
+                    <p className="inline-flex rounded-full bg-white/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-stone-100">Spring editorial drop</p>
+                    <div className="space-y-4">
+                      <h1 className="max-w-3xl text-5xl font-semibold leading-tight tracking-tight sm:text-6xl">Wear What You Stand For - New Spring Collection</h1>
+                      <p className="max-w-xl text-base leading-7 text-stone-200">ThreadHouse curates independent labels using lower-impact materials, sharp silhouettes, and expressive styling for every day.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <a href="./products.html" className="rounded-full bg-stone-50 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-stone-200">Shop Collection</a>
+                      <a href="./account.html" className="rounded-full border border-stone-100/60 px-6 py-3 text-sm font-semibold text-stone-50 transition hover:bg-white/10">Build Style Profile</a>
+                    </div>
+                  </div>
+                  <div className="glass-panel self-start rounded-[2rem] p-6 text-slate-900 ring-1 ring-white/60">
+                    <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Why shoppers return</p>
+                    <div className="mt-6 space-y-4">
+                      <div className="rounded-3xl bg-stone-50 p-4">
+                        <p className="text-3xl font-semibold">148</p>
+                        <p className="text-sm text-slate-600">Independent designers across apparel and accessories</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="rounded-3xl bg-stone-50 p-4">
+                          <p className="text-2xl font-semibold">48h</p>
+                          <p className="text-sm text-slate-600">Average sell-through on hero drops</p>
+                        </div>
+                        <div className="rounded-3xl bg-stone-50 p-4">
+                          <p className="text-2xl font-semibold">4.9</p>
+                          <p className="text-sm text-slate-600">Average community review score</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+              <${SectionTitle}
+                eyebrow="Shop by Mood"
+                title="Four ways to frame your next fit"
+                copy="Browse by styling intent instead of category. Each mood board mixes staples, statement pieces, and accessories from independent brands."
+              />
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+                ${moodTiles.map(
+                  (tile, index) => html`
+                    <div
+                      key=${tile.title}
+                      className="mood-tile editorial-card flex min-h-[20rem] items-end rounded-[2rem] p-6 text-stone-50 shadow-float"
+                      style=${{ backgroundPosition: `${20 + index * 15}% center` }}
+                    >
+                      <div className="relative z-10 space-y-3">
+                        <p className="text-2xl font-semibold">${tile.title}</p>
+                        <p className="max-w-xs text-sm leading-6 text-stone-200">${tile.copy}</p>
+                        <a href="./products.html" className="inline-flex rounded-full border border-stone-100/70 px-4 py-2 text-sm font-semibold">Explore Mood</a>
+                      </div>
+                    </div>
+                  `
+                )}
+              </div>
+            </section>
+
+            <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+              <${SectionTitle}
+                eyebrow="New Arrivals"
+                title="Fresh drops moving fast"
+                copy="Low-inventory pieces from this week’s launch. Swipe through the latest arrivals before they disappear from the grid."
+              />
+              <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar">
+                ${newArrivals.map(
+                  (product) => html`
+                    <div key=${product.name} className="min-w-[18rem] max-w-[18rem] flex-none">
+                      <${ProductCard}
+                        product=${{ ...product, category: "New", color: "Seasonal" }}
+                        detailHref="./product-detail.html"
+                        badge=${product.stock}
+                      />
+                    </div>
+                  `
+                )}
+              </div>
+            </section>
+
+            <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+              <div className="grid gap-8 rounded-[2.5rem] bg-slate-950 px-8 py-10 text-stone-100 lg:grid-cols-[1fr_0.8fr] lg:px-12">
+                <div className="space-y-5">
+                  <p className="text-sm font-semibold uppercase tracking-[0.3em] text-stone-400">Brand Story</p>
+                  <h2 className="text-4xl font-semibold tracking-tight">A boutique for values-led wardrobes</h2>
+                  <p className="max-w-2xl text-sm leading-7 text-stone-300">ThreadHouse partners with small studios designing responsibly produced clothing and accessories for young adults who want style with a point of view.</p>
+                </div>
+                <div className="glass-panel rounded-[2rem] p-6 text-slate-900 ring-1 ring-white/20">
+                  <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">What guides us</p>
+                  <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
+                    <li>Materials that prioritize organic, recycled, and low-waste manufacturing.</li>
+                    <li>Independent brands with transparent design stories and limited production runs.</li>
+                    <li>Editorial styling tools that make responsible shopping feel expressive, not restrictive.</li>
+                  </ul>
+                  <a href="./account.html" className="mt-6 inline-flex rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-stone-50">Our Mission</a>
+                </div>
+              </div>
+            </section>
+          </${Shell}>
+        `;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+    </script>
+  </body>
+</html>

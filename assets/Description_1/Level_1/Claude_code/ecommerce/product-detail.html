@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sony WH-1000XM5 Wireless Headphones – NovaMart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 800:'#1e40af' },
+            accent: { 400:'#fb923c', 500:'#f97316', 600:'#ea580c' }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; border-radius: 3px; }
+    .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; }
+    .badge-sale { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const NAV_LINKS = [
+      { label: 'Electronics', href: 'products.html?cat=electronics' },
+      { label: 'Kitchen', href: 'products.html?cat=kitchen' },
+      { label: 'Clothing', href: 'products.html?cat=clothing' },
+      { label: 'Sports', href: 'products.html?cat=sports' },
+      { label: "Today's Deals", href: 'products.html?cat=deals' },
+    ];
+
+    const PRODUCT = {
+      name: 'Sony WH-1000XM5 Wireless Noise-Cancelling Headphones',
+      brand: 'Sony',
+      sku: 'SNY-WH1000XM5-BLK',
+      price: 279.99,
+      original: 349.99,
+      rating: 4.8,
+      reviews: 12847,
+      inStock: true,
+      stockCount: 14,
+      colors: ['Midnight Black', 'Platinum Silver', 'Midnight Blue'],
+      colorValues: ['#1a1a1a', '#c8c8c8', '#1e3a5f'],
+      images: ['headphones', 'headphones2', 'headphones3', 'headphones4'],
+      imageAlts: [
+        'Sony WH-1000XM5 headphones in midnight black, three-quarter view',
+        'Sony WH-1000XM5 ear cup detail showing cushioning material',
+        'Sony WH-1000XM5 folded flat for travel storage',
+        'Sony WH-1000XM5 shown from the top with headband padding visible',
+      ],
+      badges: ['#1 Best Seller in Over-Ear Headphones', 'Amazon\'s Choice'],
+      highlights: [
+        'Industry-leading noise cancellation with 8 microphones',
+        '30-hour battery life with quick charge (3 min = 3 hours)',
+        'Crystal-clear hands-free calling',
+        'Multipoint connection — pair to 2 devices simultaneously',
+        'Speak-to-Chat and auto pause technology',
+        'Premium 30mm driver unit for superior audio',
+      ],
+      description: `The Sony WH-1000XM5 redefines what's possible in wireless noise-cancelling headphones. Powered by Sony's Integrated Processor V1 and two newly developed processors, it delivers unprecedented noise cancellation across a wide range of frequencies — from loud engines to chatter in a crowded office.\n\nThe 30mm carbon-fiber driver unit delivers powerful bass response while maintaining natural, detailed mids and highs. The ultralight headband and soft synthetic leather ear cups make it comfortable enough for all-day wear.`,
+      specs: [
+        { label: 'Driver Unit', value: '30mm, dome type (CCAW Voice Coil)' },
+        { label: 'Frequency Response', value: '4Hz–40,000Hz (LDAC 96kHz)' },
+        { label: 'Battery Life', value: 'Up to 30 hours (ANC on)' },
+        { label: 'Charging Time', value: '3.5 hours (USB-C)' },
+        { label: 'Quick Charge', value: '3 min → 3 hours playback' },
+        { label: 'Noise Cancellation', value: '8 microphones, dual-chip processing' },
+        { label: 'Weight', value: '250g (8.8 oz)' },
+        { label: 'Connectivity', value: 'Bluetooth 5.2, NFC' },
+        { label: 'Codec Support', value: 'SBC, AAC, LDAC' },
+        { label: 'Multipoint', value: 'Connect to 2 devices simultaneously' },
+        { label: 'Foldable', value: 'Yes (flat fold)' },
+        { label: 'Color Options', value: 'Midnight Black, Platinum Silver, Midnight Blue' },
+      ],
+    };
+
+    const REVIEWS = [
+      { id:1, name:'Jordan M.', date:'March 10, 2026', rating:5, title:'Best headphones I\'ve ever owned', body:'Absolutely stunning sound quality and the ANC is jaw-dropping. I use these on my daily commute and at home in my home office. Can\'t hear a single thing around me when needed, and the transparency mode is surprisingly natural.' },
+      { id:2, name:'Sarah K.', date:'February 28, 2026', rating:5, title:'Worth every penny', body:'I had the XM4s and debated upgrading. So glad I did. The call quality improvement alone is worth it — my colleagues can finally hear me clearly. Battery life is fantastic and the carrying case is compact.' },
+      { id:3, name:'Mike T.', date:'February 15, 2026', rating:4, title:'Almost perfect', body:'Sound and ANC are incredible. My only minor complaint is they can\'t be used wired while charging. Everything else is a 10/10. Extremely comfortable for 4-5 hour sessions.' },
+      { id:4, name:'Priya R.', date:'January 30, 2026', rating:5, title:'The gold standard', body:'I\'ve tried Bose, Apple, and now Sony. These are the clear winner for overall package. LDAC audio quality with a good source is simply stunning — like having studio monitors on your ears.' },
+    ];
+
+    const RELATED = [
+      { id:6, name:'Bose QuietComfort 45', price:229.99, original:329.99, rating:4.6, reviews:7240, img:'bose', alt:'Bose QuietComfort 45 in white/silver colourway' },
+      { id:2, name:'Apple AirPods Pro 3rd Gen', price:199.99, original:249.99, rating:4.7, reviews:19560, img:'airpods', alt:'Apple AirPods Pro with MagSafe charging case' },
+      { id:23, name:'Fitbit Charge 6 Fitness Tracker', price:129.99, original:159.99, rating:4.5, reviews:7100, img:'fitbit', alt:'Fitbit Charge 6 showing health metrics on screen' },
+      { id:20, name:'Echo Dot (5th Gen)', price:29.99, original:49.99, rating:4.6, reviews:15300, img:'echo', alt:'Amazon Echo Dot in charcoal on wooden desk surface' },
+    ];
+
+    /* ─── Header ──────────────────────────────────── */
+    const Header = () => {
+      const [query, setQuery] = useState('');
+      const handleSearch = (e) => e.preventDefault();
+      return (
+        <header role="banner">
+          <div className="bg-brand-800 text-white text-sm py-1.5 text-center">
+            🚚 Free shipping on orders over $35 — <a href="products.html" className="underline font-medium hover:text-brand-100">Shop Now</a>
+          </div>
+          <div className="bg-brand-700 text-white shadow-lg">
+            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+              <a href="index.html" className="flex items-center gap-2 shrink-0 rounded" aria-label="NovaMart home">
+                <div className="w-8 h-8 bg-accent-500 rounded-lg flex items-center justify-center font-black text-white text-lg" aria-hidden="true">N</div>
+                <span className="text-xl font-black tracking-tight hidden sm:block">NovaMart</span>
+              </a>
+              <form onSubmit={handleSearch} role="search" className="flex-1 flex max-w-2xl" aria-label="Site search">
+                <label htmlFor="site-search" className="sr-only">Search NovaMart</label>
+                <input id="site-search" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search products, brands, categories…"
+                  className="flex-1 px-4 py-2 rounded-l-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
+                <button type="submit" className="bg-accent-500 hover:bg-accent-600 px-4 rounded-r-lg font-semibold text-sm transition-colors" aria-label="Submit search">🔍 Search</button>
+              </form>
+              <nav aria-label="Account and cart" className="flex items-center gap-3 shrink-0">
+                <a href="account.html" className="flex flex-col items-center text-xs hover:text-brand-100 px-2 py-1" aria-label="Your account"><span aria-hidden="true" className="text-xl">👤</span><span className="hidden sm:block">Account</span></a>
+                <a href="cart.html" className="relative flex flex-col items-center text-xs hover:text-brand-100 px-2 py-1" aria-label="Cart, 3 items">
+                  <span aria-hidden="true" className="text-xl">🛒</span><span className="hidden sm:block">Cart</span>
+                  <span className="absolute -top-1 -right-1 bg-accent-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" aria-hidden="true">3</span>
+                </a>
+              </nav>
+            </div>
+            <nav aria-label="Main categories" className="bg-brand-600">
+              <div className="max-w-7xl mx-auto px-4">
+                <ul className="flex gap-1">
+                  {NAV_LINKS.map(link => (
+                    <li key={link.label}>
+                      <a href={link.href} className="block px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 rounded-t transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">{link.label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </nav>
+          </div>
+        </header>
+      );
+    };
+
+    /* ─── Footer ──────────────────────────────────── */
+    const Footer = () => (
+      <footer className="bg-gray-900 text-gray-300 mt-16" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 bg-accent-500 rounded-lg flex items-center justify-center font-black text-white" aria-hidden="true">N</div>
+              <span className="text-white font-black text-lg">NovaMart</span>
+            </div>
+            <p className="text-sm text-gray-400">Your trusted marketplace for electronics, home goods, and apparel.</p>
+          </div>
+          {[
+            { title:'Shop', items:['Electronics','Kitchen','Clothing','Sports',"Today's Deals"] },
+            { title:'Help',  items:['Track Order','Returns & Refunds','Shipping Info','FAQs','Contact Us'] },
+            { title:'Company', items:['About NovaMart','Careers','Press','Sell on NovaMart','Affiliate Program'] },
+          ].map(col => (
+            <div key={col.title}>
+              <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">{col.title}</h3>
+              <ul className="space-y-2 text-sm">
+                {col.items.map(item => <li key={item}><a href="#" className="hover:text-white transition-colors">{item}</a></li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-gray-800 max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+          <p>© 2026 NovaMart, Inc. All rights reserved.</p>
+          <div className="flex gap-4">
+            <a href="#" className="hover:text-white">Privacy Policy</a>
+            <a href="#" className="hover:text-white">Terms of Service</a>
+          </div>
+        </div>
+      </footer>
+    );
+
+    /* ─── Stars ───────────────────────────────────── */
+    const Stars = ({ rating, reviews, large = false }) => {
+      const full = Math.floor(rating);
+      const half = rating % 1 >= 0.5;
+      return (
+        <div className={`flex items-center gap-1 ${large ? 'text-2xl' : 'text-sm'}`} aria-label={`${rating} out of 5 stars, ${reviews.toLocaleString()} reviews`}>
+          {Array.from({ length: 5 }, (_, i) => (
+            <span key={i} aria-hidden="true" className={i < full ? 'text-amber-400' : i === full && half ? 'text-amber-300' : 'text-gray-300'}>★</span>
+          ))}
+          <span className={`${large ? 'text-base' : 'text-xs'} text-brand-600 hover:underline ml-1 font-medium`}>
+            <a href="#reviews" className="focus-visible:outline-none focus-visible:underline">{reviews.toLocaleString()} reviews</a>
+          </span>
+        </div>
+      );
+    };
+
+    /* ─── Image Gallery ───────────────────────────── */
+    const Gallery = ({ images, alts, productName }) => {
+      const [main, setMain] = useState(0);
+      return (
+        <div className="flex flex-col gap-3">
+          {/* Main image */}
+          <div className="rounded-2xl overflow-hidden bg-white border border-gray-200 aspect-square flex items-center justify-center">
+            <img
+              src={`https://picsum.photos/seed/${images[main]}/540/540`}
+              alt={alts[main]}
+              width="540"
+              height="540"
+              className="w-full h-full object-cover"
+              aria-live="polite"
+              key={main}
+            />
+          </div>
+          {/* Thumbnail strip */}
+          <div className="flex gap-2" role="tablist" aria-label={`${productName} gallery thumbnails`}>
+            {images.map((img, i) => (
+              <button
+                key={i}
+                role="tab"
+                aria-selected={i === main}
+                aria-label={`Image ${i + 1}: ${alts[i]}`}
+                onClick={() => setMain(i)}
+                className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${i === main ? 'border-brand-600' : 'border-gray-200 hover:border-gray-400'}`}
+              >
+                <img src={`https://picsum.photos/seed/${img}/80/80`} alt={`Thumbnail: ${alts[i]}`} width="80" height="80" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    /* ─── Product Info Panel ──────────────────────── */
+    const ProductInfo = ({ product }) => {
+      const [selectedColor, setSelectedColor] = useState(0);
+      const [qty, setQty] = useState(1);
+      const [addedToCart, setAddedToCart] = useState(false);
+      const [inWishlist, setInWishlist] = useState(false);
+      const discount = Math.round((1 - product.price / product.original) * 100);
+
+      const handleAddToCart = () => {
+        setAddedToCart(true);
+        setTimeout(() => setAddedToCart(false), 2500);
+      };
+
+      return (
+        <div className="flex flex-col gap-5">
+          {/* Badges */}
+          <div className="flex flex-wrap gap-2">
+            {product.badges.map(b => (
+              <span key={b} className="text-xs font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">{b}</span>
+            ))}
+          </div>
+
+          {/* Name */}
+          <div>
+            <p className="text-sm text-brand-600 font-medium mb-1">{product.brand}</p>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 leading-tight">{product.name}</h1>
+            <p className="text-xs text-gray-400 mt-1">SKU: {product.sku}</p>
+          </div>
+
+          {/* Rating */}
+          <Stars rating={product.rating} reviews={product.reviews} large />
+
+          {/* Price */}
+          <div className="flex items-end gap-3 pb-3 border-b border-gray-200">
+            <span className="text-4xl font-black text-gray-900" aria-label={`Price: $${product.price}`}>${product.price.toFixed(2)}</span>
+            <div className="flex flex-col">
+              <span className="text-base text-gray-400 line-through" aria-label={`Original price: $${product.original}`}>${product.original.toFixed(2)}</span>
+              <span className="badge-sale text-white text-xs font-bold px-2 py-0.5 rounded-full inline-block" aria-label={`Save ${discount}%`}>Save {discount}%</span>
+            </div>
+          </div>
+
+          {/* Color selector */}
+          <fieldset>
+            <legend className="text-sm font-semibold text-gray-800 mb-2">
+              Color: <span className="font-normal text-gray-600">{product.colors[selectedColor]}</span>
+            </legend>
+            <div className="flex gap-3">
+              {product.colors.map((color, i) => (
+                <button
+                  key={color}
+                  onClick={() => setSelectedColor(i)}
+                  className={`w-10 h-10 rounded-full border-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${selectedColor === i ? 'border-brand-600 scale-110' : 'border-gray-200 hover:border-gray-400'}`}
+                  style={{ backgroundColor: product.colorValues[i] }}
+                  aria-label={`Color: ${color}`}
+                  aria-pressed={selectedColor === i}
+                  title={color}
+                />
+              ))}
+            </div>
+          </fieldset>
+
+          {/* Stock */}
+          <p className={`text-sm font-medium ${product.inStock ? 'text-green-600' : 'text-red-600'}`} role="status">
+            {product.inStock ? `✓ In Stock — Only ${product.stockCount} left!` : '✗ Out of Stock'}
+          </p>
+
+          {/* Quantity */}
+          <div className="flex items-center gap-4">
+            <label htmlFor="quantity" className="text-sm font-semibold text-gray-800">Quantity:</label>
+            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden" role="group" aria-label="Quantity selector">
+              <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-3 py-2 text-lg hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-inset" aria-label="Decrease quantity">−</button>
+              <input id="quantity" type="number" min="1" max={product.stockCount} value={qty}
+                onChange={e => setQty(Math.max(1, Math.min(product.stockCount, Number(e.target.value))))}
+                className="w-14 text-center py-2 font-semibold border-x border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:ring-inset"
+                aria-label="Quantity" />
+              <button onClick={() => setQty(q => Math.min(product.stockCount, q + 1))} className="px-3 py-2 text-lg hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-inset" aria-label="Increase quantity">+</button>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleAddToCart}
+              className={`w-full py-4 rounded-xl font-bold text-lg transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${addedToCart ? 'bg-green-600 text-white' : 'bg-brand-600 hover:bg-brand-700 text-white'}`}
+              aria-live="polite"
+            >
+              {addedToCart ? '✓ Added to Cart!' : '🛒 Add to Cart'}
+            </button>
+            <a href="cart.html"
+              className="block w-full py-4 rounded-xl font-bold text-lg text-center bg-accent-500 hover:bg-accent-600 text-white transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-500 focus-visible:ring-offset-2"
+            >
+              ⚡ Buy Now
+            </a>
+            <button
+              onClick={() => setInWishlist(w => !w)}
+              className={`w-full py-3 rounded-xl font-semibold text-sm border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${inWishlist ? 'border-pink-500 text-pink-600 bg-pink-50' : 'border-gray-300 text-gray-700 hover:border-gray-400'}`}
+              aria-pressed={inWishlist}
+            >
+              {inWishlist ? '♥ Saved to Wishlist' : '♡ Add to Wishlist'}
+            </button>
+          </div>
+
+          {/* Delivery */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-2 text-sm">
+            <div className="flex items-start gap-2"><span aria-hidden="true">🚚</span><div><strong>Free delivery</strong> — Order within 4h 32m for delivery by <strong>Thursday, March 19</strong></div></div>
+            <div className="flex items-start gap-2"><span aria-hidden="true">↩️</span><div><strong>Free 30-day returns</strong> — No questions asked</div></div>
+            <div className="flex items-start gap-2"><span aria-hidden="true">🔒</span><div><strong>Secure payment</strong> — All major cards, PayPal, Apple Pay</div></div>
+          </div>
+
+          {/* Highlights */}
+          <div>
+            <h2 className="font-bold text-gray-900 mb-3">Product Highlights</h2>
+            <ul className="space-y-2" aria-label="Key product highlights">
+              {product.highlights.map((h, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                  <span className="text-brand-600 mt-0.5 shrink-0" aria-hidden="true">✓</span> {h}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      );
+    };
+
+    /* ─── Tabs Section ────────────────────────────── */
+    const Tabs = ({ product }) => {
+      const [activeTab, setActiveTab] = useState('description');
+      const TABS = [
+        { id: 'description', label: 'Description' },
+        { id: 'specs', label: 'Specifications' },
+        { id: 'reviews', label: `Reviews (${product.reviews.toLocaleString()})` },
+      ];
+
+      return (
+        <div id="reviews">
+          {/* Tab list */}
+          <div role="tablist" aria-label="Product information tabs" className="flex border-b border-gray-200 mb-6 gap-1">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                role="tab"
+                id={`tab-${tab.id}`}
+                aria-selected={activeTab === tab.id}
+                aria-controls={`panel-${tab.id}`}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-3 text-sm font-semibold transition-all -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded-t ${activeTab === tab.id ? 'tab-active text-brand-600 border-b-2 border-brand-600 bg-brand-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Description panel */}
+          {activeTab === 'description' && (
+            <div role="tabpanel" id="panel-description" aria-labelledby="tab-description" className="prose max-w-none">
+              {product.description.split('\n\n').map((para, i) => (
+                <p key={i} className="text-gray-700 leading-relaxed mb-4 text-sm">{para}</p>
+              ))}
+            </div>
+          )}
+
+          {/* Specs panel */}
+          {activeTab === 'specs' && (
+            <div role="tabpanel" id="panel-specs" aria-labelledby="tab-specs">
+              <table className="w-full text-sm" aria-label="Product specifications">
+                <caption className="sr-only">Sony WH-1000XM5 technical specifications</caption>
+                <tbody className="divide-y divide-gray-200">
+                  {product.specs.map(spec => (
+                    <tr key={spec.label} className="hover:bg-gray-50">
+                      <th scope="row" className="py-3 pr-6 text-left font-semibold text-gray-700 w-40 md:w-56">{spec.label}</th>
+                      <td className="py-3 text-gray-600">{spec.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Reviews panel */}
+          {activeTab === 'reviews' && (
+            <div role="tabpanel" id="panel-reviews" aria-labelledby="tab-reviews">
+              {/* Rating summary */}
+              <div className="flex flex-col md:flex-row gap-8 mb-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="text-center md:text-left">
+                  <div className="text-6xl font-black text-gray-900">{product.rating}</div>
+                  <div className="flex justify-center md:justify-start gap-0.5 text-amber-400 text-2xl my-1" aria-hidden="true">{'★'.repeat(5)}</div>
+                  <div className="text-sm text-gray-500">{product.reviews.toLocaleString()} reviews</div>
+                </div>
+                <div className="flex-1">
+                  {[5,4,3,2,1].map(star => {
+                    const pct = star === 5 ? 78 : star === 4 ? 15 : star === 3 ? 5 : star === 2 ? 1 : 1;
+                    return (
+                      <div key={star} className="flex items-center gap-2 text-sm mb-1">
+                        <span className="w-4 text-right text-gray-700">{star}</span>
+                        <span aria-hidden="true" className="text-amber-400 text-xs">★</span>
+                        <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden" role="presentation">
+                          <div className="h-full bg-amber-400 rounded-full" style={{width:`${pct}%`}} aria-hidden="true" />
+                        </div>
+                        <span className="w-8 text-gray-500 text-xs">{pct}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-col gap-2 min-w-[140px]">
+                  <button className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2">Write a Review</button>
+                </div>
+              </div>
+
+              {/* Individual reviews */}
+              <ul className="space-y-6" aria-label="Customer reviews">
+                {REVIEWS.map(review => (
+                  <li key={review.id} className="border-b border-gray-200 pb-6">
+                    <article>
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm shrink-0" aria-hidden="true">
+                            {review.name.charAt(0)}
+                          </div>
+                          <div>
+                            <cite className="font-semibold text-gray-900 not-italic text-sm">{review.name}</cite>
+                            <div className="flex text-amber-400 text-sm" aria-label={`Rated ${review.rating} out of 5`}>{'★'.repeat(review.rating)}{'☆'.repeat(5-review.rating)}</div>
+                          </div>
+                        </div>
+                        <time dateTime={review.date} className="text-xs text-gray-400 shrink-0">{review.date}</time>
+                      </div>
+                      <h4 className="font-semibold text-gray-900 mb-1 text-sm">{review.title}</h4>
+                      <p className="text-sm text-gray-600 leading-relaxed">{review.body}</p>
+                      <div className="mt-3 flex gap-4 text-xs text-gray-400">
+                        <button className="hover:text-gray-600 focus-visible:outline-none focus-visible:underline">👍 Helpful</button>
+                        <button className="hover:text-gray-600 focus-visible:outline-none focus-visible:underline">Report</button>
+                      </div>
+                    </article>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    /* ─── Related Products ────────────────────────── */
+    const RelatedProducts = ({ products }) => (
+      <section aria-labelledby="related-heading" className="mt-16">
+        <h2 id="related-heading" className="text-2xl font-bold text-gray-900 mb-6">Customers Also Viewed</h2>
+        <ul className="grid grid-cols-2 md:grid-cols-4 gap-4" role="list">
+          {products.map(p => {
+            const disc = Math.round((1 - p.price / p.original) * 100);
+            return (
+              <li key={p.id} role="listitem">
+                <article className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow flex flex-col items-center gap-3 group">
+                  <a href="product-detail.html" aria-label={`View ${p.name}`} className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded-xl overflow-hidden">
+                    <img src={`https://picsum.photos/seed/${p.img}/240/180`} alt={p.alt} width="240" height="180"
+                      className="w-full h-32 object-cover rounded-lg group-hover:scale-105 transition-transform duration-300" />
+                  </a>
+                  <h3 className="text-xs font-semibold text-gray-800 text-center leading-snug line-clamp-2">
+                    <a href="product-detail.html" className="hover:text-brand-600 focus-visible:text-brand-600 focus-visible:outline-none">{p.name}</a>
+                  </h3>
+                  <div className="flex items-center gap-1 text-xs text-amber-400" aria-label={`${p.rating} stars`}>{'★'.repeat(Math.floor(p.rating))}</div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-black text-gray-900 text-sm">${p.price.toFixed(2)}</span>
+                    <span className="text-xs text-gray-400 line-through">${p.original.toFixed(2)}</span>
+                  </div>
+                  <a href="cart.html" className="w-full text-center text-xs font-semibold py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+                    aria-label={`Add ${p.name} to cart`}>Add to Cart</a>
+                </article>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    );
+
+    /* ─── App ─────────────────────────────────────── */
+    const App = () => (
+      <div className="min-h-screen flex flex-col">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-brand-600 text-white px-4 py-2 rounded z-50 font-semibold">Skip to main content</a>
+        <Header />
+        <main id="main-content" className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
+          {/* Breadcrumb */}
+          <nav aria-label="Breadcrumb" className="mb-6">
+            <ol className="flex items-center flex-wrap gap-2 text-sm text-gray-500" role="list">
+              <li><a href="index.html" className="hover:text-brand-600">Home</a></li>
+              <li aria-hidden="true">›</li>
+              <li><a href="products.html" className="hover:text-brand-600">Electronics</a></li>
+              <li aria-hidden="true">›</li>
+              <li><a href="products.html?cat=headphones" className="hover:text-brand-600">Headphones</a></li>
+              <li aria-hidden="true">›</li>
+              <li className="text-gray-900 font-medium" aria-current="page">Sony WH-1000XM5</li>
+            </ol>
+          </nav>
+
+          {/* Product main section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
+            <Gallery images={PRODUCT.images} alts={PRODUCT.imageAlts} productName={PRODUCT.name} />
+            <ProductInfo product={PRODUCT} />
+          </div>
+
+          {/* Tabs */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8 mb-12">
+            <Tabs product={PRODUCT} />
+          </div>
+
+          {/* Related */}
+          <RelatedProducts products={RELATED} />
+        </main>
+        <Footer />
+      </div>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

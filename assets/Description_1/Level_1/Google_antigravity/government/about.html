@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us — City of Lakewood</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            200: '#bcccdc',
+                            300: '#9fb3c8',
+                            400: '#829ab1',
+                            500: '#627d98',
+                            600: '#486581',
+                            700: '#334e68',
+                            800: '#243b53',
+                            900: '#102a43',
+                            DEFAULT: '#243b53'
+                        },
+                        accent: {
+                            DEFAULT: '#005a9c'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        serif: ['Merriweather', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel for in-browser JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@400;700&display=swap');
+    </style>
+</head>
+
+<body class="bg-gray-50 text-brand-900 font-sans min-h-screen flex flex-col antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Icons Components
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const [iconHtml, setIconHtml] = React.useState('');
+
+            React.useEffect(() => {
+                if (window.lucide && window.lucide.icons[name]) {
+                    const iconNode = window.lucide.icons[name];
+                    const svgString = `<svg class="lucide lucide-${name} ${className}" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconNode.map(([tag, attrs]) => {
+                        const attrsString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
+                        return `<${tag} ${attrsString}></${tag}>`;
+                    }).join('')}</svg>`;
+                    setIconHtml(svgString);
+                }
+            }, [name, size, className]);
+
+            return <span dangerouslySetInnerHTML={{ __html: iconHtml }} />;
+        };
+
+        const Header = () => {
+            return (
+                <header className="bg-brand-900 text-white shadow-md sticky top-0 z-50">
+                    <div className="bg-brand-800 text-sm py-2 px-4 border-b border-brand-700">
+                        <div className="max-w-7xl mx-auto flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                                <Icon name="flag" size={16} className="text-gray-300" />
+                                <span className="opacity-90">Official Website of the City of Lakewood</span>
+                            </div>
+                            <div className="flex space-x-4 text-xs">
+                                <a href="#" className="hover:text-blue-300 transition-colors">Translate</a>
+                                <a href="#" className="hover:text-blue-300 transition-colors">Accessibility</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 py-4">
+                        <div className="flex justify-between items-center">
+                            <a href="index.html" className="flex items-center space-x-3 group">
+                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-accent font-bold text-xl group-hover:scale-105 transition-transform shadow-sm">
+                                    L
+                                </div>
+                                <div>
+                                    <div className="font-serif font-bold text-2xl tracking-tight leading-none text-white">Lakewood</div>
+                                    <div className="text-xs text-brand-200 tracking-wider uppercase mt-1">Government Portal</div>
+                                </div>
+                            </a>
+
+                            <div className="hidden md:flex items-center space-x-8">
+                                <a href="services.html" className="font-medium hover:text-blue-300 transition-colors text-white py-2">Services</a>
+                                <div className="space-x-1 flex group relative">
+                                    <a href="permit-application.html" className="font-medium hover:text-blue-300 transition-colors text-white py-2">Permits & Licenses</a>
+                                    <a href="pay-bill.html" className="font-medium hover:text-blue-300 transition-colors text-white py-2">Pay Bills</a>
+                                </div>
+                                <a href="about.html" className="font-medium text-blue-300 transition-colors py-2 border-b-2 border-blue-400">About</a>
+                                <a href="contact.html" className="font-medium hover:text-blue-300 transition-colors text-white py-2">Contact</a>
+                                <a href="#" className="ml-4 p-2 bg-brand-700 hover:bg-brand-600 rounded-full transition-colors text-white">
+                                    <Icon name="search" size={20} />
+                                </a>
+                            </div>
+
+                            <button className="md:hidden p-2 text-white">
+                                <Icon name="menu" size={24} />
+                            </button>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-brand-900 text-brand-100 py-12 border-t-4 border-accent mt-auto">
+                    <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div>
+                            <div className="flex items-center space-x-3 mb-6">
+                                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-accent font-bold text-lg shadow-sm">L</div>
+                                <span className="font-serif font-bold text-xl text-white">City of Lakewood</span>
+                            </div>
+                            <p className="text-sm text-brand-200 leading-relaxed mb-4">
+                                Dedicated to transparency, public safety, and fostering a vibrant community for our 160,000 residents.
+                            </p>
+                            <div className="flex space-x-4">
+                                <a href="#" className="text-brand-300 hover:text-white transition-colors"><Icon name="twitter" size={20} /></a>
+                                <a href="#" className="text-brand-300 hover:text-white transition-colors"><Icon name="facebook" size={20} /></a>
+                                <a href="#" className="text-brand-300 hover:text-white transition-colors"><Icon name="youtube" size={20} /></a>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-lg border-b border-brand-700 pb-2">Quick Links</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="index.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> City Home</a></li>
+                                <li><a href="services.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Services Directory</a></li>
+                                <li><a href="about.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> About Lakewood</a></li>
+                                <li><a href="contact.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Contact Us</a></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-lg border-b border-brand-700 pb-2">Popular Services</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="pay-bill.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Pay Utility Bill</a></li>
+                                <li><a href="permit-application.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Apply for Permit</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Report an Issue</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Public Records Request</a></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-lg border-b border-brand-700 pb-2">Contact</h3>
+                            <ul className="space-y-4 text-sm">
+                                <li className="flex items-start">
+                                    <Icon name="map-pin" size={18} className="mr-2 text-brand-300 mt-0.5 shrink-0" />
+                                    <span>Lakewood City Hall<br />100 Main Street<br />Lakewood, ST 12345</span>
+                                </li>
+                                <li className="flex items-center">
+                                    <Icon name="phone" size={18} className="mr-2 text-brand-300 shrink-0" />
+                                    <span>(555) 123-4567</span>
+                                </li>
+                                <li className="flex items-center">
+                                    <Icon name="mail" size={18} className="mr-2 text-brand-300 shrink-0" />
+                                    <a href="mailto:info@lakewood.gov" className="hover:text-white transition-colors">info@lakewood.gov</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 mt-12 pt-6 border-t border-brand-800 text-xs text-brand-300 flex flex-col md:flex-row justify-between items-center">
+                        <p>&copy; 2026 City of Lakewood. All rights reserved.</p>
+                        <div className="flex space-x-4 mt-4 md:mt-0">
+                            <a href="#" className="hover:text-white">Privacy Policy</a>
+                            <a href="#" className="hover:text-white">Terms of Use</a>
+                            <a href="#" className="hover:text-white">Accessibility</a>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        const AboutPage = () => {
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+
+                    <main className="flex-grow">
+                        {/* Hero Section */}
+                        <div className="relative bg-brand-900 text-white overflow-hidden py-24">
+                            <div className="absolute inset-0 z-0 opacity-20 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1449844908441-8829872d2607?q=80&w=2070&auto=format&fit=crop')" }}></div>
+                            <div className="relative z-10 max-w-7xl mx-auto px-4 flex flex-col items-center text-center">
+                                <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4">About Lakewood</h1>
+                                <p className="text-xl md:text-2xl text-brand-200 font-light max-w-3xl">A vibrant, forward-thinking community rooted in rich history and dedicated to public service excellence.</p>
+                            </div>
+                        </div>
+
+                        {/* Mission Statement & Quick Facts */}
+                        <section className="py-16 bg-white border-b border-gray-200">
+                            <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                                <div>
+                                    <h2 className="text-sm font-bold text-accent uppercase tracking-wider mb-2">Our Mission</h2>
+                                    <h3 className="font-serif text-3xl font-bold text-brand-900 mb-6 leading-tight">To foster a safe, thriving, and inclusive environment for all residents of Lakewood.</h3>
+                                    <p className="text-brand-600 text-lg mb-6 leading-relaxed">
+                                        The City of Lakewood is committed to delivering high-quality, efficient public services, protecting our natural resources, and maintaining transparent, fiscally responsible governance. We strive to create neighborhoods where families and businesses can flourish together.
+                                    </p>
+                                    <div className="inline-flex flex-col sm:flex-row gap-4">
+                                        <a href="#" className="bg-brand-900 hover:bg-brand-800 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
+                                            <Icon name="download" size={18} className="mr-2" /> 2025 Annual Report
+                                        </a>
+                                        <a href="#" className="bg-gray-100 hover:bg-gray-200 text-brand-900 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center">
+                                            Strategic Action Plan
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-brand-50 p-6 rounded-xl border border-brand-100 text-center">
+                                        <div className="text-accent mb-2 flex justify-center"><Icon name="users" size={32} /></div>
+                                        <div className="text-3xl font-bold text-brand-900 mb-1">160K+</div>
+                                        <div className="text-sm text-brand-600 font-medium">Residents Served</div>
+                                    </div>
+                                    <div className="bg-brand-50 p-6 rounded-xl border border-brand-100 text-center">
+                                        <div className="text-accent mb-2 flex justify-center"><Icon name="map" size={32} /></div>
+                                        <div className="text-3xl font-bold text-brand-900 mb-1">42</div>
+                                        <div className="text-sm text-brand-600 font-medium">Square Miles</div>
+                                    </div>
+                                    <div className="bg-brand-50 p-6 rounded-xl border border-brand-100 text-center">
+                                        <div className="text-accent mb-2 flex justify-center"><Icon name="building" size={32} /></div>
+                                        <div className="text-3xl font-bold text-brand-900 mb-1">1891</div>
+                                        <div className="text-sm text-brand-600 font-medium">Year Incorporated</div>
+                                    </div>
+                                    <div className="bg-brand-50 p-6 rounded-xl border border-brand-100 text-center">
+                                        <div className="text-accent mb-2 flex justify-center"><Icon name="trees" size={32} /></div>
+                                        <div className="text-3xl font-bold text-brand-900 mb-1">28</div>
+                                        <div className="text-sm text-brand-600 font-medium">Public Parks</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* History Section */}
+                        <section className="py-16 bg-gray-50 border-b border-gray-200">
+                            <div className="max-w-7xl mx-auto px-4">
+                                <div className="flex flex-col md:flex-row gap-12 items-center">
+                                    <div className="w-full md:w-1/2 aspect-video bg-gray-200 rounded-xl overflow-hidden shadow-md">
+                                        <img src="https://images.unsplash.com/photo-1541818785317-06dfef6acae4?w=800&auto=format&fit=crop" alt="Historical downtown Lakewood" className="w-full h-full object-cover grayscale opacity-80" />
+                                    </div>
+                                    <div className="w-full md:w-1/2">
+                                        <div className="flex items-center space-x-3 mb-4">
+                                            <div className="w-10 h-10 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center shrink-0">
+                                                <Icon name="book-open" size={20} />
+                                            </div>
+                                            <h2 className="font-serif text-3xl font-bold text-brand-900">Our History</h2>
+                                        </div>
+                                        <p className="text-brand-700 mb-4 leading-relaxed">
+                                            Incorporated in 1891, the City of Lakewood began as a small agricultural hub, known for its lush orchards and proximity to major rail lines. Over the ensuing decades, it blossomed into a crucial manufacturing and residential center during the post-WWII housing boom.
+                                        </p>
+                                        <p className="text-brand-700 mb-6 leading-relaxed">
+                                            Today, Lakewood stands as a diverse, mid-sized municipality that honors its heritage while embracing modern innovation. From the historic Main Street district—which still boasts original 19th-century architecture—to our state-of-the-art tech parks, the city is a testament to sustainable urban growth.
+                                        </p>
+                                        <a href="#" className="text-accent font-medium hover:underline flex items-center">
+                                            Read the Full City History <Icon name="arrow-right" size={16} className="ml-1" />
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Leadership Team */}
+                        <section className="py-20 bg-white">
+                            <div className="max-w-7xl mx-auto px-4">
+                                <div className="text-center max-w-2xl mx-auto mb-16">
+                                    <h2 className="font-serif text-3xl md:text-4xl font-bold text-brand-900 mb-4">City Leadership</h2>
+                                    <p className="text-brand-600 text-lg">Lakewood operates under a Council-Manager form of government, consisting of an elected Mayor and six City Council members.</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+
+                                    {/* Mayor */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
+                                        <div className="aspect-square bg-gray-200 overflow-hidden">
+                                            <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=500&auto=format&fit=crop" alt="Mayor Sarah Jenkins" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        </div>
+                                        <div className="p-6 text-center border-t-4 border-accent">
+                                            <h3 className="font-bold text-xl text-brand-900 mb-1">Sarah Jenkins</h3>
+                                            <p className="text-accent font-medium text-sm mb-4 uppercase tracking-wider">Mayor</p>
+                                            <div className="flex justify-center space-x-3 text-brand-400">
+                                                <a href="#" className="hover:text-accent transition-colors"><Icon name="mail" size={18} /></a>
+                                                <a href="#" className="hover:text-accent transition-colors"><Icon name="twitter" size={18} /></a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Council Member 1 */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
+                                        <div className="aspect-square bg-gray-200 overflow-hidden">
+                                            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&auto=format&fit=crop" alt="Council Member David Cho" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        </div>
+                                        <div className="p-5 text-center">
+                                            <h3 className="font-bold text-lg text-brand-900 mb-1">David Cho</h3>
+                                            <p className="text-brand-500 text-sm mb-3">District 1 Representative</p>
+                                            <a href="#" className="text-xs text-accent hover:underline inline-flex items-center"><Icon name="mail" size={14} className="mr-1" /> Contact</a>
+                                        </div>
+                                    </div>
+
+                                    {/* Council Member 2 */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
+                                        <div className="aspect-square bg-gray-200 overflow-hidden">
+                                            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=500&auto=format&fit=crop" alt="Council Member Marcus Johnson" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        </div>
+                                        <div className="p-5 text-center">
+                                            <h3 className="font-bold text-lg text-brand-900 mb-1">Marcus Johnson</h3>
+                                            <p className="text-brand-500 text-sm mb-3">District 2 Representative</p>
+                                            <a href="#" className="text-xs text-accent hover:underline inline-flex items-center"><Icon name="mail" size={14} className="mr-1" /> Contact</a>
+                                        </div>
+                                    </div>
+
+                                    {/* Council Member 3 */}
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
+                                        <div className="aspect-square bg-gray-200 overflow-hidden">
+                                            <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=500&auto=format&fit=crop" alt="Council Member Elena Rodriguez" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        </div>
+                                        <div className="p-5 text-center">
+                                            <h3 className="font-bold text-lg text-brand-900 mb-1">Elena Rodriguez</h3>
+                                            <p className="text-brand-500 text-sm mb-3">Council President</p>
+                                            <a href="#" className="text-xs text-accent hover:underline inline-flex items-center"><Icon name="mail" size={14} className="mr-1" /> Contact</a>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <div className="text-center mt-10">
+                                    <a href="#" className="bg-white border-2 border-brand-200 text-brand-700 hover:border-brand-400 hover:text-brand-900 font-medium py-2 px-6 rounded-lg transition-colors inline-block">
+                                        View Full City Council Roster
+                                    </a>
+                                </div>
+                            </div>
+                        </section>
+
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AboutPage />);
+    </script>
+</body>
+
+</html>

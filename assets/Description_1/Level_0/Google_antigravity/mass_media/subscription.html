@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe | The Meridian</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="./live-server-compat.js"></script>
+
+    <style>
+        body {
+            background-color: #fdfdfc;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    
+
+    <script type="text/babel">
+
+    const { useState, useEffect } = React;
+    const { Menu, Search, User, ChevronDown, ChevronUp, Facebook, Twitter, Instagram, Check, X, Star } = window.IconCompat;
+
+    // --- Header Component ---
+    function Header() {
+      const [isScrolled, setIsScrolled] = useState(false);
+
+      useEffect(() => {
+        const handleScroll = () => {
+          setIsScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
+
+      return (
+        <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-2' : 'bg-white/95 backdrop-blur-sm py-4 border-b border-gray-200'}`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center">
+              {/* Left: Mobile Menu & Date */}
+              <div className="flex items-center space-x-4 flex-1">
+                <button className="p-2 -ml-2 text-gray-700 hover:text-black focus:outline-none">
+                  <Menu size={24} />
+                </button>
+                <span className="hidden md:block text-xs font-inter text-gray-500 uppercase tracking-wider">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </span>
+              </div>
+
+              {/* Center: Logo */}
+              <div className="flex-1 text-center flex justify-center">
+                <a href="index.html" className="font-playfair font-black text-3xl md:text-5xl tracking-tight text-gray-900 hover:text-red-700 transition-colors">
+                  The Meridian
+                </a>
+              </div>
+
+              {/* Right: Actions */}
+              <div className="flex items-center justify-end space-x-4 flex-1">
+                <a href="subscription.html" className="hidden sm:flex text-sm font-semibold text-gray-700 hover:text-red-700 transition-colors uppercase tracking-wider font-inter">
+                  Subscribe
+                </a>
+                <button className="p-2 text-gray-700 hover:text-black focus:outline-none hidden sm:block">
+                  <Search size={20} />
+                </button>
+                <button className="text-gray-700 hover:text-black focus:outline-none flex items-center space-x-1">
+                  <User size={20} />
+                  <span className="hidden md:inline-block text-sm font-inter">Sign In</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Global Navigation */}
+            <nav className={`hidden md:block mt-4 pt-4 border-t border-gray-100 transition-all duration-300 ${isScrolled ? 'hidden' : 'block'}`}>
+              <ul className="flex justify-center space-x-8 text-sm font-inter font-medium text-gray-800 tracking-wide uppercase">
+                <li><a href="index.html" className="hover:text-red-700 transition-colors">Home</a></li>
+                <li><a href="category.html" className="hover:text-red-700 transition-colors">World</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Politics</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Business</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Tech</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Science</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Culture</a></li>
+                <li><a href="opinion.html" className="hover:text-red-700 transition-colors">Opinion</a></li>
+              </ul>
+            </nav>
+          </div>
+        </header>
+      );
+    }
+
+    // --- Footer Component ---
+    function Footer() {
+      return (
+        <footer className="bg-slate-950 text-white pt-16 pb-8 border-t-4 border-red-700 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+            {/* Newsletter Pitch */}
+            <div className="w-full max-w-2xl text-center mb-16">
+              <h3 className="font-playfair text-3xl font-bold mb-4">The World in Your Inbox</h3>
+              <p className="font-inter text-gray-400 mb-8">Sign up for the Daily Meridian newsletter to get the top stories of the day delivered straight to you.</p>
+              <form className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
+                <input 
+                  type="email" 
+                  placeholder="Your email address" 
+                  className="flex-1 px-4 py-3 bg-slate-800 border-none text-white focus:ring-2 focus:ring-red-600 font-inter outline-none"
+                />
+                <button type="submit" className="px-6 py-3 bg-red-700 hover:bg-red-600 font-inter font-bold uppercase tracking-wider transition-colors">
+                  Subscribe
+                </button>
+              </form>
+            </div>
+
+            <div className="w-full border-t border-slate-800 mb-12"></div>
+
+            <div className="w-full grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 font-inter text-sm">
+              <div className="col-span-2 md:col-span-4 lg:col-span-1">
+                 <a href="index.html" className="font-playfair font-black text-2xl tracking-tight text-white block mb-6">
+                  The Meridian
+                </a>
+                <p className="text-gray-400 mb-6 font-merriweather text-sm leading-relaxed">
+                  Independent journalism holding power to account.
+                </p>
+                <div className="flex space-x-4 text-gray-400">
+                  <a href="#" className="hover:text-white transition-colors"><Facebook size={20} /></a>
+                  <a href="#" className="hover:text-white transition-colors"><Twitter size={20} /></a>
+                  <a href="#" className="hover:text-white transition-colors"><Instagram size={20} /></a>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Sections</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="category.html" className="hover:text-white transition-colors">World</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Politics</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Business</a></li>
+                  <li><a href="opinion.html" className="hover:text-white transition-colors">Opinion</a></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">About</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="#" className="hover:text-white transition-colors">Our Story</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Journalistic Ethics</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+                </ul>
+              </div>
+              
+               <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Legal</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Cookie Policy</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Accessibility</a></li>
+                </ul>
+              </div>
+
+               <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Account</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="subscription.html" className="text-red-500 hover:text-red-400 transition-colors font-semibold">Subscribe</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Manage Subscription</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="w-full border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 font-inter">
+              <p>&copy; {new Date().getFullYear()} The Meridian Media Company. All rights reserved.</p>
+              <p className="mt-2 md:mt-0">Powered by Antigravity</p>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+
+                
+        tailwind.config = {
+            theme: { extend: { fontFamily: { playfair: ['"Playfair Display"', 'serif'], merriweather: ['Merriweather', 'serif'], inter: ['Inter', 'sans-serif'] } } }
+        };
+
+        function FAQItem({ question, answer }) {
+            const [isOpen, setIsOpen] = useState(false);
+            return (
+                <div className="border-b border-gray-200">
+                    <button
+                        className="w-full py-6 text-left flex justify-between items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 hover:text-red-700 transition-colors"
+                        onClick={() => setIsOpen(!isOpen)}
+                    >
+                        <span className="font-inter font-bold text-lg text-slate-900 pr-8">{question}</span>
+                        {isOpen ? <ChevronUp size={24} className="text-gray-400 flex-shrink-0" /> : <ChevronDown size={24} className="text-gray-400 flex-shrink-0" />}
+                    </button>
+                    <div
+                        className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96 pb-6 opacity-100' : 'max-h-0 opacity-0'}`}
+                    >
+                        <p className="font-merriweather text-gray-600 leading-relaxed pr-8">{answer}</p>
+                    </div>
+                </div>
+            );
+        }
+
+        function SubscriptionPage() {
+            return (
+                <div className="min-h-screen flex flex-col font-merriweather text-gray-900">
+                    <Header />
+
+                    <main className="flex-grow pt-28 md:pt-32">
+
+                        {/* Hero Section */}
+                        <div className="bg-slate-900 text-white py-20 md:py-32">
+                            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                                <h1 className="font-playfair font-black text-5xl md:text-7xl mb-6 leading-tight">Truth Requires Independence.</h1>
+                                <p className="font-inter text-xl md:text-2xl text-gray-300 font-light max-w-2xl mx-auto mb-12">
+                                    Support journalism that holds power to account, free from corporate influence and partisan bias.
+                                </p>
+                                <div className="flex flex-col sm:flex-row justify-center items-center gap-6 font-inter text-sm uppercase tracking-wider font-bold">
+                                    <div className="flex items-center gap-2"><Check size={20} className="text-red-500" /> No Paywalls</div>
+                                    <div className="flex items-center gap-2 hidden sm:block">•</div>
+                                    <div className="flex items-center gap-2"><Check size={20} className="text-red-500" /> Ad-Free Experience</div>
+                                    <div className="flex items-center gap-2 hidden sm:block">•</div>
+                                    <div className="flex items-center gap-2"><Check size={20} className="text-red-500" /> Exclusive Events</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Pricing Tiers */}
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+                                {/* Basic */}
+                                <div className="bg-white border border-gray-200 p-8 shadow-sm flex flex-col">
+                                    <h3 className="font-inter font-bold text-xl uppercase tracking-widest text-slate-500 mb-2">Free</h3>
+                                    <div className="font-playfair font-black text-4xl mb-6">$0<span className="font-inter text-lg text-gray-500 font-normal">/mo</span></div>
+                                    <p className="font-inter text-sm text-gray-600 mb-8 border-b border-gray-200 pb-8 flex-grow">
+                                        Access to the daily newsletter and breaking news alerts.
+                                    </p>
+                                    <ul className="space-y-4 mb-8 font-inter text-sm text-gray-700 font-medium">
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-green-500 flex-shrink-0" /> Daily Briefing Newsletter</li>
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-green-500 flex-shrink-0" /> Breaking News Alerts</li>
+                                        <li className="flex items-center gap-3 opacity-50"><X size={20} className="text-gray-400 flex-shrink-0" /> Unlimited Articles</li>
+                                        <li className="flex items-center gap-3 opacity-50"><X size={20} className="text-gray-400 flex-shrink-0" /> Ad-Free Reading</li>
+                                    </ul>
+                                    <button className="w-full py-4 border-2 border-slate-900 font-inter font-bold uppercase tracking-wider text-slate-900 hover:bg-slate-50 transition-colors">
+                                        Sign Up Free
+                                    </button>
+                                </div>
+
+                                {/* Digital */}
+                                <div className="bg-white border-2 border-red-700 p-8 shadow-xl flex flex-col relative transform md:-translate-y-4">
+                                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-700 text-white font-inter text-xs font-bold uppercase tracking-widest px-4 py-1">Most Popular</div>
+                                    <h3 className="font-inter font-bold text-xl uppercase tracking-widest text-red-700 mb-2 mt-4 md:mt-0">Digital</h3>
+                                    <div className="font-playfair font-black text-5xl mb-6">$9.99<span className="font-inter text-lg text-gray-500 font-normal">/mo</span></div>
+                                    <p className="font-inter text-sm text-gray-600 mb-8 border-b border-gray-200 pb-8 flex-grow">
+                                        Unlimited access to all reporting, opinion, and interactive features.
+                                    </p>
+                                    <ul className="space-y-4 mb-8 font-inter text-sm text-gray-700 font-medium">
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-green-500 flex-shrink-0" /> Daily Briefing Newsletter</li>
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-green-500 flex-shrink-0" /> Breaking News Alerts</li>
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-green-500 flex-shrink-0" /> Unlimited Articles</li>
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-green-500 flex-shrink-0" /> Subscriber-Only Newsletters</li>
+                                        <li className="flex items-center gap-3 opacity-50"><X size={20} className="text-gray-400 flex-shrink-0" /> Ad-Free Reading</li>
+                                    </ul>
+                                    <button className="w-full py-4 bg-red-700 text-white font-inter font-bold uppercase tracking-wider hover:bg-red-800 transition-colors shadow-lg">
+                                        Subscribe Now
+                                    </button>
+                                </div>
+
+                                {/* All-Access */}
+                                <div className="bg-slate-900 text-white border border-slate-800 p-8 shadow-sm flex flex-col">
+                                    <h3 className="font-inter font-bold text-xl uppercase tracking-widest text-gray-400 mb-2">All-Access</h3>
+                                    <div className="font-playfair font-black text-4xl mb-6">$19.99<span className="font-inter text-lg text-gray-400 font-normal">/mo</span></div>
+                                    <p className="font-inter text-sm text-gray-400 mb-8 border-b border-slate-700 pb-8 flex-grow">
+                                        The ultimate experience. Ad-free reading and exclusive live events.
+                                    </p>
+                                    <ul className="space-y-4 mb-8 font-inter text-sm text-gray-300 font-medium">
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-red-500 flex-shrink-0" /> Unlimited Articles</li>
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-red-500 flex-shrink-0" /> Subscriber-Only Newsletters</li>
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-red-500 flex-shrink-0" /> Ad-Free Reading</li>
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-red-500 flex-shrink-0" /> Exclusive Live Events</li>
+                                        <li className="flex items-center gap-3"><Check size={20} className="text-red-500 flex-shrink-0" /> Audio Articles & Podcasts</li>
+                                    </ul>
+                                    <button className="w-full py-4 bg-white text-slate-900 font-inter font-bold uppercase tracking-wider hover:bg-gray-100 transition-colors">
+                                        Go All-Access
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {/* Testimonials */}
+                        <div className="bg-slate-50 py-24 mt-24">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="text-center mb-16">
+                                    <h2 className="font-playfair font-bold text-4xl mb-4 text-slate-900">Why Readers Choose Us</h2>
+                                    <div className="w-16 h-1 bg-red-700 mx-auto"></div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                                    <div className="flex flex-col items-center text-center">
+                                        <div className="flex text-yellow-400 mb-6"><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /></div>
+                                        <p className="font-merriweather text-gray-700 italic mb-6 leading-relaxed">
+                                            "In an era of clickbait and partisan shouting matches, The Meridian is a sanctuary of thoughtful analysis and rigorous reporting."
+                                        </p>
+                                        <div className="font-inter font-bold text-sm uppercase tracking-widest text-slate-900">— Sarah M., Subscriber since 2023</div>
+                                    </div>
+                                    <div className="flex flex-col items-center text-center">
+                                        <div className="flex text-yellow-400 mb-6"><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /></div>
+                                        <p className="font-merriweather text-gray-700 italic mb-6 leading-relaxed">
+                                            "The depth of their international coverage is unmatched. They provide context that other outlets gloss over in their rush to publish."
+                                        </p>
+                                        <div className="font-inter font-bold text-sm uppercase tracking-widest text-slate-900">— James T., Subscriber since 2024</div>
+                                    </div>
+                                    <div className="flex flex-col items-center text-center">
+                                        <div className="flex text-yellow-400 mb-6"><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /><Star size={20} fill="currentColor" /></div>
+                                        <p className="font-merriweather text-gray-700 italic mb-6 leading-relaxed">
+                                            "The ad-free All-Access tier completely transformed my reading experience. Clean, fast, and remarkably insightful."
+                                        </p>
+                                        <div className="font-inter font-bold text-sm uppercase tracking-widest text-slate-900">— Elena R., Subscriber since 2025</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Feature Comparison Table */}
+                        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-24 hidden md:block">
+                            <h2 className="font-playfair font-bold text-4xl mb-12 text-center text-slate-900">Compare Plans</h2>
+
+                            <div className="border border-gray-200">
+                                <table className="w-full text-left font-inter">
+                                    <thead className="bg-slate-50 border-b border-gray-200 uppercase tracking-widest text-xs font-bold text-slate-500">
+                                        <tr>
+                                            <th className="p-6 w-1/4">Features</th>
+                                            <th className="p-6 w-1/4 text-center border-l border-gray-200">Free</th>
+                                            <th className="p-6 w-1/4 text-center border-l-2 border-r-2 border-red-700 bg-red-50 text-red-700">Digital</th>
+                                            <th className="p-6 w-1/4 text-center bg-slate-900 text-white">All-Access</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-sm">
+                                        <tr className="border-b border-gray-200">
+                                            <td className="p-6 font-medium text-slate-900">Daily Newsletter</td>
+                                            <td className="p-6 text-center border-l border-gray-200"><Check size={20} className="mx-auto text-green-500" /></td>
+                                            <td className="p-6 text-center border-l-2 border-r-2 border-red-700"><Check size={20} className="mx-auto text-green-500" /></td>
+                                            <td className="p-6 text-center border-l border-gray-200"><Check size={20} className="mx-auto text-green-500" /></td>
+                                        </tr>
+                                        <tr className="border-b border-gray-200 bg-slate-50/50">
+                                            <td className="p-6 font-medium text-slate-900">Full Article Access</td>
+                                            <td className="p-6 text-center border-l border-gray-200"><X size={20} className="mx-auto text-gray-300" /></td>
+                                            <td className="p-6 text-center border-l-2 border-r-2 border-red-700"><Check size={20} className="mx-auto text-green-500" /></td>
+                                            <td className="p-6 text-center border-l border-gray-200"><Check size={20} className="mx-auto text-green-500" /></td>
+                                        </tr>
+                                        <tr className="border-b border-gray-200">
+                                            <td className="p-6 font-medium text-slate-900">Special Reports & Deep Dives</td>
+                                            <td className="p-6 text-center border-l border-gray-200"><X size={20} className="mx-auto text-gray-300" /></td>
+                                            <td className="p-6 text-center border-l-2 border-r-2 border-red-700"><Check size={20} className="mx-auto text-green-500" /></td>
+                                            <td className="p-6 text-center border-l border-gray-200"><Check size={20} className="mx-auto text-green-500" /></td>
+                                        </tr>
+                                        <tr className="border-b border-gray-200 bg-slate-50/50">
+                                            <td className="p-6 font-medium text-slate-900">Ad-Free Experience</td>
+                                            <td className="p-6 text-center border-l border-gray-200"><X size={20} className="mx-auto text-gray-300" /></td>
+                                            <td className="p-6 text-center border-l-2 border-r-2 border-red-700"><X size={20} className="mx-auto text-gray-300" /></td>
+                                            <td className="p-6 text-center border-l border-gray-200"><Check size={20} className="mx-auto text-green-500" /></td>
+                                        </tr>
+                                        <tr className="bg-slate-50/50">
+                                            <td className="p-6 font-medium text-slate-900">Live Virtual Events</td>
+                                            <td className="p-6 text-center border-l border-gray-200"><X size={20} className="mx-auto text-gray-300" /></td>
+                                            <td className="p-6 text-center border-l-2 border-r-2 border-red-700"><X size={20} className="mx-auto text-gray-300" /></td>
+                                            <td className="p-6 text-center border-l border-gray-200"><Check size={20} className="mx-auto text-green-500" /></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* FAQ */}
+                        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-24 border-t border-gray-200 md:border-t-0">
+                            <h2 className="font-playfair font-bold text-4xl mb-12 text-center text-slate-900">Frequently Asked Questions</h2>
+
+                            <div className="border-t border-gray-200">
+                                <FAQItem
+                                    question="Can I cancel my subscription at any time?"
+                                    answer="Yes, you can cancel your subscription at any time from your account settings. Your access will continue until the end of your current billing period."
+                                />
+                                <FAQItem
+                                    question="Do you offer student or educator discounts?"
+                                    answer="Yes, we offer a 50% discount on our Digital tier for verified students and educators. Please sign up using your .edu email address or contact support for verification."
+                                />
+                                <FAQItem
+                                    question="Can I share my account with others?"
+                                    answer="Your subscription is intended for individual use. However, All-Access subscribers receive two additional family log-ins."
+                                />
+                                <FAQItem
+                                    question="What payment methods do you accept?"
+                                    answer="We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and Apple Pay."
+                                />
+                            </div>
+                        </div>
+
+                        {/* Sign Up Form Section (Static Layout) */}
+                        <div className="bg-slate-900 py-24 text-white">
+                            <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="text-center mb-10">
+                                    <h2 className="font-playfair font-bold text-3xl mb-4">Create Your Account</h2>
+                                    <p className="font-inter text-gray-400">Join a community of informed readers.</p>
+                                </div>
+
+                                <form className="space-y-6" onSubmit={e => e.preventDefault()}>
+                                    <div>
+                                        <label className="block font-inter text-sm mb-2 text-gray-300">Email Address</label>
+                                        <input type="email" placeholder="you@example.com" className="w-full px-4 py-3 bg-slate-800 border border-slate-700 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 font-inter text-white transition-colors" />
+                                    </div>
+                                    <div>
+                                        <label className="block font-inter text-sm mb-2 text-gray-300">Password</label>
+                                        <input type="password" placeholder="••••••••" className="w-full px-4 py-3 bg-slate-800 border border-slate-700 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 font-inter text-white transition-colors" />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input type="checkbox" id="terms" className="w-4 h-4 bg-slate-800 border-slate-700 text-red-600 focus:ring-red-500 rounded-none" />
+                                        <label htmlFor="terms" className="font-inter text-xs text-gray-400">I agree to the <a href="#" className="underline hover:text-white">Terms of Service</a> and <a href="#" className="underline hover:text-white">Privacy Policy</a>.</label>
+                                    </div>
+                                    <button className="w-full py-4 bg-red-700 hover:bg-red-800 text-white font-inter font-bold uppercase tracking-wider transition-colors">
+                                        Continue to Payment
+                                    </button>
+                                </form>
+                                <p className="text-center font-inter text-sm text-gray-500 mt-8">
+                                    Already have an account? <a href="#" className="text-white hover:text-red-400 transition-colors font-semibold">Sign In</a>
+                                </p>
+                            </div>
+                        </div>
+
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<SubscriptionPage />);
+    </script>
+</body>
+
+</html>

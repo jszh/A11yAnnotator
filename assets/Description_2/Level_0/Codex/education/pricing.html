@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SkillForge | Pricing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./shared.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+    <script src="./shared.js"></script>
+    <script>
+      const { html, Shell, SectionTitle } = window.SkillForge;
+
+      const plans = [
+        {
+          title: "Individual Enrollment",
+          price: "$349+",
+          copy: "Best for independent learners enrolling in a single certificate or short skill track.",
+          bullets: ["Payment plans from 3 to 6 months", "Access to advisor onboarding", "Scholarship application eligible"],
+        },
+        {
+          title: "Employer Sponsorship",
+          price: "Custom",
+          copy: "For organizations reskilling teams with cohort seats, reporting, and reimbursement support.",
+          bullets: ["Seat blocks and private cohorts", "Progress dashboards for managers", "Invoice and reimbursement workflows"],
+        },
+        {
+          title: "Non-profit / Government",
+          price: "Reduced",
+          copy: "For workforce boards, nonprofits, and funded career mobility programs needing blended support.",
+          bullets: ["Discounted tuition agreements", "Grant-ready reporting", "Advisor coordination and scholarship matching"],
+        },
+      ];
+
+      function App() {
+        const [tuition, setTuition] = React.useState(349);
+        const months = 4;
+        const estimated = Math.round(tuition / months);
+
+        return html`
+          <${Shell} current="./pricing.html">
+            <section className="mx-auto max-w-7xl px-4 pb-6 pt-8 sm:px-6 lg:px-8">
+              <${SectionTitle}
+                eyebrow="Plans and Pricing"
+                title="Flexible ways to fund short-term career training"
+                copy="Compare individual, employer-sponsored, and nonprofit pricing tracks. Tuition is transparent, financing is straightforward, and advisor support is built in."
+              />
+              <div className="grid gap-6 lg:grid-cols-3">
+                ${plans.map(
+                  (plan, index) => html`
+                    <article key=${plan.title} className=${`${index === 1 ? "gradient-card text-white" : "mesh-panel"} rounded-[2rem] p-6`}>
+                      <p className=${`text-sm font-bold uppercase tracking-[0.24em] ${index === 1 ? "text-sky-200" : "text-sky-700"}`}>${plan.title}</p>
+                      <p className="mt-4 text-4xl font-extrabold">${plan.price}</p>
+                      <p className=${`mt-3 text-sm leading-7 ${index === 1 ? "text-slate-200" : "text-slate-600"}`}>${plan.copy}</p>
+                      <ul className=${`mt-5 space-y-3 text-sm leading-6 ${index === 1 ? "text-slate-100" : "text-slate-700"}`}>
+                        ${plan.bullets.map((item) => html`<li key=${item}>• ${item}</li>`)}
+                      </ul>
+                      <a href="./course-detail.html" className=${`mt-6 inline-flex rounded-full px-5 py-3 text-sm font-semibold ${index === 1 ? "bg-white text-slate-950" : "bg-slate-950 text-white"}`}>
+                        ${index === 1 ? "Talk to Sales" : "Start Learning"}
+                      </a>
+                    </article>
+                  `
+                )}
+              </div>
+            </section>
+
+            <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+              <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+                <div className="mesh-panel rounded-[2rem] p-6">
+                  <p className="text-sm font-bold uppercase tracking-[0.24em] text-sky-700">Financing Calculator</p>
+                  <p className="mt-3 text-2xl font-extrabold text-slate-950">Monthly payment estimator</p>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">Adjust estimated tuition to preview a typical 4-month payment plan. This helps adult learners compare up-front cost with manageable monthly budgeting.</p>
+                  <div className="mt-6 rounded-[1.75rem] bg-white/85 p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-slate-700">Estimated tuition</p>
+                      <p className="text-2xl font-extrabold text-slate-950">$${tuition}</p>
+                    </div>
+                    <input
+                      type="range"
+                      min="120"
+                      max="1200"
+                      step="10"
+                      value=${tuition}
+                      onInput=${(event) => setTuition(Number(event.target.value))}
+                      className="mt-4 w-full"
+                    />
+                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-[1.5rem] bg-sky-50 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-800">Estimated monthly</p>
+                        <p className="mt-2 text-3xl font-extrabold text-slate-950">$${estimated}</p>
+                      </div>
+                      <div className="rounded-[1.5rem] bg-emerald-50 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-800">Plan assumption</p>
+                        <p className="mt-2 text-lg font-bold text-slate-950">4 monthly payments</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-6">
+                  <div className="gradient-card rounded-[2rem] px-6 py-6 text-white">
+                    <p className="text-sm font-bold uppercase tracking-[0.24em] text-sky-200">Advisor support</p>
+                    <p className="mt-3 text-3xl font-extrabold">Talk to an Advisor</p>
+                    <p className="mt-3 text-sm leading-7 text-slate-200">Live chat is open now for pathway fit, financing guidance, and scholarship questions.</p>
+                    <a href="./dashboard.html" className="mt-5 inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950">Open Live Chat</a>
+                  </div>
+                  <div className="mesh-panel rounded-[2rem] p-6">
+                    <p className="text-sm font-bold uppercase tracking-[0.24em] text-sky-700">Additional support</p>
+                    <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
+                      <a href="./course-detail.html" className="block rounded-[1.5rem] bg-white/85 px-4 py-4">Scholarship application for community and nonprofit referrals</a>
+                      <div className="rounded-[1.5rem] bg-white/85 px-4 py-4">Employer reimbursement packet and invoicing documentation</div>
+                    </div>
+                  </div>
+                  <div className="mesh-panel rounded-[2rem] p-6">
+                    <p className="text-sm font-bold uppercase tracking-[0.24em] text-sky-700">Accreditation badges</p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <span className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">Workforce Ready</span>
+                      <span className="rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-900">Employer Aligned</span>
+                      <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-900">Certificate Verified</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </${Shell}>
+        `;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+    </script>
+  </body>
+</html>

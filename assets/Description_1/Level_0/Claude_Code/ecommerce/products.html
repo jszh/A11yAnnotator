@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaMart – Electronics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .scroll-hide::-webkit-scrollbar { display: none; }
+    .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+<div id="root"></div>
+<script type="text/babel">
+
+const { useState, useMemo } = React;
+
+/* ── SHARED HEADER ── */
+function Header({ cartCount = 3 }) {
+  const [query, setQuery] = useState('');
+  const categories = ['Electronics','Kitchen','Clothing','Sports','Beauty','Books','Toys','Automotive'];
+  return (
+    <header className="bg-blue-900 text-white shadow-lg sticky top-0 z-50">
+      <div className="bg-blue-950 text-xs text-blue-200 py-1">
+        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+          <span>🚚 Free shipping on orders over $35</span>
+          <div className="flex gap-4">
+            <a href="account.html" className="hover:text-yellow-300 transition">Sign In</a>
+            <span className="opacity-40">|</span>
+            <a href="account.html" className="hover:text-yellow-300 transition">New Customer? Start here</a>
+          </div>
+        </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+        <a href="index.html" className="text-2xl font-extrabold text-yellow-400 tracking-tight whitespace-nowrap hover:text-yellow-300 transition">
+          Nova<span className="text-white">Mart</span>
+        </a>
+        <div className="flex flex-1 max-w-2xl">
+          <select className="bg-gray-100 text-gray-700 text-sm px-2 rounded-l-lg border-r border-gray-300 focus:outline-none">
+            <option>All</option>
+            {categories.map(c => <option key={c}>{c}</option>)}
+          </select>
+          <input type="text" value={query} onChange={e=>setQuery(e.target.value)}
+            placeholder="Search NovaMart..."
+            className="flex-1 px-4 py-2 text-gray-900 text-sm focus:outline-none" />
+          <button className="bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-semibold px-5 py-2 rounded-r-lg transition text-sm">Search</button>
+        </div>
+        <div className="flex items-center gap-5 ml-2 text-sm">
+          <a href="account.html" className="flex flex-col items-center hover:text-yellow-300 transition leading-tight">
+            <span className="text-lg">👤</span><span className="text-xs">Account</span>
+          </a>
+          <a href="cart.html" className="flex flex-col items-center hover:text-yellow-300 transition leading-tight relative">
+            <span className="text-lg">🛒</span>
+            <span className="absolute -top-1 -right-2 bg-yellow-400 text-blue-900 text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">{cartCount}</span>
+            <span className="text-xs">Cart</span>
+          </a>
+        </div>
+      </div>
+      <nav className="bg-blue-800 text-sm">
+        <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto scroll-hide py-1">
+          {['Today\'s Deals','Electronics','Kitchen & Home','Clothing','Sports','Beauty','Books','Toys','Automotive','Gift Cards'].map(cat=>(
+            <a key={cat} href="products.html"
+               className="whitespace-nowrap px-3 py-1.5 rounded hover:bg-blue-700 hover:text-yellow-300 transition text-blue-100">{cat}</a>
+          ))}
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+/* ── SHARED FOOTER ── */
+function Footer() {
+  return (
+    <footer className="bg-blue-950 text-blue-200 mt-16">
+      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+        <div>
+          <h3 className="text-white font-bold mb-3">Get to Know Us</h3>
+          {['About NovaMart','Careers','Press & Blog','Sustainability'].map(l=><a key={l} href="#" className="block mb-1.5 hover:text-yellow-300 transition">{l}</a>)}
+        </div>
+        <div>
+          <h3 className="text-white font-bold mb-3">Shop With Us</h3>
+          {['Your Account','Track Your Order','Returns','NovaMart Prime'].map(l=><a key={l} href="#" className="block mb-1.5 hover:text-yellow-300 transition">{l}</a>)}
+        </div>
+        <div>
+          <h3 className="text-white font-bold mb-3">Help</h3>
+          {['Help Center','Shipping Rates','Returns Policy','NovaMart App'].map(l=><a key={l} href="#" className="block mb-1.5 hover:text-yellow-300 transition">{l}</a>)}
+        </div>
+        <div>
+          <h3 className="text-white font-bold mb-3">Stay Connected</h3>
+          <div className="flex"><input type="email" placeholder="Your email" className="flex-1 px-3 py-2 rounded-l-lg text-gray-900 text-xs focus:outline-none"/>
+            <button className="bg-yellow-400 text-blue-900 font-semibold px-3 py-2 rounded-r-lg text-xs">Go</button></div>
+        </div>
+      </div>
+      <div className="border-t border-blue-800 py-4 text-center text-xs text-blue-400">
+        © 2026 NovaMart, Inc. · <a href="#" className="hover:text-yellow-300">Privacy</a> · <a href="#" className="hover:text-yellow-300">Terms</a>
+      </div>
+    </footer>
+  );
+}
+
+function Stars({ rating }) {
+  return (
+    <div className="flex items-center gap-0.5 text-xs">
+      {[1,2,3,4,5].map(i=><span key={i} className={i<=Math.round(rating)?'text-yellow-400':'text-gray-300'}>★</span>)}
+    </div>
+  );
+}
+
+/* ── ALL PRODUCTS DATA ── */
+const ALL_PRODUCTS = [
+  { id:1, name:'Sony WH-1000XM5 Wireless Headphones', brand:'Sony', price:279.99, original:399.99, rating:4.8, reviews:12340, cat:'Electronics', seed:'sony1', inStock:true, badge:'Best Seller' },
+  { id:2, name:'Apple AirPods Pro (2nd Gen)', brand:'Apple', price:189.99, original:249.00, rating:4.7, reviews:89210, cat:'Electronics', seed:'apple1', inStock:true, badge:'Sale' },
+  { id:3, name:'Samsung Galaxy S24 Ultra', brand:'Samsung', price:1199.99, original:1399.99, rating:4.6, reviews:5430, cat:'Electronics', seed:'samsung1', inStock:true, badge:null },
+  { id:4, name:'LG 27" 4K IPS Monitor', brand:'LG', price:349.99, original:499.99, rating:4.5, reviews:3210, cat:'Electronics', seed:'monitor1', inStock:true, badge:'Sale' },
+  { id:5, name:'Amazon Echo Dot (5th Gen)', brand:'Amazon', price:34.99, original:49.99, rating:4.6, reviews:132000, cat:'Electronics', seed:'echo1', inStock:true, badge:'Best Seller' },
+  { id:6, name:'Anker PowerCore 26800mAh Power Bank', brand:'Anker', price:45.99, original:79.99, rating:4.6, reviews:34500, cat:'Electronics', seed:'anker1', inStock:true, badge:'Sale' },
+  { id:7, name:'Logitech MX Master 3S Wireless Mouse', brand:'Logitech', price:69.99, original:99.99, rating:4.7, reviews:8900, cat:'Electronics', seed:'mouse1', inStock:true, badge:null },
+  { id:8, name:'Bose QuietComfort 45 Headphones', brand:'Bose', price:199.99, original:329.00, rating:4.5, reviews:14500, cat:'Electronics', seed:'bose1', inStock:true, badge:'Sale' },
+  { id:9, name:'iPad Air (5th Gen) 10.9"', brand:'Apple', price:499.99, original:599.00, rating:4.7, reviews:23100, cat:'Electronics', seed:'ipad1', inStock:true, badge:null },
+  { id:10, name:'Samsung 65" 4K QLED Smart TV', brand:'Samsung', price:799.99, original:1299.99, rating:4.6, reviews:3201, cat:'Electronics', seed:'tv1', inStock:true, badge:'Sale' },
+  { id:11, name:'Garmin Forerunner 255 GPS Watch', brand:'Garmin', price:249.99, original:349.99, rating:4.6, reviews:5400, cat:'Electronics', seed:'garmin1', inStock:true, badge:'Sale' },
+  { id:12, name:'Sony A7 IV Full-Frame Mirrorless Camera', brand:'Sony', price:2499.99, original:2799.99, rating:4.8, reviews:1230, cat:'Electronics', seed:'camera1', inStock:false, badge:null },
+  { id:13, name:'Razer DeathAdder V3 Gaming Mouse', brand:'Razer', price:59.99, original:79.99, rating:4.6, reviews:6700, cat:'Electronics', seed:'razer1', inStock:true, badge:null },
+  { id:14, name:'JBL Charge 5 Portable Bluetooth Speaker', brand:'JBL', price:139.99, original:199.99, rating:4.7, reviews:18200, cat:'Electronics', seed:'jbl1', inStock:true, badge:'Sale' },
+  { id:15, name:'Apple Watch Series 9 45mm', brand:'Apple', price:429.99, original:499.00, rating:4.7, reviews:34500, cat:'Electronics', seed:'awatch1', inStock:true, badge:null },
+  { id:16, name:'DJI Mini 4 Pro Drone', brand:'DJI', price:759.99, original:959.99, rating:4.7, reviews:2340, cat:'Electronics', seed:'drone1', inStock:true, badge:'New' },
+  { id:17, name:'Kindle Paperwhite (11th Gen)', brand:'Amazon', price:104.99, original:139.99, rating:4.7, reviews:56700, cat:'Electronics', seed:'kindle1', inStock:true, badge:'Best Seller' },
+  { id:18, name:'Nikon Z30 APS-C Mirrorless Camera', brand:'Nikon', price:799.99, original:999.99, rating:4.5, reviews:890, cat:'Electronics', seed:'nikon1', inStock:true, badge:null },
+  { id:19, name:'TP-Link Archer AXE75 Wi-Fi 6E Router', brand:'TP-Link', price:149.99, original:199.99, rating:4.5, reviews:3400, cat:'Electronics', seed:'router1', inStock:true, badge:'Sale' },
+  { id:20, name:'Samsung Galaxy Tab S9 FE 10.9"', brand:'Samsung', price:399.99, original:449.99, rating:4.4, reviews:2100, cat:'Electronics', seed:'tab1', inStock:true, badge:null },
+  { id:21, name:'Dyson V15 Detect Vacuum Cleaner', brand:'Dyson', price:549.99, original:749.99, rating:4.7, reviews:6543, cat:'Electronics', seed:'dyson1', inStock:true, badge:'Sale' },
+  { id:22, name:'Corsair K95 RGB Platinum Keyboard', brand:'Corsair', price:149.99, original:199.99, rating:4.6, reviews:12300, cat:'Electronics', seed:'keyboard1', inStock:false, badge:null },
+  { id:23, name:'Google Nest Hub Max Smart Display', brand:'Google', price:169.99, original:229.99, rating:4.4, reviews:8900, cat:'Electronics', seed:'nest1', inStock:true, badge:null },
+  { id:24, name:'Ring Video Doorbell Pro 2', brand:'Ring', price:189.99, original:249.99, rating:4.5, reviews:21000, cat:'Electronics', seed:'ring1', inStock:true, badge:'Sale' },
+];
+
+const BRANDS = ['Sony','Apple','Samsung','LG','Amazon','Anker','Logitech','Bose','Garmin','Razer','JBL','DJI','Nikon','TP-Link','Dyson','Corsair','Google','Ring'];
+const SORT_OPTIONS = ['Best Match','Price: Low to High','Price: High to Low','Customer Rating','Most Reviews','New Arrivals'];
+
+/* ── FILTER SIDEBAR ── */
+function FilterSidebar({ filters, setFilters }) {
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+
+  function toggleBrand(b) {
+    setFilters(f => ({
+      ...f,
+      brands: f.brands.includes(b) ? f.brands.filter(x=>x!==b) : [...f.brands, b]
+    }));
+  }
+
+  function applyPrice() {
+    setFilters(f => ({...f, priceMin: priceMin?Number(priceMin):null, priceMax: priceMax?Number(priceMax):null}));
+  }
+
+  function clearAll() {
+    setFilters({ brands:[], priceMin:null, priceMax:null, minRating:0, inStockOnly:false });
+    setPriceMin(''); setPriceMax('');
+  }
+
+  const priceRanges = [
+    { label:'Under $50', min:null, max:50 },
+    { label:'$50 – $100', min:50, max:100 },
+    { label:'$100 – $250', min:100, max:250 },
+    { label:'$250 – $500', min:250, max:500 },
+    { label:'$500 – $1000', min:500, max:1000 },
+    { label:'Over $1000', min:1000, max:null },
+  ];
+
+  return (
+    <aside className="w-56 flex-shrink-0">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sticky top-28">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-gray-900">Filters</h3>
+          <button onClick={clearAll} className="text-xs text-blue-600 hover:underline">Clear all</button>
+        </div>
+
+        {/* In Stock */}
+        <div className="mb-5">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={filters.inStockOnly}
+              onChange={e=>setFilters(f=>({...f,inStockOnly:e.target.checked}))}
+              className="rounded border-gray-300 text-blue-600" />
+            <span className="text-sm font-medium">In Stock Only</span>
+          </label>
+        </div>
+
+        {/* Brand */}
+        <div className="mb-5">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Brand</h4>
+          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            {BRANDS.map(b=>(
+              <label key={b} className="flex items-center gap-2 cursor-pointer hover:text-blue-600 text-sm">
+                <input type="checkbox" checked={filters.brands.includes(b)}
+                  onChange={()=>toggleBrand(b)} className="rounded border-gray-300 text-blue-600" />
+                {b}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Price Range (quick select) */}
+        <div className="mb-5">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Price Range</h4>
+          {priceRanges.map(r=>(
+            <button key={r.label} onClick={()=>setFilters(f=>({...f,priceMin:r.min,priceMax:r.max}))}
+              className={`block w-full text-left text-xs px-2 py-1.5 rounded mb-1 transition ${filters.priceMin===r.min&&filters.priceMax===r.max?'bg-blue-50 text-blue-700 font-semibold':'hover:bg-gray-50 text-gray-600'}`}>
+              {r.label}
+            </button>
+          ))}
+          <div className="flex gap-2 mt-2">
+            <input type="number" placeholder="Min" value={priceMin} onChange={e=>setPriceMin(e.target.value)}
+              className="w-full border border-gray-200 rounded px-2 py-1 text-xs" />
+            <input type="number" placeholder="Max" value={priceMax} onChange={e=>setPriceMax(e.target.value)}
+              className="w-full border border-gray-200 rounded px-2 py-1 text-xs" />
+          </div>
+          <button onClick={applyPrice} className="w-full mt-2 bg-blue-600 text-white text-xs py-1.5 rounded hover:bg-blue-700 transition">Apply</button>
+        </div>
+
+        {/* Rating */}
+        <div className="mb-5">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">Customer Rating</h4>
+          {[4,3,2,1].map(r=>(
+            <button key={r} onClick={()=>setFilters(f=>({...f,minRating:f.minRating===r?0:r}))}
+              className={`flex items-center gap-1 text-xs w-full px-2 py-1.5 rounded mb-1 transition ${filters.minRating===r?'bg-blue-50 text-blue-700 font-semibold':'hover:bg-gray-50 text-gray-600'}`}>
+              {[1,2,3,4,5].map(i=><span key={i} className={i<=r?'text-yellow-400':'text-gray-300'}>★</span>)}
+              <span className="ml-1">& Up</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/* ── PRODUCT CARD ── */
+function ProductCard({ product }) {
+  const [wished, setWished] = useState(false);
+  const discount = product.original ? Math.round((1-product.price/product.original)*100) : 0;
+  return (
+    <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 flex flex-col group">
+      <div className="relative bg-gray-50 h-44 flex items-center justify-center overflow-hidden rounded-t-xl">
+        <img src={`https://picsum.photos/seed/${product.seed}/300/200`} alt={product.name}
+             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300" />
+        {product.badge && (
+          <span className={`absolute top-2 left-2 text-xs font-bold px-2 py-0.5 rounded-full ${product.badge==='Sale'?'bg-red-500 text-white':product.badge==='New'?'bg-green-500 text-white':'bg-yellow-400 text-blue-900'}`}>
+            {product.badge}
+          </span>
+        )}
+        {!product.inStock && (
+          <div className="absolute inset-0 bg-white/70 flex items-center justify-center rounded-t-xl">
+            <span className="bg-gray-700 text-white text-xs font-semibold px-3 py-1 rounded-full">Out of Stock</span>
+          </div>
+        )}
+        <button onClick={()=>setWished(w=>!w)}
+          className={`absolute top-2 right-2 bg-white rounded-full p-1.5 shadow hover:scale-110 transition text-sm ${wished?'text-red-500':'text-gray-300'}`}>♥</button>
+      </div>
+      <div className="p-3 flex flex-col flex-1">
+        <p className="text-xs text-blue-600 font-medium mb-0.5">{product.brand}</p>
+        <a href="product-detail.html" className="text-sm text-gray-800 font-medium leading-snug line-clamp-2 flex-1 hover:text-blue-700">{product.name}</a>
+        <div className="flex items-center gap-1 my-1.5 text-xs">
+          {[1,2,3,4,5].map(i=><span key={i} className={i<=Math.round(product.rating)?'text-yellow-400':'text-gray-300'}>★</span>)}
+          <span className="text-blue-600 ml-1">({product.reviews.toLocaleString()})</span>
+        </div>
+        <div className="flex items-baseline gap-1.5 mb-1">
+          <span className="text-base font-bold">${product.price.toFixed(2)}</span>
+          {product.original && <>
+            <span className="text-xs text-gray-400 line-through">${product.original.toFixed(2)}</span>
+            <span className="text-xs text-red-500 font-semibold">-{discount}%</span>
+          </>}
+        </div>
+        {product.inStock
+          ? <p className="text-xs text-green-600 font-medium">✓ Free delivery</p>
+          : <p className="text-xs text-red-500 font-medium">✗ Currently unavailable</p>
+        }
+      </div>
+      {product.inStock && (
+        <div className="px-3 pb-3">
+          <a href="product-detail.html"
+             className="block w-full text-center bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-semibold text-xs py-2 rounded-lg transition">
+            View Product
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── MAIN APP ── */
+function App() {
+  const [filters, setFilters] = useState({ brands:[], priceMin:null, priceMax:null, minRating:0, inStockOnly:false });
+  const [sort, setSort] = useState('Best Match');
+  const [viewMode, setViewMode] = useState('grid'); // grid | list
+
+  const filtered = useMemo(() => {
+    let list = ALL_PRODUCTS;
+    if(filters.brands.length) list = list.filter(p=>filters.brands.includes(p.brand));
+    if(filters.priceMin != null) list = list.filter(p=>p.price >= filters.priceMin);
+    if(filters.priceMax != null) list = list.filter(p=>p.price <= filters.priceMax);
+    if(filters.minRating) list = list.filter(p=>p.rating >= filters.minRating);
+    if(filters.inStockOnly) list = list.filter(p=>p.inStock);
+    switch(sort) {
+      case 'Price: Low to High': list = [...list].sort((a,b)=>a.price-b.price); break;
+      case 'Price: High to Low': list = [...list].sort((a,b)=>b.price-a.price); break;
+      case 'Customer Rating': list = [...list].sort((a,b)=>b.rating-a.rating); break;
+      case 'Most Reviews': list = [...list].sort((a,b)=>b.reviews-a.reviews); break;
+      default: break;
+    }
+    return list;
+  }, [filters, sort]);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header cartCount={3} />
+
+      {/* Breadcrumb */}
+      <div className="max-w-7xl mx-auto px-4 py-3 text-xs text-gray-500 flex gap-1">
+        <a href="index.html" className="hover:text-blue-600">Home</a>
+        <span>›</span>
+        <span className="text-gray-700 font-medium">Electronics</span>
+      </div>
+
+      <main className="flex-1 max-w-7xl mx-auto px-4 pb-10 w-full">
+        <h1 className="text-2xl font-bold mb-1">Electronics</h1>
+        <p className="text-sm text-gray-500 mb-5">{filtered.length.toLocaleString()} results found</p>
+
+        <div className="flex gap-6 items-start">
+          <FilterSidebar filters={filters} setFilters={setFilters} />
+
+          <div className="flex-1 min-w-0">
+            {/* Sort bar */}
+            <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center justify-between mb-5 shadow-sm">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">Sort by:</span>
+                {SORT_OPTIONS.map(o=>(
+                  <button key={o} onClick={()=>setSort(o)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${sort===o?'bg-blue-600 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    {o}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-1">
+                <button onClick={()=>setViewMode('grid')}
+                  className={`p-2 rounded transition ${viewMode==='grid'?'bg-blue-600 text-white':'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="Grid view">
+                  ▦
+                </button>
+                <button onClick={()=>setViewMode('list')}
+                  className={`p-2 rounded transition ${viewMode==='list'?'bg-blue-600 text-white':'bg-gray-100 text-gray-500 hover:bg-gray-200'}`} title="List view">
+                  ☰
+                </button>
+              </div>
+            </div>
+
+            {/* Results */}
+            {filtered.length === 0
+              ? <div className="text-center py-16 text-gray-400">
+                  <p className="text-4xl mb-3">🔍</p>
+                  <p className="font-semibold text-gray-600">No products match your filters.</p>
+                  <button onClick={()=>setFilters({brands:[],priceMin:null,priceMax:null,minRating:0,inStockOnly:false})}
+                    className="mt-4 text-blue-600 text-sm hover:underline">Clear all filters</button>
+                </div>
+              : viewMode === 'grid'
+                ? <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {filtered.map(p=><ProductCard key={p.id} product={p}/>)}
+                  </div>
+                : <div className="space-y-3">
+                    {filtered.map(p=>(
+                      <div key={p.id} className="bg-white rounded-xl border border-gray-100 shadow-sm flex gap-4 p-4 hover:shadow-md transition">
+                        <img src={`https://picsum.photos/seed/${p.seed}/120/100`} alt={p.name}
+                             className="w-28 h-24 object-cover rounded-lg flex-shrink-0"/>
+                        <div className="flex-1">
+                          <p className="text-xs text-blue-600 font-medium">{p.brand}</p>
+                          <a href="product-detail.html" className="font-semibold text-gray-900 hover:text-blue-700 text-sm">{p.name}</a>
+                          <div className="flex items-center gap-0.5 my-1 text-xs">
+                            {[1,2,3,4,5].map(i=><span key={i} className={i<=Math.round(p.rating)?'text-yellow-400':'text-gray-300'}>★</span>)}
+                            <span className="text-blue-600 ml-1 text-xs">({p.reviews.toLocaleString()})</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-bold">${p.price.toFixed(2)}</span>
+                            {p.original && <span className="text-xs text-gray-400 line-through">${p.original.toFixed(2)}</span>}
+                            {p.original && <span className="text-xs text-red-500 font-semibold">-{Math.round((1-p.price/p.original)*100)}%</span>}
+                          </div>
+                          {p.inStock && <p className="text-xs text-green-600">✓ In Stock · Free delivery</p>}
+                        </div>
+                        {p.inStock && (
+                          <div className="flex flex-col gap-2 justify-center">
+                            <a href="cart.html" className="bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-semibold text-xs px-4 py-2 rounded-lg transition whitespace-nowrap">Add to Cart</a>
+                            <a href="product-detail.html" className="border border-gray-300 text-gray-700 text-xs px-4 py-2 rounded-lg hover:bg-gray-50 transition text-center">View Details</a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+            }
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

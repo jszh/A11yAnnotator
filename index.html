@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A11y Annotation Tool</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d1117;color:#c9d1d9;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+  #topbar{background:#161b22;border-bottom:1px solid #30363d;padding:0 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;height:48px;}
+  .brand{font-size:13px;font-weight:700;color:#58a6ff;margin-right:2px;}
+  .btn{border-radius:6px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;border:1px solid;}
+  #loadBtn{background:#21262d;color:#c9d1d9;border-color:#30363d;}
+  #loadBtn:hover{background:#30363d;}
+  #fileInput{display:none;}
+  #fileLabel{font-size:12px;color:#8b949e;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #fileLabel.loaded{color:#c9d1d9;}
+  .sep{flex:1;}
+  #stats{font-size:12px;color:#8b949e;}
+  #stats b{color:#f97316;}
+  #exportBtn{background:#1f6feb;color:#fff;border-color:#388bfd;}
+  #exportBtn:hover:not(:disabled){background:#388bfd;}
+  #exportBtn:disabled{background:#21262d;border-color:#30363d;color:#484f58;cursor:not-allowed;}
+  #reloadBtn{background:#21262d;color:#c9d1d9;border-color:#30363d;}
+  #reloadBtn:hover:not(:disabled){background:#30363d;}
+  #reloadBtn:disabled{color:#484f58;cursor:not-allowed;}
+  #modeBtn{background:#21262d;color:#c9d1d9;border-color:#30363d;}
+  #modeBtn:hover:not(.active){background:#30363d;}
+  #modeBtn.active{background:#0d2a47;color:#58a6ff;border-color:#1f6feb;}
+  #modeBtn.active:hover{background:#163a6b;}
+  #svrBtn{background:#21262d;color:#c9d1d9;border-color:#30363d;}
+  #svrBtn:disabled{color:#484f58;cursor:not-allowed;}
+  #svrBtn.svr-starting{border-color:#d29922;color:#d29922;cursor:not-allowed;}
+  #svrBtn.svr-running{background:#0d1f13;border-color:#3fb950;color:#3fb950;}
+  #svrBtn.svr-running:hover{background:#122318;}
+  #engineBtn{background:#21262d;border-color:#30363d;font-size:11px;letter-spacing:.04em;}
+  #engineBtn .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#484f58;margin-right:5px;vertical-align:middle;}
+  #engineBtn.up{color:#c9d1d9;} #engineBtn.up .dot{background:#3fb950;box-shadow:0 0 4px rgba(63,185,80,.6);}
+  #engineBtn.down{color:#f85149;} #engineBtn.down .dot{background:#f85149;}
+  #engineBtn.starting{color:#d29922;} #engineBtn.starting .dot{background:#d29922;animation:pulse 1s ease-in-out infinite;}
+  #engineBtn.unavailable{color:#484f58;cursor:not-allowed;} #engineBtn.unavailable .dot{background:#484f58;}
+  #srLogBtn.active{background:#0d2a47;color:#58a6ff;border-color:#1f6feb;}
+  #srPanel{position:fixed;right:16px;bottom:16px;width:340px;max-height:46vh;display:none;flex-direction:column;background:#0d1117;border:1px solid #30363d;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.55);z-index:60;font-size:12px;}
+  #srPanel.open{display:flex;}
+  #srPanelHead{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #21262d;}
+  #srPanelHead .t{flex:1;font-weight:600;color:#c9d1d9;letter-spacing:.03em;}
+  #srLogList{overflow-y:auto;padding:4px 10px 8px;flex:1;}
+  #srLogList .row{padding:3px 0;border-bottom:1px solid #161b22;color:#9da7b3;line-height:1.4;word-break:break-word;}
+  #srLogList .row .role{color:#58a6ff;font-weight:600;}
+  #srLogList .row.meta{color:#6e7681;font-style:italic;border-bottom:none;}
+  #srPanel .x{cursor:pointer;color:#8b949e;background:none;border:none;font-size:13px;line-height:1;padding:2px 4px;}
+  #srPanel .x:hover{color:#c9d1d9;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+  #main{display:flex;flex:1;overflow:hidden;}
+
+  #leftPanel{flex:62;display:flex;flex-direction:column;min-width:300px;}
+  #iframeWrap{flex:1;background:#fff;position:relative;overflow-x:auto;overflow-y:hidden;}
+  #pageFrame{min-width:1280px;width:100%;height:100%;border:none;display:block;}
+  #dropOverlay{position:absolute;inset:0;z-index:10;display:none;border:2px dashed #58a6ff;background:rgba(88,166,255,.04);pointer-events:none;border-radius:2px;}
+  #dropOverlay.active{display:block;pointer-events:all;}
+  #placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#0d1117;}
+  .ph-icon{opacity:.12;}
+  .ph-text{font-size:14px;color:#8b949e;}
+  .ph-hint{font-size:11px;color:#484f58;text-align:center;line-height:1.8;}
+
+  #legend{background:#161b22;border-top:1px solid #30363d;padding:6px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+  .li{display:flex;align-items:center;gap:5px;font-size:11px;color:#8b949e;}
+  .ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+  .ld-h{background:#f59e0b;} .ld-s{background:#3b82f6;} .ld-t{background:#f97316;}
+  #elemBar{font-size:11px;color:#8b949e;font-family:'SF Mono','Fira Code',monospace;margin-left:6px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #scaleBtn.active{background:#0d2a47;color:#58a6ff;border-color:#1f6feb;}
+  #scaleBtn.active:hover{background:#163a6b;}
+
+  #resizer{width:4px;background:#21262d;cursor:col-resize;flex-shrink:0;transition:background .15s;}
+  #resizer:hover,#resizer.drag{background:#58a6ff;}
+
+  #sidebar{flex:none;width:480px;display:flex;flex-direction:column;overflow:hidden;background:#161b22;}
+  #progressPanel{padding:8px 14px;border-bottom:1px solid #30363d;flex-shrink:0;background:#0d1117;}
+  #progressBar{display:flex;align-items:center;gap:6px;}
+  #progressCount{font-size:11px;color:#8b949e;flex:1;}
+  #progressCount b{color:#a5b4fc;}
+  .prog-btn{padding:2px 8px;font-size:11px;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;cursor:pointer;}
+  .prog-btn:hover:not(:disabled){background:#30363d;}
+  .prog-btn:disabled{color:#484f58;cursor:not-allowed;}
+  #progressList{display:none;margin-top:8px;max-height:240px;overflow-y:auto;font-size:11px;border-top:1px solid #21262d;padding-top:6px;}
+  #progressList.open{display:block;}
+  #progressList::-webkit-scrollbar{width:6px;}
+  #progressList::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px;}
+  .prog-row{display:flex;align-items:center;gap:6px;padding:3px 4px;cursor:pointer;border-radius:3px;}
+  .prog-row:hover{background:#1c2128;}
+  .prog-row.active{background:#0d2a47;}
+  .prog-ind{width:14px;text-align:center;font-weight:700;flex-shrink:0;}
+  .prog-ind.done{color:#86efac;} .prog-ind.todo{color:#ec4899;}
+  .prog-num{font-family:'SF Mono',monospace;color:#484f58;font-size:10px;flex-shrink:0;width:18px;}
+  .prog-lbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c9d1d9;}
+  .prog-row.done-row .prog-lbl{color:#8b949e;}
+  .prog-region{font-size:9px;color:#67e8f9;background:#0a1f2e;border:1px solid #0e7490;border-radius:3px;padding:0 4px;flex-shrink:0;}
+  #sidebarHeader{padding:12px 16px 10px;border-bottom:1px solid #30363d;flex-shrink:0;}
+  #sidebarTitle{font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+  .sec-title{font-size:10px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;padding:8px 16px 6px;flex-shrink:0;border-bottom:1px solid #30363d;}
+  #selStatus{font-size:11px;color:#484f58;}
+  #selStatus.active{color:#58a6ff;}
+  #elemProps{display:flex;flex-direction:column;gap:2px;margin-top:6px;min-height:0;}
+  #elemProps:empty{display:none;}
+  .ep{display:flex;align-items:center;gap:3px;}
+  .ep-k{font-size:9px;font-weight:600;color:#484f58;text-transform:uppercase;letter-spacing:.05em;}
+  .ep-v{font-size:10px;font-family:'SF Mono','Fira Code',monospace;background:#21262d;border:1px solid #30363d;border-radius:3px;padding:1px 6px;color:#c9d1d9;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ep-v.yes{color:#4ade80;background:#0d2b0d;border-color:#166534;}
+  .ep-v.no{color:#f87171;background:#2d0f0f;border-color:#5b2020;}
+  .ep-v.warn{color:#fbbf24;background:#2d1f00;border-color:#78450a;}
+  .ep-v.scanning{color:#a5b4fc;background:#1e1b4b;border-color:#4338ca;animation:pulse 1.5s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+  .ep-v.ep-tab{color:#67e8f9;background:#0a1f2e;border-color:#0e7490;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ep-v.ep-tab:hover{background:#0d2a3e;border-color:#06b6d4;}
+  .ep-row{display:flex;align-items:center;gap:5px;width:100%;padding:2px 0;}
+  .ep-chk{font-size:12px;font-weight:700;flex-shrink:0;line-height:1;}
+  .ep-chk.yes{color:#4ade80;} .ep-chk.no{color:#f87171;} .ep-chk.warn{color:#fbbf24;} .ep-chk.scanning{color:#a5b4fc;animation:pulse 1.5s ease-in-out infinite;}
+  .ep-v.ep-fill{flex:1;min-width:0;max-width:none;}
+  .ep-v.ep-speech{flex:1;min-width:0;max-width:none;white-space:normal;line-height:1.5;max-height:calc(3 * 1.5em + 4px);overflow-y:auto;}
+  .ep-nav{display:flex;align-items:center;gap:4px;flex:1;min-width:0;}
+  .ep-dim{opacity:.4;}
+  .ep-dim .ep-v.ep-tab:hover,.ep-v.ep-tab.ep-dim:hover{background:#131c22;border-color:#1a4a5c;}
+  .ep-nav .ep-v.ep-tab{flex:1;min-width:0;max-width:none;}
+  .sel-tag{background:#1f2937;border:1px solid #374151;border-radius:4px;padding:1px 6px;font-family:'SF Mono',monospace;font-size:10px;color:#93c5fd;}
+  #sidebarBody{flex:1;overflow-y:auto;}
+  #sidebarBody::-webkit-scrollbar{width:6px;}
+  #sidebarBody::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px;}
+
+  #annotResizer{height:4px;background:#21262d;cursor:row-resize;flex-shrink:0;transition:background .15s;}
+  #annotResizer:hover,#annotResizer.drag{background:#58a6ff;}
+
+  #sidebarFooter{border-top:1px solid #30363d;padding:0 0 6px;flex-shrink:0;background:#0d1117;display:flex;flex-direction:column;height:280px;overflow:hidden;}
+  #annotList{font-size:11px;overflow-y:auto;flex:1;padding:4px 8px;}
+  #annotList::-webkit-scrollbar{width:6px;}
+  #annotList::-webkit-scrollbar-thumb{background:#30363d;border-radius:3px;}
+  .annot-item{display:flex;align-items:center;gap:6px;padding:3px 4px;border-bottom:1px solid #1c2128;cursor:pointer;border-radius:3px;}
+  .annot-item:hover{background:#1c2128;}
+  .annot-item:last-child{border-bottom:none;}
+  .annot-sel{font-family:'SF Mono',monospace;font-size:10px;color:#f97316;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .annot-n{background:#f97316;color:#000;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;flex-shrink:0;}
+
+  .cat-block{border-bottom:1px solid #21262d;}
+  .cat-header{display:flex;align-items:center;gap:0;padding:0;cursor:default;}
+  .cat-header:hover{background:none;}
+  .cat-cb{margin:0 8px 0 14px;flex-shrink:0;accent-color:#a855f7;width:14px;height:14px;cursor:pointer;}
+  .cat-expander{display:flex;align-items:center;gap:8px;flex:1;padding:9px 14px 9px 0;cursor:pointer;user-select:none;transition:background .1s;}
+  .cat-expander:hover{background:#1c2128;}
+  .cat-toggle{color:#484f58;font-size:9px;flex-shrink:0;transition:transform .15s;}
+  .cat-toggle.open{transform:rotate(90deg);}
+  .cat-name{font-size:12px;font-weight:500;color:#c9d1d9;flex:1;line-height:1.4;}
+  .cat-badge{font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;background:#21262d;color:#484f58;flex-shrink:0;}
+  .cat-badge.on{background:#6d28d9;color:#ddd6fe;}
+  .cat-block.checked .cat-badge{background:#6d28d9;color:#ddd6fe;}
+  .cat-examples{display:none;padding:4px 0 8px;}
+  .cat-examples.open{display:block;}
+
+  /* Special annotation blocks: "No obvious issues" / "Not listed above" */
+  .cat-block.special-block{background:#0f1318;}
+  .cat-block.special-block .cat-name{color:#a5b4fc;}
+  .nl-fields{padding:4px 22px 8px;}
+  .nl-label{display:block;font-size:10px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:.05em;margin:6px 0 3px;}
+  .nl-input{display:block;width:100%;padding:5px 8px;font-family:inherit;font-size:11px;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;}
+  .nl-input:focus{outline:none;border-color:#1f6feb;}
+  textarea.nl-input{resize:vertical;font-family:'SF Mono','Fira Code',monospace;}
+
+  .err-card{margin:3px 10px 3px 22px;border-radius:6px;background:#0d1117;border:1px solid #21262d;overflow:hidden;transition:border-color .15s;}
+  .err-card.checked{border-color:#7c3aed;background:#0f0b1a;}
+  .err-label{display:flex;align-items:flex-start;gap:0;cursor:pointer;padding:9px 11px 6px;transition:background .1s;}
+  .err-label:hover{background:#111827;}
+  .err-cb{margin-top:2px;flex-shrink:0;accent-color:#a855f7;width:13px;height:13px;cursor:pointer;}
+  .err-body{flex:1;min-width:0;padding-left:8px;}
+  .err-element{font-size:11px;font-weight:600;color:#79c0ff;margin-bottom:3px;}
+  .err-summary{font-size:11px;color:#8b949e;line-height:1.5;}
+  .err-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+  .tag{font-size:10px;border-radius:4px;padding:1px 6px;font-weight:500;line-height:1.6;}
+  .tag-wcag{background:#0d2a47;color:#58a6ff;border:1px solid #1f6feb;}
+  .tag-fail{background:#2d0f0f;color:#fca5a5;border:1px solid #5b2020;}
+  .tag-high{background:#0d2b0d;color:#4ade80;border:1px solid #166534;}
+  .tag-medium{background:#2b1800;color:#fbbf24;border:1px solid #92400e;}
+  .tag-low{background:#1a1f4b;color:#a5b4fc;border:1px solid #3730a3;}
+
+  .det-btn{font-size:10px;color:#484f58;padding:0 11px 7px 32px;cursor:pointer;display:block;}
+  .det-btn:hover{color:#8b949e;}
+  .err-details{display:none;border-top:1px solid #1c2128;padding:8px 11px;background:#090d13;}
+  .err-details.open{display:block;}
+  .dl{font-size:10px;font-weight:600;color:#484f58;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;margin-top:8px;}
+  .dl:first-child{margin-top:0;}
+  .dc{font-family:'SF Mono',monospace;font-size:10px;color:#86efac;background:#0a1a0a;border-radius:4px;padding:6px 8px;word-break:break-all;white-space:pre-wrap;line-height:1.5;border:1px solid #14291a;}
+  .dt{font-size:11px;color:#8b949e;line-height:1.6;}
+
+  /* WCAG Success Criterion cards */
+  .sc-card{margin:3px 10px 3px 22px;border-radius:6px;background:#0d1117;border:1px solid #21262d;overflow:hidden;}
+  .sc-head{display:flex;align-items:center;gap:7px;padding:7px 10px;cursor:pointer;user-select:none;}
+  .sc-head:hover{background:#111827;}
+  .sc-toggle{color:#484f58;font-size:9px;flex-shrink:0;transition:transform .15s;width:9px;text-align:center;}
+  .sc-toggle.open{transform:rotate(90deg);}
+  .sc-id{font-family:'SF Mono','Fira Code',monospace;font-size:10px;color:#79c0ff;flex-shrink:0;}
+  .sc-title{font-size:11px;color:#c9d1d9;flex:1;line-height:1.4;}
+  .sc-level{font-size:9px;font-weight:700;border-radius:4px;padding:1px 6px;flex-shrink:0;background:#21262d;color:#8b949e;border:1px solid #30363d;}
+  .sc-what{font-size:11px;color:#8b949e;line-height:1.5;padding:0 11px 9px 26px;}
+  .sc-details{display:none;padding:8px 11px 9px 26px;background:#090d13;}
+  .sc-details.open{display:block;}
+  .sc-row{margin-bottom:6px;}
+  .sc-row:last-child{margin-bottom:0;}
+  .sc-label{font-size:9px;font-weight:700;color:#484f58;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+  .sc-text{font-size:11px;color:#8b949e;line-height:1.5;}
+  .sc-link{display:inline-block;margin-top:6px;font-size:10px;color:#58a6ff;text-decoration:none;}
+  .sc-link:hover{text-decoration:underline;}
+
+  /* Axe scan results */
+  #axeSection{border-bottom:2px solid #30363d;}
+  .axe-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 6px;}
+  .axe-title{font-size:10px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;}
+  .axe-badge{font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;}
+  .axe-badge-err{background:#2d0f0f;color:#fca5a5;}
+  .axe-badge-ok{background:#0d2b0d;color:#4ade80;}
+  .axe-status{padding:8px 16px 10px;font-size:11px;color:#8b949e;}
+  .axe-grp{border-top:1px solid #1c2128;}
+  .axe-grp-hdr{display:flex;align-items:center;gap:8px;padding:5px 16px;cursor:pointer;user-select:none;}
+  .axe-grp-hdr:hover{background:#111827;}
+  .axe-grp-toggle{color:#484f58;font-size:9px;flex-shrink:0;transition:transform .15s;}
+  .axe-grp-toggle.open{transform:rotate(90deg);}
+  .axe-grp-name{font-size:11px;color:#c9d1d9;flex:1;}
+  .axe-grp-badge{font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;background:#2d0f0f;color:#fca5a5;flex-shrink:0;}
+  .axe-card{margin:2px 10px 2px 16px;border-radius:5px;background:#090d13;border:1px solid #1c2128;padding:7px 10px;overflow:hidden;}
+  .axe-card-row{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+  .axe-rule{font-size:10px;color:#484f58;font-family:'SF Mono',monospace;flex:1;}
+  .axe-cnt{font-size:9px;color:#484f58;flex-shrink:0;}
+  .axe-help{font-size:11px;color:#8b949e;line-height:1.4;margin-bottom:2px;}
+  .axe-node{font-family:'SF Mono',monospace;font-size:10px;color:#86efac;background:#0a1a0a;border-radius:3px;padding:3px 6px;margin-top:2px;word-break:break-all;overflow:hidden;max-height:36px;border:1px solid #14291a;cursor:pointer;transition:border-color .15s,background .15s;}
+  .axe-node:hover{border-color:#06b6d4;background:#0a1f22;}
+  .axe-more{font-size:10px;color:#484f58;margin-top:3px;cursor:pointer;}
+  .axe-more:hover{color:#8b949e;}
+  .imp{font-size:9px;font-weight:700;border-radius:4px;padding:1px 5px;flex-shrink:0;}
+  .imp-critical{background:#4a0000;color:#ff6b6b;border:1px solid #7a1a1a;}
+  .imp-serious{background:#3a1a00;color:#fb923c;border:1px solid #6a3010;}
+  .imp-moderate{background:#2b1800;color:#fbbf24;border:1px solid #92400e;}
+  .imp-minor{background:#1f2535;color:#94a3b8;border:1px solid #334155;}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="brand">A11y</div>
+  <button class="btn" id="loadBtn" onclick="document.getElementById('fileInput').click()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Load Page
+  </button>
+  <input type="file" id="fileInput" accept=".html,.htm">
+  <select id="assetSelect" class="btn" style="cursor:pointer;max-width:260px;"></select>
+  <span id="fileLabel">No file loaded</span>
+  <button class="btn" id="scaleBtn">Fit</button>
+  <button class="btn" id="reloadBtn" disabled>Reload</button>
+  <button class="btn" id="svrBtn" style="display:none">Start Server</button>
+  <button class="btn" id="modeBtn">Interact</button>
+  <label class="btn" id="offlineLabel" title="Block off-origin resources (CSP) when loading asset pages">
+    <input id="offlineToggle" type="checkbox" style="margin:0 4px 0 0;vertical-align:middle">Offline
+  </label>
+  <button class="btn" id="engineBtn" title="Screen reader engine status — click to restart"><span class="dot"></span>SR</button>
+  <button class="btn" id="srLogBtn" title="Live screen-reader transcript — follows focus moves &amp; aria-live announcements as you interact. Best in Interact mode.">SR Log</button>
+  <div class="sep"></div>
+  <span id="stats"><b>0</b> elements annotated</span>
+  <button class="btn" id="exportBtn" onclick="exportJSON()" disabled>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export JSON
+  </button>
+</div>
+
+<div id="main">
+  <div id="leftPanel">
+    <div id="iframeWrap">
+      <div id="placeholder">
+        <svg class="ph-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#8b949e" stroke-width="1.2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <p class="ph-text">Load an HTML snapshot to begin</p>
+        <p class="ph-hint">Hover to highlight · Click to select<br>⌘/Ctrl+Click button/link to activate · ⌘/Ctrl+Click other to multi-select</p>
+      </div>
+      <iframe id="pageFrame" sandbox="allow-scripts allow-same-origin" style="display:none"></iframe>
+      <div id="dropOverlay"></div>
+    </div>
+    <div id="legend">
+      <div class="li"><div class="ld ld-h"></div>Hover</div>
+      <div class="li"><div class="ld ld-s"></div>Selected</div>
+      <div class="li"><div class="ld ld-t"></div>Annotated</div>
+      <div id="elemBar">—</div>
+    </div>
+  </div>
+
+  <div id="resizer"></div>
+
+  <div id="sidebar">
+    <div id="progressPanel">
+      <div id="progressBar">
+        <span id="progressCount"><b>0</b>/0 annotated</span>
+        <button class="prog-btn" id="prevSampleBtn" title="Previous sample element">◀ Prev</button>
+        <button class="prog-btn" id="nextSampleBtn" title="Next sample element">Next ▶</button>
+        <button class="prog-btn" id="progToggleBtn" title="Show all samples">▼</button>
+      </div>
+      <div id="progressList"></div>
+    </div>
+    <div id="sidebarHeader">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="selStatus" style="flex:1">Select an element on the left to annotate it</div>
+        <button class="btn" id="confirmBtn" style="display:none;background:#0f3b1f;color:#86efac;border-color:#166534;padding:4px 10px;font-size:11px;">✓ Confirm</button>
+      </div>
+      <div id="elemProps"></div>
+    </div>
+    <div id="sidebarBody"></div>
+    <div id="annotResizer"></div>
+    <div id="sidebarFooter">
+      <div class="sec-title">Annotated Elements</div>
+      <div id="annotList"><span style="color:#484f58;font-size:11px">None yet</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="srPanel">
+  <div id="srPanelHead">
+    <span class="t">Screen-reader transcript</span>
+    <button class="btn" id="srClearBtn" style="padding:2px 8px;font-size:11px;">Clear</button>
+    <button class="x" id="srCloseBtn" title="Close">✕</button>
+  </div>
+  <div id="srLogList"></div>
+</div>
+
+<script>
+const FINDINGS = (function() {
+  try {
+    const x = new XMLHttpRequest();
+    x.open('GET', 'categories.json', false);
+    x.send();
+    if (x.status === 200 || x.status === 0) {
+      const data = JSON.parse(x.responseText);
+      delete data._meta;
+      return data;
+    }
+    console.warn('categories.json not found');
+  } catch(e) { console.warn('categories.json load failed:', e); }
+  return {};
+})();
+</script>
+<script>
+const INJECT_CSS = "[data-a11y]{scroll-padding:20px;}[data-a11y] .a11y-hov{outline:2px solid #f59e0b!important;outline-offset:2px!important;cursor:crosshair!important;}[data-a11y] .a11y-sel{outline:2px solid #3b82f6!important;outline-offset:2px!important;background:rgba(59,130,246,.08)!important;}[data-a11y] .a11y-tagged{outline:2px solid #f97316!important;outline-offset:2px!important;}[data-a11y] .a11y-sel.a11y-tagged{outline:2px solid #3b82f6!important;background:rgba(59,130,246,.08)!important;}[data-a11y] .a11y-tabhl{outline:2px solid #06b6d4!important;outline-offset:3px!important;background:rgba(6,182,212,.07)!important;}[data-a11y] .a11y-par-1{outline:2px dashed rgba(245,158,11,.55)!important;}[data-a11y] .a11y-par-2{outline:2px dashed rgba(245,158,11,.38)!important;}[data-a11y] .a11y-par-3{outline:2px dashed rgba(245,158,11,.24)!important;}[data-a11y] .a11y-par-4{outline:2px dashed rgba(245,158,11,.14)!important;}[data-a11y] .a11y-par-5{outline:2px dashed rgba(245,158,11,.08)!important;}[data-a11y] .a11y-sample-pending{outline:2px solid #ec4899!important;outline-offset:2px!important;}[data-a11y] .a11y-sample-done{outline:1px dashed rgba(168,85,247,.45)!important;outline-offset:2px!important;}[data-a11y] .a11y-sample-current.a11y-sample-current{outline:4px solid #ec4899!important;outline-offset:3px!important;box-shadow:0 0 0 2px rgba(236,72,153,.55),0 0 16px 4px rgba(236,72,153,.45)!important;}";
+
+// Companion script injected after INJECT_JS — listens for batched sample-highlight
+// messages and toggles a11y-sample-{todo,done} on elements addressed by xpath.
+// Keeps the latest batch and re-applies it on an interval for ~25s: SPA pages
+// (React via babel) render long after document load, so a one-shot xpath
+// lookup misses every element. Re-applying also restores classes wiped by
+// framework re-renders. Reports how many xpaths resolved via 'sample-status'.
+// Resolution order per sample: exact xpath → element id → tag + text/aria-label
+// prefix (absolute xpaths break wholesale when dynamic pages inject a sibling
+// at body level, so the metadata fallbacks do the heavy lifting there). A
+// claimed-set keeps two same-named samples from grabbing one node.
+const SAMPLE_INJECT_JS = "(function(){var STATES=['current','pending','done'];var lastBatch=null;var retryTimer=null;var retriesLeft=0;function norm(s){return (s||'').replace(/\\s+/g,' ').trim();}function findXp(xp){try{var r=document.evaluate(xp,document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null);return r.singleNodeValue;}catch(_){return null;}}function resolve(s,claimed){var el=findXp(s.xpath);if(el&&(!claimed||!claimed.has(el)))return el;if(s.elId){el=document.getElementById(s.elId);if(el&&(!claimed||!claimed.has(el)))return el;}var key=norm(s.name).slice(0,40);if(s.tag&&key){var cands=document.getElementsByTagName(s.tag);for(var i=0;i<cands.length;i++){var c=cands[i];if(claimed&&claimed.has(c))continue;var al=norm(c.getAttribute&&c.getAttribute('aria-label'));var tx=norm(c.textContent).slice(0,120);if((al&&al.slice(0,40)===key)||(tx&&tx.slice(0,40)===key))return c;}}return null;}function paint(el,state){STATES.forEach(function(st){el.classList.remove('a11y-sample-'+st);});if(STATES.indexOf(state)!==-1)el.classList.add('a11y-sample-'+state);}function applyBatch(){if(!lastBatch)return 0;var ok=0;var claimed=new Set();lastBatch.forEach(function(s){var el=resolve(s,claimed);if(!el)return;claimed.add(el);s._el=el;paint(el,s.state);ok++;});parent.postMessage({t:'sample-status',resolved:ok,total:lastBatch.length},'*');return ok;}function startRetry(){if(retryTimer)clearInterval(retryTimer);retriesLeft=50;retryTimer=setInterval(function(){var ok=applyBatch();retriesLeft--;if(ok>=(lastBatch?lastBatch.length:0)||retriesLeft<=0){clearInterval(retryTimer);retryTimer=null;}},500);}window.addEventListener('message',function(e){var d=e.data;if(!d)return;if(d.t==='sample'){if(Array.isArray(d.batch)){lastBatch=d.batch;applyBatch();startRetry();}else if(d.xpath){if(lastBatch){var hit=false;lastBatch.forEach(function(s){if(s.xpath===d.xpath){s.state=d.state;hit=true;}});if(!hit)lastBatch.push({xpath:d.xpath,state:d.state});}applyBatch();}return;}if(d.t==='sample-jump'&&d.item){var el=(lastBatch&&(lastBatch.filter(function(s){return s.xpath===d.item.xpath;})[0]||{})._el)||resolve(d.item,null);if(el&&typeof mkId==='function'){var aid=mkId(el);window.postMessage({t:'ext-sel',aid:aid},'*');}else{parent.postMessage({t:'sample-jump-miss',xpath:d.item.xpath},'*');}}});})();";
+const INJECT_JS  = "document.documentElement.setAttribute('data-a11y','1');if(!document.documentElement.lang)document.documentElement.lang='en';if(!document.title)document.title='(Loaded Page)';var hovEl=null, selEls=[], parEls=[], clickRoot=null, clickLevel=0, taggedAids=new Set(), interactMode=false;\nfunction mkId(el){\n  if(!el.dataset.a11yId){var xp=getXPath(el);var h=5381;for(var i=0;i<xp.length;i++){h=((h<<5)+h)^xp.charCodeAt(i);h=h>>>0;}el.dataset.a11yId='x'+h.toString(36);}\n  return el.dataset.a11yId;\n}\nfunction getA11yName(el){var al=el.getAttribute('aria-label');if(al)return al.trim();var lby=el.getAttribute('aria-labelledby');if(lby){var parts=lby.split(' ').map(function(i){var r=document.getElementById(i);return r?r.textContent.trim():'';}).filter(Boolean);if(parts.length)return parts.join(' ');}var tag=el.tagName;if(tag==='IMG'||tag==='AREA')return el.getAttribute('alt')||'';if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'){var eid=el.id;if(eid){var lbl=document.querySelector('label[for=\"'+eid+'\"]');if(lbl)return lbl.textContent.trim();}var plbl=el.closest('label');if(plbl)return plbl.textContent.trim();return el.getAttribute('placeholder')||'';}var title=el.getAttribute('title');if(title)return title;var _tc=(el.textContent||'').trim();if(_tc)return _tc.slice(0,60);try{var _im=el.querySelector('img[alt]:not([alt=\"\"]),area[alt]:not([alt=\"\"])');if(_im)return _im.getAttribute('alt').trim().slice(0,60);var _st=el.querySelector('svg title');if(_st&&_st.textContent.trim())return _st.textContent.trim().slice(0,60);}catch(_){}return '';}\nfunction getRole(el){var r=el.getAttribute('role');if(r)return r;var t=el.tagName.toLowerCase(),tp=(el.getAttribute('type')||'').toLowerCase();if(t==='input'){var m={checkbox:'checkbox',radio:'radio',button:'button',submit:'button',reset:'button',range:'slider',search:'searchbox',number:'spinbutton'};return m[tp]||'textbox';}if(t==='a')return el.getAttribute('href')!==null?'link':'generic';if(t==='footer'||t==='header'){var _sc=el.parentElement&&el.parentElement.closest('article,aside,main,nav,section');if(_sc)return t==='footer'?'sectionfooter':'sectionheader';}var rm={a:'link',button:'button',img:'img',svg:'image',p:'paragraph',h1:'heading',h2:'heading',h3:'heading',h4:'heading',h5:'heading',h6:'heading',ul:'list',ol:'list',li:'listitem',nav:'navigation',main:'main',header:'banner',footer:'contentinfo',aside:'complementary',section:'region',article:'article',form:'form',select:'listbox',textarea:'textbox',table:'table',tr:'row',td:'cell',th:'columnheader',dialog:'dialog',summary:'button',details:'group'};return rm[t]||t;}\nfunction isFocusable(el){var ti=el.getAttribute('tabindex');if(ti!==null)return parseInt(ti,10)>=0;if(el.disabled)return false;var t=el.tagName.toLowerCase();if(t==='a'||t==='area')return el.getAttribute('href')!==null;if(t==='button'||t==='input'||t==='select'||t==='textarea')return true;if(t==='summary'){var sd=el.parentElement;return !!(sd&&sd.tagName==='DETAILS'&&sd.querySelector('summary')===el);}if((t==='audio'||t==='video')&&el.hasAttribute('controls'))return true;if(t==='iframe')return true;if(el.contentEditable==='true')return true;return false;}\nfunction tabNodeInfo(el){mkId(el);var cls=typeof el.className==='string'?el.className.replace(/a11y-hov|a11y-sel|a11y-tagged|a11y-tabhl/g,'').trim():'';return {aid:el.dataset.a11yId,tag:el.tagName.toLowerCase(),elId:el.id||'',cls:cls.slice(0,40),txt:(el.textContent||'').trim().slice(0,40)};}\nfunction getTabOrder(){var all=Array.from(document.querySelectorAll('a[href],area[href],button,input,select,textarea,summary,audio[controls],video[controls],iframe,[contenteditable],[tabindex]')).filter(function(el){var ti=el.getAttribute('tabindex');if(ti!==null&&parseInt(ti,10)<0)return false;if(el.disabled)return false;if(el.closest('[inert]'))return false;var cs=getComputedStyle(el);if(cs.display==='none'||cs.visibility==='hidden')return false;if(el.checkVisibility&&!el.checkVisibility())return false;if(el.tagName==='SUMMARY'){var sd=el.parentElement;if(!sd||sd.tagName!=='DETAILS'||sd.querySelector('summary')!==el)return false;}if(ti===null&&el.matches('[contenteditable]')&&el.contentEditable!=='true'&&!el.matches('a[href],area[href],button,input,select,textarea,summary,audio[controls],video[controls],iframe'))return false;var det=el.closest('details');if(det&&el.tagName!=='SUMMARY'&&det.querySelector('summary')!==el&&!det.open)return false;return true;});var pos=all.filter(function(el){return parseInt(el.getAttribute('tabindex')||'0',10)>0;}).sort(function(a,b){var ta=parseInt(a.getAttribute('tabindex'),10),tb=parseInt(b.getAttribute('tabindex'),10);if(ta!==tb)return ta-tb;return a.compareDocumentPosition(b)&4?-1:1;});var zero=all.filter(function(el){return parseInt(el.getAttribute('tabindex')||'0',10)===0;});return pos.concat(zero);}\nfunction getTabNeighbors(el){var order=getTabOrder(),idx=order.indexOf(el);if(idx===-1)return {prev:null,next:null,index:-1,total:order.length};var p=order[idx>0?idx-1:order.length-1],n=order[idx<order.length-1?idx+1:0];return {prev:p&&p!==el?tabNodeInfo(p):null,next:n&&n!==el?tabNodeInfo(n):null,index:idx+1,total:order.length};}\nfunction getXPath(el){if(!el||!el.tagName)return '';if(el===document.body)return '/html/body';if(el===document.documentElement)return '/html';var ns=el.namespaceURI,isH=!ns||ns==='http://www.w3.org/1999/xhtml',t=isH?el.tagName.toLowerCase():el.tagName,idx=1,sib=el.previousElementSibling;while(sib){if(sib.tagName===el.tagName)idx++;sib=sib.previousElementSibling;}return getXPath(el.parentElement)+(isH?'/'+t+'['+idx+']':'/*[local-name()=\\''+t+'\\']['+idx+']');}\nfunction info(el){\n  var cls=(el.className&&typeof el.className==='string')?el.className.replace(/a11y-hov|a11y-sel|a11y-tagged/g,'').trim():'';\n  var _r=el.getAttribute('role')||'';return {id:mkId(el),tag:el.tagName.toLowerCase(),elId:el.id||'',cls:cls.slice(0,60),txt:(el.textContent||'').trim().slice(0,80),name:getA11yName(el),role:getRole(el),focusable:isFocusable(el),xpath:getXPath(el),decorative:_r==='presentation'||_r==='none'||((el.tagName==='IMG'||el.tagName==='AREA')&&el.hasAttribute('alt')&&el.getAttribute('alt')==='') };\n}\nfunction clearParents(){parEls.forEach(function(p,i){p.classList.remove('a11y-par-'+(i+1));});parEls=[];}\ndocument.addEventListener('mouseover',function(e){\n  if(interactMode)return;\n  if(hovEl)hovEl.classList.remove('a11y-hov');\n  clearParents();\n  hovEl=e.target; hovEl.classList.add('a11y-hov');\n  var p=hovEl.parentElement,lvl=1;\n  while(p&&p.tagName&&p.tagName!=='HTML'&&lvl<=5){if(p.classList.contains('a11y-sel'))break;p.classList.add('a11y-par-'+lvl);parEls.push(p);p=p.parentElement;lvl++;}\n  parent.postMessage({t:'hov',d:info(e.target)},'*');\n});\ndocument.addEventListener('mouseout',function(){\n  if(interactMode)return;\n  if(hovEl)hovEl.classList.remove('a11y-hov');\n  clearParents();\n  hovEl=null; parent.postMessage({t:'out'},'*');\n});\ndocument.addEventListener('click',function(e){\n  if(interactMode)return;\n  e.preventDefault();\n  var multi=e.metaKey||e.ctrlKey,tgt=e.target;\n  if(multi){\n    var wasSel=tgt.classList.contains('a11y-sel');\n    if(wasSel){tgt.classList.remove('a11y-sel');selEls=selEls.filter(function(s){return s!==tgt;});}\n    else{tgt.classList.add('a11y-sel');selEls.push(tgt);}\n    clickRoot=null;clickLevel=0;\n  } else {\n    var sel;\n    if(tgt===clickRoot){\n      clickLevel++;\n      sel=clickRoot;\n      for(var i=0;i<clickLevel;i++){if(sel.parentElement&&sel.parentElement.tagName!=='HTML'){sel=sel.parentElement;}else{clickLevel=0;sel=clickRoot;break;}}\n    } else {\n      clickRoot=tgt;clickLevel=0;sel=tgt;\n    }\n    selEls.forEach(function(s){s.classList.remove('a11y-sel');});selEls=[sel];sel.classList.add('a11y-sel');\n  }\n  clearParents();var _root=selEls.length===1?selEls[0]:null;if(_root){var _p=_root.parentElement,_l=1;while(_p&&_p.tagName&&_p.tagName!=='HTML'&&_l<=5){_p.classList.add('a11y-par-'+_l);parEls.push(_p);_p=_p.parentElement;_l++;}}\n  var _tab=selEls.length===1?getTabNeighbors(selEls[0]):null;\n  parent.postMessage({t:'clk',n:selEls.length,all:selEls.map(info),tab:_tab},'*');\n},true);\nwindow.addEventListener('message',function(e){\n  var d=e.data; if(!d)return;\n  if(d.t==='mode'){interactMode=d.interactive;if(interactMode&&hovEl){hovEl.classList.remove('a11y-hov');hovEl=null;clearParents();}return;}\n  if(d.t==='clear'){\n    selEls.forEach(function(s){s.classList.remove('a11y-sel');}); selEls=[];clickRoot=null;clickLevel=0;\n    parent.postMessage({t:'clk',n:0,all:[]},'*');\n  }\n  if(d.t==='tag'){\n    var el=document.querySelector('[data-a11y-id=\"'+d.aid+'\"]');\n    if(!el&&d.xpath){try{var _xr2=document.evaluate(d.xpath,document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null);var _xe=_xr2.singleNodeValue;if(_xe){mkId(_xe);el=_xe;}}catch(_){}}\n    if(el)el.classList.toggle('a11y-tagged',d.on);\n    if(d.on)taggedAids.add(d.aid);else taggedAids.delete(d.aid);\n  }\n  if(d.t==='tabhl'){document.querySelectorAll('.a11y-tabhl').forEach(function(e){e.classList.remove('a11y-tabhl');});if(d.aids){d.aids.forEach(function(a){var e=document.querySelector('[data-a11y-id=\"'+a+'\"]');if(e)e.classList.add('a11y-tabhl');});}else if(d.aid){var thl=document.querySelector('[data-a11y-id=\"'+d.aid+'\"]');if(thl)thl.classList.add('a11y-tabhl');}else if(d.xpath){try{var xr=document.evaluate(d.xpath,document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null);var xhl=xr.singleNodeValue;if(xhl)xhl.classList.add('a11y-tabhl');}catch(_){}}}\n  if(d.t==='ext-hov'){document.querySelectorAll('.a11y-tabhl').forEach(function(e){e.classList.remove('a11y-tabhl');});if(d.aid){var _eh=document.querySelector('[data-a11y-id=\"'+d.aid+'\"]');if(_eh)_eh.classList.add('a11y-tabhl');}}\n  if(d.t==='ext-sel'){selEls.forEach(function(s){s.classList.remove('a11y-sel');});selEls=[];clickRoot=null;clickLevel=0;clearParents();var _es=d.aid?document.querySelector('[data-a11y-id=\"'+d.aid+'\"]'):null;if(_es){selEls=[_es];_es.classList.add('a11y-sel');_es.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});var _ep=_es.parentElement,_el=1;while(_ep&&_ep.tagName&&_ep.tagName!=='HTML'&&_el<=5){_ep.classList.add('a11y-par-'+_el);parEls.push(_ep);_ep=_ep.parentElement;_el++;}parent.postMessage({t:'clk',n:1,all:[info(_es)],tab:getTabNeighbors(_es)},'*');}else if(d.xpath){try{var _xr=document.evaluate(d.xpath,document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null);var _xs=_xr.singleNodeValue;if(_xs){mkId(_xs);selEls=[_xs];_xs.classList.add('a11y-sel');_xs.scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});var _xp=_xs.parentElement,_xl=1;while(_xp&&_xp.tagName&&_xp.tagName!=='HTML'&&_xl<=5){_xp.classList.add('a11y-par-'+_xl);parEls.push(_xp);_xp=_xp.parentElement;_xl++;}parent.postMessage({t:'clk',n:1,all:[info(_xs)],tab:getTabNeighbors(_xs)},'*');}else{parent.postMessage({t:'clk',n:0,all:[]},'*');}}catch(_){parent.postMessage({t:'clk',n:0,all:[]},'*');}}else{parent.postMessage({t:'clk',n:0,all:[]},'*');}}\nif(d.t==='ext-multi-sel'){selEls.forEach(function(s){s.classList.remove('a11y-sel');});selEls=[];clickRoot=null;clickLevel=0;clearParents();if(d.aids&&d.aids.length){d.aids.forEach(function(a){var el=document.querySelector('[data-a11y-id=\"'+a+'\"]');if(el){selEls.push(el);el.classList.add('a11y-sel');}});if(selEls.length)selEls[0].scrollIntoView({behavior:'smooth',block:'center',inline:'nearest'});parent.postMessage({t:'clk',n:selEls.length,all:selEls.map(info),tab:selEls.length===1?getTabNeighbors(selEls[0]):null},'*');}else{parent.postMessage({t:'clk',n:0,all:[]},'*');}}\n});\nvar _obs=new MutationObserver(function(muts){muts.forEach(function(m){if(m.type!=='attributes')return;var el=m.target,aid=el.dataset&&el.dataset.a11yId;if(aid&&taggedAids.has(aid)&&!el.classList.contains('a11y-tagged'))el.classList.add('a11y-tagged');if(selEls.indexOf(el)!==-1&&!el.classList.contains('a11y-sel'))el.classList.add('a11y-sel');});});_obs.observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});";
+
+// State
+const annotations = {}; // a11yId -> { elInfo, confirmed?, errors:{key->obj} }
+
+// Sample-elements data: maps pageKey -> sampled-element xpaths to highlight.
+let samplesData = {};
+fetch('/assets/samples.json').then(r => r.ok ? r.json() : {}).catch(() => ({}))
+  .then(a => fetch('/assets/samples-saved.json').then(r => r.ok ? r.json() : {}).catch(() => ({}))
+    .then(b => { samplesData = { ...a, ...b }; if (currentAssetFile || currentPageUrl) { loadPageSamples(); refreshSampleHighlights(); } }));
+
+function getSampleXpaths(pageKey) {
+  const entry = pageKey && samplesData[pageKey];
+  if (!entry || !entry.sampled) return [];
+  const out = [];
+  for (const list of Object.values(entry.sampled))
+    for (const it of list) if (it.xpath) out.push(it.xpath);
+  return out;
+}
+function isXpathAnnotated(xpath) {
+  for (const aid in annotations) {
+    const a = annotations[aid];
+    if (a.elInfo && a.elInfo.xpath === xpath) {
+      if (a.confirmed) return true;
+      if (a.errors && Object.keys(a.errors).length > 0) return true;
+    }
+  }
+  return false;
+}
+// A sample counts as annotated if either its stored xpath or the live xpath
+// it resolved to (when metadata fallback kicked in) has an annotation.
+function isSampleAnnotated(item) {
+  return isXpathAnnotated(item.xpath) || (item.liveXpath && isXpathAnnotated(item.liveXpath));
+}
+// Highlight rules:
+//   • the CURRENT sample (cursor of prev/next) → bold pink "current" outline
+//   • any other un-annotated sample → regular 2px pink "pending" outline
+//   • any annotated sample → dim purple dashed "done" outline
+function refreshSampleHighlights() {
+  const pageKey = currentAssetFile || currentPageUrl;
+  const xpaths = getSampleXpaths(pageKey);
+  if (!xpaths.length) return;
+  const currentXp = (currentSampleIdx >= 0 && pageSampleList[currentSampleIdx]) ? pageSampleList[currentSampleIdx].xpath : null;
+  // Include tag/name so the iframe resolver can fall back when xpaths drift.
+  const batch = pageSampleList.map(it => ({
+    xpath: it.xpath, tag: it.tag || '', name: it.name || '',
+    state: it.xpath === currentXp ? 'current' : (isSampleAnnotated(it) ? 'done' : 'pending'),
+  }));
+  pageFrame.contentWindow && pageFrame.contentWindow.postMessage({ t:'sample', batch }, '*');
+}
+function updateSampleState(elInfo) {
+  if (!elInfo || !elInfo.xpath) return;
+  if (!pageSampleList.some(s => s.xpath === elInfo.xpath || s.liveXpath === elInfo.xpath)) return;
+  refreshSampleHighlights();
+  updateProgressPanel();
+}
+
+// Flat list of sample items for current page (in landmark order) + cursor.
+let pageSampleList = [];
+let currentSampleIdx = -1;
+let sampleResolveStatus = null; // {resolved,total} from iframe sample-status
+let pendingJumpIdx = -1;        // sample idx awaiting its 'clk' to record liveXpath
+
+function loadPageSamples() {
+  const pageKey = currentAssetFile || currentPageUrl;
+  pageSampleList = [];
+  currentSampleIdx = -1;
+  sampleResolveStatus = null;
+  const entry = pageKey && samplesData[pageKey];
+  if (!entry || !entry.sampled) { updateProgressPanel(); return; }
+  for (const [region, list] of Object.entries(entry.sampled))
+    for (const it of list) if (it.xpath) pageSampleList.push({ ...it, region });
+  // Cursor starts on the first sample that still needs annotation.
+  currentSampleIdx = pageSampleList.findIndex(s => !isSampleAnnotated(s));
+  updateProgressPanel();
+}
+
+function jumpToSample(idx) {
+  if (idx < 0 || idx >= pageSampleList.length) return;
+  currentSampleIdx = idx;
+  const item = pageSampleList[idx];
+  // sample-jump resolves via xpath + metadata fallbacks inside the iframe,
+  // then triggers the normal ext-sel selection flow. The following 'clk'
+  // event records which live element the sample actually resolved to.
+  pendingJumpIdx = idx;
+  pageFrame.contentWindow && pageFrame.contentWindow.postMessage({
+    t:'sample-jump',
+    item: { xpath: item.xpath, tag: item.tag || '', name: item.name || '' },
+  }, '*');
+  refreshSampleHighlights();
+  updateProgressPanel();
+}
+// Prev/Next iterate ONLY through un-annotated samples (skip "done").
+function findTodoFrom(start, dir) {
+  const n = pageSampleList.length; if (!n) return -1;
+  const from = start >= 0 ? start : (dir > 0 ? -1 : 0);
+  for (let i = 1; i <= n; i++) {
+    const j = (from + dir * i + n) % n;
+    if (!isSampleAnnotated(pageSampleList[j])) return j;
+  }
+  return -1;
+}
+function nextSample() { const i = findTodoFrom(currentSampleIdx, +1); if (i >= 0) jumpToSample(i); }
+function prevSample() { const i = findTodoFrom(currentSampleIdx, -1); if (i >= 0) jumpToSample(i); }
+
+function updateProgressPanel() {
+  const total = pageSampleList.length;
+  const done  = pageSampleList.filter(it => isSampleAnnotated(it)).length;
+  const cnt = document.getElementById('progressCount');
+  const list = document.getElementById('progressList');
+  if (!cnt || !list) return;
+  let resolveWarn = '';
+  if (sampleResolveStatus && sampleResolveStatus.resolved < sampleResolveStatus.total) {
+    resolveWarn = ' <span style="font-size:10px;color:#fbbf24" title="' +
+      (sampleResolveStatus.total - sampleResolveStatus.resolved) +
+      ' sampled element(s) not found in the rendered DOM">⚠ ' +
+      sampleResolveStatus.resolved + '/' + sampleResolveStatus.total + ' located</span>';
+  }
+  cnt.innerHTML = total
+    ? '<b>' + done + '</b>/' + total + ' annotated' + resolveWarn
+    : '<b>0</b>/0 (no samples for this page)';
+  const noTodos = !total || done >= total;
+  document.getElementById('prevSampleBtn').disabled = noTodos;
+  document.getElementById('nextSampleBtn').disabled = noTodos;
+  document.getElementById('progToggleBtn').disabled = !total;
+  list.innerHTML = '';
+  pageSampleList.forEach((it, idx) => {
+    const isDone = isSampleAnnotated(it);
+    const row = document.createElement('div');
+    row.className = 'prog-row' + (idx === currentSampleIdx ? ' active' : '') + (isDone ? ' done-row' : '');
+    const num = document.createElement('span'); num.className='prog-num'; num.textContent = (idx + 1).toString();
+    const ind = document.createElement('span'); ind.className = 'prog-ind ' + (isDone ? 'done' : 'todo'); ind.textContent = isDone ? '✓' : '○';
+    const lbl = document.createElement('span'); lbl.className='prog-lbl';
+    const tag = '<' + (it.tag || '?') + '>';
+    const nm  = it.name ? ' "' + it.name.slice(0, 30) + '"' : '';
+    lbl.textContent = tag + nm;
+    lbl.title = (it.role ? '[' + it.role + '] ' : '') + tag + (it.name ? ' ' + it.name : '') + ' — ' + it.xpath;
+    const reg = document.createElement('span'); reg.className='prog-region'; reg.textContent = it.region || 'default';
+    row.append(num, ind, lbl, reg);
+    row.addEventListener('click', () => jumpToSample(idx));
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('prevSampleBtn').addEventListener('click', prevSample);
+document.getElementById('nextSampleBtn').addEventListener('click', nextSample);
+document.getElementById('progToggleBtn').addEventListener('click', () => {
+  const list = document.getElementById('progressList');
+  const btn  = document.getElementById('progToggleBtn');
+  const open = list.classList.toggle('open');
+  btn.textContent = open ? '▲' : '▼';
+});
+
+// bumpNavCount: called when the user actually presses a tab-nav or SR-nav
+// prev/next pill for the currently-selected element. The confirm button is
+// gated until this counter reaches 2 — forcing the annotator to inspect the
+// element's keyboard/SR context before confirming.
+function bumpNavCount() {
+  if (!currentSelection.length) return;
+  currentSelection.forEach(elInfo => {
+    const a = ensureAnnot(elInfo);
+    a.navCount = (a.navCount || 0) + 1;
+  });
+  saveAnnotations();
+  updateCheckboxes();
+}
+let currentSelection = []; // array of elInfo {id,tag,elId,cls,txt}
+let currentTabInfo = null;
+let currentAssetFile = null; // relative path under assets/ (may include subdir), e.g. "mock/e-commerce(Claude)/index.html"
+let currentPageUrl   = null; // URL for proxied dev-server pages
+function currentPageKey() { return currentAssetFile || currentPageUrl || null; }
+// Encode an assets/ relative path for use in a URL path (encode each segment, keep slashes)
+const pageNoScript = new Set(); // relPaths flagged "noscript": true in pages.json
+function assetSrc(relPath) {
+  const base = '/assets/' + relPath.split('/').map(encodeURIComponent).join('/');
+  if (!offlineMode()) return base;
+  return base + '?offline=1' + (pageNoScript.has(relPath) ? '&noscript=1' : '');
+}
+function offlineMode() {
+  const t = document.getElementById('offlineToggle');
+  return !!(t && t.checked);
+}
+let selectionId = 0;
+let srEndOfHint = false;
+let currentSrcdoc = null;
+
+// DOM
+const fileInput   = document.getElementById('fileInput');
+const pageFrame   = document.getElementById('pageFrame');
+const placeholder = document.getElementById('placeholder');
+const fileLabel   = document.getElementById('fileLabel');
+const elemBar     = document.getElementById('elemBar');
+const selStatus   = document.getElementById('selStatus');
+const sidebarBody = document.getElementById('sidebarBody');
+const stats       = document.getElementById('stats');
+const exportBtn   = document.getElementById('exportBtn');
+const annotList    = document.getElementById('annotList');
+const resizer      = document.getElementById('resizer');
+const leftPanel    = document.getElementById('leftPanel');
+const sidebar      = document.getElementById('sidebar');
+const sidebarHeader= document.getElementById('sidebarHeader');
+const annotResizer = document.getElementById('annotResizer');
+const sidebarFooter= document.getElementById('sidebarFooter');
+let annotUserResized = false;
+const reloadBtn = document.getElementById('reloadBtn');
+reloadBtn.addEventListener('click', () => {
+  if (currentAssetFile) {
+    pageFrame.removeAttribute('srcdoc');
+    pageFrame.src = assetSrc(currentAssetFile);
+  } else if (currentPageUrl) {
+    pageFrame.removeAttribute('srcdoc');
+    pageFrame.src = '/proxy?target=' + encodeURIComponent(currentPageUrl);
+  } else if (currentSrcdoc) {
+    pageFrame.srcdoc = currentSrcdoc;
+  }
+});
+
+const modeBtn = document.getElementById('modeBtn');
+let interactiveMode = false;
+function setMode(interactive) {
+  interactiveMode = interactive;
+  modeBtn.textContent = interactive ? 'Annotate' : 'Interact';
+  modeBtn.classList.toggle('active', interactive);
+  pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'mode', interactive}, '*');
+}
+modeBtn.addEventListener('click', () => setMode(!interactiveMode));
+
+// Offline toggle: server attaches a strict CSP for ?offline=1 HTML assets.
+const offlineToggle = document.getElementById('offlineToggle');
+offlineToggle.checked = localStorage.getItem('a11y_offline') !== '0';
+document.getElementById('offlineLabel').classList.toggle('active', offlineToggle.checked);
+offlineToggle.addEventListener('change', () => {
+  localStorage.setItem('a11y_offline', offlineToggle.checked ? '1' : '0');
+  document.getElementById('offlineLabel').classList.toggle('active', offlineToggle.checked);
+  if (currentAssetFile) {
+    pageFrame.removeAttribute('srcdoc');
+    pageFrame.src = assetSrc(currentAssetFile);
+  }
+});
+
+// Dev-server start/stop button
+const svrBtn = document.getElementById('svrBtn');
+let currentDevServerCfg = null;
+let svrBtnStatus = 'stopped';
+let svrPollTimer = null;
+
+function updateSvrBtn(status) {
+  svrBtnStatus = status;
+  svrBtn.disabled = (status === 'starting');
+  svrBtn.className = 'btn' + (status !== 'stopped' ? ' svr-' + status : '');
+  svrBtn.textContent = status === 'running' ? 'Stop Server' : status === 'starting' ? 'Starting…' : 'Start Server';
+}
+function pollSvrStatus() {
+  if (svrPollTimer) clearInterval(svrPollTimer);
+  svrPollTimer = setInterval(() => {
+    if (!currentDevServerCfg) { clearInterval(svrPollTimer); return; }
+    fetch('/dev-server/status?id=' + encodeURIComponent(currentDevServerCfg.id))
+      .then(r => r.json()).then(s => {
+        updateSvrBtn(s.status);
+        if (s.status !== 'starting') clearInterval(svrPollTimer);
+      }).catch(() => clearInterval(svrPollTimer));
+  }, 500);
+}
+svrBtn.addEventListener('click', () => {
+  if (!currentDevServerCfg) return;
+  const { id, cwd, cmd, args } = currentDevServerCfg;
+  if (svrBtnStatus === 'stopped') {
+    updateSvrBtn('starting');
+    fetch('/dev-server/start', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, cwd, cmd, args }) })
+      .then(() => pollSvrStatus()).catch(() => updateSvrBtn('stopped'));
+  } else if (svrBtnStatus === 'running') {
+    fetch('/dev-server/stop', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }) })
+      .then(() => updateSvrBtn('stopped')).catch(() => {});
+  }
+});
+
+// Screen reader engine status — polls /engine/status and auto-restarts when down
+const engineBtn = document.getElementById('engineBtn');
+let engineStatus = 'unknown';
+let engineRestartInFlight = false;
+
+function setEngineStatus(s) {
+  engineStatus = s;
+  engineBtn.className = 'btn ' + s;
+  engineBtn.title = 'SR engine: ' + s + (s === 'unavailable' ? ' (puppeteer not installed)' : ' — click to restart');
+}
+async function checkEngineStatus({ autoRestart = true } = {}) {
+  try {
+    const r = await fetch('/engine/status');
+    const { status } = await r.json();
+    setEngineStatus(status);
+    if (status === 'down' && autoRestart && !engineRestartInFlight) {
+      engineRestartInFlight = true;
+      setEngineStatus('starting');
+      try { await fetch('/engine/restart', { method: 'POST' }); } catch(e) {}
+      engineRestartInFlight = false;
+      // Re-poll after restart attempt
+      checkEngineStatus({ autoRestart: false });
+    }
+  } catch(e) {
+    setEngineStatus('down');
+  }
+}
+engineBtn.addEventListener('click', async () => {
+  if (engineStatus === 'unavailable' || engineStatus === 'starting' || engineRestartInFlight) return;
+  engineRestartInFlight = true;
+  setEngineStatus('starting');
+  try { await fetch('/engine/restart', { method: 'POST' }); } catch(e) {}
+  engineRestartInFlight = false;
+  checkEngineStatus({ autoRestart: false });
+});
+checkEngineStatus();
+setInterval(checkEngineStatus, 15000);
+
+// Axe rule → category mapping (loaded from axe-map.json)
+let axeMap = null;
+fetch('/axe-map.json').then(r => r.json()).then(m => { axeMap = m; }).catch(() => {});
+
+// Load axe-core source for iframe injection
+let axeSource = null;
+(function() {
+  try {
+    const x = new XMLHttpRequest();
+    x.open('GET', 'axe.min.js', false); // sync — local file, fast
+    x.send();
+    if (x.status === 200 || x.status === 0) axeSource = x.responseText;
+    else console.warn('axe-core not found — place axe.min.js next to index.html');
+  } catch(e) { console.warn('axe-core load failed:', e); }
+})();
+
+// Axe section (persists across page loads)
+const axeSection = document.createElement('div');
+axeSection.id = 'axeSection';
+axeSection.style.display = 'none';
+sidebarBody.appendChild(axeSection);
+const errTypesTitle = document.createElement('div');
+errTypesTitle.className = 'sec-title';
+errTypesTitle.textContent = 'Select Error Types';
+sidebarBody.appendChild(errTypesTitle);
+
+const IMPACT_ORDER = ['critical','serious','moderate','minor'];
+
+function showAxeScanning() {
+  axeSection.style.display = '';
+  axeSection.innerHTML = '<div class="axe-header"><span class="axe-title">Axe Scan</span></div><div class="axe-status">Scanning…</div>';
+  fitAnnotFooter();
+}
+
+function renderAxeResults(violations) {
+  axeSection.style.display = '';
+  axeSection.innerHTML = '';
+  const hdr = document.createElement('div'); hdr.className = 'axe-header';
+  const ttl = document.createElement('span'); ttl.className = 'axe-title'; ttl.textContent = 'Axe Scan';
+  const bdg = document.createElement('span');
+  bdg.className = 'axe-badge ' + (violations.length ? 'axe-badge-err' : 'axe-badge-ok');
+  bdg.textContent = violations.length + ' violation' + (violations.length !== 1 ? 's' : '');
+  hdr.append(ttl, bdg);
+  axeSection.appendChild(hdr);
+  // Auto-tagging from axe disabled — iframe highlights now come from samples
+  // (see refreshSampleHighlights). Axe results remain visible in the sidebar.
+  // createAxeAnnotations(violations);
+  if (!violations.length) {
+    const ok = document.createElement('div'); ok.className = 'axe-status'; ok.textContent = 'No violations detected.';
+    axeSection.appendChild(ok); return;
+  }
+  const groups = {};
+  violations.forEach(v => { const k = (axeMap && axeMap[v.id] && axeMap[v.id].category) || 'other'; (groups[k] = groups[k] || []).push(v); });
+  ['cat_1','cat_2','cat_3','cat_4','cat_5','cat_6','cat_7','cat_8','cat_9','other'].forEach(k => {
+    const viols = groups[k]; if (!viols) return;
+    viols.sort((a, b) => IMPACT_ORDER.indexOf(a.impact) - IMPACT_ORDER.indexOf(b.impact));
+    const catName = k === 'other' ? 'Other' : FINDINGS[k].name;
+    const grp = document.createElement('div'); grp.className = 'axe-grp';
+    const gh = document.createElement('div'); gh.className = 'axe-grp-hdr';
+    const gt = document.createElement('span'); gt.className = 'axe-grp-toggle'; gt.textContent = '▶';
+    const gn = document.createElement('span'); gn.className = 'axe-grp-name'; gn.textContent = catName;
+    const gb = document.createElement('span'); gb.className = 'axe-grp-badge'; gb.textContent = viols.length;
+    gh.append(gt, gn, gb);
+    const body = document.createElement('div'); body.style.display = 'none'; body.style.paddingBottom = '4px';
+    gh.addEventListener('click', () => { const o = body.style.display === 'none'; body.style.display = o ? 'block' : 'none'; gt.classList.toggle('open', o); });
+    viols.forEach(v => body.appendChild(makeAxeCard(v)));
+    grp.append(gh, body);
+    axeSection.appendChild(grp);
+  });
+  fitAnnotFooter();
+}
+
+function makeAxeCard(v) {
+  const card = document.createElement('div'); card.className = 'axe-card';
+  const row = document.createElement('div'); row.className = 'axe-card-row';
+  const ri = document.createElement('span'); ri.className = 'axe-rule'; ri.textContent = v.id;
+  const ib = document.createElement('span'); ib.className = 'imp imp-' + (v.impact || 'minor'); ib.textContent = v.impact || 'minor';
+  const nc = document.createElement('span'); nc.className = 'axe-cnt'; nc.textContent = v.nodes.length + '×';
+  row.append(ri, ib, nc);
+  const hl = document.createElement('div'); hl.className = 'axe-help'; hl.textContent = v.help;
+  card.append(row, hl);
+  const aids = v.nodes.map(n => n.aid).filter(Boolean);
+  const mkNode = n => {
+    const nd = document.createElement('div'); nd.className = 'axe-node';
+    nd.textContent = n.html.length > 120 ? n.html.slice(0, 120) + '…' : n.html;
+    if (n.aid) {
+      nd.addEventListener('mouseenter', e => { e.stopPropagation(); pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'tabhl', aid: n.aid}, '*'); });
+      nd.addEventListener('mouseleave', e => { e.stopPropagation(); pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'tabhl', aids}, '*'); });
+      nd.addEventListener('click', e => { e.stopPropagation(); pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'ext-sel', aid: n.aid}, '*'); });
+    }
+    return nd;
+  };
+  v.nodes.slice(0, 2).forEach(n => card.appendChild(mkNode(n)));
+  if (v.nodes.length > 2) {
+    const extra = v.nodes.slice(2);
+    const extraWrap = document.createElement('div'); extraWrap.style.display = 'none';
+    extra.forEach(n => extraWrap.appendChild(mkNode(n)));
+    const m = document.createElement('div'); m.className = 'axe-more';
+    m.textContent = '+' + extra.length + ' more';
+    m.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = extraWrap.style.display !== 'none';
+      extraWrap.style.display = open ? 'none' : '';
+      m.textContent = open ? '+' + extra.length + ' more' : 'show less';
+    });
+    card.append(m, extraWrap);
+  }
+  if (aids.length) {
+    card.addEventListener('mouseenter', () => pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'tabhl', aids}, '*'));
+    card.addEventListener('mouseleave', () => pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'tabhl', aids:[]}, '*'));
+  }
+  return card;
+}
+
+function createAxeAnnotations(violations) {
+  if (!axeMap || !violations.length) return;
+  violations.forEach(v => {
+    const entry = axeMap[v.id];
+    const catKey = entry ? entry.category : 'other';
+    if (!catKey || catKey === 'other' || !FINDINGS[catKey]) return;
+    v.nodes.forEach(node => {
+      if (!node.aid) return;
+      if (!annotations[node.aid]) {
+        annotations[node.aid] = {
+          elInfo: { id: node.aid, tag: node.tag || '', elId: node.elId || '', cls: node.cls || '', txt: node.txt || '', xpath: node.xpath || '' },
+          errors: {}
+        };
+      }
+      if (!annotations[node.aid].errors[catKey]) {
+        annotations[node.aid].errors[catKey] = {
+          category: FINDINGS[catKey].name, categoryKey: catKey, axeRules: []
+        };
+      }
+      if (!annotations[node.aid].errors[catKey].axeRules.includes(v.id)) {
+        annotations[node.aid].errors[catKey].axeRules.push(v.id);
+      }
+      pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'tag', aid: node.aid, on: true}, '*');
+    });
+  });
+  updateStats();
+  updateAnnotList();
+  updateCheckboxes();
+}
+
+// Scale / fit
+const scaleBtn = document.getElementById('scaleBtn');
+let fitMode = false;
+function applyScale() {
+  if (!fitMode) {
+    pageFrame.style.transform = '';
+    pageFrame.style.width = '';
+    pageFrame.style.height = '100%';
+    iframeWrap.style.overflowX = 'auto';
+    return;
+  }
+  const wrapW = iframeWrap.clientWidth;
+  const wrapH = iframeWrap.clientHeight;
+  const frameW = Math.max(1280, wrapW);
+  const scale = wrapW / frameW;
+  pageFrame.style.transformOrigin = 'top left';
+  pageFrame.style.transform = 'scale('+scale+')';
+  pageFrame.style.width = frameW + 'px';
+  pageFrame.style.height = (wrapH / scale) + 'px';
+  iframeWrap.style.overflowX = 'hidden';
+  iframeWrap.scrollLeft = 0;
+}
+scaleBtn.addEventListener('click', () => {
+  fitMode = !fitMode;
+  scaleBtn.textContent = fitMode ? '1:1' : 'Fit';
+  scaleBtn.classList.toggle('active', fitMode);
+  applyScale();
+});
+window.addEventListener('resize', () => { if (fitMode) applyScale(); fitAnnotFooter(); });
+
+function fitAnnotFooter() {
+  if (annotUserResized) return;
+  const available = sidebar.clientHeight - sidebarHeader.offsetHeight - annotResizer.offsetHeight;
+  const h = Math.max(200, available - sidebarBody.scrollHeight);
+  sidebarFooter.style.height = h + 'px';
+}
+
+// Annotated list resize
+let isAnnotResizing = false;
+annotResizer.addEventListener('mousedown', () => { isAnnotResizing=true; annotUserResized=true; annotResizer.classList.add('drag'); document.body.style.userSelect='none'; });
+document.addEventListener('mousemove', e => {
+  if (!isAnnotResizing) return;
+  const sr = sidebar.getBoundingClientRect();
+  const h = Math.max(60, Math.min(sr.bottom - e.clientY, sr.height - 120));
+  sidebarFooter.style.height = h + 'px';
+});
+document.addEventListener('mouseup', () => { if(isAnnotResizing){ isAnnotResizing=false; annotResizer.classList.remove('drag'); document.body.style.userSelect=''; } });
+
+// Resize
+let isResizing = false;
+resizer.addEventListener('mousedown', () => { isResizing=true; resizer.classList.add('drag'); document.body.style.userSelect='none'; });
+document.addEventListener('mousemove', e => {
+  if (!isResizing) return;
+  const r = document.getElementById('main').getBoundingClientRect();
+  const lw = Math.max(300, Math.min(e.clientX - r.left, r.width - 280));
+  leftPanel.style.cssText = 'flex:none;width:'+lw+'px';
+  sidebar.style.cssText   = 'flex:none;width:'+(r.width-lw-4)+'px';
+  if (fitMode) applyScale();
+});
+document.addEventListener('mouseup', () => { isResizing=false; resizer.classList.remove('drag'); document.body.style.userSelect=''; });
+
+// Load file
+function loadFile(file) {
+  fileLabel.textContent = file.name;
+  fileLabel.className = 'loaded';
+  currentSelection = []; currentAssetFile = null; currentPageUrl = null; currentDevServerCfg = null; svrBtn.style.display = 'none';
+  updateSelStatus();
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const parser = new DOMParser();
+    const d = parser.parseFromString(ev.target.result, 'text/html');
+    d.querySelectorAll('script').forEach(s => s.remove());
+    // Remove CSP and refresh metas — CSP blocks our injected script
+    d.querySelectorAll('meta[http-equiv]').forEach(m => {
+      const v = (m.getAttribute('http-equiv')||'').toLowerCase();
+      if (v === 'content-security-policy' || v === 'refresh') m.remove();
+    });
+    currentSrcdoc = '<!DOCTYPE html>\n' + d.documentElement.outerHTML;
+    currentAssetFile = null;
+    pageFrame.srcdoc = currentSrcdoc;
+    reloadBtn.disabled = false;
+    pageFrame.style.display = 'block';
+    placeholder.style.display = 'none';
+  };
+  reader.readAsText(file);
+}
+
+fileInput.addEventListener('change', e => { const f=e.target.files[0]; if(f) loadFile(f); });
+
+// Asset directory listing
+const assetSelect = document.getElementById('assetSelect');
+const pageDevServers = new Map(); // option value → devServer config
+async function populateAssets() {
+  try {
+    const [assetsRes, pagesRes] = await Promise.all([fetch('/assets'), fetch('/pages').catch(() => null)]);
+    pageDevServers.clear();
+    assetSelect.innerHTML = '<option value="">— Pick a page —</option>';
+
+    // pages.json entries (grouped)
+    let pagesEntries = [];
+    if (pagesRes && pagesRes.ok) {
+      try { pagesEntries = await pagesRes.json(); } catch(e) {}
+    }
+
+    // Group entries by their "group" field; ungrouped fall through to a default group
+    const groups = new Map();
+    for (const p of pagesEntries) {
+      if (p.hidden) continue;
+      const g = p.group || '';
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(p);
+    }
+
+    // Build optgroups for named groups; ungrouped appended directly
+    for (const [groupName, entries] of groups) {
+      const container = groupName
+        ? (() => { const og = document.createElement('optgroup'); og.label = groupName; return og; })()
+        : assetSelect;
+      for (const p of entries) {
+        if (p.url && p.name) {
+          const val = '__url__:' + p.url;
+          const o = document.createElement('option'); o.value = val; o.textContent = p.name;
+          container.appendChild(o);
+          if (p.devServer) pageDevServers.set(val, { id: p.url, ...p.devServer });
+        } else if (p.file && p.name) {
+          // Build full relative path: subdir/file or just file
+          const relPath = p.subdir ? p.subdir + '/' + p.file : p.file;
+          if (p.noscript) pageNoScript.add(relPath);
+          const o = document.createElement('option'); o.value = relPath; o.textContent = p.name;
+          container.appendChild(o);
+        }
+      }
+      if (groupName) assetSelect.appendChild(container);
+    }
+
+    // Fallback: top-level HTML files from /assets not already listed
+    if (assetsRes && assetsRes.ok) {
+      try {
+        const files = await assetsRes.json();
+        const listed = new Set(pagesEntries.filter(p => p.file && !p.subdir).map(p => p.file));
+        const extras = files.filter(f => !listed.has(f));
+        if (extras.length) {
+          const og = document.createElement('optgroup'); og.label = 'Assets';
+          extras.forEach(f => { const o = document.createElement('option'); o.value = f; o.textContent = f; og.appendChild(o); });
+          assetSelect.appendChild(og);
+        }
+      } catch(e) {}
+    }
+
+    assetSelect.style.display = assetSelect.options.length > 1 ? '' : 'none';
+  } catch(e) { assetSelect.style.display = 'none'; }
+}
+assetSelect.addEventListener('change', () => {
+  const val = assetSelect.value; if (!val) return;
+  const isUrl = val.startsWith('__url__:');
+  currentAssetFile = isUrl ? null : val;
+  currentPageUrl   = isUrl ? val.slice('__url__:'.length) : null;
+  const label = currentAssetFile || currentPageUrl;
+  fileLabel.textContent = label; fileLabel.className = 'loaded';
+  currentSelection = []; updateSelStatus();
+  for (const k in annotations) delete annotations[k];
+  Object.assign(annotations, loadAnnotations(label));
+  loadPageSamples();
+  updateStats(); updateAnnotList(); updateCheckboxes();
+  currentSrcdoc = null;
+  pageFrame.removeAttribute('srcdoc');
+  pageFrame.src = isUrl
+    ? '/proxy?target=' + encodeURIComponent(currentPageUrl)
+    : assetSrc(currentAssetFile);
+  reloadBtn.disabled = false;
+  // Show/update the server button for URL entries with devServer config
+  if (svrPollTimer) clearInterval(svrPollTimer);
+  currentDevServerCfg = pageDevServers.get(val) || null;
+  if (currentDevServerCfg) {
+    svrBtn.style.display = '';
+    updateSvrBtn('stopped');
+    fetch('/dev-server/status?id=' + encodeURIComponent(currentDevServerCfg.id))
+      .then(r => r.json()).then(s => updateSvrBtn(s.status)).catch(() => {});
+  } else {
+    svrBtn.style.display = 'none';
+  }
+  pageFrame.style.display = 'block'; placeholder.style.display = 'none';
+});
+populateAssets();
+
+// Drag and drop — overlay appears over iframe to capture drop events
+const iframeWrap = document.getElementById('iframeWrap');
+const dropOverlay = document.getElementById('dropOverlay');
+// Show overlay as soon as files enter the browser window
+window.addEventListener('dragenter', e => {
+  if (e.dataTransfer.types.includes('Files')) dropOverlay.classList.add('active');
+});
+dropOverlay.addEventListener('dragover', e => e.preventDefault());
+dropOverlay.addEventListener('dragleave', e => {
+  if (!iframeWrap.contains(e.relatedTarget)) dropOverlay.classList.remove('active');
+});
+dropOverlay.addEventListener('drop', e => {
+  e.preventDefault();
+  dropOverlay.classList.remove('active');
+  const file = e.dataTransfer.files[0];
+  if (file && /\.html?$/i.test(file.name)) loadFile(file);
+});
+// Also hide overlay if drag is cancelled
+window.addEventListener('dragend', () => dropOverlay.classList.remove('active'));
+document.addEventListener('drop', () => dropOverlay.classList.remove('active'));
+
+// Inject into the iframe as soon as its DOM is usable. Driven by BOTH the
+// load event AND a readiness poller: some snapshots keep a subresource pending
+// forever (observed: NFL/ESPN — readyState stays "interactive", load never
+// fires), which would otherwise leave the page without any instrumentation
+// (no hover/click/samples/axe). Idempotent via the data-a11y root attribute
+// that INJECT_JS sets synchronously.
+// Persistent virtual screen reader inside the iframe — drives the live transcript
+// panel. guidepup follows focus (focusin/focus) and observes aria-live mutations,
+// so as the user activates controls in Interact mode the cursor moves and
+// announcements accumulate in spokenPhraseLog. Opt-in (started on demand) to
+// avoid interfering with normal annotation. Read in-page: the log array doesn't
+// survive postMessage structured-clone of the live object, so we slice it here
+// and post plain strings.
+const SR_INJECT_JS = `(function(){
+  if (window.__a11ySR) return;
+  var api = { virtual:null, vsr:null, on:false, sent:0, lastSeen:null, timer:null };
+  window.__a11ySR = api;
+  function post(p){ try{ parent.postMessage({t:'sr-speech', phrases:p}, '*'); }catch(_){} }
+  async function poll(){
+    if(!api.on || !api.vsr || api.polling) return;   // spokenPhraseLog/lastSpokenPhrase are async
+    api.polling = true;
+    try{
+      var log = api.vsr.spokenPhraseLog ? await api.vsr.spokenPhraseLog() : null;
+      if (log && typeof log.length === 'number') {
+        if (log.length < api.sent) api.sent = log.length;                                  // Clear shrank the log
+        if (log.length > api.sent) { post(Array.prototype.slice.call(log, api.sent)); api.sent = log.length; }
+      } else {
+        var last = api.vsr.lastSpokenPhrase ? await api.vsr.lastSpokenPhrase() : null;
+        if (last && last !== api.lastSeen) { api.lastSeen = last; post([last]); }
+      }
+    }catch(_){}
+    api.polling = false;
+  }
+  import('/virtual-sr.js').then(function(m){ api.virtual = m.virtual; }).catch(function(e){ post(['[transcript engine unavailable: '+e.message+']']); });
+  window.addEventListener('message', function(e){
+    var d=e.data; if(!d) return;
+    if (d.t==='sr-enabled'){
+      if (d.on && !api.on){
+        if(!api.virtual){ post(['[engine still loading — toggle again in a moment]']); return; }
+        api.vsr = api.virtual;
+        Promise.resolve(api.vsr.start({container:document.body})).then(function(){
+          api.on=true; api.sent=0; api.lastSeen=null;
+          if(!api.timer) api.timer=setInterval(poll, 200);
+          post(['— transcript on \\u00b7 move focus / activate controls —']);
+        }).catch(function(err){ post(['[start failed: '+err.message+']']); });
+      } else if (!d.on && api.on){
+        api.on=false; if(api.timer){clearInterval(api.timer);api.timer=null;}
+        try{ Promise.resolve(api.vsr.stop()); }catch(_){}
+      }
+    } else if (d.t==='sr-clear'){
+      try{ api.vsr && api.vsr.clearSpokenPhraseLog && api.vsr.clearSpokenPhraseLog(); }catch(_){}
+      api.sent=0; api.lastSeen=null;
+    }
+  });
+})();`;
+
+function injectIntoFrame() {
+  reloadBtn.disabled = false;
+  try {
+    const doc = pageFrame.contentDocument;
+    if (!doc || !doc.body) return;
+    if (doc.readyState === 'loading') return;
+    if (doc.documentElement.hasAttribute('data-a11y')) return; // already injected
+    const style = doc.createElement('style');
+    style.textContent = INJECT_CSS;
+    (doc.head || doc.documentElement).appendChild(style);
+    const script = doc.createElement('script');
+    script.textContent = INJECT_JS;
+    doc.body.appendChild(script);
+    const sampleScript = doc.createElement('script');
+    sampleScript.textContent = SAMPLE_INJECT_JS;
+    doc.body.appendChild(sampleScript);
+    // Live screen-reader transcript engine (idle until the SR Log panel is on).
+    const srScript = doc.createElement('script');
+    srScript.textContent = SR_INJECT_JS;
+    doc.body.appendChild(srScript);
+    if (srLogOn) setTimeout(() => { pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'sr-enabled', on:true}, '*'); }, 400);
+    // Push sample-element highlights for the current page (todo / done by xpath).
+    setTimeout(refreshSampleHighlights, 0);
+    // Re-apply mode and existing annotation colors
+    if (interactiveMode) pageFrame.contentWindow.postMessage({t:'mode', interactive: true}, '*');
+    for (const aid in annotations) {
+      if (Object.keys(annotations[aid].errors).length > 0)
+        pageFrame.contentWindow.postMessage({t:'tag', aid, on:true, xpath: (annotations[aid].elInfo && annotations[aid].elInfo.xpath) || ''}, '*');
+    }
+    // Inject axe-core and run scan
+    if (axeSource) {
+      const axeEl = doc.createElement('script'); axeEl.textContent = axeSource;
+      doc.head.appendChild(axeEl);
+      const runEl = doc.createElement('script');
+      runEl.textContent = 'try{axe.run(document,{runOnly:{type:"tag",values:["wcag2a","wcag2aa","wcag21a","wcag21aa","wcag22aa","best-practice"]},rules:{"target-size":{enabled:true},"label-content-name-mismatch":{enabled:true},"aria-roledescription":{enabled:true}},resultTypes:["violations"]}).then(function(r){var vs=r.violations.map(function(v){return {id:v.id,description:v.description,help:v.help,impact:v.impact,nodes:v.nodes.map(function(n){var el=null;try{el=n.target&&n.target.length?document.querySelector(n.target.join(" ")):null;}catch(e){}var aid=null;if(el){if(!el.dataset.a11yId)mkId(el);aid=el.dataset.a11yId;}return {target:n.target,html:n.html,aid:aid,xpath:el?(typeof getXPath==="function"?getXPath(el):""):"",tag:el?el.tagName.toLowerCase():"",elId:el&&el.id?el.id:"",cls:el&&typeof el.className==="string"?el.className.replace(/a11y-hov|a11y-sel|a11y-tagged/g,"").trim().slice(0,60):"",txt:el?(el.textContent||"").trim().slice(0,80):""};})};});parent.postMessage({t:"axe",violations:vs},"*");}).catch(function(e){parent.postMessage({t:"axe",violations:[],error:e.message},"*");});}catch(e){parent.postMessage({t:"axe",violations:[],error:e.message},"*");}';
+      doc.body.appendChild(runEl);
+      showAxeScanning();
+    }
+  } catch(err) { console.warn('inject:', err); }
+}
+pageFrame.addEventListener('load', injectIntoFrame);
+setInterval(() => {
+  if (!currentAssetFile && !currentPageUrl && !currentSrcdoc) return;
+  injectIntoFrame();
+}, 500);
+
+// Messages from iframe
+// ── Live screen-reader transcript panel ─────────────────────────────────────
+const srLogBtn = document.getElementById('srLogBtn');
+const srPanel = document.getElementById('srPanel');
+const srLogList = document.getElementById('srLogList');
+let srLogOn = false;
+function srAppend(phrase, meta) {
+  const row = document.createElement('div');
+  row.className = 'row' + (meta ? ' meta' : '');
+  const m = !meta && /^([a-z-]+), /.exec(phrase);
+  if (m) {
+    const rest = phrase.slice(m[0].length).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+    row.innerHTML = '<span class="role">' + m[1] + '</span>, ' + rest;
+  } else row.textContent = phrase;
+  srLogList.appendChild(row);
+  srLogList.scrollTop = srLogList.scrollHeight;
+  while (srLogList.childElementCount > 500) srLogList.removeChild(srLogList.firstChild);
+}
+srLogBtn.addEventListener('click', () => {
+  srLogOn = !srLogOn;
+  srLogBtn.classList.toggle('active', srLogOn);
+  srPanel.classList.toggle('open', srLogOn);
+  pageFrame.contentWindow && pageFrame.contentWindow.postMessage({ t: 'sr-enabled', on: srLogOn }, '*');
+  if (srLogOn && !interactiveMode) srAppend('Tip: switch to Interact mode so your clicks and Tab reach the page.', true);
+});
+document.getElementById('srCloseBtn').addEventListener('click', () => { if (srLogOn) srLogBtn.click(); });
+document.getElementById('srClearBtn').addEventListener('click', () => {
+  srLogList.innerHTML = '';
+  pageFrame.contentWindow && pageFrame.contentWindow.postMessage({ t: 'sr-clear' }, '*');
+});
+
+window.addEventListener('message', function(e) {
+  const d = e.data;
+  if (!d) return;
+  if (d.t === 'hov') renderElemBar(d.d);
+  else if (d.t === 'out') elemBar.textContent = '—';
+  else if (d.t === 'sr-speech') (d.phrases || []).forEach(p => srAppend(p, /^(—|\[|Tip:)/.test(p)));
+  else if (d.t === 'axe') renderAxeResults(d.violations || []);
+  else if (d.t === 'sample-status') {
+    // Surface how many sample xpaths actually resolved in the live DOM.
+    sampleResolveStatus = d.total ? { resolved: d.resolved, total: d.total } : null;
+    updateProgressPanel();
+  }
+  else if (d.t === 'clk') {
+    currentSelection = d.all || [];
+    currentTabInfo = d.tab || null;
+    // Sync the progress cursor when the user clicks an element that happens
+    // to be in the sample list.
+    if (currentSelection.length === 1 && pageSampleList.length) {
+      const xp = currentSelection[0].xpath;
+      if (pendingJumpIdx >= 0 && pageSampleList[pendingJumpIdx]) {
+        // Selection triggered by a sample-jump: bind the live element xpath
+        // to that sample (handles metadata-fallback resolution).
+        pageSampleList[pendingJumpIdx].liveXpath = xp;
+        pendingJumpIdx = -1;
+      } else {
+        const idx = pageSampleList.findIndex(s => s.xpath === xp || s.liveXpath === xp);
+        if (idx >= 0 && idx !== currentSampleIdx) {
+          currentSampleIdx = idx;
+          refreshSampleHighlights();
+        }
+      }
+    }
+    updateSelStatus();
+    updateCheckboxes();
+    updateProgressPanel();
+  }
+});
+
+function renderElemBar(el) {
+  elemBar.innerHTML =
+    '<span style="color:#79c0ff">&lt;'+esc(el.tag)+'</span>' +
+    (el.elId ? ' <span style="color:#ffab70">id</span>=<span style="color:#a5d6ff">"'+esc(el.elId)+'"</span>' : '') +
+    (el.cls  ? ' <span style="color:#ffab70">class</span>=<span style="color:#a5d6ff">"'+esc(el.cls.slice(0,40))+'"</span>' : '') +
+    '<span style="color:#79c0ff">&gt;</span>' +
+    (el.txt  ? ' <span style="color:#6b7280">"'+esc(el.txt.slice(0,40))+'"</span>' : '');
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+const elemProps = document.getElementById('elemProps');
+
+function prop(k, v, cls) {
+  const w=document.createElement('div'); w.className='ep';
+  const kk=document.createElement('span'); kk.className='ep-k'; kk.textContent=k;
+  const vv=document.createElement('span'); vv.className='ep-v'+(cls?' '+cls:''); vv.textContent=v; vv.title=v;
+  w.append(kk,vv); return w;
+}
+
+function tabPill(label, nodeInfo) {
+  const tag = '<'+nodeInfo.tag+(nodeInfo.elId?'#'+nodeInfo.elId:'')+'>';
+  const w = document.createElement('div'); w.className='ep';
+  const kk = document.createElement('span'); kk.className='ep-k'; kk.textContent=label;
+  const vv = document.createElement('span'); vv.className='ep-v ep-tab'; vv.textContent=tag; vv.title=nodeInfo.txt||tag;
+  vv.tabIndex = 0;
+  vv.setAttribute('role', 'button');
+  vv.setAttribute('aria-label', label + ' ' + (nodeInfo.txt || tag));
+  const select = () => pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'ext-sel', aid:nodeInfo.aid}, '*');
+  vv.addEventListener('mouseenter', () => { pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'tabhl', aid:nodeInfo.aid}, '*'); });
+  vv.addEventListener('mouseleave', () => { pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'tabhl', aid:null}, '*'); });
+  vv.addEventListener('focus', () => { pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'tabhl', aid:nodeInfo.aid}, '*'); });
+  vv.addEventListener('blur', () => { pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'tabhl', aid:null}, '*'); });
+  vv.addEventListener('click', select);
+  vv.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();select();} });
+  w.append(kk,vv); return w;
+}
+
+
+function updateSelStatus() {
+  const thisId = ++selectionId;
+  elemProps.innerHTML = '';
+  if (!currentSelection.length) {
+    selStatus.className=''; selStatus.textContent='Select an element on the left to annotate it'; return;
+  }
+  selStatus.className='active';
+  if (currentSelection.length === 1) {
+    const el=currentSelection[0];
+    selStatus.innerHTML='1 selected: <span class="sel-tag">&lt;'+esc(el.tag)+(el.elId?'#'+esc(el.elId):'')+' /&gt;</span>';
+    // Row 1: ROLE [value] | KEYBOARD ✓/✗ | A11Y TREE ✓/… | SR ✓/…
+    const row1 = document.createElement('div'); row1.className='ep-row';
+    if (el.role !== undefined) {
+      const rk=document.createElement('span'); rk.className='ep-k'; rk.textContent='ROLE';
+      const rv=document.createElement('span'); rv.className='ep-v'; rv.style.maxWidth='none'; rv.textContent=el.role||'(none)'; rv.title=el.role||'';
+      row1.append(rk,rv);
+    }
+    if (el.focusable !== undefined) {
+      const kk=document.createElement('span'); kk.className='ep-k'; kk.textContent='KEYBOARD';
+      const kchk=document.createElement('span');
+      if (el.focusable) { kchk.className='ep-chk yes'; kchk.textContent='✓'; kchk.title='focusable'; }
+      else { kchk.className='ep-v no'; kchk.textContent='not focusable'; kchk.title='not focusable'; }
+      row1.append(kk, kchk);
+    }
+    let treeChk=null, srChk=null, srLbl=null, srNav=null, srnk=null, spk=null, spv=null, nmv=null;
+    if ((currentAssetFile || currentPageUrl) && el.xpath) {
+      const treeLbl=document.createElement('span'); treeLbl.className='ep-k'; treeLbl.textContent='A11Y TREE';
+      treeChk=document.createElement('span'); treeChk.className='ep-chk scanning'; treeChk.textContent='…'; treeChk.title='loading…';
+      srLbl=document.createElement('span'); srLbl.className='ep-k'; srLbl.textContent='SR';
+      srChk=document.createElement('span'); srChk.className='ep-chk scanning'; srChk.textContent='…'; srChk.title='scanning…';
+      row1.append(treeLbl, treeChk, srLbl, srChk);
+    }
+    if (row1.children.length) elemProps.appendChild(row1);
+    // Row 2: KB prev/next nav (always shown; dimmed when not focusable or no neighbours)
+    if (el.focusable !== undefined) {
+      const hasTabNav = el.focusable && currentTabInfo && currentTabInfo.index !== -1 && (currentTabInfo.prev || currentTabInfo.next);
+      const mkTabBtn=(nodeInfo, isPrev)=>{
+        const tag='<'+nodeInfo.tag+(nodeInfo.elId?'#'+nodeInfo.elId:'')+'>';
+        const b=document.createElement('span'); b.className='ep-v ep-tab';
+        b.textContent=isPrev?'← '+tag:tag+' →'; b.title=nodeInfo.txt||tag; b.tabIndex=0; b.setAttribute('role','button');
+        const sel=()=>{ bumpNavCount(); pageFrame.contentWindow&&pageFrame.contentWindow.postMessage({t:'ext-sel',aid:nodeInfo.aid},'*'); };
+        b.addEventListener('mouseenter',()=>pageFrame.contentWindow&&pageFrame.contentWindow.postMessage({t:'tabhl',aid:nodeInfo.aid},'*'));
+        b.addEventListener('mouseleave',()=>pageFrame.contentWindow&&pageFrame.contentWindow.postMessage({t:'tabhl',aid:null},'*'));
+        b.addEventListener('click',sel); b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sel();}});
+        return b;
+      };
+      const knavRow=document.createElement('div'); knavRow.className='ep-row'+(hasTabNav?'':' ep-dim');
+      const knk=document.createElement('span'); knk.className='ep-k'; knk.textContent='KB';
+      const knav=document.createElement('div'); knav.className='ep-nav';
+      if (hasTabNav && currentTabInfo.prev) knav.appendChild(mkTabBtn(currentTabInfo.prev, true));
+      else { const ph=document.createElement('span'); ph.className='ep-v ep-tab'; ph.textContent='← —'; knav.appendChild(ph); }
+      if (hasTabNav && currentTabInfo.next) knav.appendChild(mkTabBtn(currentTabInfo.next, false));
+      else { const ph=document.createElement('span'); ph.className='ep-v ep-tab'; ph.textContent='— →'; knav.appendChild(ph); }
+      knavRow.append(knk, knav);
+      elemProps.appendChild(knavRow);
+    }
+    if ((currentAssetFile || currentPageUrl) && el.xpath) {
+      // Row 3: SR prev/next nav (async, placeholder until ax-node resolves)
+      const srnavRow=document.createElement('div'); srnavRow.className='ep-row';
+      srnk=document.createElement('span'); srnk.className='ep-k'; srnk.textContent='SR';
+      srNav=document.createElement('div'); srNav.className='ep-nav';
+      srnavRow.append(srnk, srNav);
+      elemProps.appendChild(srnavRow);
+    }
+    // Row 4: NAME (fills remaining space)
+    if (el.name !== undefined) {
+      const nameRow = document.createElement('div'); nameRow.className='ep-row';
+      const nk=document.createElement('span'); nk.className='ep-k'; nk.textContent='NAME';
+      const nameEmpty = !el.name;
+      const nameText = el.name || (el.decorative ? '(decorative)' : '(none)');
+      const nameCls = 'ep-v ep-fill' + (nameEmpty ? (el.decorative ? '' : ' no') : '');
+      nmv=document.createElement('span'); nmv.className=nameCls; nmv.textContent=nameText; nmv.title=nameText;
+      nameRow.append(nk,nmv);
+      elemProps.appendChild(nameRow);
+    }
+    if ((currentAssetFile || currentPageUrl) && el.xpath) {
+      // Row 5: SPEECH (async)
+      const speechRow = document.createElement('div'); speechRow.className='ep-row';
+      spk=document.createElement('span'); spk.className='ep-k'; spk.textContent='SPEECH';
+      spv=document.createElement('span'); spv.className='ep-v ep-speech scanning'; spv.textContent='…'; spv.title='';
+      speechRow.append(spk, spv);
+      elemProps.appendChild(speechRow);
+      const _axParam = currentAssetFile ? 'file='+encodeURIComponent(currentAssetFile) : 'url='+encodeURIComponent(currentPageUrl);
+      fetch('/ax-node?'+_axParam+'&xpath='+encodeURIComponent(el.xpath))
+        .then(r=>r.json())
+        .then(ax=>{
+          if(selectionId!==thisId||!ax)return;
+          // Update tree checkmark
+          if (ax.inTree) {
+            treeChk.className='ep-chk yes'; treeChk.textContent='✓'; treeChk.title='in accessibility tree';
+          } else {
+            const rs=ax.ignoredReasons||[];
+            const truly=rs.some(r=>r==='aria-hidden'||r==='aria-hidden ancestor'||r==='not rendered');
+            const pres=rs.some(r=>r==='presentational role');
+            const suffix=rs.length?' · '+rs.join(', '):'';
+            let treeLabel, treeCls;
+            if (truly) { treeLabel='hidden'; treeCls='no'; }
+            else if (pres) { treeLabel='presentational'; treeCls='warn'; }
+            else { treeLabel='static'; treeCls=''; }
+            const pill=document.createElement('span'); pill.className='ep-v'+(treeCls?' '+treeCls:''); pill.textContent=treeLabel; pill.title=treeLabel+suffix;
+            treeChk.replaceWith(pill); treeChk=pill;
+          }
+          // NAME: replace the heuristic with Chrome's real accessible name once
+          // known — the heuristic over-reports text for roles that take no name
+          // and misses names computed from descendant img[alt].
+          if (nmv && ax.inTree && ax.name !== undefined && !el.decorative) {
+            const realName = (ax.name || '').trim();
+            if (realName) {
+              nmv.textContent = realName; nmv.title = realName; nmv.className = 'ep-v ep-fill';
+            } else if (el.name) {
+              nmv.textContent = '(none)'; nmv.className = 'ep-v ep-fill no';
+              nmv.title = 'No accessible name exposed to AT (page text: "' + el.name.slice(0, 60) + '")';
+            }
+          }
+          // Update speech
+          if (ax.speech) {
+            spv.textContent=ax.speech; spv.title=ax.speech; spv.className='ep-v ep-speech';
+          } else {
+            spv.textContent='(none)'; spv.className='ep-v ep-speech';
+          }
+          fitAnnotFooter();
+          // Dim SR nav + speech for non-leaf containers not in a11y tree
+          const dimSR = !ax.inTree && ax.hasChildren;
+          if (dimSR) { srLbl.classList.add('ep-dim'); srNav.classList.add('ep-dim'); srnk.classList.add('ep-dim'); spk.classList.add('ep-dim'); spv.classList.add('ep-dim'); }
+          // Fetch SR order
+          const _endOf = srEndOfHint; srEndOfHint = false;
+          const _srParam = currentAssetFile ? 'file='+encodeURIComponent(currentAssetFile) : 'url='+encodeURIComponent(currentPageUrl);
+          fetch('/sr-order?'+_srParam+'&xpath='+encodeURIComponent(el.xpath)+(_endOf?'&endOf=1':''))
+            .then(r=>r.json())
+            .then(srOrder=>{
+              if(selectionId!==thisId)return;
+              const mkNavBtn=(speech, xpath, isPrev)=>{
+                // Guard: if the SR-reported neighbor doesn't resolve in the
+                // iframe DOM (engine/iframe drift), render an inert dimmed pill
+                // instead of a clickable one that would silently select nothing.
+                let resolves=true;
+                try{
+                  const idoc=pageFrame.contentDocument;
+                  if(idoc) resolves=!!idoc.evaluate(xpath,idoc,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;
+                }catch(_){}
+                const b=document.createElement('span'); b.className='ep-v ep-tab'+(resolves?'':' ep-dim');
+                b.textContent=isPrev?'← '+(speech||'?'):(speech||'?')+' →';
+                b.title=resolves?(speech||''):'not present in the page as shown';
+                if(!resolves) return b;
+                b.tabIndex=0; b.setAttribute('role','button');
+                const sel=()=>{ bumpNavCount(); srEndOfHint=/^end of /i.test(speech||''); pageFrame.contentWindow&&pageFrame.contentWindow.postMessage({t:'ext-sel',xpath},'*'); };
+                b.addEventListener('mouseenter',()=>pageFrame.contentWindow&&pageFrame.contentWindow.postMessage({t:'tabhl',xpath},'*'));
+                b.addEventListener('mouseleave',()=>pageFrame.contentWindow&&pageFrame.contentWindow.postMessage({t:'tabhl',xpath:null},'*'));
+                b.addEventListener('focus',()=>pageFrame.contentWindow&&pageFrame.contentWindow.postMessage({t:'tabhl',xpath},'*'));
+                b.addEventListener('blur',()=>pageFrame.contentWindow&&pageFrame.contentWindow.postMessage({t:'tabhl',xpath:null},'*'));
+                b.addEventListener('click',sel); b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();sel();}});
+                return b;
+              };
+              if(srOrder){
+                srChk.className='ep-chk yes'+(dimSR?' ep-dim':''); srChk.textContent='✓'; srChk.title='in reading order';
+                if(srOrder.prev?.xpath) srNav.appendChild(mkNavBtn(srOrder.prevSpeech, srOrder.prev.xpath, true));
+                if(srOrder.next?.xpath) srNav.appendChild(mkNavBtn(srOrder.nextSpeech, srOrder.next.xpath, false));
+              } else {
+                const pill=document.createElement('span'); pill.className='ep-v'+(dimSR?' ep-dim':''); pill.textContent='unavailable'; pill.title='SR order unavailable';
+                srChk.replaceWith(pill); srChk=pill;
+              }
+              fitAnnotFooter();
+            })
+            .catch(()=>{
+              if(selectionId!==thisId)return;
+              const pill=document.createElement('span'); pill.className='ep-v no'+(dimSR?' ep-dim':''); pill.textContent='error'; pill.title='SR order error';
+              srChk.replaceWith(pill); srChk=pill;
+            });
+        })
+        .catch(()=>{});
+    }
+  } else {
+    selStatus.textContent = currentSelection.length+' elements selected';
+  }
+  fitAnnotFooter();
+}
+
+// Build sidebar
+function buildSidebar() {
+  sidebarBody.querySelectorAll('.cat-block').forEach(b => b.remove());
+  // Special blocks first
+  sidebarBody.appendChild(makeSpecialCat('_no_obvious_issues', 'No obvious issues'));
+  sidebarBody.appendChild(makeSpecialCat('_not_listed', 'Not listed above', {
+    wcag_ids: { label: 'WCAG guideline ID(s)', placeholder: 'e.g., 1.1.1, 2.4.4' },
+    description: { label: 'Issue description', placeholder: 'Describe the issue…', textarea: true },
+  }));
+  let n=1;
+  for (const catKey in FINDINGS) sidebarBody.appendChild(makeCat(catKey, FINDINGS[catKey], n++));
+  fitAnnotFooter();
+}
+
+function ensureAnnot(elInfo) {
+  const aid = elInfo.id;
+  if (!annotations[aid]) annotations[aid] = { elInfo, errors:{} };
+  return annotations[aid];
+}
+
+function makeSpecialCat(catKey, name, fields) {
+  const block = document.createElement('div'); block.className='cat-block special-block'; block.dataset.cat=catKey;
+  const header = document.createElement('div'); header.className='cat-header';
+
+  const cb = document.createElement('input'); cb.type='checkbox'; cb.className='cat-cb'; cb.dataset.cat=catKey;
+  cb.addEventListener('click', e => e.stopPropagation());
+
+  const readFields = () => {
+    if (!fields) return null;
+    const obj = {};
+    for (const k of Object.keys(fields)) {
+      const el = block.querySelector('.nl-input[data-field="'+k+'"]');
+      obj[k] = el ? (el.value || '') : '';
+    }
+    return obj;
+  };
+
+  cb.addEventListener('change', () => {
+    const checked = cb.checked;
+    currentSelection.forEach(elInfo => {
+      const a = ensureAnnot(elInfo);
+      if (checked) {
+        const obj = { category: name, categoryKey: catKey };
+        if (fields) Object.assign(obj, readFields());
+        a.errors[catKey] = obj;
+      } else {
+        delete a.errors[catKey];
+      }
+      updateSampleState(elInfo);
+    });
+    block.classList.toggle('checked', checked);
+    updateStats();
+    updateAnnotList();
+  });
+
+  const expander = document.createElement('div'); expander.className='cat-expander';
+  let toggle = null;
+  if (fields) {
+    toggle = document.createElement('span'); toggle.className='cat-toggle'; toggle.textContent='▶';
+    expander.appendChild(toggle);
+  }
+  const nameSpan = document.createElement('span'); nameSpan.className='cat-name'; nameSpan.textContent=name;
+  expander.appendChild(nameSpan);
+
+  header.append(cb, expander);
+  block.appendChild(header);
+
+  if (fields) {
+    const exDiv = document.createElement('div'); exDiv.className='cat-examples';
+    const fieldsWrap = document.createElement('div'); fieldsWrap.className='nl-fields';
+    for (const [key, cfg] of Object.entries(fields)) {
+      const lbl = document.createElement('label'); lbl.className='nl-label'; lbl.textContent=cfg.label;
+      const inp = document.createElement(cfg.textarea ? 'textarea' : 'input');
+      if (!cfg.textarea) inp.type='text';
+      else inp.rows = 3;
+      inp.className='nl-input';
+      inp.dataset.field = key;
+      inp.placeholder = cfg.placeholder || '';
+      inp.addEventListener('input', () => {
+        // Auto-check the box when user types; write values into selected entries.
+        if (!cb.checked) { cb.checked = true; cb.dispatchEvent(new Event('change')); return; }
+        currentSelection.forEach(elInfo => {
+          const a = annotations[elInfo.id];
+          if (!a || !a.errors[catKey]) return;
+          a.errors[catKey][key] = inp.value;
+        });
+        saveAnnotations();
+        updateAnnotList();
+      });
+      fieldsWrap.append(lbl, inp);
+    }
+    exDiv.appendChild(fieldsWrap);
+    block.appendChild(exDiv);
+    expander.addEventListener('click', () => { const o=exDiv.classList.toggle('open'); if (toggle) toggle.classList.toggle('open',o); });
+  }
+
+  return block;
+}
+
+function makeCat(catKey, cat, num) {
+  const block = document.createElement('div'); block.className='cat-block'; block.dataset.cat=catKey;
+  const header = document.createElement('div'); header.className='cat-header';
+
+  const cb = document.createElement('input'); cb.type='checkbox'; cb.className='cat-cb'; cb.dataset.cat=catKey;
+  cb.addEventListener('click', e => e.stopPropagation());
+  cb.addEventListener('change', e => {
+    const checked = cb.checked;
+    currentSelection.forEach(elInfo => {
+      const aid = elInfo.id;
+      if (!annotations[aid]) annotations[aid] = { elInfo, errors:{} };
+      if (checked) {
+        if (!annotations[aid].errors[catKey])
+          annotations[aid].errors[catKey] = { category: cat.name, categoryKey: catKey, axeRules:[] };
+      } else {
+        delete annotations[aid].errors[catKey];
+      }
+      const hasAny = Object.keys(annotations[aid].errors).length > 0;
+      pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'tag', aid, on:hasAny}, '*');
+      updateSampleState(elInfo);
+    });
+    block.classList.toggle('checked', checked);
+    updateStats();
+    updateAnnotList();
+  });
+
+  const expander = document.createElement('div'); expander.className='cat-expander';
+  const toggle = document.createElement('span'); toggle.className='cat-toggle'; toggle.textContent='▶';
+  const name = document.createElement('span'); name.className='cat-name'; name.textContent=num+'. '+cat.name;
+  const badge = document.createElement('span'); badge.className='cat-badge'; badge.textContent=(cat.wcag_sc||[]).length;
+  expander.append(toggle, name, badge);
+
+  const exDiv = document.createElement('div'); exDiv.className='cat-examples';
+  const card = document.createElement('div'); card.className='err-card';
+  const body = document.createElement('div'); body.className='err-body'; body.style.cssText='padding:9px 11px 9px;';
+  const sumDiv = document.createElement('div'); sumDiv.className='err-summary'; sumDiv.textContent=cat.issue_summary||'';
+  body.append(sumDiv);
+  card.append(body);
+  exDiv.append(card);
+  (cat.wcag_sc||[]).forEach(sc => exDiv.appendChild(makeScCard(sc)));
+  expander.addEventListener('click', () => { const o=exDiv.classList.toggle('open'); toggle.classList.toggle('open',o); });
+
+  header.append(cb, expander);
+  block.append(header, exDiv);
+  return block;
+}
+
+function makeScCard(sc) {
+  const card = document.createElement('div'); card.className = 'sc-card';
+  const head = document.createElement('div'); head.className = 'sc-head';
+  const tog = document.createElement('span'); tog.className = 'sc-toggle'; tog.textContent = '▶';
+  const id = document.createElement('span'); id.className = 'sc-id'; id.textContent = sc.id;
+  const title = document.createElement('span'); title.className = 'sc-title'; title.textContent = sc.title || '';
+  const lvl = document.createElement('span'); lvl.className = 'sc-level'; lvl.textContent = sc.level || '';
+  head.append(tog, id, title, lvl);
+
+  const what = document.createElement('div'); what.className = 'sc-what'; what.textContent = sc.what_to_do || '';
+
+  const details = document.createElement('div'); details.className = 'sc-details';
+  if (sc.goal) {
+    const r = document.createElement('div'); r.className = 'sc-row';
+    const k = document.createElement('div'); k.className = 'sc-label'; k.textContent = 'Goal';
+    const v = document.createElement('div'); v.className = 'sc-text'; v.textContent = sc.goal;
+    r.append(k, v); details.appendChild(r);
+  }
+  if (sc.why_it_is_important) {
+    const r = document.createElement('div'); r.className = 'sc-row';
+    const k = document.createElement('div'); k.className = 'sc-label'; k.textContent = "Why it's important";
+    const v = document.createElement('div'); v.className = 'sc-text'; v.textContent = sc.why_it_is_important;
+    r.append(k, v); details.appendChild(r);
+  }
+  if (sc.understanding_url) {
+    const link = document.createElement('a'); link.className = 'sc-link';
+    link.href = sc.understanding_url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    link.textContent = 'Understanding ' + sc.id + ' ↗';
+    details.appendChild(link);
+  }
+
+  head.addEventListener('click', () => {
+    const o = details.classList.toggle('open');
+    tog.classList.toggle('open', o);
+  });
+
+  card.append(head, what, details);
+  return card;
+}
+
+function updateCheckboxes() {
+  document.querySelectorAll('.cat-cb').forEach(cb => {
+    const catKey = cb.dataset.cat;
+    const block = cb.closest('.cat-block');
+    if (!currentSelection.length) {
+      cb.checked = false; cb.indeterminate = false;
+    } else {
+      const n = currentSelection.filter(el => annotations[el.id] && annotations[el.id].errors[catKey]).length;
+      if (n === 0) { cb.checked = false; cb.indeterminate = false; }
+      else if (n === currentSelection.length) { cb.checked = true; cb.indeterminate = false; }
+      else { cb.checked = false; cb.indeterminate = true; }
+    }
+    block && block.classList.toggle('checked', cb.checked);
+  });
+  // Reflect _not_listed text fields for the current single selection
+  const nlBlock = document.querySelector('.cat-block[data-cat="_not_listed"]');
+  if (nlBlock) {
+    let v = { wcag_ids: '', description: '' };
+    if (currentSelection.length === 1) {
+      const a = annotations[currentSelection[0].id];
+      if (a && a.errors._not_listed) v = a.errors._not_listed;
+    }
+    nlBlock.querySelectorAll('.nl-input').forEach(inp => { inp.value = v[inp.dataset.field] || ''; });
+  }
+  // Confirm button visibility / state. Gated until the user has pressed a
+  // tab-nav or SR-nav prev/next pill at least twice for every selected
+  // element (forces inspection before confirming).
+  const cbtn = document.getElementById('confirmBtn');
+  if (cbtn) {
+    cbtn.style.display = currentSelection.length ? '' : 'none';
+    const allConfirmed = currentSelection.length && currentSelection.every(e => annotations[e.id] && annotations[e.id].confirmed);
+    const navGate     = currentSelection.length && currentSelection.every(e => (annotations[e.id] && annotations[e.id].navCount || 0) >= 2);
+    const disabled    = allConfirmed || !navGate;
+    cbtn.disabled = disabled;
+    cbtn.style.opacity = disabled ? '0.55' : '';
+    if (allConfirmed) {
+      cbtn.textContent = '✓ Confirmed';
+      cbtn.title = '';
+    } else if (!navGate) {
+      const have = Math.min(2, currentSelection.reduce((m, e) => Math.min(m, annotations[e.id] && annotations[e.id].navCount || 0), 2));
+      cbtn.textContent = '✓ Confirm (' + have + '/2 nav)';
+      cbtn.title = 'Use the KB or SR prev/next pills above at least 2 times to unlock confirm';
+    } else {
+      cbtn.textContent = '✓ Confirm';
+      cbtn.title = '';
+    }
+  }
+}
+
+// Confirm button: marks each selected element's annotation as confirmed:true
+// and triggers the "done" (dim) sample highlight. No other side effects.
+document.getElementById('confirmBtn').addEventListener('click', () => {
+  currentSelection.forEach(elInfo => {
+    const a = ensureAnnot(elInfo);
+    a.confirmed = true;
+    updateSampleState(elInfo);
+  });
+  updateStats();
+  updateAnnotList();
+  updateCheckboxes();
+});
+
+function saveAnnotations() {
+  const pageKey = currentPageKey(); if (!pageKey) return;
+  const key = 'a11y_annotations:' + pageKey;
+  const hasAny = Object.values(annotations).some(a => a.confirmed || Object.keys(a.errors).length > 0);
+  if (hasAny) localStorage.setItem(key, JSON.stringify(annotations));
+  else localStorage.removeItem(key);
+}
+function loadAnnotations(pageKey) {
+  try {
+    const raw = localStorage.getItem('a11y_annotations:' + pageKey);
+    return raw ? JSON.parse(raw) : {};
+  } catch(e) { return {}; }
+}
+function updateStats() {
+  const n = Object.values(annotations).filter(a => a.confirmed || Object.keys(a.errors).length>0).length;
+  stats.innerHTML='<b>'+n+'</b> element'+(n!==1?'s':'')+' annotated';
+  exportBtn.disabled = n===0;
+  saveAnnotations();
+}
+
+function updateAnnotList() {
+  const items = Object.values(annotations).filter(a => a.confirmed || Object.keys(a.errors).length>0);
+  if (!items.length) { annotList.innerHTML='<span style="color:#484f58;font-size:11px">None yet</span>'; return; }
+  annotList.innerHTML='';
+  items.forEach(a => {
+    const el=a.elInfo, n=Object.keys(a.errors).length;
+    const item=document.createElement('div'); item.className='annot-item';
+    if (a.confirmed) item.style.opacity = '0.55';
+    const sel=document.createElement('span'); sel.className='annot-sel';
+    sel.textContent=(a.confirmed?'✓ ':'')+'<'+el.tag+(el.elId?'#'+el.elId:'')+'>'+( el.txt?' "'+el.txt.slice(0,20)+'"':'');
+    const cnt=document.createElement('span'); cnt.className='annot-n'; cnt.textContent=n;
+    item.append(sel,cnt);
+    item.addEventListener('mouseenter', () => {
+      pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'ext-hov', aid: el.id}, '*');
+    });
+    item.addEventListener('mouseleave', () => {
+      pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'ext-hov', aid: null}, '*');
+    });
+    item.addEventListener('click', () => {
+      pageFrame.contentWindow && pageFrame.contentWindow.postMessage({t:'ext-sel', aid: el.id, xpath: el.xpath || ''}, '*');
+    });
+    annotList.appendChild(item);
+  });
+}
+
+function buildExport() {
+  const elements = Object.values(annotations)
+    .filter(a => a.confirmed || Object.keys(a.errors).length>0)
+    .map(a => ({ element: a.elInfo, confirmed: a.confirmed === true, annotations: Object.values(a.errors) }));
+  return { page: currentPageKey(), exportedAt: new Date().toISOString(), elements };
+}
+function exportJSON() {
+  const result = buildExport();
+  if (!result.elements.length) return;
+  const blob=new Blob([JSON.stringify(result,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const link=document.createElement('a');
+  const now=new Date(), pad=n=>String(n).padStart(2,'0');
+  const ts=now.getFullYear()+pad(now.getMonth()+1)+pad(now.getDate())+'_'+pad(now.getHours())+pad(now.getMinutes())+pad(now.getSeconds());
+  link.href=url; link.download='a11y-'+ts+'.json'; link.click(); URL.revokeObjectURL(url);
+}
+
+buildSidebar();
+</script>
+</body>
+</html>

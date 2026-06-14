@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account – NovaMart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 800:'#1e40af' },
+            accent: { 400:'#fb923c', 500:'#f97316', 600:'#ea580c' }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; border-radius: 3px; }
+    .badge-delivered { background: #dcfce7; color: #166534; }
+    .badge-shipped { background: #dbeafe; color: #1e40af; }
+    .badge-processing { background: #fef9c3; color: #713f12; }
+    .badge-cancelled { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const NAV_LINKS = [
+      { label: 'Electronics', href: 'products.html?cat=electronics' },
+      { label: 'Kitchen', href: 'products.html?cat=kitchen' },
+      { label: 'Clothing', href: 'products.html?cat=clothing' },
+      { label: 'Sports', href: 'products.html?cat=sports' },
+      { label: "Today's Deals", href: 'products.html?cat=deals' },
+    ];
+
+    const USER = {
+      name: 'Alex Rivera',
+      email: 'alex.rivera@email.com',
+      avatar: 'AR',
+      memberSince: 'March 2021',
+      tier: 'Gold Member',
+      novaPoints: 2840,
+    };
+
+    const ORDERS = [
+      {
+        id: 'NM-2026-84231',
+        date: 'March 12, 2026',
+        status: 'Delivered',
+        statusClass: 'badge-delivered',
+        total: 279.99,
+        items: [
+          { name: 'Sony WH-1000XM5 Wireless Headphones', qty: 1, price: 279.99, img: 'headphones', alt: 'Sony WH-1000XM5 headphones in midnight black' },
+        ],
+        deliveryDate: 'March 15, 2026',
+      },
+      {
+        id: 'NM-2026-79104',
+        date: 'February 28, 2026',
+        status: 'Delivered',
+        statusClass: 'badge-delivered',
+        total: 124.94,
+        items: [
+          { name: 'Hydro Flask 32 oz Bottle (×2)', qty: 2, price: 69.90, img: 'flask', alt: 'Teal Hydro Flask bottles' },
+          { name: 'Yoga Mat Premium 6mm', qty: 1, price: 32.99, img: 'yoga', alt: 'Purple yoga mat' },
+        ],
+        deliveryDate: 'March 2, 2026',
+      },
+      {
+        id: 'NM-2026-91042',
+        date: 'March 14, 2026',
+        status: 'Shipped',
+        statusClass: 'badge-shipped',
+        total: 89.99,
+        items: [
+          { name: 'Ninja Air Fryer XL 5.5 Qt', qty: 1, price: 89.99, img: 'airfryer', alt: 'Ninja air fryer in silver' },
+        ],
+        deliveryDate: 'Expected March 18, 2026',
+      },
+      {
+        id: 'NM-2026-95311',
+        date: 'March 16, 2026',
+        status: 'Processing',
+        statusClass: 'badge-processing',
+        total: 34.95,
+        items: [
+          { name: 'Echo Dot 5th Gen', qty: 1, price: 29.99, img: 'echo', alt: 'Amazon Echo Dot in charcoal' },
+        ],
+        deliveryDate: 'Expected March 19–21, 2026',
+      },
+    ];
+
+    const ADDRESSES = [
+      { id:1, label:'Home', default:true, name:'Alex Rivera', street:'742 Elmwood Ave, Apt 4B', city:'Portland, OR 97201', phone:'(503) 555-0147' },
+      { id:2, label:'Work', default:false, name:'Alex Rivera', street:'1000 NW Couch St, Suite 300', city:'Portland, OR 97209', phone:'(503) 555-0289' },
+    ];
+
+    const PAYMENT = [
+      { id:1, type:'Visa', last4:'4872', expires:'09/27', default:true },
+      { id:2, type:'Mastercard', last4:'1930', expires:'03/26', default:false },
+      { id:3, type:'PayPal', last4:null, email:'alex.r@email.com', default:false },
+    ];
+
+    const WISHLIST = [
+      { id:3, name:'Samsung 65" 4K QLED TV', price:899.99, original:1199.99, img:'tv65', alt:'Samsung QLED TV in modern living room', inStock:true },
+      { id:4, name:'KitchenAid 5 Qt Stand Mixer', price:349.99, original:449.99, img:'mixer', alt:'KitchenAid stand mixer in Candy Apple Red', inStock:true },
+      { id:5, name:'Dell XPS 15 Laptop i7', price:1299.99, original:1599.99, img:'laptop', alt:'Dell XPS 15 laptop open on desk', inStock:false },
+      { id:6, name:'Patagonia Better Sweater Fleece', price:159.99, original:199.99, img:'jacket', alt:'Patagonia fleece jacket in navy', inStock:true },
+    ];
+
+    const SIDEBAR_SECTIONS = [
+      { id:'orders',   icon:'📦', label:'Order History' },
+      { id:'addresses',icon:'📍', label:'Saved Addresses' },
+      { id:'payment',  icon:'💳', label:'Payment Methods' },
+      { id:'wishlist', icon:'❤️', label:'Wishlist' },
+      { id:'settings', icon:'⚙️', label:'Account Settings' },
+    ];
+
+    /* ─── Header ──────────────────────────────────── */
+    const Header = () => {
+      const [query, setQuery] = useState('');
+      const handleSearch = (e) => e.preventDefault();
+      return (
+        <header role="banner">
+          <div className="bg-brand-800 text-white text-sm py-1.5 text-center">
+            🚚 Free shipping on orders over $35 — <a href="products.html" className="underline font-medium hover:text-brand-100">Shop Now</a>
+          </div>
+          <div className="bg-brand-700 text-white shadow-lg">
+            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+              <a href="index.html" className="flex items-center gap-2 shrink-0 rounded" aria-label="NovaMart home">
+                <div className="w-8 h-8 bg-accent-500 rounded-lg flex items-center justify-center font-black text-white text-lg" aria-hidden="true">N</div>
+                <span className="text-xl font-black tracking-tight hidden sm:block">NovaMart</span>
+              </a>
+              <form onSubmit={handleSearch} role="search" className="flex-1 flex max-w-2xl" aria-label="Site search">
+                <label htmlFor="site-search" className="sr-only">Search NovaMart</label>
+                <input id="site-search" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search products, brands, categories…"
+                  className="flex-1 px-4 py-2 rounded-l-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
+                <button type="submit" className="bg-accent-500 hover:bg-accent-600 px-4 rounded-r-lg font-semibold text-sm transition-colors" aria-label="Submit search">🔍 Search</button>
+              </form>
+              <nav aria-label="Account and cart" className="flex items-center gap-3 shrink-0">
+                <a href="account.html" className="flex flex-col items-center text-xs text-accent-400 font-bold px-2 py-1" aria-label="Your account" aria-current="page"><span aria-hidden="true" className="text-xl">👤</span><span className="hidden sm:block">Account</span></a>
+                <a href="cart.html" className="relative flex flex-col items-center text-xs hover:text-brand-100 px-2 py-1" aria-label="Cart, 3 items">
+                  <span aria-hidden="true" className="text-xl">🛒</span><span className="hidden sm:block">Cart</span>
+                  <span className="absolute -top-1 -right-1 bg-accent-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" aria-hidden="true">3</span>
+                </a>
+              </nav>
+            </div>
+            <nav aria-label="Main categories" className="bg-brand-600">
+              <div className="max-w-7xl mx-auto px-4">
+                <ul className="flex gap-1">
+                  {NAV_LINKS.map(link => (
+                    <li key={link.label}>
+                      <a href={link.href} className="block px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 rounded-t transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">{link.label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </nav>
+          </div>
+        </header>
+      );
+    };
+
+    /* ─── Footer ──────────────────────────────────── */
+    const Footer = () => (
+      <footer className="bg-gray-900 text-gray-300 mt-16" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 bg-accent-500 rounded-lg flex items-center justify-center font-black text-white" aria-hidden="true">N</div>
+              <span className="text-white font-black text-lg">NovaMart</span>
+            </div>
+            <p className="text-sm text-gray-400">Your trusted marketplace for electronics, home goods, and apparel.</p>
+          </div>
+          {[
+            { title:'Shop', items:['Electronics','Kitchen','Clothing','Sports',"Today's Deals"] },
+            { title:'Help',  items:['Track Order','Returns & Refunds','Shipping Info','FAQs','Contact Us'] },
+            { title:'Company', items:['About NovaMart','Careers','Press','Sell on NovaMart','Affiliate Program'] },
+          ].map(col => (
+            <div key={col.title}>
+              <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">{col.title}</h3>
+              <ul className="space-y-2 text-sm">
+                {col.items.map(item => <li key={item}><a href="#" className="hover:text-white transition-colors">{item}</a></li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-gray-800 max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+          <p>© 2026 NovaMart, Inc. All rights reserved.</p>
+          <div className="flex gap-4">
+            <a href="#" className="hover:text-white">Privacy Policy</a>
+            <a href="#" className="hover:text-white">Terms of Service</a>
+          </div>
+        </div>
+      </footer>
+    );
+
+    /* ─── Order History ───────────────────────────── */
+    const OrderHistory = () => (
+      <section aria-labelledby="orders-heading">
+        <h2 id="orders-heading" className="text-xl font-bold text-gray-900 mb-5">Order History</h2>
+        <ul className="space-y-4" role="list" aria-label="Your past orders">
+          {ORDERS.map(order => (
+            <li key={order.id}>
+              <article className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                {/* Order header */}
+                <div className="bg-gray-50 px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200">
+                  <div className="flex flex-wrap items-center gap-4 text-sm">
+                    <div><span className="text-gray-500 text-xs">ORDER PLACED</span><br /><strong className="text-gray-900">{order.date}</strong></div>
+                    <div><span className="text-gray-500 text-xs">TOTAL</span><br /><strong className="text-gray-900">${order.total.toFixed(2)}</strong></div>
+                    <div><span className="text-gray-500 text-xs">ORDER #</span><br /><span className="text-brand-600 font-mono text-xs">{order.id}</span></div>
+                  </div>
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.statusClass} shrink-0`} role="status" aria-label={`Order status: ${order.status}`}>
+                    {order.status}
+                  </span>
+                </div>
+
+                {/* Order items */}
+                <div className="p-5">
+                  <ul className="space-y-3" aria-label={`Items in order ${order.id}`}>
+                    {order.items.map((item, i) => (
+                      <li key={i} className="flex items-center gap-3">
+                        <img src={`https://picsum.photos/seed/${item.img}/64/64`} alt={item.alt} width="64" height="64"
+                          className="w-14 h-14 object-cover rounded-lg border border-gray-200 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <a href="product-detail.html" className="text-sm font-medium text-gray-900 hover:text-brand-600 focus-visible:text-brand-600 focus-visible:outline-none block truncate">{item.name}</a>
+                          <div className="text-xs text-gray-500">Qty: {item.qty} · ${item.price.toFixed(2)}</div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs text-gray-500">{order.status === 'Delivered' ? '📦 Delivered' : '🚚 Estimated delivery'}: <strong className="text-gray-700">{order.deliveryDate}</strong></p>
+                    <div className="flex gap-2">
+                      {order.status === 'Delivered' && (
+                        <button className="text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+                          Write Review
+                        </button>
+                      )}
+                      {order.status === 'Shipped' && (
+                        <button className="text-xs px-3 py-1.5 border border-brand-300 text-brand-600 rounded-lg hover:bg-brand-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+                          Track Package
+                        </button>
+                      )}
+                      <a href="cart.html" className="text-xs px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2">
+                        Buy Again
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+
+    /* ─── Saved Addresses ─────────────────────────── */
+    const SavedAddresses = () => {
+      const [showForm, setShowForm] = useState(false);
+      return (
+        <section aria-labelledby="addresses-heading">
+          <div className="flex items-center justify-between mb-5">
+            <h2 id="addresses-heading" className="text-xl font-bold text-gray-900">Saved Addresses</h2>
+            <button onClick={() => setShowForm(!showForm)} className="text-sm text-brand-600 hover:text-brand-700 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded"
+              aria-expanded={showForm} aria-controls="add-address-form">
+              {showForm ? '✕ Cancel' : '+ Add Address'}
+            </button>
+          </div>
+
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5" role="list" aria-label="Your saved addresses">
+            {ADDRESSES.map(addr => (
+              <li key={addr.id}>
+                <article className={`bg-white rounded-xl p-5 border-2 ${addr.default ? 'border-brand-500' : 'border-gray-200'}`}>
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900">{addr.label}</span>
+                      {addr.default && <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-semibold">Default</span>}
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="text-xs text-brand-600 hover:underline focus-visible:outline-none focus-visible:underline">Edit</button>
+                      {!addr.default && <button className="text-xs text-red-600 hover:underline focus-visible:outline-none focus-visible:underline">Delete</button>}
+                    </div>
+                  </div>
+                  <address className="not-italic text-sm text-gray-700 leading-relaxed">
+                    <strong>{addr.name}</strong><br />
+                    {addr.street}<br />
+                    {addr.city}<br />
+                    <a href={`tel:${addr.phone}`} className="text-gray-500 hover:text-brand-600 focus-visible:text-brand-600">{addr.phone}</a>
+                  </address>
+                  {!addr.default && (
+                    <button className="mt-3 text-xs text-brand-600 hover:underline font-medium focus-visible:outline-none focus-visible:underline">
+                      Set as Default
+                    </button>
+                  )}
+                </article>
+              </li>
+            ))}
+          </ul>
+
+          {showForm && (
+            <div id="add-address-form" className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Add New Address</h3>
+              <form aria-label="Add new delivery address" onSubmit={e => { e.preventDefault(); setShowForm(false); }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { id:'addr-label', label:'Label (e.g. Home, Work)', type:'text', placeholder:'Home' },
+                    { id:'addr-name', label:'Full Name', type:'text', placeholder:'Alex Rivera' },
+                    { id:'addr-street', label:'Street Address', type:'text', placeholder:'742 Elmwood Ave' },
+                    { id:'addr-apt', label:'Apt / Suite (optional)', type:'text', placeholder:'Apt 4B' },
+                    { id:'addr-city', label:'City', type:'text', placeholder:'Portland' },
+                    { id:'addr-state', label:'State', type:'text', placeholder:'OR' },
+                    { id:'addr-zip', label:'ZIP Code', type:'text', placeholder:'97201' },
+                    { id:'addr-phone', label:'Phone Number', type:'tel', placeholder:'(503) 555-0147' },
+                  ].map(field => (
+                    <div key={field.id}>
+                      <label htmlFor={field.id} className="block text-xs font-semibold text-gray-700 mb-1">{field.label}</label>
+                      <input id={field.id} type={field.type} placeholder={field.placeholder}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600" />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <button type="submit" className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2">
+                    Save Address
+                  </button>
+                  <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </section>
+      );
+    };
+
+    /* ─── Payment Methods ─────────────────────────── */
+    const PaymentMethods = () => {
+      const cardIcons = { Visa: '🔵', Mastercard: '🔴', PayPal: '🟡' };
+      return (
+        <section aria-labelledby="payment-heading">
+          <div className="flex items-center justify-between mb-5">
+            <h2 id="payment-heading" className="text-xl font-bold text-gray-900">Payment Methods</h2>
+            <button className="text-sm text-brand-600 hover:text-brand-700 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded">+ Add Payment</button>
+          </div>
+          <ul className="space-y-3" role="list" aria-label="Your saved payment methods">
+            {PAYMENT.map(method => (
+              <li key={method.id}>
+                <article className={`bg-white rounded-xl p-4 border-2 flex items-center gap-4 ${method.default ? 'border-brand-500' : 'border-gray-200'}`}>
+                  <span className="text-3xl" aria-hidden="true">{cardIcons[method.type] || '💳'}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900 text-sm">
+                        {method.type}
+                        {method.last4 ? ` ending in ${method.last4}` : ` (${method.email})`}
+                      </span>
+                      {method.default && <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-semibold">Default</span>}
+                    </div>
+                    {method.expires && <p className="text-xs text-gray-500 mt-0.5">Expires {method.expires}</p>}
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="text-xs text-brand-600 hover:underline focus-visible:outline-none focus-visible:underline" aria-label={`Edit ${method.type} ${method.last4 ? `ending in ${method.last4}` : ''}`}>Edit</button>
+                    {!method.default && <button className="text-xs text-red-600 hover:underline focus-visible:outline-none focus-visible:underline" aria-label={`Remove ${method.type}`}>Remove</button>}
+                  </div>
+                </article>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 bg-gray-50 rounded-xl p-4 border border-gray-200 text-sm text-gray-500 flex items-center gap-2">
+            <span aria-hidden="true">🔒</span>
+            <span>Your payment information is encrypted and stored securely. NovaMart never stores full card numbers.</span>
+          </div>
+        </section>
+      );
+    };
+
+    /* ─── Wishlist ────────────────────────────────── */
+    const Wishlist = () => {
+      const [items, setItems] = useState(WISHLIST);
+      const removeItem = (id) => setItems(prev => prev.filter(i => i.id !== id));
+      return (
+        <section aria-labelledby="wishlist-heading">
+          <h2 id="wishlist-heading" className="text-xl font-bold text-gray-900 mb-5">
+            Wishlist <span className="text-gray-400 font-normal text-base">({items.length} items)</span>
+          </h2>
+          {items.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+              <p className="text-5xl mb-4" aria-hidden="true">❤️</p>
+              <p className="text-gray-500">Your wishlist is empty. <a href="products.html" className="text-brand-600 hover:underline font-semibold">Browse products</a></p>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4" role="list" aria-label="Your wishlist items">
+              {items.map(item => {
+                const disc = Math.round((1 - item.price / item.original) * 100);
+                return (
+                  <li key={item.id}>
+                    <article className="bg-white rounded-xl border border-gray-200 p-4 flex gap-4">
+                      <a href="product-detail.html" className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded-xl" aria-label={`View ${item.name}`}>
+                        <img src={`https://picsum.photos/seed/${item.img}/100/100`} alt={item.alt} width="100" height="100"
+                          className="w-24 h-24 object-cover rounded-xl" />
+                      </a>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-900 leading-snug mb-1 line-clamp-2">
+                          <a href="product-detail.html" className="hover:text-brand-600 focus-visible:text-brand-600 focus-visible:outline-none">{item.name}</a>
+                        </h3>
+                        <div className="flex items-baseline gap-1 mb-2">
+                          <span className="font-black text-gray-900">${item.price.toFixed(2)}</span>
+                          <span className="text-xs text-gray-400 line-through">${item.original.toFixed(2)}</span>
+                          <span className="text-xs text-red-600 font-semibold">−{disc}%</span>
+                        </div>
+                        <p className={`text-xs font-medium mb-3 ${item.inStock ? 'text-green-600' : 'text-red-600'}`}>
+                          {item.inStock ? '✓ In Stock' : '✗ Out of Stock'}
+                        </p>
+                        <div className="flex gap-2">
+                          <a href="cart.html"
+                            className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-1 ${item.inStock ? 'bg-brand-600 hover:bg-brand-700 text-white' : 'bg-gray-200 text-gray-400 pointer-events-none'}`}
+                            aria-disabled={!item.inStock}
+                            aria-label={`Add ${item.name} to cart`}
+                          >Add to Cart</a>
+                          <button onClick={() => removeItem(item.id)}
+                            className="text-xs text-red-600 hover:underline font-medium focus-visible:outline-none focus-visible:underline"
+                            aria-label={`Remove ${item.name} from wishlist`}>Remove</button>
+                        </div>
+                      </div>
+                    </article>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      );
+    };
+
+    /* ─── Account Settings ────────────────────────── */
+    const AccountSettings = () => {
+      const [name, setName] = useState(USER.name);
+      const [email, setEmail] = useState(USER.email);
+      const [emailNotif, setEmailNotif] = useState(true);
+      const [smsNotif, setSmsNotif] = useState(false);
+      const [twoFA, setTwoFA] = useState(false);
+      const [saved, setSaved] = useState(false);
+
+      const handleSave = (e) => {
+        e.preventDefault();
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      };
+
+      return (
+        <section aria-labelledby="settings-heading">
+          <h2 id="settings-heading" className="text-xl font-bold text-gray-900 mb-5">Account Settings</h2>
+
+          <form onSubmit={handleSave} aria-label="Account settings form" className="space-y-8">
+            {/* Profile */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Profile Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="settings-name" className="block text-xs font-semibold text-gray-700 mb-1">Full Name</label>
+                  <input id="settings-name" type="text" value={name} onChange={e => setName(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600" />
+                </div>
+                <div>
+                  <label htmlFor="settings-email" className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
+                  <input id="settings-email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600" />
+                </div>
+                <div>
+                  <label htmlFor="settings-phone" className="block text-xs font-semibold text-gray-700 mb-1">Phone Number</label>
+                  <input id="settings-phone" type="tel" defaultValue="(503) 555-0147"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600" />
+                </div>
+                <div>
+                  <label htmlFor="settings-dob" className="block text-xs font-semibold text-gray-700 mb-1">Date of Birth</label>
+                  <input id="settings-dob" type="date" defaultValue="1990-07-14"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600" />
+                </div>
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Change Password</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { id:'settings-current-pw', label:'Current Password' },
+                  { id:'settings-new-pw', label:'New Password' },
+                  { id:'settings-confirm-pw', label:'Confirm New Password' },
+                ].map(field => (
+                  <div key={field.id} className={field.id === 'settings-current-pw' ? 'sm:col-span-2' : ''}>
+                    <label htmlFor={field.id} className="block text-xs font-semibold text-gray-700 mb-1">{field.label}</label>
+                    <input id={field.id} type="password" placeholder="••••••••"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Notifications */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Notification Preferences</h3>
+              <div className="space-y-4">
+                {[
+                  { id:'notif-email', label:'Email notifications', desc:'Order updates, promotions, and deals', checked: emailNotif, setter: setEmailNotif },
+                  { id:'notif-sms', label:'SMS notifications', desc:'Order status and delivery updates', checked: smsNotif, setter: setSmsNotif },
+                ].map(notif => (
+                  <div key={notif.id} className="flex items-start gap-4">
+                    <div className="relative inline-flex items-center cursor-pointer mt-0.5">
+                      <input
+                        type="checkbox"
+                        id={notif.id}
+                        checked={notif.checked}
+                        onChange={e => notif.setter(e.target.checked)}
+                        className="sr-only peer"
+                        role="switch"
+                        aria-checked={notif.checked}
+                      />
+                      <div
+                        onClick={() => notif.setter(!notif.checked)}
+                        className={`w-11 h-6 rounded-full cursor-pointer transition-colors ${notif.checked ? 'bg-brand-600' : 'bg-gray-300'} peer-focus-visible:ring-2 peer-focus-visible:ring-brand-600 peer-focus-visible:ring-offset-2`}
+                        aria-hidden="true"
+                      >
+                        <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow transition-transform ${notif.checked ? 'translate-x-5' : 'translate-x-0'}`} />
+                      </div>
+                    </div>
+                    <label htmlFor={notif.id} className="cursor-pointer">
+                      <div className="text-sm font-semibold text-gray-900">{notif.label}</div>
+                      <div className="text-xs text-gray-500">{notif.desc}</div>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Security */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Security</h3>
+              <div className="flex items-start gap-4">
+                <div className="relative inline-flex items-center cursor-pointer mt-0.5">
+                  <input type="checkbox" id="twofa" checked={twoFA} onChange={e => setTwoFA(e.target.checked)} className="sr-only peer" role="switch" aria-checked={twoFA} />
+                  <div onClick={() => setTwoFA(!twoFA)} className={`w-11 h-6 rounded-full cursor-pointer transition-colors ${twoFA ? 'bg-brand-600' : 'bg-gray-300'}`} aria-hidden="true">
+                    <div className={`absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full shadow transition-transform ${twoFA ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </div>
+                </div>
+                <label htmlFor="twofa" className="cursor-pointer">
+                  <div className="text-sm font-semibold text-gray-900">Two-factor authentication</div>
+                  <div className="text-xs text-gray-500">Require a verification code on each login for extra security</div>
+                </label>
+              </div>
+            </div>
+
+            {/* Save + Delete Zone */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <button type="submit" className={`px-8 py-3 font-bold text-sm rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${saved ? 'bg-green-600 text-white' : 'bg-brand-600 hover:bg-brand-700 text-white'}`} aria-live="polite">
+                {saved ? '✓ Changes Saved!' : 'Save Changes'}
+              </button>
+              <button type="button" className="text-sm text-red-600 hover:text-red-700 hover:underline font-medium focus-visible:outline-none focus-visible:underline">
+                Delete Account
+              </button>
+            </div>
+          </form>
+        </section>
+      );
+    };
+
+    /* ─── App ─────────────────────────────────────── */
+    const App = () => {
+      const [activeSection, setActiveSection] = useState('orders');
+      const SECTIONS = {
+        orders: OrderHistory,
+        addresses: SavedAddresses,
+        payment: PaymentMethods,
+        wishlist: Wishlist,
+        settings: AccountSettings,
+      };
+      const ActiveSection = SECTIONS[activeSection];
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-brand-600 text-white px-4 py-2 rounded z-50 font-semibold">Skip to main content</a>
+          <Header />
+
+          <main id="main-content" className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
+            {/* Breadcrumb */}
+            <nav aria-label="Breadcrumb" className="mb-4">
+              <ol className="flex items-center gap-2 text-sm text-gray-500" role="list">
+                <li><a href="index.html" className="hover:text-brand-600">Home</a></li>
+                <li aria-hidden="true">›</li>
+                <li className="text-gray-900 font-medium" aria-current="page">My Account</li>
+              </ol>
+            </nav>
+
+            {/* User banner */}
+            <div className="bg-gradient-to-r from-brand-700 to-brand-600 text-white rounded-2xl p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-2xl font-black shrink-0" aria-hidden="true">
+                {USER.avatar}
+              </div>
+              <div className="flex-1">
+                <h1 className="text-xl font-black">Welcome back, {USER.name.split(' ')[0]}! 👋</h1>
+                <p className="text-blue-100 text-sm">{USER.email}</p>
+                <p className="text-blue-200 text-xs mt-1">Member since {USER.memberSince}</p>
+              </div>
+              <div className="flex flex-col items-start sm:items-end gap-1">
+                <span className="text-xs bg-amber-400 text-amber-900 font-bold px-3 py-1 rounded-full">🏅 {USER.tier}</span>
+                <span className="text-sm font-bold">{USER.novaPoints.toLocaleString()} NovaPts</span>
+                <a href="#" className="text-xs text-blue-200 hover:text-white focus-visible:text-white underline">View rewards →</a>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Sidebar nav */}
+              <nav aria-label="Account sections" className="md:w-60 shrink-0">
+                <ul className="bg-white rounded-xl border border-gray-200 overflow-hidden" role="list">
+                  {SIDEBAR_SECTIONS.map((section, i) => (
+                    <li key={section.id} className={i < SIDEBAR_SECTIONS.length - 1 ? 'border-b border-gray-100' : ''}>
+                      <button
+                        onClick={() => setActiveSection(section.id)}
+                        aria-current={activeSection === section.id ? 'page' : undefined}
+                        className={`w-full text-left flex items-center gap-3 px-4 py-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-inset ${activeSection === section.id ? 'bg-brand-50 text-brand-700 border-r-4 border-brand-600' : 'text-gray-700 hover:bg-gray-50'}`}
+                      >
+                        <span aria-hidden="true">{section.icon}</span>
+                        {section.label}
+                        {section.id === 'wishlist' && <span className="ml-auto text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5 font-semibold" aria-label={`${WISHLIST.length} items`}>{WISHLIST.length}</span>}
+                        {section.id === 'orders' && <span className="ml-auto text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5 font-semibold" aria-label={`${ORDERS.length} orders`}>{ORDERS.length}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3">
+                  <button className="w-full text-left px-4 py-3 text-sm text-red-600 hover:text-red-700 font-medium bg-white rounded-xl border border-gray-200 hover:border-red-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500">
+                    🚪 Sign Out
+                  </button>
+                </div>
+              </nav>
+
+              {/* Main content */}
+              <div className="flex-1 min-w-0">
+                <ActiveSection />
+              </div>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

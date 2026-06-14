@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Meridian — Independent Global News</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .font-serif { font-family: 'Playfair Display', Georgia, serif; }
+    @keyframes ticker {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .ticker-animate { animation: ticker 28s linear infinite; }
+    .ticker-animate:hover { animation-play-state: paused; }
+    .story-card:hover .story-headline { text-decoration: underline; }
+    .divider-dot::before { content: '·'; margin: 0 6px; color: #9ca3af; }
+  </style>
+</head>
+<body class="bg-white text-gray-900">
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/* ── Shared Nav ── */
+function Header() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navLinks = [
+    { label: 'World', href: 'world.html' },
+    { label: 'Politics', href: '#' },
+    { label: 'Technology', href: '#' },
+    { label: 'Culture', href: '#' },
+    { label: 'Opinion', href: 'opinion.html' },
+    { label: 'Video', href: '#' },
+  ];
+  return (
+    <header className="bg-slate-900 text-white">
+      {/* Top utility bar */}
+      <div className="border-b border-slate-700">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-9 text-xs text-slate-400">
+          <span>Monday, March 16, 2026</span>
+          <div className="flex gap-5">
+            <a href="#" className="hover:text-white transition-colors">Sign In</a>
+            <a href="subscribe.html" className="hover:text-white transition-colors">Subscribe</a>
+            <a href="#" className="hover:text-white transition-colors">Newsletter</a>
+          </div>
+        </div>
+      </div>
+      {/* Logo row */}
+      <div className="max-w-7xl mx-auto px-4 py-5 flex items-center justify-between">
+        <a href="index.html" className="font-serif text-4xl font-black tracking-tight text-white hover:text-slate-200">
+          The Meridian
+        </a>
+        <div className="hidden md:flex items-center gap-3">
+          <button className="text-slate-400 hover:text-white transition-colors p-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+          <a href="subscribe.html" className="bg-red-700 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2 transition-colors">
+            Subscribe
+          </a>
+        </div>
+        <button className="md:hidden text-slate-300" onClick={() => setMenuOpen(!menuOpen)}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+      {/* Nav */}
+      <nav className="border-t border-slate-700">
+        <div className="max-w-7xl mx-auto px-4">
+          <ul className={`${menuOpen ? 'flex flex-col py-2' : 'hidden md:flex'} gap-0`}>
+            {navLinks.map(l => (
+              <li key={l.label}>
+                <a href={l.href} className="block px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors tracking-wide uppercase">
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+/* ── Breaking Ticker ── */
+function BreakingTicker() {
+  const headlines = [
+    "BREAKING: UN Emergency Session Called Over Red Sea Tensions",
+    "Markets surge as Fed signals rate pause through mid-year",
+    "Climate summit reaches landmark methane reduction accord",
+    "Tech antitrust ruling reshapes EU digital markets",
+    "Humanitarian crisis deepens in northern Sudan — 1.2M displaced",
+  ];
+  return (
+    <div className="bg-red-700 text-white flex items-stretch overflow-hidden">
+      <div className="bg-red-900 px-4 py-2 text-xs font-black tracking-widest uppercase shrink-0 flex items-center z-10">
+        Breaking
+      </div>
+      <div className="overflow-hidden flex-1 relative py-2">
+        <div className="ticker-animate whitespace-nowrap text-sm font-medium">
+          {headlines.map((h, i) => (
+            <span key={i} className="mr-16">{h}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Hero Section ── */
+function Hero() {
+  return (
+    <section className="max-w-7xl mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main hero */}
+        <div className="lg:col-span-2">
+          <a href="article.html" className="group block">
+            <div className="relative overflow-hidden mb-4">
+              <img
+                src="https://picsum.photos/seed/meridian-hero/900/520"
+                alt="Hero"
+                className="w-full object-cover h-72 md:h-96 group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <span className="absolute top-4 left-4 bg-red-700 text-white text-xs font-black px-3 py-1 tracking-widest uppercase">
+                World
+              </span>
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <h1 className="font-serif text-white text-2xl md:text-4xl font-bold leading-tight mb-2">
+                  Red Sea Crisis Escalates as UN Security Council Convenes Emergency Session
+                </h1>
+                <p className="text-slate-200 text-sm md:text-base leading-relaxed line-clamp-2">
+                  Shipping lanes through the Bab-el-Mandeb strait remain disrupted as Houthi attacks continue, prompting emergency diplomacy across three continents.
+                </p>
+                <div className="mt-3 flex items-center gap-4 text-slate-300 text-xs">
+                  <span className="font-semibold">By Amara Osei</span>
+                  <span>March 16, 2026</span>
+                  <span>8 min read</span>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+        {/* Secondary stories */}
+        <div className="flex flex-col gap-5">
+          {[
+            { cat: 'Politics', title: 'Senate Deadlock on AI Governance Bill Enters Fifth Week', author: 'Lena Kovacs', img: '200/130' },
+            { cat: 'Technology', title: 'OpenCortex Claims Breakthrough in Long-Context Reasoning', author: 'Raj Patel', img: '201/130' },
+            { cat: 'Culture', title: 'The Silence of the Archive: Literature\'s Reckoning With AI Authorship', author: 'Sofia Mercer', img: '202/130' },
+          ].map((s, i) => (
+            <a href="article.html" key={i} className="group flex gap-4 border-b border-gray-100 pb-5 last:border-0 last:pb-0">
+              <div className="shrink-0 overflow-hidden w-28 h-20">
+                <img src={`https://picsum.photos/seed/sec${i}/200/130`} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              </div>
+              <div>
+                <span className="text-red-700 text-xs font-black tracking-widest uppercase">{s.cat}</span>
+                <h3 className="font-serif text-gray-900 text-base font-semibold leading-snug mt-1 group-hover:text-slate-600 transition-colors">
+                  {s.title}
+                </h3>
+                <p className="text-gray-500 text-xs mt-1">{s.author}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Section Divider ── */
+function SectionHeader({ label, href }) {
+  return (
+    <div className="flex items-center justify-between mb-6 border-b-2 border-slate-900 pb-2">
+      <h2 className="font-serif text-xl font-bold tracking-tight">{label}</h2>
+      {href && <a href={href} className="text-xs font-semibold text-slate-500 hover:text-red-700 tracking-wide uppercase transition-colors">See All →</a>}
+    </div>
+  );
+}
+
+/* ── Story Grid ── */
+function StoryGrid({ stories }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {stories.map((s, i) => (
+        <a href="article.html" key={i} className="group story-card">
+          <div className="overflow-hidden mb-3">
+            <img src={`https://picsum.photos/seed/grid${s.seed}/400/260`} alt="" className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300" />
+          </div>
+          <span className="text-red-700 text-xs font-black tracking-widest uppercase">{s.cat}</span>
+          <h3 className="font-serif story-headline text-gray-900 text-base font-semibold leading-snug mt-1">{s.title}</h3>
+          <p className="text-gray-500 text-xs mt-2">{s.author} · {s.time}</p>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+/* ── Most Read Sidebar ── */
+function MostRead() {
+  const items = [
+    'The Hidden Cost of CHIPS Act Subsidies',
+    'Why Gaza\'s Reconstruction May Take a Generation',
+    'How a Small Finnish Company Became NATO\'s Secret Weapon',
+    'The Algae Farms That Could Feed Millions',
+    'Inside the White House\'s Quiet Climate Reversal',
+  ];
+  return (
+    <aside>
+      <SectionHeader label="Most Read" />
+      <ol className="space-y-4">
+        {items.map((item, i) => (
+          <li key={i} className="flex gap-4 items-start group">
+            <span className="font-serif text-3xl font-black text-gray-200 leading-none shrink-0 group-hover:text-red-700 transition-colors">{i + 1}</span>
+            <a href="article.html" className="font-serif text-sm font-semibold leading-snug hover:text-red-700 transition-colors">{item}</a>
+          </li>
+        ))}
+      </ol>
+    </aside>
+  );
+}
+
+/* ── World Strip ── */
+function CategoryStrip({ label, href, stories }) {
+  return (
+    <section className="py-10 border-t border-gray-200">
+      <div className="max-w-7xl mx-auto px-4">
+        <SectionHeader label={label} href={href} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {stories.map((s, i) => (
+            <a href={i === 0 ? 'article.html' : '#'} key={i} className={`group flex gap-4 ${i === 0 ? 'md:col-span-1 flex-col' : ''}`}>
+              {i === 0 ? (
+                <>
+                  <div className="overflow-hidden">
+                    <img src={`https://picsum.photos/seed/${label}${i}/600/360`} alt="" className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-lg font-bold leading-snug group-hover:text-slate-600">{s.title}</h3>
+                    <p className="text-gray-600 text-sm mt-1 leading-relaxed">{s.desc}</p>
+                    <p className="text-gray-400 text-xs mt-2">{s.author} · {s.time}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="shrink-0 overflow-hidden w-24 h-20">
+                    <img src={`https://picsum.photos/seed/${label}${i}/300/200`} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-sm font-semibold leading-snug group-hover:text-slate-600">{s.title}</h3>
+                    <p className="text-gray-400 text-xs mt-1">{s.author} · {s.time}</p>
+                  </div>
+                </>
+              )}
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Newsletter ── */
+function Newsletter() {
+  const [email, setEmail] = useState('');
+  const [done, setDone] = useState(false);
+  return (
+    <div className="bg-slate-900 text-white py-14">
+      <div className="max-w-2xl mx-auto px-4 text-center">
+        <div className="font-serif text-3xl font-bold mb-2">The Daily Dispatch</div>
+        <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+          Essential global news, analysis, and long-reads — curated every morning by our editors. Free, always.
+        </p>
+        {done ? (
+          <p className="text-green-400 font-semibold">You're subscribed. Welcome to The Meridian.</p>
+        ) : (
+          <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={e => { e.preventDefault(); setDone(true); }}>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Your email address"
+              required
+              className="flex-1 bg-slate-800 text-white placeholder-slate-500 border border-slate-600 px-4 py-3 text-sm focus:outline-none focus:border-slate-400"
+            />
+            <button type="submit" className="bg-red-700 hover:bg-red-600 text-white font-semibold px-6 py-3 text-sm transition-colors whitespace-nowrap">
+              Subscribe Free
+            </button>
+          </form>
+        )}
+        <p className="text-slate-600 text-xs mt-4">No spam. Unsubscribe at any time.</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Footer ── */
+function Footer() {
+  const cols = {
+    'News': ['World', 'Politics', 'Technology', 'Science', 'Health', 'Environment'],
+    'Opinion': ['Columnists', 'Letters', 'Editorials', 'Analysis'],
+    'Company': ['About Us', 'Careers', 'Press', 'Advertise', 'Contact'],
+    'Subscribe': ['Digital Access', 'All-Access', 'Gift a Sub', 'Student Rate'],
+  };
+  return (
+    <footer className="bg-slate-950 text-slate-400 pt-12 pb-6">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 pb-10 border-b border-slate-800">
+          <div className="col-span-2 md:col-span-1">
+            <div className="font-serif text-2xl font-black text-white mb-3">The Meridian</div>
+            <p className="text-slate-500 text-xs leading-relaxed">Independent journalism for a world in flux. Founded 2018.</p>
+            <div className="flex gap-4 mt-4">
+              {['X', 'FB', 'IG', 'YT'].map(s => (
+                <a key={s} href="#" className="text-slate-500 hover:text-white transition-colors text-xs font-semibold">{s}</a>
+              ))}
+            </div>
+          </div>
+          {Object.entries(cols).map(([title, links]) => (
+            <div key={title}>
+              <h4 className="text-white text-xs font-black tracking-widest uppercase mb-4">{title}</h4>
+              <ul className="space-y-2">
+                {links.map(l => (
+                  <li key={l}><a href={l === 'All-Access' || l === 'Digital Access' ? 'subscribe.html' : '#'} className="text-xs hover:text-white transition-colors">{l}</a></li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col md:flex-row items-center justify-between pt-6 text-xs text-slate-600 gap-2">
+          <span>© 2026 The Meridian Media Group. All rights reserved.</span>
+          <div className="flex gap-6">
+            <a href="#" className="hover:text-slate-400">Privacy</a>
+            <a href="#" className="hover:text-slate-400">Terms</a>
+            <a href="#" className="hover:text-slate-400">Cookie Policy</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ── App ── */
+function App() {
+  const mainStories = [
+    { cat: 'Politics', title: 'How the Bipartisan Infrastructure Law Became a Partisan Weapon', author: 'James Whitfield', time: '3h ago', seed: 10 },
+    { cat: 'Technology', title: 'Semiconductor Cold War: Taiwan\'s Pivotal Position in 2026', author: 'Yuki Tanaka', time: '5h ago', seed: 20 },
+    { cat: 'Science', title: 'Antarctic Ice Sheet Hits Record Low for Third Consecutive Year', author: 'Dr. Clara Obi', time: '6h ago', seed: 30 },
+    { cat: 'Culture', title: 'Who Owns a Song Now? A Copyright Crisis in the Age of AI', author: 'Marcus Bell', time: '9h ago', seed: 40 },
+  ];
+
+  const worldStories = [
+    { title: 'Inside the Collapsing Ceasefire: What Went Wrong in Eastern Ukraine', desc: 'Diplomatic sources reveal how back-channel talks broke down in February, leaving both sides at an impasse.', author: 'Nadia Petrov', time: '2h ago' },
+    { title: 'Sudan\'s Forgotten War Claims 1.2 Million Displaced in 60 Days', author: 'Amara Osei', time: '4h ago' },
+    { title: 'China Signals Shift on Taiwan Strait Patrols Ahead of G20', author: 'Mei Zhang', time: '7h ago' },
+  ];
+
+  const politicsStories = [
+    { title: 'Senate AI Bill Stalls as Tech Lobby Rewrites Key Provisions', desc: 'Five weeks of negotiations have produced a bill that critics say prioritizes industry over public accountability.', author: 'Lena Kovacs', time: '1h ago' },
+    { title: 'The Electoral Map in 2026: What Early Primaries Reveal', author: 'Tom Hargrove', time: '3h ago' },
+    { title: 'Supreme Court Takes Up Challenge to Federal Climate Rules', author: 'Priya Singh', time: '6h ago' },
+  ];
+
+  return (
+    <>
+      <Header />
+      <BreakingTicker />
+      <Hero />
+
+      {/* Main content + sidebar */}
+      <div className="max-w-7xl mx-auto px-4 pb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+          <main className="lg:col-span-3">
+            <SectionHeader label="Today's Top Stories" href="#" />
+            <StoryGrid stories={mainStories} />
+          </main>
+          <aside className="lg:col-span-1 border-l border-gray-100 pl-6">
+            <MostRead />
+            {/* Ad / promo */}
+            <div className="mt-10 border border-gray-200 p-5 text-center bg-slate-50">
+              <div className="font-serif text-sm font-bold text-slate-900 mb-1">All-Access</div>
+              <p className="text-xs text-slate-500 mb-3">Unlimited articles. No ads. From $9.99/mo.</p>
+              <a href="subscribe.html" className="block bg-slate-900 text-white text-xs font-semibold py-2 px-4 hover:bg-slate-700 transition-colors">Start Free Trial</a>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <CategoryStrip label="World" href="world.html" stories={worldStories} />
+      <CategoryStrip label="Politics" href="#" stories={politicsStories} />
+
+      {/* Opinion teaser */}
+      <section className="bg-slate-50 py-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <SectionHeader label="Opinion" href="opinion.html" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { author: 'Isabel Vance', role: 'Senior Correspondent', title: 'The Internet Has Already Ended. We\'re Just Living In the Ruins.', excerpt: 'The attention economy didn\'t collapse — it calcified. What we have now is something worse: infinite scroll with no memory.', seed: 'op1' },
+              { author: 'Dr. Kwame Boateng', role: 'Contributing Editor', title: 'Africa Is Not a Problem to Be Solved. It\'s a Story Being Told Wrong.', excerpt: 'Western media coverage continues to flatten a continent of 54 nations into a single narrative of catastrophe.', seed: 'op2' },
+              { author: 'Nadia Petrov', role: 'Foreign Affairs Editor', title: 'Why the West\'s Ukraine Fatigue Is a Gift to Putin', excerpt: 'Public opinion is shifting, aid is slowing, and Kyiv\'s partners are looking for exits. Moscow has played the long game.', seed: 'op3' },
+            ].map((o, i) => (
+              <a href="opinion.html" key={i} className="group bg-white border border-gray-100 p-6 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-4">
+                  <img src={`https://picsum.photos/seed/${o.seed}-av/80/80`} alt="" className="w-12 h-12 rounded-full object-cover" />
+                  <div>
+                    <div className="font-semibold text-sm text-gray-900">{o.author}</div>
+                    <div className="text-xs text-gray-500">{o.role}</div>
+                  </div>
+                </div>
+                <h3 className="font-serif text-base font-bold leading-snug mb-2 group-hover:text-slate-600 transition-colors">{o.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{o.excerpt}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Newsletter />
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

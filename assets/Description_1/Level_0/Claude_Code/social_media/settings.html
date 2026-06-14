@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse — Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            pulse: { 400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7c3aed' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0d0d0f; color: #f1f0f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .card { background: #161618; border: 1px solid #2a2a30; }
+    .card-hover:hover { background: #1c1c1f; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #3a3a42; border-radius: 4px; }
+    .nav-link { transition: all .15s ease; }
+    .nav-link:hover { background: #1e1e24; }
+    .nav-link.active { color: #a855f7; }
+    .avatar { border-radius: 9999px; object-fit: cover; }
+    .settings-input { width: 100%; background: #0d0d0f; border: 1px solid #2a2a30; border-radius: 10px; padding: 10px 14px; font-size: 0.875rem; color: #f1f0f5; transition: border-color .15s; }
+    .settings-input:focus { outline: none; border-color: #a855f7; }
+    .settings-select { width: 100%; background: #0d0d0f; border: 1px solid #2a2a30; border-radius: 10px; padding: 10px 14px; font-size: 0.875rem; color: #f1f0f5; transition: border-color .15s; appearance: none; cursor: pointer; }
+    .settings-select:focus { outline: none; border-color: #a855f7; }
+    .toggle-track { width: 44px; height: 24px; border-radius: 9999px; transition: background .2s; cursor: pointer; position: relative; flex-shrink: 0; }
+    .toggle-track.on { background: linear-gradient(135deg,#a855f7,#7c3aed); }
+    .toggle-track.off { background: #2a2a30; }
+    .toggle-thumb { width: 18px; height: 18px; border-radius: 50%; background: white; position: absolute; top: 3px; transition: left .2s; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+    .toggle-track.on .toggle-thumb { left: 23px; }
+    .toggle-track.off .toggle-thumb { left: 3px; }
+    .section-header { padding: 20px 24px 12px; }
+    .section-row { padding: 14px 24px; border-top: 1px solid #1e1e24; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .settings-nav-item { padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background .15s; display: flex; align-items: center; gap-10px; }
+    .settings-nav-item.active { background: #1a1025; color: #c084fc; }
+    .settings-nav-item:hover:not(.active) { background: #141418; }
+    label { display: block; font-size: 0.75rem; font-weight: 600; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Sidebar -->
+  <aside class="fixed left-0 top-0 h-full w-16 xl:w-64 flex flex-col py-4 z-50 border-r" style="background:#0d0d0f;border-color:#2a2a30;">
+    <div class="px-3 xl:px-5 mb-6">
+      <a href="index.html" class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
+          <i class="fa-solid fa-bolt text-white text-sm"></i>
+        </div>
+        <span class="hidden xl:block text-xl font-bold tracking-tight text-white">Pulse</span>
+      </a>
+    </div>
+    <nav class="flex-1 flex flex-col gap-1 px-2 xl:px-3">
+      <a href="index.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium">
+        <i class="fa-solid fa-house w-5 text-center"></i>
+        <span class="hidden xl:block">Home</span>
+      </a>
+      <a href="explore.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium">
+        <i class="fa-solid fa-compass w-5 text-center"></i>
+        <span class="hidden xl:block">Explore</span>
+      </a>
+      <a href="notifications.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium relative">
+        <i class="fa-solid fa-bell w-5 text-center"></i>
+        <span class="hidden xl:block">Notifications</span>
+        <span class="absolute top-2 left-6 xl:static xl:ml-auto bg-pulse-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center xl:w-auto xl:h-auto xl:px-2 xl:py-0.5">4</span>
+      </a>
+      <a href="messages.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium relative">
+        <i class="fa-solid fa-envelope w-5 text-center"></i>
+        <span class="hidden xl:block">Messages</span>
+        <span class="absolute top-2 left-6 xl:static xl:ml-auto bg-pulse-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center xl:w-auto xl:h-auto xl:px-2 xl:py-0.5">2</span>
+      </a>
+      <a href="profile.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium">
+        <i class="fa-solid fa-user w-5 text-center"></i>
+        <span class="hidden xl:block">Profile</span>
+      </a>
+      <a href="settings.html" class="nav-link active flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl font-semibold">
+        <i class="fa-solid fa-gear w-5 text-center" style="color:#a855f7;"></i>
+        <span class="hidden xl:block" style="color:#a855f7;">Settings</span>
+      </a>
+    </nav>
+    <div class="px-2 xl:px-3 mb-4">
+      <button class="w-full xl:flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white transition-all hover:opacity-90" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
+        <i class="fa-solid fa-plus xl:hidden"></i>
+        <i class="fa-solid fa-feather hidden xl:block text-sm"></i>
+        <span class="hidden xl:block">New Post</span>
+      </button>
+    </div>
+    <div class="px-2 xl:px-3">
+      <a href="profile.html" class="flex items-center gap-3 p-2 rounded-xl card-hover cursor-pointer">
+        <img src="https://i.pravatar.cc/40?img=12" class="avatar w-9 h-9 flex-shrink-0" alt="Alex" />
+        <div class="hidden xl:block min-w-0">
+          <p class="text-sm font-semibold text-white truncate">Alex Rivera</p>
+          <p class="text-xs text-zinc-500 truncate">@alexrivera</p>
+        </div>
+        <i class="fa-solid fa-ellipsis hidden xl:block ml-auto text-zinc-500 text-xs"></i>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main settings layout -->
+  <div class="ml-16 xl:ml-64 flex min-h-screen">
+
+    <!-- Settings nav panel -->
+    <div class="hidden md:flex w-56 lg:w-64 flex-shrink-0 flex-col py-5 px-3 border-r" style="border-color:#2a2a30;">
+      <h1 class="text-lg font-bold text-white px-3 mb-4">Settings</h1>
+      <nav class="space-y-0.5 text-sm">
+        <div class="settings-nav-item active flex items-center gap-3 px-3 py-2.5 rounded-xl" onclick="showSection('account',this)">
+          <i class="fa-solid fa-user w-4 text-center" style="color:#a855f7;"></i>
+          <span>Account</span>
+        </div>
+        <div class="settings-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400" onclick="showSection('privacy',this)">
+          <i class="fa-solid fa-lock w-4 text-center"></i>
+          <span>Privacy & Safety</span>
+        </div>
+        <div class="settings-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400" onclick="showSection('notifications',this)">
+          <i class="fa-solid fa-bell w-4 text-center"></i>
+          <span>Notifications</span>
+        </div>
+        <div class="settings-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400" onclick="showSection('appearance',this)">
+          <i class="fa-solid fa-palette w-4 text-center"></i>
+          <span>Appearance</span>
+        </div>
+        <div class="settings-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400" onclick="showSection('security',this)">
+          <i class="fa-solid fa-shield-halved w-4 text-center"></i>
+          <span>Security</span>
+        </div>
+        <div class="settings-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400" onclick="showSection('connected',this)">
+          <i class="fa-solid fa-plug w-4 text-center"></i>
+          <span>Connected Apps</span>
+        </div>
+        <div class="w-full h-px my-2" style="background:#2a2a30;"></div>
+        <div class="settings-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400" onclick="showSection('danger',this)">
+          <i class="fa-solid fa-triangle-exclamation w-4 text-center text-red-500"></i>
+          <span class="text-red-400">Danger Zone</span>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Settings content -->
+    <main class="flex-1 max-w-2xl pb-20">
+
+      <!-- Top bar -->
+      <div class="sticky top-0 z-30 px-5 py-4 border-b" style="background:rgba(13,13,15,0.9);backdrop-filter:blur(12px);border-color:#2a2a30;">
+        <h2 id="section-title" class="text-base font-bold text-white">Account</h2>
+      </div>
+
+      <!-- === ACCOUNT SECTION === -->
+      <div id="section-account">
+
+        <!-- Profile card -->
+        <div class="card rounded-2xl mx-5 mt-5 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Profile</h3>
+            <p class="text-xs text-zinc-500 mt-0.5">Update your public profile information</p>
+          </div>
+          <!-- Avatar change -->
+          <div class="section-row flex-col items-start gap-4 sm:flex-row sm:items-center">
+            <div class="flex items-center gap-4">
+              <img src="https://i.pravatar.cc/80?img=12" class="avatar w-16 h-16" alt="Alex" />
+              <div>
+                <p class="text-sm font-medium text-white">Profile photo</p>
+                <p class="text-xs text-zinc-500">JPG, PNG or GIF · Max 5MB</p>
+              </div>
+            </div>
+            <div class="flex gap-2 sm:ml-auto">
+              <button class="px-3 py-1.5 rounded-lg border text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition-colors" style="border-color:#3a3a42;">Change</button>
+              <button class="px-3 py-1.5 rounded-lg border text-sm font-medium text-zinc-500 hover:bg-zinc-800 transition-colors" style="border-color:#2a2a30;">Remove</button>
+            </div>
+          </div>
+          <!-- Display name -->
+          <div class="section-row flex-col items-start gap-2">
+            <div class="w-full">
+              <label>Display Name</label>
+              <input type="text" class="settings-input" value="Alex Rivera" />
+            </div>
+          </div>
+          <!-- Username -->
+          <div class="section-row flex-col items-start gap-2">
+            <div class="w-full">
+              <label>Username</label>
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">@</span>
+                <input type="text" class="settings-input pl-7" value="alexrivera" />
+              </div>
+              <p class="text-xs text-zinc-600 mt-1.5">pulse.app/@alexrivera</p>
+            </div>
+          </div>
+          <!-- Bio -->
+          <div class="section-row flex-col items-start gap-2">
+            <div class="w-full">
+              <label>Bio</label>
+              <textarea rows="3" class="settings-input resize-none">Product engineer & side-project addict 🛠️ Building things I wish existed. Sometimes I write about design systems, shipping fast, and the beautiful chaos of startups.</textarea>
+              <p class="text-xs text-zinc-600 mt-1.5">160 characters max</p>
+            </div>
+          </div>
+          <!-- Location & website -->
+          <div class="section-row flex-col items-start gap-3">
+            <div class="w-full">
+              <label>Location</label>
+              <input type="text" class="settings-input" value="San Francisco, CA" />
+            </div>
+            <div class="w-full">
+              <label>Website</label>
+              <input type="url" class="settings-input" value="https://alexrivera.dev" />
+            </div>
+          </div>
+          <div class="section-row justify-end">
+            <button class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">Save Changes</button>
+          </div>
+        </div>
+
+        <!-- Account details -->
+        <div class="card rounded-2xl mx-5 mt-4 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Account Details</h3>
+          </div>
+          <div class="section-row flex-col items-start gap-2">
+            <div class="w-full">
+              <label>Email Address</label>
+              <input type="email" class="settings-input" value="alex@alexrivera.dev" />
+            </div>
+          </div>
+          <div class="section-row flex-col items-start gap-2">
+            <div class="w-full">
+              <label>Phone Number</label>
+              <input type="tel" class="settings-input" placeholder="+1 (555) 000-0000" />
+              <p class="text-xs text-zinc-600 mt-1.5">Used for account recovery and 2FA</p>
+            </div>
+          </div>
+          <div class="section-row justify-end">
+            <button class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">Update</button>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="card rounded-2xl mx-5 mt-4 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Change Password</h3>
+          </div>
+          <div class="section-row flex-col items-start gap-3">
+            <div class="w-full">
+              <label>Current Password</label>
+              <input type="password" class="settings-input" placeholder="••••••••" />
+            </div>
+            <div class="w-full">
+              <label>New Password</label>
+              <input type="password" class="settings-input" placeholder="••••••••" />
+            </div>
+            <div class="w-full">
+              <label>Confirm New Password</label>
+              <input type="password" class="settings-input" placeholder="••••••••" />
+            </div>
+          </div>
+          <div class="section-row justify-end">
+            <button class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">Change Password</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- === PRIVACY SECTION === -->
+      <div id="section-privacy" class="hidden">
+        <div class="card rounded-2xl mx-5 mt-5 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Post Visibility</h3>
+          </div>
+          <div class="section-row flex-col items-start gap-2">
+            <div class="w-full">
+              <label>Who can see your posts</label>
+              <div class="relative">
+                <select class="settings-select">
+                  <option>Everyone</option>
+                  <option>Followers only</option>
+                  <option>Only me</option>
+                </select>
+                <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs pointer-events-none"></i>
+              </div>
+            </div>
+          </div>
+          <div class="section-row flex-col items-start gap-2">
+            <div class="w-full">
+              <label>Who can reply to your posts</label>
+              <div class="relative">
+                <select class="settings-select">
+                  <option>Everyone</option>
+                  <option selected>People you follow</option>
+                  <option>Only mentioned users</option>
+                </select>
+                <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs pointer-events-none"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card rounded-2xl mx-5 mt-4 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Messaging</h3>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Allow direct messages from</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Control who can send you DMs</p>
+            </div>
+            <div class="relative flex-shrink-0 w-32">
+              <select class="settings-select py-2 text-xs">
+                <option selected>Everyone</option>
+                <option>Followers only</option>
+                <option>Nobody</option>
+              </select>
+              <i class="fa-solid fa-chevron-down absolute right-2 top-1/2 -translate-y-1/2 text-zinc-500 text-xs pointer-events-none"></i>
+            </div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Read receipts</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Let others know when you've read their messages</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)">
+              <div class="toggle-thumb"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card rounded-2xl mx-5 mt-4 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Discoverability</h3>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Suggest account to others</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Appear in recommendations and "Who to Follow"</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Searchable by email</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Allow people to find you via your email address</p>
+            </div>
+            <div class="toggle-track off" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Location-based suggestions</p>
+              <p class="text-xs text-zinc-500 mt-0.5">See and appear in local content</p>
+            </div>
+            <div class="toggle-track off" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === NOTIFICATIONS SECTION === -->
+      <div id="section-notifications" class="hidden">
+        <div class="card rounded-2xl mx-5 mt-5 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Push Notifications</h3>
+            <p class="text-xs text-zinc-500 mt-0.5">Manage notifications on this device</p>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Likes</p>
+              <p class="text-xs text-zinc-500 mt-0.5">When someone likes your post</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Comments</p>
+              <p class="text-xs text-zinc-500 mt-0.5">When someone comments on your post</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Reposts</p>
+              <p class="text-xs text-zinc-500 mt-0.5">When someone reposts your content</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">New followers</p>
+              <p class="text-xs text-zinc-500 mt-0.5">When someone follows you</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Mentions</p>
+              <p class="text-xs text-zinc-500 mt-0.5">When someone @mentions you</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Direct messages</p>
+              <p class="text-xs text-zinc-500 mt-0.5">When you receive a new message</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+        </div>
+
+        <div class="card rounded-2xl mx-5 mt-4 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Email Notifications</h3>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Weekly digest</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Summary of your top posts and activity</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Trending topics</p>
+              <p class="text-xs text-zinc-500 mt-0.5">What's popular related to your interests</p>
+            </div>
+            <div class="toggle-track off" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Product updates</p>
+              <p class="text-xs text-zinc-500 mt-0.5">New features and announcements from Pulse</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Security alerts</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Important account security notifications</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === APPEARANCE SECTION === -->
+      <div id="section-appearance" class="hidden">
+        <div class="card rounded-2xl mx-5 mt-5 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Theme</h3>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Dark mode</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Use the dark color scheme</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row flex-col items-start gap-4">
+            <p class="text-sm text-white">Color theme</p>
+            <div class="flex gap-3 flex-wrap">
+              <button class="w-9 h-9 rounded-full border-2 border-white transition-all" style="background:linear-gradient(135deg,#a855f7,#7c3aed);" title="Purple (current)"></button>
+              <button class="w-9 h-9 rounded-full border-2 border-transparent hover:border-zinc-500 transition-all" style="background:linear-gradient(135deg,#3b82f6,#6366f1);" title="Blue"></button>
+              <button class="w-9 h-9 rounded-full border-2 border-transparent hover:border-zinc-500 transition-all" style="background:linear-gradient(135deg,#10b981,#14b8a6);" title="Teal"></button>
+              <button class="w-9 h-9 rounded-full border-2 border-transparent hover:border-zinc-500 transition-all" style="background:linear-gradient(135deg,#f43f5e,#ec4899);" title="Rose"></button>
+              <button class="w-9 h-9 rounded-full border-2 border-transparent hover:border-zinc-500 transition-all" style="background:linear-gradient(135deg,#f59e0b,#f97316);" title="Amber"></button>
+              <button class="w-9 h-9 rounded-full border-2 border-transparent hover:border-zinc-500 transition-all" style="background:linear-gradient(135deg,#6b7280,#374151);" title="Neutral"></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card rounded-2xl mx-5 mt-4 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Font Size</h3>
+          </div>
+          <div class="section-row flex-col items-start gap-4">
+            <div class="w-full">
+              <input type="range" min="1" max="5" value="3" class="w-full accent-purple-500" />
+              <div class="flex justify-between text-xs text-zinc-500 mt-1">
+                <span>Aa</span>
+                <span style="font-size:1.1em;">Aa</span>
+                <span style="font-size:1.25em;">Aa</span>
+                <span style="font-size:1.4em;">Aa</span>
+                <span style="font-size:1.6em;">Aa</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card rounded-2xl mx-5 mt-4 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Display Preferences</h3>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Reduce motion</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Minimize animations throughout the app</p>
+            </div>
+            <div class="toggle-track off" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Autoplay videos</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Play videos as you scroll the feed</p>
+            </div>
+            <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Sensitive media</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Show content flagged as sensitive</p>
+            </div>
+            <div class="toggle-track off" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === SECURITY SECTION === -->
+      <div id="section-security" class="hidden">
+        <div class="card rounded-2xl mx-5 mt-5 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Two-Factor Authentication</h3>
+            <p class="text-xs text-zinc-500 mt-0.5">Add an extra layer of security to your account</p>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">Authenticator app</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Use an app like 1Password or Authy</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs px-2 py-1 rounded-full font-medium" style="background:#0d2e1a;color:#22c55e;">Active</span>
+              <button class="text-xs text-zinc-400 hover:text-white transition-colors">Manage</button>
+            </div>
+          </div>
+          <div class="section-row">
+            <div class="flex-1">
+              <p class="text-sm text-white">SMS authentication</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Backup verification via text message</p>
+            </div>
+            <div class="toggle-track off" onclick="toggleSwitch(this)"><div class="toggle-thumb"></div></div>
+          </div>
+        </div>
+
+        <div class="card rounded-2xl mx-5 mt-4 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Active Sessions</h3>
+          </div>
+          <div class="section-row">
+            <div class="flex items-center gap-3 flex-1">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#161618;"><i class="fa-brands fa-apple text-zinc-300 text-sm"></i></div>
+              <div>
+                <p class="text-sm text-white">MacBook Pro · Safari</p>
+                <p class="text-xs text-zinc-500">San Francisco, CA · <span class="text-green-400">Current session</span></p>
+              </div>
+            </div>
+          </div>
+          <div class="section-row">
+            <div class="flex items-center gap-3 flex-1">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#161618;"><i class="fa-solid fa-mobile-screen text-zinc-300 text-sm"></i></div>
+              <div>
+                <p class="text-sm text-white">iPhone 16 Pro · Pulse App</p>
+                <p class="text-xs text-zinc-500">San Francisco, CA · 2 hours ago</p>
+              </div>
+            </div>
+            <button class="text-xs text-red-400 hover:text-red-300 transition-colors flex-shrink-0">Revoke</button>
+          </div>
+          <div class="section-row">
+            <div class="flex items-center gap-3 flex-1">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#161618;"><i class="fa-brands fa-chrome text-zinc-300 text-sm"></i></div>
+              <div>
+                <p class="text-sm text-white">Windows PC · Chrome</p>
+                <p class="text-xs text-zinc-500">New York, NY · 3 days ago</p>
+              </div>
+            </div>
+            <button class="text-xs text-red-400 hover:text-red-300 transition-colors flex-shrink-0">Revoke</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- === CONNECTED APPS SECTION === -->
+      <div id="section-connected" class="hidden">
+        <div class="card rounded-2xl mx-5 mt-5 overflow-hidden">
+          <div class="section-header border-b" style="border-color:#2a2a30;">
+            <h3 class="text-sm font-bold text-white">Connected Applications</h3>
+            <p class="text-xs text-zinc-500 mt-0.5">Apps and services with access to your Pulse account</p>
+          </div>
+          <div class="section-row">
+            <div class="flex items-center gap-3 flex-1">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#3b82f6,#6366f1);">P</div>
+              <div>
+                <p class="text-sm text-white">Postly Scheduler</p>
+                <p class="text-xs text-zinc-500">Read posts, schedule content</p>
+              </div>
+            </div>
+            <button class="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 border hover:bg-red-900/20 transition-colors flex-shrink-0" style="border-color:#4a1a1a;">Revoke</button>
+          </div>
+          <div class="section-row">
+            <div class="flex items-center gap-3 flex-1">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm" style="background:linear-gradient(135deg,#f59e0b,#f97316);">A</div>
+              <div>
+                <p class="text-sm text-white">Analytics Hub</p>
+                <p class="text-xs text-zinc-500">Read profile data and post metrics</p>
+              </div>
+            </div>
+            <button class="px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 border hover:bg-red-900/20 transition-colors flex-shrink-0" style="border-color:#4a1a1a;">Revoke</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- === DANGER ZONE SECTION === -->
+      <div id="section-danger" class="hidden">
+        <div class="mx-5 mt-5 rounded-2xl overflow-hidden border" style="border-color:#4a1a1a;background:#1a0a0a;">
+          <div class="section-header border-b" style="border-color:#4a1a1a;">
+            <h3 class="text-sm font-bold text-red-400 flex items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation"></i> Danger Zone
+            </h3>
+            <p class="text-xs text-red-900 mt-0.5">These actions are irreversible. Please proceed with caution.</p>
+          </div>
+          <!-- Deactivate -->
+          <div class="section-row" style="border-color:#4a1a1a;">
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-white">Deactivate account</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Temporarily hide your profile and posts. You can reactivate at any time by logging back in.</p>
+            </div>
+            <button class="px-4 py-2 rounded-xl text-sm font-semibold border border-orange-700 text-orange-400 hover:bg-orange-900/20 transition-colors flex-shrink-0 ml-4">Deactivate</button>
+          </div>
+          <!-- Delete -->
+          <div class="section-row" style="border-color:#4a1a1a;">
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-white">Delete account</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Permanently delete your account and all associated data. This cannot be undone.</p>
+            </div>
+            <button class="px-4 py-2 rounded-xl text-sm font-semibold border border-red-700 text-red-400 hover:bg-red-900/20 transition-colors flex-shrink-0 ml-4">Delete</button>
+          </div>
+          <!-- Export data -->
+          <div class="section-row" style="border-color:#4a1a1a;">
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-white">Export your data</p>
+              <p class="text-xs text-zinc-500 mt-0.5">Download an archive of all your posts, media, and account data.</p>
+            </div>
+            <button class="px-4 py-2 rounded-xl text-sm font-semibold border border-zinc-600 text-zinc-300 hover:bg-zinc-800 transition-colors flex-shrink-0 ml-4">Export</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Mobile bottom nav -->
+  <nav class="fixed bottom-0 left-0 right-0 lg:hidden flex border-t z-50" style="background:#0d0d0f;border-color:#2a2a30;">
+    <a href="index.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500"><i class="fa-solid fa-house text-lg"></i></a>
+    <a href="explore.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500"><i class="fa-solid fa-compass text-lg"></i></a>
+    <a href="notifications.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500"><i class="fa-solid fa-bell text-lg"></i></a>
+    <a href="messages.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500"><i class="fa-solid fa-envelope text-lg"></i></a>
+    <a href="profile.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500"><i class="fa-solid fa-user text-lg"></i></a>
+  </nav>
+
+  <script>
+    function toggleSwitch(el) {
+      el.classList.toggle('on');
+      el.classList.toggle('off');
+    }
+
+    const sectionTitles = {
+      account: 'Account',
+      privacy: 'Privacy & Safety',
+      notifications: 'Notifications',
+      appearance: 'Appearance',
+      security: 'Security',
+      connected: 'Connected Apps',
+      danger: 'Danger Zone'
+    };
+
+    function showSection(name, navEl) {
+      // Hide all sections
+      document.querySelectorAll('[id^="section-"]').forEach(el => el.classList.add('hidden'));
+      // Show target
+      const target = document.getElementById('section-' + name);
+      if (target) target.classList.remove('hidden');
+      // Update nav active state
+      document.querySelectorAll('.settings-nav-item').forEach(el => {
+        el.classList.remove('active');
+        el.classList.add('text-zinc-400');
+        el.style.color = '';
+        el.querySelector('i') && el.querySelector('i').removeAttribute('style');
+      });
+      navEl.classList.add('active');
+      navEl.classList.remove('text-zinc-400');
+      // Update title
+      document.getElementById('section-title').textContent = sectionTitles[name] || name;
+    }
+  </script>
+</body>
+</html>

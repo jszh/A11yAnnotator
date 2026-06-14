@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse | Notifications</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #f5f5f5;
+            margin: 0;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-display {
+            font-family: 'Outfit', 'Inter', sans-serif;
+        }
+
+        .env-pb {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { indigo: { 500: '#6366f1', 600: '#4f46e5' } } } }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel" src="shared.js"></script>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function NotificationsContent() {
+            const tabs = ['All', 'Mentions', 'Likes', 'Follows'];
+            const [activeTab, setActiveTab] = useState('All');
+            const tabsRef = useRef(null);
+
+            const notifs = [
+                { id: 1, type: 'like', user: 'Maya Lin', avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', text: 'liked your post', time: '2h', snippet: 'Just finished migrating our entire frontend to React Server Components...' },
+                { id: 2, type: 'follow', user: 'Sam Rodriguez', avatar: 'https://i.pravatar.cc/150?u=samrod', text: 'followed you', time: '5h', snippet: null },
+                { id: 3, type: 'mention', user: 'Tech Insider', avatar: 'https://i.pravatar.cc/150?u=techinsider123', text: 'mentioned you in a post', time: '12h', snippet: '@alexrivers thoughts on the new AI safety standards?' },
+                { id: 4, type: 'like', user: 'Photography Daily', avatar: 'https://i.pravatar.cc/150?u=photo123', text: 'liked your reply', time: '1d', snippet: 'The golden hour light really makes all the difference here.' },
+            ];
+
+            // Handle keyboard navigation for tabs
+            const handleTabKeyDown = (e, index) => {
+                if (e.key === 'ArrowRight') {
+                    const nextBtn = document.getElementById(`tab-${(index + 1) % tabs.length}`);
+                    if (nextBtn) { nextBtn.focus(); setActiveTab(tabs[(index + 1) % tabs.length]); }
+                } else if (e.key === 'ArrowLeft') {
+                    const prevBtn = document.getElementById(`tab-${(index - 1 + tabs.length) % tabs.length}`);
+                    if (prevBtn) { prevBtn.focus(); setActiveTab(tabs[(index - 1 + tabs.length) % tabs.length]); }
+                }
+            };
+
+            const getIcon = (type) => {
+                switch (type) {
+                    case 'like': return <div className="p-2 bg-pink-500/10 text-pink-500 rounded-full shrink-0"><window.Icons.Heart className="w-5 h-5 fill-current" /></div>;
+                    case 'follow': return <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-full shrink-0"><window.Icons.User className="w-5 h-5" /></div>;
+                    case 'mention': return <div className="p-2 bg-green-500/10 text-green-500 rounded-full shrink-0"><window.Icons.MessageCircle className="w-5 h-5" /></div>;
+                    default: return <div className="p-2 bg-neutral-800 text-neutral-400 rounded-full shrink-0"><window.Icons.Bell className="w-5 h-5" /></div>;
+                }
+            };
+
+            // Filtered
+            const displayNotifs = activeTab === 'All' ? notifs : notifs.filter(n => {
+                if (activeTab === 'Likes') return n.type === 'like';
+                if (activeTab === 'Follows') return n.type === 'follow';
+                if (activeTab === 'Mentions') return n.type === 'mention';
+                return true;
+            });
+
+            return (
+                <React.Fragment>
+                    <header className="sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-20 pt-3 sm:pt-4 border-b border-neutral-800/60">
+                        <h1 className="font-extrabold text-xl px-4 text-white font-display">Notifications</h1>
+
+                        {/* Tabs */}
+                        <div className="flex border-t border-neutral-800/60 mt-3 sm:mt-4" role="tablist" ref={tabsRef} aria-label="Notification Categories">
+                            {tabs.map((tab, idx) => {
+                                const isActive = activeTab === tab;
+                                return (
+                                    <button
+                                        key={tab}
+                                        id={`tab-${idx}`}
+                                        role="tab"
+                                        aria-selected={isActive}
+                                        tabIndex={isActive ? 0 : -1}
+                                        aria-controls="notification-panel"
+                                        onClick={() => setActiveTab(tab)}
+                                        onKeyDown={(e) => handleTabKeyDown(e, idx)}
+                                        className="flex-1 py-4 text-center font-bold text-[15px] relative hover:bg-white/[0.02] transition-colors focus:outline-none focus-visible:bg-neutral-800 group"
+                                    >
+                                        <span className={`${isActive ? 'text-white' : 'text-neutral-500 group-hover:text-neutral-300'}`}>{tab}</span>
+                                        {isActive && <div className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-indigo-500 rounded-t-full"></div>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </header>
+
+                    <div id="notification-panel" role="tabpanel" aria-labelledby={`tab-All`} className="divide-y divide-neutral-800/60 pb-20 sm:pb-0" tabIndex="0">
+                        {displayNotifs.length > 0 ? displayNotifs.map(n => (
+                            <article key={n.id} className="p-4 sm:p-5 hover:bg-white/[0.015] transition-colors flex gap-4 cursor-pointer focus:bg-white/[0.03] outline-none">
+                                {getIcon(n.type)}
+                                <div className="flex-1 min-w-0">
+                                    <img src={n.avatar} alt={n.user} className="w-8 h-8 rounded-full object-cover mb-2" />
+                                    <p className="text-[15px] leading-snug">
+                                        <span className="font-bold text-white hover:underline mr-1">{n.user}</span>
+                                        <span className="text-neutral-300">{n.text}</span>
+                                        <span className="text-neutral-500 text-sm ml-2">· {n.time}</span>
+                                    </p>
+                                    {n.snippet && (
+                                        <p className="mt-2 text-[15px] text-neutral-400 leading-relaxed bg-neutral-900 border border-neutral-800 rounded-xl p-3 line-clamp-2">
+                                            {n.snippet}
+                                        </p>
+                                    )}
+                                </div>
+                            </article>
+                        )) : (
+                            <div className="p-10 text-center text-neutral-500" role="status" aria-live="polite">
+                                <window.Icons.CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                <p className="font-medium text-lg text-neutral-400">All caught up!</p>
+                                <p className="text-[15px] mt-1">No {activeTab.toLowerCase()} notifications yet.</p>
+                            </div>
+                        )}
+                    </div>
+                </React.Fragment>
+            );
+        }
+
+        function App() {
+            const [ready, setReady] = useState(false);
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    if (window.SocialLayout && window.Icons) {
+                        setReady(true);
+                        clearInterval(interval);
+                    }
+                }, 50);
+                return () => clearInterval(interval);
+            }, []);
+
+            if (!ready) return <div className="h-screen w-full flex bg-[#0a0a0a]"></div>;
+
+            const SocialLayout = window.SocialLayout;
+            return (
+                <SocialLayout activePage="Notifications">
+                    <NotificationsContent />
+                </SocialLayout>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

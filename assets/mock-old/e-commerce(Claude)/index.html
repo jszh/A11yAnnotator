@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopVerse – Deals, Delivery & More</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Page-specific: Hero Carousel ─────────────────────── */
+    .hero-wrap {
+      position: relative;
+      overflow: hidden;
+      background: #131921;
+    }
+    .hero-slide {
+      display: none;
+      min-height: 420px;
+    }
+    .hero-slide.active { display: block; }
+
+    .hero-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 32px;
+      min-height: 420px;
+      padding: 48px 16px;
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+    .hero-text { color: #fff; }
+    .hero-eyebrow {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .hero-h1 {
+      font-size: 42px;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 14px;
+    }
+    .hero-sub {
+      font-size: 16px;
+      color: #ccc;
+      margin-bottom: 28px;
+      max-width: 480px;
+      line-height: 1.6;
+    }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .hero-visual {
+      position: relative;
+      height: 340px;
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      box-shadow: 0 20px 48px rgba(0,0,0,0.5);
+    }
+    .hero-visual img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .hero-badge-float {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--sale-red);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: var(--r-md);
+    }
+
+    /* Carousel controls */
+    .hero-ctrl {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.88);
+      border: none;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: background 0.15s, box-shadow 0.15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .hero-ctrl:hover { background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .hero-ctrl svg { width: 20px; height: 20px; stroke: #111; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .hero-ctrl.prev { left: 16px; }
+    .hero-ctrl.next { right: 16px; }
+
+    .hero-dots {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+    }
+    .hero-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.4);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .hero-dot.active { width: 24px; border-radius: 4px; background: #fff; }
+
+    /* ── Main 4-col card grid ───────────────────────────────── */
+    .main-grid-section { padding: 24px 0; }
+    .main-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    /* Card A – Continue Shopping */
+    .card-a {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card-a .thumb-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .card-a .thumb-grid img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: var(--r-sm);
+      background: #f3f4f6;
+    }
+
+    /* Card B – Deals / Devices */
+    .card-b {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card-b .deal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .deal-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .deal-item img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: var(--r-sm);
+      background: #f3f4f6;
+    }
+    .deal-pct { font-size: 16px; font-weight: 800; color: var(--sale-red); }
+    .deal-label { font-size: 11px; color: var(--sale-red); }
+    .deal-name  { font-size: 12px; color: var(--text-main); line-height: 1.3; }
+
+    /* Card C – Gift Cards */
+    .card-c {
+      display: flex;
+      flex-direction: column;
+    }
+    .gift-visual {
+      flex: 1;
+      background: linear-gradient(135deg, #7c3aed 0%, #db2777 60%, #f59e0b 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      gap: 12px;
+      min-height: 200px;
+    }
+    .gift-icon  { font-size: 52px; line-height: 1; }
+    .gift-title { font-size: 20px; font-weight: 800; color: #fff; text-align: center; }
+    .gift-sub   { font-size: 13px; color: rgba(255,255,255,0.85); text-align: center; }
+    .gift-foot  { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .gift-foot a { font-size: 13px; color: var(--prime); font-weight: 600; }
+    .gift-foot a:hover { text-decoration: underline; }
+
+    /* Card D – Sponsored */
+    .card-d {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sponsored-tag { font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; }
+    .sp-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 12px;
+    }
+    .sp-img {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      border-radius: var(--r-sm);
+      background: #f3f4f6;
+    }
+    .sp-name { font-size: 13px; font-weight: 600; line-height: 1.35; }
+    .sp-price-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .sp-price { font-size: 18px; font-weight: 800; }
+    .sp-was   { font-size: 12px; color: var(--text-muted); text-decoration: line-through; }
+
+    /* ── Deals Row ──────────────────────────────────────────── */
+    .deals-section { padding: 8px 0 24px; }
+    .deals-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    .deal-card {
+      background: #fff;
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+    }
+    .deal-card:hover { box-shadow: var(--shadow-lg); }
+    .deal-card-img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      background: #f3f4f6;
+    }
+    .deal-card-body { padding: 10px 12px 12px; }
+    .deal-card-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .deal-card-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .deal-card-price { font-size: 16px; font-weight: 800; }
+    .deal-bar { height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+    .deal-bar-fill { height: 100%; background: var(--sale-red); border-radius: 3px; }
+    .deal-bar-lbl { font-size: 10px; color: var(--sale-red); font-weight: 600; margin-top: 2px; }
+
+    /* ── Banner Row ─────────────────────────────────────────── */
+    .banner-row { padding: 0 0 24px; }
+    .banner-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .banner-item {
+      border-radius: var(--r-md);
+      overflow: hidden;
+      position: relative;
+      height: 180px;
+      cursor: pointer;
+    }
+    .banner-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+    .banner-item:hover img { transform: scale(1.03); }
+    .banner-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, transparent 60%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24px;
+      color: #fff;
+    }
+    .banner-overlay h3 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    .banner-overlay p  { font-size: 13px; color: rgba(255,255,255,0.85); margin-bottom: 14px; }
+
+    /* ── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 1200px) {
+      .main-grid   { grid-template-columns: repeat(2, 1fr); }
+      .deals-row   { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .hero-inner  { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .hero-h1     { font-size: 32px; }
+      .deals-row   { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .main-grid   { grid-template-columns: 1fr; }
+      .deals-row   { grid-template-columns: 1fr 1fr; }
+      .banner-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 420px) {
+      .deals-row   { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════
+     GLOBAL HEADER
+════════════════════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+
+    <!-- Logo -->
+    <a href="index.html" class="hdr-logo hdr-region">
+      <div class="logo-brand">Shop<span>Verse</span></div>
+      <div class="logo-sub">.com</div>
+    </a>
+
+    <!-- Deliver To -->
+    <div class="hdr-deliver hdr-region">
+      <div class="deliver-top">
+        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5.5 1a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"/>
+          <path d="M5.5 11s4-2.5 4-6a4 4 0 1 0-8 0c0 3.5 4 6 4 6z"/>
+        </svg>
+        Deliver to
+      </div>
+      <div class="deliver-loc">📍 New York 10001</div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="hdr-search">
+      <select class="search-cat" aria-label="Search category">
+        <option>All</option>
+        <option>Electronics</option>
+        <option>Fashion</option>
+        <option>Home &amp; Garden</option>
+        <option>Books</option>
+        <option>Sports</option>
+        <option>Beauty</option>
+        <option>Toys</option>
+      </select>
+      <input class="search-input" type="search" id="searchInput" placeholder="Search ShopVerse..." aria-label="Search products">
+      <button class="search-btn" id="searchBtn" aria-label="Search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+    </div>
+
+    <!-- Right Actions -->
+    <div class="hdr-right">
+      <!-- Language -->
+      <div class="hdr-region" style="display:flex;align-items:center;gap:4px;">
+        <span style="font-size:16px;">🇺🇸</span>
+        <select class="lang-select" aria-label="Language">
+          <option>EN</option>
+          <option>ES</option>
+          <option>FR</option>
+          <option>ZH</option>
+          <option>DE</option>
+        </select>
+        <span style="font-size:10px;color:#ccc;">▼</span>
+      </div>
+
+      <!-- Account -->
+      <a href="#" class="hdr-link hdr-region">
+        <span class="hl-top">Hello, Sign in</span>
+        <span class="hl-bottom">Account &amp; Lists ▾</span>
+      </a>
+
+      <!-- Orders -->
+      <a href="products/products.html" class="hdr-link hdr-region">
+        <span class="hl-top">Returns</span>
+        <span class="hl-bottom">&amp; Orders</span>
+      </a>
+
+      <!-- Cart -->
+      <a href="#" class="hdr-cart hdr-region">
+        <span style="font-size:26px;">🛒</span>
+        <span class="cart-count">3</span>
+        <span class="cart-label">Cart</span>
+      </a>
+    </div>
+
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════
+     SECONDARY NAVIGATION BAR
+════════════════════════════════════════════════════════════ -->
+<nav class="site-nav" aria-label="Category navigation">
+  <div class="nav-inner">
+    <a class="nav-item bold" href="#">☰ All</a>
+    <a class="nav-item" href="#">Today's Deals</a>
+    <a class="nav-item" href="#">Electronics</a>
+    <a class="nav-item" href="#">Fashion</a>
+    <a class="nav-item" href="#">Home &amp; Garden</a>
+    <a class="nav-item" href="#">Books</a>
+    <a class="nav-item" href="#">Sports &amp; Outdoors</a>
+    <a class="nav-item" href="#">Beauty</a>
+    <a class="nav-item" href="#">Automotive</a>
+    <a class="nav-item" href="#">Grocery</a>
+    <a class="nav-item" href="#">Gift Cards</a>
+    <a class="nav-item" href="about/about.html">About</a>
+    <span style="flex:1;"></span>
+    <button class="nav-prime">⚡ Try Prime</button>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════
+     HERO BANNER WITH CAROUSEL
+════════════════════════════════════════════════════════════ -->
+<section class="hero-wrap" aria-label="Featured promotions">
+
+  <!-- Slide 1 – Electronics -->
+  <div class="hero-slide active" style="background:linear-gradient(135deg,#0d1b2a 0%,#1b3a5c 60%,#0d1b2a 100%);">
+    <div class="hero-inner container">
+      <div class="hero-text">
+        <div class="hero-eyebrow">⚡ Limited Time</div>
+        <h1 class="hero-h1">Next-Gen Tech,<br>Unbeatable Prices</h1>
+        <p class="hero-sub">Up to 40% off the latest laptops, headphones, and smart home devices. Shop the season's biggest tech sale.</p>
+        <div class="hero-actions">
+          <a href="products/products.html" class="btn btn-accent btn-lg">Shop Electronics →</a>
+          <a href="#" class="btn btn-outline btn-lg" style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.3);">See All Deals</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <img src="https://placehold.co/640x380/1a2a3a/61dafb?text=Electronics+Sale" alt="Electronics sale banner">
+        <div class="hero-badge-float">UP TO 40% OFF</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 2 – Fashion -->
+  <div class="hero-slide" style="background:linear-gradient(135deg,#1a0d2e 0%,#3d1a5c 60%,#1a0d2e 100%);">
+    <div class="hero-inner container">
+      <div class="hero-text">
+        <div class="hero-eyebrow">🌟 New Season</div>
+        <h1 class="hero-h1">Spring Fashion<br>Collection 2026</h1>
+        <p class="hero-sub">Discover curated styles from top designers. Free shipping on orders over $50. Returns always free.</p>
+        <div class="hero-actions">
+          <a href="products/products.html" class="btn btn-accent btn-lg">Shop Fashion →</a>
+          <a href="#" class="btn btn-outline btn-lg" style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.3);">Browse Looks</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <img src="https://placehold.co/640x380/2d1a4e/e879f9?text=Spring+Fashion+Collection" alt="Spring fashion collection">
+        <div class="hero-badge-float">FREE SHIPPING</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3 – Home & Garden -->
+  <div class="hero-slide" style="background:linear-gradient(135deg,#0d2416 0%,#1a4a2e 60%,#0d2416 100%);">
+    <div class="hero-inner container">
+      <div class="hero-text">
+        <div class="hero-eyebrow">🏡 Home Refresh</div>
+        <h1 class="hero-h1">Transform Your<br>Living Space</h1>
+        <p class="hero-sub">From cozy furniture to smart garden gadgets — everything you need to create your perfect home.</p>
+        <div class="hero-actions">
+          <a href="products/products.html" class="btn btn-accent btn-lg">Shop Home →</a>
+          <a href="#" class="btn btn-outline btn-lg" style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.3);">Get Inspired</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <img src="https://placehold.co/640x380/0d2e1a/4ade80?text=Home+%26+Garden" alt="Home and garden products">
+        <div class="hero-badge-float">30% OFF</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <button class="hero-ctrl prev" id="heroPrev" aria-label="Previous slide">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <button class="hero-ctrl next" id="heroNext" aria-label="Next slide">
+    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+
+  <div class="hero-dots" role="tablist" aria-label="Slide indicators">
+    <button class="hero-dot active" data-slide="0" aria-label="Slide 1"></button>
+    <button class="hero-dot" data-slide="1" aria-label="Slide 2"></button>
+    <button class="hero-dot" data-slide="2" aria-label="Slide 3"></button>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     MAIN CONTENT GRID  (4 columns, A / B / C / D)
+════════════════════════════════════════════════════════════ -->
+<main>
+<section class="main-grid-section">
+  <div class="container">
+    <div class="main-grid">
+
+      <!-- ── Card A: Continue Shopping ───────────────────── -->
+      <div class="card card-a">
+        <div class="sec-header">
+          <h2 class="sec-title" style="font-size:17px;">Continue Shopping</h2>
+        </div>
+        <div class="thumb-grid">
+          <a href="products/detail.html">
+            <img src="https://placehold.co/160x160/e8f4fd/0099cc?text=Headphones" alt="Wireless headphones">
+          </a>
+          <a href="products/detail.html">
+            <img src="https://placehold.co/160x160/fdf4e8/cc6600?text=Smart+Watch" alt="Smart watch">
+          </a>
+          <a href="products/detail.html">
+            <img src="https://placehold.co/160x160/f0fdf4/067d62?text=Speaker" alt="Bluetooth speaker">
+          </a>
+          <a href="products/detail.html">
+            <img src="https://placehold.co/160x160/fdf2f8/c026d3?text=Keyboard" alt="Mechanical keyboard">
+          </a>
+        </div>
+        <a href="products/products.html" class="sec-more">See more in Electronics →</a>
+      </div>
+
+      <!-- ── Card B: Deals / Devices ──────────────────────── -->
+      <div class="card card-b">
+        <div class="sec-header">
+          <h2 class="sec-title" style="font-size:17px;">Today's Top Deals</h2>
+          <a href="products/products.html" class="sec-more">All deals →</a>
+        </div>
+        <div class="deal-grid">
+          <div class="deal-item">
+            <img src="https://placehold.co/140x140/fff7ed/c2410c?text=Tablet" alt="Tablet deal">
+            <div class="deal-pct">-35%</div>
+            <div class="deal-label">Limited time deal</div>
+            <div class="deal-name">ShopVerse Tab 10 Pro</div>
+          </div>
+          <div class="deal-item">
+            <img src="https://placehold.co/140x140/f0fdf4/15803d?text=Earbuds" alt="Earbuds deal">
+            <div class="deal-pct">-22%</div>
+            <div class="deal-label">Limited time deal</div>
+            <div class="deal-name">AirPods Ultra Wireless</div>
+          </div>
+          <div class="deal-item">
+            <img src="https://placehold.co/140x140/eff6ff/1d4ed8?text=Laptop" alt="Laptop deal">
+            <div class="deal-pct">-18%</div>
+            <div class="deal-label">Lightning deal</div>
+            <div class="deal-name">ProBook 15 Laptop</div>
+          </div>
+          <div class="deal-item">
+            <img src="https://placehold.co/140x140/fdf4e8/92400e?text=Camera" alt="Camera deal">
+            <div class="deal-pct">-28%</div>
+            <div class="deal-label">Limited time deal</div>
+            <div class="deal-name">SnapShot DSLR Kit</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Card C: Gift Card Promotion ──────────────────── -->
+      <div class="card card-c">
+        <div class="gift-visual">
+          <div class="gift-icon">🎁</div>
+          <div class="gift-title">ShopVerse<br>Gift Cards</div>
+          <div class="gift-sub">Give the gift of anything. Any amount. Any occasion.</div>
+          <a href="#" class="btn btn-accent" style="margin-top:4px;">Shop Gift Cards</a>
+        </div>
+        <div class="gift-foot">
+          <span style="font-size:12px;color:var(--text-muted);">Reload &amp; balance check</span>
+          <a href="#">Redeem a card →</a>
+        </div>
+      </div>
+
+      <!-- ── Card D: Deals + Sponsored Product ────────────── -->
+      <div class="card card-d">
+        <div class="sec-header">
+          <h2 class="sec-title" style="font-size:17px;">Featured Pick</h2>
+          <span class="sponsored-tag">Sponsored</span>
+        </div>
+        <div class="sp-card">
+          <img class="sp-img" src="https://placehold.co/260x195/f8f9fa/374151?text=Premium+Noise-Cancel+Headphones" alt="Premium noise-cancelling headphones">
+          <div>
+            <div class="sp-name">SoundElite X900 Noise-Cancelling Wireless Headphones – 40hr Battery</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="stars">★★★★★</span>
+            <a href="#" class="rating-link">4,821</a>
+          </div>
+          <div class="sp-price-row">
+            <span class="sp-price">$189.99</span>
+            <span class="sp-was">$249.99</span>
+            <span class="badge badge-deal">-24%</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="badge badge-prime">prime</span>
+            <span style="font-size:12px;color:var(--green);">✓ Free delivery tomorrow</span>
+          </div>
+          <button class="btn btn-accent btn-block" onclick="alert('Added to cart!')">Add to Cart</button>
+        </div>
+      </div>
+
+    </div><!-- /main-grid -->
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     DEALS ROW  (5 deal cards)
+════════════════════════════════════════════════════════════ -->
+<section class="deals-section">
+  <div class="container">
+    <div class="sec-header">
+      <h2 class="sec-title">⚡ Lightning Deals</h2>
+      <a href="products/products.html" class="sec-more">See all deals →</a>
+    </div>
+    <div class="deals-row">
+
+      <div class="deal-card">
+        <img class="deal-card-img" src="https://placehold.co/240x240/e0f2fe/0284c7?text=Gaming+Mouse" alt="Gaming mouse">
+        <div class="deal-card-body">
+          <div class="deal-card-name">PixelForce Pro Gaming Mouse – 16000 DPI RGB</div>
+          <div class="deal-card-meta">
+            <span class="stars">★★★★</span>
+            <span class="badge badge-deal">-32%</span>
+          </div>
+          <div class="deal-card-price">$39.99 <small style="font-size:12px;color:var(--text-muted);text-decoration:line-through;">$58.99</small></div>
+          <div class="deal-bar"><div class="deal-bar-fill" style="width:68%;"></div></div>
+          <div class="deal-bar-lbl">68% claimed</div>
+        </div>
+      </div>
+
+      <div class="deal-card">
+        <img class="deal-card-img" src="https://placehold.co/240x240/fce7f3/be185d?text=Skincare+Set" alt="Skincare set">
+        <div class="deal-card-body">
+          <div class="deal-card-name">GlowLab Complete Skincare Routine Kit – 6-Piece</div>
+          <div class="deal-card-meta">
+            <span class="stars">★★★★★</span>
+            <span class="badge badge-deal">-40%</span>
+          </div>
+          <div class="deal-card-price">$29.99 <small style="font-size:12px;color:var(--text-muted);text-decoration:line-through;">$49.99</small></div>
+          <div class="deal-bar"><div class="deal-bar-fill" style="width:45%;"></div></div>
+          <div class="deal-bar-lbl">45% claimed</div>
+        </div>
+      </div>
+
+      <div class="deal-card">
+        <img class="deal-card-img" src="https://placehold.co/240x240/f0fdf4/15803d?text=Air+Fryer" alt="Air fryer">
+        <div class="deal-card-body">
+          <div class="deal-card-name">ChefMate 5.8Qt Digital Air Fryer – 8 Presets, Non-Stick</div>
+          <div class="deal-card-meta">
+            <span class="stars">★★★★</span>
+            <span class="badge badge-deal">-25%</span>
+          </div>
+          <div class="deal-card-price">$67.49 <small style="font-size:12px;color:var(--text-muted);text-decoration:line-through;">$89.99</small></div>
+          <div class="deal-bar"><div class="deal-bar-fill" style="width:82%;"></div></div>
+          <div class="deal-bar-lbl">82% claimed</div>
+        </div>
+      </div>
+
+      <div class="deal-card">
+        <img class="deal-card-img" src="https://placehold.co/240x240/fff7ed/c2410c?text=Running+Shoes" alt="Running shoes">
+        <div class="deal-card-body">
+          <div class="deal-card-name">StridePro Ultralight Marathon Running Shoes – M/W</div>
+          <div class="deal-card-meta">
+            <span class="stars">★★★★</span>
+            <span class="badge badge-deal">-20%</span>
+          </div>
+          <div class="deal-card-price">$79.99 <small style="font-size:12px;color:var(--text-muted);text-decoration:line-through;">$99.99</small></div>
+          <div class="deal-bar"><div class="deal-bar-fill" style="width:31%;"></div></div>
+          <div class="deal-bar-lbl">31% claimed</div>
+        </div>
+      </div>
+
+      <div class="deal-card">
+        <img class="deal-card-img" src="https://placehold.co/240x240/ede9fe/6d28d9?text=Smart+Bulbs" alt="Smart LED bulbs">
+        <div class="deal-card-body">
+          <div class="deal-card-name">LumaHome Smart LED Bulbs 4-Pack – Voice Control, 16M Colors</div>
+          <div class="deal-card-meta">
+            <span class="stars">★★★★★</span>
+            <span class="badge badge-deal">-38%</span>
+          </div>
+          <div class="deal-card-price">$18.99 <small style="font-size:12px;color:var(--text-muted);text-decoration:line-through;">$30.99</small></div>
+          <div class="deal-bar"><div class="deal-bar-fill" style="width:91%;"></div></div>
+          <div class="deal-bar-lbl">91% claimed · Almost gone!</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     BANNER ROW  (2 promotional banners)
+════════════════════════════════════════════════════════════ -->
+<section class="banner-row">
+  <div class="container">
+    <div class="banner-grid">
+
+      <div class="banner-item">
+        <img src="https://placehold.co/720x180/0c4a6e/7dd3fc?text=Prime+Members+%E2%80%93+Exclusive+Savings" alt="Prime members exclusive savings">
+        <div class="banner-overlay">
+          <h3>Prime Members Get More</h3>
+          <p>Exclusive deals, early access &amp; free next-day delivery</p>
+          <button class="btn btn-prime btn-sm">Try Prime Free →</button>
+        </div>
+      </div>
+
+      <div class="banner-item">
+        <img src="https://placehold.co/720x180/14532d/86efac?text=Fresh+Grocery+%E2%80%93+Delivered+in+2hrs" alt="Fresh grocery delivery">
+        <div class="banner-overlay">
+          <h3>ShopVerse Fresh</h3>
+          <p>Groceries &amp; fresh produce delivered to your door in 2 hours</p>
+          <button class="btn btn-accent btn-sm">Shop Fresh →</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+</main><!-- /main -->
+
+<!-- ════════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="footer-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    ↑ Back to top
+  </div>
+
+  <div class="footer-mid">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>Get to Know Us</h4>
+        <ul>
+          <li><a href="about/about.html">About ShopVerse</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press Releases</a></li>
+          <li><a href="#">Investor Relations</a></li>
+          <li><a href="#">Sustainability</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Make Money with Us</h4>
+        <ul>
+          <li><a href="#">Sell on ShopVerse</a></li>
+          <li><a href="#">Become an Affiliate</a></li>
+          <li><a href="#">Advertise Your Products</a></li>
+          <li><a href="#">ShopVerse Business</a></li>
+          <li><a href="#">Host an ShopVerse Hub</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Shipping &amp; Returns</h4>
+        <ul>
+          <li><a href="#">Track Your Order</a></li>
+          <li><a href="#">Returns &amp; Replacements</a></li>
+          <li><a href="#">Shipping Rates</a></li>
+          <li><a href="#">ShopVerse Prime</a></li>
+          <li><a href="#">International Shipping</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Let Us Help You</h4>
+        <ul>
+          <li><a href="contact/contact.html">Contact Us</a></li>
+          <li><a href="#">Help Center</a></li>
+          <li><a href="#">Your Account</a></li>
+          <li><a href="#">Accessibility</a></li>
+          <li><a href="#">Cookie Preferences</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bot">
+    <div class="footer-bot-inner">
+      <div class="footer-brand-name">Shop<span>Verse</span></div>
+      <div class="footer-legal">
+        <a href="#">Privacy Notice</a>
+        <a href="#">Conditions of Use</a>
+        <a href="#">Interest-Based Ads</a>
+        <a href="#">Cookie Policy</a>
+        <a href="#">Accessibility</a>
+        <a href="#">Site Map</a>
+      </div>
+      <div class="footer-copy">© 1996–2026, ShopVerse.com, Inc. or its affiliates</div>
+    </div>
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════ -->
+<script>
+  /* ── Hero Carousel ──────────────────────────────────────── */
+  (function () {
+    const slides = document.querySelectorAll('.hero-slide');
+    const dots   = document.querySelectorAll('.hero-dot');
+    let current  = 0;
+    let timer;
+
+    function goTo(n) {
+      slides[current].classList.remove('active');
+      dots[current].classList.remove('active');
+      current = (n + slides.length) % slides.length;
+      slides[current].classList.add('active');
+      dots[current].classList.add('active');
+    }
+
+    function autoPlay() { timer = setInterval(() => goTo(current + 1), 5000); }
+    function resetTimer() { clearInterval(timer); autoPlay(); }
+
+    document.getElementById('heroPrev').addEventListener('click', () => { goTo(current - 1); resetTimer(); });
+    document.getElementById('heroNext').addEventListener('click', () => { goTo(current + 1); resetTimer(); });
+    dots.forEach(d => d.addEventListener('click', () => { goTo(+d.dataset.slide); resetTimer(); }));
+
+    autoPlay();
+  })();
+
+  /* ── Search ─────────────────────────────────────────────── */
+  document.getElementById('searchBtn').addEventListener('click', function () {
+    const q = document.getElementById('searchInput').value.trim();
+    if (q) window.location.href = 'products/products.html?q=' + encodeURIComponent(q);
+  });
+  document.getElementById('searchInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') document.getElementById('searchBtn').click();
+  });
+</script>
+
+</body>
+</html>

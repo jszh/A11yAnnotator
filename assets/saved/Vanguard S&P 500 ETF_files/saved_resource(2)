@@ -1,0 +1,21 @@
+// Auto-detect relative URL for the controller script
+if (typeof window._bcmc == 'undefined')
+	window._bcmc = 1;
+else
+	window._bcmc++;
+var scripts = document.getElementsByTagName('script');
+
+	for (var i = 0; i < scripts.length; i++) {
+		var ss = scripts[i].src;
+		if (ss.substring(ss.length - 44) == '/?module=simpleQuote&js=1&popup=1&symbol=VOO') {
+			var rnd = Math.floor(Math.random()*10000000);
+			ss += (ss.indexOf('?') > -1 ? '&' : '?');
+			var url = ss + '_host=' + document.location.hostname
+				+ '&_hostparams=' + escape(new String(document.location.search).substring(1))
+				+ '&_rnd=' + rnd
+				+ '&_fullhost=' + window.location.protocol + "//" + window.location.host + "" + window.location.pathname;
+						url += '&key=j' + window._bcmc;
+						document.write('<scr'+'ipt language="javascript" src="' + url + '"></scr'+'ipt>');
+			break;
+		}
+	}

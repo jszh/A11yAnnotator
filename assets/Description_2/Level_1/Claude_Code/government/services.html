@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Services — Vermont.gov</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1B5E20',
+            'primary-dark': '#145016',
+            'primary-light': '#E8F5E9',
+            'primary-mid': '#2E7D32',
+            secondary: '#1A2744',
+            accent: '#C8860A',
+            'accent-light': '#FFF8E1',
+            danger: '#B71C1C',
+            'danger-light': '#FFEBEE',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    :focus-visible { outline: 3px solid #C8860A !important; outline-offset: 2px !important; border-radius: 4px; }
+    .skip-link { position: absolute; top: -100%; left: 0.5rem; background: #C8860A; color: #000; padding: 0.5rem 1rem; font-weight: 600; border-radius: 0 0 4px 4px; z-index: 9999; text-decoration: none; }
+    .skip-link:focus { top: 0; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const SkipNav = () => <a href="#main-content" className="skip-link">Skip to main content</a>;
+
+    const OfficialBanner = () => {
+      const [open, setOpen] = useState(false);
+      return (
+        <div className="bg-gray-700 text-white text-xs">
+          <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center gap-3">
+            <span className="flex items-center gap-1.5 font-medium">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944z" clipRule="evenodd" />
+              </svg>
+              An official website of the State of Vermont
+            </span>
+            <button onClick={() => setOpen(!open)} aria-expanded={open}
+              className="text-blue-300 underline hover:no-underline text-xs">Here's how you know</button>
+          </div>
+          {open && (
+            <div className="max-w-7xl mx-auto px-4 py-4 grid sm:grid-cols-2 gap-5 border-t border-gray-600 text-gray-300">
+              <div className="flex gap-3">
+                <svg className="w-6 h-6 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <div><p className="font-semibold text-white mb-0.5">Official websites use .gov</p><p>A .gov website belongs to an official government organization.</p></div>
+              </div>
+              <div className="flex gap-3">
+                <svg className="w-6 h-6 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <div><p className="font-semibold text-white mb-0.5">Secure .gov websites use HTTPS</p><p>Share sensitive info only on official, secure sites.</p></div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const Header = ({ current }) => {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [lang, setLang] = useState('EN');
+      const navLinks = [
+        { href: 'index.html', label: 'Home' },
+        { href: 'services.html', label: 'Services' },
+        { href: 'about.html', label: 'About Vermont' },
+        { href: 'contact.html', label: 'Contact' },
+      ];
+      return (
+        <header className="bg-white border-b-2 border-primary sticky top-0 z-40 shadow-sm" role="banner">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <a href="index.html" className="flex items-center gap-3" aria-label="Vermont.gov — Home">
+                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">VT</div>
+                <div>
+                  <div className="font-bold text-lg text-primary leading-none">Vermont.gov</div>
+                  <div className="text-xs text-gray-500 leading-none mt-0.5">Official State Portal</div>
+                </div>
+              </a>
+              <nav aria-label="Main navigation" className="hidden md:flex items-center gap-1">
+                {navLinks.map(link => (
+                  <a key={link.href} href={link.href} aria-current={current === link.label ? 'page' : undefined}
+                    className={`px-4 py-2 rounded text-sm font-medium transition-colors ${current === link.label ? 'bg-primary-light text-primary font-semibold' : 'text-gray-700 hover:bg-gray-100 hover:text-primary'}`}>
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex gap-1" role="group" aria-label="Select language">
+                  {['EN','ES','FR'].map(l => (
+                    <button key={l} onClick={() => setLang(l)} aria-pressed={lang === l}
+                      aria-label={`Switch to ${l === 'EN' ? 'English' : l === 'ES' ? 'Spanish' : 'French'}`}
+                      className={`px-2.5 py-1 text-xs font-semibold rounded border transition-colors ${lang === l ? 'bg-primary text-white border-primary' : 'text-gray-600 border-gray-300 hover:border-primary'}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen}
+                  aria-controls="mobile-nav-svc" aria-label="Toggle navigation menu"
+                  className="md:hidden p-2 rounded text-gray-600 hover:bg-gray-100">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    {menuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>}
+                  </svg>
+                </button>
+              </div>
+            </div>
+            {menuOpen && (
+              <nav id="mobile-nav-svc" aria-label="Mobile navigation" className="md:hidden py-3 border-t border-gray-100">
+                {navLinks.map(link => (
+                  <a key={link.href} href={link.href} aria-current={current === link.label ? 'page' : undefined}
+                    className={`block px-4 py-2.5 text-sm font-medium rounded mb-1 ${current === link.label ? 'bg-primary-light text-primary' : 'text-gray-700 hover:bg-gray-100'}`}>
+                    {link.label}
+                  </a>
+                ))}
+              </nav>
+            )}
+          </div>
+        </header>
+      );
+    };
+
+    const Footer = () => (
+      <footer className="bg-secondary text-gray-300 pt-12 pb-6" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">VT</div>
+                <span className="font-bold text-white text-lg">Vermont.gov</span>
+              </div>
+              <p className="text-sm text-gray-400">Official portal for Vermont state government services.</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Quick Links</h3>
+              <ul className="space-y-2 text-sm">
+                {["Renew Driver's License","Apply for Benefits","Register to Vote","Find a School","Business Licenses"].map(t => (
+                  <li key={t}><a href="#" className="hover:text-white">{t}</a></li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Departments</h3>
+              <ul className="space-y-2 text-sm">
+                {['DMV','Health','Education','Human Services','Tax Department'].map(t => (
+                  <li key={t}><a href="#" className="hover:text-white">{t}</a></li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">About</h3>
+              <ul className="space-y-2 text-sm">
+                {['Accessibility Statement','Privacy Policy','Site Disclaimer','Open Data','Site Map'].map(t => (
+                  <li key={t}><a href="#" className="hover:text-white">{t}</a></li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-600 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+            <p>© 2025 State of Vermont. All rights reserved.</p>
+            <p>Vermont State House · 115 State Street · Montpelier, VT 05633 · (802) 828-1110</p>
+          </div>
+        </div>
+      </footer>
+    );
+
+    /* ── Page: Services ── */
+    const stages = [
+      {
+        id: 'new',
+        label: 'New Residents',
+        emoji: '🆕',
+        desc: 'Essential services to help you get settled in Vermont.',
+        services: [
+          { icon: '🪪', title: "Driver's License Transfer", desc: 'Convert your out-of-state license to a Vermont license.', time: '~15 min', link: 'service-license.html', dept: 'DMV', badge: 'Online' },
+          { icon: '🗳️', title: 'Voter Registration', desc: "Register to vote in Vermont's state and local elections.", time: '~5 min', link: '#', dept: 'Secretary of State', badge: 'Online' },
+          { icon: '🚗', title: 'Vehicle Registration', desc: 'Register your vehicle with the Vermont DMV.', time: '~20 min', link: '#', dept: 'DMV', badge: 'Online' },
+          { icon: '🏠', title: 'Property Tax Exemption', desc: 'Learn about and apply for Vermont homestead exemptions.', time: '~30 min', link: '#', dept: 'Tax Dept.', badge: 'In-person' },
+          { icon: '👩‍⚕️', title: 'Health Insurance Enrollment', desc: 'Enroll in Vermont Health Connect or Medicaid.', time: '~25 min', link: '#', dept: 'Health Connect', badge: 'Online' },
+          { icon: '📋', title: 'Change of Address', desc: 'Update your address across multiple state agencies at once.', time: '~10 min', link: '#', dept: 'Multiple Agencies', badge: 'Online' },
+        ]
+      },
+      {
+        id: 'families',
+        label: 'Families',
+        emoji: '👨‍👩‍👧',
+        desc: 'Services supporting Vermont families and parents.',
+        services: [
+          { icon: '🍎', title: 'SNAP Food Benefits', desc: 'Apply for federal food assistance for qualifying families.', time: '~20 min', link: 'service-benefits.html', dept: 'Human Services', badge: 'Online' },
+          { icon: '👶', title: 'Birth Certificate', desc: 'Order certified copies of Vermont birth certificates.', time: '~10 min', link: '#', dept: "Health Dept.", badge: 'Online' },
+          { icon: '🏫', title: 'School Enrollment', desc: 'Enroll your child in a Vermont public school district.', time: '~15 min', link: '#', dept: 'Education', badge: 'Online' },
+          { icon: '🏥', title: 'Medicaid for Children', desc: 'Apply for Dr. Dynasaur health coverage for children under 19.', time: '~25 min', link: '#', dept: 'Health Connect', badge: 'Online' },
+          { icon: '🏠', title: 'Housing Assistance', desc: 'Emergency and transitional housing programs for families.', time: 'Varies', link: '#', dept: 'Human Services', badge: 'Apply online' },
+          { icon: '💼', title: 'Child Care Financial Help', desc: 'Subsidized child care assistance for working families.', time: '~30 min', link: '#', dept: 'Children & Families', badge: 'Online' },
+        ]
+      },
+      {
+        id: 'students',
+        label: 'Students',
+        emoji: '🎓',
+        desc: 'Education resources and student-focused services.',
+        services: [
+          { icon: '💰', title: 'Vermont Grants', desc: 'Vermont Student Assistance Corporation (VSAC) grants and scholarships.', time: '~40 min', link: '#', dept: 'VSAC', badge: 'Online' },
+          { icon: '📚', title: 'Public Library Card', desc: 'Get a free Vermont Library Network borrowing card.', time: '~5 min', link: '#', dept: 'Libraries', badge: 'Online' },
+          { icon: '🏛️', title: 'University System', desc: 'Apply to Vermont State University or UVM through the state portal.', time: '~60 min', link: '#', dept: 'Higher Education', badge: 'Apply online' },
+          { icon: '🪪', title: 'First Driver License', desc: "Get your learner's permit or first Vermont license.", time: '~15 min', link: 'service-license.html', dept: 'DMV', badge: 'Appointment req.' },
+          { icon: '💻', title: 'Broadband Access', desc: 'Find subsidized home internet programs for students.', time: '~10 min', link: '#', dept: 'Digital Equity', badge: 'Online' },
+          { icon: '🍎', title: 'Free School Meals', desc: 'Vermont universal free school breakfast and lunch program.', time: 'Automatic', link: '#', dept: 'Education', badge: 'No application' },
+        ]
+      },
+      {
+        id: 'seniors',
+        label: 'Seniors',
+        emoji: '👴',
+        desc: 'Programs and resources for Vermont residents 60 and older.',
+        services: [
+          { icon: '🏥', title: 'Medicaid & Medicare Savings', desc: 'Help paying for Medicare premiums, deductibles, and copays.', time: '~30 min', link: 'service-benefits.html', dept: 'Human Services', badge: 'Online' },
+          { icon: '💊', title: 'Prescription Assistance', desc: 'Vermont Rx program — reduced-cost prescriptions for seniors.', time: '~20 min', link: '#', dept: 'Health Dept.', badge: 'Online' },
+          { icon: '🔥', title: 'Heating Assistance (LIHEAP)', desc: 'Help paying heating bills during Vermont winters.', time: '~25 min', link: 'service-benefits.html', dept: 'Human Services', badge: 'Online' },
+          { icon: '🚌', title: 'Senior Transportation', desc: 'Free and reduced-fare public transit options for Vermont seniors.', time: '~10 min', link: '#', dept: 'Transportation', badge: 'Program info' },
+          { icon: '🏠', title: 'Home Care Services', desc: 'In-home support services to help seniors live independently.', time: 'Assessment req.', link: '#', dept: 'Aging & Disability', badge: 'Call required' },
+          { icon: '👩‍⚕️', title: 'Senior Centers', desc: 'Find local senior centers, programs, and activities near you.', time: 'Browse anytime', link: '#', dept: 'Aging & Disability', badge: 'Browse' },
+        ]
+      },
+      {
+        id: 'businesses',
+        label: 'Businesses',
+        emoji: '🏢',
+        desc: 'Licensing, permits, and support for Vermont businesses.',
+        services: [
+          { icon: '🏢', title: 'Business Registration', desc: 'Register an LLC, corporation, or sole proprietorship in Vermont.', time: '~20 min', link: '#', dept: 'Secretary of State', badge: 'Online' },
+          { icon: '📄', title: 'Business Tax Account', desc: 'Open a Vermont business tax account with the Tax Department.', time: '~15 min', link: '#', dept: 'Tax Dept.', badge: 'Online' },
+          { icon: '🔨', title: 'Contractor License', desc: 'Apply for or renew a Vermont contractor license.', time: '~30 min', link: '#', dept: 'Labor', badge: 'Online' },
+          { icon: '🍺', title: 'Liquor License', desc: 'Apply for a restaurant, retail, or event liquor license.', time: '~45 min', link: '#', dept: 'Liquor Control', badge: 'Online + In-person' },
+          { icon: '💼', title: 'Employer Registration', desc: 'Register as a Vermont employer and set up payroll tax withholding.', time: '~15 min', link: '#', dept: 'Tax Dept.', badge: 'Online' },
+          { icon: '🌱', title: 'VT Sustainable Business', desc: 'Grants and resources for Vermont sustainable businesses.', time: 'Varies', link: '#', dept: 'Econ. Development', badge: 'Apply online' },
+        ]
+      }
+    ];
+
+    const badgeColors = {
+      'Online': 'bg-green-100 text-green-800',
+      'In-person': 'bg-blue-100 text-blue-800',
+      'Apply online': 'bg-green-100 text-green-800',
+      'Appointment req.': 'bg-yellow-100 text-yellow-800',
+      'Call required': 'bg-orange-100 text-orange-800',
+      'Browse': 'bg-gray-100 text-gray-700',
+      'No application': 'bg-green-100 text-green-800',
+      'Program info': 'bg-blue-100 text-blue-800',
+      'Online + In-person': 'bg-purple-100 text-purple-800',
+      'Assessment req.': 'bg-yellow-100 text-yellow-800',
+    };
+
+    const ServicesPage = () => {
+      const [activeStage, setActiveStage] = useState('new');
+      const [searchQuery, setSearchQuery] = useState('');
+      const current = stages.find(s => s.id === activeStage);
+
+      const filteredServices = searchQuery.trim()
+        ? stages.flatMap(s => s.services).filter(svc =>
+            svc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            svc.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            svc.dept.toLowerCase().includes(searchQuery.toLowerCase()))
+        : current.services;
+
+      return (
+        <main id="main-content" tabIndex={-1}>
+          {/* Page Header */}
+          <div className="bg-secondary text-white py-10 px-4">
+            <div className="max-w-7xl mx-auto">
+              <nav aria-label="Breadcrumb" className="text-sm text-gray-400 mb-3">
+                <ol className="flex items-center gap-2" role="list">
+                  <li><a href="index.html" className="hover:text-white">Home</a></li>
+                  <li aria-hidden="true"><span>/</span></li>
+                  <li aria-current="page" className="text-white font-medium">Services</li>
+                </ol>
+              </nav>
+              <h1 className="text-3xl sm:text-4xl font-extrabold mb-2">Vermont Resident Services</h1>
+              <p className="text-gray-300 text-lg max-w-2xl">Find the services you need, organized by your situation and life stage.</p>
+            </div>
+          </div>
+
+          {/* Search */}
+          <div className="bg-white border-b border-gray-200 py-5 px-4 sticky top-16 z-30">
+            <div className="max-w-7xl mx-auto">
+              <form role="search" aria-label="Search services" onSubmit={e => e.preventDefault()}>
+                <label htmlFor="service-search" className="sr-only">Search all services</label>
+                <div className="relative max-w-xl">
+                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+                  </svg>
+                  <input id="service-search" type="search" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search all services…"
+                    className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" />
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            {!searchQuery.trim() && (
+              <>
+                {/* Life Stage Tabs */}
+                <div role="tablist" aria-label="Browse services by life stage"
+                  className="flex flex-wrap gap-2 mb-8">
+                  {stages.map(stage => (
+                    <button key={stage.id} role="tab" id={`tab-${stage.id}`}
+                      aria-selected={activeStage === stage.id}
+                      aria-controls={`panel-${stage.id}`}
+                      onClick={() => setActiveStage(stage.id)}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold border-2 transition-all ${
+                        activeStage === stage.id
+                          ? 'bg-primary text-white border-primary shadow-sm'
+                          : 'bg-white text-gray-700 border-gray-200 hover:border-primary hover:text-primary'
+                      }`}>
+                      <span aria-hidden="true">{stage.emoji}</span>
+                      {stage.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Life Stage Description */}
+                <div id={`panel-${activeStage}`} role="tabpanel" aria-labelledby={`tab-${activeStage}`}
+                  className="mb-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-3xl" aria-hidden="true">{current.emoji}</span>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">{current.label}</h2>
+                      <p className="text-gray-500">{current.desc}</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {searchQuery.trim() && (
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {filteredServices.length} result{filteredServices.length !== 1 ? 's' : ''} for "{searchQuery}"
+                </h2>
+              </div>
+            )}
+
+            {/* Service Cards */}
+            <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5" role="list" aria-label={searchQuery ? `Search results for ${searchQuery}` : `${current.label} services`}>
+              {filteredServices.map((svc, i) => (
+                <li key={i}>
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-5 h-full flex flex-col">
+                    <div className="flex items-start justify-between mb-3">
+                      <span className="text-3xl" aria-hidden="true">{svc.icon}</span>
+                      <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${badgeColors[svc.badge] || 'bg-gray-100 text-gray-700'}`}>
+                        {svc.badge}
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-1.5 text-base">{svc.title}</h3>
+                    <p className="text-gray-500 text-sm leading-relaxed flex-1 mb-3">{svc.desc}</p>
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <div>
+                        <p className="text-xs text-gray-400">{svc.dept}</p>
+                        <p className="text-xs font-medium text-primary mt-0.5">
+                          <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0"/>
+                          </svg>
+                          {svc.time}
+                        </p>
+                      </div>
+                      <a href={svc.link}
+                        aria-label={`Start: ${svc.title}`}
+                        className="bg-primary text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-primary-dark transition-colors whitespace-nowrap">
+                        Start →
+                      </a>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {filteredServices.length === 0 && (
+              <div className="text-center py-16">
+                <p className="text-5xl mb-4" aria-hidden="true">🔍</p>
+                <p className="text-xl font-semibold text-gray-700">No services found</p>
+                <p className="text-gray-500 mt-2">Try a different search term or browse by life stage above.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Can't find what you need? */}
+          <section aria-labelledby="help-heading" className="bg-primary-light border-t border-green-200 py-10 px-4">
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 id="help-heading" className="text-xl font-bold text-primary mb-2">Can't find what you need?</h2>
+              <p className="text-gray-600 mb-6">Our resident services team is available Monday–Friday, 8am–5pm to help you navigate Vermont state services.</p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <a href="contact.html"
+                  className="bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors">
+                  Contact Us
+                </a>
+                <a href="tel:18008282229"
+                  className="bg-white text-primary border-2 border-primary px-6 py-3 rounded-lg font-semibold hover:bg-primary-light transition-colors">
+                  Call (800) 828-2229
+                </a>
+              </div>
+            </div>
+          </section>
+        </main>
+      );
+    };
+
+    const App = () => (
+      <div className="min-h-screen flex flex-col">
+        <SkipNav />
+        <OfficialBanner />
+        <Header current="Services" />
+        <div className="flex-1"><ServicesPage /></div>
+        <Footer />
+      </div>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

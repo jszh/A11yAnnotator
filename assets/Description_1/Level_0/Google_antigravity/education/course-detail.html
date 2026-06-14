@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python for Data Science | LearnPath</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body class="bg-surface-50 antialiased text-surface-900 selection:bg-primary-500 selection:text-white">
+    <div id="root"></div>
+
+    <!-- Shared Components -->
+    <script type="text/babel" src="shared.js"></script>
+
+    <!-- Page Component -->
+    <script type="text/babel">
+        const { useState } = React;
+
+        const CurriculumAccordion = () => {
+            const sections = [
+                { title: "Introduction to Python and Setup", lessons: 4, duration: "45 mins" },
+                { title: "Data Types, Variables, and Logic", lessons: 6, duration: "1.5 hours" },
+                { title: "Functions and Object-Oriented Programming", lessons: 8, duration: "2.5 hours" },
+                { title: "Working with Pandas and NumPy", lessons: 10, duration: "4.5 hours" },
+                { title: "Data Visualization with Matplotlib", lessons: 4, duration: "2 hours" }
+            ];
+
+            const [openSection, setOpenSection] = useState(0);
+
+            return (
+                <div className="space-y-4">
+                    {sections.map((section, idx) => {
+                        const isOpen = openSection === idx;
+                        return (
+                            <div key={idx} className="border border-surface-200 rounded-xl overflow-hidden bg-white">
+                                <button
+                                    className={`w-full flex items-center justify-between p-5 text-left transition-colors ${isOpen ? 'bg-surface-50 border-b border-surface-200' : 'hover:bg-surface-50'}`}
+                                    onClick={() => setOpenSection(isOpen ? -1 : idx)}
+                                >
+                                    <div>
+                                        <h4 className="font-bold text-surface-900">{section.title}</h4>
+                                        <p className="text-sm text-surface-500 mt-1">{section.lessons} lessons • {section.duration}</p>
+                                    </div>
+                                    <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'} text-surface-400`}></i>
+                                </button>
+                                {isOpen && (
+                                    <div className="p-5 bg-white space-y-4">
+                                        {[...Array(section.lessons)].map((_, jdx) => (
+                                            <div key={jdx} className="flex items-center justify-between group">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center">
+                                                        <i className="fas fa-play text-xs ml-0.5"></i>
+                                                    </div>
+                                                    <span className="text-surface-700 group-hover:text-primary-600 transition-colors cursor-pointer text-sm font-medium">
+                                                        Lesson {jdx + 1}: Detailed Topic Name Here
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs text-surface-400">10:00</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        };
+
+        const CourseDetail = () => {
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <div className="bg-surface-900 pb-20 pt-32 px-4 sm:px-6 lg:px-8">
+                        <Header />
+                        <div className="max-w-7xl mx-auto relative z-10 animate-fade-in flex flex-col lg:flex-row gap-12 text-white">
+                            <div className="lg:w-2/3">
+                                <nav className="flex text-sm text-surface-400 mb-6" aria-label="Breadcrumb">
+                                    <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                                        <li className="inline-flex items-center">
+                                            <a href="courses.html" className="hover:text-white transition-colors">Data Science</a>
+                                        </li>
+                                        <li>
+                                            <div className="flex items-center">
+                                                <i className="fas fa-chevron-right text-xs mx-2"></i>
+                                                <span className="text-white font-medium">Python for Data Science</span>
+                                            </div>
+                                        </li>
+                                    </ol>
+                                </nav>
+                                <h1 className="text-4xl md:text-5xl font-display font-bold mb-6 leading-tight">Python for Data Science — Intermediate</h1>
+                                <p className="text-xl text-surface-300 mb-8 max-w-3xl leading-relaxed">
+                                    Master Python frameworks like Pandas, NumPy, and Matplotlib. Dive deep into real-world data analysis and build a comprehensive portfolio.
+                                </p>
+                                <div className="flex flex-wrap items-center gap-6 text-sm mb-8">
+                                    <div className="flex items-center text-amber-500 font-bold text-lg">
+                                        <span className="mr-2">4.8</span>
+                                        <div className="flex gap-1 text-sm">
+                                            <i className="fas fa-star"></i>
+                                            <i className="fas fa-star"></i>
+                                            <i className="fas fa-star"></i>
+                                            <i className="fas fa-star"></i>
+                                            <i className="fas fa-star-half-alt"></i>
+                                        </div>
+                                        <a href="#reviews" className="text-surface-400 hover:text-white font-normal ml-2 underline decoration-surface-600 underline-offset-4">(2,451 ratings)</a>
+                                    </div>
+                                    <div className="flex items-center text-surface-300">
+                                        <i className="fas fa-users mr-2"></i> 10,245 students enrolled
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80" alt="Instructor" className="w-12 h-12 rounded-full border-2 border-primary-500" />
+                                    <div>
+                                        <p className="text-surface-300 text-xs uppercase tracking-wider mb-1">Created by</p>
+                                        <p className="font-bold text-white">Dr. Angela Yu</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full flex flex-col lg:flex-row gap-12 relative animate-slide-up">
+                        <div className="lg:w-2/3 space-y-16">
+
+                            {/* What you'll learn */}
+                            <section className="bg-white p-8 rounded-2xl border border-surface-200 shadow-sm">
+                                <h3 className="text-2xl font-display font-bold mb-6">What you'll learn</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {[
+                                        "Master Python programming fundamentals",
+                                        "Analyze large datasets with Pandas and NumPy",
+                                        "Create beautiful visualizations with Matplotlib",
+                                        "Apply predictive modeling techniques",
+                                        "Clean and prepare messy data",
+                                        "Work with Jupyter Notebooks directly"
+                                    ].map((item, idx) => (
+                                        <div key={idx} className="flex gap-3">
+                                            <i className="fas fa-check text-emerald-500 mt-1"></i>
+                                            <span className="text-surface-700">{item}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+
+                            {/* Curriculum */}
+                            <section>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-2xl font-display font-bold">Course Curriculum</h3>
+                                    <span className="text-surface-500">5 sections • 32 lessons • 24h total length</span>
+                                </div>
+                                <CurriculumAccordion />
+                            </section>
+
+                            {/* Instructor Biography */}
+                            <section>
+                                <h3 className="text-2xl font-display font-bold mb-6">Instructor</h3>
+                                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                                    <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80" alt="Dr. Angela Yu" className="w-32 h-32 rounded-2xl object-cover shadow-md" />
+                                    <div>
+                                        <h4 className="text-xl font-bold text-surface-900 mb-1">Dr. Angela Yu</h4>
+                                        <p className="text-primary-600 font-medium mb-4">Lead Data Scientist at TechCorp</p>
+                                        <div className="flex gap-4 mb-4 text-sm text-surface-600">
+                                            <span className="flex items-center gap-1"><i className="fas fa-star text-amber-500"></i> 4.8 Instructor Rating</span>
+                                            <span className="flex items-center gap-1"><i className="fas fa-comment"></i> 50k Reviews</span>
+                                            <span className="flex items-center gap-1"><i className="fas fa-user"></i> 200k Students</span>
+                                        </div>
+                                        <p className="text-surface-600 leading-relaxed">
+                                            I'm Angela, I'm a developer with a passion for teaching. I'm the lead instructor at the London App Brewery, London's leading Programming Bootcamp. I've helped hundreds of thousands of students learn to code and change their lives by becoming a developer.
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Reviews */}
+                            <section id="reviews">
+                                <h3 className="text-2xl font-display font-bold mb-6">Student Feedback</h3>
+                                <div className="flex flex-col md:flex-row gap-8 items-center mb-10">
+                                    <div className="text-center md:text-left">
+                                        <div className="text-6xl font-display font-extrabold text-surface-900 mb-2">4.8</div>
+                                        <div className="flex gap-1 text-amber-500 text-lg justify-center md:justify-start mb-2">
+                                            <i className="fas fa-star"></i>
+                                            <i className="fas fa-star"></i>
+                                            <i className="fas fa-star"></i>
+                                            <i className="fas fa-star"></i>
+                                            <i className="fas fa-star-half-alt"></i>
+                                        </div>
+                                        <p className="text-surface-500 font-medium">Course Rating</p>
+                                    </div>
+                                    <div className="flex-grow w-full space-y-2">
+                                        {[
+                                            { stars: 5, pct: 75 },
+                                            { stars: 4, pct: 15 },
+                                            { stars: 3, pct: 8 },
+                                            { stars: 2, pct: 1 },
+                                            { stars: 1, pct: 1 }
+                                        ].map((bar, idx) => (
+                                            <div key={idx} className="flex items-center gap-3">
+                                                <div className="w-24 flex items-center gap-1 flex-shrink-0">
+                                                    <span className="text-sm font-medium">{bar.stars} stars</span>
+                                                </div>
+                                                <div className="flex-grow h-2 bg-surface-200 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-amber-500" style={{ width: `${bar.pct}%` }}></div>
+                                                </div>
+                                                <div className="w-10 text-right text-sm text-surface-500">{bar.pct}%</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {[1, 2, 3].map((_, idx) => (
+                                        <div key={idx} className="bg-white p-6 rounded-2xl border border-surface-200">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold">
+                                                        {['JW', 'AL', 'MR'][idx]}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-surface-900">{['Jordan Wilson', 'Anna Lee', 'Michael Ross'][idx]}</p>
+                                                        <div className="flex gap-1 text-amber-500 text-xs mt-1">
+                                                            <i className="fas fa-star"></i><i className="fas fa-star"></i><i className="fas fa-star"></i><i className="fas fa-star"></i><i className="fas fa-star"></i>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <span className="text-sm text-surface-400">2 weeks ago</span>
+                                            </div>
+                                            <p className="text-surface-600 leading-relaxed text-sm">
+                                                This course was exactly what I needed. The instructor explains complex concepts in a very digestible way. I feel confident using Pandas and NumPy for my daily tasks now!
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button variant="secondary" className="w-full mt-6 py-3 font-bold border-surface-300">View All Reviews</Button>
+                            </section>
+                        </div>
+
+                        {/* Sticky Sidebar */}
+                        <div className="lg:w-1/3">
+                            <div className="sticky top-24 bg-white rounded-3xl shadow-xl border border-surface-200 overflow-hidden transform lg:-translate-y-48">
+                                <div className="relative aspect-video">
+                                    <div className="absolute inset-0 bg-surface-900/50 flex items-center justify-center group cursor-pointer z-10 transition-colors hover:bg-surface-900/40">
+                                        <div className="w-16 h-16 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-primary-600 shadow-xl group-hover:scale-110 transition-transform">
+                                            <i className="fas fa-play text-xl ml-1"></i>
+                                        </div>
+                                    </div>
+                                    <img src="https://images.unsplash.com/photo-1526379095098-d400fd0bfce8?auto=format&fit=crop&w=800&q=80" alt="Course Preview" className="w-full h-full object-cover" />
+                                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-surface-900 shadow-sm z-20">Preview Course</div>
+                                </div>
+
+                                <div className="p-8">
+                                    <div className="flex items-end gap-3 mb-6">
+                                        <span className="text-4xl font-display font-extrabold text-surface-900">$89.99</span>
+                                        <span className="text-lg text-surface-400 line-through mb-1">$129.99</span>
+                                    </div>
+
+                                    <a href="lesson.html">
+                                        <Button variant="primary" className="w-full py-4 text-lg mb-3 shadow-primary-500/25">Enroll Now</Button>
+                                    </a>
+                                    <p className="text-center text-xs text-surface-500 mb-8 max-w-[80%] mx-auto">30-Day Money-Back Guarantee. Full Lifetime Access.</p>
+
+                                    <div className="space-y-4">
+                                        <h4 className="font-bold text-surface-900">This course includes:</h4>
+                                        <ul className="space-y-3 text-sm text-surface-700">
+                                            <li className="flex gap-3 items-center"><i className="fas fa-video w-5 text-center text-surface-400"></i> 24 hours on-demand video</li>
+                                            <li className="flex gap-3 items-center"><i className="fas fa-file-download w-5 text-center text-surface-400"></i> 12 downloadable resources</li>
+                                            <li className="flex gap-3 items-center"><i className="fas fa-mobile-alt w-5 text-center text-surface-400"></i> Access on mobile and TV</li>
+                                            <li className="flex gap-3 items-center"><i className="fas fa-infinity w-5 text-center text-surface-400"></i> Full lifetime access</li>
+                                            <li className="flex gap-3 items-center"><i className="fas fa-trophy w-5 text-center text-surface-400"></i> Certificate of completion</li>
+                                        </ul>
+                                    </div>
+
+                                    <hr className="my-6 border-surface-200" />
+
+                                    <div className="flex justify-between items-center text-sm font-medium">
+                                        <a href="#" className="flex items-center gap-2 text-surface-600 hover:text-surface-900 transition-colors"><i className="fas fa-share"></i> Share</a>
+                                        <a href="#" className="flex items-center gap-2 text-surface-600 hover:text-surface-900 transition-colors"><i className="fas fa-heart text-surface-400"></i> Save</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CourseDetail />);
+    </script>
+</body>
+
+</html>

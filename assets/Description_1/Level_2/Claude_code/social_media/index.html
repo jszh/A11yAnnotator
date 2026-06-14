@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feed | Pulse</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+    .skip-link { position: absolute; top: -100%; left: 0; background: #6366f1; color: white; padding: 8px 16px; z-index: 9999; border-radius: 0 0 8px 0; text-decoration: none; font-weight: 600; }
+    .skip-link:focus { top: 0; }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <div id="live-region" aria-live="polite" aria-atomic="true" class="sr-only" style="position:absolute;left:-9999px;"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+
+/* ── Icons ── */
+const IconHome = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z"/><path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.432z"/></svg>;
+const IconCompass = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-.53 14.03a.75.75 0 001.06 0l3.5-3.5a.75.75 0 10-1.06-1.06l-2.22 2.22V8.25a.75.75 0 00-1.5 0v5.69l-2.22-2.22a.75.75 0 10-1.06 1.06l3.5 3.5z" clipRule="evenodd"/></svg>;
+const IconBell = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clipRule="evenodd"/></svg>;
+const IconChat = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97z" clipRule="evenodd"/></svg>;
+const IconUser = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd"/></svg>;
+const IconCog = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clipRule="evenodd"/></svg>;
+const IconHeart = ({ filled }) => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={filled ? 0 : 1.5} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>;
+const IconChatBubble = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>;
+const IconShare = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"/></svg>;
+const IconBookmark = ({ filled }) => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={filled ? 0 : 1.5} className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"/></svg>;
+const IconMore = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M4.5 12a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm6 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm6 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" clipRule="evenodd"/></svg>;
+const IconImage = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>;
+const IconSmile = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z"/></svg>;
+const IconX = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 011.06 0L12 10.94l5.47-5.47a.75.75 0 111.06 1.06L13.06 12l5.47 5.47a.75.75 0 11-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 01-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 010-1.06z" clipRule="evenodd"/></svg>;
+const IconPlus = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd"/></svg>;
+const IconBolt = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7"><path fillRule="evenodd" d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z" clipRule="evenodd"/></svg>;
+
+/* ── Sidebar Navigation ── */
+function Sidebar({ activePage = 'feed' }) {
+  const navItems = [
+    { id: 'feed', label: 'Home', href: 'index.html', icon: <IconHome /> },
+    { id: 'explore', label: 'Explore', href: 'explore.html', icon: <IconCompass /> },
+    { id: 'notifications', label: 'Notifications', href: 'notifications.html', icon: <IconBell />, badge: 5 },
+    { id: 'messages', label: 'Messages', href: 'messages.html', icon: <IconChat />, badge: 2 },
+    { id: 'profile', label: 'Profile', href: 'profile.html', icon: <IconUser /> },
+    { id: 'settings', label: 'Settings', href: 'settings.html', icon: <IconCog /> },
+  ];
+  return (
+    <nav aria-label="Main navigation" className="fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-100 flex flex-col py-6 px-4 z-40 hidden lg:flex">
+      <a href="index.html" className="flex items-center gap-2 px-2 mb-8" aria-label="Pulse home">
+        <span className="text-indigo-600"><IconBolt /></span>
+        <span className="text-2xl font-bold text-gray-900">Pulse</span>
+      </a>
+      <ul className="flex flex-col gap-1 flex-1" role="list">
+        {navItems.map(item => (
+          <li key={item.id}>
+            <a
+              href={item.href}
+              aria-current={activePage === item.id ? 'page' : undefined}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors relative ${activePage === item.id ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}
+            >
+              <span className={activePage === item.id ? 'text-indigo-600' : 'text-gray-500'}>{item.icon}</span>
+              <span>{item.label}</span>
+              {item.badge && (
+                <span className="ml-auto bg-indigo-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1" aria-label={`${item.badge} unread`}>
+                  {item.badge}
+                </span>
+              )}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <button className="mt-4 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors w-full" aria-label="Create new post">
+        <IconPlus /> New Post
+      </button>
+      <a href="profile.html" className="mt-6 flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50 transition-colors">
+        <img src="https://i.pravatar.cc/40?img=11" alt="Alex Johnson — your profile" className="w-9 h-9 rounded-full object-cover" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 truncate">Alex Johnson</p>
+          <p className="text-xs text-gray-500 truncate">@alexj</p>
+        </div>
+      </a>
+    </nav>
+  );
+}
+
+/* ── Mobile Bottom Nav ── */
+function MobileNav({ activePage = 'feed' }) {
+  const items = [
+    { id: 'feed', label: 'Home', href: 'index.html', icon: <IconHome /> },
+    { id: 'explore', label: 'Explore', href: 'explore.html', icon: <IconCompass /> },
+    { id: 'notifications', label: 'Alerts', href: 'notifications.html', icon: <IconBell /> },
+    { id: 'messages', label: 'Messages', href: 'messages.html', icon: <IconChat /> },
+    { id: 'profile', label: 'Profile', href: 'profile.html', icon: <IconUser /> },
+  ];
+  return (
+    <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex lg:hidden z-40">
+      {items.map(item => (
+        <a key={item.id} href={item.href} aria-current={activePage === item.id ? 'page' : undefined}
+          className={`flex-1 flex flex-col items-center py-3 text-xs font-medium transition-colors ${activePage === item.id ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}>
+          {item.icon}<span className="mt-0.5">{item.label}</span>
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+/* ── Emoji Picker ── */
+const EMOJIS = ['😀','😂','😍','🥰','😊','🎉','🔥','💯','👍','❤️','✨','🙌','💪','🤔','😮','🎊','🌟','💬','🚀','🌈'];
+function EmojiPicker({ onSelect, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => { ref.current?.querySelector('button')?.focus(); }, []);
+  useEffect(() => {
+    const handler = (e) => { if (!ref.current?.contains(e.target)) onClose(); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+  const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+  return (
+    <div ref={ref} role="dialog" aria-label="Emoji picker" onKeyDown={handleKey}
+      className="absolute bottom-12 left-0 bg-white border border-gray-200 rounded-xl shadow-xl p-3 z-50 w-72">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-semibold text-gray-700">Choose an emoji</span>
+        <button onClick={onClose} aria-label="Close emoji picker" className="text-gray-400 hover:text-gray-700 rounded p-1"><IconX /></button>
+      </div>
+      <div className="grid grid-cols-10 gap-1">
+        {EMOJIS.map(emoji => (
+          <button key={emoji} onClick={() => { onSelect(emoji); onClose(); }}
+            aria-label={`Add emoji ${emoji}`}
+            className="w-7 h-7 flex items-center justify-center text-lg hover:bg-gray-100 rounded transition-colors">
+            {emoji}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Composer ── */
+function Composer({ onPost }) {
+  const [text, setText] = useState('');
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [charError, setCharError] = useState('');
+  const MAX = 280;
+  const remaining = MAX - text.length;
+  const composerRef = useRef(null);
+  const liveRef = useRef(null);
+
+  const handleChange = (e) => {
+    const val = e.target.value;
+    if (val.length > MAX) {
+      setCharError(`Character limit exceeded by ${val.length - MAX}`);
+      document.getElementById('live-region').textContent = `Character limit exceeded by ${val.length - MAX}`;
+    } else {
+      setCharError('');
+      if (val.length >= MAX - 20) {
+        document.getElementById('live-region').textContent = `${MAX - val.length} characters remaining`;
+      }
+    }
+    setText(val);
+  };
+
+  const handlePost = () => {
+    if (text.trim() && text.length <= MAX) {
+      onPost(text);
+      setText('');
+      setCharError('');
+      document.getElementById('live-region').textContent = 'Post published!';
+    }
+  };
+
+  const handleKey = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handlePost();
+  };
+
+  const circumference = 2 * Math.PI * 18;
+  const progress = Math.min(text.length / MAX, 1);
+  const dashOffset = circumference * (1 - progress);
+  const isOver = text.length > MAX;
+
+  return (
+    <section aria-label="Create a post" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+      <div className="flex gap-3">
+        <img src="https://i.pravatar.cc/40?img=11" alt="Your avatar, Alex Johnson" className="w-10 h-10 rounded-full object-cover flex-shrink-0 mt-1" />
+        <div className="flex-1">
+          <label htmlFor="composer-input" className="sr-only">What's on your mind, Alex?</label>
+          <textarea
+            id="composer-input"
+            ref={composerRef}
+            value={text}
+            onChange={handleChange}
+            onKeyDown={handleKey}
+            placeholder="What's on your mind, Alex?"
+            rows={3}
+            aria-describedby="composer-hint composer-char-count"
+            aria-invalid={isOver ? 'true' : 'false'}
+            className={`w-full resize-none text-gray-900 placeholder-gray-400 text-base focus:outline-none border-b pb-2 ${isOver ? 'border-red-400' : 'border-gray-100'}`}
+          />
+          <span id="composer-hint" className="sr-only">Press Ctrl+Enter or Cmd+Enter to post. Maximum 280 characters.</span>
+          <span id="composer-char-count" className="sr-only" aria-live="polite">
+            {isOver ? `${text.length - MAX} characters over limit` : `${remaining} characters remaining`}
+          </span>
+          {charError && (
+            <p role="alert" className="text-xs text-red-500 mt-1" id="composer-error">{charError}</p>
+          )}
+          <div className="flex items-center justify-between mt-3 relative">
+            <div className="flex items-center gap-1">
+              <label>
+                <input type="file" accept="image/*" className="sr-only" aria-label="Upload image" onChange={() => document.getElementById('live-region').textContent = 'Image selected'} />
+                <span role="button" tabIndex={0}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.previousSibling.click(); }}
+                  aria-label="Attach an image to your post"
+                  className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg cursor-pointer transition-colors inline-flex">
+                  <IconImage />
+                </span>
+              </label>
+              <div className="relative">
+                <button onClick={() => setShowEmoji(v => !v)} aria-label="Open emoji picker" aria-expanded={showEmoji}
+                  aria-haspopup="dialog"
+                  className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                  <IconSmile />
+                </button>
+                {showEmoji && <EmojiPicker onSelect={e => setText(t => t + e)} onClose={() => setShowEmoji(false)} />}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <svg aria-hidden="true" className="w-10 h-10 -rotate-90" viewBox="0 0 44 44">
+                <circle cx="22" cy="22" r="18" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
+                <circle cx="22" cy="22" r="18" fill="none"
+                  stroke={isOver ? '#ef4444' : remaining <= 20 ? '#f59e0b' : '#6366f1'}
+                  strokeWidth="3" strokeDasharray={circumference} strokeDashoffset={dashOffset} strokeLinecap="round"/>
+              </svg>
+              {remaining <= 20 && (
+                <span className={`text-sm font-semibold ${isOver ? 'text-red-500' : 'text-amber-500'}`} aria-hidden="true">{remaining}</span>
+              )}
+              <button onClick={handlePost} disabled={!text.trim() || isOver}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-2 px-5 rounded-xl transition-colors text-sm">
+                Post
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Post Options Menu ── */
+function PostMenu({ postId, author, onDelete, onClose }) {
+  const menuRef = useRef(null);
+  useEffect(() => { menuRef.current?.querySelector('[role="menuitem"]')?.focus(); }, []);
+  useEffect(() => {
+    const handler = (e) => { if (!menuRef.current?.contains(e.target)) onClose(); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+  const handleKey = (e) => {
+    if (e.key === 'Escape') onClose();
+    if (e.key === 'ArrowDown') { e.preventDefault(); const items = menuRef.current.querySelectorAll('[role="menuitem"]'); const idx = [...items].indexOf(document.activeElement); items[(idx + 1) % items.length]?.focus(); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); const items = menuRef.current.querySelectorAll('[role="menuitem"]'); const idx = [...items].indexOf(document.activeElement); items[(idx - 1 + items.length) % items.length]?.focus(); }
+  };
+  return (
+    <div ref={menuRef} role="menu" aria-label={`Options for post by ${author}`} onKeyDown={handleKey}
+      className="absolute top-8 right-0 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 w-48">
+      <button role="menuitem" className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Edit post</button>
+      <button role="menuitem" className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Copy link</button>
+      <button role="menuitem" className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Mute @{author}</button>
+      <hr className="my-1 border-gray-100" />
+      <button role="menuitem" onClick={onDelete} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete post</button>
+    </div>
+  );
+}
+
+/* ── Delete Confirm Modal ── */
+function DeleteModal({ postId, onConfirm, onCancel }) {
+  const modalRef = useRef(null);
+  const prevFocusRef = useRef(document.activeElement);
+  useEffect(() => {
+    const firstEl = modalRef.current?.querySelector('button');
+    firstEl?.focus();
+    const trap = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusables = modalRef.current.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])');
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    const escHandler = (e) => { if (e.key === 'Escape') onCancel(); };
+    document.addEventListener('keydown', trap);
+    document.addEventListener('keydown', escHandler);
+    return () => { document.removeEventListener('keydown', trap); document.removeEventListener('keydown', escHandler); prevFocusRef.current?.focus(); };
+  }, [onCancel]);
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog" aria-labelledby="delete-title" aria-describedby="delete-desc">
+      <div ref={modalRef} className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+        <h2 id="delete-title" className="text-lg font-bold text-gray-900 mb-2">Delete this post?</h2>
+        <p id="delete-desc" className="text-gray-600 text-sm mb-6">This action cannot be undone. Your post will be permanently removed.</p>
+        <div className="flex gap-3 justify-end">
+          <button onClick={onCancel} className="px-5 py-2 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancel</button>
+          <button onClick={onConfirm} className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors">Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Post Card ── */
+function PostCard({ post, onDelete }) {
+  const [liked, setLiked] = useState(post.liked || false);
+  const [likeCount, setLikeCount] = useState(post.likes);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const moreRef = useRef(null);
+
+  const toggleLike = () => {
+    const next = !liked;
+    setLiked(next);
+    const nextCount = next ? likeCount + 1 : likeCount - 1;
+    setLikeCount(nextCount);
+    document.getElementById('live-region').textContent = next ? `You liked ${post.author.name}'s post. ${nextCount} likes total.` : `You unliked ${post.author.name}'s post. ${nextCount} likes total.`;
+  };
+
+  const handleMenuClose = () => { setShowMenu(false); moreRef.current?.focus(); };
+
+  return (
+    <article aria-label={`Post by ${post.author.name}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
+      <header className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <a href="profile.html" aria-label={`View ${post.author.name}'s profile`}>
+            <img src={post.author.avatar} alt={`${post.author.name}'s avatar`} className="w-11 h-11 rounded-full object-cover" />
+          </a>
+          <div>
+            <a href="profile.html" className="font-semibold text-gray-900 hover:underline text-sm">{post.author.name}</a>
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-500 text-xs">{post.author.handle}</span>
+              <span className="text-gray-300 text-xs">·</span>
+              <time dateTime={post.isoTime} className="text-gray-500 text-xs">{post.time}</time>
+            </div>
+          </div>
+        </div>
+        <div className="relative">
+          <button ref={moreRef} onClick={() => setShowMenu(v => !v)}
+            aria-label={`More options for post by ${post.author.name}`}
+            aria-expanded={showMenu} aria-haspopup="menu"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors">
+            <IconMore />
+          </button>
+          {showMenu && <PostMenu postId={post.id} author={post.author.handle.replace('@','')} onDelete={() => { setShowMenu(false); setShowDeleteModal(true); }} onClose={handleMenuClose} />}
+        </div>
+      </header>
+
+      <h3 className="sr-only">Post by {post.author.name}</h3>
+      <p className="text-gray-800 text-sm leading-relaxed mb-3">{post.text}</p>
+
+      {post.image && (
+        <div className="mb-3 rounded-xl overflow-hidden">
+          <img src={post.image} alt={post.imageAlt || `Photo shared by ${post.author.name}`} className="w-full object-cover max-h-80" loading="lazy" />
+        </div>
+      )}
+
+      {post.tags && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {post.tags.map(tag => (
+            <a key={tag} href="explore.html" className="text-indigo-600 text-sm hover:underline">#{tag}</a>
+          ))}
+        </div>
+      )}
+
+      <footer className="flex items-center gap-1 pt-2 border-t border-gray-50">
+        <button onClick={toggleLike}
+          aria-label={`Like post by ${post.author.name} — currently ${likeCount} like${likeCount !== 1 ? 's' : ''}`}
+          aria-pressed={liked}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${liked ? 'text-rose-600 bg-rose-50 hover:bg-rose-100' : 'text-gray-500 hover:text-rose-600 hover:bg-rose-50'}`}>
+          <IconHeart filled={liked} />
+          <span aria-hidden="true">{likeCount}</span>
+        </button>
+        <button aria-label={`Comment on post by ${post.author.name} — ${post.comments} comment${post.comments !== 1 ? 's' : ''}`}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+          <IconChatBubble />
+          <span aria-hidden="true">{post.comments}</span>
+        </button>
+        <button aria-label={`Share post by ${post.author.name}`}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 hover:text-green-600 hover:bg-green-50 transition-colors">
+          <IconShare />
+          <span aria-hidden="true">{post.shares}</span>
+        </button>
+        <button onClick={() => setBookmarked(v => !v)}
+          aria-label={bookmarked ? `Remove bookmark from post by ${post.author.name}` : `Bookmark post by ${post.author.name}`}
+          aria-pressed={bookmarked}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ml-auto ${bookmarked ? 'text-indigo-600 bg-indigo-50' : 'text-gray-500 hover:text-indigo-600 hover:bg-indigo-50'}`}>
+          <IconBookmark filled={bookmarked} />
+        </button>
+      </footer>
+
+      {showDeleteModal && <DeleteModal postId={post.id} onConfirm={() => { setShowDeleteModal(false); onDelete(post.id); }} onCancel={() => setShowDeleteModal(false)} />}
+    </article>
+  );
+}
+
+/* ── Trending Sidebar ── */
+function TrendingSidebar() {
+  const trends = [
+    { tag: 'ClimateWeek', posts: '84K', emoji: '🔥', hot: true },
+    { tag: 'TechLayoffs', posts: '52K', emoji: '💼', hot: false },
+    { tag: 'WorldCup2026', posts: '210K', emoji: '⚽', hot: true },
+    { tag: 'AIArt', posts: '31K', emoji: '🎨', hot: false },
+    { tag: 'MarsUpdate', posts: '18K', emoji: '🚀', hot: false },
+  ];
+  const suggested = [
+    { name: 'Priya Sharma', handle: '@priyash', avatar: 'https://i.pravatar.cc/40?img=5' },
+    { name: 'Marcus Webb', handle: '@marcwebb', avatar: 'https://i.pravatar.cc/40?img=8' },
+    { name: 'Chloe Kim', handle: '@chloekim', avatar: 'https://i.pravatar.cc/40?img=16' },
+  ];
+  return (
+    <aside aria-label="Trending topics and suggestions" className="w-80 flex-shrink-0 hidden xl:block space-y-4 sticky top-4">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <h2 className="text-base font-bold text-gray-900 px-4 pt-4 pb-3 border-b border-gray-50">Trending Now</h2>
+        <ul role="list">
+          {trends.map(t => (
+            <li key={t.tag}>
+              <a href="explore.html" className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors group">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span aria-hidden="true">{t.emoji}</span>
+                    <span className="font-semibold text-sm text-gray-900 group-hover:text-indigo-600">#{t.tag}</span>
+                    {t.hot && <span className="text-xs bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-full font-medium">Hot</span>}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">{t.posts} posts</p>
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <h2 className="text-base font-bold text-gray-900 px-4 pt-4 pb-3 border-b border-gray-50">Who to Follow</h2>
+        <ul role="list">
+          {suggested.map(u => (
+            <li key={u.handle} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+              <img src={u.avatar} alt={`${u.name}'s avatar`} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">{u.name}</p>
+                <p className="text-xs text-gray-500 truncate">{u.handle}</p>
+              </div>
+              <button aria-label={`Follow ${u.name}`} aria-pressed="false"
+                className="text-xs font-semibold text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors flex-shrink-0">
+                Follow
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </aside>
+  );
+}
+
+/* ── Sample Posts Data ── */
+const INITIAL_POSTS = [
+  { id: 1, author: { name: 'Maya Chen', handle: '@mayachen', avatar: 'https://i.pravatar.cc/44?img=5' }, time: '2h', isoTime: '2026-03-17T10:00', text: 'Just wrapped up my talk at #ClimateWeek and the energy in that room was incredible. We\'re seeing real momentum in renewable energy adoption — 2026 is shaping up to be a pivotal year. 🌱', tags: ['ClimateWeek', 'Sustainability'], likes: 234, comments: 41, shares: 88, liked: false },
+  { id: 2, author: { name: 'Jordan Rivera', handle: '@jordanr', avatar: 'https://i.pravatar.cc/44?img=7' }, time: '4h', isoTime: '2026-03-17T08:00', text: 'Hot take: the current wave of #TechLayoffs is actually accelerating the indie dev movement. More talented engineers going solo = more innovative products for everyone. Thoughts?', tags: ['TechLayoffs', 'IndieHacking'], likes: 891, comments: 203, shares: 145, liked: true, image: 'https://picsum.photos/seed/techpost/600/300', imageAlt: 'Abstract tech graphic with code snippets and developer workspace' },
+  { id: 3, author: { name: 'Sam Park', handle: '@sampark', avatar: 'https://i.pravatar.cc/44?img=12' }, time: '5h', isoTime: '2026-03-17T07:00', text: '⚽ #WorldCup2026 tickets just landed in my inbox. MEXICO CITY HERE WE COME!! Who else is making the trip?', tags: ['WorldCup2026'], likes: 1204, comments: 87, shares: 312, liked: false, image: 'https://picsum.photos/seed/stadium/600/280', imageAlt: 'Packed football stadium with colorful fan sections' },
+  { id: 4, author: { name: 'Riley Torres', handle: '@rileyt', avatar: 'https://i.pravatar.cc/44?img=9' }, time: '7h', isoTime: '2026-03-17T05:00', text: 'The new coffee shop on Meridian opened today and wow — the architecture alone is worth the trip. Found my new remote work spot. ☕', likes: 156, comments: 22, shares: 14, liked: false, image: 'https://picsum.photos/seed/coffee/600/320', imageAlt: 'Bright, modern coffee shop interior with large windows and hanging plants' },
+  { id: 5, author: { name: 'Chris Lee', handle: '@chrislee', avatar: 'https://i.pravatar.cc/44?img=3' }, time: '9h', isoTime: '2026-03-17T03:00', text: 'Reminder that accessibility isn\'t a feature — it\'s the baseline. If your app doesn\'t work with a screen reader or keyboard, it\'s not done. Full stop. #a11y #WebDev', tags: ['a11y', 'WebDev'], likes: 2341, comments: 178, shares: 654, liked: false },
+];
+
+/* ── Feed Page ── */
+function FeedPage() {
+  const [posts, setPosts] = useState(INITIAL_POSTS);
+
+  const handlePost = (text) => {
+    const newPost = {
+      id: Date.now(), author: { name: 'Alex Johnson', handle: '@alexj', avatar: 'https://i.pravatar.cc/44?img=11' },
+      time: 'just now', isoTime: new Date().toISOString(), text, likes: 0, comments: 0, shares: 0, liked: false,
+    };
+    setPosts(prev => [newPost, ...prev]);
+  };
+
+  const handleDelete = (id) => {
+    setPosts(prev => prev.filter(p => p.id !== id));
+    document.getElementById('live-region').textContent = 'Post deleted.';
+  };
+
+  return (
+    <div className="flex gap-6 max-w-6xl mx-auto px-4 py-6">
+      <main id="main-content" className="flex-1 min-w-0" aria-label="Main feed">
+        <h1 className="text-xl font-bold text-gray-900 mb-4">Home Feed</h1>
+        <Composer onPost={handlePost} />
+        <section aria-label="Posts from people you follow">
+          {posts.map(post => <PostCard key={post.id} post={post} onDelete={handleDelete} />)}
+        </section>
+      </main>
+      <TrendingSidebar />
+    </div>
+  );
+}
+
+/* ── App ── */
+function App() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar activePage="feed" />
+      <div className="lg:ml-64 pb-20 lg:pb-0">
+        <FeedPage />
+      </div>
+      <MobileNav activePage="feed" />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

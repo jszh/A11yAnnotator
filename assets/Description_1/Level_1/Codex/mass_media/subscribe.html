@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Meridian | Subscribe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Inter"', "sans-serif"],
+              serif: ['"Source Serif 4"', "serif"]
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="news-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { useState } = React;
+      const { Header, Footer, faq } = window.MeridianShared;
+
+      function App() {
+        const [openFaq, setOpenFaq] = useState(faq[0].q);
+        const tiers = [
+          { name: "Free", price: "$0", text: "Limited monthly stories, select newsletters, article sharing." },
+          { name: "Digital", price: "$9.99/mo", text: "Unlimited articles, app access, newsletters, saved stories." },
+          { name: "All-Access", price: "$19.99/mo", text: "Everything in Digital plus audio, events, and member essays." }
+        ];
+
+        return (
+          <>
+            <a href="#main-content" className="absolute left-4 top-4 z-50 -translate-y-20 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg focus:translate-y-0 focus-visible:translate-y-0">
+              Skip to main content
+            </a>
+            <Header activePath="subscribe.html" />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+              <section className="page-surface rounded-[2rem] p-8">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-red-800">Subscriptions</p>
+                <h1 className="mt-3 text-5xl font-bold text-slate-950">Support independent journalism</h1>
+                <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-700">
+                  Choose a plan that matches how you read. Subscriber revenue supports deep reporting, original analysis, and long-form essays.
+                </p>
+              </section>
+
+              <section className="mt-8 grid gap-5 md:grid-cols-3">
+                {tiers.map((tier, index) => (
+                  <article key={tier.name} className={`tier-card page-surface rounded-[1.75rem] p-6 transition ${index === 1 ? "border-red-200" : ""}`}>
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">{tier.name}</p>
+                    <h2 className="mt-3 text-4xl font-bold text-slate-950">{tier.price}</h2>
+                    <p className="mt-4 text-sm leading-7 text-slate-700">{tier.text}</p>
+                    <button type="button" className="mt-6 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+                      Choose {tier.name}
+                    </button>
+                  </article>
+                ))}
+              </section>
+
+              <section className="mt-8 page-surface rounded-[1.75rem] p-6 overflow-x-auto">
+                <h2 className="text-3xl font-bold text-slate-950">Feature comparison</h2>
+                <table className="mt-5 min-w-full border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="px-4 py-3 font-semibold text-slate-950">Feature</th>
+                      <th className="px-4 py-3 font-semibold text-slate-950">Free</th>
+                      <th className="px-4 py-3 font-semibold text-slate-950">Digital</th>
+                      <th className="px-4 py-3 font-semibold text-slate-950">All-Access</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["Monthly stories", "5", "Unlimited", "Unlimited"],
+                      ["Newsletters", "Selected", "All", "All"],
+                      ["Audio articles", "No", "No", "Yes"],
+                      ["Live events", "No", "No", "Priority access"]
+                    ].map((row) => (
+                      <tr key={row[0]} className="border-b border-slate-200">
+                        {row.map((cell) => (
+                          <td key={cell} className="px-4 py-3 text-slate-700">{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+
+              <section className="mt-8 grid gap-8 xl:grid-cols-[1fr_380px]">
+                <div className="space-y-8">
+                  <div className="page-surface rounded-[1.75rem] p-6">
+                    <h2 className="text-3xl font-bold text-slate-950">Reader testimonials</h2>
+                    <div className="mt-5 grid gap-4 md:grid-cols-2">
+                      {[
+                        "The Meridian is one of the few outlets I trust to explain the stakes before the spin begins.",
+                        "The long-form reporting is worth the subscription on its own."
+                      ].map((quote) => (
+                        <blockquote key={quote} className="rounded-2xl bg-slate-50 p-5 text-sm leading-7 text-slate-700">
+                          “{quote}”
+                        </blockquote>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="page-surface rounded-[1.75rem] p-6">
+                    <h2 className="text-3xl font-bold text-slate-950">FAQ</h2>
+                    <div className="mt-5 space-y-3">
+                      {faq.map((item) => (
+                        <div key={item.q} className="rounded-2xl border border-slate-200 bg-white">
+                          <button
+                            type="button"
+                            onClick={() => setOpenFaq(openFaq === item.q ? "" : item.q)}
+                            className="w-full px-4 py-4 text-left text-sm font-semibold text-slate-950"
+                            aria-expanded={openFaq === item.q}
+                          >
+                            {item.q}
+                          </button>
+                          {openFaq === item.q ? <p className="px-4 pb-4 text-sm leading-7 text-slate-600">{item.a}</p> : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <aside className="page-surface rounded-[1.75rem] p-6">
+                  <h2 className="text-3xl font-bold text-slate-950">Create your account</h2>
+                  <form className="mt-5 space-y-4">
+                    <div>
+                      <label htmlFor="subscriber-name" className="mb-2 block text-sm font-semibold text-slate-700">Full name</label>
+                      <input id="subscriber-name" type="text" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900" />
+                    </div>
+                    <div>
+                      <label htmlFor="subscriber-email" className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+                      <input id="subscriber-email" type="email" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900" />
+                    </div>
+                    <div>
+                      <label htmlFor="subscriber-plan" className="mb-2 block text-sm font-semibold text-slate-700">Plan</label>
+                      <select id="subscriber-plan" className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-900">
+                        <option>Digital</option>
+                        <option>All-Access</option>
+                        <option>Free</option>
+                      </select>
+                    </div>
+                    <button type="submit" className="rounded-full bg-red-700 px-5 py-3 text-sm font-semibold text-white hover:bg-red-800">
+                      Start subscription
+                    </button>
+                  </form>
+                </aside>
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

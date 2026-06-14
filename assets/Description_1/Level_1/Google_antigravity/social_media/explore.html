@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse - Explore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        darkBg: '#0f172a',
+                        darkCard: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="bg-white text-gray-900 dark:bg-darkBg dark:text-gray-100 antialiased transition-colors duration-200">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+        const currentPath = 'explore.html';
+
+        const Sidebar = () => {
+            const navItems = [
+                { name: 'Home', path: 'index.html', icon: 'ph-house' },
+                { name: 'Explore', path: 'explore.html', icon: 'ph-compass' },
+                { name: 'Notifications', path: 'notifications.html', icon: 'ph-bell' },
+                { name: 'Messages', path: 'messages.html', icon: 'ph-envelope-simple' },
+                { name: 'Profile', path: 'profile.html', icon: 'ph-user' },
+                { name: 'Settings', path: 'settings.html', icon: 'ph-gear' },
+            ];
+
+            return (
+                <nav className="fixed bottom-0 w-full bg-white dark:bg-darkBg border-t border-gray-200 dark:border-gray-800 md:relative md:w-20 lg:w-64 md:h-screen md:border-t-0 md:border-r z-50 flex md:flex-col justify-around md:justify-start px-2 lg:px-6 py-2 md:py-6">
+                    <div className="hidden md:flex items-center gap-3 mb-8 lg:px-2 justify-center lg:justify-start cursor-pointer hover:opacity-80 transition-opacity">
+                        <i className="ph-fill ph-pulse text-primary text-4xl"></i>
+                        <span className="hidden lg:block text-2xl font-bold tracking-tight">Pulse</span>
+                    </div>
+                    {navItems.map(item => {
+                        const isActive = currentPath.includes(item.path);
+                        return (
+                            <a
+                                key={item.name}
+                                href={item.path}
+                                className={`flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-4 lg:py-3 rounded-full md:mb-2 transition-colors duration-200 w-fit lg:w-full mx-auto lg:mx-0 group
+                                    ${isActive
+                                        ? 'text-gray-900 dark:text-white font-bold'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'}`}
+                                aria-label={item.name}
+                            >
+                                <div className="relative">
+                                    <i className={`${item.icon} ${isActive ? 'ph-fill' : ''} text-2xl lg:text-3xl transition-transform group-hover:scale-105`}></i>
+                                </div>
+                                <span className="hidden lg:block text-xl">{item.name}</span>
+                            </a>
+                        );
+                    })}
+                    <button className="hidden md:block w-12 h-12 lg:w-full lg:h-auto mt-4 mx-auto lg:mx-0 bg-primary hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-full transition-colors focus:ring-4 focus:ring-blue-300 shadow-md shadow-blue-500/30">
+                        <i className="ph ph-plus text-2xl lg:hidden"></i>
+                        <span className="hidden lg:block">Post</span>
+                    </button>
+
+                    <a href="profile.html" className="hidden md:flex items-center justify-center lg:justify-start gap-3 mt-auto p-3 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-full cursor-pointer transition-colors group mx-auto lg:w-full w-fit">
+                        <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Alex Profile" className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 group-hover:opacity-90 transition-opacity" />
+                        <div className="hidden lg:block flex-1 min-w-0">
+                            <p className="font-bold text-sm truncate">Alex Chen</p>
+                            <p className="text-gray-500 text-sm truncate">@alexc</p>
+                        </div>
+                        <i className="ph ph-dots-three text-xl hidden lg:block ml-auto text-gray-500"></i>
+                    </a>
+                </nav>
+            );
+        };
+
+        const RightPanel = () => {
+            const suggestions = [
+                { name: 'Sarah Drasner', handle: '@sarah_edo', avatar: 'https://i.pravatar.cc/150?u=1' },
+                { name: 'Design Co.', handle: '@DesignCo', avatar: 'https://i.pravatar.cc/150?u=2' },
+                { name: 'TechCrunch', handle: '@TechCrunch', avatar: 'https://i.pravatar.cc/150?u=3' },
+            ];
+
+            return (
+                <aside className="hidden lg:block w-80 xl:w-96 p-4 h-screen sticky top-0 overflow-y-auto hide-scroll px-6 mt-16">
+                    <div className="bg-gray-50 dark:bg-darkCard rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+                        <h2 className="font-extrabold text-xl p-4 pb-2">Suggested for You</h2>
+                        {suggestions.map((user, i) => (
+                            <div key={i} className="flex items-center justify-between px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                <a href="profile.html" className="flex items-center gap-3 group min-w-0">
+                                    <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full group-hover:opacity-90 transition-opacity" />
+                                    <div className="truncate pr-2">
+                                        <p className="font-bold text-[15px] hover:underline cursor-pointer truncate">{user.name}</p>
+                                        <p className="text-gray-500 text-sm truncate">{user.handle}</p>
+                                    </div>
+                                </a>
+                                <button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-bold py-1.5 px-4 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors">
+                                    Follow
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </aside>
+            );
+        };
+
+        const Layout = ({ children }) => {
+            return (
+                <div className="max-w-[1280px] mx-auto flex min-h-screen">
+                    <Sidebar />
+                    <main className="flex-1 w-full md:w-[600px] md:max-w-[600px] border-x-0 md:border-r border-gray-100 dark:border-gray-800 pb-20 md:pb-0 shrink-0">
+                        {children}
+                    </main>
+                    <RightPanel />
+                </div>
+            );
+        };
+
+        const App = () => {
+            const categories = ["For You", "Trending", "News", "Sports", "Entertainment"];
+            const [activeTab, setActiveTab] = useState("For You");
+
+            const trendingTags = [
+                { tag: "#React19", posts: "12K posts" },
+                { tag: "#ClimateWeek", posts: "84K posts" },
+                { tag: "#DesignSystems", posts: "5K posts" },
+                { tag: "#WorldCup2026", posts: "1.2M posts" },
+                { tag: "#TechLayoffs", posts: "45K posts" },
+            ];
+
+            const gridPosts = [
+                { id: 1, image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400", user: "TechInsider" },
+                { id: 2, image: "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=400", user: "DesignDaily" },
+                { id: 3, image: "https://images.unsplash.com/photo-1498804103079-a6351b050096?auto=format&fit=crop&q=80&w=400", user: "CodeLife" },
+                { id: 4, image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=400", user: "StartUp" },
+                { id: 5, image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=400", user: "DevSetups" },
+                { id: 6, image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=400", user: "ProgrammerHumor" },
+            ];
+
+            return (
+                <Layout>
+                    <div className="sticky top-0 z-20 bg-white/80 dark:bg-darkBg/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+                        {/* Search Bar container - specific to explore */}
+                        <div className="px-4 py-3 flex gap-2 items-center">
+                            <div className="relative flex-1 group">
+                                <i className="ph ph-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors"></i>
+                                <input
+                                    type="text"
+                                    placeholder="Search Pulse"
+                                    className="w-full bg-gray-100 dark:bg-gray-800 rounded-full py-2 pl-12 pr-4 focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white dark:focus:bg-darkBg border border-transparent focus:border-primary transition-all text-gray-900 dark:text-gray-100 placeholder-gray-500"
+                                />
+                            </div>
+                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors" aria-label="Settings">
+                                <i className="ph ph-gear text-xl"></i>
+                            </button>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex overflow-x-auto hide-scroll px-4 gap-6 font-medium text-[15px]">
+                            {categories.map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`relative py-3 px-1 whitespace-nowrap transition-colors ${activeTab === tab ? 'text-gray-900 dark:text-white font-bold' : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'}`}
+                                >
+                                    {tab}
+                                    {activeTab === tab && (
+                                        <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-t-full"></div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Trending Section */}
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                        <h2 className="font-extrabold text-xl mb-4">Trending</h2>
+                        <div className="flex flex-wrap gap-2">
+                            {trendingTags.map((tag, i) => (
+                                <div key={i} className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full px-4 py-2 cursor-pointer transition-colors border border-gray-200 dark:border-gray-700">
+                                    <p className="font-bold text-[15px]">{tag.tag}</p>
+                                    <p className="text-xs text-gray-500">{tag.posts}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Explore Grid */}
+                    <div className="p-1 border-b border-gray-100 dark:border-gray-800">
+                        <div className="grid grid-cols-3 gap-1">
+                            {gridPosts.map(post => (
+                                <div key={post.id} className="relative aspect-square cursor-pointer group bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
+                                    <img src={post.image} alt="Explore content" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                                        <span className="text-white text-xs font-bold truncate">@{post.user}</span>
+                                    </div>
+                                    {post.id % 2 === 0 && <i className="ph-fill ph-video-camera absolute top-2 right-2 text-white/80 drop-shadow-md"></i>}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="p-4 text-center mt-4">
+                            <button className="text-primary hover:text-blue-600 font-medium transition-colors">Show more</button>
+                        </div>
+                    </div>
+
+                </Layout>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

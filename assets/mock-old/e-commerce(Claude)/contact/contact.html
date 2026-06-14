@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us – ShopVerse</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    /* ── Contact-page specific ──────────────────────────── */
+    .contact-layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 32px;
+      padding: 40px 0 56px;
+    }
+
+    /* ── Support Options ────────────────────────────────── */
+    .support-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .support-card {
+      background: #fff;
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-card);
+      padding: 24px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+      border: 2px solid transparent;
+    }
+    .support-card:hover { box-shadow: var(--shadow-lg); border-color: var(--prime); }
+    .support-icon { font-size: 36px; margin-bottom: 12px; }
+    .support-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .support-desc  { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+    .support-avail { font-size: 12px; color: var(--green); font-weight: 600; margin-top: 8px; }
+
+    /* ── Contact Form ───────────────────────────────────── */
+    .form-card {
+      background: #fff;
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-card);
+      padding: 32px;
+    }
+    .form-card h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .form-card .form-intro { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-success {
+      display: none;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: var(--r-md);
+      padding: 16px;
+      text-align: center;
+      color: var(--green);
+      font-weight: 600;
+      margin-top: 16px;
+    }
+
+    /* ── Sidebar ────────────────────────────────────────── */
+    .contact-sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+    .info-card {
+      background: #fff;
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-card);
+      padding: 20px;
+    }
+    .info-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+    .info-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .info-row-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .info-row-text { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+    .info-row-text strong { display: block; color: var(--text-main); font-weight: 700; }
+
+    /* Status indicator */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* ── FAQ Accordion ──────────────────────────────────── */
+    .faq-section { margin-top: 40px; }
+    .faq-section h2 { font-size: 22px; font-weight: 800; margin-bottom: 20px; }
+    .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .faq-item {
+      background: #fff;
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+    .faq-q {
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    .faq-q:hover { background: #f9fafb; }
+    .faq-arrow { font-size: 12px; transition: transform 0.25s; flex-shrink: 0; }
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s;
+    }
+    .faq-a.open { max-height: 300px; }
+    .faq-a-inner { padding: 0 16px 14px; font-size: 13px; color: var(--text-muted); line-height: 1.7; border-top: 1px solid var(--border); padding-top: 12px; }
+
+    @media (max-width: 960px) {
+      .contact-layout { grid-template-columns: 1fr; }
+      .contact-sidebar { order: -1; }
+      .support-options { grid-template-columns: 1fr 1fr; }
+      .faq-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .support-options { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ──────────────────────────────────────────────── -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="hdr-logo hdr-region">
+      <div class="logo-brand">Shop<span>Verse</span></div>
+      <div class="logo-sub">.com</div>
+    </a>
+    <div class="hdr-deliver hdr-region">
+      <div class="deliver-top">📍 Deliver to</div>
+      <div class="deliver-loc">New York 10001</div>
+    </div>
+    <div class="hdr-search">
+      <select class="search-cat" aria-label="Search category">
+        <option>All</option><option>Electronics</option><option>Fashion</option>
+        <option>Home &amp; Garden</option>
+      </select>
+      <input class="search-input" type="search" placeholder="Search ShopVerse..." aria-label="Search products">
+      <button class="search-btn" aria-label="Search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+      </button>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-region" style="display:flex;align-items:center;gap:4px;">
+        <span style="font-size:16px;">🇺🇸</span>
+        <select class="lang-select" aria-label="Language"><option>EN</option><option>ES</option><option>FR</option></select>
+      </div>
+      <a href="#" class="hdr-link hdr-region"><span class="hl-top">Hello, Sign in</span><span class="hl-bottom">Account ▾</span></a>
+      <a href="../products/products.html" class="hdr-link hdr-region"><span class="hl-top">Returns</span><span class="hl-bottom">&amp; Orders</span></a>
+      <a href="#" class="hdr-cart hdr-region"><span style="font-size:26px;">🛒</span><span class="cart-count">3</span><span class="cart-label">Cart</span></a>
+    </div>
+  </div>
+</header>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav class="site-nav" aria-label="Category navigation">
+  <div class="nav-inner">
+    <a class="nav-item bold" href="../index.html">☰ All</a>
+    <a class="nav-item" href="../index.html">Today's Deals</a>
+    <a class="nav-item" href="../products/products.html">Electronics</a>
+    <a class="nav-item" href="../products/products.html">Fashion</a>
+    <a class="nav-item" href="../about/about.html">About</a>
+    <a class="nav-item" href="contact.html" style="border-color:#fff;">Contact</a>
+    <span style="flex:1;"></span>
+    <button class="nav-prime">⚡ Try Prime</button>
+  </div>
+</nav>
+
+<!-- ── PAGE HERO ───────────────────────────────────────────── -->
+<div class="page-hero">
+  <div class="container">
+    <h1>How Can We Help You?</h1>
+    <p>Our customer support team is here 24/7. Choose how you'd like to get in touch.</p>
+  </div>
+</div>
+
+<!-- ── MAIN ────────────────────────────────────────────────── -->
+<main class="container">
+
+  <!-- Support Options -->
+  <div class="support-options" style="margin-top:32px;">
+    <div class="support-card" onclick="document.getElementById('chatBtn').click()">
+      <div class="support-icon">💬</div>
+      <div class="support-title">Live Chat</div>
+      <div class="support-desc">Chat instantly with a support agent. Average wait time under 2 minutes.</div>
+      <div class="support-avail">● Available now</div>
+    </div>
+    <div class="support-card" onclick="document.getElementById('phoneSection').scrollIntoView({behavior:'smooth'})">
+      <div class="support-icon">📞</div>
+      <div class="support-title">Call Us</div>
+      <div class="support-desc">Speak directly with our team. We'll call you back at a time that suits you.</div>
+      <div class="support-avail">Mon–Sun, 6am–10pm ET</div>
+    </div>
+    <div class="support-card" onclick="document.querySelector('#contactForm input[type=email]').focus()">
+      <div class="support-icon">✉️</div>
+      <div class="support-title">Email Support</div>
+      <div class="support-desc">Send us a message and we'll respond within 24 hours.</div>
+      <div class="support-avail">Response within 24 hours</div>
+    </div>
+  </div>
+
+  <div class="contact-layout">
+
+    <!-- ════ CONTACT FORM ════ -->
+    <div>
+      <div class="form-card">
+        <h2>Send Us a Message</h2>
+        <p class="form-intro">Fill out the form below and our team will get back to you within 24 hours. For urgent issues, please use Live Chat.</p>
+
+        <form id="contactForm" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="firstName">First Name *</label>
+              <input class="form-input" type="text" id="firstName" placeholder="Jane" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lastName">Last Name *</label>
+              <input class="form-input" type="text" id="lastName" placeholder="Smith" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="email">Email Address *</label>
+              <input class="form-input" type="email" id="email" placeholder="jane@email.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="orderNumber">Order Number (optional)</label>
+              <input class="form-input" type="text" id="orderNumber" placeholder="SVX-1234567890">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="topic">Topic *</label>
+            <select class="form-select" id="topic" required>
+              <option value="" disabled selected>Select a topic…</option>
+              <option>Order tracking / Delivery</option>
+              <option>Returns &amp; Refunds</option>
+              <option>Product question</option>
+              <option>Account &amp; Password</option>
+              <option>Payment &amp; Billing</option>
+              <option>Damaged or missing item</option>
+              <option>Prime membership</option>
+              <option>Seller complaint</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="subject">Subject *</label>
+            <input class="form-input" type="text" id="subject" placeholder="Brief description of your issue" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="message">Message *</label>
+            <textarea class="form-textarea" id="message" rows="5" placeholder="Please describe your issue in detail. Include any relevant order numbers, product names, or screenshots." required></textarea>
+          </div>
+
+          <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+            <input type="checkbox" id="copyMe" style="width:16px; height:16px; accent-color:var(--prime);">
+            <label for="copyMe" style="font-size:13px; cursor:pointer;">Send me a copy of this message</label>
+          </div>
+
+          <button type="submit" class="btn btn-accent btn-lg btn-block" id="submitBtn">Send Message</button>
+        </form>
+
+        <div class="form-success" id="formSuccess">
+          ✅ Message sent! We'll reply to your email within 24 hours. Your reference number is <strong>#SVX-789045</strong>.
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="faq-section">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-grid">
+
+          <div class="faq-item">
+            <div class="faq-q">
+              Where is my order?
+              <span class="faq-arrow">▸</span>
+            </div>
+            <div class="faq-a">
+              <div class="faq-a-inner">You can track your order in <a href="#" style="color:var(--prime);">Your Orders</a>. Once shipped, you'll receive a tracking email with a link to view real-time delivery status. Prime orders typically arrive in 1–2 business days.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">
+              How do I return an item?
+              <span class="faq-arrow">▸</span>
+            </div>
+            <div class="faq-a">
+              <div class="faq-a-inner">Visit <a href="#" style="color:var(--prime);">Your Orders</a>, find the item, and click "Return or Replace Items." Print a free prepaid label and drop off at any USPS, UPS, or ShopVerse Hub location. Refunds are processed within 3–5 business days.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">
+              How do I cancel an order?
+              <span class="faq-arrow">▸</span>
+            </div>
+            <div class="faq-a">
+              <div class="faq-a-inner">Go to <a href="#" style="color:var(--prime);">Your Orders</a> and click "Cancel Items." If the order has already shipped, you'll need to initiate a return once it arrives. Digital orders may not be cancellable.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">
+              I was charged but never received my item.
+              <span class="faq-arrow">▸</span>
+            </div>
+            <div class="faq-a">
+              <div class="faq-a-inner">First, check your tracking details in <a href="#" style="color:var(--prime);">Your Orders</a>. If the package shows delivered but you didn't receive it, contact us via Live Chat for the fastest resolution. We'll re-ship or refund within 24 hours.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">
+              How do I update my payment method?
+              <span class="faq-arrow">▸</span>
+            </div>
+            <div class="faq-a">
+              <div class="faq-a-inner">Go to <a href="#" style="color:var(--prime);">Your Account → Payment Methods</a>. You can add, edit, or remove credit cards, debit cards, and bank accounts. Changes apply to future orders only.</div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-q">
+              What is ShopVerse Prime?
+              <span class="faq-arrow">▸</span>
+            </div>
+            <div class="faq-a">
+              <div class="faq-a-inner">ShopVerse Prime is our membership program offering free fast delivery, exclusive deals, streaming benefits, and more. Starting at $14.99/month or $139/year. <a href="#" style="color:var(--prime);">Try Prime free for 30 days.</a></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ SIDEBAR ════ -->
+    <aside class="contact-sidebar" id="phoneSection">
+
+      <!-- Live Chat status -->
+      <div class="info-card" style="border: 2px solid var(--prime);">
+        <h3>💬 Live Chat</h3>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <span class="status-badge"><span class="status-dot"></span>Agents online</span>
+          <span style="font-size:12px; color:var(--text-muted);">~1 min wait</span>
+        </div>
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Get instant help from a real person, no phone call needed.</p>
+        <button class="btn btn-prime btn-block" id="chatBtn" onclick="alert('Live chat would open here!')">Start Chat Now</button>
+      </div>
+
+      <!-- Phone -->
+      <div class="info-card">
+        <h3>📞 Phone Support</h3>
+        <div class="info-row">
+          <div class="info-row-icon">🇺🇸</div>
+          <div class="info-row-text">
+            <strong>United States (toll-free)</strong>
+            1-800-SHOPVERSE<br>
+            <span style="font-size:12px;">Mon–Sun, 6am – 10pm ET</span>
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-row-icon">🌍</div>
+          <div class="info-row-text">
+            <strong>International</strong>
+            +1 (206) 555-0100<br>
+            <span style="font-size:12px;">24/7 for Prime members</span>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-block" onclick="alert('We\'ll call you back!')">Request a Callback</button>
+      </div>
+
+      <!-- Contact Info -->
+      <div class="info-card">
+        <h3>📍 Find Us</h3>
+        <div class="info-row">
+          <div class="info-row-icon">🏢</div>
+          <div class="info-row-text">
+            <strong>Headquarters</strong>
+            410 Terry Ave North<br>Seattle, WA 98109, USA
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-row-icon">✉️</div>
+          <div class="info-row-text">
+            <strong>General Inquiries</strong>
+            support@shopverse.com
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-row-icon">📰</div>
+          <div class="info-row-text">
+            <strong>Press &amp; Media</strong>
+            press@shopverse.com
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="info-card">
+        <h3>🔗 Quick Help Links</h3>
+        <ul style="display:flex; flex-direction:column; gap:10px;">
+          <li><a href="#" style="font-size:13px; color:var(--prime); display:flex; align-items:center; gap:6px;">📦 Track Your Order</a></li>
+          <li><a href="#" style="font-size:13px; color:var(--prime); display:flex; align-items:center; gap:6px;">↩️ Start a Return</a></li>
+          <li><a href="#" style="font-size:13px; color:var(--prime); display:flex; align-items:center; gap:6px;">💳 Manage Payment Methods</a></li>
+          <li><a href="#" style="font-size:13px; color:var(--prime); display:flex; align-items:center; gap:6px;">🔑 Reset Password</a></li>
+          <li><a href="#" style="font-size:13px; color:var(--prime); display:flex; align-items:center; gap:6px;">⚡ Manage Prime Membership</a></li>
+          <li><a href="#" style="font-size:13px; color:var(--prime); display:flex; align-items:center; gap:6px;">📋 View Order History</a></li>
+        </ul>
+      </div>
+
+    </aside>
+  </div>
+
+</main>
+
+<!-- ── FOOTER ───────────────────────────────────────────────── -->
+<footer class="site-footer">
+  <div class="footer-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Back to top</div>
+  <div class="footer-mid">
+    <div class="footer-grid">
+      <div class="footer-col"><h4>Get to Know Us</h4><ul>
+        <li><a href="../about/about.html">About ShopVerse</a></li>
+        <li><a href="#">Careers</a></li><li><a href="#">Press</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Make Money</h4><ul>
+        <li><a href="#">Sell on ShopVerse</a></li>
+        <li><a href="#">Advertise Products</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Shipping &amp; Returns</h4><ul>
+        <li><a href="#">Track Your Order</a></li>
+        <li><a href="#">Returns</a></li>
+        <li><a href="#">ShopVerse Prime</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Help</h4><ul>
+        <li><a href="contact.html">Contact Us</a></li>
+        <li><a href="#">Help Center</a></li>
+        <li><a href="#">Your Account</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="footer-bot">
+    <div class="footer-bot-inner">
+      <div class="footer-brand-name">Shop<span>Verse</span></div>
+      <div class="footer-legal">
+        <a href="#">Privacy Notice</a><a href="#">Conditions of Use</a>
+        <a href="#">Cookie Policy</a><a href="#">Accessibility</a>
+      </div>
+      <div class="footer-copy">© 1996–2026, ShopVerse.com, Inc. or its affiliates</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* FAQ Accordion */
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', function () {
+      const item   = this.closest('.faq-item');
+      const answer = item.querySelector('.faq-a');
+      const arrow  = this.querySelector('.faq-arrow');
+      const isOpen = answer.classList.contains('open');
+
+      /* Close all */
+      document.querySelectorAll('.faq-a').forEach(a => a.classList.remove('open'));
+      document.querySelectorAll('.faq-arrow').forEach(a => a.style.transform = '');
+
+      if (!isOpen) {
+        answer.classList.add('open');
+        arrow.style.transform = 'rotate(90deg)';
+      }
+    });
+  });
+
+  /* Contact form submission */
+  document.getElementById('contactForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = 'Sending…';
+    btn.disabled = true;
+    setTimeout(() => {
+      document.getElementById('formSuccess').style.display = 'block';
+      this.reset();
+      btn.textContent = 'Send Message';
+      btn.disabled = false;
+      document.getElementById('formSuccess').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 1200);
+  });
+</script>
+
+</body>
+</html>

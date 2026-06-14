@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subscribe — The Meridian</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['Playfair Display', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .font-serif { font-family: 'Playfair Display', Georgia, serif; }
+    .check::before { content: '✓'; color: #16a34a; margin-right: 8px; font-weight: 700; }
+    .cross::before { content: '–'; color: #d1d5db; margin-right: 8px; }
+  </style>
+</head>
+<body class="bg-white text-gray-900">
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+function Header() {
+  return (
+    <header className="bg-slate-900 text-white">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <a href="index.html" className="font-serif text-3xl font-black tracking-tight text-white hover:text-slate-200">The Meridian</a>
+        <div className="flex items-center gap-6">
+          <a href="index.html" className="text-slate-300 hover:text-white text-sm transition-colors">← Back to Homepage</a>
+          <a href="#" className="text-slate-400 hover:text-white text-sm transition-colors">Sign In</a>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+const PLANS = [
+  {
+    name: 'Free',
+    price: '$0',
+    period: '',
+    desc: 'Start reading The Meridian with limited access.',
+    cta: 'Read Free',
+    ctaStyle: 'border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white',
+    highlight: false,
+    features: [
+      { label: '5 articles per month', included: true },
+      { label: 'Breaking news alerts', included: true },
+      { label: 'Weekly newsletter', included: true },
+      { label: 'Unlimited articles', included: false },
+      { label: 'Ad-free reading', included: false },
+      { label: 'Offline reading', included: false },
+      { label: 'Exclusive podcasts & events', included: false },
+      { label: 'Print edition PDF', included: false },
+    ],
+  },
+  {
+    name: 'Digital',
+    price: '$9.99',
+    period: '/month',
+    desc: 'Full digital access — read everything, ad-free.',
+    cta: 'Start Free Trial',
+    ctaStyle: 'bg-red-700 hover:bg-red-600 text-white',
+    highlight: true,
+    badge: 'Most Popular',
+    features: [
+      { label: '5 articles per month', included: true },
+      { label: 'Breaking news alerts', included: true },
+      { label: 'Weekly newsletter', included: true },
+      { label: 'Unlimited articles', included: true },
+      { label: 'Ad-free reading', included: true },
+      { label: 'Offline reading', included: true },
+      { label: 'Exclusive podcasts & events', included: false },
+      { label: 'Print edition PDF', included: false },
+    ],
+  },
+  {
+    name: 'All-Access',
+    price: '$19.99',
+    period: '/month',
+    desc: 'Everything in Digital, plus events, podcast, and print.',
+    cta: 'Start Free Trial',
+    ctaStyle: 'bg-slate-900 hover:bg-slate-700 text-white',
+    highlight: false,
+    features: [
+      { label: '5 articles per month', included: true },
+      { label: 'Breaking news alerts', included: true },
+      { label: 'Weekly newsletter', included: true },
+      { label: 'Unlimited articles', included: true },
+      { label: 'Ad-free reading', included: true },
+      { label: 'Offline reading', included: true },
+      { label: 'Exclusive podcasts & events', included: true },
+      { label: 'Print edition PDF', included: true },
+    ],
+  },
+];
+
+const FAQS = [
+  { q: 'Can I cancel at any time?', a: 'Yes. You can cancel your subscription at any time from your account settings. You\'ll retain access until the end of your billing period. No questions asked.' },
+  { q: 'What does the free trial include?', a: 'Your 30-day free trial gives you full Digital or All-Access benefits with no charge. We\'ll remind you 7 days before the trial ends, and you can cancel before then if you\'d like.' },
+  { q: 'Is there a student discount?', a: 'Yes. Students at accredited institutions can access The Meridian Digital for $3.99/month with a valid student email. Apply at our student portal.' },
+  { q: 'Can I share my subscription?', a: 'All-Access subscribers can add one additional household member at no extra cost. Digital subscriptions are for individual use.' },
+  { q: 'What payment methods do you accept?', a: 'We accept all major credit cards, PayPal, and Apple Pay. Annual billing is available at a 20% discount.' },
+  { q: 'Is my data secure?', a: 'We use industry-standard encryption for all payment data and never sell your personal information to third parties. Read our full Privacy Policy for details.' },
+];
+
+const TESTIMONIALS = [
+  { name: 'Emily R.', location: 'London', plan: 'All-Access', text: 'I\'ve subscribed to a lot of news outlets. The Meridian is the only one I actually read every day. The depth of reporting — especially on international affairs — is unmatched.', seed: 't1' },
+  { name: 'Carlos M.', location: 'Mexico City', plan: 'Digital', text: 'Finally, a publication that covers Latin America as more than an afterthought. The reporting here treats the region with the complexity it deserves.', seed: 't2' },
+  { name: 'Aiko T.', location: 'Tokyo', plan: 'Digital', text: 'I read The Meridian over breakfast. The writing is rigorous but never impenetrable — it\'s rare to find journalism this good that isn\'t also exhausting to consume.', seed: 't3' },
+];
+
+function PricingCards({ selected, setSelected }) {
+  return (
+    <section className="max-w-5xl mx-auto px-4 py-16">
+      <div className="text-center mb-12">
+        <h1 className="font-serif text-4xl md:text-5xl font-black text-slate-900 mb-4">Independent journalism.<br />Worth supporting.</h1>
+        <p className="text-gray-500 text-lg max-w-xl mx-auto">Choose a plan that works for you. Start free for 30 days — no credit card required.</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {PLANS.map(plan => (
+          <div
+            key={plan.name}
+            className={`relative border-2 p-8 cursor-pointer transition-all ${
+              selected === plan.name
+                ? 'border-red-700 shadow-lg'
+                : plan.highlight
+                ? 'border-slate-900 shadow-md'
+                : 'border-gray-200 hover:border-gray-400'
+            }`}
+            onClick={() => setSelected(plan.name)}
+          >
+            {plan.badge && (
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-700 text-white text-xs font-black px-4 py-1 tracking-widest uppercase">
+                {plan.badge}
+              </span>
+            )}
+            <div className="mb-6">
+              <h3 className="font-serif text-xl font-bold text-gray-900 mb-1">{plan.name}</h3>
+              <div className="flex items-baseline gap-1 mb-2">
+                <span className="font-serif text-4xl font-black text-gray-950">{plan.price}</span>
+                <span className="text-gray-500 text-sm">{plan.period}</span>
+              </div>
+              <p className="text-gray-500 text-sm">{plan.desc}</p>
+            </div>
+            <a href="#signup" className={`block text-center font-semibold py-3 text-sm transition-colors mb-6 ${plan.ctaStyle}`}>
+              {plan.cta}
+            </a>
+            <ul className="space-y-3">
+              {plan.features.map((f, i) => (
+                <li key={i} className={`text-sm flex items-start ${f.included ? 'text-gray-700' : 'text-gray-400'} ${f.included ? 'check' : 'cross'}`}>
+                  {f.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <p className="text-center text-xs text-gray-400 mt-6">All prices in USD. Annual plans available at 20% discount. Cancel anytime.</p>
+    </section>
+  );
+}
+
+const TABLE_FEATURES = [
+  ['Unlimited articles', false, true, true],
+  ['Ad-free reading', false, true, true],
+  ['Offline reading (app)', false, true, true],
+  ['Daily newsletter', true, true, true],
+  ['Breaking news alerts', true, true, true],
+  ['The Meridian Podcast (full archive)', false, false, true],
+  ['Live events & Q&As', false, false, true],
+  ['Print edition PDF (weekly)', false, false, true],
+  ['Household sharing (1 extra seat)', false, false, true],
+  ['Priority customer support', false, false, true],
+];
+
+function ComparisonTable() {
+  return (
+    <section className="bg-slate-50 py-16 border-t border-gray-200">
+      <div className="max-w-5xl mx-auto px-4">
+        <h2 className="font-serif text-3xl font-bold text-center mb-10">Compare Plans</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b-2 border-slate-900">
+                <th className="text-left py-3 pr-8 font-semibold text-sm text-gray-700 w-1/2">Feature</th>
+                {['Free', 'Digital', 'All-Access'].map(p => (
+                  <th key={p} className="text-center py-3 px-4 font-serif font-bold text-gray-900">{p}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {TABLE_FEATURES.map(([label, f, d, a], i) => (
+                <tr key={i} className={`border-b border-gray-200 ${i % 2 === 0 ? 'bg-white' : ''}`}>
+                  <td className="py-3 pr-8 text-sm text-gray-700">{label}</td>
+                  {[f, d, a].map((v, j) => (
+                    <td key={j} className="text-center py-3 px-4">
+                      {v
+                        ? <span className="text-green-600 font-bold text-base">✓</span>
+                        : <span className="text-gray-300 font-bold text-base">–</span>
+                      }
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              <tr className="border-t-2 border-slate-900">
+                <td className="py-4 font-bold text-sm text-gray-700">Price/month</td>
+                {['$0', '$9.99', '$19.99'].map(p => (
+                  <td key={p} className="text-center py-4 px-4 font-serif font-black text-gray-900">{p}</td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Testimonials() {
+  return (
+    <section className="py-16 max-w-5xl mx-auto px-4">
+      <h2 className="font-serif text-3xl font-bold text-center mb-10">What Readers Say</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {TESTIMONIALS.map((t, i) => (
+          <div key={i} className="border border-gray-200 p-6">
+            <div className="flex gap-1 mb-4">
+              {[...Array(5)].map((_, j) => <span key={j} className="text-amber-400 text-sm">★</span>)}
+            </div>
+            <p className="text-gray-700 text-sm leading-relaxed mb-5 italic">"{t.text}"</p>
+            <div className="flex items-center gap-3">
+              <img src={`https://picsum.photos/seed/${t.seed}-av/80/80`} alt="" className="w-10 h-10 rounded-full object-cover" />
+              <div>
+                <div className="font-semibold text-sm text-gray-900">{t.name}</div>
+                <div className="text-xs text-gray-500">{t.location} · {t.plan} subscriber</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FAQ() {
+  const [openIdx, setOpenIdx] = useState(null);
+  return (
+    <section className="bg-slate-50 border-t border-gray-200 py-16">
+      <div className="max-w-2xl mx-auto px-4">
+        <h2 className="font-serif text-3xl font-bold text-center mb-10">Frequently Asked Questions</h2>
+        <div className="space-y-2">
+          {FAQS.map((f, i) => (
+            <div key={i} className="border border-gray-200 bg-white">
+              <button
+                className="w-full text-left flex items-center justify-between px-6 py-4 font-semibold text-sm text-gray-900 hover:bg-gray-50 transition-colors"
+                onClick={() => setOpenIdx(openIdx === i ? null : i)}
+              >
+                <span>{f.q}</span>
+                <span className={`text-red-700 font-black transition-transform duration-200 ${openIdx === i ? 'rotate-180' : ''}`}>▾</span>
+              </button>
+              {openIdx === i && (
+                <div className="px-6 pb-5 text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-4">
+                  {f.a}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SignUpForm({ selected }) {
+  const [form, setForm] = useState({ name: '', email: '', password: '', plan: selected || 'Digital' });
+  const [done, setDone] = useState(false);
+  const update = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+  const submit = e => { e.preventDefault(); setDone(true); };
+  return (
+    <section id="signup" className="py-16 max-w-xl mx-auto px-4">
+      <div className="border-2 border-slate-900 p-10">
+        <h2 className="font-serif text-2xl font-bold text-center mb-2">Start Your Free Trial</h2>
+        <p className="text-gray-500 text-sm text-center mb-8">30 days free. No credit card required.</p>
+        {done ? (
+          <div className="text-center py-8">
+            <div className="text-green-600 text-4xl mb-3">✓</div>
+            <h3 className="font-serif text-xl font-bold mb-2">Welcome to The Meridian</h3>
+            <p className="text-gray-500 text-sm mb-6">Check your inbox for a confirmation email.</p>
+            <a href="index.html" className="inline-block bg-slate-900 text-white font-semibold px-8 py-3 text-sm hover:bg-slate-700 transition-colors">Start Reading</a>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Full Name</label>
+              <input type="text" required value={form.name} onChange={update('name')} className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-slate-600" placeholder="Jane Smith" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Email Address</label>
+              <input type="email" required value={form.email} onChange={update('email')} className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-slate-600" placeholder="jane@example.com" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Password</label>
+              <input type="password" required value={form.password} onChange={update('password')} className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-slate-600" placeholder="Min. 8 characters" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Plan</label>
+              <select value={form.plan} onChange={update('plan')} className="w-full border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:border-slate-600 bg-white">
+                <option>Free</option>
+                <option>Digital – $9.99/mo</option>
+                <option>All-Access – $19.99/mo</option>
+              </select>
+            </div>
+            <button type="submit" className="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-4 text-sm transition-colors mt-2">
+              Create Account & Start Free Trial
+            </button>
+            <p className="text-center text-xs text-gray-400">
+              By signing up you agree to our <a href="#" className="underline hover:text-gray-600">Terms of Service</a> and <a href="#" className="underline hover:text-gray-600">Privacy Policy</a>.
+            </p>
+          </form>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-slate-950 text-slate-400 py-8">
+      <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <a href="index.html" className="font-serif text-2xl font-black text-white">The Meridian</a>
+        <div className="flex gap-6 text-xs">
+          {['Home', 'World', 'Opinion', 'Contact'].map(l => (
+            <a key={l} href={l === 'Home' ? 'index.html' : l === 'World' ? 'world.html' : l === 'Opinion' ? 'opinion.html' : '#'} className="hover:text-white transition-colors">{l}</a>
+          ))}
+        </div>
+        <p className="text-xs text-slate-600">© 2026 The Meridian Media Group</p>
+      </div>
+    </footer>
+  );
+}
+
+function App() {
+  const [selected, setSelected] = useState('Digital');
+  return (
+    <>
+      <Header />
+      {/* Hero banner */}
+      <div className="bg-slate-900 text-white text-center py-12 px-4">
+        <div className="max-w-2xl mx-auto">
+          <p className="text-red-500 text-xs font-black tracking-widest uppercase mb-3">Limited Offer</p>
+          <h2 className="font-serif text-3xl font-bold mb-2">30 days free. No credit card.</h2>
+          <p className="text-slate-400 text-sm">Join 220,000+ readers who rely on The Meridian for trusted, independent reporting.</p>
+        </div>
+      </div>
+
+      <PricingCards selected={selected} setSelected={setSelected} />
+      <ComparisonTable />
+      <Testimonials />
+      <FAQ />
+      <SignUpForm selected={selected} />
+
+      {/* Trust bar */}
+      <div className="border-t border-gray-200 bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            {[
+              { num: '220K+', label: 'Subscribers' },
+              { num: '18', label: 'Countries covered daily' },
+              { num: '2018', label: 'Founded' },
+              { num: '100%', label: 'Reader-funded' },
+            ].map(({ num, label }) => (
+              <div key={label}>
+                <div className="font-serif text-3xl font-black text-slate-900">{num}</div>
+                <div className="text-xs text-gray-500 mt-1">{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

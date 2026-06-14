@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnPath — Unlock Your Potential</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eef2ff', 100:'#e0e7ff', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca', 900:'#312e81' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-white font-sans antialiased">
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/* ── Shared Header ── */
+const Header = ({ active = '' }) => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const nav = [
+    { label: 'Courses', href: 'courses.html' },
+    { label: 'Pricing', href: 'pricing.html' },
+    { label: 'Dashboard', href: 'dashboard.html' },
+  ];
+  return (
+    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <a href="index.html" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <span className="text-xl font-bold text-slate-900">LearnPath</span>
+          </a>
+          <nav className="hidden md:flex items-center gap-8">
+            {nav.map(n => (
+              <a key={n.label} href={n.href}
+                className={`text-sm font-medium transition-colors ${active === n.label ? 'text-indigo-600' : 'text-slate-600 hover:text-slate-900'}`}>
+                {n.label}
+              </a>
+            ))}
+          </nav>
+          <div className="hidden md:flex items-center gap-3">
+            <a href="dashboard.html" className="text-sm font-medium text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors">Sign In</a>
+            <a href="pricing.html" className="text-sm font-semibold bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Start Free Trial</a>
+          </div>
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
+            </svg>
+          </button>
+        </div>
+        {mobileOpen && (
+          <div className="md:hidden border-t border-slate-100 py-3 space-y-1">
+            {nav.map(n => (
+              <a key={n.label} href={n.href} className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg">{n.label}</a>
+            ))}
+            <div className="flex gap-2 px-4 pt-3">
+              <a href="dashboard.html" className="flex-1 text-center text-sm font-medium border border-slate-300 text-slate-700 py-2 rounded-lg">Sign In</a>
+              <a href="pricing.html" className="flex-1 text-center text-sm font-semibold bg-indigo-600 text-white py-2 rounded-lg">Start Free Trial</a>
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};
+
+/* ── Shared Footer ── */
+const Footer = () => (
+  <footer className="bg-slate-900 text-slate-300">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <span className="text-white font-bold text-lg">LearnPath</span>
+          </div>
+          <p className="text-sm text-slate-400 leading-relaxed">Empowering learners worldwide with expert-led courses and structured learning pathways.</p>
+          <div className="flex gap-3 mt-5">
+            {['Twitter','LinkedIn','YouTube','Instagram'].map(s => (
+              <button key={s} className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors" title={s}>
+                <span className="text-xs text-slate-400">{s[0]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        {[
+          { title: 'Platform', links: [['Courses','courses.html'],['Pricing','pricing.html'],['Dashboard','dashboard.html'],['Study Tools','study.html']] },
+          { title: 'Company', links: [['About Us','#'],['Careers','#'],['Press','#'],['Partners','#']] },
+          { title: 'Support', links: [['Help Center','#'],['Contact Us','#'],['Privacy Policy','#'],['Terms of Service','#']] },
+        ].map(col => (
+          <div key={col.title}>
+            <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">{col.title}</h4>
+            <ul className="space-y-2">
+              {col.links.map(([label, href]) => (
+                <li key={label}><a href={href} className="text-sm text-slate-400 hover:text-white transition-colors">{label}</a></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-slate-800 mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <p className="text-sm text-slate-500">© 2026 LearnPath, Inc. All rights reserved.</p>
+        <p className="text-sm text-slate-500">Made for learners, by learners.</p>
+      </div>
+    </div>
+  </footer>
+);
+
+/* ── Star Rating ── */
+const Stars = ({ rating, size = 'sm' }) => {
+  const full = Math.floor(rating);
+  const s = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+  return (
+    <span className="flex items-center gap-0.5">
+      {[1,2,3,4,5].map(i => (
+        <svg key={i} className={`${s} ${i <= full ? 'text-amber-400' : 'text-slate-300'}`} fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </span>
+  );
+};
+
+/* ── Course Card ── */
+const CourseCard = ({ title, instructor, rating, enrolled, price, level, duration, category, color }) => (
+  <a href="course-detail.html" className="group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
+    <div className={`h-44 ${color} flex items-center justify-center relative overflow-hidden`}>
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-4 left-4 w-16 h-16 rounded-full bg-white/30"></div>
+        <div className="absolute bottom-4 right-4 w-24 h-24 rounded-full bg-white/20"></div>
+      </div>
+      <div className="relative text-center px-4">
+        <div className="text-4xl mb-1">{category}</div>
+        <span className="text-xs font-medium text-white/80 bg-black/20 px-2 py-0.5 rounded-full">{level}</span>
+      </div>
+    </div>
+    <div className="p-5 flex flex-col flex-1">
+      <h3 className="font-semibold text-slate-900 text-sm leading-snug group-hover:text-indigo-600 transition-colors line-clamp-2 mb-2">{title}</h3>
+      <p className="text-xs text-slate-500 mb-3">{instructor}</p>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-sm font-bold text-amber-500">{rating}</span>
+        <Stars rating={parseFloat(rating)} />
+        <span className="text-xs text-slate-400">({enrolled})</span>
+      </div>
+      <div className="flex items-center gap-3 text-xs text-slate-500 mb-4">
+        <span className="flex items-center gap-1">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          {duration}
+        </span>
+        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+        <span>{level}</span>
+      </div>
+      <div className="mt-auto flex items-center justify-between">
+        <span className="font-bold text-slate-900">{price === 'Free' ? <span className="text-emerald-600">Free</span> : price}</span>
+        <span className="text-xs font-medium text-indigo-600 group-hover:underline">View course →</span>
+      </div>
+    </div>
+  </a>
+);
+
+/* ── Category Card ── */
+const CategoryCard = ({ icon, label, count, color }) => (
+  <a href="courses.html" className={`group ${color} rounded-2xl p-6 flex flex-col items-center gap-3 hover:scale-105 transition-transform duration-200 cursor-pointer`}>
+    <span className="text-4xl">{icon}</span>
+    <div className="text-center">
+      <p className="font-semibold text-white text-sm">{label}</p>
+      <p className="text-xs text-white/70 mt-0.5">{count} courses</p>
+    </div>
+  </a>
+);
+
+/* ── Step Card ── */
+const StepCard = ({ num, icon, title, desc }) => (
+  <div className="flex flex-col items-center text-center px-6">
+    <div className="relative mb-6">
+      <div className="w-20 h-20 rounded-2xl bg-indigo-50 flex items-center justify-center text-3xl shadow-sm border border-indigo-100">
+        {icon}
+      </div>
+      <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shadow">{num}</span>
+    </div>
+    <h3 className="font-bold text-slate-900 text-lg mb-2">{title}</h3>
+    <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
+  </div>
+);
+
+/* ── Homepage App ── */
+const App = () => {
+  const categories = [
+    { icon: '💻', label: 'Web Development', count: '1,240', color: 'bg-gradient-to-br from-indigo-500 to-indigo-700' },
+    { icon: '📊', label: 'Data Science', count: '890', color: 'bg-gradient-to-br from-violet-500 to-violet-700' },
+    { icon: '🎨', label: 'UX Design', count: '640', color: 'bg-gradient-to-br from-pink-500 to-rose-600' },
+    { icon: '📈', label: 'Business', count: '1,120', color: 'bg-gradient-to-br from-amber-500 to-orange-600' },
+    { icon: '📷', label: 'Photography', count: '320', color: 'bg-gradient-to-br from-teal-500 to-cyan-600' },
+  ];
+  const courses = [
+    { title: 'Python for Data Science & Machine Learning Bootcamp', instructor: 'Dr. Sarah Chen', rating: '4.8', enrolled: '124K', price: '$89', level: 'Intermediate', duration: '24h', category: '🐍', color: 'bg-gradient-to-br from-blue-600 to-indigo-700' },
+    { title: 'React & Next.js: The Complete Masterclass 2026', instructor: 'Alex Rodriguez', rating: '4.9', enrolled: '89K', price: '$94', level: 'Intermediate', duration: '31h', category: '⚛️', color: 'bg-gradient-to-br from-cyan-500 to-blue-600' },
+    { title: 'UX Design Fundamentals: From Research to Prototype', instructor: 'Emma Wilson', rating: '4.7', enrolled: '67K', price: '$79', level: 'Beginner', duration: '18h', category: '🎨', color: 'bg-gradient-to-br from-pink-500 to-violet-600' },
+    { title: 'Digital Marketing Strategy: Complete 2026 Guide', instructor: 'James Park', rating: '4.6', enrolled: '203K', price: '$69', level: 'Beginner', duration: '22h', category: '📈', color: 'bg-gradient-to-br from-amber-500 to-orange-600' },
+  ];
+  const stats = [
+    { value: '15,000+', label: 'Courses' },
+    { value: '500+', label: 'Expert Instructors' },
+    { value: '2M+', label: 'Learners Worldwide' },
+    { value: '150+', label: 'Countries' },
+  ];
+  const companies = ['Google', 'Microsoft', 'Amazon', 'Meta', 'Netflix', 'Spotify', 'Airbnb', 'Stripe'];
+
+  return (
+    <>
+      <Header active="" />
+      <main>
+        {/* Hero */}
+        <section className="relative bg-gradient-to-br from-indigo-900 via-indigo-800 to-violet-900 text-white overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-10 left-10 w-72 h-72 rounded-full bg-white blur-3xl"></div>
+            <div className="absolute bottom-10 right-10 w-96 h-96 rounded-full bg-violet-300 blur-3xl"></div>
+          </div>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+            <div className="max-w-3xl mx-auto text-center">
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-8">
+                <span className="text-amber-400">🎓</span>
+                <span className="text-sm font-medium">Trusted by 2M+ learners worldwide</span>
+              </div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight mb-6">
+                Unlock Your Potential.<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-200">Learn at Your Own Pace.</span>
+              </h1>
+              <p className="text-lg sm:text-xl text-indigo-200 leading-relaxed mb-10 max-w-2xl mx-auto">
+                Explore thousands of expert-led courses in technology, business, design, and more. Build real skills, earn certificates, and advance your career.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="courses.html" className="inline-flex items-center justify-center gap-2 bg-white text-indigo-700 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg text-base">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  Browse Courses
+                </a>
+                <a href="pricing.html" className="inline-flex items-center justify-center gap-2 bg-transparent border-2 border-white/40 text-white font-bold px-8 py-4 rounded-xl hover:bg-white/10 transition-colors text-base">
+                  Start Free Trial
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </a>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-16 pt-10 border-t border-white/10">
+                {stats.map(s => (
+                  <div key={s.label} className="text-center">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-white">{s.value}</div>
+                    <div className="text-sm text-indigo-300 mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Categories */}
+        <section className="py-20 bg-slate-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4">Explore by Category</h2>
+              <p className="text-slate-500 text-lg max-w-xl mx-auto">Find the perfect course to match your goals across our top learning categories.</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {categories.map(c => <CategoryCard key={c.label} {...c} />)}
+            </div>
+          </div>
+        </section>
+
+        {/* Featured Courses */}
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-4">
+              <div>
+                <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-3">Featured Courses</h2>
+                <p className="text-slate-500 text-lg">Handpicked courses loved by learners around the world.</p>
+              </div>
+              <a href="courses.html" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 whitespace-nowrap">
+                View all courses
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </a>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {courses.map(c => <CourseCard key={c.title} {...c} />)}
+            </div>
+          </div>
+        </section>
+
+        {/* Social Proof Strip */}
+        <section className="py-16 bg-gradient-to-r from-indigo-600 to-violet-700 text-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p className="text-sm font-medium text-indigo-200 uppercase tracking-widest mb-3">Trusted by professionals at</p>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-10">Join 2M+ learners from world-class companies</h2>
+            <div className="flex flex-wrap justify-center gap-6 sm:gap-10">
+              {companies.map(c => (
+                <div key={c} className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-5 py-2.5">
+                  <span className="text-white font-bold text-sm tracking-wide">{c}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="py-20 bg-slate-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4">How LearnPath Works</h2>
+              <p className="text-slate-500 text-lg max-w-xl mx-auto">Three simple steps to kickstart your learning journey and reach your goals.</p>
+            </div>
+            <div className="relative">
+              <div className="hidden lg:block absolute top-10 left-1/4 right-1/4 h-0.5 bg-gradient-to-r from-indigo-200 via-indigo-300 to-indigo-200"></div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <StepCard num="1" icon="🔍" title="Browse & Discover" desc="Search thousands of expert-led courses across every category. Use filters to find the perfect match for your skill level and goals." />
+                <StepCard num="2" icon="🎓" title="Enroll & Learn" desc="Access video lectures, hands-on projects, and downloadable resources at your own pace—anytime, anywhere, on any device." />
+                <StepCard num="3" icon="🏆" title="Earn & Grow" desc="Complete courses, earn certificates, and showcase your achievements to employers. Track your progress every step of the way." />
+              </div>
+            </div>
+            <div className="text-center mt-14">
+              <a href="pricing.html" className="inline-flex items-center gap-2 bg-indigo-600 text-white font-bold px-8 py-4 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg text-base">
+                Get Started for Free
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+              </a>
+              <p className="text-sm text-slate-400 mt-3">No credit card required · Cancel anytime</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Testimonials */}
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-4">What Our Learners Say</h2>
+              <p className="text-slate-500 text-lg">Real stories from real learners who transformed their careers.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { name: 'Priya Sharma', role: 'Data Analyst @ Spotify', quote: "LearnPath's Python course helped me transition from marketing to data analytics in just 6 months. The structured curriculum made complex topics easy to grasp.", avatar: 'PS', color: 'bg-violet-500' },
+                { name: 'Marcus Johnson', role: 'Senior Developer @ Stripe', quote: "The React & Next.js course is incredibly comprehensive. I went from zero to building production apps. The instructor support is second to none.", avatar: 'MJ', color: 'bg-indigo-500' },
+                { name: 'Lisa Chen', role: 'UX Lead @ Airbnb', quote: "I completed the UX Design path in 3 months while working full-time. The hands-on projects gave me a portfolio that got me my dream job.", avatar: 'LC', color: 'bg-rose-500' },
+              ].map(t => (
+                <div key={t.name} className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                  <div className="flex gap-1 mb-4">
+                    {[1,2,3,4,5].map(i => <svg key={i} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
+                  </div>
+                  <p className="text-slate-700 text-sm leading-relaxed mb-6">"{t.quote}"</p>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full ${t.color} flex items-center justify-center text-white font-bold text-sm`}>{t.avatar}</div>
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm">{t.name}</p>
+                      <p className="text-xs text-slate-500">{t.role}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Banner */}
+        <section className="py-20 bg-slate-900 text-white">
+          <div className="max-w-3xl mx-auto px-4 text-center">
+            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Ready to start learning?</h2>
+            <p className="text-slate-400 text-lg mb-10">Join millions of learners and get unlimited access to all courses with a Pro plan.</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a href="courses.html" className="inline-flex items-center justify-center gap-2 bg-indigo-600 text-white font-bold px-8 py-4 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg">
+                Browse Courses
+              </a>
+              <a href="pricing.html" className="inline-flex items-center justify-center gap-2 bg-white text-slate-900 font-bold px-8 py-4 rounded-xl hover:bg-slate-100 transition-colors shadow-lg">
+                View Pricing Plans
+              </a>
+            </div>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

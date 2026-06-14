@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate | Groundwork Journalism</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAF9F6;
+            color: #1A1A1A;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-serif {
+            font-family: 'Merriweather', serif;
+        }
+
+        /* Customize scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- Shared Icons ---
+        const MenuIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="18" y2="18" /></svg>;
+        const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>;
+        const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
+        const ClockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
+        const FileTextIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" x2="8" y1="13" y2="13" /><line x1="16" x2="8" y1="17" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>;
+        const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>;
+        const BarChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10" /><line x1="18" x2="18" y1="20" y2="4" /><line x1="6" x2="6" y1="20" y2="16" /></svg>;
+
+        // --- Shared Components ---
+        const Header = () => {
+            return (
+                <header className="sticky top-0 z-50 bg-[#FAF9F6] border-b border-gray-200">
+                    <div className="bg-red-700 text-white text-xs font-semibold uppercase tracking-wider py-2 px-4 text-center">
+                        <span className="opacity-80">Support Our Journalism:</span> <a href="subscription.html" className="underline hover:text-red-100 ml-1">Become an Investigator today</a>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-20">
+                            <div className="flex items-center md:hidden">
+                                <button type="button" className="text-gray-700 hover:text-black p-2 -ml-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black rounded-md" aria-label="Open main menu">
+                                    <MenuIcon />
+                                </button>
+                            </div>
+
+                            <nav className="hidden md:flex space-x-8" aria-label="Main Navigation">
+                                <a href="category.html" className="text-sm font-semibold text-red-700 underline underline-offset-4 decoration-2" aria-current="page">Climate</a>
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Energy</a>
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Policy</a>
+                                <a href="opinion.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Opinion</a>
+                            </nav>
+
+                            <div className="flex-shrink-0 flex items-center justify-center absolute left-1/2 transform -translate-x-1/2">
+                                <a href="index.html" className="font-serif text-3xl font-black tracking-tighter text-black uppercase" aria-label="Groundwork Homepage">
+                                    Groundwork<span className="text-red-700">.</span>
+                                </a>
+                            </div>
+
+                            <div className="flex items-center space-x-5">
+                                <button className="text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-black rounded-full p-1 transition-colors" aria-label="Search">
+                                    <SearchIcon />
+                                </button>
+                                <a href="subscription.html" className="hidden lg:inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-bold rounded-none text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-900 transition-colors uppercase tracking-wide">
+                                    Donate
+                                </a>
+                                <button className="text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-black rounded-full p-1 transition-colors" aria-label="Sign in">
+                                    <UserIcon />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-neutral-900 text-white pt-16 pb-8 border-t-4 border-red-700 mt-20">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 lg:gap-8">
+                            <div className="md:col-span-1">
+                                <a href="index.html" className="font-serif text-2xl font-black tracking-tighter uppercase mb-4 block">
+                                    Groundwork<span className="text-red-500">.</span>
+                                </a>
+                                <p className="text-neutral-400 text-sm leading-relaxed mb-6 font-serif">
+                                    Independent, data-driven investigative journalism focused on climate, science, and environmental policy in the Anthropocene.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">Sections</h3>
+                                <ul className="space-y-3 text-sm">
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Climate</a></li>
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Energy</a></li>
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Data</a></li>
+                                    <li><a href="opinion.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Perspectives</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">About</h3>
+                                <ul className="space-y-3 text-sm">
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Our Mission</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Reporters</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Careers</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Contact</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">Stay Informed</h3>
+                                <p className="text-neutral-400 text-sm mb-4">Get our latest investigations delivered to your inbox.</p>
+                                <form className="flex" onSubmit={(e) => e.preventDefault()}>
+                                    <label htmlFor="email-address" className="sr-only">Email address</label>
+                                    <input
+                                        id="email-address"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        required
+                                        className="w-full min-w-0 px-4 py-2 text-base text-gray-900 bg-white border border-transparent rounded-none focus:outline-none focus:ring-2 focus:ring-white focus:border-white sm:text-sm"
+                                        placeholder="Enter your email"
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="mt-0 ml-3 flex-shrink-0 w-auto flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-none text-white bg-red-700 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 focus:ring-red-500 transition-colors"
+                                    >
+                                        Sign up
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div className="mt-16 pt-8 border-t border-neutral-800 flex flex-col md:flex-row justify-between items-center">
+                            <p className="text-neutral-500 text-sm text-center md:text-left">
+                                &copy; 2026 Groundwork Media Inc. All rights reserved.
+                            </p>
+                            <div className="mt-4 md:mt-0 flex space-x-6 text-sm text-neutral-500">
+                                <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Privacy Policy</a>
+                                <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Terms of Service</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        // --- Category Specific Components ---
+
+        const CategoryHeader = () => {
+            return (
+                <div className="py-12 border-b-2 border-black max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h1 className="font-serif text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4">Climate</h1>
+                    <p className="font-serif text-xl text-gray-600 max-w-3xl leading-relaxed">
+                        Data-driven investigations into greenhouse gas emissions, extreme weather impacts, and the corporate accountability lacking in the fight for a livable planet.
+                    </p>
+                </div>
+            );
+        };
+
+        const LeadInvestigation = () => {
+            return (
+                <article className="lg:col-span-2 group cursor-pointer mb-12 border-b border-gray-200 pb-12" onClick={() => window.location.href = 'article.html'}>
+                    <div className="relative mb-6">
+                        <div className="aspect-w-16 aspect-h-9 md:aspect-h-7 overflow-hidden bg-gray-100">
+                            <img
+                                src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
+                                alt="Forest fire smoke covering a mountainside"
+                                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 ease-out"
+                            />
+                        </div>
+                        <div className="absolute top-4 left-4 bg-white px-3 py-1 font-bold text-xs uppercase tracking-widest text-red-700 shadow-sm border border-gray-100">
+                            Spotlight
+                        </div>
+                    </div>
+
+                    <h2 className="font-serif text-3xl md:text-5xl font-bold mb-4 leading-none group-hover:decoration-2 group-hover:underline-offset-4 group-hover:underline">
+                        <a href="article.html" className="text-black focus:outline-none">
+                            The Carbon Market Illusion: When "Offsets" Don't Offset
+                        </a>
+                    </h2>
+
+                    <p className="text-lg text-gray-700 font-serif leading-relaxed mb-6">
+                        We analyzed hundreds of forestry preservation projects in global carbon markets. Our data reveals that the vast majority fail to capture the carbon they promise, effectively giving major polluters an inexpensive license to continue emitting.
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-500 uppercase tracking-widest">
+                        <span>By Elena Rostova</span>
+                        <span>&bull;</span>
+                        <span className="flex items-center"><ClockIcon /><span className="ml-1">20 min read</span></span>
+                        <span>&bull;</span>
+                        <div className="flex gap-2">
+                            <span className="bg-gray-100 text-gray-700 px-2 py-1 border border-gray-200">Carbon Markets</span>
+                            <span className="bg-gray-100 text-gray-700 px-2 py-1 border border-gray-200">Corporate Accountability</span>
+                        </div>
+                    </div>
+                </article>
+            );
+        };
+
+        const StoryList = () => {
+            const stories = [
+                {
+                    title: "Rising Seas, Sinking Neighborhoods: The Inequity of Managed Retreat",
+                    excerpt: "Poorer communities along the Gulf Coast are being forced to relocate without adequate compensation, while wealthy enclaves receive federal seawalls.",
+                    author: "David Choe",
+                    tags: ["Sea Level", "Policy"],
+                    date: "Oct 15"
+                },
+                {
+                    title: "Toxic Ash: What Happens When Wildfires Burn Through Industrial Centers?",
+                    excerpt: "Soil analysis around recent fire scars shows elevated levels of heavy metals and carcinogens that regulatory agencies have failed to test for.",
+                    author: "Sarah Jenkins & Michael Torres",
+                    tags: ["Wildfire", "Public Health"],
+                    date: "Oct 09"
+                },
+                {
+                    title: "The Plastic Under the Arctic Permafrost",
+                    excerpt: "Microplastics have integrated deep into soil columns previously thought untouched, shifting the baseline of human impact on polar environments.",
+                    author: "Dr. James Halloway",
+                    tags: ["Science", "Pollution"],
+                    date: "Sep 28"
+                },
+                {
+                    title: "Who Owns the Wind? The Battle over Offshore Energy Rights",
+                    excerpt: "Fossil fuel lobbyists are quietly pivoting to acquire coastal leases, effectively controlling the deployment rate of new wind energy infrastructure.",
+                    author: "Elena Rostova",
+                    tags: ["Energy", "Regulation"],
+                    date: "Sep 14"
+                }
+            ];
+
+            return (
+                <div className="lg:col-span-2 space-y-12 pr-0 lg:pr-8">
+                    {stories.map((story, i) => (
+                        <article key={i} className="group cursor-pointer border-b border-gray-200 pb-12 last:border-0" onClick={() => window.location.href = 'article.html'}>
+                            <h3 className="font-serif text-2xl md:text-3xl font-bold mb-3 leading-tight group-hover:underline decoration-2 underline-offset-4">
+                                <a href="article.html" className="focus:outline-none text-black">
+                                    {story.title}
+                                </a>
+                            </h3>
+                            <p className="text-gray-700 font-serif leading-relaxed mb-4 text-sm md:text-base">
+                                {story.excerpt}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm font-medium text-gray-500 uppercase tracking-widest">
+                                <span>{story.date}</span>
+                                <span>&bull;</span>
+                                <span>By {story.author}</span>
+                                <div className="flex gap-2 ml-auto">
+                                    {story.tags.map(tag => (
+                                        <span key={tag} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 border border-gray-200 text-xs">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </article>
+                    ))}
+
+                    <button className="w-full py-4 border-2 border-black font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300">
+                        Load More Stories
+                    </button>
+                </div>
+            );
+        };
+
+        const Sidebar = () => {
+            return (
+                <div className="lg:col-span-1 space-y-12 lg:border-l border-gray-200 lg:pl-8 mt-16 lg:mt-0">
+                    {/* Key Documents Sidebar */}
+                    <div className="bg-white p-6 border border-gray-200 shadow-sm">
+                        <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-200">
+                            <FileTextIcon />
+                            <h3 className="font-bold uppercase tracking-widest text-sm">Key Documents</h3>
+                        </div>
+                        <ul className="space-y-4">
+                            <li className="group">
+                                <a href="#" className="flex items-start gap-3 focus:outline-none">
+                                    <div className="mt-1 text-red-700 group-hover:text-red-900"><DownloadIcon /></div>
+                                    <div>
+                                        <h4 className="font-serif font-bold text-sm leading-tight group-hover:underline">EPA Internal Memo: "Acceptable Risk" Definitions (2025)</h4>
+                                        <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">PDF &bull; 2.4 MB</p>
+                                    </div>
+                                </a>
+                            </li>
+                            <li className="group">
+                                <a href="#" className="flex items-start gap-3 focus:outline-none">
+                                    <div className="mt-1 text-red-700 group-hover:text-red-900"><DownloadIcon /></div>
+                                    <div>
+                                        <h4 className="font-serif font-bold text-sm leading-tight group-hover:underline">Federal Energy Regulatory Commission Hearing Transcripts</h4>
+                                        <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">PDF &bull; 1.1 MB</p>
+                                    </div>
+                                </a>
+                            </li>
+                            <li className="group">
+                                <a href="#" className="flex items-start gap-3 focus:outline-none">
+                                    <div className="mt-1 text-red-700 group-hover:text-red-900"><DownloadIcon /></div>
+                                    <div>
+                                        <h4 className="font-serif font-bold text-sm leading-tight group-hover:underline">Carbon Offset Project Discrepancy Dataset (Raw)</h4>
+                                        <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">CSV &bull; 800 KB</p>
+                                    </div>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {/* Data Visualization Embed Preview */}
+                    <div className="bg-neutral-900 p-6 text-white border-t-4 border-red-500">
+                        <div className="flex items-center gap-2 mb-4 text-red-400">
+                            <BarChartIcon />
+                            <h3 className="font-bold uppercase tracking-widest text-xs">Data Explorer</h3>
+                        </div>
+                        <h4 className="font-serif font-bold text-xl mb-3 leading-tight">Interactive: The Carbon Gap in Top 100 Offset Projects</h4>
+                        <p className="text-neutral-400 font-serif text-sm mb-6 leading-relaxed">
+                            Explore the raw data behind our investigation. Filter by continent, registry, and certification body to see exactly where carbon accounting breaks down.
+                        </p>
+                        <div className="aspect-w-4 aspect-h-3 bg-neutral-800 mb-6 flex items-center justify-center border border-neutral-700 relative overflow-hidden group border-dashed">
+                            <div className="text-center p-4 z-10">
+                                <svg className="mx-auto h-8 w-8 text-neutral-500 mb-2 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <span className="text-xs font-bold uppercase tracking-widest text-neutral-400 group-hover:text-white transition-colors">Click to Load Interactive Map</span>
+                            </div>
+                        </div>
+                        <a href="article.html" className="block w-full text-center py-3 bg-white text-black font-bold uppercase tracking-widest text-xs hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 focus:ring-white">
+                            View Full Report
+                        </a>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow pb-24">
+                        <CategoryHeader />
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-0">
+                            <div className="lg:col-span-2">
+                                <LeadInvestigation />
+                                <StoryList />
+                            </div>
+                            <Sidebar />
+                        </div>
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const rootLayout = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootLayout);
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

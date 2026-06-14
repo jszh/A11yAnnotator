@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="City of Lakewood, Colorado — Official government portal. Find city services, pay bills, apply for permits, and more." />
+  <title>City of Lakewood, CO — Official Government Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'lk-navy':  '#0d2340',
+            'lk-blue':  '#1a3a6b',
+            'lk-brand': '#1a56db',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Ensure visible focus rings sitewide */
+    :focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; }
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="components.js"></script>
+
+<script type="text/babel">
+
+// ── Data ────────────────────────────────────────────────────
+const QUICK_TILES = [
+  { icon: '💳', label: 'Pay a Bill',        desc: 'Utility & city invoices',   href: 'pay-bill.html',  color: 'bg-blue-50  border-blue-200  hover:border-blue-400' },
+  { icon: '🔧', label: 'Report an Issue',   desc: 'Potholes, graffiti & more', href: '#',              color: 'bg-green-50 border-green-200 hover:border-green-400' },
+  { icon: '📋', label: 'Apply for Permit',  desc: 'Building & business',       href: 'permits.html',   color: 'bg-amber-50 border-amber-200 hover:border-amber-400' },
+  { icon: '🌳', label: 'Find a Park',       desc: 'Parks, trails & facilities', href: 'services.html', color: 'bg-teal-50  border-teal-200  hover:border-teal-400' },
+  { icon: '🗑️', label: 'Trash & Recycling', desc: 'Schedules & bulk pickup',   href: 'services.html',  color: 'bg-purple-50 border-purple-200 hover:border-purple-400' },
+  { icon: '🚌', label: 'Public Transit',    desc: 'Routes & schedules',        href: 'services.html',  color: 'bg-orange-50 border-orange-200 hover:border-orange-400' },
+];
+
+const NEWS = [
+  {
+    tag: 'Infrastructure',
+    date: 'Nov 14, 2025',
+    title: 'Belmar Boulevard Repaving Project Begins November 18',
+    excerpt: 'The Public Works department will begin repaving Belmar Boulevard between Wadsworth and Pierce St. Expect lane restrictions 7 am–4 pm on weekdays through December 12.',
+    href: '#',
+  },
+  {
+    tag: 'Community',
+    date: 'Nov 10, 2025',
+    title: 'City Launches New Online Permit Application System',
+    excerpt: 'Residents and contractors can now submit building permit applications entirely online, with real-time status tracking and digital document uploads.',
+    href: 'permits.html',
+  },
+  {
+    tag: 'Finance',
+    date: 'Nov 5, 2025',
+    title: '2026 City Budget Approved by City Council',
+    excerpt: 'The Lakewood City Council unanimously approved a $387 million budget for fiscal year 2026, prioritizing public safety staffing and park improvements.',
+    href: '#',
+  },
+];
+
+const EVENTS = [
+  { date: { month: 'NOV', day: '20' }, title: 'City Council Regular Meeting', time: '7:00 PM', location: 'City Hall, Council Chambers' },
+  { date: { month: 'NOV', day: '23' }, title: 'Holiday Tree Lighting — Belmar Park', time: '5:30 PM', location: 'Belmar Park, Amphitheater' },
+  { date: { month: 'DEC', day: '2'  }, title: 'Planning Commission Hearing', time: '6:30 PM', location: 'City Hall, Room 330' },
+  { date: { month: 'DEC', day: '7'  }, title: 'Winterfest in the Park', time: '11:00 AM', location: 'Kendrick Lake Park' },
+];
+
+// ── Components ──────────────────────────────────────────────
+function AlertBanner({ onDismiss }) {
+  return (
+    <div role="alert" aria-live="polite" className="bg-red-700 text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-start gap-3">
+        <span className="text-lg flex-shrink-0 mt-0.5" aria-hidden="true">⚠</span>
+        <p className="text-sm font-medium flex-1">
+          <span className="font-bold uppercase tracking-wide">Road Closure:</span>{' '}
+          Main St between 3rd and 5th Ave until Nov 30 due to water main replacement.
+          Use Oak or Maple St as alternate routes.{' '}
+          <a href="#" className="underline font-semibold hover:text-red-200 focus:text-red-200 focus:outline-none">Learn more</a>
+        </p>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss road closure alert"
+          className="flex-shrink-0 p-1 rounded hover:bg-red-600 focus:bg-red-600 focus:outline-none focus:ring-2 focus:ring-white/50 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function HeroSearch() {
+  const [query, setQuery] = React.useState('');
+
+  return (
+    <section
+      className="relative bg-gradient-to-br from-[#0d2340] via-[#1a3a6b] to-[#1e56a8] text-white py-20 px-4 overflow-hidden"
+      aria-labelledby="hero-heading"
+    >
+      {/* decorative circles */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" aria-hidden="true" />
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4 pointer-events-none" aria-hidden="true" />
+
+      <div className="relative max-w-3xl mx-auto text-center">
+        <p className="text-blue-300 text-sm font-semibold uppercase tracking-widest mb-3">Welcome to Lakewood, Colorado</p>
+        <h1 id="hero-heading" className="text-4xl sm:text-5xl font-bold mb-4 leading-tight">
+          How Can We Help You?
+        </h1>
+        <p className="text-blue-200 text-lg mb-10 max-w-xl mx-auto">
+          Find city services, pay bills, apply for permits, and connect with your local government — all in one place.
+        </p>
+
+        <form
+          role="search"
+          aria-label="Search city services"
+          onSubmit={e => e.preventDefault()}
+          className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto"
+        >
+          <label htmlFor="hero-search" className="sr-only">Search city services</label>
+          <input
+            id="hero-search"
+            type="search"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder='Try "pay water bill", "dog license", "building permit"…'
+            className="flex-1 px-5 py-3.5 rounded-xl text-gray-900 placeholder-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-lg"
+          />
+          <button
+            type="submit"
+            className="px-8 py-3.5 bg-amber-500 hover:bg-amber-400 focus:bg-amber-400 text-white font-bold rounded-xl transition-colors shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-300 focus:ring-offset-blue-800"
+          >
+            Search
+          </button>
+        </form>
+
+        <p className="mt-4 text-blue-300 text-sm">
+          Popular: {' '}
+          {['Pay water bill', 'Building permit', 'Recycling schedule', 'Park rentals'].map((term, i) => (
+            <React.Fragment key={term}>
+              <button
+                type="button"
+                className="underline hover:text-white focus:text-white focus:outline-none"
+                onClick={() => setQuery(term)}
+              >{term}</button>
+              {i < 3 && ' · '}
+            </React.Fragment>
+          ))}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function QuickTiles() {
+  return (
+    <section aria-labelledby="quick-services-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
+      <h2 id="quick-services-heading" className="sr-only">Quick access services</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        {QUICK_TILES.map(tile => (
+          <a
+            key={tile.label}
+            href={tile.href}
+            className={`flex flex-col items-center text-center p-5 rounded-xl bg-white border-2 ${tile.color} shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 group`}
+          >
+            <span className="text-3xl mb-2 group-hover:scale-110 transition-transform" aria-hidden="true">{tile.icon}</span>
+            <span className="text-sm font-bold text-gray-800 leading-tight">{tile.label}</span>
+            <span className="text-xs text-gray-500 mt-1 leading-snug">{tile.desc}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function NewsSection() {
+  return (
+    <section aria-labelledby="news-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+      <div className="flex items-center justify-between mb-8">
+        <h2 id="news-heading" className="text-2xl font-bold text-gray-900">News & Announcements</h2>
+        <a href="#" className="text-blue-700 font-semibold text-sm hover:underline focus:outline-none focus:underline">
+          View all news →
+        </a>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {NEWS.map(item => (
+          <article key={item.title} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <span className="inline-block bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wide">{item.tag}</span>
+                <time className="text-xs text-gray-500">{item.date}</time>
+              </div>
+            </div>
+            <div className="p-5 flex flex-col flex-1">
+              <h3 className="font-bold text-gray-900 mb-2 leading-snug text-base">{item.title}</h3>
+              <p className="text-sm text-gray-600 leading-relaxed flex-1">{item.excerpt}</p>
+              <a
+                href={item.href}
+                className="mt-4 text-sm font-semibold text-blue-700 hover:text-blue-900 hover:underline focus:outline-none focus:underline focus:text-blue-900"
+                aria-label={`Read more about: ${item.title}`}
+              >
+                Read more →
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function EventsSection() {
+  return (
+    <section aria-labelledby="events-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+      <div className="flex items-center justify-between mb-8">
+        <h2 id="events-heading" className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
+        <a href="#" className="text-blue-700 font-semibold text-sm hover:underline focus:outline-none focus:underline">
+          Full calendar →
+        </a>
+      </div>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100 overflow-hidden">
+        {EVENTS.map(ev => (
+          <a
+            key={ev.title}
+            href="#"
+            className="flex items-center gap-5 px-6 py-4 hover:bg-blue-50 focus:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-400 group"
+          >
+            <div className="flex-shrink-0 w-14 text-center" aria-label={`${ev.date.month} ${ev.date.day}`}>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 group-hover:bg-blue-100 rounded-t px-1 py-0.5">{ev.date.month}</div>
+              <div className="text-2xl font-bold text-gray-900 bg-gray-50 group-hover:bg-blue-100 rounded-b leading-tight py-1">{ev.date.day}</div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900 text-sm group-hover:text-blue-800 transition-colors truncate">{ev.title}</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                <time>{ev.time}</time> · {ev.location}
+              </p>
+            </div>
+            <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-500 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CTABanner() {
+  return (
+    <section aria-labelledby="cta-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+      <div className="bg-gradient-to-r from-[#0d2340] to-[#1a3a6b] rounded-2xl px-8 py-10 text-white flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <h2 id="cta-heading" className="text-xl font-bold mb-2">Sign Up for City Alerts</h2>
+          <p className="text-blue-200 text-sm max-w-md">Get emergency notifications, road closures, and city updates delivered directly to your phone or email.</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
+          <a
+            href="#"
+            className="px-6 py-3 bg-amber-500 hover:bg-amber-400 focus:bg-amber-400 text-white font-bold rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-blue-900 text-center"
+          >
+            Sign Up Free
+          </a>
+          <a
+            href="contact.html"
+            className="px-6 py-3 bg-white/10 hover:bg-white/20 focus:bg-white/20 text-white font-bold rounded-xl transition-colors border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 text-center"
+          >
+            Contact City Hall
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────
+function HomePage() {
+  const [alertVisible, setAlertVisible] = React.useState(true);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <CityHeader currentPage="home" />
+
+      {alertVisible && <AlertBanner onDismiss={() => setAlertVisible(false)} />}
+
+      <main id="main-content" tabIndex={-1} className="flex-1 pb-16">
+        <HeroSearch />
+        <QuickTiles />
+        <NewsSection />
+        <EventsSection />
+        <CTABanner />
+      </main>
+
+      <CityFooter />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<HomePage />);
+</script>
+</body>
+</html>

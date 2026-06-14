@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Culture & Arts — The Pulse</title>
+  <meta name="description" content="Film, music, art, books, fashion, food, and the cultural forces shaping society." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['"Playfair Display"', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body class="bg-white">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="../components/components.js" data-presets="react"></script>
+
+  <script type="text/babel" data-presets="react">
+    window.BASE_PATH = '../';
+
+    const CULTURE_CATS = ['All', 'Film & TV', 'Music', 'Books', 'Art', 'Fashion', 'Food & Drink', 'Architecture', 'Gaming'];
+
+    /* Magazine-style Visual Feature — Vice style */
+    const MagazineFeature = ({ story }) => (
+      <section className="relative overflow-hidden" style={{ minHeight: '560px' }} aria-label="Magazine feature">
+        <img src={story.mediaUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.2) 100%)' }} />
+        <div className="relative z-10 max-w-screen-2xl mx-auto px-4 py-20 md:py-28">
+          <div className="max-w-xl">
+            <span className="badge-exclusive mb-4 inline-block">Magazine Feature</span>
+            <h1 className="headline-xl text-white">{story.title}</h1>
+            <p className="body-lg text-slate-200 mt-4">{story.summary}</p>
+            <div className="flex items-center gap-4 mt-6">
+              <img src={`https://picsum.photos/seed/auth${story.id}/40/40`} alt=""
+                className="w-10 h-10 rounded-full object-cover border-2 border-white/30" aria-hidden="true" />
+              <div>
+                <p className="text-white font-semibold text-sm">{story.author}</p>
+                <p className="text-slate-400 text-xs">{story.publishTime} · {story.readLength}</p>
+              </div>
+            </div>
+            <a href={R('article/article.html')} className="btn btn-primary mt-6 inline-flex">
+              Read Full Feature →
+            </a>
+          </div>
+        </div>
+      </section>
+    );
+
+    /* Culture Horizontal Scroll — 5 topics */
+    const CultureTopicRail = () => {
+      const topics = [
+        { label: 'Music', emoji: '🎵', color: '#9333EA' },
+        { label: 'Film', emoji: '🎬', color: '#EC4899' },
+        { label: 'Art', emoji: '🎨', color: '#F59E0B' },
+        { label: 'Books', emoji: '📚', color: '#0891B2' },
+        { label: 'Fashion', emoji: '👗', color: '#D946EF' },
+        { label: 'Food', emoji: '🍽', color: '#10B981' },
+        { label: 'Gaming', emoji: '🎮', color: '#3B82F6' },
+        { label: 'Architecture', emoji: '🏛', color: '#6366F1' },
+      ];
+      return (
+        <div className="max-w-screen-2xl mx-auto px-4 py-4">
+          <div className="scroll-row">
+            {topics.map((t) => (
+              <a key={t.label} href="#"
+                className="flex-shrink-0 flex flex-col items-center gap-2 px-5 py-4 rounded-xl border border-slate-100 hover:border-purple-200 transition-colors bg-white shadow-sm"
+                aria-label={`Browse ${t.label} stories`}>
+                <span className="text-2xl" aria-hidden="true">{t.emoji}</span>
+                <span className="text-xs font-bold text-slate-700" style={{ color: t.color }}>{t.label}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    /* What We're Watching/Reading/Listening */
+    const EditorsPicksMini = () => {
+      const picks = [
+        { type: "Watching", title: "The Franchise (HBO)", note: "Scathing satire of superhero cinema.", emoji: "📺" },
+        { type: "Reading", title: "The Ministry of Time by K. Suri", note: "Time-travel spy thriller. Unputdownable.", emoji: "📖" },
+        { type: "Listening", title: "Chappell Roan — 'Good Luck, Babe!'", note: "Undeniable pop hook of the year.", emoji: "🎧" },
+        { type: "Playing", title: "Balatro", note: "The roguelike card game taking over everything.", emoji: "🃏" },
+      ];
+      return (
+        <aside className="sidebar-widget" aria-label="Editor's picks">
+          <div className="sidebar-widget-header">Editors' Picks This Week</div>
+          <div className="sidebar-widget-body p-0">
+            {picks.map((p) => (
+              <div key={p.type} className="flex gap-3 p-3 border-b border-slate-100 last:border-0">
+                <span className="text-xl flex-shrink-0 mt-0.5" aria-hidden="true">{p.emoji}</span>
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">{p.type}</p>
+                  <p className="text-sm font-semibold text-slate-800 mt-0.5">{p.title}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{p.note}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      );
+    };
+
+    /* Review Card */
+    const ReviewCard = ({ story, rating = 4 }) => (
+      <article className="story-card">
+        <div className="story-card-img">
+          <a href={R('article/article.html')} tabIndex="-1" aria-hidden="true">
+            <img src={story.mediaUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
+          </a>
+        </div>
+        <div className="p-4">
+          <span className="cat-label cat-culture">{story.categoryLabel}</span>
+          <div className="flex items-center gap-1 mt-2" aria-label={`${rating} out of 5 stars`}>
+            {[1,2,3,4,5].map((s) => (
+              <span key={s} style={{ color: s <= rating ? '#F59E0B' : '#E2E8F0', fontSize: '0.875rem' }} aria-hidden="true">★</span>
+            ))}
+            <span className="text-xs text-slate-400 ml-1">Review</span>
+          </div>
+          <a href={R('article/article.html')}>
+            <h3 className="mt-1.5 font-serif font-semibold text-base leading-snug hover:text-purple-700 transition-colors">{story.title}</h3>
+          </a>
+          <p className="text-sm text-slate-500 mt-2 line-clamp-2">{story.summary}</p>
+          <p className="text-xs text-slate-400 mt-2">{story.author} · {story.publishTime}</p>
+        </div>
+      </article>
+    );
+
+    const App = () => {
+      const [cat, setCat] = React.useState('All');
+      const cultureStories = ALL_STORIES.filter(s => s.category === 'culture');
+      const mixedStories = ALL_STORIES;
+
+      return (
+        <PageLayout currentCategory="culture">
+          {/* Magazine-style header */}
+          <MagazineFeature story={cultureStories[0] || mixedStories[4]} />
+
+          {/* Topic rail */}
+          <CultureTopicRail />
+
+          {/* Filter tabs */}
+          <div className="border-b border-slate-200 bg-white" role="tablist" aria-label="Culture category filter">
+            <div className="max-w-screen-2xl mx-auto px-4 flex gap-0 overflow-x-auto">
+              {CULTURE_CATS.map((c) => (
+                <button
+                  key={c}
+                  role="tab"
+                  aria-selected={cat === c}
+                  onClick={() => setCat(c)}
+                  className={`flex-shrink-0 px-4 py-3 text-xs font-semibold border-b-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    cat === c ? 'border-purple-600 text-purple-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <section className="max-w-screen-2xl mx-auto px-4 py-8">
+            <div className="flex gap-8">
+              {/* Main */}
+              <div className="flex-1 min-w-0">
+                {/* Top grid */}
+                <div className="section-header">
+                  <span className="section-header-accent" style={{ background: '#9333EA' }} />
+                  <h2 className="section-header-title">Latest in Culture</h2>
+                </div>
+                <StoryGrid stories={cultureStories.concat(mixedStories.slice(0,4)).slice(0,6)} columns={3} showSummary={true} />
+
+                {/* Reviews section */}
+                <div className="mt-10">
+                  <div className="section-header">
+                    <span className="section-header-accent" style={{ background: '#F59E0B' }} />
+                    <h2 className="section-header-title">Reviews</h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {mixedStories.slice(4, 8).map((s, i) => (
+                      <ReviewCard key={s.id} story={s} rating={i % 2 === 0 ? 5 : 4} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Longform — Vice-style */}
+                <div className="mt-10">
+                  <div className="section-header">
+                    <span className="section-header-accent" style={{ background: '#9333EA' }} />
+                    <h2 className="section-header-title">Longform</h2>
+                  </div>
+                  {mixedStories.slice(4, 9).map((story) => (
+                    <article key={story.id} className="flex gap-5 py-5 border-b border-slate-100 last:border-0">
+                      <div className="w-40 h-28 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                        <img src={story.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      </div>
+                      <div className="flex-1">
+                        <span className={`cat-label cat-${story.category}`}>{story.categoryLabel}</span>
+                        <a href={R('article/article.html')}>
+                          <h3 className="mt-1.5 font-serif font-semibold text-lg leading-snug hover:text-purple-700 transition-colors">{story.title}</h3>
+                        </a>
+                        <p className="text-sm text-slate-500 mt-1.5 line-clamp-2">{story.summary}</p>
+                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
+                          <span className="font-medium text-slate-600">{story.author}</span>
+                          <span>·</span>
+                          <time>{story.publishTime}</time>
+                          <span>·</span>
+                          <span className="font-semibold text-purple-600">{story.readLength}</span>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sidebar */}
+              <aside className="hidden xl:block w-80 flex-shrink-0">
+                <EditorsPicksMini />
+                <SidebarModule type="trending" stories={cultureStories.concat(mixedStories.slice(0,3))} title="Trending in Culture" />
+                <SidebarModule type="newsletter" />
+                <SidebarModule type="ad" />
+              </aside>
+            </div>
+          </section>
+
+          <SubscriptionModule variant="inline" />
+        </PageLayout>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

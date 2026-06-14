@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LearnPath | Courses</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Plus Jakarta Sans"', "sans-serif"] }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="learn-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { useMemo, useState } = React;
+      const { Header, Footer, courses, categories, CourseCard } = window.LearnPathShared;
+
+      function App() {
+        const [activeCategory, setActiveCategory] = useState("All");
+        const [activeLevel, setActiveLevel] = useState("All");
+        const [activePrice, setActivePrice] = useState("All");
+        const [sortBy, setSortBy] = useState("popular");
+
+        const filteredCourses = useMemo(() => {
+          let next = [...courses];
+          if (activeCategory !== "All") next = next.filter((c) => c.category === activeCategory);
+          if (activeLevel !== "All") next = next.filter((c) => c.level === activeLevel);
+          if (activePrice !== "All") {
+            next = next.filter((c) => (activePrice === "Free" ? c.price === "Free" : c.price !== "Free"));
+          }
+          if (sortBy === "rated") next.sort((a, b) => b.rating - a.rating);
+          if (sortBy === "newest") next.reverse();
+          return next;
+        }, [activeCategory, activeLevel, activePrice, sortBy]);
+
+        return (
+          <>
+            <a href="#main-content" className="absolute left-4 top-4 z-50 -translate-y-20 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg focus:translate-y-0 focus-visible:translate-y-0">
+              Skip to main content
+            </a>
+            <Header activePath="courses.html" />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+              <section className="page-surface rounded-[2rem] p-8">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-800">Course discovery</p>
+                <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <h1 className="text-4xl font-extrabold tracking-tight text-slate-950">Courses</h1>
+                    <p className="mt-2 max-w-3xl text-base leading-7 text-slate-700">Find structured learning experiences by topic, level, time commitment, and price.</p>
+                  </div>
+                  <div className="w-full max-w-xs">
+                    <label htmlFor="sort-courses" className="mb-2 block text-sm font-semibold text-slate-700">Sort by</label>
+                    <select id="sort-courses" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900">
+                      <option value="popular">Most Popular</option>
+                      <option value="rated">Highest Rated</option>
+                      <option value="newest">Newest</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-8 grid gap-8 xl:grid-cols-[300px_1fr]">
+                <aside className="page-surface rounded-[1.75rem] p-6" aria-label="Course filters">
+                  <div className="space-y-8">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-950">Category</h2>
+                      <div className="mt-4 space-y-3">
+                        {["All", ...categories.map((c) => c.name)].map((item) => (
+                          <label key={item} className="flex items-center gap-3 text-sm text-slate-700">
+                            <input type="radio" name="category" checked={activeCategory === item} onChange={() => setActiveCategory(item)} className="h-4 w-4 border-slate-300 text-blue-700" />
+                            {item}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-950">Level</h2>
+                      <div className="mt-4 space-y-3">
+                        {["All", "Beginner", "Intermediate", "Advanced"].map((item) => (
+                          <label key={item} className="flex items-center gap-3 text-sm text-slate-700">
+                            <input type="radio" name="level" checked={activeLevel === item} onChange={() => setActiveLevel(item)} className="h-4 w-4 border-slate-300 text-blue-700" />
+                            {item}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-950">Duration</h2>
+                      <p className="mt-4 text-sm text-slate-600">Short, medium, and deep-dive pathways are available across categories.</p>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-950">Rating</h2>
+                      <p className="mt-4 text-sm text-slate-600">All featured courses are 4.6 ★ or higher.</p>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-950">Price</h2>
+                      <div className="mt-4 space-y-3">
+                        {["All", "Free", "Paid"].map((item) => (
+                          <label key={item} className="flex items-center gap-3 text-sm text-slate-700">
+                            <input type="radio" name="price" checked={activePrice === item} onChange={() => setActivePrice(item)} className="h-4 w-4 border-slate-300 text-blue-700" />
+                            {item}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </aside>
+
+                <div>
+                  <p className="mb-4 text-sm font-semibold text-slate-700">{filteredCourses.length} courses</p>
+                  <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    {filteredCourses.map((course, index) => (
+                      <CourseCard key={course.title} course={course} href={index === 0 && course.title === "Python for Data Science" ? "course.html" : "courses.html"} />
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom | Medical Admin Certificate | SkillForge</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { primary: '#0369a1', secondary: '#0f172a', accent: '#f59e0b' } } }
+        }
+    </script>
+    <style>
+        .focus-visible:focus-visible {
+            outline: 2px solid #f59e0b;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-slate-900 font-sans antialiased overflow-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const StudyApp = () => {
+            const [isPlaying, setIsPlaying] = React.useState(false);
+            const [isMuted, setIsMuted] = React.useState(false);
+            const [completedLessons, setCompletedLessons] = React.useState([1, 2]); // Lessons 1,2 checkmarked
+            const [loadingLesson, setLoadingLesson] = React.useState(false);
+
+            // Keyboard shortcuts for video player
+            const videoContainerRef = React.useRef(null);
+
+            const handleVideoKeydown = (e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    setIsPlaying(!isPlaying);
+                }
+            };
+
+            const handleLessonChange = (lessonId) => {
+                setLoadingLesson(true);
+                setTimeout(() => setLoadingLesson(false), 800);
+            };
+
+            return (
+                <div className="h-screen flex flex-col">
+                    <a href="#main-study-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-white p-2 z-[60] rounded">Skip to lesson content</a>
+
+                    {/* Minimal App Header for Study Tools */}
+                    <header className="bg-secondary text-white h-14 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-50 shadow-md relative">
+                        <div className="flex items-center gap-4">
+                            <a href="dashboard.html" className="text-gray-400 hover:text-white focus-visible rounded" aria-label="Back to Dashboard">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                            </a>
+                            <div className="h-6 w-px bg-gray-700" aria-hidden="true"></div>
+                            <h1 className="font-semibold text-lg truncate max-w-[200px] sm:max-w-md">Medical Administrative Assistant</h1>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm font-medium">
+                            <span className="hidden sm:inline-block bg-white/10 px-3 py-1 rounded border border-white/20">
+                                Week 3 of 8
+                            </span>
+                            <button aria-label="Toggle Progress Panel" className="focus-visible rounded text-primary hover:text-white bg-white hover:bg-white/20 px-3 py-1 transition-colors outline-none font-semibold">
+                                Your Progress: 38%
+                            </button>
+                        </div>
+                    </header>
+
+                    <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative" id="main-study-content">
+
+                        {/* Main Video Area (DOM Order 1 - For Cat_10 Screenreader Sequential Flow) */}
+                        <main className="flex-1 flex flex-col bg-black relative" aria-label="Video Player Workspace" aria-busy={loadingLesson}>
+                            {loadingLesson && (
+                                <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center text-white flex-col">
+                                    <svg className="w-12 h-12 mb-4 text-primary animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    <span className="font-semibold" aria-live="assertive">Loading next lesson...</span>
+                                </div>
+                            )}
+
+                            <div
+                                className="flex-1 relative group"
+                                ref={videoContainerRef}
+                                tabIndex="0"
+                                onKeyDown={handleVideoKeydown}
+                                aria-label="Video: Medical Billing Fundamentals. Press space to play or pause."
+                            >
+                                {/* Fake Video Box */}
+                                <div className="absolute inset-0 bg-gray-900 overflow-hidden flex items-center justify-center">
+                                    <img src="https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" alt="" className="w-full h-full object-cover opacity-60 pointer-events-none" aria-hidden="true" />
+                                    {!isPlaying && (
+                                        <button className="absolute inset-0 w-full h-full flex items-center justify-center group-hover:bg-black/20 transition-colors focus-visible outline-none z-10"
+                                            onClick={() => setIsPlaying(true)} aria-label="Play video">
+                                            <div className="w-20 h-20 bg-primary/90 text-white rounded-full flex items-center justify-center backdrop-blur-sm shadow-xl transform group-hover:scale-110 transition-transform focus-visible:ring-4 focus-visible:ring-accent">
+                                                <svg className="w-10 h-10 ml-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                                            </div>
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Video Controls Overlay - Does not permanently hide focus (Cat_6 requirement) */}
+                                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-4 flex flex-col opacity-100 md:opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 transition-opacity z-20">
+                                    <div className="flex items-center w-full mb-3 group/timeline cursor-pointer">
+                                        <div className="w-full h-1.5 bg-gray-600 rounded-full relative overflow-hidden" aria-hidden="true">
+                                            <div className="absolute left-0 top-0 bottom-0 bg-primary w-1/3"></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between text-white">
+                                        <div className="flex items-center gap-4">
+                                            <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-primary focus-visible text-white focus-within:ring-2 focus-within:ring-accent rounded transition-colors" aria-label={isPlaying ? "Pause" : "Play"}>
+                                                {isPlaying ? (
+                                                    <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                                ) : (
+                                                    <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                                                )}
+                                            </button>
+                                            <button onClick={() => setIsMuted(!isMuted)} className="hover:text-primary focus-visible text-white rounded transition-colors" aria-label={isMuted ? "Unmute Volume" : "Mute Volume"}>
+                                                {isMuted ? (
+                                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
+                                                ) : (
+                                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                                                )}
+                                            </button>
+                                            <span className="text-sm font-medium tabular-nums" aria-hidden="true">04:12 / 12:45</span>
+                                        </div>
+                                        <div>
+                                            <button className="hover:text-primary focus-visible text-white rounded transition-colors" aria-label="Fullscreen">
+                                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Interaction Panel Below Video */}
+                            <div className="h-2/5 min-h-[250px] bg-white border-t border-gray-200 overflow-y-auto">
+                                <div role="tablist" aria-label="Study Tools" className="flex border-b border-gray-200 sticky top-0 bg-white z-10 px-4">
+                                    <button role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" className="px-5 py-3 text-sm font-medium border-b-2 border-primary text-primary focus-visible outline-none rounded-t">Overview & Resources</button>
+                                    <button role="tab" aria-selected="false" aria-controls="panel-discussion" id="tab-discussion" className="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 focus-visible outline-none rounded-t">Discussion (24)</button>
+                                    <button role="tab" aria-selected="false" aria-controls="panel-notes" id="tab-notes" className="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 focus-visible outline-none rounded-t">My Notes</button>
+                                </div>
+
+                                <div id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" className="p-6">
+                                    <h2 className="text-xl font-bold text-secondary mb-2">Lesson 3: Introduction to ICD-10 Coding</h2>
+                                    <p className="text-gray-700 mb-6">In this lesson, we will cover the structure of the ICD-10-CM code set, how to interpret alphanumeric codes, and the guidelines for accurate diagnosis coding in outpatient settings.</p>
+
+                                    <h3 className="font-semibold text-secondary mb-3">Downloads & Links</h3>
+                                    <ul className="space-y-2">
+                                        <li><a href="#" className="flex items-center gap-2 text-primary hover:underline text-sm focus-visible rounded"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> ICD-10 Quick Reference Guide (PDF)</a></li>
+                                        <li><a href="#" className="flex items-center gap-2 text-primary hover:underline text-sm focus-visible rounded"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg> Official CMS Coding Guidelines</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </main>
+
+                        {/* Sidebar (DOM Order 2 - visually on left/right depending on md:flex-row-reverse if needed, but flex-row means it's on right visually if placed 2nd. The requirement says "Sidebar must appear after main video content in DOM order for screen readers") */}
+                        <aside className="w-full md:w-[350px] lg:w-[400px] h-full flex flex-col bg-gray-50 border-l border-gray-200 z-10 flex-shrink-0" aria-label="Course Curriculum and Schedule">
+
+                            {/* Upcoming Live Session Panel */}
+                            <div className="bg-blue-900 text-white p-4 flex-shrink-0">
+                                <div className="text-xs font-bold uppercase tracking-wider text-blue-300 mb-1">Next Live Session</div>
+                                <div className="font-semibold mb-2">Billing Q&A with Dr. Lin</div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center gap-1"><svg className="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Starts in 2h 45m</span>
+                                    <button className="bg-accent hover:bg-yellow-600 text-secondary font-bold px-3 py-1 rounded text-xs transition-colors focus-visible outline-none">Join Zoom</button>
+                                </div>
+                            </div>
+
+                            {/* Module Header */}
+                            <div className="p-4 border-b border-gray-200 bg-white sticky top-0 shadow-sm flex-shrink-0">
+                                <h2 className="font-bold text-secondary text-lg">Module 4: Billing</h2>
+                                <p className="text-sm text-gray-500">3 of 5 lessons completed</p>
+                                <div className="w-full bg-gray-200 h-1.5 mt-2 rounded-full overflow-hidden" aria-hidden="true">
+                                    <div className="bg-primary h-full w-[60%]"></div>
+                                </div>
+                            </div>
+
+                            {/* Lesson Items */}
+                            <div className="flex-1 overflow-y-auto">
+                                <nav aria-label="Module Lessons List">
+                                    <ul className="flex flex-col">
+                                        {[
+                                            { id: 1, title: 'Health Insurance Basics', duration: '15:20', type: 'video' },
+                                            { id: 2, title: 'Medicare & Medicaid Overview', duration: '22:10', type: 'video' },
+                                            { id: 3, title: 'Introduction to ICD-10 Coding', duration: '12:45', type: 'video', isCurrent: true },
+                                            { id: 4, title: 'CPT & HCPCS Coding', duration: '18:30', type: 'video' },
+                                            { id: 5, title: 'Module 4 Practice Quiz', duration: '15 mins', type: 'quiz' }
+                                        ].map(lesson => {
+                                            const isCompleted = completedLessons.includes(lesson.id);
+                                            return (
+                                                <li key={lesson.id} className={`border-b border-gray-100 last:border-0`}>
+                                                    <button
+                                                        className={`w-full flex items-start gap-3 p-4 text-left transition-colors focus-visible outline-none ${lesson.isCurrent ? 'bg-primary/10 hover:bg-primary/15' : 'bg-white hover:bg-gray-50'}`}
+                                                        onClick={() => handleLessonChange(lesson.id)}
+                                                        aria-current={lesson.isCurrent ? "true" : "false"}
+                                                        role="link"
+                                                    >
+                                                        <div className="mt-0.5 flex-shrink-0">
+                                                            {/* Programmatically convey completion state via aria-label on the icon container if used alone, or aria-checked if role=checkbox/switch, but here simply part of the text or aria-label */}
+                                                            {isCompleted ? (
+                                                                <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20" aria-label="Completed">
+                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                                </svg>
+                                                            ) : lesson.isCurrent ? (
+                                                                <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20" aria-label="Current">
+                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                                                </svg>
+                                                            ) : (
+                                                                <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                                    <circle cx="12" cy="12" r="9" strokeWidth="2" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className={`text-sm font-medium ${lesson.isCurrent ? 'text-primary' : 'text-gray-700'}`}>
+                                                                <span className="sr-only">{isCompleted ? 'Completed: ' : lesson.isCurrent ? 'Current Lesson: ' : ''}</span>
+                                                                {lesson.title}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                                {lesson.type === 'video' ? <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" /></svg>
+                                                                    : <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>}
+                                                                <span>{lesson.duration}</span>
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </nav>
+
+                                <div className="p-4 mt-4 border-t border-gray-200">
+                                    <div className="bg-gray-100 rounded-lg p-4 flex items-center justify-between border border-gray-200">
+                                        <div>
+                                            <div className="font-semibold text-secondary text-sm">Module Assignment</div>
+                                            <div className="text-xs text-gray-500 mt-0.5">Due Friday, 11:59 PM</div>
+                                        </div>
+                                        <button className="bg-white border border-gray-300 hover:bg-gray-50 text-secondary text-xs font-bold px-3 py-1.5 rounded focus-visible outline-none">Submit</button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<StudyApp />);
+    </script>
+</body>
+
+</html>

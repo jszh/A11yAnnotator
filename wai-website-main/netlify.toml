@@ -1,0 +1,29 @@
+[context.production]
+# Applies to the staging environment, generated from the `main` branch.
+command = "npm install && bundle exec jekyll build --profile --trace --config '_config.yml,_config_staging.yml'"
+# with debugging: command = "npm install && bundle exec jekyll build --verbose --trace --config '_config.yml,_config_staging.yml'"
+
+[context.deploy-preview]
+# Applies to deploy previews, generated from pull requests.
+# Use the latest versions of submodules, wai-website-theme and wai-website-plugin
+# Include posts with a future date
+command = "git submodule update --init --remote && npm install && bundle update wai-website-theme --conservative && bundle update wai-website-plugin --conservative && bundle exec jekyll build --profile --trace --config '_config.yml,_config_staging.yml' --future"
+# with debugging: command = "git submodule update --init --remote && bundle exec jekyll build --verbose --trace --config '_config.yml,_config_staging.yml' --future"
+
+[build]
+publish = "_site"
+
+[build.environment]
+RUBY_VERSION = "3.4.8"
+
+[[redirects]]
+from = "/wai-website"
+to = "/"
+status = 404
+
+[dev]
+command = "bundle exec jekyll serve -w --livereload --config _config.yml,_config_staging.yml"
+
+[functions]
+directory = "_functions"
+node_bundler = "esbuild"

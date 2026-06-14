@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About – CivicGate | Westfield County</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { gov: { DEFAULT:"#1a4480", dark:"#0d2b5e" } },
+          fontFamily: { sans:["Inter","system-ui","sans-serif"] }
+        }
+      }
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 antialiased">
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const NAV = [
+  { label:"Home",     href:"index.html" },
+  { label:"Services", href:"services.html" },
+  { label:"About",    href:"about.html" },
+  { label:"Contact",  href:"contact.html" },
+];
+
+function AlertBanner() {
+  const [visible, setVisible] = useState(true);
+  if (!visible) return null;
+  return (
+    <div className="bg-amber-50 border-b-2 border-amber-300" role="alert">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-start sm:items-center gap-3">
+        <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+        <p className="text-sm text-amber-900 flex-1"><strong>Service Alert:</strong> Online permit portal maintenance Saturday, March 1, 2–4 AM. <a href="#" className="underline font-semibold">Details →</a></p>
+        <button onClick={() => setVisible(false)} className="text-amber-600 hover:text-amber-900 shrink-0 transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+    </div>
+  );
+}
+
+function Header({ active }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  return (
+    <header>
+      <div className="bg-slate-900 border-b border-slate-700"><div className="max-w-7xl mx-auto px-4 sm:px-6 py-1.5 flex items-center justify-between"><div className="flex items-center gap-1.5 text-xs text-slate-400"><svg className="w-3 h-3 text-blue-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd"/></svg><span>Official government portal — Westfield County, California</span></div><div className="hidden sm:flex items-center gap-4 text-xs text-slate-400"><a href="#" className="hover:text-white">Español</a><a href="#" className="hover:text-white">♿ Accessibility</a><a href="#" className="bg-blue-700 hover:bg-blue-600 text-white px-2.5 py-1 rounded font-medium">Resident Sign In</a></div></div></div>
+      <div className="bg-slate-800 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+          <a href="index.html" className="flex items-center gap-3 shrink-0"><div className="w-11 h-11 bg-blue-700 rounded-lg flex items-center justify-center"><svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd"/></svg></div><div><p className="text-white font-bold text-lg leading-tight">Westfield County</p><p className="text-blue-300 text-xs">CivicGate Resident Portal</p></div></a>
+          <nav className="hidden md:flex items-center gap-1">{NAV.map(item => <a key={item.href} href={item.href} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${active === item.href ? "bg-blue-700 text-white" : "text-slate-200 hover:bg-slate-700 hover:text-white"}`}>{item.label}</a>)}</nav>
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden text-slate-300 hover:text-white p-2 rounded-lg hover:bg-slate-700"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={mobileOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}/></svg></button>
+        </div>
+        {mobileOpen && <div className="md:hidden border-t border-slate-700 px-4 py-3 space-y-1">{NAV.map(item => <a key={item.href} href={item.href} className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-medium ${active === item.href ? "bg-blue-700 text-white" : "text-slate-200 hover:bg-slate-700"}`}>{item.label}</a>)}</div>}
+      </div>
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-slate-900 text-slate-400 mt-16">
+      <div className="bg-slate-800 border-b border-slate-700"><div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-start gap-3"><span className="text-blue-400 text-xl">🏛️</span><div><p className="text-sm text-white font-semibold">Official Website of Westfield County, California</p><p className="text-xs text-slate-400 mt-0.5">For emergencies call <strong className="text-slate-300">911</strong>. County non-emergency: <strong className="text-slate-300">(559) 555-0100</strong>.</p></div></div></div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
+        {[{title:"Services",links:[["Permits & Licensing","permits.html"],["Benefits & Assistance","benefits.html"],["Tax Payments","services.html"]]},{title:"Government",links:[["About","about.html"],["Departments","about.html"],["Public Records","about.html"]]},{title:"Community",links:[["News","#"],["Events","#"],["Parks","#"]]},{title:"Help",links:[["Contact Us","contact.html"],["FAQ","contact.html"],["Accessibility","#"]]}].map(col => (
+          <div key={col.title}><p className="text-white text-sm font-semibold mb-3 pb-2 border-b border-slate-700">{col.title}</p><ul className="space-y-2">{col.links.map(([l,h]) => <li key={l}><a href={h} className="text-xs hover:text-white hover:underline transition-colors">{l}</a></li>)}</ul></div>
+        ))}
+      </div>
+      <div className="border-t border-slate-800"><div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500"><span>© 2026 Westfield County, California. All rights reserved.</span><div className="flex gap-3">{["Privacy Policy","Terms of Use","Accessibility"].map(l => <a key={l} href="#" className="hover:text-slate-300">{l}</a>)}</div></div></div>
+    </footer>
+  );
+}
+
+function Breadcrumb({ items }) {
+  return (
+    <nav className="bg-white border-b border-slate-200" aria-label="Breadcrumb">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center gap-1.5 text-sm flex-wrap">
+        <a href="index.html" className="text-blue-700 hover:underline">Home</a>
+        {items.map((item, i) => (
+          <React.Fragment key={i}>
+            <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+            {item.href ? <a href={item.href} className="text-blue-700 hover:underline">{item.label}</a> : <span className="text-slate-500">{item.label}</span>}
+          </React.Fragment>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+const LEADERSHIP = [
+  { name:"Margaret L. Torres", title:"County Executive Officer", dept:"Office of the CEO", img:"https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&h=120&fit=crop&crop=face" },
+  { name:"Dr. Raymond Osei",   title:"Deputy CEO — Operations",  dept:"Office of the CEO", img:"https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=120&h=120&fit=crop&crop=face" },
+  { name:"Sandra Kim",         title:"Director, Human Services", dept:"Human Services",    img:"https://images.unsplash.com/photo-1587614382346-4ec70e388b28?w=120&h=120&fit=crop&crop=face" },
+  { name:"James Whitfield",    title:"Director, Public Works",   dept:"Public Works",      img:"https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&h=120&fit=crop&crop=face" },
+  { name:"Priya Nair",         title:"County Counsel",           dept:"Legal Affairs",     img:"https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&h=120&fit=crop&crop=face" },
+  { name:"Carlos Mendez",      title:"Director, Public Health",  dept:"Public Health",     img:"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=face" },
+];
+
+const DEPARTMENTS = [
+  { icon:"🏗️", name:"Building & Safety",          desc:"Permits, inspections, and code enforcement for construction and development projects." },
+  { icon:"🤝", name:"Human Services",              desc:"Benefits, assistance programs, foster care, and social services for residents in need." },
+  { icon:"⚕️", name:"Public Health",               desc:"Disease prevention, environmental health, community clinics, and vital records." },
+  { icon:"🚔", name:"Sheriff's Office",            desc:"Law enforcement, jail operations, court security, and emergency services." },
+  { icon:"🛣️", name:"Public Works",                desc:"Roads, bridges, flood control, solid waste, and transportation infrastructure." },
+  { icon:"📚", name:"Library Services",            desc:"Public libraries, digital resources, literacy programs, and community events." },
+  { icon:"⚖️", name:"County Counsel",              desc:"Legal representation for the county, ordinance drafting, and contract review." },
+  { icon:"💰", name:"Assessor-Recorder-Clerk",     desc:"Property assessments, real estate records, vital records, and election services." },
+  { icon:"🌳", name:"Parks & Recreation",          desc:"County parks, trails, open spaces, and recreational programs for all ages." },
+  { icon:"🔥", name:"Fire Department",             desc:"Fire suppression, emergency medical services, hazmat response, and fire prevention." },
+  { icon:"🏛️", name:"Board of Supervisors",        desc:"Elected governing body responsible for county policy, budget, and legislation." },
+  { icon:"📊", name:"Finance & Budget",            desc:"County budget, financial reporting, procurement, and taxpayer accountability." },
+];
+
+const SUPERVISORS = [
+  { name:"Patricia Holloway",  district:"District 1 — East Valley",      since:"2018" },
+  { name:"Victor Gutierrez",   district:"District 2 — Westfield City",   since:"2020" },
+  { name:"Amelia Zhou",        district:"District 3 — North County",     since:"2016" },
+  { name:"Robert D. Freeman",  district:"District 4 — South Valley",     since:"2022" },
+  { name:"Nadia Al-Rashid",    district:"District 5 — Central & Hills",  since:"2024" },
+];
+
+const STATS = [
+  { val:"247,000+", label:"Residents Served" },
+  { val:"2,800+",   label:"County Employees" },
+  { val:"$890M",    label:"Annual Budget (FY2026)" },
+  { val:"1,432",    label:"Square Miles" },
+];
+
+const MILESTONES = [
+  { year:"1853", event:"Westfield County established by California Legislature; first county seat set in Maplewood." },
+  { year:"1892", event:"County Hall completed; administration consolidated at 200 Civic Center Drive." },
+  { year:"1945", event:"Public Health Department founded; first county hospital opens in East Valley." },
+  { year:"1968", event:"County Library system established; six branches opened across the county." },
+  { year:"1995", event:"County website launched; first digital public records portal in the Central Valley region." },
+  { year:"2014", event:"CivicGate online portal launched, consolidating 40+ services into a single resident-facing platform." },
+  { year:"2026", event:"CivicGate 3.0 launched with full mobile accessibility, AI-assisted service navigation, and real-time application tracking." },
+];
+
+function AboutPage() {
+  const [activeSection, setActiveSection] = useState("overview");
+
+  const SECTIONS = [
+    { id:"overview",     label:"Overview" },
+    { id:"leadership",   label:"Leadership" },
+    { id:"departments",  label:"Departments" },
+    { id:"supervisors",  label:"Board of Supervisors" },
+    { id:"history",      label:"History" },
+    { id:"transparency", label:"Transparency" },
+  ];
+
+  return (
+    <>
+      <AlertBanner />
+      <Header active="about.html" />
+      <Breadcrumb items={[{ label:"About" }]} />
+
+      {/* Page hero */}
+      <div className="bg-slate-800 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 bg-blue-700 rounded-xl flex items-center justify-center text-3xl shrink-0">🏛️</div>
+            <div>
+              <p className="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-1">About Westfield County</p>
+              <h1 className="text-2xl md:text-3xl font-bold leading-tight">Serving Our Community Since 1853</h1>
+              <p className="text-slate-300 mt-2 text-sm leading-relaxed max-w-2xl">Westfield County is committed to transparent, efficient, and equitable local government — delivering services that improve the quality of life for all residents.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats bar */}
+      <div className="bg-blue-700 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          {STATS.map(s => (
+            <div key={s.label}>
+              <p className="text-2xl font-bold">{s.val}</p>
+              <p className="text-blue-200 text-xs mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Content with sidebar nav */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col lg:flex-row gap-8">
+
+        {/* Section nav */}
+        <aside className="lg:w-56 shrink-0">
+          <nav className="bg-white border border-slate-200 rounded-2xl overflow-hidden sticky top-4">
+            <p className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">On This Page</p>
+            {SECTIONS.map(s => (
+              <button key={s.id} onClick={() => setActiveSection(s.id)}
+                className={`w-full text-left px-4 py-3 text-sm font-medium border-b border-slate-50 last:border-0 transition-colors ${activeSection === s.id ? "bg-blue-50 text-blue-700 border-l-2 border-l-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+                {s.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 min-w-0">
+
+          {activeSection === "overview" && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 mb-4">Our Mission</h2>
+                <div className="bg-blue-50 border-l-4 border-blue-700 pl-5 py-4 pr-4 rounded-r-xl mb-6">
+                  <p className="text-blue-900 font-semibold italic text-base leading-relaxed">"To deliver transparent, efficient, and equitable public services that strengthen the well-being of every Westfield County resident."</p>
+                </div>
+                <p className="text-slate-700 leading-relaxed mb-4">Westfield County is a general law county in California's Central Valley, governed by an elected five-member Board of Supervisors. We provide over 70 distinct services across 12 departments, from permitting and social services to public health, roads, and parks.</p>
+                <p className="text-slate-700 leading-relaxed">Our CivicGate portal is part of our commitment to making government more accessible — whether you need to pay a bill, apply for assistance, or simply find out which department handles your concern, we're here to help 24/7.</p>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-4">
+                {[
+                  { icon:"⚖️", title:"Accountable", desc:"Regular audits, open budget data, and published performance reports keep us answerable to residents." },
+                  { icon:"🌍", title:"Inclusive", desc:"Services in 20+ languages; ADA-compliant facilities and digital tools; equity reviews on new programs." },
+                  { icon:"💡", title:"Innovative", desc:"Continuous improvement in digital services, data-driven policy, and streamlined resident experience." },
+                ].map(v => (
+                  <div key={v.title} className="bg-white border border-slate-200 rounded-xl p-5">
+                    <div className="text-3xl mb-3">{v.icon}</div>
+                    <h3 className="font-bold text-slate-800 mb-1.5">{v.title}</h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">{v.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-slate-100 rounded-2xl p-6">
+                <h3 className="font-bold text-slate-800 mb-3">Quick Facts</h3>
+                <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                  {[
+                    ["County Seat","Westfield City, CA 93720"],
+                    ["Founded","1853"],
+                    ["Area","1,432 sq miles"],
+                    ["Population","247,000+ (2025 estimate)"],
+                    ["Incorporated Cities","4 (Westfield City, Maplewood, Riverdale, Oak Grove)"],
+                    ["County Seat","200 Civic Center Drive, Westfield City"],
+                    ["Governing Body","5-member Board of Supervisors"],
+                    ["Fiscal Year","July 1 – June 30"],
+                  ].map(([label, val]) => (
+                    <div key={label} className="flex gap-2">
+                      <span className="text-slate-500 shrink-0 w-36">{label}:</span>
+                      <span className="text-slate-800 font-medium">{val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === "leadership" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 mb-1">County Leadership</h2>
+                <p className="text-slate-600 text-sm leading-relaxed">Senior leadership is responsible for day-to-day administration and implementation of Board of Supervisors policy.</p>
+              </div>
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {LEADERSHIP.map(leader => (
+                  <div key={leader.name} className="bg-white border border-slate-200 rounded-xl p-5 flex items-start gap-4">
+                    <img src={leader.img} alt={leader.name} className="w-14 h-14 rounded-full object-cover shrink-0 bg-slate-200" onError={e => { e.target.style.display="none"; }} />
+                    <div>
+                      <p className="font-bold text-slate-800 text-sm">{leader.name}</p>
+                      <p className="text-blue-700 text-xs font-semibold mt-0.5">{leader.title}</p>
+                      <p className="text-slate-500 text-xs mt-0.5">{leader.dept}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-600">
+                <p>Westfield County follows a Council-Manager structure. The Board of Supervisors sets policy; the County Executive Officer (CEO) manages day-to-day operations across all departments. The CEO reports directly to the Board.</p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === "departments" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 mb-1">County Departments</h2>
+                <p className="text-slate-600 text-sm">Westfield County operates 12 primary departments serving residents across a wide range of needs.</p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {DEPARTMENTS.map(dept => (
+                  <div key={dept.name} className="bg-white border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm transition-all">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl shrink-0">{dept.icon}</span>
+                      <div>
+                        <h3 className="font-bold text-slate-800 text-sm">{dept.name}</h3>
+                        <p className="text-xs text-slate-600 mt-1 leading-relaxed">{dept.desc}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900">
+                <span className="font-semibold">Not sure which department handles your issue?</span> Use the search on our <a href="services.html" className="underline font-semibold">Services page</a> or <a href="contact.html" className="underline font-semibold">contact us</a> — we'll direct you to the right department.
+              </div>
+            </div>
+          )}
+
+          {activeSection === "supervisors" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 mb-1">Board of Supervisors</h2>
+                <p className="text-slate-600 text-sm leading-relaxed">The Board of Supervisors is the elected governing body of Westfield County. The Board sets county policy, approves the annual budget, and represents residents across five districts. Board meetings are held on the 1st and 3rd Tuesday of each month at 9:00 AM in the Board Chamber, County Hall.</p>
+              </div>
+              <div className="space-y-3">
+                {SUPERVISORS.map((sup, i) => (
+                  <div key={sup.name} className="bg-white border border-slate-200 rounded-xl p-5 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-700 text-white font-bold text-lg rounded-full flex items-center justify-center shrink-0">{i + 1}</div>
+                    <div className="flex-1">
+                      <p className="font-bold text-slate-800">{sup.name}</p>
+                      <p className="text-sm text-slate-500">{sup.district}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">Since {sup.since}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="grid sm:grid-cols-3 gap-4 text-sm">
+                {[
+                  { icon:"📅", title:"Meeting Schedule", detail:"1st & 3rd Tuesday, 9:00 AM" },
+                  { icon:"📍", title:"Location", detail:"Board Chamber, County Hall, 200 Civic Center Dr" },
+                  { icon:"📺", title:"Watch Live", detail:"Livestreamed at westfieldcounty.gov/boardmeetings" },
+                ].map(item => (
+                  <div key={item.title} className="bg-white border border-slate-200 rounded-xl p-4">
+                    <p className="text-2xl mb-2">{item.icon}</p>
+                    <p className="font-semibold text-slate-800 text-xs uppercase tracking-wide mb-1">{item.title}</p>
+                    <p className="text-slate-600 text-xs">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeSection === "history" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 mb-1">County History</h2>
+                <p className="text-slate-600 text-sm leading-relaxed">From a frontier settlement in the 1850s to a thriving Central Valley county of nearly 250,000 residents, Westfield County's history reflects California's growth and the enduring importance of local government.</p>
+              </div>
+              <div className="relative">
+                <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-slate-200" />
+                <div className="space-y-6">
+                  {MILESTONES.map(m => (
+                    <div key={m.year} className="flex gap-5 relative">
+                      <div className="shrink-0 w-10 h-10 rounded-full bg-blue-700 text-white font-bold text-xs flex items-center justify-center relative z-10 leading-tight text-center">{m.year}</div>
+                      <div className="flex-1 pb-2 pt-1.5">
+                        <p className="text-sm text-slate-700 leading-relaxed">{m.event}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-slate-100 rounded-xl p-5 text-sm text-slate-700">
+                <p className="font-semibold mb-1">Historical Archives</p>
+                <p className="leading-relaxed">Historical records, county ordinances, and archival documents are maintained by the Assessor-Recorder-Clerk's Office and the Westfield County Library Special Collections. Public records requests can be submitted through the <a href="contact.html" className="text-blue-700 underline">Contact page</a>.</p>
+              </div>
+            </div>
+          )}
+
+          {activeSection === "transparency" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 mb-1">Transparency & Accountability</h2>
+                <p className="text-slate-600 text-sm leading-relaxed">Westfield County is committed to open government. We publish financial data, performance metrics, and meeting records to help residents understand how public funds are spent and how decisions are made.</p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {[
+                  { icon:"📊", title:"Annual Budget", desc:"Published each July. FY2026 adopted budget: $890M. Full line-item detail available online.", link:"View FY2026 Budget" },
+                  { icon:"📋", title:"Audited Financial Reports", desc:"Independent audits conducted annually. Comprehensive Annual Financial Report (CAFR) published each December.", link:"View CAFR" },
+                  { icon:"📰", title:"Board Meeting Minutes", desc:"Full agendas, meeting packets, and approved minutes published within 5 days of each meeting.", link:"View Meeting Records" },
+                  { icon:"📂", title:"Public Records (CPRA)", desc:"California Public Records Act requests processed within 10 business days. Submit requests online or in person.", link:"Submit a CPRA Request" },
+                  { icon:"🔍", title:"Open Data Portal", desc:"Datasets on county services, budgets, permits, and demographics available for public download.", link:"Explore Open Data" },
+                  { icon:"📣", title:"Performance Dashboard", desc:"Key performance indicators tracked across all departments, updated quarterly.", link:"View Dashboard" },
+                ].map(item => (
+                  <div key={item.title} className="bg-white border border-slate-200 rounded-xl p-5">
+                    <p className="text-2xl mb-3">{item.icon}</p>
+                    <h3 className="font-bold text-slate-800 text-sm mb-1.5">{item.title}</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed mb-3">{item.desc}</p>
+                    <a href="#" className="text-blue-700 text-xs font-semibold hover:underline">{item.link} →</a>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex gap-3">
+                <svg className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+                <div>
+                  <p className="text-sm font-semibold text-emerald-900">Report Fraud, Waste, or Abuse</p>
+                  <p className="text-sm text-emerald-800 mt-0.5">Contact the County Fraud Hotline at <strong>(559) 555-TIPS</strong> or submit an anonymous report online. All reports are investigated by the Internal Audit Division.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </main>
+      </div>
+
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<AboutPage />);
+</script>
+</body>
+</html>

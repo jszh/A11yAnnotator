@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Permits &amp; Licenses | City of Lakewood</title>
+  <meta name="description" content="Apply for building permits, business licenses, and special event permits online. Track existing permit applications for the City of Lakewood." />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #skip-link { position:absolute; top:-48px; left:0; background:#1e3a8a; color:#fff; padding:10px 20px; font-weight:700; font-size:.875rem; text-decoration:none; z-index:9999; border-radius:0 0 6px 0; transition:top .1s; }
+    #skip-link:focus { top:0; }
+    :focus-visible { outline:3px solid #f59e0b; outline-offset:2px; }
+    :focus:not(:focus-visible) { outline:none; }
+    #main-content:focus { outline:none; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+  <a href="#main-content" id="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    /* ---- Shared Header ---- */
+    function CityHeader({ currentPage }) {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const menuBtnRef = useRef(null);
+      useEffect(() => {
+        function onKey(e) { if (e.key==='Escape'&&menuOpen) { setMenuOpen(false); menuBtnRef.current?.focus(); } }
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+      }, [menuOpen]);
+      const links = [{href:'index.html',label:'Home',id:'home'},{href:'services.html',label:'Services',id:'services'},{href:'about.html',label:'About',id:'about'},{href:'contact.html',label:'Contact',id:'contact'}];
+      return (
+        <header className="bg-blue-900 shadow-md" role="banner">
+          <div className="bg-blue-950 text-blue-300 text-xs"><div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-between"><span>Official Website of the City of Lakewood, Colorado</span><div className="flex items-center gap-4"><a href="#" className="hover:text-white underline rounded focus:outline-none focus:ring-1 focus:ring-amber-400">Translate</a><span aria-hidden="true" className="text-blue-600">|</span><a href="#" className="hover:text-white underline rounded focus:outline-none focus:ring-1 focus:ring-amber-400">Accessibility</a></div></div></div>
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <a href="index.html" className="flex items-center gap-3 rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-blue-900" aria-label="City of Lakewood — Return to homepage">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="white" stroke="#1e3a8a" strokeWidth="1"/><circle cx="24" cy="24" r="20" fill="#1e3a8a"/><polygon points="24,9 26.9,17.6 36,17.6 28.5,22.8 31.4,31.5 24,26.2 16.6,31.5 19.5,22.8 12,17.6 21.1,17.6" fill="#f59e0b"/><text x="24" y="39" textAnchor="middle" fill="white" fontSize="3.8" fontFamily="Arial,sans-serif" fontWeight="bold">LAKEWOOD</text></svg>
+              <div><div className="text-white font-bold text-xl leading-tight tracking-tight">City of Lakewood</div><div className="text-blue-300 text-xs tracking-widest uppercase font-medium">Colorado · Est. 1969</div></div>
+            </a>
+            <nav aria-label="Main navigation" className="hidden md:flex items-center gap-1">
+              {links.map(l=><a key={l.id} href={l.href} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-blue-900 ${currentPage===l.id?'bg-white text-blue-900 font-semibold':'text-blue-100 hover:bg-blue-800 hover:text-white'}`} aria-current={currentPage===l.id?'page':undefined}>{l.label}</a>)}
+              <a href="pay-bill.html" className="ml-2 bg-amber-500 hover:bg-amber-400 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-900" aria-label="Pay your city utility bill online">Pay a Bill</a>
+            </nav>
+            <button ref={menuBtnRef} onClick={()=>setMenuOpen(o=>!o)} aria-expanded={menuOpen} aria-controls="mobile-menu" aria-label={menuOpen?'Close navigation menu':'Open navigation menu'} className="md:hidden text-white p-2 rounded-lg hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-amber-400">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">{menuOpen?<path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>:<path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>}</svg>
+            </button>
+          </div>
+          {menuOpen && <nav id="mobile-menu" aria-label="Mobile navigation" className="md:hidden border-t border-blue-800"><ul className="px-4 py-3 space-y-1" role="list">{links.map(l=><li key={l.id}><a href={l.href} className={`block px-4 py-2.5 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 ${currentPage===l.id?'bg-white text-blue-900 font-semibold':'text-blue-100 hover:bg-blue-800'}`} aria-current={currentPage===l.id?'page':undefined}>{l.label}</a></li>)}<li><a href="pay-bill.html" className="block px-4 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-400 mt-2 focus:outline-none focus:ring-2 focus:ring-white">Pay a Bill</a></li></ul></nav>}
+        </header>
+      );
+    }
+
+    /* ---- Shared Footer ---- */
+    function CityFooter() {
+      return (
+        <footer className="bg-blue-950 text-white" role="contentinfo">
+          <div className="max-w-7xl mx-auto px-4 py-10">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              <div><a href="index.html" className="inline-flex items-center gap-2 mb-3 rounded focus:outline-none focus:ring-2 focus:ring-amber-400" aria-label="City of Lakewood homepage"><svg width="32" height="32" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="white"/><circle cx="24" cy="24" r="20" fill="#1e3a8a"/><polygon points="24,9 26.9,17.6 36,17.6 28.5,22.8 31.4,31.5 24,26.2 16.6,31.5 19.5,22.8 12,17.6 21.1,17.6" fill="#f59e0b"/></svg><span className="font-bold">City of Lakewood</span></a><address className="not-italic text-blue-300 text-sm">480 S. Allison Pkwy, Lakewood CO 80226<br/><a href="tel:+13039877000" className="text-blue-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">(303) 987-7000</a></address></div>
+              <nav aria-label="Services footer navigation"><h2 className="text-white text-xs font-bold uppercase tracking-widest mb-3">Quick Links</h2><ul className="space-y-2" role="list">{[{l:'Pay a Bill',h:'pay-bill.html'},{l:'All Services',h:'services.html'},{l:'About Lakewood',h:'about.html'},{l:'Contact Us',h:'contact.html'}].map(i=><li key={i.l}><a href={i.h} className="text-blue-300 hover:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">{i.l}</a></li>)}</ul></nav>
+              <div><h2 className="text-white text-xs font-bold uppercase tracking-widest mb-3">Office Hours</h2><p className="text-blue-300 text-sm">Monday – Friday<br/>8:00 AM – 5:00 PM<br/>Closed on Federal Holidays</p></div>
+            </div>
+            <div className="border-t border-blue-800 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-blue-400">
+              <p>© 2024 City of Lakewood, Colorado. All rights reserved.</p>
+              <nav aria-label="Legal links"><ul className="flex gap-4" role="list">{['Privacy Policy','Accessibility','Sitemap'].map(i=><li key={i}><a href="#" className="hover:text-blue-200 focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">{i}</a></li>)}</ul></nav>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ---- Permits Page ---- */
+    const STEPS = ['Applicant Info', 'Project Details', 'Documents', 'Review & Submit'];
+
+    function ProgressBar({ step }) {
+      return (
+        <nav aria-label="Application progress" className="mb-8">
+          <ol className="flex items-center" role="list">
+            {STEPS.map((label, idx) => {
+              const num = idx + 1;
+              const done = num < step;
+              const active = num === step;
+              return (
+                <li key={label} className="flex-1 flex flex-col items-center">
+                  <div className="flex items-center w-full">
+                    {idx > 0 && <div className={`flex-1 h-1 ${done ? 'bg-blue-600' : 'bg-gray-200'}`} aria-hidden="true"/>}
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${active ? 'bg-blue-700 text-white ring-4 ring-blue-200' : done ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`} aria-current={active ? 'step' : undefined}>
+                      {done ? <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> : num}
+                    </div>
+                    {idx < STEPS.length - 1 && <div className={`flex-1 h-1 ${done ? 'bg-blue-600' : 'bg-gray-200'}`} aria-hidden="true"/>}
+                  </div>
+                  <span className={`mt-2 text-xs font-medium text-center ${active ? 'text-blue-700' : done ? 'text-blue-600' : 'text-gray-400'}`}>
+                    {label}
+                    <span className="sr-only">{done ? ' — completed' : active ? ' — current step' : ''}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      );
+    }
+
+    function Step1({ data, onChange, errors, onNext }) {
+      const headingRef = useRef(null);
+      useEffect(() => { headingRef.current?.focus(); }, []);
+
+      const inp = (id, label, type='text', required=true, opts={}) => (
+        <div>
+          <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+            {label}{required && <span className="text-red-600 ml-0.5" aria-hidden="true">*</span>}
+          </label>
+          <input
+            id={id} type={type} value={data[id]||''} onChange={e=>onChange(id, e.target.value)}
+            aria-required={required} aria-describedby={errors[id]?`err-${id}`:undefined}
+            className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors[id]?'border-red-500 bg-red-50':'border-gray-300'}`}
+            {...opts}
+          />
+          {errors[id] && <p id={`err-${id}`} role="alert" className="mt-1 text-xs text-red-600 flex items-center gap-1"><svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>{errors[id]}</p>}
+        </div>
+      );
+
+      return (
+        <fieldset>
+          <legend ref={headingRef} tabIndex={-1} className="text-xl font-bold text-gray-900 mb-6 focus:outline-none w-full">
+            Step 1: Applicant Information
+          </legend>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {inp('firstName','First Name')}
+            {inp('lastName','Last Name')}
+            {inp('email','Email Address','email',true,{autoComplete:'email'})}
+            {inp('phone','Phone Number','tel',true,{autoComplete:'tel',placeholder:'(303) 555-0100'})}
+            {inp('company','Company / Organization Name','text',false)}
+            {inp('license','Contractor License # (if applicable)','text',false)}
+          </div>
+          <div className="mt-5">
+            {inp('address','Project Site Address',undefined,true,{placeholder:'123 Main St, Lakewood, CO 80226'})}
+          </div>
+          <div className="mt-8 flex justify-end">
+            <button
+              onClick={onNext}
+              className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Continue to Project Details
+            </button>
+          </div>
+        </fieldset>
+      );
+    }
+
+    function Step2({ data, onChange, errors, onNext, onBack }) {
+      const headingRef = useRef(null);
+      useEffect(() => { headingRef.current?.focus(); }, []);
+
+      const projectTypes = [
+        'Select a permit type…','New Residential Construction','Residential Addition / Remodel','New Commercial Construction','Commercial Tenant Improvement','Electrical Work','Plumbing Work','Mechanical / HVAC','Demolition','Fence or Retaining Wall','Driveway / Sidewalk','Special Event Permit','Business License','Other',
+      ];
+
+      return (
+        <fieldset>
+          <legend ref={headingRef} tabIndex={-1} className="text-xl font-bold text-gray-900 mb-6 focus:outline-none w-full">
+            Step 2: Project Details
+          </legend>
+          <div className="space-y-5">
+            <div>
+              <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-1">
+                Permit / License Type <span className="text-red-600" aria-hidden="true">*</span>
+              </label>
+              <select
+                id="projectType" value={data.projectType||''} onChange={e=>onChange('projectType',e.target.value)}
+                aria-required="true" aria-describedby={errors.projectType?'err-projectType':undefined}
+                className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.projectType?'border-red-500 bg-red-50':'border-gray-300'}`}
+              >
+                {projectTypes.map(t=><option key={t} value={t==='Select a permit type…'?'':t}>{t}</option>)}
+              </select>
+              {errors.projectType && <p id="err-projectType" role="alert" className="mt-1 text-xs text-red-600">Please select a permit type to continue.</p>}
+            </div>
+            <div>
+              <label htmlFor="projectDescription" className="block text-sm font-medium text-gray-700 mb-1">
+                Project Description <span className="text-red-600" aria-hidden="true">*</span>
+              </label>
+              <textarea
+                id="projectDescription" rows={4} value={data.projectDescription||''} onChange={e=>onChange('projectDescription',e.target.value)}
+                aria-required="true" aria-describedby={errors.projectDescription?'err-projectDescription':'projectDescription-hint'}
+                placeholder="Briefly describe the work to be performed, scope, and any relevant details…"
+                className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y ${errors.projectDescription?'border-red-500 bg-red-50':'border-gray-300'}`}
+              />
+              <p id="projectDescription-hint" className="mt-1 text-xs text-gray-500">Minimum 20 characters. Be as specific as possible.</p>
+              {errors.projectDescription && <p id="err-projectDescription" role="alert" className="mt-1 text-xs text-red-600">{errors.projectDescription}</p>}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label htmlFor="estimatedCost" className="block text-sm font-medium text-gray-700 mb-1">
+                  Estimated Project Cost ($) <span className="text-red-600" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="estimatedCost" type="number" min="0" value={data.estimatedCost||''} onChange={e=>onChange('estimatedCost',e.target.value)}
+                  aria-required="true" aria-describedby={errors.estimatedCost?'err-estimatedCost':undefined}
+                  placeholder="0.00"
+                  className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.estimatedCost?'border-red-500 bg-red-50':'border-gray-300'}`}
+                />
+                {errors.estimatedCost && <p id="err-estimatedCost" role="alert" className="mt-1 text-xs text-red-600">{errors.estimatedCost}</p>}
+              </div>
+              <div>
+                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Planned Start Date <span className="text-red-600" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="startDate" type="date" value={data.startDate||''} onChange={e=>onChange('startDate',e.target.value)}
+                  aria-required="true" aria-describedby={errors.startDate?'err-startDate':undefined}
+                  className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.startDate?'border-red-500 bg-red-50':'border-gray-300'}`}
+                />
+                {errors.startDate && <p id="err-startDate" role="alert" className="mt-1 text-xs text-red-600">{errors.startDate}</p>}
+              </div>
+            </div>
+          </div>
+          <div className="mt-8 flex justify-between">
+            <button onClick={onBack} className="bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">← Back</button>
+            <button onClick={onNext} className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Continue to Documents</button>
+          </div>
+        </fieldset>
+      );
+    }
+
+    function Step3({ data, onChange, errors, onNext, onBack }) {
+      const headingRef = useRef(null);
+      useEffect(() => { headingRef.current?.focus(); }, []);
+      const [files, setFiles] = useState([]);
+      const fileInputRef = useRef(null);
+
+      function handleFileChange(e) {
+        const newFiles = Array.from(e.target.files);
+        setFiles(prev => [...prev, ...newFiles]);
+        onChange('documents', [...files, ...newFiles]);
+      }
+      function removeFile(idx) {
+        const updated = files.filter((_,i)=>i!==idx);
+        setFiles(updated);
+        onChange('documents', updated);
+      }
+
+      const required = ['Site plan / plot plan','Architectural / construction drawings','Proof of property ownership or authorization'];
+
+      return (
+        <fieldset>
+          <legend ref={headingRef} tabIndex={-1} className="text-xl font-bold text-gray-900 mb-6 focus:outline-none w-full">
+            Step 3: Supporting Documents
+          </legend>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 className="text-sm font-semibold text-blue-800 mb-2">Required Documents</h3>
+            <ul className="space-y-1" role="list">
+              {required.map(d=>(
+                <li key={d} className="flex items-center gap-2 text-sm text-blue-700">
+                  <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  {d}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload Documents <span className="text-red-600" aria-hidden="true">*</span>
+              <span className="sr-only"> (PDF, JPG, PNG accepted, max 10MB each)</span>
+            </label>
+            <div
+              className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500"
+              onClick={()=>fileInputRef.current?.click()}
+            >
+              <svg className="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+              </svg>
+              <p className="text-sm text-gray-600 font-medium">Click to upload or drag and drop</p>
+              <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG — max 10 MB each</p>
+              <input
+                ref={fileInputRef}
+                id="file-upload"
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={handleFileChange}
+                className="sr-only"
+                aria-label="Upload supporting documents for permit application"
+                aria-describedby={errors.documents?'err-documents':undefined}
+              />
+              <button
+                type="button"
+                onClick={e=>{e.stopPropagation();fileInputRef.current?.click();}}
+                className="mt-4 bg-white border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                aria-label="Browse files to upload for your permit application"
+              >
+                Browse Files
+              </button>
+            </div>
+            {errors.documents && <p id="err-documents" role="alert" className="mt-2 text-xs text-red-600 flex items-center gap-1"><svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>{errors.documents}</p>}
+          </div>
+
+          {files.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Uploaded Files ({files.length})</h3>
+              <ul className="space-y-2" role="list">
+                {files.map((f,i)=>(
+                  <li key={i} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                      <span className="text-sm text-gray-700 truncate">{f.name}</span>
+                      <span className="text-xs text-gray-400 flex-shrink-0">{(f.size/1024).toFixed(0)} KB</span>
+                    </div>
+                    <button onClick={()=>removeFile(i)} className="text-red-500 hover:text-red-700 p-1 rounded focus:outline-none focus:ring-2 focus:ring-red-500" aria-label={`Remove uploaded file ${f.name}`}>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-8 flex justify-between">
+            <button onClick={onBack} className="bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">← Back</button>
+            <button onClick={onNext} className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-3 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Review Application</button>
+          </div>
+        </fieldset>
+      );
+    }
+
+    function Step4({ data, onSubmit, onBack, submitting }) {
+      const headingRef = useRef(null);
+      useEffect(() => { headingRef.current?.focus(); }, []);
+
+      const rows = [
+        ['First Name', data.firstName], ['Last Name', data.lastName],
+        ['Email', data.email], ['Phone', data.phone],
+        ['Company', data.company||'N/A'], ['Project Address', data.address],
+        ['Permit Type', data.projectType], ['Estimated Cost', data.estimatedCost ? `$${Number(data.estimatedCost).toLocaleString()}` : '—'],
+        ['Planned Start', data.startDate||'—'],
+      ];
+
+      return (
+        <div>
+          <h2 ref={headingRef} tabIndex={-1} className="text-xl font-bold text-gray-900 mb-6 focus:outline-none">
+            Step 4: Review &amp; Submit
+          </h2>
+          <p className="text-sm text-gray-600 mb-6">Please review your application details before submitting. You may go back to make corrections.</p>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden mb-6">
+            <dl>
+              {rows.map(([label, val], i) => (
+                <div key={label} className={`flex flex-col sm:flex-row sm:items-center px-5 py-3 ${i%2===0?'bg-white':'bg-gray-50'} border-b border-gray-100 last:border-0`}>
+                  <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide sm:w-40 flex-shrink-0">{label}</dt>
+                  <dd className="text-sm text-gray-900 mt-0.5 sm:mt-0">{val||'—'}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          {data.projectDescription && (
+            <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Project Description</h3>
+              <p className="text-sm text-gray-800 leading-relaxed">{data.projectDescription}</p>
+            </div>
+          )}
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
+            <p className="text-sm text-amber-800">
+              <strong>Note:</strong> By submitting this application, you certify that all information provided is accurate and complete. A permit processing fee will be assessed and invoiced separately.
+            </p>
+          </div>
+
+          <div className="flex justify-between">
+            <button onClick={onBack} className="bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" disabled={submitting}>← Back</button>
+            <button
+              onClick={onSubmit}
+              disabled={submitting}
+              aria-busy={submitting}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-8 py-3 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 flex items-center gap-2"
+            >
+              {submitting ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  Submitting…
+                </>
+              ) : 'Submit Permit Application'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function SuccessScreen({ permitNumber }) {
+      const headingRef = useRef(null);
+      useEffect(() => { headingRef.current?.focus(); }, []);
+      return (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="text-center py-10"
+        >
+          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
+            <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h2 ref={headingRef} tabIndex={-1} className="text-2xl font-bold text-gray-900 mb-2 focus:outline-none">
+            Application Submitted Successfully!
+          </h2>
+          <p className="text-gray-600 mb-4">Your permit application has been received and is under review.</p>
+          <div className="inline-block bg-blue-50 border border-blue-200 rounded-lg px-8 py-4 mb-6">
+            <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-1">Your Application Number</p>
+            <p className="text-2xl font-bold text-blue-700 font-mono tracking-widest">{permitNumber}</p>
+          </div>
+          <p className="text-sm text-gray-600 mb-8">A confirmation email has been sent to your registered address. Processing typically takes 5–10 business days.</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a href="permits.html" className="bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              Track Application Status
+            </a>
+            <a href="index.html" className="bg-white text-gray-700 border border-gray-300 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+              Return to Home
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    function PermitApplicationForm() {
+      const [step, setStep] = useState(1);
+      const [data, setData] = useState({});
+      const [errors, setErrors] = useState({});
+      const [submitting, setSubmitting] = useState(false);
+      const [submitted, setSubmitted] = useState(false);
+      const [permitNumber] = useState(`LKW-${new Date().getFullYear()}-${String(Math.floor(10000+Math.random()*90000))}`);
+      const statusRef = useRef(null);
+
+      function update(field, val) { setData(d=>({...d,[field]:val})); setErrors(e=>({...e,[field]:undefined})); }
+
+      function validateStep1() {
+        const e = {};
+        if (!data.firstName?.trim()) e.firstName = 'First name is required.';
+        if (!data.lastName?.trim()) e.lastName = 'Last name is required.';
+        if (!data.email?.trim()) e.email = 'Email address is required.';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) e.email = 'Please enter a valid email address.';
+        if (!data.phone?.trim()) e.phone = 'Phone number is required.';
+        if (!data.address?.trim()) e.address = 'Project site address is required.';
+        return e;
+      }
+      function validateStep2() {
+        const e = {};
+        if (!data.projectType) e.projectType = 'Please select a permit type.';
+        if (!data.projectDescription?.trim()) e.projectDescription = 'Project description is required.';
+        else if (data.projectDescription.trim().length < 20) e.projectDescription = 'Please provide at least 20 characters of description.';
+        if (!data.estimatedCost) e.estimatedCost = 'Estimated cost is required.';
+        if (!data.startDate) e.startDate = 'Planned start date is required.';
+        return e;
+      }
+
+      function goNext(validatorFn) {
+        const e = validatorFn ? validatorFn() : {};
+        if (Object.keys(e).length > 0) { setErrors(e); return; }
+        setErrors({});
+        setStep(s => s + 1);
+      }
+
+      function handleSubmit() {
+        setSubmitting(true);
+        setTimeout(() => { setSubmitting(false); setSubmitted(true); }, 1500);
+      }
+
+      if (submitted) return <SuccessScreen permitNumber={permitNumber}/>;
+
+      return (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+          <ProgressBar step={step}/>
+          <div aria-live="polite" aria-atomic="false" className="sr-only" ref={statusRef}>
+            Step {step} of {STEPS.length}: {STEPS[step-1]}
+          </div>
+          {step===1 && <Step1 data={data} onChange={update} errors={errors} onNext={()=>goNext(validateStep1)}/>}
+          {step===2 && <Step2 data={data} onChange={update} errors={errors} onNext={()=>goNext(validateStep2)} onBack={()=>setStep(1)}/>}
+          {step===3 && <Step3 data={data} onChange={update} errors={errors} onNext={()=>goNext()} onBack={()=>setStep(2)}/>}
+          {step===4 && <Step4 data={data} onSubmit={handleSubmit} onBack={()=>setStep(3)} submitting={submitting}/>}
+        </div>
+      );
+    }
+
+    /* ---- Status Tracker ---- */
+    function StatusTracker() {
+      const [searchId, setSearchId] = useState('');
+      const [result, setResult] = useState(null);
+      const [searching, setSearching] = useState(false);
+      const [notFound, setNotFound] = useState(false);
+      const resultRef = useRef(null);
+
+      const mockStatuses = {
+        'LKW-2024-10542': { type:'Residential Addition', address:'1847 Depew St', submitted:'Oct 15, 2024', updated:'Nov 12, 2024', currentStep:3, status:'Under Review', steps:[{label:'Application Received',done:true,date:'Oct 15'},{label:'Plan Check',done:true,date:'Oct 22'},{label:'Department Review',done:false,active:true},{label:'Final Approval',done:false},{label:'Permit Issued',done:false}] },
+        'LKW-2024-09871': { type:'Electrical Work', address:'340 Estes St', submitted:'Sep 28, 2024', updated:'Oct 3, 2024', currentStep:5, status:'Permit Issued', steps:[{label:'Application Received',done:true,date:'Sep 28'},{label:'Plan Check',done:true,date:'Sep 30'},{label:'Department Review',done:true,date:'Oct 2'},{label:'Final Approval',done:true,date:'Oct 3'},{label:'Permit Issued',done:true,date:'Oct 3'}] },
+      };
+
+      function handleSearch(e) {
+        e.preventDefault();
+        if (!searchId.trim()) return;
+        setSearching(true);
+        setTimeout(() => {
+          const found = mockStatuses[searchId.trim().toUpperCase()];
+          setResult(found || null);
+          setNotFound(!found);
+          setSearching(false);
+          setTimeout(() => resultRef.current?.focus(), 50);
+        }, 800);
+      }
+
+      return (
+        <section aria-labelledby="tracker-heading" className="mt-10">
+          <h2 id="tracker-heading" className="text-2xl font-bold text-gray-900 mb-2">Track an Existing Application</h2>
+          <p className="text-gray-600 text-sm mb-5">Enter your application number to check status. Example: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">LKW-2024-10542</code></p>
+
+          <form onSubmit={handleSearch} aria-label="Look up permit application status" className="flex gap-2 max-w-md mb-6">
+            <label htmlFor="permit-lookup" className="sr-only">Enter your permit application number</label>
+            <input
+              id="permit-lookup"
+              type="text"
+              value={searchId}
+              onChange={e=>setSearchId(e.target.value)}
+              placeholder="e.g. LKW-2024-10542"
+              className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              aria-label="Permit application number"
+              autoComplete="off"
+              spellCheck="false"
+            />
+            <button
+              type="submit"
+              disabled={searching}
+              aria-busy={searching}
+              className="bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-800 disabled:bg-blue-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              {searching ? 'Searching…' : 'Check Status'}
+            </button>
+          </form>
+
+          <div aria-live="polite" aria-atomic="true">
+            {notFound && !result && (
+              <div ref={resultRef} tabIndex={-1} className="bg-red-50 border border-red-200 rounded-lg p-4 focus:outline-none" role="status">
+                <p className="text-sm text-red-700 font-medium">No application found for <strong>{searchId}</strong>. Please check the number and try again.</p>
+              </div>
+            )}
+            {result && (
+              <div ref={resultRef} tabIndex={-1} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 focus:outline-none">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-5 border-b border-gray-100">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{result.type}</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">{result.address}</p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold ${result.status==='Permit Issued'?'bg-green-100 text-green-800':'bg-amber-100 text-amber-800'}`}
+                    role="status" aria-label={`Application status: ${result.status}`}>
+                    <span className={`w-2 h-2 rounded-full ${result.status==='Permit Issued'?'bg-green-500':'bg-amber-500'}`} aria-hidden="true"/>
+                    {result.status}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                  <div><span className="text-xs text-gray-400 uppercase tracking-wide">Submitted</span><p className="text-gray-800 font-medium mt-0.5">{result.submitted}</p></div>
+                  <div><span className="text-xs text-gray-400 uppercase tracking-wide">Last Updated</span><p className="text-gray-800 font-medium mt-0.5">{result.updated}</p></div>
+                </div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-4">Application Progress</h4>
+                <ol className="relative border-l-2 border-gray-200 ml-3 space-y-4" role="list" aria-label="Application status steps">
+                  {result.steps.map((s, i) => (
+                    <li key={s.label} className="ml-6 relative">
+                      <div className={`absolute -left-[1.65rem] w-5 h-5 rounded-full flex items-center justify-center ${s.done?'bg-green-500':s.active?'bg-blue-600 ring-4 ring-blue-100':'bg-gray-200'}`} aria-hidden="true">
+                        {s.done && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>}
+                        {s.active && <div className="w-2 h-2 rounded-full bg-white"/>}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className={`text-sm font-medium ${s.done?'text-gray-700':s.active?'text-blue-700 font-semibold':'text-gray-400'}`}>
+                          {s.label}
+                          {s.active && <span className="sr-only"> — current step</span>}
+                          {s.done && <span className="sr-only"> — completed</span>}
+                        </p>
+                        {s.date && <span className="text-xs text-gray-400">{s.date}</span>}
+                        {s.active && <span className="text-xs bg-blue-100 text-blue-700 font-medium px-2 py-0.5 rounded-full" aria-hidden="true">In Progress</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    }
+
+    function PermitsPage() {
+      return (
+        <>
+          <div className="bg-blue-900 text-white py-10 px-4">
+            <div className="max-w-4xl mx-auto">
+              <nav aria-label="Breadcrumb navigation" className="mb-4">
+                <ol className="flex items-center gap-2 text-sm text-blue-300" role="list">
+                  <li><a href="index.html" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">Home</a></li>
+                  <li aria-hidden="true" className="text-blue-600">/</li>
+                  <li><a href="services.html" className="hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 rounded">Services</a></li>
+                  <li aria-hidden="true" className="text-blue-600">/</li>
+                  <li><span aria-current="page" className="text-white font-medium">Permits &amp; Licenses</span></li>
+                </ol>
+              </nav>
+              <h1 className="text-3xl md:text-4xl font-bold">Permits &amp; Licenses</h1>
+              <p className="text-blue-200 mt-2 text-lg">Apply online and track your application status in real time.</p>
+            </div>
+          </div>
+
+          <main id="main-content" tabIndex={-1} className="max-w-4xl mx-auto px-4 py-10 focus:outline-none">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+              {[{icon:'📋',title:'Processing Time',text:'5–10 business days for most permits'},{icon:'💳',title:'Fee Schedule',text:'Fees assessed based on project type and scope'},{icon:'📞',title:'Need Help?',text:'Call (303) 987-7100, Mon–Fri 8AM–5PM'}].map(c=>(
+                <div key={c.title} className="bg-white border border-gray-200 rounded-lg p-4 flex items-start gap-3">
+                  <span className="text-2xl" aria-hidden="true">{c.icon}</span>
+                  <div><p className="text-sm font-semibold text-gray-900">{c.title}</p><p className="text-xs text-gray-500 mt-0.5">{c.text}</p></div>
+                </div>
+              ))}
+            </div>
+
+            <section aria-labelledby="application-heading">
+              <h2 id="application-heading" className="text-2xl font-bold text-gray-900 mb-5">New Permit Application</h2>
+              <PermitApplicationForm/>
+            </section>
+
+            <StatusTracker/>
+          </main>
+        </>
+      );
+    }
+
+    function App() {
+      return (
+        <div className="min-h-screen flex flex-col">
+          <CityHeader currentPage="services"/>
+          <PermitsPage/>
+          <CityFooter/>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

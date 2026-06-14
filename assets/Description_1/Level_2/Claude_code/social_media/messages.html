@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages | Pulse</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+    .skip-link { position: absolute; top: -100%; left: 0; background: #6366f1; color: white; padding: 8px 16px; z-index: 9999; border-radius: 0 0 8px 0; text-decoration: none; font-weight: 600; }
+    .skip-link:focus { top: 0; }
+    .messages-scroll::-webkit-scrollbar { width: 4px; }
+    .messages-scroll::-webkit-scrollbar-track { background: transparent; }
+    .messages-scroll::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 99px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <div id="live-region" aria-live="polite" aria-atomic="true" style="position:absolute;left:-9999px;"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+const IconHome = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z"/><path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.432z"/></svg>;
+const IconCompass = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-.53 14.03a.75.75 0 001.06 0l3.5-3.5a.75.75 0 10-1.06-1.06l-2.22 2.22V8.25a.75.75 0 00-1.5 0v5.69l-2.22-2.22a.75.75 0 10-1.06 1.06l3.5 3.5z" clipRule="evenodd"/></svg>;
+const IconBell = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clipRule="evenodd"/></svg>;
+const IconChat = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 01-3.476.383.39.39 0 00-.297.17l-2.755 4.133a.75.75 0 01-1.248 0l-2.755-4.133a.39.39 0 00-.297-.17 48.9 48.9 0 01-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97z" clipRule="evenodd"/></svg>;
+const IconUser = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd"/></svg>;
+const IconCog = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 00-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 00-2.282.819l-.922 1.597a1.875 1.875 0 00.432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 000 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 00-.432 2.385l.922 1.597a1.875 1.875 0 002.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 002.28-.819l.923-1.597a1.875 1.875 0 00-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 000-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 00-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 00-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 00-1.85-1.567h-1.843zM12 15.75a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clipRule="evenodd"/></svg>;
+const IconSend = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z"/></svg>;
+const IconSmile = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z"/></svg>;
+const IconImage = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>;
+const IconX = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M5.47 5.47a.75.75 0 011.06 0L12 10.94l5.47-5.47a.75.75 0 111.06 1.06L13.06 12l5.47 5.47a.75.75 0 11-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 01-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 010-1.06z" clipRule="evenodd"/></svg>;
+const IconPlus = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd"/></svg>;
+const IconBolt = () => <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7"><path fillRule="evenodd" d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z" clipRule="evenodd"/></svg>;
+
+function Sidebar({ activePage = 'messages' }) {
+  const navItems = [
+    { id: 'feed', label: 'Home', href: 'index.html', icon: <IconHome /> },
+    { id: 'explore', label: 'Explore', href: 'explore.html', icon: <IconCompass /> },
+    { id: 'notifications', label: 'Notifications', href: 'notifications.html', icon: <IconBell />, badge: 5 },
+    { id: 'messages', label: 'Messages', href: 'messages.html', icon: <IconChat />, badge: 2 },
+    { id: 'profile', label: 'Profile', href: 'profile.html', icon: <IconUser /> },
+    { id: 'settings', label: 'Settings', href: 'settings.html', icon: <IconCog /> },
+  ];
+  return (
+    <nav aria-label="Main navigation" className="fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-100 flex flex-col py-6 px-4 z-40 hidden lg:flex">
+      <a href="index.html" className="flex items-center gap-2 px-2 mb-8" aria-label="Pulse home">
+        <span className="text-indigo-600"><IconBolt /></span>
+        <span className="text-2xl font-bold text-gray-900">Pulse</span>
+      </a>
+      <ul className="flex flex-col gap-1 flex-1" role="list">
+        {navItems.map(item => (
+          <li key={item.id}>
+            <a href={item.href} aria-current={activePage === item.id ? 'page' : undefined}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activePage === item.id ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <span className={activePage === item.id ? 'text-indigo-600' : 'text-gray-500'}>{item.icon}</span>
+              <span>{item.label}</span>
+              {item.badge && <span className="ml-auto bg-indigo-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1" aria-label={`${item.badge} unread`}>{item.badge}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <button className="mt-4 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors w-full">
+        <IconPlus /> New Post
+      </button>
+      <a href="profile.html" className="mt-6 flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-gray-50">
+        <img src="https://i.pravatar.cc/40?img=11" alt="Alex Johnson — your profile" className="w-9 h-9 rounded-full object-cover" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 truncate">Alex Johnson</p>
+          <p className="text-xs text-gray-500 truncate">@alexj</p>
+        </div>
+      </a>
+    </nav>
+  );
+}
+
+function MobileNav({ activePage = 'messages' }) {
+  const items = [
+    { id: 'feed', label: 'Home', href: 'index.html', icon: <IconHome /> },
+    { id: 'explore', label: 'Explore', href: 'explore.html', icon: <IconCompass /> },
+    { id: 'notifications', label: 'Alerts', href: 'notifications.html', icon: <IconBell /> },
+    { id: 'messages', label: 'Messages', href: 'messages.html', icon: <IconChat /> },
+    { id: 'profile', label: 'Profile', href: 'profile.html', icon: <IconUser /> },
+  ];
+  return (
+    <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex lg:hidden z-40">
+      {items.map(item => (
+        <a key={item.id} href={item.href} aria-current={activePage === item.id ? 'page' : undefined}
+          className={`flex-1 flex flex-col items-center py-3 text-xs font-medium ${activePage === item.id ? 'text-indigo-600' : 'text-gray-500'}`}>
+          {item.icon}<span className="mt-0.5">{item.label}</span>
+        </a>
+      ))}
+    </nav>
+  );
+}
+
+const CONVERSATIONS = [
+  {
+    id: 1, user: { name: 'Maya Chen', handle: '@mayachen', avatar: 'https://i.pravatar.cc/44?img=5' }, unread: 2,
+    messages: [
+      { id: 1, from: 'them', text: 'Hey Alex! Loved your thread on accessibility standards 👏', time: '10:32 AM', date: '2026-03-17' },
+      { id: 2, from: 'me', text: 'Thanks Maya! It\'s something I feel pretty strongly about. Did you see the WCAG 3.0 updates?', time: '10:35 AM', date: '2026-03-17' },
+      { id: 3, from: 'them', text: 'Yes! The new contrast requirements are going to shake things up a bit.', time: '10:36 AM', date: '2026-03-17' },
+      { id: 4, from: 'them', text: 'Are you coming to the a11y meetup next week?', time: '10:37 AM', date: '2026-03-17' },
+      { id: 5, from: 'me', text: 'Absolutely planning to! Do you know the venue yet?', time: '10:40 AM', date: '2026-03-17' },
+      { id: 6, from: 'them', text: 'It\'s at the Meridian tech hub, 7pm. They\'re streaming it too!', time: '2:15 PM', date: '2026-03-17' },
+    ]
+  },
+  {
+    id: 2, user: { name: 'Jordan Rivera', handle: '@jordanr', avatar: 'https://i.pravatar.cc/44?img=7' }, unread: 0,
+    messages: [
+      { id: 1, from: 'them', text: 'Dude the World Cup tickets sold out in 3 minutes 😭', time: '9:00 AM', date: '2026-03-16' },
+      { id: 2, from: 'me', text: 'No way! I was in the queue too. Absolute chaos.', time: '9:05 AM', date: '2026-03-16' },
+      { id: 3, from: 'them', text: 'Resale already at 5x face value. Might have to watch from a bar 😂', time: '9:10 AM', date: '2026-03-16' },
+    ]
+  },
+  {
+    id: 3, user: { name: 'Sam Park', handle: '@sampark', avatar: 'https://i.pravatar.cc/44?img=12' }, unread: 1,
+    messages: [
+      { id: 1, from: 'them', text: 'Hey! Are you still working on that side project? Would love to collaborate.', time: '3:45 PM', date: '2026-03-15' },
+      { id: 2, from: 'me', text: 'Yes! It\'s in early stages but definitely open to it. What\'s your stack preference?', time: '4:00 PM', date: '2026-03-15' },
+      { id: 3, from: 'them', text: 'TypeScript + Next.js all the way. Let\'s set up a call this week?', time: '7:20 PM', date: '2026-03-17' },
+    ]
+  },
+  {
+    id: 4, user: { name: 'Riley Torres', handle: '@rileyt', avatar: 'https://i.pravatar.cc/44?img=9' }, unread: 0,
+    messages: [
+      { id: 1, from: 'me', text: 'Have you tried that new coffee spot on Meridian?', time: '11:00 AM', date: '2026-03-14' },
+      { id: 2, from: 'them', text: 'Not yet! Is it worth the trip?', time: '11:15 AM', date: '2026-03-14' },
+      { id: 3, from: 'me', text: 'Absolutely. Great vibes and the oat latte is 🔥', time: '11:17 AM', date: '2026-03-14' },
+    ]
+  },
+];
+
+const EMOJIS = ['😀','😂','😍','🥰','😊','🎉','🔥','💯','👍','❤️','✨','🙌','💪','🤔','😮','🚀'];
+
+function EmojiPicker({ onSelect, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => { ref.current?.querySelector('button')?.focus(); }, []);
+  const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+  return (
+    <div ref={ref} role="dialog" aria-label="Emoji picker" onKeyDown={handleKey}
+      className="absolute bottom-12 left-0 bg-white border border-gray-200 rounded-xl shadow-xl p-3 z-50 w-64">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-semibold text-gray-600">Choose an emoji</span>
+        <button onClick={onClose} aria-label="Close emoji picker" className="text-gray-400 hover:text-gray-700 rounded p-0.5"><IconX /></button>
+      </div>
+      <div className="grid grid-cols-8 gap-0.5">
+        {EMOJIS.map(e => (
+          <button key={e} onClick={() => { onSelect(e); onClose(); }}
+            aria-label={`Add ${e} emoji`}
+            className="w-7 h-7 flex items-center justify-center text-base hover:bg-gray-100 rounded">
+            {e}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MessageBubble({ msg, isMe }) {
+  return (
+    <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}>
+      <div className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${isMe ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'}`}>
+        {msg.text}
+        <div className={`text-xs mt-1 ${isMe ? 'text-indigo-200' : 'text-gray-400'}`} aria-label={`Sent at ${msg.time}`}>{msg.time}</div>
+      </div>
+    </div>
+  );
+}
+
+function ChatPanel({ conv, onSendMessage }) {
+  const [input, setInput] = useState('');
+  const [showEmoji, setShowEmoji] = useState(false);
+  const inputRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [conv?.messages?.length]);
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    onSendMessage(conv.id, input.trim());
+    setInput('');
+    // Focus remains in input (cat_5)
+    inputRef.current?.focus();
+    document.getElementById('live-region').textContent = `Message sent to ${conv.user.name}`;
+  };
+
+  const handleKey = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  };
+
+  if (!conv) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-indigo-600"><IconChat /></span>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-700">Select a conversation</h2>
+          <p className="text-gray-500 text-sm mt-1">Choose a conversation to start messaging</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Group by date
+  const dateGroups = {};
+  conv.messages.forEach(m => {
+    if (!dateGroups[m.date]) dateGroups[m.date] = [];
+    dateGroups[m.date].push(m);
+  });
+
+  return (
+    <section aria-label={`Chat with ${conv.user.name}`} className="flex-1 flex flex-col bg-white">
+      {/* Chat header */}
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white">
+        <img src={conv.user.avatar} alt={`${conv.user.name}'s avatar`} className="w-9 h-9 rounded-full object-cover" />
+        <div>
+          <a href="profile.html" className="font-semibold text-gray-900 text-sm hover:underline">{conv.user.name}</a>
+          <p className="text-xs text-green-500 font-medium">● Active now</p>
+        </div>
+      </header>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto messages-scroll px-4 py-4" aria-live="polite" aria-label="Message thread">
+        {Object.entries(dateGroups).map(([date, msgs]) => (
+          <div key={date}>
+            <div className="flex items-center gap-3 my-4" aria-label={`Messages from ${date}`} role="separator">
+              <div className="flex-1 h-px bg-gray-100" aria-hidden="true"></div>
+              <time dateTime={date} className="text-xs text-gray-400 px-2">{date === '2026-03-17' ? 'Today' : date === '2026-03-16' ? 'Yesterday' : date}</time>
+              <div className="flex-1 h-px bg-gray-100" aria-hidden="true"></div>
+            </div>
+            {msgs.map(msg => <MessageBubble key={msg.id} msg={msg} isMe={msg.from === 'me'} />)}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-gray-100 px-4 py-3 bg-white relative">
+        <div className="flex items-end gap-2">
+          <div className="relative flex-1">
+            {showEmoji && <EmojiPicker onSelect={e => setInput(v => v + e)} onClose={() => { setShowEmoji(false); inputRef.current?.focus(); }} />}
+            <label htmlFor="message-input" className="sr-only">Message {conv.user.name}</label>
+            <textarea
+              id="message-input"
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKey}
+              placeholder={`Message ${conv.user.name}…`}
+              rows={1}
+              aria-describedby="message-hint"
+              className="w-full resize-none bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 max-h-32"
+              style={{ overflowY: 'auto' }}
+            />
+          </div>
+          <div className="flex items-center gap-1 pb-1 flex-shrink-0">
+            <button onClick={() => setShowEmoji(v => !v)}
+              aria-label="Open emoji picker" aria-expanded={showEmoji} aria-haspopup="dialog"
+              className="p-2 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors">
+              <IconSmile />
+            </button>
+            <label>
+              <input type="file" accept="image/*" className="sr-only" aria-label="Attach image to message" />
+              <span role="button" tabIndex={0}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.previousSibling.click(); }}
+                aria-label="Attach an image"
+                className="p-2 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors inline-flex cursor-pointer">
+                <IconImage />
+              </span>
+            </label>
+            <button onClick={handleSend} disabled={!input.trim()}
+              aria-label={`Send message to ${conv.user.name}`}
+              className="p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition-colors">
+              <IconSend />
+            </button>
+          </div>
+        </div>
+        <span id="message-hint" className="sr-only">Press Enter to send, Shift+Enter for new line.</span>
+      </div>
+    </section>
+  );
+}
+
+function MessagesPage() {
+  const [conversations, setConversations] = useState(CONVERSATIONS);
+  const [activeId, setActiveId] = useState(1);
+  const activeConv = conversations.find(c => c.id === activeId);
+
+  const handleSend = (convId, text) => {
+    setConversations(prev => prev.map(c => c.id === convId
+      ? { ...c, messages: [...c.messages, { id: Date.now(), from: 'me', text, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), date: '2026-03-17' }], unread: 0 }
+      : c
+    ));
+  };
+
+  const totalUnread = conversations.reduce((sum, c) => sum + c.unread, 0);
+
+  return (
+    <div id="main-content" className="flex h-screen overflow-hidden" style={{ height: 'calc(100vh - 0px)' }}>
+      {/* Conversation list */}
+      <nav aria-label="Conversations" className="w-80 flex-shrink-0 bg-white border-r border-gray-100 flex flex-col overflow-hidden">
+        <header className="px-4 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-gray-900">
+              Messages
+              {totalUnread > 0 && (
+                <span className="ml-2 bg-indigo-600 text-white text-xs font-bold rounded-full px-2 py-0.5" aria-live="polite" aria-label={`${totalUnread} unread messages`}>{totalUnread}</span>
+              )}
+            </h1>
+            <button aria-label="New message" className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center transition-colors">
+              <IconPlus />
+            </button>
+          </div>
+        </header>
+        <ul role="list" className="flex-1 overflow-y-auto">
+          {conversations.map(conv => {
+            const lastMsg = conv.messages[conv.messages.length - 1];
+            return (
+              <li key={conv.id}>
+                <button
+                  onClick={() => setActiveId(conv.id)}
+                  aria-label={`Conversation with ${conv.user.name}${conv.unread > 0 ? `, ${conv.unread} unread` : ''}`}
+                  aria-current={activeId === conv.id ? 'true' : 'false'}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 ${activeId === conv.id ? 'bg-indigo-50/50' : ''}`}>
+                  <div className="relative flex-shrink-0">
+                    <img src={conv.user.avatar} alt={`${conv.user.name}'s avatar`} className="w-11 h-11 rounded-full object-cover" />
+                    {conv.unread > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center" aria-hidden="true">
+                        <span className="text-white text-[9px] font-bold">{conv.unread}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm ${conv.unread > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-800'}`}>{conv.user.name}</span>
+                      <time className="text-xs text-gray-400 flex-shrink-0 ml-2">{lastMsg.time}</time>
+                    </div>
+                    <p className={`text-xs truncate ${conv.unread > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>
+                      {lastMsg.from === 'me' ? 'You: ' : ''}{lastMsg.text}
+                    </p>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* Chat panel */}
+      <ChatPanel conv={activeConv} onSendMessage={handleSend} />
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar activePage="messages" />
+      <div className="lg:ml-64 flex-1 pb-20 lg:pb-0 overflow-hidden" style={{ height: '100vh' }}>
+        <MessagesPage />
+      </div>
+      <MobileNav activePage="messages" />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

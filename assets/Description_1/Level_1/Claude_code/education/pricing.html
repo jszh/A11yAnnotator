@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pricing Plans — LearnPath</title>
+  <meta name="description" content="Choose the LearnPath plan that's right for you. Free, Pro, or Teams — start learning today." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    *:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; border-radius: 4px; }
+    .skip-link { position:absolute; top:-100%; left:8px; background:#4f46e5; color:#fff; padding:8px 16px; border-radius:0 0 8px 8px; font-weight:600; font-size:14px; z-index:9999; }
+    .skip-link:focus { top:0; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 antialiased">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ─── ICONS ─────────────────────────────────────────────── */
+    const Logo = () => (
+      <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+        <path d="M7 20 L16 9 L25 20" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        <path d="M11 20 L21 20" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="16" cy="23" r="1.5" fill="white"/>
+      </svg>
+    );
+    const CheckIcon = ({cls='w-5 h-5'}) => (
+      <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+      </svg>
+    );
+    const MinusIcon = () => (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6"/>
+      </svg>
+    );
+    const StarIcon = ({cls='w-4 h-4'}) => (
+      <svg className={cls} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+      </svg>
+    );
+    const MenuIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    );
+    const CloseIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    );
+
+    /* ─── SHARED HEADER ──────────────────────────────────────── */
+    const Header = () => {
+      const [open, setOpen] = useState(false);
+      const nav = [{href:'courses.html',label:'Browse Courses'},{href:'pricing.html',label:'Pricing'},{href:'dashboard.html',label:'My Learning'}];
+      return (
+        <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <a href="index.html" className="flex items-center gap-2.5 rounded-lg" aria-label="LearnPath – homepage">
+                <Logo /><span className="text-xl font-bold text-gray-900">Learn<span className="text-indigo-600">Path</span></span>
+              </a>
+              <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
+                {nav.map(l=>(
+                  <a key={l.href} href={l.href}
+                    className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors hover:text-indigo-600 hover:bg-indigo-50 ${l.href==='pricing.html'?'text-indigo-600 bg-indigo-50':'text-gray-600'}`}
+                    aria-current={l.href==='pricing.html'?'page':undefined}>{l.label}</a>
+                ))}
+              </nav>
+              <div className="hidden md:flex items-center gap-2">
+                <a href="#" className="text-sm font-medium text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-lg">Sign In</a>
+                <a href="#" className="bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-indigo-700 shadow-sm">Get Started</a>
+              </div>
+              <button onClick={()=>setOpen(!open)} className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                aria-label={open?'Close menu':'Open menu'} aria-expanded={open}>
+                {open?<CloseIcon/>:<MenuIcon/>}
+              </button>
+            </div>
+          </div>
+          {open && (
+            <nav className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-1">
+              {nav.map(l=><a key={l.href} href={l.href} className="block py-2.5 px-3 text-sm font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">{l.label}</a>)}
+              <div className="pt-3 space-y-2 border-t border-gray-100">
+                <a href="#" className="block text-center py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50">Sign In</a>
+                <a href="#" className="block text-center py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Get Started Free</a>
+              </div>
+            </nav>
+          )}
+        </header>
+      );
+    };
+
+    /* ─── SHARED FOOTER ──────────────────────────────────────── */
+    const Footer = () => (
+      <footer className="bg-gray-900 text-gray-400" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex flex-col md:flex-row justify-between gap-8 mb-8">
+            <a href="index.html" className="flex items-center gap-2" aria-label="LearnPath home">
+              <Logo /><span className="text-lg font-bold text-white">Learn<span className="text-indigo-400">Path</span></span>
+            </a>
+            <div className="flex flex-wrap gap-8 text-sm">
+              {[['courses.html','Browse Courses'],['pricing.html','Pricing'],['dashboard.html','Dashboard'],['#','About'],['#','Help']].map(([href,label])=>(
+                <a key={label} href={href} className="hover:text-white transition-colors">{label}</a>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-sm">
+            <p>© 2025 LearnPath, Inc. All rights reserved.</p>
+            <div className="flex gap-6">{['Terms','Privacy','Cookies'].map(t=><a key={t} href="#" className="hover:text-white">{t}</a>)}</div>
+          </div>
+        </div>
+      </footer>
+    );
+
+    /* ─── DATA ───────────────────────────────────────────────── */
+    const PLANS = [
+      {
+        id: 'free', name: 'Free', emoji: '🌱',
+        monthly: 0, annual: 0,
+        desc: 'Get started with a curated selection of free courses.',
+        cta: 'Start for Free', ctaStyle: 'border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50',
+        features: ['Access to 200+ free courses','Community forums','Course previews','Mobile app access','Basic progress tracking'],
+        popular: false,
+      },
+      {
+        id: 'pro', name: 'Pro', emoji: '⚡',
+        monthly: 19, annual: 15,
+        desc: 'Unlimited access to our full course library with certificate support.',
+        cta: 'Start Pro Trial', ctaStyle: 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md',
+        features: ['Everything in Free','5,000+ courses — full library','Downloadable resources','Certificates of completion','Offline mobile viewing','Priority support','New courses every week','AI learning assistant'],
+        popular: true,
+      },
+      {
+        id: 'teams', name: 'Teams', emoji: '🏢',
+        monthly: 49, annual: 39,
+        perSeat: true,
+        desc: 'Scalable learning for organizations with admin controls and analytics.',
+        cta: 'Contact Sales', ctaStyle: 'bg-gray-900 text-white hover:bg-gray-800',
+        features: ['Everything in Pro','Admin dashboard','Team analytics & reporting','Custom learning paths','SSO & SCIM provisioning','Dedicated success manager','API access','Volume discounts'],
+        popular: false,
+      },
+    ];
+
+    const FEATURE_TABLE = [
+      { feature: 'Course library access', free: '200+ courses', pro: '5,000+ courses', teams: '5,000+ courses' },
+      { feature: 'Certificates of completion', free: false, pro: true, teams: true },
+      { feature: 'Downloadable resources', free: false, pro: true, teams: true },
+      { feature: 'Offline mobile access', free: false, pro: true, teams: true },
+      { feature: 'Priority support', free: false, pro: true, teams: true },
+      { feature: 'AI learning assistant', free: false, pro: true, teams: true },
+      { feature: 'Admin dashboard', free: false, pro: false, teams: true },
+      { feature: 'Team analytics', free: false, pro: false, teams: true },
+      { feature: 'Custom learning paths', free: false, pro: false, teams: true },
+      { feature: 'SSO / SCIM', free: false, pro: false, teams: true },
+    ];
+
+    const FAQS = [
+      { q:'Can I cancel my subscription at any time?', a:"Yes, absolutely. You can cancel your LearnPath subscription at any time from your account settings. There are no cancellation fees or penalties. If you cancel, you'll retain access until the end of your current billing period." },
+      { q:'Is there a free trial for Pro?', a:"Yes! Pro comes with a 7-day free trial. No credit card required to start. You'll get full Pro access and can decide to upgrade (or not) before the trial ends." },
+      { q:'What happens to my progress if I downgrade to Free?', a:"Your progress, notes, and course completions are saved permanently. If you downgrade, you'll simply lose access to Pro-only courses, but all completed course certificates remain yours forever." },
+      { q:'How does the Teams plan work?', a:"Teams is priced per seat per month. You start with a minimum of 5 seats. As an admin, you can invite team members, assign courses, and view group analytics. Billed annually for the best rate." },
+      { q:'Do certificates have an expiry date?', a:"No. Certificates earned through LearnPath are yours for life. They include a verification URL you can share on LinkedIn, your résumé, or with employers." },
+      { q:'Are there student or nonprofit discounts?', a:"Yes! We offer 50% off Pro for verified students and 30% off for registered nonprofits. Contact our support team with appropriate documentation to apply." },
+    ];
+
+    const TESTIMONIALS = [
+      { q:"Going Pro was the best $19 I've ever spent. The certificate I earned helped me negotiate a 30% salary increase.", name:'Raj Patel', role:'Backend Engineer', initials:'RP', rating:5 },
+      { q:"We rolled out LearnPath Teams across our 200-person engineering org. The admin dashboard is incredibly intuitive.", name:'Carla Mendez', role:'L&D Director, Acme Corp', initials:'CM', rating:5 },
+      { q:"I used the free tier for 2 months before upgrading to Pro. The jump in course quality and resources is worth every cent.", name:'Jake Kim', role:'UX Designer', initials:'JK', rating:5 },
+    ];
+
+    /* ─── PRICING PAGE ───────────────────────────────────────── */
+    const PricingPage = () => {
+      const [annual, setAnnual] = useState(true);
+      const [openFaq, setOpenFaq] = useState(null);
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <main id="main-content" tabIndex="-1">
+
+            {/* Hero */}
+            <div className="bg-gradient-to-br from-indigo-700 via-indigo-600 to-purple-700 text-white py-20 text-center">
+              <div className="max-w-3xl mx-auto px-4">
+                <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Simple, Transparent Pricing</h1>
+                <p className="text-indigo-200 text-xl mb-10">Choose the plan that fits your goals. Upgrade or cancel anytime.</p>
+
+                {/* Billing toggle */}
+                <div className="inline-flex items-center gap-3 bg-indigo-800/50 border border-white/20 rounded-full p-1.5" role="group" aria-label="Billing period">
+                  <button onClick={()=>setAnnual(false)}
+                    className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${!annual?'bg-white text-indigo-700 shadow-sm':'text-indigo-200 hover:text-white'}`}
+                    aria-pressed={!annual}>Monthly</button>
+                  <button onClick={()=>setAnnual(true)}
+                    className={`px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${annual?'bg-white text-indigo-700 shadow-sm':'text-indigo-200 hover:text-white'}`}
+                    aria-pressed={annual}>
+                    Annual
+                    <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Save 20%</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing Cards */}
+            <section className="py-16 bg-gray-50" aria-labelledby="pricing-cards-heading">
+              <h2 id="pricing-cards-heading" className="sr-only">Pricing plans</h2>
+              <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {PLANS.map(plan => {
+                    const price = annual ? plan.annual : plan.monthly;
+                    return (
+                      <div key={plan.id}
+                        className={`relative bg-white rounded-2xl border-2 ${plan.popular?'border-indigo-600 shadow-xl shadow-indigo-100':'border-gray-100 shadow-sm'} overflow-hidden flex flex-col`}>
+                        {plan.popular && (
+                          <div className="bg-indigo-600 text-white text-xs font-bold text-center py-2 tracking-wider uppercase">
+                            ⭐ Most Popular
+                          </div>
+                        )}
+                        <div className="p-8 flex-1 flex flex-col">
+                          <div className="flex items-center gap-3 mb-4">
+                            <span className="text-3xl" aria-hidden="true">{plan.emoji}</span>
+                            <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                          </div>
+                          <div className="mb-4">
+                            {price === 0 ? (
+                              <span className="text-4xl font-extrabold text-gray-900">Free</span>
+                            ) : (
+                              <div>
+                                <span className="text-4xl font-extrabold text-gray-900">${price}</span>
+                                <span className="text-gray-500 text-sm ml-1">/mo{plan.perSeat?' per seat':''}</span>
+                                {annual && plan.monthly > 0 && (
+                                  <p className="text-xs text-gray-400 mt-1">billed ${price*12}/year</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-gray-500 text-sm leading-relaxed mb-6">{plan.desc}</p>
+                          <a href="#" className={`block w-full text-center font-bold py-3.5 rounded-xl transition-colors text-sm mb-8 ${plan.ctaStyle}`}>
+                            {plan.cta}
+                          </a>
+                          <ul className="space-y-3 mt-auto" role="list" aria-label={`${plan.name} plan features`}>
+                            {plan.features.map(f=>(
+                              <li key={f} className="flex items-start gap-2.5">
+                                <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                                  <CheckIcon cls="w-3 h-3 text-emerald-600"/>
+                                </div>
+                                <span className="text-sm text-gray-700">{f}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Guarantee Badge */}
+                <div className="mt-12 text-center">
+                  <div className="inline-flex items-center gap-4 bg-white rounded-2xl border border-gray-100 shadow-sm px-8 py-5">
+                    <span className="text-4xl" aria-hidden="true">🛡️</span>
+                    <div className="text-left">
+                      <p className="font-bold text-gray-900">30-Day Money-Back Guarantee</p>
+                      <p className="text-sm text-gray-500">Not satisfied? Get a full refund within 30 days. No questions asked.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Feature Comparison Table */}
+            <section className="py-16 bg-white" aria-labelledby="comparison-heading">
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 id="comparison-heading" className="text-2xl font-bold text-gray-900 mb-8 text-center">Compare All Features</h2>
+                <div className="overflow-x-auto rounded-2xl border border-gray-100 shadow-sm">
+                  <table className="w-full text-sm" aria-label="Feature comparison table for Free, Pro, and Teams plans">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100">
+                        <th scope="col" className="text-left px-6 py-4 font-semibold text-gray-700 w-1/2">Feature</th>
+                        {['Free','Pro','Teams'].map(p=>(
+                          <th key={p} scope="col" className={`text-center px-6 py-4 font-bold ${p==='Pro'?'text-indigo-600':p==='Teams'?'text-gray-900':'text-gray-600'}`}>{p}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {FEATURE_TABLE.map((row,i)=>(
+                        <tr key={i} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 text-gray-700">{row.feature}</td>
+                          {[row.free,row.pro,row.teams].map((val,j)=>(
+                            <td key={j} className="px-6 py-4 text-center">
+                              {typeof val === 'boolean' ? (
+                                val ? (
+                                  <span className="inline-flex items-center justify-center w-6 h-6 bg-emerald-100 rounded-full mx-auto" aria-label="Included">
+                                    <CheckIcon cls="w-4 h-4 text-emerald-600"/>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center justify-center w-6 h-6 text-gray-300 mx-auto" aria-label="Not included">
+                                    <MinusIcon />
+                                  </span>
+                                )
+                              ) : (
+                                <span className="text-sm font-medium text-gray-700">{val}</span>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            {/* FAQ */}
+            <section className="py-16 bg-gray-50" aria-labelledby="faq-heading">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6">
+                <h2 id="faq-heading" className="text-2xl font-bold text-gray-900 mb-2 text-center">Frequently Asked Questions</h2>
+                <p className="text-gray-500 text-center mb-10">Can't find your answer? <a href="#" className="text-indigo-600 font-semibold hover:text-indigo-700">Contact our support team →</a></p>
+                <dl className="space-y-3">
+                  {FAQS.map((faq, i) => (
+                    <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                      <dt>
+                        <button
+                          className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-gray-50 transition-colors"
+                          onClick={()=>setOpenFaq(openFaq===i?null:i)}
+                          aria-expanded={openFaq===i}
+                          id={`faq-q-${i}`}>
+                          <span className="font-semibold text-gray-900 text-sm pr-4">{faq.q}</span>
+                          <svg className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${openFaq===i?'rotate-180':''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                          </svg>
+                        </button>
+                      </dt>
+                      {openFaq===i && (
+                        <dd className="px-6 pb-5 text-sm text-gray-600 leading-relaxed border-t border-gray-50 pt-4" role="region" aria-labelledby={`faq-q-${i}`}>
+                          {faq.a}
+                        </dd>
+                      )}
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            </section>
+
+            {/* Testimonials */}
+            <section className="py-16 bg-white" aria-labelledby="pricing-testimonials-heading">
+              <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 id="pricing-testimonials-heading" className="text-2xl font-bold text-gray-900 mb-10 text-center">Loved by Learners & Teams</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {TESTIMONIALS.map(t=>(
+                    <blockquote key={t.name} className="bg-gray-50 rounded-2xl p-7 border border-gray-100">
+                      <div className="flex gap-0.5 mb-4" aria-label={`${t.rating} out of 5 stars`}>
+                        {Array(t.rating).fill(0).map((_,i)=><StarIcon key={i} cls="w-4 h-4 text-amber-400"/>)}
+                      </div>
+                      <p className="text-gray-700 text-sm leading-relaxed mb-5 italic">"{t.q}"</p>
+                      <footer className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0" aria-hidden="true">{t.initials}</div>
+                        <div>
+                          <cite className="font-semibold text-gray-900 not-italic text-sm block">{t.name}</cite>
+                          <span className="text-xs text-gray-500">{t.role}</span>
+                        </div>
+                      </footer>
+                    </blockquote>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Final CTA */}
+            <section className="py-20 bg-gradient-to-br from-indigo-700 to-purple-700 text-white" aria-labelledby="pricing-cta-heading">
+              <div className="max-w-3xl mx-auto px-4 text-center">
+                <h2 id="pricing-cta-heading" className="text-3xl md:text-4xl font-extrabold mb-4">Start your learning journey today</h2>
+                <p className="text-indigo-200 text-lg mb-10">Join 2M+ learners. Cancel anytime. No hidden fees.</p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <a href="#" className="inline-flex items-center justify-center bg-white text-indigo-700 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 shadow-lg">
+                    Try Pro Free for 7 Days
+                  </a>
+                  <a href="courses.html" className="inline-flex items-center justify-center border-2 border-white/40 text-white font-bold px-8 py-4 rounded-xl hover:bg-white/10">
+                    Browse Free Courses
+                  </a>
+                </div>
+              </div>
+            </section>
+
+          </main>
+          <Footer />
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<PricingPage />);
+  </script>
+</body>
+</html>

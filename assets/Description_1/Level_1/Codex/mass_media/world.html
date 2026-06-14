@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Meridian | World</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Inter"', "sans-serif"],
+              serif: ['"Source Serif 4"', "serif"]
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="news-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { useState } = React;
+      const { Header, Footer, worldStories } = window.MeridianShared;
+
+      function App() {
+        const [activeFilter, setActiveFilter] = useState("All");
+        const filters = ["All", "Asia", "Europe", "Americas", "Middle East", "Africa"];
+        const leadStory = worldStories[0];
+
+        return (
+          <>
+            <a href="#main-content" className="absolute left-4 top-4 z-50 -translate-y-20 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg focus:translate-y-0 focus-visible:translate-y-0">
+              Skip to main content
+            </a>
+            <Header activePath="world.html" />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+              <section className="page-surface rounded-[2rem] p-8">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-red-800">Category</p>
+                <h1 className="mt-3 text-5xl font-bold text-slate-950">World</h1>
+                <p className="mt-3 max-w-3xl text-base leading-8 text-slate-700">
+                  International reporting on diplomacy, conflict, trade, climate, and the forces reshaping global power.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-2" aria-label="World topic filters">
+                  {filters.map((filter) => (
+                    <button
+                      key={filter}
+                      type="button"
+                      aria-pressed={activeFilter === filter}
+                      onClick={() => setActiveFilter(filter)}
+                      className="filter-pill rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900"
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="mt-8 grid gap-8">
+                <article className="page-surface overflow-hidden rounded-[2rem] lg:grid lg:grid-cols-[1.1fr_0.9fr]">
+                  <img src={leadStory.image} alt={leadStory.alt} className="h-full min-h-[20rem] w-full object-cover" />
+                  <div className="p-8">
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Lead story</p>
+                    <h2 className="mt-3 text-4xl font-bold leading-tight text-slate-950">{leadStory.title}</h2>
+                    <p className="mt-4 text-sm font-medium text-slate-600">By {leadStory.byline} · {leadStory.time}</p>
+                    <p className="mt-4 text-base leading-8 text-slate-700">{leadStory.summary}</p>
+                    <p className="mt-4 text-base leading-8 text-slate-700">
+                      Officials close to the talks say negotiators are trying to prevent a local security crisis from hardening into a wider geopolitical standoff.
+                    </p>
+                    <a href="article.html" className="mt-6 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white no-underline hover:bg-slate-800">
+                      Read analysis
+                    </a>
+                  </div>
+                </article>
+
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {worldStories.map((story) => (
+                    <article key={story.title} className="story-card page-surface overflow-hidden rounded-[1.5rem] transition">
+                      <img src={story.image} alt={story.alt} className="h-44 w-full object-cover" />
+                      <div className="p-5">
+                        <h3 className="text-2xl font-bold leading-tight text-slate-950">{story.title}</h3>
+                        <p className="mt-3 text-sm font-medium text-slate-600">By {story.byline}</p>
+                        <p className="mt-1 text-sm text-slate-500">{story.time}</p>
+                        <p className="mt-3 text-sm leading-7 text-slate-700">{story.summary}</p>
+                        <a href="article.html" className="mt-4 inline-flex text-sm font-semibold text-red-800 no-underline hover:text-red-900">
+                          Continue reading
+                        </a>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

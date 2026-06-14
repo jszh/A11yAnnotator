@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Services — City of Lakewood</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            200: '#bcccdc',
+                            300: '#9fb3c8',
+                            400: '#829ab1',
+                            500: '#627d98',
+                            600: '#486581',
+                            700: '#334e68',
+                            800: '#243b53',
+                            900: '#102a43',
+                            DEFAULT: '#243b53'
+                        },
+                        accent: {
+                            DEFAULT: '#005a9c'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        serif: ['Merriweather', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel for in-browser JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@400;700&display=swap');
+    </style>
+</head>
+
+<body class="bg-gray-50 text-brand-900 font-sans min-h-screen flex flex-col antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Icons Components
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const [iconHtml, setIconHtml] = React.useState('');
+
+            React.useEffect(() => {
+                if (window.lucide && window.lucide.icons[name]) {
+                    const iconNode = window.lucide.icons[name];
+                    const svgString = `<svg class="lucide lucide-${name} ${className}" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconNode.map(([tag, attrs]) => {
+                        const attrsString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
+                        return `<${tag} ${attrsString}></${tag}>`;
+                    }).join('')}</svg>`;
+                    setIconHtml(svgString);
+                }
+            }, [name, size, className]);
+
+            return <span dangerouslySetInnerHTML={{ __html: iconHtml }} />;
+        };
+
+        const Header = () => {
+            return (
+                <header className="bg-brand-900 text-white shadow-md sticky top-0 z-50">
+                    <div className="bg-brand-800 text-sm py-2 px-4 border-b border-brand-700">
+                        <div className="max-w-7xl mx-auto flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                                <Icon name="flag" size={16} className="text-gray-300" />
+                                <span className="opacity-90">Official Website of the City of Lakewood</span>
+                            </div>
+                            <div className="flex space-x-4 text-xs">
+                                <a href="#" className="hover:text-blue-300 transition-colors">Translate</a>
+                                <a href="#" className="hover:text-blue-300 transition-colors">Accessibility</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 py-4">
+                        <div className="flex justify-between items-center">
+                            <a href="index.html" className="flex items-center space-x-3 group">
+                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-accent font-bold text-xl group-hover:scale-105 transition-transform shadow-sm">
+                                    L
+                                </div>
+                                <div>
+                                    <div className="font-serif font-bold text-2xl tracking-tight leading-none text-white">Lakewood</div>
+                                    <div className="text-xs text-brand-200 tracking-wider uppercase mt-1">Government Portal</div>
+                                </div>
+                            </a>
+
+                            <div className="hidden md:flex items-center space-x-8">
+                                <a href="services.html" className="font-medium text-blue-300 transition-colors py-2 border-b-2 border-blue-400">Services</a>
+                                <div className="space-x-1 flex group relative">
+                                    <a href="permit-application.html" className="font-medium hover:text-blue-300 transition-colors text-white py-2">Permits & Licenses</a>
+                                    <a href="pay-bill.html" className="font-medium hover:text-blue-300 transition-colors text-white py-2">Pay Bills</a>
+                                </div>
+                                <a href="about.html" className="font-medium hover:text-blue-300 transition-colors text-white py-2">About</a>
+                                <a href="contact.html" className="font-medium hover:text-blue-300 transition-colors text-white py-2">Contact</a>
+                                <a href="#" className="ml-4 p-2 bg-brand-700 hover:bg-brand-600 rounded-full transition-colors text-white">
+                                    <Icon name="search" size={20} />
+                                </a>
+                            </div>
+
+                            <button className="md:hidden p-2 text-white">
+                                <Icon name="menu" size={24} />
+                            </button>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-brand-900 text-brand-100 py-12 border-t-4 border-accent mt-auto">
+                    <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div>
+                            <div className="flex items-center space-x-3 mb-6">
+                                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-accent font-bold text-lg shadow-sm">L</div>
+                                <span className="font-serif font-bold text-xl text-white">City of Lakewood</span>
+                            </div>
+                            <p className="text-sm text-brand-200 leading-relaxed mb-4">
+                                Dedicated to transparency, public safety, and fostering a vibrant community for our 160,000 residents.
+                            </p>
+                            <div className="flex space-x-4">
+                                <a href="#" className="text-brand-300 hover:text-white transition-colors"><Icon name="twitter" size={20} /></a>
+                                <a href="#" className="text-brand-300 hover:text-white transition-colors"><Icon name="facebook" size={20} /></a>
+                                <a href="#" className="text-brand-300 hover:text-white transition-colors"><Icon name="youtube" size={20} /></a>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-lg border-b border-brand-700 pb-2">Quick Links</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="index.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> City Home</a></li>
+                                <li><a href="services.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Services Directory</a></li>
+                                <li><a href="about.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> About Lakewood</a></li>
+                                <li><a href="contact.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Contact Us</a></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-lg border-b border-brand-700 pb-2">Popular Services</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="pay-bill.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Pay Utility Bill</a></li>
+                                <li><a href="permit-application.html" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Apply for Permit</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Report an Issue</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors flex items-center"><Icon name="chevron-right" size={14} className="mr-1" /> Public Records Request</a></li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-lg border-b border-brand-700 pb-2">Contact</h3>
+                            <ul className="space-y-4 text-sm">
+                                <li className="flex items-start">
+                                    <Icon name="map-pin" size={18} className="mr-2 text-brand-300 mt-0.5 shrink-0" />
+                                    <span>Lakewood City Hall<br />100 Main Street<br />Lakewood, ST 12345</span>
+                                </li>
+                                <li className="flex items-center">
+                                    <Icon name="phone" size={18} className="mr-2 text-brand-300 shrink-0" />
+                                    <span>(555) 123-4567</span>
+                                </li>
+                                <li className="flex items-center">
+                                    <Icon name="mail" size={18} className="mr-2 text-brand-300 shrink-0" />
+                                    <a href="mailto:info@lakewood.gov" className="hover:text-white transition-colors">info@lakewood.gov</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 mt-12 pt-6 border-t border-brand-800 text-xs text-brand-300 flex flex-col md:flex-row justify-between items-center">
+                        <p>&copy; 2026 City of Lakewood. All rights reserved.</p>
+                        <div className="flex space-x-4 mt-4 md:mt-0">
+                            <a href="#" className="hover:text-white">Privacy Policy</a>
+                            <a href="#" className="hover:text-white">Terms of Use</a>
+                            <a href="#" className="hover:text-white">Accessibility</a>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        const ServicesPage = () => {
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+
+                    <main className="flex-grow">
+                        {/* Page Header */}
+                        <div className="bg-brand-100 py-10 md:py-16">
+                            <div className="max-w-7xl mx-auto px-4">
+                                <h1 className="font-serif text-3xl md:text-5xl font-bold text-brand-900 mb-4">City Services</h1>
+                                <p className="text-lg text-brand-700 max-w-3xl">Find and access essential services provided by the City of Lakewood. From paying bills to applying for permits, everything you need is here.</p>
+                            </div>
+                        </div>
+
+                        {/* Search Services */}
+                        <div className="bg-white border-b border-gray-200 py-6">
+                            <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                                <div className="relative w-full md:w-1/2">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Icon name="search" className="text-gray-400" size={20} />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-accent focus:border-accent shadow-sm"
+                                        placeholder="Filter services by keyword..."
+                                    />
+                                </div>
+                                <div className="flex space-x-2 text-sm">
+                                    <button className="bg-brand-900 text-white px-4 py-2 rounded-lg hover:bg-brand-800 transition-colors">All Services</button>
+                                    <button className="bg-gray-100 text-brand-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">Online Only</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Services Grid */}
+                        <div className="max-w-7xl mx-auto px-4 py-12">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+                                {/* Utilities & Billing */}
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                                    <div className="bg-blue-600 h-2 w-full"></div>
+                                    <div className="p-6">
+                                        <div className="flex items-center space-x-3 mb-4 text-blue-600">
+                                            <Icon name="droplet" size={28} />
+                                            <h2 className="text-xl font-bold text-brand-900">Utilities & Billing</h2>
+                                        </div>
+                                        <p className="text-brand-600 mb-6 text-sm">Manage your water and sewer accounts, pay your bills, and start or stop service.</p>
+                                        <ul className="space-y-3">
+                                            <li><a href="pay-bill.html" className="text-accent hover:underline font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Pay Utility Bill</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Start/Stop Service</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Report Water Leak</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Permits & Licenses */}
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                                    <div className="bg-green-600 h-2 w-full"></div>
+                                    <div className="p-6">
+                                        <div className="flex items-center space-x-3 mb-4 text-green-600">
+                                            <Icon name="file-check-2" size={28} />
+                                            <h2 className="text-xl font-bold text-brand-900">Permits & Licenses</h2>
+                                        </div>
+                                        <p className="text-brand-600 mb-6 text-sm">Apply for building, business, and event licenses requirements and codes.</p>
+                                        <ul className="space-y-3">
+                                            <li><a href="permit-application.html" className="text-accent hover:underline font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Apply for Building Permit</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Business License Renewal</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Check Permit Status</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Public Safety */}
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                                    <div className="bg-red-600 h-2 w-full"></div>
+                                    <div className="p-6">
+                                        <div className="flex items-center space-x-3 mb-4 text-red-600">
+                                            <Icon name="shield-alert" size={28} />
+                                            <h2 className="text-xl font-bold text-brand-900">Public Safety</h2>
+                                        </div>
+                                        <p className="text-brand-600 mb-6 text-sm">Police, Fire, and emergency management services. Report crimes and access records.</p>
+                                        <ul className="space-y-3">
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Police Department</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Fire Department</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> File Police Report Online</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Transportation */}
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                                    <div className="bg-orange-500 h-2 w-full"></div>
+                                    <div className="p-6">
+                                        <div className="flex items-center space-x-3 mb-4 text-orange-500">
+                                            <Icon name="bus" size={28} />
+                                            <h2 className="text-xl font-bold text-brand-900">Transportation</h2>
+                                        </div>
+                                        <p className="text-brand-600 mb-6 text-sm">Public transit schedules, parking maps, street sweeping, and road maintenance.</p>
+                                        <ul className="space-y-3">
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Bus Schedules & Routes</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Pay Parking Ticket</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Report a Pothole</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Parks & Recreation */}
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                                    <div className="bg-emerald-600 h-2 w-full"></div>
+                                    <div className="p-6">
+                                        <div className="flex items-center space-x-3 mb-4 text-emerald-600">
+                                            <Icon name="trees" size={28} />
+                                            <h2 className="text-xl font-bold text-brand-900">Parks & Recreation</h2>
+                                        </div>
+                                        <p className="text-brand-600 mb-6 text-sm">Find local parks, community centers, classes, and reserve park pavilions.</p>
+                                        <ul className="space-y-3">
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Park Directory</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Register for Classes</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Reserve a Facility</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Social Services */}
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                                    <div className="bg-purple-600 h-2 w-full"></div>
+                                    <div className="p-6">
+                                        <div className="flex items-center space-x-3 mb-4 text-purple-600">
+                                            <Icon name="heart-handshake" size={28} />
+                                            <h2 className="text-xl font-bold text-brand-900">Social Services</h2>
+                                        </div>
+                                        <p className="text-brand-600 mb-6 text-sm">Housing assistance, senior centers, youth programs and health resources.</p>
+                                        <ul className="space-y-3">
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Housing Assistance</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Senior Center Programs</a></li>
+                                            <li><a href="#" className="text-brand-700 hover:text-accent font-medium flex items-center"><Icon name="arrow-right" size={16} className="mr-2" /> Community Health Clinics</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ServicesPage />);
+    </script>
+</body>
+
+</html>

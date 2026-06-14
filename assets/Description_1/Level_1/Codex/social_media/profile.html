@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulse | Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Manrope"', "sans-serif"] }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="pulse-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { useState } = React;
+      const { Layout, popularCards } = window.PulseShared;
+
+      function App() {
+        const [activeTab, setActiveTab] = useState("Posts");
+        const tabs = ["Posts", "Replies", "Media", "Likes"];
+
+        return (
+          <Layout activePath="profile.html">
+            <main id="main-content" className="mt-6 space-y-6">
+              <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+                <img
+                  src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80"
+                  alt="Abstract city skyline at dusk used as Alex's profile cover image"
+                  className="h-56 w-full object-cover"
+                />
+                <div className="px-6 pb-6">
+                  <div className="-mt-14 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-end">
+                      <img
+                        src="https://images.unsplash.com/photo-1502685104226-ee32379fefbe?auto=format&fit=crop&w=400&q=80"
+                        alt="Profile portrait of Alex smiling in daylight"
+                        className="h-28 w-28 rounded-full border-4 border-white object-cover"
+                      />
+                      <div>
+                        <h1 className="text-3xl font-extrabold text-slate-950">Alex Morgan</h1>
+                        <p className="mt-1 text-sm text-slate-500">@alexwrites</p>
+                        <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-700">
+                          Product writing, civic tech, and photos from long walks with too much caffeine.
+                        </p>
+                        <p className="mt-3 text-sm font-semibold text-slate-700">12.8K followers · 642 following</p>
+                      </div>
+                    </div>
+                    <button type="button" className="rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800">
+                      Edit Profile
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <section className="card-surface rounded-[1.75rem] p-6">
+                <div className="flex flex-wrap gap-2" role="tablist" aria-label="Profile content tabs">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeTab === tab}
+                      onClick={() => setActiveTab(tab)}
+                      className="tab-button rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900"
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {popularCards.map((card) => (
+                    <article key={activeTab + card.title} className="media-card overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm transition">
+                      <img src={card.image} alt={card.alt} className="h-56 w-full object-cover" />
+                      <div className="p-5">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{activeTab}</p>
+                        <h2 className="mt-2 text-lg font-bold text-slate-950">{card.title}</h2>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            </main>
+          </Layout>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

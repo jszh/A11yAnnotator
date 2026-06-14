@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Nexus Social — Your notifications. Likes, replies, mentions and follows." />
+  <title>Notifications — Nexus Social</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="../components/components.js"></script>
+
+  <script>
+  (function () {
+    const e = React.createElement;
+    const { TopHeader, SidebarNav, SidebarRight, MobileBottomNav } = window.NexusComponents;
+
+    const NOTIFS = [
+      { id: 1, type: 'like',    icon: '♡', iconClass: 'notif-item__icon--like',
+        text: e => e('p', { className: 'notif-item__text' },
+          e('strong', null, 'Aria Chen'), ' and ', e('strong', null, '14 others'),
+          ' liked your post about design systems.'
+        ), time: '2m ago', unread: true,
+        avatar: 'https://i.pravatar.cc/80?img=47'
+      },
+      { id: 2, type: 'follow',  icon: '👤', iconClass: 'notif-item__icon--follow',
+        text: e => e('p', { className: 'notif-item__text' },
+          e('strong', null, 'Marcus Webb'), ' started following you.'
+        ), time: '18m ago', unread: true,
+        avatar: 'https://i.pravatar.cc/80?img=12'
+      },
+      { id: 3, type: 'reply',   icon: '💬', iconClass: 'notif-item__icon--reply',
+        text: e => e('p', { className: 'notif-item__text' },
+          e('strong', null, 'Lena Kovacs'), ' replied to your post: "Totally agree — the spatial future is here!"'
+        ), time: '45m ago', unread: true,
+        avatar: 'https://i.pravatar.cc/80?img=23'
+      },
+      { id: 4, type: 'rt',      icon: '↻', iconClass: 'notif-item__icon--rt',
+        text: e => e('p', { className: 'notif-item__text' },
+          e('strong', null, 'Dev Sharma'), ' reposted your post.'
+        ), time: '1h ago', unread: false,
+        avatar: 'https://i.pravatar.cc/80?img=61'
+      },
+      { id: 5, type: 'mention', icon: '@', iconClass: 'notif-item__icon--mention',
+        text: e => e('p', { className: 'notif-item__text' },
+          e('strong', null, 'Sofia Reyes'), ' mentioned you in a post: "Cc @jordan_p — what do you think about this research?"'
+        ), time: '2h ago', unread: false,
+        avatar: 'https://i.pravatar.cc/80?img=56'
+      },
+      { id: 6, type: 'like',    icon: '♡', iconClass: 'notif-item__icon--like',
+        text: e => e('p', { className: 'notif-item__text' },
+          e('strong', null, 'Priya Singh'), ' liked your reply.'
+        ), time: '3h ago', unread: false,
+        avatar: 'https://i.pravatar.cc/80?img=45'
+      },
+      { id: 7, type: 'follow',  icon: '👤', iconClass: 'notif-item__icon--follow',
+        text: e => e('p', { className: 'notif-item__text' },
+          e('strong', null, 'Zara Okafor'), ' and ', e('strong', null, '3 others'), ' started following you.'
+        ), time: '5h ago', unread: false,
+        avatar: 'https://i.pravatar.cc/80?img=32'
+      },
+      { id: 8, type: 'reply',   icon: '💬', iconClass: 'notif-item__icon--reply',
+        text: e => e('p', { className: 'notif-item__text' },
+          e('strong', null, 'Theo Müller'), ' replied: "This is exactly the kind of discourse we need!"'
+        ), time: '8h ago', unread: false,
+        avatar: 'https://i.pravatar.cc/80?img=15'
+      },
+    ];
+
+    const TABS = ['All', 'Replies', 'Mentions', 'Likes', 'Follows'];
+
+    function NotifItem({ notif }) {
+      return e('article', {
+        className: 'notif-item' + (notif.unread ? ' unread' : ''),
+        tabIndex: 0,
+        'aria-label': `${notif.type} notification — ${notif.time}${notif.unread ? ' — unread' : ''}`,
+        role: 'button'
+      },
+        e('div', { className: `notif-item__icon ${notif.iconClass}`, 'aria-hidden': 'true' }, notif.icon),
+        e('div', { className: 'notif-item__content' },
+          notif.text(e),
+          e('div', { className: 'notif-item__time' }, notif.time)
+        )
+      );
+    }
+
+    function NotificationsPage() {
+      const [activeTab, setActiveTab] = React.useState('All');
+
+      const filtered = activeTab === 'All'
+        ? NOTIFS
+        : NOTIFS.filter(n => {
+            if (activeTab === 'Replies')  return n.type === 'reply';
+            if (activeTab === 'Mentions') return n.type === 'mention';
+            if (activeTab === 'Likes')    return n.type === 'like';
+            if (activeTab === 'Follows')  return n.type === 'follow';
+            return true;
+          });
+
+      const unreadCount = NOTIFS.filter(n => n.unread).length;
+
+      return e(React.Fragment, null,
+        e(TopHeader, { activePage: 'notifications' }),
+
+        e('div', { className: 'page-shell' },
+          e(SidebarNav, { activePage: 'notifications' }),
+
+          e('main', {
+            id: 'main-content',
+            className: 'main-content',
+            role: 'main',
+            'aria-label': 'Notifications'
+          },
+            /* Page header */
+            e('div', { className: 'page-header' },
+              e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+                e('div', null,
+                  e('h1', { className: 'page-header__title' }, 'Notifications'),
+                  e('p', { className: 'page-header__sub' },
+                    `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
+                  )
+                ),
+                e('button', {
+                  style: {
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    border: '1.5px solid var(--clr-border)',
+                    color: 'var(--clr-accent-light)',
+                    fontSize: '0.8125rem',
+                    fontWeight: '600',
+                    transition: 'background 120ms'
+                  },
+                  'aria-label': 'Mark all notifications as read',
+                  onMouseEnter: ev => ev.currentTarget.style.background = 'var(--clr-surface-2)',
+                  onMouseLeave: ev => ev.currentTarget.style.background = ''
+                }, 'Mark all read')
+              )
+            ),
+
+            /* Filter tabs */
+            e('nav', {
+              className: 'feed-tabs',
+              role: 'tablist',
+              'aria-label': 'Notification filter tabs'
+            },
+              TABS.map(tab =>
+                e('button', {
+                  key: tab,
+                  role: 'tab',
+                  'aria-selected': activeTab === tab,
+                  className: 'feed-tab' + (activeTab === tab ? ' active' : ''),
+                  onClick: () => setActiveTab(tab)
+                }, tab)
+              )
+            ),
+
+            /* Notification list */
+            e('div', {
+              role: 'tabpanel',
+              'aria-label': `${activeTab} notifications`,
+              'aria-live': 'polite'
+            },
+              filtered.length
+                ? filtered.map(n => e(NotifItem, { key: n.id, notif: n }))
+                : e('div', { className: 'empty-state' },
+                    e('div', { className: 'empty-state__icon' }, '🔔'),
+                    e('h2', { className: 'empty-state__title' }, 'All caught up!'),
+                    e('p', { className: 'empty-state__desc' }, `No ${activeTab.toLowerCase()} notifications right now.`)
+                  )
+            )
+          ),
+
+          e(SidebarRight)
+        ),
+
+        e(MobileBottomNav, { activePage: 'notifications' })
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('app'));
+    root.render(e(NotificationsPage));
+  })();
+  </script>
+</body>
+</html>

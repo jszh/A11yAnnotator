@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sony WH-1000XM5 | NovaMart</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb', // Blue-600
+                        primaryDark: '#1d4ed8', // Blue-700
+                        secondary: '#475569', // Slate-600
+                        accent: '#f59e0b', // Amber-500
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .focus-ring {
+            focus: outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- Shared Components --- //
+
+        const Header = () => {
+            return (
+                <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+                    <div className="bg-primaryDark text-white text-sm py-1.5 px-4 text-center font-medium">
+                        Free shipping on orders over $50. <a href="#" className="underline hover:text-blue-200">Shop Now</a>
+                    </div>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-16">
+                            <div className="flex-shrink-0 flex items-center gap-2">
+                                <a href="index.html" className="flex items-center gap-2 text-2xl font-bold tracking-tight text-primaryDark focus:outline-none focus:ring-2 focus:ring-primary rounded" aria-label="NovaMart Homepage">
+                                    <i data-lucide="shopping-bag" className="w-8 h-8 text-primary"></i>
+                                    NovaMart
+                                </a>
+                            </div>
+                            <div className="hidden md:flex flex-1 max-w-2xl mx-8">
+                                <form className="w-full relative" onSubmit={(e) => e.preventDefault()}>
+                                    <label htmlFor="search" className="sr-only">Search products</label>
+                                    <input
+                                        type="text"
+                                        id="search"
+                                        placeholder="Search for electronics, home goods, apparel..."
+                                        className="w-full pl-4 pr-10 py-2.5 border border-gray-300 rounded-full bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                    />
+                                    <button
+                                        type="submit"
+                                        aria-label="Search"
+                                        className="absolute right-0 top-0 mt-1 mr-1 p-2 text-gray-500 hover:text-primary rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
+                                    >
+                                        <i data-lucide="search" className="w-5 h-5"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <div className="flex items-center gap-4 sm:gap-6">
+                                <a href="account.html" className="flex flex-col items-center text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1 transition-colors" aria-label="Account">
+                                    <i data-lucide="user" className="w-6 h-6"></i>
+                                    <span className="text-[11px] font-medium hidden sm:block mt-0.5">Account</span>
+                                </a>
+                                <a href="products.html" className="flex flex-col items-center text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1 transition-colors" aria-label="Products">
+                                    <i data-lucide="grid" className="w-6 h-6"></i>
+                                    <span className="text-[11px] font-medium hidden sm:block mt-0.5">Shop</span>
+                                </a>
+                                <a href="cart.html" className="flex flex-col items-center text-gray-600 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1 relative transition-colors" aria-label="Cart with 2 items">
+                                    <div className="relative">
+                                        <i data-lucide="shopping-cart" className="w-6 h-6"></i>
+                                        <span className="absolute -top-1.5 -right-2 bg-accent text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">2</span>
+                                    </div>
+                                    <span className="text-[11px] font-medium hidden sm:block mt-0.5">Cart</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-white border-t border-gray-200 pt-12 pb-8 mt-auto">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                            <div className="col-span-1 md:col-span-1">
+                                <a href="index.html" className="flex items-center gap-2 text-2xl font-bold tracking-tight text-primaryDark mb-4 focus:outline-none focus:ring-2 focus:ring-primary rounded inline-flex">
+                                    <i data-lucide="shopping-bag" className="w-6 h-6 text-primary"></i>
+                                    NovaMart
+                                </a>
+                                <p className="text-gray-500 text-sm mb-4 leading-relaxed">
+                                    Your go-to destination for electronics, home goods, and apparel. Quality products, competitive prices.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h3 className="font-semibold text-gray-900 mb-4">Shop</h3>
+                                <ul className="space-y-2 text-sm text-gray-600">
+                                    <li><a href="products.html" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">All Products</a></li>
+                                    <li><a href="products.html" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Electronics</a></li>
+                                    <li><a href="products.html" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Kitchen & Home</a></li>
+                                    <li><a href="products.html" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Apparel</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="font-semibold text-gray-900 mb-4">Customer Service</h3>
+                                <ul className="space-y-2 text-sm text-gray-600">
+                                    <li><a href="#" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Contact Us</a></li>
+                                    <li><a href="#" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Shipping Policy</a></li>
+                                    <li><a href="#" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">Returns & Exchanges</a></li>
+                                    <li><a href="#" className="hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded px-1 -mx-1">FAQ</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="font-semibold text-gray-900 mb-4">Stay Connected</h3>
+                                <p className="text-gray-500 text-sm mb-3">Subscribe to our newsletter for exclusive offers.</p>
+                                <form className="flex gap-2" onSubmit={e => e.preventDefault()}>
+                                    <label htmlFor="email" className="sr-only">Email address</label>
+                                    <input
+                                        type="email"
+                                        id="email"
+                                        placeholder="Enter your email"
+                                        className="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                                        required
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="bg-primary text-white px-4 py-2 rounded font-medium hover:bg-primaryDark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors text-sm"
+                                    >
+                                        Subscribe
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <p className="text-gray-500 text-sm">© 2026 NovaMart. All rights reserved.</p>
+                            <div className="flex space-x-4">
+                                <a href="#" aria-label="Facebook" className="text-gray-400 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1">
+                                    <i data-lucide="facebook" className="w-5 h-5"></i>
+                                </a>
+                                <a href="#" aria-label="Twitter" className="text-gray-400 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1">
+                                    <i data-lucide="twitter" className="w-5 h-5"></i>
+                                </a>
+                                <a href="#" aria-label="Instagram" className="text-gray-400 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded p-1">
+                                    <i data-lucide="instagram" className="w-5 h-5"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        const ProductCard = ({ title, price, originalPrice, rating, reviews, image, badge }) => (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col h-full">
+                <div className="relative aspect-square bg-gray-50 flex items-center justify-center p-4">
+                    {badge && (
+                        <span className="absolute top-3 left-3 bg-accent text-white text-xs font-bold px-2 py-1 rounded z-10">
+                            {badge}
+                        </span>
+                    )}
+                    <button
+                        aria-label={`Add ${title} to wishlist`}
+                        className="absolute top-3 right-3 p-2 bg-white rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary shadow-sm z-10"
+                    >
+                        <i data-lucide="heart" className="w-4 h-4"></i>
+                    </button>
+                    <a href="product-detail.html" className="block w-full h-full p-4 focus:outline-none focus:ring-2 focus:ring-primary rounded-lg" aria-label={`View details for ${title}`}>
+                        <img
+                            src={image}
+                            alt={title}
+                            className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+                        />
+                    </a>
+                </div>
+                <div className="p-4 flex flex-col flex-grow">
+                    <a href="product-detail.html" className="block focus:outline-none focus:ring-2 focus:ring-primary rounded-sm mb-1">
+                        <h3 className="font-semibold text-gray-800 line-clamp-2 hover:text-primary transition-colors text-sm sm:text-base leading-snug">
+                            {title}
+                        </h3>
+                    </a>
+
+                    <div className="flex items-center gap-1 mb-2 mt-1">
+                        <div className="flex text-accent" aria-label={`Rating: ${rating} out of 5 stars`}>
+                            {[1, 2, 3, 4, 5].map(star => (
+                                <i key={star} data-lucide="star" className={`w-3.5 h-3.5 ${star <= Math.floor(rating) ? 'fill-current' : 'text-gray-300'}`}></i>
+                            ))}
+                        </div>
+                        <span className="text-xs text-gray-500">({reviews})</span>
+                    </div>
+
+                    <div className="mt-auto pt-3 flex items-center justify-between">
+                        <div className="flex flex-col">
+                            <span className="font-bold text-gray-900 text-lg">${price.toFixed(2)}</span>
+                            {originalPrice && (
+                                <span className="text-xs text-gray-400 line-through">${originalPrice.toFixed(2)}</span>
+                            )}
+                        </div>
+                        <button
+                            className="bg-gray-900 hover:bg-primary text-white p-2 sm:px-4 sm:py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center gap-2"
+                            aria-label={`Add ${title} to cart`}
+                        >
+                            <i data-lucide="shopping-cart" className="w-4 h-4"></i>
+                            <span className="hidden sm:inline text-sm">Add</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // --- Page specific --- //
+
+        const ProductDetail = () => {
+            const [selectedColor, setSelectedColor] = React.useState('black');
+            const [quantity, setQuantity] = React.useState(1);
+            const [activeTab, setActiveTab] = React.useState('description');
+
+            const images = {
+                black: "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=600&h=600",
+                silver: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&q=80&w=600&h=600"
+            };
+
+            const [activeImage, setActiveImage] = React.useState(images.black);
+
+            const handleColorChange = (color) => {
+                setSelectedColor(color);
+                setActiveImage(images[color]);
+            };
+
+            React.useEffect(() => {
+                if (window.lucide) window.lucide.createIcons();
+            }, [activeTab]);
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    {/* Breadcrumbs */}
+                    <nav className="flex text-sm text-gray-500 mb-6" aria-label="Breadcrumb">
+                        <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                            <li className="inline-flex items-center">
+                                <a href="index.html" className="hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded">Home</a>
+                            </li>
+                            <li>
+                                <div className="flex items-center">
+                                    <i data-lucide="chevron-right" className="w-4 h-4 text-gray-400 mx-1"></i>
+                                    <a href="products.html" className="hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded">Electronics</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div className="flex items-center">
+                                    <i data-lucide="chevron-right" className="w-4 h-4 text-gray-400 mx-1"></i>
+                                    <a href="products.html" className="hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded">Audio</a>
+                                </div>
+                            </li>
+                            <li>
+                                <div className="flex items-center">
+                                    <i data-lucide="chevron-right" className="w-4 h-4 text-gray-400 mx-1"></i>
+                                    <span className="text-gray-900 font-medium ml-1 md:ml-2 line-clamp-1">Sony WH-1000XM5</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mb-12">
+                        <div className="flex flex-col lg:flex-row gap-12">
+                            {/* Image Gallery */}
+                            <div className="lg:w-1/2 flex flex-col gap-4">
+                                <div className="bg-gray-50 rounded-2xl p-8 aspect-square flex items-center justify-center relative border border-gray-100">
+                                    <span className="absolute top-4 left-4 bg-accent text-white text-xs font-bold px-3 py-1.5 rounded-lg z-10 shadow-sm">
+                                        Save 30%
+                                    </span>
+                                    <button aria-label="Add to Wishlist" className="absolute top-4 right-4 bg-white p-2.5 rounded-full text-gray-400 hover:text-red-500 shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-primary z-10">
+                                        <i data-lucide="heart" className="w-5 h-5"></i>
+                                    </button>
+                                    <img src={activeImage} alt="Sony WH-1000XM5" className="w-full h-full object-contain mix-blend-multiply" />
+                                </div>
+                                <div className="grid grid-cols-4 gap-4">
+                                    <button
+                                        className={`bg-gray-50 rounded-xl p-2 aspect-square border-2 ${activeImage === images.black ? 'border-primary' : 'border-transparent'} hover:border-primary/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary`}
+                                        onClick={() => setActiveImage(images.black)}
+                                    >
+                                        <img src={images.black} alt="Thumbnail 1" className="w-full h-full object-contain mix-blend-multiply" />
+                                    </button>
+                                    <button
+                                        className={`bg-gray-50 rounded-xl p-2 aspect-square border-2 ${activeImage === images.silver ? 'border-primary' : 'border-transparent'} hover:border-primary/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary`}
+                                        onClick={() => setActiveImage(images.silver)}
+                                    >
+                                        <img src={images.silver} alt="Thumbnail 2" className="w-full h-full object-contain mix-blend-multiply" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Product Info */}
+                            <div className="lg:w-1/2 flex flex-col">
+                                <div className="mb-2">
+                                    <a href="#" className="text-primary font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded">Sony</a>
+                                </div>
+                                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                                    Sony WH-1000XM5 Wireless Noise Canceling Headphones
+                                </h1>
+
+                                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
+                                    <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded">
+                                        <div className="flex text-accent" aria-label="Rating: 4.8 out of 5 stars">
+                                            {[1, 2, 3, 4, 5].map(star => (
+                                                <i key={star} data-lucide="star" className={`w-4 h-4 ${star <= 4 ? 'fill-current' : (star === 5 ? 'fill-current opacity-50' : 'text-gray-300')}`}></i>
+                                            ))}
+                                        </div>
+                                        <span className="text-sm font-semibold text-gray-900 ml-1">4.8</span>
+                                    </div>
+                                    <a href="#reviews" className="text-sm text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded">1,245 Reviews</a>
+                                    <span className="text-gray-300">|</span>
+                                    <span className="text-sm text-green-600 font-medium flex items-center gap-1 text-green-700 bg-green-50 px-2.5 py-1 rounded">
+                                        <i data-lucide="check-circle" className="w-4 h-4"></i> In Stock
+                                    </span>
+                                </div>
+
+                                <div className="flex items-end gap-3 mb-6">
+                                    <span className="text-4xl font-extrabold text-gray-900">$279.99</span>
+                                    <span className="text-lg text-gray-400 line-through mb-1">$399.99</span>
+                                </div>
+
+                                <p className="text-gray-600 mb-8 leading-relaxed">
+                                    Industry-leading noise cancellation optimized to you. Magnificent Sound, engineered to perfection. Crystal clear hands-free calling. Up to 30-hour battery life with quick charging.
+                                </p>
+
+                                {/* Color Selection */}
+                                <div className="mb-8">
+                                    <h3 className="text-sm font-medium text-gray-900 mb-3 uppercase tracking-wider">Color: {selectedColor === 'black' ? 'Midnight Black' : 'Platinum Silver'}</h3>
+                                    <div className="flex gap-3">
+                                        <button
+                                            aria-label="Select Midnight Black"
+                                            onClick={() => handleColorChange('black')}
+                                            className={`w-10 h-10 rounded-full bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 ${selectedColor === 'black' ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                                        ></button>
+                                        <button
+                                            aria-label="Select Platinum Silver"
+                                            onClick={() => handleColorChange('silver')}
+                                            className={`w-10 h-10 rounded-full bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 ${selectedColor === 'silver' ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                                        ></button>
+                                    </div>
+                                </div>
+
+                                {/* Purchase Actions */}
+                                <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                                    <div className="flex items-center border border-gray-300 rounded-lg h-12 w-full sm:w-32 bg-white">
+                                        <button
+                                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                            className="px-4 text-gray-500 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-l-lg h-full disabled:opacity-50"
+                                            aria-label="Decrease quantity"
+                                            disabled={quantity <= 1}
+                                        >
+                                            <i data-lucide="minus" className="w-4 h-4"></i>
+                                        </button>
+                                        <span className="flex-1 text-center font-semibold text-gray-900">{quantity}</span>
+                                        <button
+                                            onClick={() => setQuantity(quantity + 1)}
+                                            className="px-4 text-gray-500 hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded-r-lg h-full"
+                                            aria-label="Increase quantity"
+                                        >
+                                            <i data-lucide="plus" className="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                    <a href="cart.html" className="flex-1 bg-white border-2 border-primary text-primary hover:bg-blue-50 h-12 rounded-lg font-bold flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                                        <i data-lucide="shopping-cart" className="w-5 h-5"></i> Add to Cart
+                                    </a>
+                                    <a href="cart.html" className="flex-1 bg-primary text-white hover:bg-primaryDark shadow-md hover:shadow-lg h-12 rounded-lg font-bold flex items-center justify-center gap-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                                        <i data-lucide="zap" className="w-5 h-5"></i> Buy Now
+                                    </a>
+                                </div>
+
+                                {/* Info boxes */}
+                                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-100">
+                                    <div className="flex items-start gap-3">
+                                        <i data-lucide="truck" className="w-5 h-5 text-gray-400 mt-0.5"></i>
+                                        <div>
+                                            <h4 className="font-medium text-gray-900 text-sm">Free Delivery</h4>
+                                            <p className="text-gray-500 text-xs mt-1">Enter your postal code for delivery availability</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3">
+                                        <i data-lucide="refresh-cw" className="w-5 h-5 text-gray-400 mt-0.5"></i>
+                                        <div>
+                                            <h4 className="font-medium text-gray-900 text-sm">Return Delivery</h4>
+                                            <p className="text-gray-500 text-xs mt-1">Free 30 Days Delivery Returns.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tabs Section */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-16">
+                        <div className="flex border-b border-gray-200 overflow-x-auto hide-scrollbar">
+                            {['description', 'specs', 'reviews'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`px-8 py-5 font-semibold text-sm whitespace-nowrap focus:outline-none ${activeTab === tab ? 'text-primary border-b-2 border-primary bg-blue-50/30' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                                    aria-selected={activeTab === tab}
+                                    role="tab"
+                                >
+                                    {tab.charAt(0).toUpperCase() + tab.slice(1)} {tab === 'reviews' && '(1,245)'}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="p-8">
+                            {activeTab === 'description' && (
+                                <div className="prose prose-blue max-w-none text-gray-600">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-4">Your world. Nothing else.</h3>
+                                    <p className="mb-4">The WH-1000XM5 headphones rewrite the rules for distraction-free listening. Two processors control 8 microphones for unprecedented noise cancellation and exceptional call quality. With a newly developed driver, DSEE – Extreme and Hires audio support the WH-1000XM5 headphones provide awe-inspiring audio quality.</p>
+                                    <ul className="list-disc pl-5 space-y-2 mb-6 text-gray-600">
+                                        <li>Industry-leading noise cancellation optimized to you.</li>
+                                        <li>Magnificent Sound, engineered to perfection.</li>
+                                        <li>Ultra-comfortable, lightweight design with soft fit leather.</li>
+                                        <li>Multipoint connection lets you quickly switch between devices.</li>
+                                        <li>Redesigned collapsible case made for easy storage in a bag.</li>
+                                    </ul>
+                                </div>
+                            )}
+                            {activeTab === 'specs' && (
+                                <div className="max-w-2xl">
+                                    <table className="w-full text-sm text-left text-gray-600">
+                                        <tbody>
+                                            <tr className="bg-gray-50 border-b border-gray-100">
+                                                <th className="px-4 py-3 font-semibold text-gray-900 w-1/3">Headphone Type</th>
+                                                <td className="px-4 py-3">Closed, dynamic</td>
+                                            </tr>
+                                            <tr className="border-b border-gray-100">
+                                                <th className="px-4 py-3 font-semibold text-gray-900">Driver Unit</th>
+                                                <td className="px-4 py-3">30mm</td>
+                                            </tr>
+                                            <tr className="bg-gray-50 border-b border-gray-100">
+                                                <th className="px-4 py-3 font-semibold text-gray-900">Frequency Response</th>
+                                                <td className="px-4 py-3">4 Hz - 40,000 Hz</td>
+                                            </tr>
+                                            <tr className="border-b border-gray-100">
+                                                <th className="px-4 py-3 font-semibold text-gray-900">Bluetooth Version</th>
+                                                <td className="px-4 py-3">Version 5.2</td>
+                                            </tr>
+                                            <tr className="bg-gray-50 border-b border-gray-100">
+                                                <th className="px-4 py-3 font-semibold text-gray-900">Battery Life</th>
+                                                <td className="px-4 py-3">Max. 30 hrs (NC ON), Max. 40 hrs (NC OFF)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                            {activeTab === 'reviews' && (
+                                <div>
+                                    <div className="flex flex-col md:flex-row gap-8 mb-8 border-b border-gray-100 pb-8">
+                                        <div className="md:w-1/3 flex flex-col items-center justify-center bg-gray-50 rounded-xl p-6">
+                                            <span className="text-5xl font-extrabold text-gray-900 mb-2">4.8</span>
+                                            <div className="flex text-accent mb-2">
+                                                {[1, 2, 3, 4, 5].map(star => <i key={star} data-lucide="star" className={`w-5 h-5 ${star <= 4 ? 'fill-current' : (star === 5 ? 'fill-current opacity-50' : '')}`}></i>)}
+                                            </div>
+                                            <span className="text-gray-500 text-sm">Based on 1,245 reviews</span>
+                                        </div>
+                                        <div className="md:w-2/3 flex flex-col justify-center space-y-2">
+                                            {[5, 4, 3, 2, 1].map((rating, idx) => (
+                                                <div key={rating} className="flex items-center gap-3">
+                                                    <span className="text-sm font-medium text-gray-600 w-12">{rating} Stars</span>
+                                                    <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-accent rounded-full" style={{ width: `${rating === 5 ? 80 : rating === 4 ? 15 : rating === 3 ? 3 : rating === 2 ? 1 : 1}%` }}></div>
+                                                    </div>
+                                                    <span className="text-sm text-gray-500 w-10 text-right">{rating === 5 ? '80%' : rating === 4 ? '15%' : '<5%'}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="border-b border-gray-100 pb-6">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <h4 className="font-semibold text-gray-900">Best headphones I've ever owned</h4>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <div className="flex text-accent">
+                                                            {[1, 2, 3, 4, 5].map(star => <i key={`a${star}`} data-lucide="star" className="w-3.5 h-3.5 fill-current"></i>)}
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Alex M. - Verified Buyer</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs text-gray-400">2 months ago</span>
+                                            </div>
+                                            <p className="text-gray-600 text-sm mt-3">The noise cancellation on these is absolutely incredible. I use them for work and commuting, and they block out almost everything. Sound quality is rich and battery life easily lasts me a full week.</p>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <h4 className="font-semibold text-gray-900">Very comfortable but case is annoying</h4>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <div className="flex text-accent">
+                                                            {[1, 2, 3, 4].map(star => <i key={`b${star}`} data-lucide="star" className="w-3.5 h-3.5 fill-current"></i>)}
+                                                            <i data-lucide="star" className="w-3.5 h-3.5 text-gray-300"></i>
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">Sarah J. - Verified Buyer</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs text-gray-400">4 months ago</span>
+                                            </div>
+                                            <p className="text-gray-600 text-sm mt-3">Sound and NC are great as expected from Sony. They are surprisingly light on the head which is a huge plus. My only gripe is they don't fold down as small as the XM4s, so the case takes up more room in my bag.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Related Products */}
+                    <section>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold text-gray-900">Related Products</h2>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                            <ProductCard
+                                title="Bose QuietComfort Earbuds II"
+                                price={299.00}
+                                rating={4.6}
+                                reviews={832}
+                                image="https://images.unsplash.com/photo-1606220588913-b3aecb4b27a0?auto=format&fit=crop&q=80&w=400&h=400"
+                            />
+                            <ProductCard
+                                title="Apple AirPods Pro (2nd Gen)"
+                                price={249.00}
+                                rating={4.9}
+                                reviews={4210}
+                                image="https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&q=80&w=400&h=400"
+                                badge="Best Seller"
+                            />
+                            <ProductCard
+                                title="Sony LinkBuds S Wireless Earbuds"
+                                price={148.00}
+                                originalPrice={199.99}
+                                rating={4.4}
+                                reviews={312}
+                                image="https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=400&h=400"
+                                badge="Sale"
+                            />
+                            <ProductCard
+                                title="Sennheiser Momentum 4 Wireless"
+                                price={349.95}
+                                rating={4.5}
+                                reviews={418}
+                                image="https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&q=80&w=400&h=400"
+                            />
+                        </div>
+                    </section>
+                </div>
+            )
+        }
+
+        const App = () => {
+            React.useEffect(() => {
+                const initIcons = () => {
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+                };
+                initIcons();
+                // To ensure dynamic content also gets icons formatted
+                setTimeout(initIcons, 100);
+            }, []);
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow bg-[#f8fafc]">
+                        <ProductDetail />
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

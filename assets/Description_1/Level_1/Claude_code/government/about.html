@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="About the City of Lakewood — history, leadership, mission, and annual reports." />
+  <title>About — City of Lakewood, CO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { 'lk-navy': '#0d2340', 'lk-blue': '#1a3a6b', 'lk-brand': '#1a56db' } } }
+    }
+  </script>
+  <style>
+    :focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; }
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="components.js"></script>
+
+<script type="text/babel">
+
+const LEADERSHIP = [
+  {
+    name: 'Wanda Rivera',
+    title: 'Mayor',
+    since: 'Nov 2021',
+    bio: 'Mayor Rivera has led Lakewood through major infrastructure investments and a nationally recognized affordable housing initiative.',
+    initials: 'WR',
+    color: 'bg-blue-700',
+    ward: null,
+  },
+  {
+    name: 'James O\'Brien',
+    title: 'City Manager',
+    since: 'Jan 2019',
+    bio: 'Oversees city operations and department directors, with 20+ years in public administration.',
+    initials: 'JO',
+    color: 'bg-slate-600',
+    ward: null,
+  },
+  {
+    name: 'Patricia Chen',
+    title: 'Council Member — Ward 1',
+    since: 'Nov 2019',
+    bio: 'Champion for transit improvements and small business development in Ward 1.',
+    initials: 'PC',
+    color: 'bg-teal-700',
+    ward: 1,
+  },
+  {
+    name: 'Marcus Delgado',
+    title: 'Council Member — Ward 2',
+    since: 'Nov 2021',
+    bio: 'Former educator focused on youth programs and park improvements in Ward 2.',
+    initials: 'MD',
+    color: 'bg-indigo-700',
+    ward: 2,
+  },
+  {
+    name: 'Asha Patel',
+    title: 'Council Member — Ward 3',
+    since: 'Nov 2023',
+    bio: 'Technology entrepreneur bringing a modernization lens to city services and transparency.',
+    initials: 'AP',
+    color: 'bg-violet-700',
+    ward: 3,
+  },
+  {
+    name: 'Robert Kim',
+    title: 'Council Member — Ward 4',
+    since: 'Nov 2023',
+    bio: 'Longtime Lakewood resident advocating for senior services and neighborhood safety.',
+    initials: 'RK',
+    color: 'bg-cyan-700',
+    ward: 4,
+  },
+  {
+    name: 'Denise Washington',
+    title: 'Council Member — Ward 5',
+    since: 'Nov 2021',
+    bio: 'Environmental attorney and sustainability advocate working on Lakewood\'s climate action plan.',
+    initials: 'DW',
+    color: 'bg-emerald-700',
+    ward: 5,
+  },
+  {
+    name: 'Carlos Reyes',
+    title: 'Council Member — Ward 6',
+    since: 'Nov 2019',
+    bio: 'Civil engineer with deep expertise in infrastructure planning and public safety initiatives.',
+    initials: 'CR',
+    color: 'bg-amber-700',
+    ward: 6,
+  },
+];
+
+const TIMELINE = [
+  { year: '1889', title: 'Lakewood Founded', desc: 'The community of Lakewood formed as a settlement west of Denver, centered around agriculture and the growing railroad network.' },
+  { year: '1969', title: 'City Incorporation', desc: 'Lakewood officially incorporated as a home-rule city, establishing its own charter and city government with elected leadership.' },
+  { year: '1977', title: 'City Hall Opens', desc: 'The current City Hall at 480 S Allison Pkwy opens, consolidating municipal services under one roof for the first time.' },
+  { year: '2001', title: 'Belmar Redevelopment', desc: 'The City launches the Belmar district redevelopment project, transforming a former shopping center into a walkable urban neighborhood.' },
+  { year: '2010', title: 'W Line Light Rail', desc: 'The RTD W Line opens, connecting Lakewood to downtown Denver and reshaping transportation and development corridors.' },
+  { year: '2022', title: 'Housing Action Plan', desc: 'City Council adopts an ambitious Housing Action Plan to address affordability, adding 3,000 workforce-income units by 2030.' },
+  { year: '2024', title: 'Climate Action', desc: 'Lakewood becomes the first Jefferson County city to adopt a net-zero emissions target, with a 2040 municipal operations deadline.' },
+];
+
+const STATS = [
+  { value: '160,000+', label: 'Residents' },
+  { value: '42 mi²',   label: 'City Area' },
+  { value: '1,200+',   label: 'City Employees' },
+  { value: '$387M',    label: '2026 Budget' },
+];
+
+function LeadershipCard({ person }) {
+  return (
+    <article className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+      <div className={`${person.color} px-6 py-8 flex items-center gap-4`}>
+        <div
+          className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
+          role="img"
+          aria-label={`Portrait of ${person.name}`}
+        >
+          {person.initials}
+        </div>
+        <div className="text-white">
+          <h3 className="font-bold text-base leading-snug">{person.name}</h3>
+          <p className="text-sm opacity-90 mt-0.5">{person.title}</p>
+          <p className="text-xs opacity-70 mt-1">In office since {person.since}</p>
+        </div>
+      </div>
+      <div className="px-6 py-4 flex-1">
+        <p className="text-sm text-gray-600 leading-relaxed">{person.bio}</p>
+      </div>
+      <div className="px-6 pb-4">
+        <a
+          href={`contact.html`}
+          className="text-sm font-semibold text-blue-700 hover:text-blue-900 hover:underline focus:outline-none focus:underline"
+          aria-label={`Contact ${person.name}`}
+        >
+          Contact →
+        </a>
+      </div>
+    </article>
+  );
+}
+
+function AboutPage() {
+  return (
+    <div className="min-h-screen flex flex-col">
+      <CityHeader currentPage="about" />
+
+      <main id="main-content" tabIndex={-1} className="flex-1 pb-16">
+
+        {/* Hero */}
+        <div className="bg-gradient-to-r from-[#0d2340] to-[#1a3a6b] text-white py-20 px-4 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-5 pointer-events-none" aria-hidden="true"
+            style={{ backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }}
+          />
+          <div className="relative max-w-7xl mx-auto">
+            <nav aria-label="Breadcrumb" className="mb-4">
+              <ol className="flex items-center gap-2 text-sm text-blue-300" role="list">
+                <li><a href="index.html" className="hover:text-white focus:text-white focus:outline-none hover:underline">Home</a></li>
+                <li aria-hidden="true"><span className="text-blue-500">›</span></li>
+                <li><span className="text-white font-medium" aria-current="page">About</span></li>
+              </ol>
+            </nav>
+            <h1 className="text-5xl font-bold mb-4">About Lakewood</h1>
+            <p className="text-blue-200 text-xl max-w-3xl leading-relaxed">
+              A thriving city of 160,000 residents nestled at the foot of the Rocky Mountains —
+              Colorado's fifth-largest city, proud of its history and optimistic about its future.
+            </p>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <section aria-labelledby="stats-heading" className="bg-white border-b border-gray-200">
+          <h2 id="stats-heading" className="sr-only">Lakewood at a glance</h2>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              {STATS.map(s => (
+                <div key={s.label} className="text-center">
+                  <dt className="text-sm font-semibold text-gray-500 uppercase tracking-widest">{s.label}</dt>
+                  <dd className="text-3xl font-bold text-[#0d2340] mt-1">{s.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+
+          {/* Mission */}
+          <section aria-labelledby="mission-heading" className="mb-16">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-blue-600">Our Purpose</span>
+                <h2 id="mission-heading" className="text-3xl font-bold text-gray-900 mt-2 mb-5">Mission Statement</h2>
+                <blockquote className="border-l-4 border-blue-600 pl-6 text-gray-700 text-lg leading-relaxed italic">
+                  "To provide exceptional services that improve the quality of life for all Lakewood residents, businesses, and visitors — with transparency, equity, and fiscal responsibility as our guiding principles."
+                </blockquote>
+                <div className="mt-6 space-y-3">
+                  {[
+                    { icon: '🤝', text: 'Community-centered decision making' },
+                    { icon: '🌿', text: 'Environmental stewardship and sustainability' },
+                    { icon: '📊', text: 'Transparent and accountable governance' },
+                    { icon: '⚖️', text: 'Equity and inclusion for all residents' },
+                  ].map(v => (
+                    <div key={v.text} className="flex items-center gap-3 text-gray-700">
+                      <span className="text-xl flex-shrink-0" aria-hidden="true">{v.icon}</span>
+                      <span className="text-sm font-medium">{v.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 border border-blue-200">
+                <h3 className="font-bold text-gray-900 mb-4 text-lg">Annual Report</h3>
+                <p className="text-gray-600 text-sm leading-relaxed mb-6">
+                  Our comprehensive annual report covers city finances, major projects, departmental achievements, and our progress toward strategic goals.
+                </p>
+                <div className="space-y-3">
+                  {[
+                    { label: 'FY2025 Annual Report',    size: '4.2 MB PDF' },
+                    { label: 'FY2024 Annual Report',    size: '3.8 MB PDF' },
+                    { label: 'FY2023 Annual Report',    size: '3.1 MB PDF' },
+                    { label: '2026 City Budget',         size: '8.7 MB PDF' },
+                  ].map(doc => (
+                    <a
+                      key={doc.label}
+                      href="#"
+                      className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-blue-200 hover:border-blue-400 hover:shadow-sm transition-all group focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      aria-label={`Download ${doc.label} (${doc.size})`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl" aria-hidden="true">📄</span>
+                        <span className="text-sm font-semibold text-gray-800 group-hover:text-blue-800">{doc.label}</span>
+                      </div>
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        {doc.size}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* History Timeline */}
+          <section aria-labelledby="history-heading" className="mb-16">
+            <span className="text-xs font-bold uppercase tracking-widest text-blue-600">Our Story</span>
+            <h2 id="history-heading" className="text-3xl font-bold text-gray-900 mt-2 mb-10">City History</h2>
+            <div className="relative">
+              {/* Vertical line */}
+              <div className="absolute left-6 sm:left-1/2 top-0 bottom-0 w-0.5 bg-blue-200 -translate-x-1/2 pointer-events-none" aria-hidden="true" />
+              <ol className="space-y-8" role="list">
+                {TIMELINE.map((item, i) => (
+                  <li key={item.year} className={`relative flex gap-6 items-start sm:gap-0 ${i % 2 === 0 ? 'sm:flex-row' : 'sm:flex-row-reverse'}`}>
+                    {/* Year bubble */}
+                    <div className="relative z-10 flex-shrink-0 w-12 h-12 rounded-full bg-blue-700 text-white flex items-center justify-center sm:absolute sm:left-1/2 sm:-translate-x-1/2 sm:top-0" aria-hidden="true">
+                      <span className="text-[10px] font-bold leading-tight text-center px-1">{item.year}</span>
+                    </div>
+                    {/* Content card */}
+                    <div className={`flex-1 bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-5 ml-0 sm:max-w-[calc(50%-3rem)] ${i % 2 === 0 ? 'sm:ml-0 sm:mr-auto sm:pr-6' : 'sm:ml-auto sm:mr-0 sm:pl-6'}`}>
+                      <time dateTime={item.year} className="text-xs font-bold uppercase tracking-widest text-blue-600">{item.year}</time>
+                      <h3 className="font-bold text-gray-900 text-base mt-1 mb-2">{item.title}</h3>
+                      <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </section>
+
+          {/* Leadership */}
+          <section aria-labelledby="leadership-heading" className="mb-16">
+            <span className="text-xs font-bold uppercase tracking-widest text-blue-600">Your Representatives</span>
+            <h2 id="leadership-heading" className="text-3xl font-bold text-gray-900 mt-2 mb-3">City Leadership</h2>
+            <p className="text-gray-600 mb-10 max-w-2xl">
+              Lakewood's elected Mayor and six-member City Council set policy and represent the interests of all residents. The City Manager oversees daily operations.
+            </p>
+
+            {/* Mayor + City Manager highlight */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+              {LEADERSHIP.slice(0, 2).map(p => <LeadershipCard key={p.name} person={p} />)}
+            </div>
+
+            {/* Council grid */}
+            <h3 className="text-xl font-bold text-gray-900 mb-6">City Council Members</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {LEADERSHIP.slice(2).map(p => <LeadershipCard key={p.name} person={p} />)}
+            </div>
+
+            <div className="mt-8 bg-blue-50 border border-blue-200 rounded-2xl px-6 py-5 text-sm text-gray-700">
+              <strong>City Council meetings</strong> are held the first and third Monday of each month at 7:00 PM in City Hall Council Chambers.
+              All meetings are open to the public and live-streamed. <a href="#" className="text-blue-700 font-semibold hover:underline focus:outline-none focus:underline">View meeting agendas →</a>
+            </div>
+          </section>
+
+          {/* Departments */}
+          <section aria-labelledby="depts-heading">
+            <span className="text-xs font-bold uppercase tracking-widest text-blue-600">Organization</span>
+            <h2 id="depts-heading" className="text-3xl font-bold text-gray-900 mt-2 mb-8">City Departments</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[
+                ['🚓', 'Police Department'],
+                ['🚒', 'Fire Department'],
+                ['🔧', 'Public Works'],
+                ['🌳', 'Parks & Recreation'],
+                ['🏗', 'Community Development'],
+                ['💧', 'Utilities'],
+                ['📊', 'Finance'],
+                ['⚖️', 'City Attorney'],
+                ['📋', 'City Clerk'],
+                ['💻', 'Information Technology'],
+                ['🤝', 'Human Resources'],
+                ['📢', 'Communications'],
+              ].map(([icon, label]) => (
+                <a
+                  key={label}
+                  href="contact.html"
+                  className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-4 flex items-center gap-3 hover:shadow-md hover:border-blue-200 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 group"
+                >
+                  <span className="text-xl flex-shrink-0" aria-hidden="true">{icon}</span>
+                  <span className="text-sm font-semibold text-gray-700 group-hover:text-blue-800 leading-snug">{label}</span>
+                </a>
+              ))}
+            </div>
+          </section>
+
+        </div>
+      </main>
+      <CityFooter />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<AboutPage />);
+</script>
+</body>
+</html>

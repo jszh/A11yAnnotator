@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opinion & Analysis — The Pulse</title>
+  <meta name="description" content="Columnists, op-eds, analysis, and independent perspectives on the issues that matter." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['"Playfair Display"', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body class="bg-white">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="../components/components.js" data-presets="react"></script>
+
+  <script type="text/babel" data-presets="react">
+    window.BASE_PATH = '../';
+
+    const COLUMNISTS = [
+      { name: 'Dr. Lena Vogel', bio: 'Political philosopher & democracy scholar', count: 48, img: 'https://picsum.photos/seed/col1/80/80', topic: 'Democracy & Technology' },
+      { name: 'Prof. James Wright', bio: 'AI ethics researcher, MIT Media Lab', count: 36, img: 'https://picsum.photos/seed/col2/80/80', topic: 'Artificial Intelligence' },
+      { name: 'Sarah Mitchell', bio: 'Former Senate staffer, policy analyst', count: 52, img: 'https://picsum.photos/seed/col3/80/80', topic: 'Climate Policy' },
+      { name: 'Marcus Lee', bio: 'Cultural critic and social historian', count: 29, img: 'https://picsum.photos/seed/col4/80/80', topic: 'Culture & Identity' },
+      { name: 'Diana Chen', bio: 'Economist, former World Bank advisor', count: 41, img: 'https://picsum.photos/seed/col5/80/80', topic: 'Global Economy' },
+      { name: 'Tom Walsh', bio: 'National security correspondent', count: 33, img: 'https://picsum.photos/seed/col6/80/80', topic: 'Foreign Policy' },
+    ];
+
+    /* Columnists Directory */
+    const ColumnistGrid = () => (
+      <section className="max-w-screen-2xl mx-auto px-4 py-8 border-b border-slate-100" aria-labelledby="columnists-title">
+        <div className="section-header">
+          <span className="section-header-accent" style={{ background: '#F59E0B' }} />
+          <h2 id="columnists-title" className="section-header-title">Our Columnists</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {COLUMNISTS.map((c) => (
+            <article key={c.name} className="text-center p-4 rounded-xl border border-slate-100 hover:border-amber-200 hover:shadow-sm transition-all cursor-pointer">
+              <img src={c.img} alt={`Portrait of ${c.name}`} className="w-16 h-16 rounded-full mx-auto object-cover mb-3 border-2 border-amber-100" />
+              <p className="font-semibold text-xs text-slate-800 leading-snug">{c.name}</p>
+              <p className="text-xs text-amber-600 font-medium mt-1">{c.topic}</p>
+              <p className="text-xs text-slate-400 mt-1">{c.count} columns</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+
+    /* Featured Opinion — NYT-style left-heavy */
+    const OpinionHero = ({ story }) => (
+      <section className="max-w-screen-2xl mx-auto px-4 py-10 border-b border-slate-100" aria-label="Featured opinion">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <span className="cat-label cat-opinion mb-3 inline-block">Opinion</span>
+            <a href={R('article/article.html')}>
+              <h1 className="headline-xl hover:text-amber-700 transition-colors">{story.title}</h1>
+            </a>
+            <p className="body-lg text-slate-500 mt-4">{story.summary}</p>
+            <div className="flex items-center gap-4 mt-6">
+              <img src={`https://picsum.photos/seed/auth${story.id}/56/56`} alt=""
+                className="w-14 h-14 rounded-full object-cover border-2 border-amber-100" />
+              <div>
+                <p className="font-bold text-slate-800">{story.author}</p>
+                <p className="text-sm text-slate-500">Senior Columnist · {story.publishTime}</p>
+                <p className="text-xs text-amber-600 font-semibold mt-0.5">{story.readLength}</p>
+              </div>
+            </div>
+            <a href={R('article/article.html')} className="btn btn-primary mt-6 inline-flex">
+              Read Column →
+            </a>
+          </div>
+          <div className="rounded-2xl overflow-hidden aspect-video bg-slate-100">
+            <img src={story.mediaUrl} alt="" className="w-full h-full object-cover" loading="eager" />
+          </div>
+        </div>
+      </section>
+    );
+
+    /* Opinion Card with avatar */
+    const OpinionCard = ({ story, columnist }) => (
+      <article className="border-b border-slate-100 py-6 last:border-0">
+        <div className="flex gap-4">
+          <img
+            src={columnist?.img || `https://picsum.photos/seed/op${story.id}/56/56`}
+            alt=""
+            className="opinion-avatar"
+            aria-hidden="true"
+          />
+          <div className="flex-1">
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">{story.author}</p>
+            <a href={R('article/article.html')}>
+              <h3 className="font-serif font-semibold text-lg leading-snug mt-1 hover:text-amber-700 transition-colors">{story.title}</h3>
+            </a>
+            <p className="text-sm text-slate-500 mt-2 line-clamp-2">{story.summary}</p>
+            <div className="flex items-center gap-3 mt-3 text-xs text-slate-400">
+              <time>{story.publishTime}</time>
+              <span>·</span>
+              <span>{story.readLength}</span>
+              <span>·</span>
+              <span className="flex items-center gap-1">
+                💬 {story.engagementMetrics.comments.toLocaleString()} comments
+              </span>
+            </div>
+          </div>
+          <div className="hidden md:block w-24 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
+            <img src={story.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+          </div>
+        </div>
+      </article>
+    );
+
+    /* Opinion Sidebar — letters & debate */
+    const LettersWidget = () => (
+      <aside className="sidebar-widget" aria-label="Letters to the editor">
+        <div className="sidebar-widget-header">Letters to the Editor</div>
+        <div className="sidebar-widget-body p-0">
+          {[
+            { author: 'John P., Seattle', text: 'Dr. Vogel\'s piece on algorithmic democracy is essential reading for every policymaker.' },
+            { author: 'Maria K., London', text: 'I respectfully disagree with the claim that AI regulation is anti-innovation.' },
+            { author: 'David T., Toronto', text: 'The column on climate policy finally says what so many scientists have been thinking.' },
+          ].map((l) => (
+            <div key={l.author} className="p-3 border-b border-slate-100 last:border-0">
+              <p className="text-xs text-slate-700 italic leading-relaxed">"{l.text}"</p>
+              <p className="text-xs text-slate-400 font-semibold mt-2">— {l.author}</p>
+            </div>
+          ))}
+          <div className="p-3">
+            <a href="#" className="text-xs text-amber-700 font-semibold hover:underline">Submit a letter →</a>
+          </div>
+        </div>
+      </aside>
+    );
+
+    /* Opinion Topics filter */
+    const OPINION_TOPICS = ['All', 'Politics', 'Technology', 'Climate', 'Economy', 'Culture', 'Foreign Policy', 'Science'];
+
+    const App = () => {
+      const [topic, setTopic] = React.useState('All');
+      const opinionStories = ALL_STORIES.filter(s => s.category === 'opinion');
+      const mixedStories = ALL_STORIES;
+
+      return (
+        <PageLayout currentCategory="opinion">
+          {/* Opinion banner */}
+          <div style={{ background: 'linear-gradient(135deg, #1C0A00 0%, #451A03 50%, #1C0A00 100%)', padding: '3rem 1rem' }}>
+            <div className="max-w-screen-2xl mx-auto">
+              <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-2">Opinion & Analysis</p>
+              <h1 className="headline-lg text-white">The Case For & Against</h1>
+              <p className="text-amber-200/70 mt-2">Independent perspectives on the ideas driving our world.</p>
+            </div>
+          </div>
+
+          {/* Filter tabs */}
+          <div className="border-b border-slate-200" role="tablist" aria-label="Opinion topic filter">
+            <div className="max-w-screen-2xl mx-auto px-4 flex gap-0 overflow-x-auto">
+              {OPINION_TOPICS.map((t) => (
+                <button
+                  key={t}
+                  role="tab"
+                  aria-selected={topic === t}
+                  onClick={() => setTopic(t)}
+                  className={`flex-shrink-0 px-4 py-3 text-xs font-semibold border-b-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    topic === t ? 'border-amber-600 text-amber-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Hero opinion */}
+          <OpinionHero story={opinionStories[0] || mixedStories[11]} />
+
+          {/* Columnists */}
+          <ColumnistGrid />
+
+          <section className="max-w-screen-2xl mx-auto px-4 py-8">
+            <div className="flex gap-8">
+              {/* Main */}
+              <div className="flex-1 min-w-0">
+                <div className="section-header">
+                  <span className="section-header-accent" style={{ background: '#F59E0B' }} />
+                  <h2 className="section-header-title">Recent Columns</h2>
+                </div>
+                <div>
+                  {opinionStories.concat(mixedStories.slice(0, 5)).map((story, i) => (
+                    <OpinionCard
+                      key={story.id}
+                      story={story}
+                      columnist={COLUMNISTS[i % COLUMNISTS.length]}
+                    />
+                  ))}
+                </div>
+
+                {/* Load more placeholder */}
+                <div className="text-center mt-8">
+                  <button className="btn btn-secondary px-8 py-3 text-sm">
+                    Load More Columns
+                  </button>
+                </div>
+              </div>
+
+              {/* Sidebar */}
+              <aside className="hidden xl:block w-80 flex-shrink-0">
+                <LettersWidget />
+                <SidebarModule type="trending" stories={opinionStories.concat(mixedStories.slice(0,3))} title="Most Discussed" />
+                <SidebarModule type="newsletter" />
+                <SidebarModule type="ad" />
+              </aside>
+            </div>
+          </section>
+
+          <SubscriptionModule variant="inline" />
+        </PageLayout>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

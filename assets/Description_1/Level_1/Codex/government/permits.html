@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>City of Lakewood | Permits & Licenses</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Public Sans"', "sans-serif"]
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="portal-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { useState } = React;
+      const { Header, Footer } = window.LakewoodPortal;
+
+      function App() {
+        const [submitted, setSubmitted] = useState(false);
+
+        return (
+          <>
+            <a
+              href="#main-content"
+              className="absolute left-4 top-4 z-50 -translate-y-20 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg focus:translate-y-0 focus-visible:translate-y-0"
+            >
+              Skip to main content
+            </a>
+            <Header activePath="permits.html" />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+              <section className="page-section rounded-[2rem] p-8">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-600">Services</p>
+                <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-slate-950">Permits & Licenses</h1>
+                <p className="mt-3 max-w-3xl text-base leading-7 text-slate-700">
+                  Submit common permit requests online, upload supporting documents, and track existing applications.
+                </p>
+              </section>
+
+              <section className="mt-8 grid gap-8 xl:grid-cols-[1fr_340px]">
+                <div className="page-section rounded-[1.75rem] p-6">
+                  <h2 className="text-2xl font-bold text-slate-950">Online permit application</h2>
+                  <form
+                    className="mt-6 space-y-5"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      setSubmitted(true);
+                    }}
+                  >
+                    <div>
+                      <label htmlFor="applicant-name" className="mb-2 block text-sm font-semibold text-slate-700">
+                        Applicant name
+                      </label>
+                      <input
+                        id="applicant-name"
+                        type="text"
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                        placeholder="Full legal name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="project-type" className="mb-2 block text-sm font-semibold text-slate-700">
+                        Project type
+                      </label>
+                      <select
+                        id="project-type"
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                        required
+                      >
+                        <option value="">Select a permit type</option>
+                        <option>Residential Remodel</option>
+                        <option>Commercial Tenant Improvement</option>
+                        <option>Temporary Event Permit</option>
+                        <option>Business License Renewal</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="project-address" className="mb-2 block text-sm font-semibold text-slate-700">
+                        Project address
+                      </label>
+                      <input
+                        id="project-address"
+                        type="text"
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                        placeholder="Street address"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="documents" className="mb-2 block text-sm font-semibold text-slate-700">
+                        Upload supporting documents
+                      </label>
+                      <input
+                        id="documents"
+                        type="file"
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                        aria-describedby="documents-help"
+                      />
+                      <p id="documents-help" className="mt-2 text-sm text-slate-600">
+                        Accepted formats: PDF, DOCX, JPG. Maximum 10 MB.
+                      </p>
+                    </div>
+                    <button
+                      type="submit"
+                      className="rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white hover:bg-slate-800"
+                    >
+                      Submit application
+                    </button>
+                  </form>
+
+                  {submitted && (
+                    <div className="mt-6 rounded-[1.25rem] border border-green-200 bg-green-50 p-4 text-sm text-green-900" role="status" aria-live="polite">
+                      Permit application received. Confirmation ID: LK-20481. Planning staff will contact you within 2 business days.
+                    </div>
+                  )}
+                </div>
+
+                <aside className="page-section rounded-[1.75rem] p-6" aria-labelledby="status-tracker-title">
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-600">Existing applications</p>
+                  <h2 id="status-tracker-title" className="mt-2 text-2xl font-extrabold text-slate-950">Status tracker</h2>
+                  <ol className="mt-5 space-y-4">
+                    {[
+                      ["Building Permit LK-20240", "Under review", "Plan check assigned Nov 7"],
+                      ["Business License BL-19388", "Approved", "License issued Nov 2"],
+                      ["Event Permit EP-18813", "Awaiting documents", "Upload insurance certificate"]
+                    ].map(([title, status, text]) => (
+                      <li key={title} className="rounded-2xl bg-slate-50 p-4">
+                        <p className="text-base font-bold text-slate-950">{title}</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-700">{status}</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </aside>
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

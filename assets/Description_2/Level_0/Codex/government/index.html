@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>State of Vermont | Resident Services Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              sky: {
+                50: "#f4f9fd",
+                100: "#d7ebf9",
+                700: "#1f5f91",
+                800: "#184d77",
+                900: "#17324d",
+              },
+            },
+            boxShadow: {
+              calm: "0 22px 60px rgba(23, 50, 77, 0.08)",
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./shared.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel" data-presets="react" src="./shared.js"></script>
+    <script type="text/babel" data-presets="react">
+      const { Shell, Hero, SectionHeading, quickLinks, updates, lifeStages } = window.GovernmentPortal;
+
+      function App() {
+        return (
+          <Shell current="./index.html">
+            <Hero
+              eyebrow="Seasonal reminder"
+              title="Tax Filing Deadline: April 15 - File Online Now"
+              copy="Use Vermont's official resident services portal to complete tasks online, receive state updates, and access support across licensing, health, education, and benefits."
+            >
+              <div className="space-y-5 rounded-[2rem] bg-white/92 p-6 shadow-calm ring-1 ring-white/40">
+                <div className="rounded-[1.5rem] bg-amber-50 p-4 ring-1 ring-amber-200">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-amber-800">Alert</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">Electronic filing remains the fastest option for refunds.</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">Residents can submit returns, view filing status, and update direct deposit information without mailing paperwork.</p>
+                </div>
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-800">What Do You Need Today?</p>
+                  <label className="block">
+                    <span className="sr-only">Search for a state service</span>
+                    <div className="flex items-center gap-3 rounded-full bg-slate-50 px-5 py-4 ring-1 ring-slate-200">
+                      <span className="text-slate-400">Search services, forms, or agencies</span>
+                      <span className="ml-auto rounded-full bg-sky-900 px-4 py-2 text-sm font-semibold text-white">Search</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </Hero>
+
+            <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+              <SectionHeading
+                eyebrow="Popular tasks"
+                title="Start a service in one step"
+                copy="Task-oriented links help residents move directly into high-demand services without navigating multiple department websites."
+              />
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+                {quickLinks.map((link) => (
+                  <a key={link.title} href={link.href} className="portal-card rounded-[1.75rem] p-6 ring-1 ring-slate-200/70 transition hover:-translate-y-1">
+                    <p className="text-lg font-semibold text-slate-900">{link.title}</p>
+                    <p className="mt-3 text-sm leading-6 text-slate-600">{link.detail}</p>
+                    <span className="mt-5 inline-flex text-sm font-semibold text-sky-800">Open service</span>
+                  </a>
+                ))}
+              </div>
+            </section>
+
+            <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+              <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+                <div className="portal-card rounded-[2rem] p-6 ring-1 ring-slate-200/70">
+                  <SectionHeading
+                    eyebrow="Live updates"
+                    title="Latest notices from state departments"
+                    copy="These updates mirror the statewide alert and operations feed used across resident-facing agencies."
+                  />
+                  <div className="space-y-4">
+                    {updates.map((item) => (
+                      <article key={item.title} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-800">{item.department}</p>
+                        <p className="mt-2 text-base font-semibold text-slate-900">{item.title}</p>
+                        <p className="mt-2 text-sm text-slate-500">{item.time}</p>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="calm-stripe rounded-[2rem] p-6 ring-1 ring-sky-100">
+                    <SectionHeading
+                      eyebrow="Resident pathways"
+                      title="Services organized around how people actually use government"
+                      copy="Browse by life stage to find the right tasks, deadlines, and department contacts."
+                    />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {lifeStages.slice(0, 4).map((stage) => (
+                        <a key={stage.id} href={`./services.html#${stage.id}`} className="rounded-[1.4rem] bg-white p-5 ring-1 ring-slate-200">
+                          <p className="text-lg font-semibold text-slate-900">{stage.title}</p>
+                          <p className="mt-2 text-sm leading-6 text-slate-600">{stage.description}</p>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="portal-card rounded-[2rem] p-6 ring-1 ring-slate-200/70">
+                    <p className="text-sm font-semibold uppercase tracking-[0.28em] text-sky-800">Accessibility</p>
+                    <h2 className="mt-3 text-2xl font-semibold text-slate-900">Built to support residents in every community</h2>
+                    <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                      <div className="rounded-[1.25rem] bg-slate-50 p-4">
+                        <p className="text-2xl font-semibold text-slate-900">EN</p>
+                        <p className="mt-2 text-sm text-slate-600">Default portal experience</p>
+                      </div>
+                      <div className="rounded-[1.25rem] bg-slate-50 p-4">
+                        <p className="text-2xl font-semibold text-slate-900">ES</p>
+                        <p className="mt-2 text-sm text-slate-600">Spanish-language guidance for key tasks</p>
+                      </div>
+                      <div className="rounded-[1.25rem] bg-slate-50 p-4">
+                        <p className="text-2xl font-semibold text-slate-900">FR</p>
+                        <p className="mt-2 text-sm text-slate-600">French-language service summaries</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </Shell>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

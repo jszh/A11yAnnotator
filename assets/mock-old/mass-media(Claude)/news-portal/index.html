@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Pulse — Breaking News, World, Politics, Business, Tech</title>
+  <meta name="description" content="The Pulse is your source for breaking news, in-depth analysis, and independent journalism across politics, business, technology, culture, and the world." />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Shared styles -->
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body class="bg-white">
+  <div id="root"></div>
+
+  <!-- React + ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel standalone (JSX transform) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Shared components -->
+  <script type="text/babel" src="components/components.js" data-presets="react"></script>
+
+  <!-- Homepage app -->
+  <script type="text/babel" data-presets="react">
+    window.BASE_PATH = '';
+
+    const { useState } = React;
+
+    /* ── Ad Banner ── */
+    const AdLeaderboard = () => (
+      <div className="max-w-screen-2xl mx-auto px-4 py-3">
+        <div className="ad-placeholder" style={{ minHeight: '90px' }}>
+          <div className="text-center">
+            <p className="sponsored-label mb-1">Advertisement</p>
+            <p className="text-xs text-slate-400">970×90 Leaderboard</p>
+          </div>
+        </div>
+      </div>
+    );
+
+    /* ── Numbered BuzzFeed-style list ── */
+    const NumberedList = ({ stories, title }) => (
+      <section className="max-w-screen-2xl mx-auto px-4 py-8" aria-labelledby="buzzfeed-section">
+        <div className="section-header">
+          <span className="section-header-accent" />
+          <h2 id="buzzfeed-section" className="section-header-title">{title}</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+          {stories.map((story, i) => (
+            <article key={story.id} className="numbered-item pr-6">
+              <span className="numbered-item-num" aria-hidden="true">{i + 1}</span>
+              <div className="flex-1">
+                <div className="flex gap-3 items-start">
+                  <div className="flex-1">
+                    <span className={`cat-label cat-${story.category}`}>{story.categoryLabel}</span>
+                    <a href={R('article/article.html')}>
+                      <h3 className="mt-1.5 text-base font-semibold leading-snug hover:text-red-600 transition-colors">{story.title}</h3>
+                    </a>
+                    <p className="text-xs text-slate-400 mt-1">{story.engagementMetrics.views} views · {story.publishTime}</p>
+                  </div>
+                  <div className="w-20 h-16 flex-shrink-0 overflow-hidden rounded bg-slate-100">
+                    <img src={story.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+
+    /* ── Opinion columns ── */
+    const OpinionSection = ({ stories }) => (
+      <section className="max-w-screen-2xl mx-auto px-4 py-8 border-t border-slate-100" aria-labelledby="opinion-section">
+        <div className="section-header">
+          <span className="section-header-accent" style={{ background: '#F59E0B' }} />
+          <h2 id="opinion-section" className="section-header-title">Opinion</h2>
+          <a href={R('opinion/opinion.html')} className="ml-auto text-xs text-slate-400 hover:text-red-600 font-semibold flex items-center gap-1">
+            All Opinion →
+          </a>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {stories.map((story) => (
+            <article key={story.id} className="opinion-card flex-col border-b-0 border-0 p-0">
+              <div className="w-full aspect-video overflow-hidden rounded-lg bg-slate-100 mb-3">
+                <img src={story.mediaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+              </div>
+              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide">{story.author}</p>
+              <a href={R('opinion/opinion.html')}>
+                <h3 className="font-serif font-semibold text-base leading-snug mt-1.5 hover:text-red-600 transition-colors">{story.title}</h3>
+              </a>
+              <p className="text-xs text-slate-400 mt-2 line-clamp-2">{story.summary}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+
+    /* ── Homepage App ── */
+    const App = () => {
+      const politicsStories    = ALL_STORIES.filter(s => s.category === 'politics');
+      const worldStories       = ALL_STORIES.filter(s => s.category === 'world');
+      const techStories        = ALL_STORIES.filter(s => s.category === 'tech');
+      const businessStories    = ALL_STORIES.filter(s => s.category === 'business');
+      const cultureStories     = ALL_STORIES.filter(s => s.category === 'culture');
+      const opinionStories     = ALL_STORIES.filter(s => s.category === 'opinion');
+      const heroStories        = [ALL_STORIES[1], ALL_STORIES[3], ALL_STORIES[0], ALL_STORIES[5], ALL_STORIES[13]];
+      const secondaryStories   = ALL_STORIES.slice(2, 7);
+      const trendingStories    = ALL_STORIES.slice(0, 5);
+
+      return (
+        <PageLayout currentCategory="news">
+          <LiveTicker />
+
+          {/* Hero: CNN-style large media hero */}
+          <HeroEditorial variant="A" stories={heroStories} />
+
+          <AdLeaderboard />
+
+          {/* Secondary story grid */}
+          <section className="max-w-screen-2xl mx-auto px-4 py-8">
+            <div className="flex gap-8">
+              {/* Main content */}
+              <div className="flex-1 min-w-0">
+                <div className="section-header">
+                  <span className="section-header-accent" />
+                  <h2 className="section-header-title">Top Stories</h2>
+                </div>
+                <StoryGrid stories={secondaryStories} columns={3} showSummary={true} />
+              </div>
+
+              {/* Sidebar */}
+              <aside className="hidden xl:block w-80 flex-shrink-0" aria-label="Sidebar">
+                <SidebarModule type="live-blog" />
+                <SidebarModule type="trending" stories={trendingStories} />
+                <SidebarModule type="ad" />
+              </aside>
+            </div>
+          </section>
+
+          {/* Feature banner */}
+          <FeatureBanner story={ALL_STORIES[11]} />
+
+          {/* World section */}
+          <EditorialSection
+            title="World"
+            stories={worldStories}
+            columns={4}
+            accentColor="blue"
+          />
+
+          {/* NYT-style split hero for politics */}
+          <div className="border-t border-b border-slate-100 bg-slate-50">
+            <div className="max-w-screen-2xl mx-auto px-4 py-6">
+              <div className="section-header">
+                <span className="section-header-accent" style={{ background: '#B91C1C' }} />
+                <h2 className="section-header-title">Politics</h2>
+                <a href={R('politics/politics.html')} className="ml-auto text-xs text-slate-400 hover:text-red-600 font-semibold">All Politics →</a>
+              </div>
+            </div>
+            <HeroEditorial variant="B" stories={politicsStories.concat(businessStories).slice(0, 6)} />
+          </div>
+
+          {/* Numbered trending list */}
+          <NumberedList
+            title="Most Read Today"
+            stories={ALL_STORIES.sort((a,b) => parseInt(b.engagementMetrics.views) - parseInt(a.engagementMetrics.views)).slice(0, 8)}
+          />
+
+          {/* Tech — Verge-style card grid */}
+          <div className="border-t border-slate-100">
+            <div className="max-w-screen-2xl mx-auto px-4 pt-8">
+              <div className="section-header">
+                <span className="section-header-accent" style={{ background: '#7C3AED' }} />
+                <h2 className="section-header-title">Technology</h2>
+                <a href={R('tech/tech.html')} className="ml-auto text-xs text-slate-400 hover:text-red-600 font-semibold">All Tech →</a>
+              </div>
+            </div>
+            <HeroEditorial variant="C" stories={techStories.concat(businessStories)} />
+          </div>
+
+          {/* Business & Culture sections */}
+          <div className="flex gap-0 border-t border-slate-100">
+            <div className="flex-1 border-r border-slate-100">
+              <EditorialSection
+                title="Business"
+                stories={businessStories}
+                columns={2}
+                accentColor="green"
+                showSummary={true}
+              />
+            </div>
+            <div className="flex-1">
+              <EditorialSection
+                title="Culture"
+                stories={cultureStories}
+                columns={2}
+                accentColor="purple"
+              />
+            </div>
+          </div>
+
+          {/* Opinion */}
+          <OpinionSection stories={opinionStories.concat(ALL_STORIES.slice(5, 7))} />
+
+          {/* Video section */}
+          <div className="bg-slate-900 py-12">
+            <div className="max-w-screen-2xl mx-auto px-4">
+              <div className="section-header border-slate-700">
+                <span className="section-header-accent" style={{ background: '#EF4444' }} />
+                <h2 className="section-header-title text-white">Video</h2>
+                <a href={R('video/video.html')} className="ml-auto text-xs text-slate-400 hover:text-white font-semibold">Watch More →</a>
+              </div>
+              <div className="scroll-row mt-4">
+                {ALL_STORIES.filter(s => s.mediaType === 'video').concat(ALL_STORIES.slice(0,4)).map((story) => (
+                  <article key={story.id} className="flex-shrink-0 w-72 bg-slate-800 rounded-xl overflow-hidden border border-slate-700">
+                    <div className="relative aspect-video overflow-hidden bg-slate-700">
+                      <img src={story.mediaUrl} alt="" className="w-full h-full object-cover opacity-80" loading="lazy" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <button className="play-btn" aria-label={`Play: ${story.title}`}><IconPlay /></button>
+                      </div>
+                      <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-0.5 rounded font-mono">{story.readLength}</div>
+                    </div>
+                    <div className="p-4">
+                      <span className={`cat-label cat-${story.category}`}>{story.categoryLabel}</span>
+                      <a href={R('video/video.html')}>
+                        <h3 className="text-white font-semibold text-sm mt-1.5 hover:text-red-300 transition-colors line-clamp-2">{story.title}</h3>
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Subscription module */}
+          <SubscriptionModule variant="full" />
+
+          {/* Bottom ad */}
+          <div className="max-w-screen-2xl mx-auto px-4 py-6">
+            <div className="ad-placeholder" style={{ minHeight: '90px' }}>
+              <div className="text-center">
+                <p className="sponsored-label mb-1">Advertisement</p>
+                <p className="text-xs text-slate-400">970×90 Footer Leaderboard</p>
+              </div>
+            </div>
+          </div>
+        </PageLayout>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

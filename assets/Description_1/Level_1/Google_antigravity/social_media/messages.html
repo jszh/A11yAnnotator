@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse - Messages</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        darkBg: '#0f172a',
+                        darkCard: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Prevent global scroll to act like native app */
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body
+    class="bg-white text-gray-900 dark:bg-darkBg dark:text-gray-100 antialiased transition-colors duration-200 h-full">
+    <div id="root" class="h-full"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+        const currentPath = 'messages.html';
+
+        const Sidebar = () => {
+            const navItems = [
+                { name: 'Home', path: 'index.html', icon: 'ph-house' },
+                { name: 'Explore', path: 'explore.html', icon: 'ph-compass' },
+                { name: 'Notifications', path: 'notifications.html', icon: 'ph-bell' },
+                { name: 'Messages', path: 'messages.html', icon: 'ph-envelope-simple' },
+                { name: 'Profile', path: 'profile.html', icon: 'ph-user' },
+                { name: 'Settings', path: 'settings.html', icon: 'ph-gear' },
+            ];
+
+            return (
+                <nav className="fixed bottom-0 w-full bg-white dark:bg-darkBg border-t border-gray-200 dark:border-gray-800 md:relative md:w-20 lg:w-64 md:h-screen md:border-t-0 md:border-r z-50 flex md:flex-col justify-around md:justify-start px-2 lg:px-6 py-2 md:py-6 flex-shrink-0">
+                    <div className="hidden md:flex items-center gap-3 mb-8 lg:px-2 justify-center lg:justify-start cursor-pointer hover:opacity-80 transition-opacity">
+                        <i className="ph-fill ph-pulse text-primary text-4xl"></i>
+                        <span className="hidden lg:block text-2xl font-bold tracking-tight">Pulse</span>
+                    </div>
+                    {navItems.map(item => {
+                        const isActive = currentPath.includes(item.path);
+                        return (
+                            <a
+                                key={item.name}
+                                href={item.path}
+                                className={`flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-4 lg:py-3 rounded-full md:mb-2 transition-colors duration-200 w-fit lg:w-full mx-auto lg:mx-0 group
+                                    ${isActive
+                                        ? 'text-gray-900 dark:text-white font-bold'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'}`}
+                                aria-label={item.name}
+                            >
+                                <div className="relative">
+                                    <i className={`${item.icon} ${isActive ? 'ph-fill' : ''} text-2xl lg:text-3xl transition-transform group-hover:scale-105`}></i>
+                                </div>
+                                <span className="hidden lg:block text-xl">{item.name}</span>
+                            </a>
+                        );
+                    })}
+                    <button className="hidden md:block w-12 h-12 lg:w-full lg:h-auto mt-4 mx-auto lg:mx-0 bg-primary hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-full transition-colors focus:ring-4 focus:ring-blue-300 shadow-md shadow-blue-500/30">
+                        <i className="ph ph-plus text-2xl lg:hidden"></i>
+                        <span className="hidden lg:block">Post</span>
+                    </button>
+
+                    <a href="profile.html" className="hidden md:flex items-center justify-center lg:justify-start gap-3 mt-auto p-3 hover:bg-gray-100 dark:hover:bg-gray-900 rounded-full cursor-pointer transition-colors group mx-auto lg:w-full w-fit">
+                        <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Alex Profile" className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 group-hover:opacity-90 transition-opacity" />
+                        <div className="hidden lg:block flex-1 min-w-0">
+                            <p className="font-bold text-sm truncate">Alex Chen</p>
+                            <p className="text-gray-500 text-sm truncate">@alexc</p>
+                        </div>
+                        <i className="ph ph-dots-three text-xl hidden lg:block ml-auto text-gray-500"></i>
+                    </a>
+                </nav>
+            );
+        };
+
+        const App = () => {
+            const conversations = [
+                {
+                    id: 1,
+                    name: "Maya Jenkins",
+                    handle: "@mayaj",
+                    avatar: "https://i.pravatar.cc/150?u=4",
+                    lastMessage: "Sounds great! See you then.",
+                    time: "2h",
+                    unread: 0
+                },
+                {
+                    id: 2,
+                    name: "David Kim",
+                    handle: "@dkim_tech",
+                    avatar: "https://i.pravatar.cc/150?u=5",
+                    lastMessage: "Did you review the PR yet? I pushed massive changes.",
+                    time: "5h",
+                    unread: 2
+                },
+                {
+                    id: 3,
+                    name: "Elena Rodriguez",
+                    handle: "@elena_creates",
+                    avatar: "https://i.pravatar.cc/150?u=6",
+                    lastMessage: "Haha yes! Let me know when you're free",
+                    time: "1d",
+                    unread: 0
+                },
+                {
+                    id: 4,
+                    name: "Marcus V.",
+                    handle: "@marcus_v",
+                    avatar: "https://i.pravatar.cc/150?u=9",
+                    lastMessage: "Can we hop on a quick call?",
+                    time: "2d",
+                    unread: 0
+                }
+            ];
+
+            const [activeChat, setActiveChat] = useState(conversations[1]);
+            const [messageInput, setMessageInput] = useState("");
+
+            const chatMessages = [
+                { id: 1, sender: "them", text: "Hey Alex! Just checking in on the project status.", time: "9:41 AM" },
+                { id: 2, sender: "me", text: "Hi David! I just finished the components we discussed.", time: "10:12 AM" },
+                { id: 3, sender: "me", text: "Sending over the pull request in about 10 minutes.", time: "10:13 AM" },
+                { id: 4, sender: "them", text: "Awesome! Take your time.", time: "10:15 AM" },
+                { id: 5, sender: "them", text: "Did you review the PR yet? I pushed massive changes.", time: "3:30 PM" }
+            ];
+
+            return (
+                <div className="max-w-[1280px] mx-auto flex h-full">
+                    <Sidebar />
+
+                    {/* Inbox List Panel (Middle) */}
+                    <div className="w-full md:w-[350px] border-x-0 md:border-r border-gray-100 dark:border-gray-800 flex flex-col h-full bg-white dark:bg-darkBg flex-shrink-0 z-10 transition-transform duration-300 md:translate-x-0">
+                        <div className="px-4 py-3 flex justify-between items-center border-b border-gray-100 dark:border-gray-800 sticky top-0 bg-white/90 dark:bg-darkBg/90 backdrop-blur z-10">
+                            <h1 className="font-bold text-xl">Messages</h1>
+                            <div className="flex gap-1">
+                                <button className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors" aria-label="Settings">
+                                    <i className="ph ph-gear text-xl"></i>
+                                </button>
+                                <button className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors" aria-label="New Message">
+                                    <i className="ph ph-envelope-simple-open text-xl text-primary"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+                            <div className="relative group">
+                                <i className="ph ph-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors"></i>
+                                <input
+                                    type="text"
+                                    placeholder="Search Direct Messages"
+                                    className="w-full bg-gray-100 dark:bg-gray-800 rounded-full py-2 pl-12 pr-4 focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white dark:focus:bg-darkBg border border-transparent focus:border-primary transition-all text-[15px] dark:placeholder-gray-500 text-gray-900 dark:text-gray-100"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 hide-scroll pb-20 md:pb-0">
+                            {conversations.map(conv => (
+                                <div
+                                    key={conv.id}
+                                    onClick={() => setActiveChat(conv)}
+                                    className={`px-4 py-4 flex gap-3 cursor-pointer transition-colors border-r-2 ${activeChat?.id === conv.id ? 'bg-gray-100 dark:bg-gray-800 border-primary' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 border-transparent'} border-b border-gray-100 dark:border-gray-800/50`}
+                                >
+                                    <img src={conv.avatar} alt={conv.name} className="w-12 h-12 rounded-full flex-shrink-0 object-cover" />
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                        <div className="flex justify-between items-baseline mb-0.5">
+                                            <div className="flex items-center gap-1 min-w-0 pr-2">
+                                                <h3 className="font-bold text-[15px] truncate text-gray-900 dark:text-white">{conv.name}</h3>
+                                                <span className="text-[14px] text-gray-500 truncate">{conv.handle}</span>
+                                            </div>
+                                            <span className="text-[13px] text-gray-500 flex-shrink-0">{conv.time}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center gap-2">
+                                            <p className={`text-[14px] truncate ${conv.unread > 0 ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-500'}`}>
+                                                {conv.lastMessage}
+                                            </p>
+                                            {conv.unread > 0 && (
+                                                <span className="bg-primary text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 min-w-[20px] text-center">
+                                                    {conv.unread}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Active Chat Panel (Right) */}
+                    <div className="hidden md:flex flex-1 flex-col h-full bg-white dark:bg-darkBg min-w-0">
+                        {activeChat ? (
+                            <>
+                                {/* Chat Header */}
+                                <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center flex-shrink-0 bg-white/90 dark:bg-darkBg/90 backdrop-blur z-10 h-[65px]">
+                                    <div className="flex items-center gap-3">
+                                        <img src={activeChat.avatar} alt={activeChat.name} className="w-9 h-9 rounded-full object-cover" />
+                                        <div>
+                                            <h2 className="font-bold text-[16px] leading-tight text-gray-900 dark:text-white">{activeChat.name}</h2>
+                                            <p className="text-[13px] text-gray-500">{activeChat.handle}</p>
+                                        </div>
+                                    </div>
+                                    <button className="text-gray-500 hover:text-primary transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="Details">
+                                        <i className="ph ph-info text-2xl"></i>
+                                    </button>
+                                </div>
+
+                                {/* Chat Messages Area */}
+                                <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+                                    <div className="flex flex-col items-center justify-center py-6 border-b border-gray-100 dark:border-gray-800 mb-4 mx-4">
+                                        <img src={activeChat.avatar} alt={activeChat.name} className="w-16 h-16 rounded-full object-cover mb-2" />
+                                        <h3 className="font-bold text-[16px] text-gray-900 dark:text-white">{activeChat.name}</h3>
+                                        <p className="text-[14px] text-gray-500 mb-4">{activeChat.handle}</p>
+                                        <p className="text-[13px] text-gray-500">Joined October 2021</p>
+                                    </div>
+
+                                    <div className="text-center my-2">
+                                        <span className="text-[12px] font-medium text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">Today</span>
+                                    </div>
+
+                                    {chatMessages.map(msg => (
+                                        <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className="max-w-[70%] relative group">
+                                                <div className={`px-4 py-2.5 rounded-2xl text-[15px] ${msg.sender === 'me'
+                                                        ? 'bg-primary text-white rounded-br-sm'
+                                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-sm border border-gray-200 dark:border-gray-700'
+                                                    }`}>
+                                                    {msg.text}
+                                                </div>
+                                                <span className={`text-[11px] text-gray-500 mt-1 absolute ${msg.sender === 'me' ? 'right-1' : 'left-1'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                                                    {msg.time}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Message Input */}
+                                <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex-shrink-0 bg-white dark:bg-darkBg">
+                                    <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-end overflow-hidden border border-transparent focus-within:border-primary focus-within:bg-white dark:focus-within:bg-darkBg focus-within:ring-1 focus-within:ring-primary transition-all">
+                                        <button className="p-3 text-primary hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0" aria-label="Attach media">
+                                            <i className="ph ph-image text-xl"></i>
+                                        </button>
+                                        <button className="p-3 text-primary hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0" aria-label="Add GIF">
+                                            <i className="ph ph-gif text-xl"></i>
+                                        </button>
+                                        <textarea
+                                            placeholder="Start a new message"
+                                            className="flex-1 bg-transparent border-none py-3 px-2 max-h-32 min-h-[44px] resize-none focus:outline-none text-[15px] text-gray-900 dark:text-white dark:placeholder-gray-500"
+                                            rows="1"
+                                            value={messageInput}
+                                            onChange={(e) => setMessageInput(e.target.value)}
+                                            style={{ minHeight: '44px' }}
+                                        ></textarea>
+                                        <button className="p-3 text-primary hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0" aria-label="Add Emoji">
+                                            <i className="ph ph-smiley text-xl"></i>
+                                        </button>
+                                        <button
+                                            className={`p-3 transition-colors flex-shrink-0 ${messageInput.trim() ? 'text-primary hover:bg-blue-50 dark:hover:bg-blue-900/30 font-bold' : 'text-primary/50 cursor-not-allowed'}`}
+                                            disabled={!messageInput.trim()}
+                                            aria-label="Send Message"
+                                        >
+                                            <i className={`ph-fill ph-paper-plane-right flex ${messageInput.trim() ? 'text-xl' : 'text-xl'}`}></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white dark:bg-darkBg">
+                                <h2 className="font-extrabold text-3xl mb-2 text-gray-900 dark:text-white">Select a message</h2>
+                                <p className="text-gray-500 mb-6 max-w-sm text-[15px]">Choose from your existing conversations, start a new one, or just keep swimming.</p>
+                                <button className="bg-primary hover:bg-blue-600 text-white font-bold py-3.5 px-8 rounded-full transition-colors focus:ring-4 focus:ring-blue-300 text-[16px]">
+                                    New message
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

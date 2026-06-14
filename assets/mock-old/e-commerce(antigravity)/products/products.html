@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Market | All Products</title>
+
+    <!-- Tailwind via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../styles/main.css">
+
+    <!-- Configure Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { DEFAULT: '#1a1f2c', 800: '#232f3e', 900: '#131a22' },
+                        cta: { DEFAULT: '#ffd814', hover: '#f7ca00' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React and ReactDOM via CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body id="top" class="bg-gray-100 flex flex-col min-h-screen">
+
+    <div id="root"></div>
+
+    <script type="text/babel" src="../components/Header.js"></script>
+    <script type="text/babel" src="../components/NavBar.js"></script>
+    <script type="text/babel" src="../components/Footer.js"></script>
+
+    <script type="text/babel">
+        // Local list item component
+        const ProductListItem = ({ title, image, price, rating, reviews }) => (
+            <article className="bg-white rounded-system-md shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group flex flex-col focus-within:ring-2 focus-within:ring-navy">
+                <div className="bg-gray-100 aspect-square flex items-center justify-center p-4">
+                    <img src={image} alt={title} className="max-h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform" loading="lazy" />
+                </div>
+                <div className="p-4 flex flex-col flex-1">
+                    <h2 className="text-lg font-medium text-gray-900 leading-tight mb-1 hover:text-blue-700">
+                        <a href="detail.html" className="focus:outline-none focus:underline" aria-label={`${title} - $${price}`}>{title}</a>
+                    </h2>
+                    <div className="text-sm text-yellow-500 mb-2 flex items-center" aria-label={`Rated ${rating} out of 5 stars`}>
+                        ★★★★<span className="text-gray-300">★</span> <span className="text-blue-600 ml-1 hover:underline text-xs">{reviews}</span>
+                    </div>
+                    <div className="text-xl font-bold mb-1">${price}</div>
+                    <p className="text-xs text-gray-500 mb-4">FREE Delivery</p>
+
+                    <button className="mt-auto bg-cta hover:bg-cta-hover text-black font-semibold py-2 px-4 rounded-full w-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cta text-sm shadow-sm">
+                        Add to Cart
+                    </button>
+                </div>
+            </article>
+        );
+
+        const App = () => {
+            return (
+                <React.Fragment>
+                    <Header />
+                    <NavBar />
+
+                    <main className="flex-grow container mx-auto px-4 py-8">
+                        <div className="flex flex-col md:flex-row gap-8">
+                            <aside className="w-full md:w-64 flex-shrink-0" aria-labelledby="filter-heading">
+                                <h2 id="filter-heading" className="text-lg font-bold mb-4">Filters</h2>
+                                <div className="mb-6">
+                                    <h3 className="font-semibold text-gray-700 mb-2">Category</h3>
+                                    <ul className="space-y-1 text-sm">
+                                        <li><a href="#" className="text-blue-600 hover:text-blue-800 hover:underline">Any Category</a></li>
+                                        <li><a href="#" className="text-gray-800 hover:text-blue-600 font-medium ml-2">Electronics</a></li>
+                                        <li><a href="#" className="text-gray-800 hover:text-blue-600 ml-2">Computers & Accessories</a></li>
+                                    </ul>
+                                </div>
+                            </aside>
+
+                            <section className="flex-1" aria-labelledby="products-heading">
+                                <h1 id="products-heading" className="text-2xl font-bold mb-6">Results</h1>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <ProductListItem
+                                        title="Wireless Noise Cancelling Headphones"
+                                        image="https://via.placeholder.com/200?text=Headphones"
+                                        price="199.99" rating="4.5" reviews="1,204"
+                                    />
+                                    <ProductListItem
+                                        title="Smart Home Speaker with Voice Control"
+                                        image="https://via.placeholder.com/200?text=Speaker"
+                                        price="49.00" rating="4" reviews="8,432"
+                                    />
+                                    <ProductListItem
+                                        title="4K Ultra HD 27-inch Monitor"
+                                        image="https://via.placeholder.com/200?text=Monitor"
+                                        price="279.99" rating="5" reviews="342"
+                                    />
+                                </div>
+                            </section>
+                        </div>
+                    </main>
+
+                    <Footer />
+                </React.Fragment>
+            );
+        };
+
+        setTimeout(() => {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        }, 100);
+    </script>
+</body>
+
+</html>

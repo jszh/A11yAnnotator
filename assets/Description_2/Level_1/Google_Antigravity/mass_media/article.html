@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Carbon Market Illusion | Groundwork Journalism</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAF9F6;
+            color: #1A1A1A;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-serif {
+            font-family: 'Merriweather', serif;
+        }
+
+        /* Article specific styling */
+        .article-body p {
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+            font-size: 1.125rem;
+        }
+
+        .article-body p:first-of-type::first-letter {
+            font-size: 3.5rem;
+            float: left;
+            margin-right: 0.5rem;
+            line-height: 1;
+            font-weight: 900;
+            color: #b91c1c;
+            /* red-700 */
+        }
+
+        .article-body h3 {
+            font-family: 'Merriweather', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Customize scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- Shared Icons ---
+        const MenuIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="18" y2="18" /></svg>;
+        const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>;
+        const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
+        const TwitterIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" /></svg>;
+        const FacebookIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>;
+        const CopyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>;
+        const MapPinIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>;
+
+        // --- Shared Components ---
+        const Header = () => {
+            return (
+                <header className="sticky top-0 z-50 bg-[#FAF9F6] border-b border-gray-200">
+                    <div className="bg-red-700 text-white text-xs font-semibold uppercase tracking-wider py-2 px-4 text-center">
+                        <span className="opacity-80">Support Our Journalism:</span> <a href="subscription.html" className="underline hover:text-red-100 ml-1">Become an Investigator today</a>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-20">
+                            <div className="flex items-center md:hidden">
+                                <button type="button" className="text-gray-700 hover:text-black p-2 -ml-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black rounded-md" aria-label="Open main menu">
+                                    <MenuIcon />
+                                </button>
+                            </div>
+
+                            <nav className="hidden md:flex space-x-8" aria-label="Main Navigation">
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Climate</a>
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Energy</a>
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Policy</a>
+                                <a href="opinion.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Opinion</a>
+                            </nav>
+
+                            <div className="flex-shrink-0 flex items-center justify-center absolute left-1/2 transform -translate-x-1/2">
+                                <a href="index.html" className="font-serif text-3xl font-black tracking-tighter text-black uppercase" aria-label="Groundwork Homepage">
+                                    Groundwork<span className="text-red-700">.</span>
+                                </a>
+                            </div>
+
+                            <div className="flex items-center space-x-5">
+                                <button className="text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-black rounded-full p-1 transition-colors" aria-label="Search">
+                                    <SearchIcon />
+                                </button>
+                                <a href="subscription.html" className="hidden lg:inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-bold rounded-none text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-900 transition-colors uppercase tracking-wide">
+                                    Donate
+                                </a>
+                                <button className="text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-black rounded-full p-1 transition-colors" aria-label="Sign in">
+                                    <UserIcon />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-neutral-900 text-white pt-16 pb-8 border-t-4 border-red-700 mt-20">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 lg:gap-8">
+                            <div className="md:col-span-1">
+                                <a href="index.html" className="font-serif text-2xl font-black tracking-tighter uppercase mb-4 block">
+                                    Groundwork<span className="text-red-500">.</span>
+                                </a>
+                                <p className="text-neutral-400 text-sm leading-relaxed mb-6 font-serif">
+                                    Independent, data-driven investigative journalism focused on climate, science, and environmental policy in the Anthropocene.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">Sections</h3>
+                                <ul className="space-y-3 text-sm">
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Climate</a></li>
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Energy</a></li>
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Data</a></li>
+                                    <li><a href="opinion.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Perspectives</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">About</h3>
+                                <ul className="space-y-3 text-sm">
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Our Mission</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Reporters</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Careers</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Contact</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">Stay Informed</h3>
+                                <p className="text-neutral-400 text-sm mb-4">Get our latest investigations delivered to your inbox.</p>
+                                <form className="flex" onSubmit={(e) => e.preventDefault()}>
+                                    <label htmlFor="email-address" className="sr-only">Email address</label>
+                                    <input
+                                        id="email-address"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        required
+                                        className="w-full min-w-0 px-4 py-2 text-base text-gray-900 bg-white border border-transparent rounded-none focus:outline-none focus:ring-2 focus:ring-white focus:border-white sm:text-sm"
+                                        placeholder="Enter your email"
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="mt-0 ml-3 flex-shrink-0 w-auto flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-none text-white bg-red-700 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 focus:ring-red-500 transition-colors"
+                                    >
+                                        Sign up
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div className="mt-16 pt-8 border-t border-neutral-800 flex flex-col md:flex-row justify-between items-center">
+                            <p className="text-neutral-500 text-sm text-center md:text-left">
+                                &copy; 2026 Groundwork Media Inc. All rights reserved.
+                            </p>
+                            <div className="mt-4 md:mt-0 flex space-x-6 text-sm text-neutral-500">
+                                <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Privacy Policy</a>
+                                <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Terms of Service</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        // --- Article Components ---
+
+        const ArticleHeader = () => {
+            return (
+                <header className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
+                    <div className="flex items-center gap-2 text-red-700 font-bold uppercase tracking-widest text-xs mb-6">
+                        <a href="category.html" className="hover:underline">Climate</a>
+                        <span>/</span>
+                        <a href="category.html" className="hover:underline">Corporate Accountability</a>
+                    </div>
+
+                    <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl font-black leading-tight mb-8">
+                        The Carbon Market Illusion: When "Offsets" Don't Offset
+                    </h1>
+
+                    <p className="text-xl md:text-2xl text-gray-600 font-serif leading-relaxed mb-10 max-w-3xl">
+                        We analyzed hundreds of forestry preservation projects in global carbon markets. Our data reveals that the vast majority fail to capture the carbon they promise, giving major polluters an inexpensive license to continue emitting.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 border-y border-gray-200">
+                        <div className="flex items-center mb-4 sm:mb-0">
+                            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Elena Rostova" className="w-12 h-12 rounded-full object-cover mr-4 grayscale" />
+                            <div>
+                                <p className="font-bold text-sm uppercase tracking-wider mb-1">By <a href="#" className="text-red-700 hover:underline">Elena Rostova</a></p>
+                                <p className="text-xs text-gray-500 font-medium">Published Oct 20, 2025 &bull; Updated Oct 22, 2025</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-4">
+                            <button className="p-2 text-gray-500 hover:text-black border border-gray-200 rounded-full hover:border-black transition-colors focus:outline-none focus:ring-2 focus:ring-black" aria-label="Share on Twitter"><TwitterIcon /></button>
+                            <button className="p-2 text-gray-500 hover:text-black border border-gray-200 rounded-full hover:border-black transition-colors focus:outline-none focus:ring-2 focus:ring-black" aria-label="Share on Facebook"><FacebookIcon /></button>
+                            <button className="p-2 text-gray-500 hover:text-black border border-gray-200 rounded-full hover:border-black transition-colors focus:outline-none focus:ring-2 focus:ring-black" aria-label="Copy link"><CopyIcon /></button>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const ArticleHeroImage = () => {
+            return (
+                <figure className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+                    <div className="aspect-w-16 aspect-h-9 md:aspect-h-7 bg-gray-100 overflow-hidden">
+                        <img
+                            src="https://images.unsplash.com/photo-1614619896068-18eaf39d73d9?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+                            alt="Aerial view of a deforested section of the Amazon bordered by protected land"
+                            className="object-cover w-full h-full"
+                        />
+                    </div>
+                    <figcaption className="mt-4 text-sm text-gray-500 font-serif border-l-2 border-red-700 pl-3">
+                        <span className="font-sans font-bold uppercase tracking-wider text-xs mr-2 block mb-1">Guaviare, Colombia</span>
+                        A protected forestry zone funded by international carbon offset credits is shown directly abutting newly cleared land for cattle grazing. The project claimed to protect 50,000 hectares that were never actually under threat of deforestation. (Photo: Marco Suarez / For Groundwork)
+                    </figcaption>
+                </figure>
+            );
+        };
+
+        const MethodologyNote = () => {
+            return (
+                <aside className="bg-gray-100 p-6 md:p-8 float-none lg:float-right lg:w-80 lg:ml-10 mb-10 border-t-4 border-black inline-block w-full">
+                    <h4 className="font-bold uppercase tracking-widest text-sm mb-4">How We Reported This</h4>
+                    <p className="font-serif text-sm text-gray-700 leading-relaxed max-w-none">
+                        Groundwork spent eight months analyzing the 150 largest forest carbon offset projects registered globally between 2018 and 2024.
+                        We utilized satellite imagery cross-referenced with regional deforestation baselines and interviewed 42 indigenous leaders, carbon brokers, and forestry scientists.
+                    </p>
+                    <a href="#" className="inline-block mt-4 text-xs font-bold text-red-700 uppercase tracking-widest hover:underline hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-900 border-b border-transparent">
+                        Read the full methodology
+                    </a>
+                </aside>
+            );
+        };
+
+        const PullQuote = () => {
+            return (
+                <blockquote className="my-16 pl-6 md:pl-10 border-l-4 border-red-700">
+                    <p className="font-serif text-2xl md:text-3xl font-bold leading-tight text-black mb-4">
+                        "The market is working exactly as intended. It was built to provide a cheap alternative to actual emissions reductions, not to stop climate change."
+                    </p>
+                    <footer className="text-sm font-bold uppercase tracking-widest text-gray-500">
+                        — Dr. Alistair Vance, Former Chief Technical Auditor at Verra
+                    </footer>
+                </blockquote>
+            );
+        };
+
+        const DataEmbed = () => {
+            return (
+                <figure className="my-16 bg-white border border-gray-200 p-4 sm:p-6 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4 text-red-700">
+                        <MapPinIcon />
+                        <span className="font-bold uppercase tracking-widest text-xs">Interactive Data</span>
+                    </div>
+                    <h4 className="font-serif font-bold text-xl mb-6">The Gap Between Claimed and Actual Carbon Reduction</h4>
+
+                    {/* Placeholder for Data Viz */}
+                    <div className="aspect-w-16 aspect-h-9 bg-neutral-100 flex items-center justify-center border border-dashed border-gray-300">
+                        <div className="text-center">
+                            <div className="flex justify-center items-end space-x-4 h-32 mb-4">
+                                <div className="w-12 bg-gray-300 h-32"></div>
+                                <div className="w-12 bg-red-700 h-8"></div>
+                            </div>
+                            <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Chart rendering disabled in preview</span>
+                        </div>
+                    </div>
+
+                    <figcaption className="mt-6 text-sm text-gray-600 font-serif">
+                        Analysis of the top 50 projects by volume shows that only 8% of the promised carbon reductions were verifiable through contemporary satellite baselines. Use the dropdown controls to filter by corporate buyer.
+                    </figcaption>
+                </figure>
+            );
+        };
+
+        const SupportWidget = () => {
+            return (
+                <div className="my-20 bg-black text-white p-8 md:p-12 text-center">
+                    <h3 className="font-serif text-3xl font-bold mb-4">Truth requires resources.</h3>
+                    <p className="text-lg font-serif text-gray-400 max-w-2xl mx-auto mb-8">
+                        This 8-month investigation cost over $45,000 in travel, data acquisition, and legal review. We make it free to read because it's vital to the public interest. Help us fund the next investigation.
+                    </p>
+                    <a href="subscription.html" className="inline-block px-8 py-4 bg-red-700 hover:bg-red-600 font-bold uppercase tracking-widest text-sm transition-colors focus:outline-none focus:ring-4 focus:ring-red-900 border border-transparent">
+                        Support This Reporting
+                    </a>
+                </div>
+            );
+        };
+
+        const ArticleContent = () => {
+            return (
+                <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 font-serif article-body text-gray-800 pb-16 border-b border-gray-200">
+                    <MethodologyNote />
+
+                    <p>Deep in the Guaviare department of Colombia, where the Amazon rainforest begins its slow transition into the eastern plains, a sign stands next to an unpaved logging road. "Protected Forest Area," it reads in fading Spanish, bearing the logos of three international conservation NGOs and a Swiss multinational energy trader.</p>
+
+                    <p>On paper, this 50,000-hectare parcel is a triumph of modern climate finance. It generates millions of carbon credits annually, purchased by airlines, tech giants, and oil companies to claim progress toward "net zero" emissions goals.</p>
+
+                    <p>But when Groundwork reporters visited the site in August, accompanied by local indigenous guides, the reality was starkly different. The forest wasn't being preserved from imminent logging. In fact, historical records showed the land had never been viable for commercial logging due to its remote topography and seasonal flooding. The carbon credits being sold were based on a hypothetical threat that didn't exist.</p>
+
+                    <PullQuote />
+
+                    <h3>The Phantom Baseline</h3>
+
+                    <p>The core of the problem lies in what auditors call the "baseline scenario." To generate a carbon offset credit, a project developer must prove that the forest would have been destroyed without their intervention.</p>
+
+                    <p>Groundwork's analysis of project documents reveals a systemic pattern of exaggerating these theoretical threats. By drawing baseline scenarios that predict catastrophically high rates of deforestation, developers can claim to "save" more trees—and thus generate more lucrative credits—even if nothing changes on the ground.</p>
+
+                    <DataEmbed />
+
+                    <p>Consider the case of the Alto Mayo project in Peru. In 2020, auditors approved a baseline scenario predicting a 45% deforestation rate over five years. Yet satellite data from adjacent, unprotected forests with identical geographic profiles showed deforestation rates of less than 3% during the same period.</p>
+
+                    <p>When confronted with these discrepancies, the certification bodies responsible for validating the projects pointed to older, less precise methodologies. "The science of remote sensing has evolved rapidly," said a spokesperson for Verra, the world's leading carbon standard. "We are in the process of updating our methodologies to reflect the latest technological capabilities."</p>
+
+                    <p>But for the millions of tons of CO2 already emitted under the cover of these faulty credits, the damage is already done. And the financial incentives remain skewed toward producing maximum volume over proven environmental integrity.</p>
+
+                    <SupportWidget />
+
+                    {/* Footnotes */}
+                    <div className="mt-16 pt-8 border-t border-gray-200">
+                        <h4 className="font-sans font-bold uppercase tracking-widest text-xs mb-4 text-gray-500">Footnotes & Sources</h4>
+                        <ol className="list-decimal pl-5 text-sm md:text-base space-y-3 text-gray-600 font-sans">
+                            <li><a href="#" className="hover:text-red-700 hover:underline">Analysis of Historical Deforestation Rates in Guaviare, 1990-2020</a>. IDEAM (Institute of Hydrology, Meteorology and Environmental Studies).</li>
+                            <li><a href="#" className="hover:text-red-700 hover:underline">Interview Transcript: Dr. Alistair Vance</a>. Conducted via encrypted line, Sept 14, 2025.</li>
+                            <li><a href="#" className="hover:text-red-700 hover:underline">Alto Mayo Project Design Document (PDD) Version 3.1</a>. Submitted to Verra Registry, 2020.</li>
+                        </ol>
+                    </div>
+                </article>
+            );
+        };
+
+        const RelatedInvestigations = () => {
+            const stories = [
+                {
+                    title: "The Plastic Under the Arctic Permafrost",
+                    category: "Science",
+                    image: "https://images.unsplash.com/photo-1478052187311-53b9fec5f81f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                },
+                {
+                    title: "Who Owns the Wind?",
+                    category: "Energy",
+                    image: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                },
+                {
+                    title: "Lobbying Under the Radar",
+                    category: "Policy",
+                    image: "https://images.unsplash.com/photo-1551062973-205fb1fc969f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+                }
+            ];
+
+            return (
+                <section className="bg-[#FAF9F6] py-20">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex items-center gap-4 mb-12">
+                            <h3 className="font-serif text-2xl font-bold uppercase tracking-tight">More Investigations</h3>
+                            <div className="h-px bg-gray-300 flex-grow"></div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {stories.map((story, i) => (
+                                <a key={i} href="article.html" className="group block focus:outline-none focus:ring-4 focus:ring-gray-200">
+                                    <div className="aspect-w-16 aspect-h-10 mb-4 overflow-hidden bg-gray-200">
+                                        <img src={story.image} alt={story.title} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500 ease-out" />
+                                    </div>
+                                    <div className="text-xs font-bold text-red-700 uppercase tracking-widest mb-2">
+                                        {story.category}
+                                    </div>
+                                    <h4 className="font-serif text-lg font-bold leading-tight group-hover:underline decoration-2 underline-offset-4 text-black">
+                                        {story.title}
+                                    </h4>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const App = () => {
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow">
+                        <ArticleHeader />
+                        <ArticleHeroImage />
+                        <ArticleContent />
+                        <RelatedInvestigations />
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const rootLayout = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootLayout);
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

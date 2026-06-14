@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meridian – Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const enrolled = [
+  { title: 'Python for Data Science & ML Bootcamp', category: 'Data Science', progress: 68, lastLesson: 'Decision Trees & Random Forests', timeLeft: '13h 20m left', href: 'course-detail.html' },
+  { title: 'UI/UX Design Fundamentals', category: 'Design', progress: 34, lastLesson: 'Wireframing with Figma', timeLeft: '18h 30m left', href: 'course-detail.html' },
+  { title: 'Advanced React & Next.js', category: 'Web Dev', progress: 91, lastLesson: 'Deploying to Vercel', timeLeft: '3h 10m left', href: 'course-detail.html' },
+];
+
+const achievements = [
+  { icon: '🔥', title: '14-Day Streak', desc: 'Learning every day for 2 weeks', earned: true },
+  { icon: '🎯', title: 'First Quiz Ace', desc: 'Scored 100% on a quiz', earned: true },
+  { icon: '🏆', title: 'Course Complete', desc: 'Finished your first full course', earned: true },
+  { icon: '🌟', title: '50h Milestone', desc: 'Clocked 50 hours of learning', earned: false },
+  { icon: '🎓', title: 'Certified', desc: 'Earned your first certificate', earned: false },
+  { icon: '👑', title: 'Path Master', desc: 'Completed a learning path', earned: false },
+];
+
+const activity = [
+  { action: 'Completed lesson', detail: 'Decision Trees & Random Forests', course: 'Python Bootcamp', when: '2h ago', icon: '▶' },
+  { action: 'Scored 80%', detail: 'ML Concepts Quiz', course: 'Python Bootcamp', when: '3h ago', icon: '📝' },
+  { action: 'Completed lesson', detail: 'Responsive Grid Systems', course: 'React & Next.js', when: 'Yesterday', icon: '▶' },
+  { action: 'Note saved', detail: 'Gradient descent intuition', course: 'Python Bootcamp', when: 'Yesterday', icon: '📓' },
+  { action: 'Started course', detail: 'UI/UX Design Fundamentals', course: '', when: '3 days ago', icon: '🆕' },
+];
+
+const recommended = [
+  { title: 'SQL & Database Design Masterclass', instructor: 'David Kim', category: 'Data Science', rating: 4.6, students: 72000, duration: '24h', level: 'Beginner', price: 69 },
+  { title: 'ChatGPT & LLMs for Developers', instructor: 'Kevin Zhao', category: 'AI & ML', rating: 4.9, students: 92000, duration: '18h', level: 'Beginner', price: 79 },
+];
+
+function DashboardPage() {
+  const [activeTab, setActiveTab] = React.useState('overview');
+
+  const totalProgress = Math.round(enrolled.reduce((a, c) => a + c.progress, 0) / enrolled.length);
+
+  return (
+    <Meridian.DashShell active="dashboard.html" sideActive="home">
+      {/* ── Welcome bar ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.2rem' }}>Good morning, Alex 👋</h1>
+          <p style={{ color: 'var(--muted)', fontSize: '0.88rem' }}>You have a 14-day streak. Keep it up!</p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <a href="study.html" className="btn btn-secondary btn-sm">🃏 Study Tool</a>
+          <a href="courses.html" className="btn btn-primary btn-sm">+ Find a Course</a>
+        </div>
+      </div>
+
+      {/* ── Stats row ── */}
+      <div className="grid-4" style={{ marginBottom: '2rem' }}>
+        {[
+          { icon: '📚', val: '3', label: 'Courses Enrolled', delta: '' },
+          { icon: '⏱', val: '47h', label: 'Hours Learned', delta: '+3.2h this week' },
+          { icon: '🔥', val: '14', label: 'Day Streak', delta: 'Personal best!' },
+          { icon: '🏆', val: '3', label: 'Achievements', delta: '3 more to unlock' },
+        ].map(s => (
+          <div key={s.label} className="stat-card">
+            <div style={{ fontSize: '1.5rem' }}>{s.icon}</div>
+            <div className="stat-val">{s.val}</div>
+            <div className="stat-label">{s.label}</div>
+            {s.delta && <div className="stat-delta">↑ {s.delta}</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Tabs ── */}
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--rule)', marginBottom: '1.75rem' }}>
+        {[['overview', 'Overview'], ['courses', 'My Courses'], ['achievements', 'Achievements'], ['activity', 'Activity']].map(([key, label]) => (
+          <button key={key} onClick={() => setActiveTab(key)}
+            style={{ padding: '0.65rem 1.1rem', border: 'none', background: 'none', cursor: 'pointer', fontSize: '0.85rem', fontWeight: activeTab === key ? 700 : 500, color: activeTab === key ? 'var(--indigo)' : 'var(--muted)', borderBottom: `2px solid ${activeTab === key ? 'var(--indigo)' : 'transparent'}`, transition: 'all 0.15s', whiteSpace: 'nowrap' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Overview ── */}
+      {activeTab === 'overview' && (
+        <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: '2fr 1fr', alignItems: 'start' }}>
+          {/* Left: enrolled courses */}
+          <div>
+            <h2 style={{ fontWeight: 700, marginBottom: '1rem', fontSize: '1rem' }}>Continue Learning</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {enrolled.map(c => {
+                const cs = Meridian.catStyle(c.category);
+                return (
+                  <a key={c.title} href={c.href} style={{ background: 'var(--white)', border: '1px solid var(--rule)', borderRadius: 'var(--r-lg)', padding: '1.1rem 1.25rem', display: 'flex', gap: '1rem', alignItems: 'center', textDecoration: 'none', transition: 'box-shadow 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
+                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                  >
+                    <div style={{ width: '48px', height: '48px', background: cs.bg, borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0 }}>{cs.icon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink)', marginBottom: '0.2rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '0.5rem' }}>Next: {c.lastLesson}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div className="progress-track" style={{ flex: 1 }}>
+                          <div className={`progress-fill${c.progress > 80 ? ' emerald' : ''}`} style={{ width: `${c.progress}%` }} />
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: c.progress > 80 ? 'var(--emerald)' : 'var(--indigo)', flexShrink: 0 }}>{c.progress}%</span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{c.timeLeft}</div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--indigo)', marginTop: '0.3rem' }}>Resume →</div>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right: streak + activity */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Streak calendar */}
+            <div style={{ background: 'var(--white)', border: '1px solid var(--rule)', borderRadius: 'var(--r-lg)', padding: '1.25rem' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.85rem' }}>🔥 This Week</div>
+              <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: i < 6 ? 'var(--indigo)' : 'var(--rule)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
+                      {i < 6 ? '✓' : ''}
+                    </div>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--muted)' }}>{d}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ textAlign: 'center', marginTop: '0.85rem', fontSize: '0.78rem', color: 'var(--muted)' }}>
+                14 days and counting!
+              </div>
+            </div>
+
+            {/* Recent activity */}
+            <div style={{ background: 'var(--white)', border: '1px solid var(--rule)', borderRadius: 'var(--r-lg)', padding: '1.25rem' }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.85rem' }}>Recent Activity</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {activity.slice(0, 4).map((a, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.6rem 0', borderBottom: i < 3 ? '1px solid var(--rule)' : 'none' }}>
+                    <div style={{ width: '28px', height: '28px', background: 'var(--indigo-lt)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', flexShrink: 0 }}>{a.icon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--ink)' }}>{a.action}: <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{a.detail}</span></div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--subtle)' }}>{a.when}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Pro upsell */}
+            <div style={{ background: 'linear-gradient(135deg, #1e1b4b, #4c1d95)', borderRadius: 'var(--r-lg)', padding: '1.25rem', color: '#fff' }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: '0.35rem' }}>Pro Plan</div>
+              <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>Unlock 1,200+ courses + certificates</p>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)', marginBottom: '0.85rem' }}>From $14/mo · 7-day free trial</p>
+              <a href="plans.html" className="btn btn-primary btn-sm" style={{ background: '#fff', color: 'var(--indigo)', width: '100%', justifyContent: 'center' }}>
+                Upgrade to Pro
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── My Courses ── */}
+      {activeTab === 'courses' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h2 style={{ fontWeight: 700, fontSize: '1rem' }}>Enrolled Courses ({enrolled.length})</h2>
+            <a href="courses.html" className="btn btn-secondary btn-sm">+ Add Course</a>
+          </div>
+          <div className="grid-3">
+            {enrolled.map(c => {
+              const cs = Meridian.catStyle(c.category);
+              return (
+                <a key={c.title} href={c.href} className="course-card" style={{ textDecoration: 'none' }}>
+                  <div className="course-thumb" style={{ background: cs.bg }}>{cs.icon}</div>
+                  <div className="course-body">
+                    <span className="course-title">{c.title}</span>
+                    <div className="progress-track">
+                      <div className={`progress-fill${c.progress > 80 ? ' emerald' : ''}`} style={{ width: `${c.progress}%` }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--muted)' }}>
+                      <span>{c.progress}% complete</span>
+                      <span>{c.timeLeft}</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--indigo)' }}>Resume →</div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+          <h2 style={{ fontWeight: 700, fontSize: '1rem', marginTop: '2rem', marginBottom: '1.25rem' }}>Recommended for You</h2>
+          <div className="grid-2" style={{ maxWidth: '700px' }}>
+            {recommended.map(c => (
+              <Meridian.CourseCard key={c.title} {...c} href="course-detail.html" />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Achievements ── */}
+      {activeTab === 'achievements' && (
+        <div>
+          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', marginBottom: '1.5rem' }}>
+            You've earned <strong style={{ color: 'var(--ink)' }}>{achievements.filter(a => a.earned).length}</strong> of {achievements.length} achievements.
+          </p>
+          <div className="grid-3">
+            {achievements.map(a => (
+              <div key={a.title} style={{ background: a.earned ? 'var(--white)' : 'var(--surface)', border: `1px solid ${a.earned ? 'var(--rule)' : 'transparent'}`, borderRadius: 'var(--r-lg)', padding: '1.5rem', textAlign: 'center', opacity: a.earned ? 1 : 0.5 }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.6rem', filter: a.earned ? 'none' : 'grayscale(1)' }}>{a.icon}</div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.25rem' }}>{a.title}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>{a.desc}</div>
+                {a.earned && <div style={{ marginTop: '0.75rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--emerald)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>✓ Earned</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Activity feed ── */}
+      {activeTab === 'activity' && (
+        <div style={{ maxWidth: '580px' }}>
+          <h2 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '1.25rem' }}>All Activity</h2>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {activity.map((a, i) => (
+              <div key={i} style={{ display: 'flex', gap: '1rem', padding: '1rem 0', borderBottom: '1px solid var(--rule)' }}>
+                <div style={{ width: '36px', height: '36px', background: 'var(--indigo-lt)', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0 }}>{a.icon}</div>
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--ink)' }}>
+                    {a.action}: <span style={{ fontStyle: 'italic', color: 'var(--ink-3)' }}>{a.detail}</span>
+                  </div>
+                  {a.course && <div className="badge badge-indigo" style={{ marginTop: '0.3rem', display: 'inline-flex' }}>{a.course}</div>}
+                  <div style={{ fontSize: '0.72rem', color: 'var(--subtle)', marginTop: '0.25rem' }}>{a.when}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Meridian.DashShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<DashboardPage />);
+</script>
+</body>
+</html>

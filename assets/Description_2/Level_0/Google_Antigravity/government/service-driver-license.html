@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver's License Renewal - State of Vermont</title>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 800: '#1e293b', 900: '#0f172a' },
+                        brand: { 50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac', 400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- Shared Components ---
+        const TrustBanner = () => (
+            <div className="bg-slate-100 text-slate-600 text-xs py-2 px-4 border-b border-slate-200">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/49/Flag_of_Vermont.svg" alt="Vermont Flag" className="h-4 w-6 object-cover border border-slate-300" />
+                        <span>An official website of the State of Vermont</span>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const Header = () => (
+            <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-20">
+                        {/* Logo */}
+                        <div className="flex items-center">
+                            <a href="index.html" className="flex items-center space-x-3 group">
+                                <div className="w-10 h-10 bg-brand-700 rounded-full flex items-center justify-center text-white font-bold text-xl group-hover:bg-brand-800 transition-colors">
+                                    <i data-lucide="mountain"></i>
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold text-slate-900 leading-tight group-hover:text-brand-700 transition-colors">Vermont</h1>
+                                    <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Resident Services Portal</p>
+                                </div>
+                            </a>
+                        </div>
+
+                        {/* Desktop Nav */}
+                        <nav className="hidden md:flex items-center space-x-8">
+                            <a href="services.html" className="text-brand-700 font-medium transition-colors border-b-2 border-brand-700 py-7">Services</a>
+                            <a href="about.html" className="text-slate-600 hover:text-brand-700 font-medium transition-colors">About</a>
+                            <a href="contact.html" className="text-slate-600 hover:text-brand-700 font-medium transition-colors">Contact</a>
+
+                            <div className="flex items-center border-l border-slate-200 pl-6 space-x-4">
+                                <select className="text-sm border border-slate-300 rounded-md text-slate-600 py-1.5 pl-3 pr-8 focus:ring-brand-500 focus:border-brand-500 bg-white">
+                                    <option>English</option>
+                                    <option>Español</option>
+                                    <option>Français</option>
+                                </select>
+                                <button className="text-slate-500 hover:text-brand-700 p-2 transition-colors">
+                                    <i data-lucide="search" className="w-5 h-5"></i>
+                                </button>
+                                <button className="bg-brand-700 hover:bg-brand-800 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors shadow-sm">
+                                    Sign In
+                                </button>
+                            </div>
+                        </nav>
+
+                        {/* Mobile Menu Button */}
+                        <div className="md:hidden flex items-center">
+                            <button className="text-slate-500 hover:text-slate-700 p-2">
+                                <i data-lucide="menu" className="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="bg-slate-900 text-slate-300 py-12 border-t-4 border-brand-600">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div>
+                            <div className="flex items-center space-x-3 mb-6">
+                                <div className="w-8 h-8 bg-brand-600 rounded-full flex items-center justify-center text-white">
+                                    <i data-lucide="mountain" className="w-5 h-5"></i>
+                                </div>
+                                <span className="text-lg font-bold text-white">State of Vermont</span>
+                            </div>
+                            <p className="text-sm text-slate-400">
+                                Official resident services portal providing access to licensing, health, education, and benefits.
+                            </p>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Services</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="service-driver-license.html" className="hover:text-white hover:underline transition-colors">Driver's License & ID</a></li>
+                                <li><a href="service-benefits.html" className="hover:text-white hover:underline transition-colors">Benefits & Assistance</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Taxes & Finance</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Business & Employment</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Government</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="about.html" className="hover:text-white hover:underline transition-colors">About the Governor</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">State Agencies</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Elected Officials</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Transparency Reports</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Support</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li><a href="contact.html" className="hover:text-white hover:underline transition-colors">Contact Us</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Accessibility</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Privacy Policy</a></li>
+                                <li><a href="#" className="hover:text-white hover:underline transition-colors">Terms of Service</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        // --- Wizard Component ---
+        const Wizard = () => {
+            const [step, setStep] = React.useState(1);
+
+            // Re-render icons on step change
+            React.useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [step]);
+
+            const StepIndicator = () => (
+                <div className="flex items-center justify-between mb-8 relative">
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-200 z-0"></div>
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-brand-600 z-0 transition-all duration-300" style={{ width: `${((step - 1) / 4) * 100}%` }}></div>
+
+                    {[1, 2, 3, 4, 5].map(num => (
+                        <div key={num} className={`relative z-10 flex flex-col items-center justify-center w-8 h-8 rounded-full border-2 font-bold text-sm transition-colors ${step >= num ? 'bg-brand-600 border-brand-600 text-white' : 'bg-white border-slate-300 text-slate-400'
+                            }`}>
+                            {step > num ? <i data-lucide="check" className="w-4 h-4"></i> : num}
+                        </div>
+                    ))}
+                </div>
+            );
+
+            return (
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                    <div className="mb-8 border-b border-slate-200 pb-6">
+                        <nav className="flex text-sm text-slate-500 mb-4" aria-label="Breadcrumb">
+                            <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                                <li><a href="index.html" className="hover:text-brand-700 flex items-center"><i data-lucide="home" className="w-4 h-4 mr-1"></i> Home</a></li>
+                                <i data-lucide="chevron-right" className="w-4 h-4 mx-1"></i>
+                                <li><a href="services.html" className="hover:text-brand-700">Services</a></li>
+                                <i data-lucide="chevron-right" className="w-4 h-4 mx-1"></i>
+                                <li className="text-slate-900 font-medium">Driver's License Renewal</li>
+                            </ol>
+                        </nav>
+                        <h2 className="text-3xl font-bold text-slate-900 flex items-center">
+                            <div className="w-12 h-12 bg-brand-100 text-brand-700 rounded-xl flex items-center justify-center mr-4">
+                                <i data-lucide="car" className="w-6 h-6"></i>
+                            </div>
+                            Driver's License Renewal
+                        </h2>
+                        <p className="text-slate-600 mt-3 text-lg">Renew your standard Vermont driver's license or ID card online.</p>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 md:p-10 relative overflow-hidden">
+                        <StepIndicator />
+
+                        {/* Step 1: Eligibility */}
+                        {step === 1 && (
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                <h3 className="text-2xl font-bold text-slate-900 mb-4">1. Check Eligibility</h3>
+                                <p className="text-slate-600 mb-6">To renew online, you must meet the following criteria. Please check all that apply to you:</p>
+
+                                <div className="space-y-4 mb-8">
+                                    {['My license expires in less than 6 months or has been expired for less than 1 year.',
+                                        'My residential and mailing addresses have not changed.',
+                                        'I do not need to upgrade to a REAL ID at this time.',
+                                        'I do not have any physical or mental conditions that impair my driving ability.'].map((text, i) => (
+                                            <label key={i} className="flex items-start space-x-4 p-5 border border-slate-200 rounded-xl hover:border-brand-500 cursor-pointer transition-all bg-slate-50 hover:bg-white hover:shadow-sm group">
+                                                <div className="relative flex items-center">
+                                                    <input type="checkbox" className="peer mt-0.5 h-6 w-6 text-brand-600 border-slate-300 rounded focus:ring-brand-500 transition-colors cursor-pointer" defaultChecked={i === 0 || i === 1} />
+                                                </div>
+                                                <span className="text-slate-800 font-medium text-base leading-relaxed group-hover:text-slate-900">{text}</span>
+                                            </label>
+                                        ))}
+                                </div>
+                                <div className="flex justify-end pt-4 border-t border-slate-100">
+                                    <button onClick={() => setStep(2)} className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-lg font-bold transition-transform hover:scale-105 shadow-md flex items-center">
+                                        Continue <i data-lucide="arrow-right" className="ml-2 w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 2: Documents */}
+                        {step === 2 && (
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                <h3 className="text-2xl font-bold text-slate-900 mb-4">2. Required Documents</h3>
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-8 flex items-start shadow-sm">
+                                    <i data-lucide="info" className="w-6 h-6 text-blue-600 mt-0.5 mr-3 flex-shrink-0"></i>
+                                    <p className="text-blue-800 font-medium text-sm md:text-base">Please prepare the following documents before proceeding. You will need to enter information from these documents to verify your identity.</p>
+                                </div>
+
+                                <ul className="space-y-4 mb-8">
+                                    <li className="flex items-center p-5 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-colors">
+                                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mr-5">
+                                            <i data-lucide="credit-card" className="w-6 h-6 text-slate-700"></i>
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-900 text-lg">Current Driver's License</p>
+                                            <p className="text-sm text-slate-500 mt-1">For your License Number and Issue Date</p>
+                                        </div>
+                                        <i data-lucide="check-circle-2" className="w-6 h-6 text-brand-500 ml-auto"></i>
+                                    </li>
+                                    <li className="flex items-center p-5 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-colors">
+                                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mr-5">
+                                            <i data-lucide="file-text" className="w-6 h-6 text-slate-700"></i>
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-900 text-lg">Social Security Number</p>
+                                            <p className="text-sm text-slate-500 mt-1">Last 4 digits only</p>
+                                        </div>
+                                        <i data-lucide="check-circle-2" className="w-6 h-6 text-brand-500 ml-auto"></i>
+                                    </li>
+                                </ul>
+
+                                <div className="flex justify-between pt-4 border-t border-slate-100">
+                                    <button onClick={() => setStep(1)} className="text-slate-600 hover:text-slate-900 font-semibold px-6 py-3 border border-slate-300 rounded-lg bg-white hover:bg-slate-50 transition-colors flex items-center">
+                                        <i data-lucide="arrow-left" className="mr-2 w-4 h-4"></i> Back
+                                    </button>
+                                    <button onClick={() => setStep(3)} className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-lg font-bold transition-transform hover:scale-105 shadow-md flex items-center">
+                                        I have these documents <i data-lucide="arrow-right" className="ml-2 w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 3: Schedule */}
+                        {step === 3 && (
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                <h3 className="text-2xl font-bold text-slate-900 mb-4">3. Eye Exam Appointment</h3>
+                                <p className="text-slate-600 mb-8 max-w-2xl text-lg">Based on our records, your last eye exam was over 10 years ago. You must schedule a brief in-person screening at a DMV branch.</p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                    <div className="border border-slate-200 rounded-xl p-6 bg-slate-50">
+                                        <h4 className="font-bold text-slate-900 mb-5 flex items-center text-lg">
+                                            <i data-lucide="calendar-days" className="w-5 h-5 mr-2 text-brand-600"></i>
+                                            Select Date
+                                        </h4>
+                                        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm text-center">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <button className="text-slate-400 hover:text-slate-700"><i data-lucide="chevron-left" className="w-5 h-5"></i></button>
+                                                <p className="font-bold text-slate-800">May 2026</p>
+                                                <button className="text-slate-400 hover:text-slate-700"><i data-lucide="chevron-right" className="w-5 h-5"></i></button>
+                                            </div>
+                                            <div className="grid grid-cols-7 gap-2 text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">
+                                                <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+                                            </div>
+                                            <div className="grid grid-cols-7 gap-2 text-sm font-medium">
+                                                {Array.from({ length: 31 }).map((_, i) => (
+                                                    <button key={i} disabled={i < 14 || i % 7 === 0 || i % 7 === 6}
+                                                        className={`p-2 rounded-full w-9 h-9 mx-auto flex items-center justify-center transition-colors
+                                                            ${i === 18 ? 'bg-brand-600 text-white shadow-md ring-2 ring-brand-200 ring-offset-1' :
+                                                                (i < 14 || i % 7 === 0 || i % 7 === 6) ? 'text-slate-300 cursor-not-allowed' : 'text-slate-700 hover:bg-slate-200'}`}>
+                                                        {i + 1}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="border border-slate-200 rounded-xl p-6 bg-slate-50">
+                                        <h4 className="font-bold text-slate-900 mb-5 flex items-center text-lg">
+                                            <i data-lucide="clock" className="w-5 h-5 mr-2 text-brand-600"></i>
+                                            Select Time for May 19
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <button className="w-full text-left px-5 py-4 rounded-lg bg-white border border-slate-200 hover:border-brand-500 hover:shadow-sm transition-all font-medium text-slate-700 focus:outline-none">09:00 AM</button>
+                                            <button className="w-full text-left px-5 py-4 rounded-lg bg-brand-50 border-2 border-brand-500 shadow-sm transition-all font-bold text-brand-900 flex justify-between items-center focus:outline-none">
+                                                <span>10:30 AM</span>
+                                                <i data-lucide="check-circle" className="w-5 h-5 text-brand-600"></i>
+                                            </button>
+                                            <button className="w-full text-left px-5 py-4 rounded-lg bg-white border border-slate-200 hover:border-brand-500 hover:shadow-sm transition-all font-medium text-slate-700 focus:outline-none">01:15 PM</button>
+                                            <button className="w-full text-left px-5 py-4 rounded-lg bg-white border border-slate-200 hover:border-brand-500 hover:shadow-sm transition-all font-medium text-slate-700 focus:outline-none">03:45 PM</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between pt-4 border-t border-slate-100">
+                                    <button onClick={() => setStep(2)} className="text-slate-600 hover:text-slate-900 font-semibold px-6 py-3 border border-slate-300 rounded-lg bg-white hover:bg-slate-50 transition-colors flex items-center">
+                                        <i data-lucide="arrow-left" className="mr-2 w-4 h-4"></i> Back
+                                    </button>
+                                    <button onClick={() => setStep(4)} className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-lg font-bold transition-transform hover:scale-105 shadow-md flex items-center">
+                                        Confirm Appointment <i data-lucide="arrow-right" className="ml-2 w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 4: Review & Pay */}
+                        {step === 4 && (
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                <h3 className="text-2xl font-bold text-slate-900 mb-6">4. Review & Payment</h3>
+
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-8">
+                                    <div className="md:col-span-2">
+                                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 h-full">
+                                            <h4 className="font-bold text-slate-900 border-b border-slate-300 pb-3 mb-4 flex items-center">
+                                                <i data-lucide="receipt" className="w-5 h-5 mr-2 text-slate-500"></i> Order Summary
+                                            </h4>
+                                            <div className="space-y-4 text-slate-700 mb-6 font-medium">
+                                                <div className="flex justify-between">
+                                                    <span>Standard License (4-year)</span>
+                                                    <span>$32.00</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>Online Processing Fee</span>
+                                                    <span>$3.00</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between text-slate-900 font-bold text-xl border-t border-slate-300 pt-4">
+                                                <span>Total Amount</span>
+                                                <span>$35.00</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="md:col-span-3">
+                                        <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm h-full">
+                                            <div className="flex justify-between items-center mb-6">
+                                                <h4 className="font-bold text-slate-900 text-lg">Payment Information</h4>
+                                                <div className="flex space-x-2">
+                                                    <i data-lucide="credit-card" className="w-6 h-6 text-slate-300"></i>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-5">
+                                                <div>
+                                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Card Number</label>
+                                                    <div className="relative">
+                                                        <input type="text" className="w-full border-slate-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 pl-11 py-3 bg-slate-50 font-mono text-lg" placeholder="•••• •••• •••• 4242" defaultValue="4111 1111 1111 4242" />
+                                                        <i data-lucide="credit-card" className="absolute left-4 top-3.5 w-5 h-5 text-slate-400"></i>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-6">
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Expiration</label>
+                                                        <input type="text" className="w-full border-slate-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 py-3 px-4 bg-slate-50 font-mono text-lg text-center" defaultValue="12/28" placeholder="MM/YY" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-semibold text-slate-700 mb-2">CVC</label>
+                                                        <input type="text" className="w-full border-slate-300 rounded-lg focus:ring-brand-500 focus:border-brand-500 py-3 px-4 bg-slate-50 font-mono text-lg text-center tracking-wider" defaultValue="•••" placeholder="123" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between pt-4 border-t border-slate-100">
+                                    <button onClick={() => setStep(3)} className="text-slate-600 hover:text-slate-900 font-semibold px-6 py-3 border border-slate-300 rounded-lg bg-white hover:bg-slate-50 transition-colors flex items-center">
+                                        <i data-lucide="arrow-left" className="mr-2 w-4 h-4"></i> Back
+                                    </button>
+                                    <button onClick={() => setStep(5)} className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-lg font-bold transition-transform hover:scale-105 shadow-md flex items-center text-lg">
+                                        <i data-lucide="lock" className="w-5 h-5 mr-3"></i> Pay $35.00
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 5: Confirmation */}
+                        {step === 5 && (
+                            <div className="animate-in zoom-in-95 duration-500 text-center py-10">
+                                <div className="w-24 h-24 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                                    <i data-lucide="check" className="w-12 h-12 stroke-[3]"></i>
+                                </div>
+                                <h3 className="text-3xl font-extrabold text-slate-900 mb-4">Renewal Successful!</h3>
+                                <p className="text-slate-600 max-w-lg mx-auto mb-10 text-lg">Your transaction has been securely processed. A receipt and temporary digital license have been emailed to you.</p>
+
+                                <div className="bg-slate-50 p-6 rounded-xl inline-block border border-slate-200 mb-10 text-left min-w-[340px] shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                                        <i data-lucide="car" className="w-24 h-24"></i>
+                                    </div>
+                                    <div className="relative z-10">
+                                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Confirmation Number</p>
+                                        <p className="font-mono text-2xl font-bold text-slate-800 tracking-wide mb-6">VT-8839201</p>
+                                        <p className="border-t border-slate-200 pt-4 text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">In-Person Appointment</p>
+                                        <p className="font-semibold text-brand-700 text-lg">May 19, 2026 at 10:30 AM</p>
+                                        <p className="text-sm text-slate-500 mt-1">Montpelier DMV Branch</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <a href="index.html" className="inline-flex items-center text-brand-700 font-bold hover:text-brand-800 bg-brand-50 px-6 py-3 rounded-lg border border-brand-100 hover:shadow-sm transition-all">
+                                        <i data-lucide="arrow-left" className="w-5 h-5 mr-2"></i> Return to Homepage
+                                    </a>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            React.useEffect(() => {
+                lucide.createIcons();
+            });
+
+            return (
+                <div className="flex flex-col min-h-screen font-sans">
+                    <TrustBanner />
+                    <Header />
+                    <main className="flex-grow bg-slate-50">
+                        <Wizard />
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

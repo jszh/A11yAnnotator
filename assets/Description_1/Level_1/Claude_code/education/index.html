@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnPath — Unlock Your Potential. Learn at Your Own Pace.</title>
+  <meta name="description" content="Access 5,000+ expert-led courses in technology, business, design, and more. Start your learning journey today." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eef2ff', 100:'#e0e7ff', 200:'#c7d2fe', 400:'#818cf8', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca', 800:'#3730a3', 900:'#312e81' }
+          },
+          fontFamily: { sans: ['Inter','system-ui','sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    *:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; border-radius: 4px; }
+    .skip-link { position:absolute; top:-100%; left:8px; background:#4f46e5; color:#fff; padding:8px 16px; border-radius:0 0 8px 8px; font-weight:600; font-size:14px; z-index:9999; }
+    .skip-link:focus { top:0; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 antialiased">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ─── ICONS ─────────────────────────────────────────────── */
+    const Logo = ({ cls = '' }) => (
+      <svg className={`w-8 h-8 ${cls}`} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="#4f46e5"/>
+        <path d="M7 20 L16 9 L25 20" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        <path d="M11 20 L21 20" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="16" cy="23" r="1.5" fill="white"/>
+      </svg>
+    );
+    const StarIcon = ({ cls = 'w-4 h-4' }) => (
+      <svg className={cls} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+      </svg>
+    );
+    const ArrowRightIcon = () => (
+      <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+      </svg>
+    );
+    const ChevronRightIcon = () => (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+      </svg>
+    );
+    const MenuIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    );
+    const CloseIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    );
+
+    /* ─── SHARED: HEADER ─────────────────────────────────────── */
+    const Header = ({ current = '' }) => {
+      const [open, setOpen] = useState(false);
+      const nav = [
+        { href:'courses.html', label:'Browse Courses' },
+        { href:'pricing.html', label:'Pricing' },
+        { href:'dashboard.html', label:'My Learning' },
+      ];
+      return (
+        <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <a href="index.html" className="flex items-center gap-2.5 rounded-lg" aria-label="LearnPath – go to homepage">
+                <Logo />
+                <span className="text-xl font-bold text-gray-900">Learn<span className="text-indigo-600">Path</span></span>
+              </a>
+              <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
+                {nav.map(l => (
+                  <a key={l.href} href={l.href}
+                    className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors hover:text-indigo-600 hover:bg-indigo-50 ${current===l.href?'text-indigo-600 bg-indigo-50':'text-gray-600'}`}
+                    aria-current={current===l.href ? 'page' : undefined}>
+                    {l.label}
+                  </a>
+                ))}
+              </nav>
+              <div className="hidden md:flex items-center gap-2">
+                <a href="#" className="text-sm font-medium text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-lg transition-colors">Sign In</a>
+                <a href="#" className="bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Get Started</a>
+              </div>
+              <button onClick={()=>setOpen(!open)} className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+                aria-label={open?'Close menu':'Open navigation menu'} aria-expanded={open} aria-controls="mobile-nav">
+                {open ? <CloseIcon /> : <MenuIcon />}
+              </button>
+            </div>
+          </div>
+          {open && (
+            <nav id="mobile-nav" className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-1" aria-label="Mobile navigation">
+              {nav.map(l => (
+                <a key={l.href} href={l.href} className="block py-2.5 px-3 text-sm font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">{l.label}</a>
+              ))}
+              <div className="pt-3 space-y-2 border-t border-gray-100">
+                <a href="#" className="block text-center py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50">Sign In</a>
+                <a href="#" className="block text-center py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Get Started Free</a>
+              </div>
+            </nav>
+          )}
+        </header>
+      );
+    };
+
+    /* ─── SHARED: FOOTER ─────────────────────────────────────── */
+    const Footer = () => {
+      const cols = {
+        'Learn':    [['courses.html','Browse Courses'],['course-detail.html','Course Details'],['study.html','Study Tools'],['dashboard.html','My Dashboard']],
+        'Platform': [['pricing.html','Pricing Plans'],['#','For Teams'],['#','For Business'],['#','Certifications']],
+        'Company':  [['#','About Us'],['#','Blog'],['#','Careers'],['#','Press']],
+        'Support':  [['#','Help Center'],['#','Community'],['#','Contact Us'],['#','Privacy Policy']],
+      };
+      return (
+        <footer className="bg-gray-900 text-gray-400" role="contentinfo">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
+              <div className="col-span-2 md:col-span-1">
+                <a href="index.html" className="flex items-center gap-2" aria-label="LearnPath home">
+                  <Logo /><span className="text-lg font-bold text-white">Learn<span className="text-indigo-400">Path</span></span>
+                </a>
+                <p className="mt-4 text-sm leading-relaxed">Empowering 2M+ learners with world‑class education in technology, business, and design.</p>
+                <div className="flex gap-3 mt-6">
+                  {[['Twitter','T'],['LinkedIn','in'],['YouTube','▶']].map(([name,abbr]) => (
+                    <a key={name} href="#" aria-label={`LearnPath on ${name}`}
+                      className="w-9 h-9 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-indigo-600 transition-colors text-xs font-bold text-gray-300">
+                      {abbr}
+                    </a>
+                  ))}
+                </div>
+              </div>
+              {Object.entries(cols).map(([heading, links]) => (
+                <div key={heading}>
+                  <h3 className="text-sm font-semibold text-white mb-4">{heading}</h3>
+                  <ul className="space-y-3">
+                    {links.map(([href,label]) => (
+                      <li key={label}><a href={href} className="text-sm hover:text-white transition-colors">{label}</a></li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <p className="text-sm">© 2025 LearnPath, Inc. All rights reserved.</p>
+              <div className="flex gap-6 text-sm">
+                {['Terms','Privacy','Cookies'].map(t=><a key={t} href="#" className="hover:text-white transition-colors">{t}</a>)}
+              </div>
+            </div>
+          </div>
+        </footer>
+      );
+    };
+
+    /* ─── COURSE CARD ────────────────────────────────────────── */
+    const CourseCard = ({ c }) => {
+      const levelColor = {Beginner:'bg-emerald-100 text-emerald-700',Intermediate:'bg-amber-100 text-amber-700',Advanced:'bg-red-100 text-red-700'};
+      return (
+        <article className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all group">
+          <a href="course-detail.html" className="block" aria-label={`View course: ${c.title}`}>
+            <div className={`aspect-video bg-gradient-to-br ${c.grad} flex items-center justify-center text-5xl relative overflow-hidden`} aria-hidden="true">
+              {c.emoji}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </div>
+          </a>
+          <div className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${levelColor[c.level]}`}>{c.level}</span>
+              <span className="text-xs text-gray-500">{c.cat}</span>
+            </div>
+            <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-1">
+              <a href="course-detail.html" className="hover:text-indigo-600 transition-colors group-hover:text-indigo-600">{c.title}</a>
+            </h3>
+            <p className="text-xs text-gray-500 mb-3">{c.instructor}</p>
+            <div className="flex items-center gap-1.5 mb-3">
+              <div className="flex" aria-label={`${c.rating} out of 5 stars`}>
+                {[1,2,3,4,5].map(i=><StarIcon key={i} cls={`w-3.5 h-3.5 ${i<=Math.round(c.rating)?'text-amber-400':'text-gray-200'}`}/>)}
+              </div>
+              <span className="text-xs font-semibold text-gray-700">{c.rating}</span>
+              <span className="text-xs text-gray-400">({c.enrolled})</span>
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+              <span className="text-base font-bold text-gray-900">{c.price===0?'Free':`$${c.price}`}</span>
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {c.duration}
+              </span>
+            </div>
+          </div>
+        </article>
+      );
+    };
+
+    /* ─── DATA ───────────────────────────────────────────────── */
+    const COURSES = [
+      { id:1, title:'Python for Data Science', instructor:'Dr. Sarah Chen', rating:4.8, enrolled:'128K', price:49.99, duration:'24h', level:'Intermediate', cat:'Data Science', emoji:'🐍', grad:'from-green-100 to-emerald-200' },
+      { id:2, title:'UX Design Fundamentals', instructor:'Marcus Rivera', rating:4.7, enrolled:'89K', price:44.99, duration:'18h', level:'Beginner', cat:'Design', emoji:'🎨', grad:'from-pink-100 to-rose-200' },
+      { id:3, title:'React & Next.js Masterclass', instructor:'Emily Zhang', rating:4.9, enrolled:'215K', price:59.99, duration:'32h', level:'Intermediate', cat:'Development', emoji:'⚛️', grad:'from-blue-100 to-cyan-200' },
+      { id:4, title:'Business Strategy Essentials', instructor:'Prof. James Howard', rating:4.6, enrolled:'67K', price:39.99, duration:'12h', level:'Beginner', cat:'Business', emoji:'📊', grad:'from-amber-100 to-orange-200' },
+    ];
+    const CATS = [
+      { name:'Web Development', icon:'💻', count:'1,240 courses', grad:'from-blue-500 to-cyan-500' },
+      { name:'Data Science', icon:'📊', count:'890 courses', grad:'from-violet-500 to-purple-500' },
+      { name:'UX Design', icon:'🎨', count:'640 courses', grad:'from-pink-500 to-rose-500' },
+      { name:'Business', icon:'💼', count:'1,100 courses', grad:'from-amber-500 to-orange-500' },
+      { name:'Photography', icon:'📷', count:'420 courses', grad:'from-emerald-500 to-teal-500' },
+    ];
+
+    /* ─── PAGE SECTIONS ──────────────────────────────────────── */
+    const Hero = () => (
+      <section className="relative bg-gradient-to-br from-indigo-700 via-indigo-600 to-purple-700 text-white overflow-hidden" aria-labelledby="hero-heading">
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute -top-48 -right-48 w-[500px] h-[500px] bg-white/5 rounded-full"/>
+          <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-white/5 rounded-full"/>
+          <div className="absolute top-20 left-1/4 w-2 h-2 bg-yellow-300 rounded-full opacity-60"/>
+          <div className="absolute top-40 right-1/3 w-1.5 h-1.5 bg-white rounded-full opacity-40"/>
+          <div className="absolute bottom-20 right-1/4 w-3 h-3 bg-indigo-300 rounded-full opacity-50"/>
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-36">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-2 text-sm font-medium mb-8">
+              <span className="text-yellow-300" aria-hidden="true">✦</span>
+              <span>Trusted by 2M+ learners worldwide</span>
+            </div>
+            <h1 id="hero-heading" className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6">
+              Unlock Your Potential.<br />
+              <span className="text-yellow-300">Learn at Your Own Pace.</span>
+            </h1>
+            <p className="text-lg md:text-xl text-indigo-100 max-w-2xl mb-10 leading-relaxed">
+              Access 5,000+ expert‑led courses in technology, business, design, and more. Learn from industry professionals and earn certificates that matter.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <a href="courses.html" className="inline-flex items-center justify-center bg-white text-indigo-700 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg text-base focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-700">
+                Browse Courses <ArrowRightIcon />
+              </a>
+              <a href="#" className="inline-flex items-center justify-center border-2 border-white/40 text-white font-bold px-8 py-4 rounded-xl hover:bg-white/10 transition-colors text-base focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-700">
+                Start Free Trial
+              </a>
+            </div>
+            <dl className="flex flex-wrap gap-8 mt-14 pt-12 border-t border-white/20">
+              {[['5,000+','Courses'],['2M+','Learners'],['500+','Instructors'],['4.8★','Avg Rating']].map(([v,l])=>(
+                <div key={l}>
+                  <dt className="text-3xl font-extrabold text-white">{v}</dt>
+                  <dd className="text-sm text-indigo-200 mt-0.5">{l}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </section>
+    );
+
+    const Categories = () => (
+      <section className="py-20 bg-gray-50" aria-labelledby="cats-heading">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 id="cats-heading" className="text-3xl font-bold text-gray-900 mb-3">Explore by Category</h2>
+            <p className="text-gray-500 text-lg">Find courses in the areas that matter most to your career</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {CATS.map(c=>(
+              <a key={c.name} href="courses.html"
+                className="group bg-white rounded-2xl p-6 text-center shadow-sm hover:shadow-md border border-gray-100 hover:border-indigo-200 transition-all focus:ring-2 focus:ring-indigo-500">
+                <div className={`w-14 h-14 bg-gradient-to-br ${c.grad} rounded-xl flex items-center justify-center text-2xl mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform`} aria-hidden="true">{c.icon}</div>
+                <h3 className="font-semibold text-gray-900 text-sm mb-1">{c.name}</h3>
+                <p className="text-xs text-gray-500">{c.count}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+
+    const FeaturedCourses = () => (
+      <section className="py-20 bg-white" aria-labelledby="featured-heading">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end justify-between mb-12">
+            <div>
+              <h2 id="featured-heading" className="text-3xl font-bold text-gray-900 mb-2">Featured Courses</h2>
+              <p className="text-gray-500 text-lg">Handpicked by our expert curriculum team</p>
+            </div>
+            <a href="courses.html" className="hidden md:inline-flex items-center gap-1 text-indigo-600 font-semibold hover:text-indigo-700 text-sm">
+              View all courses <ChevronRightIcon />
+            </a>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {COURSES.map(c=><CourseCard key={c.id} c={c}/>)}
+          </div>
+          <div className="mt-8 text-center md:hidden">
+            <a href="courses.html" className="inline-flex items-center gap-1 text-indigo-600 font-semibold hover:text-indigo-700">View all courses <ChevronRightIcon /></a>
+          </div>
+        </div>
+      </section>
+    );
+
+    const SocialProof = () => (
+      <section className="py-16 bg-indigo-600" aria-labelledby="proof-heading">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 id="proof-heading" className="sr-only">Trusted by learners worldwide</h2>
+          <p className="text-center text-indigo-200 text-xs font-bold uppercase tracking-widest mb-6">Trusted by employees at</p>
+          <div className="flex flex-wrap justify-center items-center gap-6 md:gap-10 mb-12" aria-label="Companies whose employees learn with LearnPath">
+            {['Google','Microsoft','Amazon','Meta','Apple','Netflix','Stripe'].map(c=>(
+              <span key={c} className="text-white/80 font-bold text-base md:text-lg hover:text-white transition-colors">{c}</span>
+            ))}
+          </div>
+          <dl className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {[['🎓','2M+','Active Learners'],['🌍','180+','Countries'],['⭐','4.8/5','Avg. Rating'],['🏆','98%','Satisfaction Rate']].map(([icon,v,l])=>(
+              <div key={l}>
+                <span className="text-3xl" aria-hidden="true">{icon}</span>
+                <dt className="text-4xl font-extrabold text-white mt-2">{v}</dt>
+                <dd className="text-indigo-200 text-sm mt-1">{l}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+    );
+
+    const HowItWorks = () => (
+      <section className="py-24 bg-gray-50" aria-labelledby="how-heading">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 id="how-heading" className="text-3xl font-bold text-gray-900 mb-3">How LearnPath Works</h2>
+            <p className="text-gray-500 text-lg max-w-xl mx-auto">Three simple steps to start your learning journey</p>
+          </div>
+          <ol className="grid grid-cols-1 md:grid-cols-3 gap-12 list-none">
+            {[
+              {n:'01',icon:'🔍',title:'Choose Your Course',desc:'Browse our library of 5,000+ expert‑led courses. Filter by topic, level, or duration to find the perfect match.',color:'bg-indigo-600'},
+              {n:'02',icon:'📚',title:'Learn at Your Pace',desc:'Watch video lessons, complete exercises, and track your progress anytime, on any device — no rigid schedule.',color:'bg-purple-600'},
+              {n:'03',icon:'🏆',title:'Earn Your Certificate',desc:'Complete the course, pass assessments, and earn a shareable certificate recognized by top employers worldwide.',color:'bg-violet-800'},
+            ].map(s=>(
+              <li key={s.n} className="text-center">
+                <div className={`w-16 h-16 ${s.color} text-white rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 shadow-md`} aria-hidden="true">{s.icon}</div>
+                <p className="text-xs font-bold text-indigo-400 mb-2 tracking-wider">STEP {s.n}</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{s.title}</h3>
+                <p className="text-gray-500 leading-relaxed">{s.desc}</p>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-16 text-center">
+            <a href="#" className="inline-flex items-center justify-center bg-indigo-600 text-white font-bold px-10 py-4 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg text-base">
+              Start Learning for Free <ArrowRightIcon />
+            </a>
+            <p className="text-sm text-gray-400 mt-3">No credit card required · 7‑day free trial</p>
+          </div>
+        </div>
+      </section>
+    );
+
+    const Testimonials = () => {
+      const ts = [
+        { q:"LearnPath helped me transition from marketing to data science in just 6 months. The structured learning paths are incredibly effective.", name:"Priya Patel", role:"Data Analyst at Spotify", initials:"PP", rating:5 },
+        { q:"The React course is the best I've ever taken online. The instructor explains complex concepts with such clarity. Worth every penny.", name:"Tom Nguyen", role:"Frontend Developer at Shopify", initials:"TN", rating:5 },
+        { q:"I got my UX design certification and landed my dream job within 3 months. The portfolio projects were key to my interviews.", name:"Sarah Mills", role:"UX Designer at Adobe", initials:"SM", rating:5 },
+      ];
+      return (
+        <section className="py-24 bg-white" aria-labelledby="testimonials-heading">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 id="testimonials-heading" className="text-3xl font-bold text-gray-900 mb-3">What Our Learners Say</h2>
+              <p className="text-gray-500 text-lg">Real stories from people who transformed their careers</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {ts.map(t=>(
+                <blockquote key={t.name} className="bg-gray-50 rounded-2xl p-8 border border-gray-100 hover:border-indigo-100 transition-colors">
+                  <div className="flex gap-0.5 mb-5" aria-label={`${t.rating} out of 5 stars`}>
+                    {Array(t.rating).fill(0).map((_,i)=><StarIcon key={i} cls="w-4 h-4 text-amber-400"/>)}
+                  </div>
+                  <p className="text-gray-700 leading-relaxed mb-6 italic text-sm">"{t.q}"</p>
+                  <footer className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0" aria-hidden="true">{t.initials}</div>
+                    <div>
+                      <cite className="font-semibold text-gray-900 not-italic text-sm block">{t.name}</cite>
+                      <span className="text-xs text-gray-500">{t.role}</span>
+                    </div>
+                  </footer>
+                </blockquote>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const CtaBanner = () => (
+      <section className="py-20 bg-gradient-to-br from-indigo-700 to-purple-700 text-white" aria-labelledby="cta-heading">
+        <div className="max-w-3xl mx-auto px-4 text-center">
+          <h2 id="cta-heading" className="text-3xl md:text-4xl font-extrabold mb-4">Ready to accelerate your career?</h2>
+          <p className="text-indigo-200 text-lg mb-10">Join millions of learners who chose LearnPath to build real-world skills that employers love.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="#" className="inline-flex items-center justify-center bg-white text-indigo-700 font-bold px-8 py-4 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg">
+              Get Started Free <ArrowRightIcon />
+            </a>
+            <a href="courses.html" className="inline-flex items-center justify-center border-2 border-white/40 text-white font-bold px-8 py-4 rounded-xl hover:bg-white/10 transition-colors">
+              Browse Courses
+            </a>
+          </div>
+          <p className="text-indigo-300 text-sm mt-4">No credit card required · Cancel anytime</p>
+        </div>
+      </section>
+    );
+
+    /* ─── APP ────────────────────────────────────────────────── */
+    const App = () => (
+      <div className="min-h-screen flex flex-col">
+        <Header current="index.html" />
+        <main id="main-content" tabIndex="-1">
+          <Hero />
+          <Categories />
+          <FeaturedCourses />
+          <SocialProof />
+          <HowItWorks />
+          <Testimonials />
+          <CtaBanner />
+        </main>
+        <Footer />
+      </div>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

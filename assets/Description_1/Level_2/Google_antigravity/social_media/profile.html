@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse | Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #f5f5f5;
+            margin: 0;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-display {
+            font-family: 'Outfit', 'Inter', sans-serif;
+        }
+
+        .env-pb {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { indigo: { 500: '#6366f1', 600: '#4f46e5' } } } }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel" src="shared.js"></script>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function ProfileContent() {
+            const tabs = ['Posts', 'Replies', 'Media', 'Likes'];
+            const [activeTab, setActiveTab] = useState('Posts');
+
+            const posts = [
+                {
+                    id: 1,
+                    name: 'Alex Rivers',
+                    handle: '@alexrivers',
+                    avatar: 'https://i.pravatar.cc/150?u=alex',
+                    time: '12h',
+                    text: 'Designing a fully functional mock social network in a day. Call it crazy or call it Pulse.',
+                    stats: { comments: 14, reposts: 3, likes: 112 }
+                },
+                {
+                    id: 2,
+                    name: 'Alex Rivers',
+                    handle: '@alexrivers',
+                    avatar: 'https://i.pravatar.cc/150?u=alex',
+                    time: 'Mar 15',
+                    text: 'Just wrapped up the v2.0 mockups. The dark mode specifically uses a sleek #0a0a0a base with indigo accents. Thoughts?',
+                    image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=1200',
+                    stats: { comments: 45, reposts: 12, likes: 320 }
+                }
+            ];
+
+            return (
+                <React.Fragment>
+                    {/* Header Mobile Only */}
+                    <header className="sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-neutral-800/60 z-20 px-4 py-3 flex items-center gap-6 sm:hidden">
+                        <button className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors" onClick={() => window.history.back()}>
+                            <window.Icons.ArrowLeft className="w-5 h-5 text-white" />
+                        </button>
+                        <div>
+                            <h1 className="font-extrabold text-xl font-display leading-none">Alex Rivers</h1>
+                            <span className="text-xs text-neutral-500">2 Posts</span>
+                        </div>
+                    </header>
+
+                    <div className="pb-20 sm:pb-0">
+                        {/* Cover Photo */}
+                        <div className="h-32 sm:h-48 md:h-56 w-full bg-neutral-800 relative group overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200" alt="Cover" className="w-full h-full object-cover" />
+                            <button className="absolute right-4 bottom-4 bg-black/50 hover:bg-black/70 p-2 rounded-full text-white backdrop-blur-sm transition-colors opacity-0 group-hover:opacity-100" aria-label="Edit Cover">
+                                <window.Icons.ImageIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Profile Info */}
+                        <div className="px-4 flex flex-col pt-3 pb-4">
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="relative -mt-16 sm:-mt-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-[#0a0a0a] bg-neutral-900 group shrink-0">
+                                    <img src="https://i.pravatar.cc/150?u=alex" alt="Alex Rivers" className="w-full h-full rounded-full object-cover" />
+                                    <button className="absolute inset-0 bg-black/40 rounded-full text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+                                        <window.Icons.ImageIcon className="w-6 h-6" />
+                                    </button>
+                                </div>
+                                <button className="font-bold py-1.5 px-4 sm:px-6 rounded-full border border-neutral-700 hover:bg-neutral-800 transition-colors mt-2 text-[15px] active:scale-95">
+                                    Edit profile
+                                </button>
+                            </div>
+
+                            <div>
+                                <h2 className="font-extrabold text-xl sm:text-2xl font-display">Alex Rivers</h2>
+                                <p className="text-neutral-500 text-[15px] mb-3">@alexrivers</p>
+                                <p className="text-[15px] leading-relaxed mb-3">
+                                    Creating nice things for the web. Product Designer & Occasional Dev.
+                                    <br />Currently crafting beautiful, dark-themed interfaces at Pulse. <a href="#" className="text-indigo-400 hover:underline">pulse.mockup.cx</a>
+                                </p>
+                                <div className="flex gap-4 text-neutral-500 text-sm mb-4">
+                                    <span className="flex items-center gap-1"><window.Icons.Search className="w-4 h-4 opacity-70" /> San Francisco, CA</span>
+                                    <span className="flex items-center gap-1"><window.Icons.Bell className="w-4 h-4 opacity-70" /> Joined May 2024</span>
+                                </div>
+                                <div className="flex gap-6 text-[15px]">
+                                    <a href="#" className="hover:underline"><strong className="text-white">425</strong> <span className="text-neutral-500">Following</span></a>
+                                    <a href="#" className="hover:underline"><strong className="text-white">1,204</strong> <span className="text-neutral-500">Followers</span></a>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content Tabs */}
+                        <div className="flex border-b border-neutral-800/60 w-full overflow-x-auto no-scrollbar" role="tablist">
+                            {tabs.map(tab => {
+                                const isActive = activeTab === tab;
+                                return (
+                                    <button
+                                        key={tab}
+                                        role="tab"
+                                        aria-selected={isActive}
+                                        onClick={() => setActiveTab(tab)}
+                                        className="flex-1 py-4 text-center font-bold text-[15px] relative hover:bg-white/[0.02] transition-colors focus:outline-none focus:bg-white/[0.03] min-w-[80px]"
+                                    >
+                                        <span className={`${isActive ? 'text-white' : 'text-neutral-500'}`}>{tab}</span>
+                                        {isActive && <div className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-indigo-500 rounded-t-full"></div>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Posts Stream */}
+                        <div className="divide-y divide-neutral-800/60 pb-8">
+                            {activeTab === 'Posts' ? posts.map(post => (
+                                <article key={post.id} className="p-4 sm:p-5 hover:bg-white/[0.015] transition-colors flex gap-4 cursor-pointer">
+                                    <img src={post.avatar} alt={post.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-white text-[15px] sm:text-base hover:underline">{post.name}</span>
+                                                <span className="text-neutral-500 text-[14px]">
+                                                    {post.handle} · <span className="hover:underline">{post.time}</span>
+                                                </span>
+                                            </div>
+                                            <button className="text-neutral-500 hover:text-indigo-400 p-2 rounded-full group transition-colors -mr-2" aria-label="More actions">
+                                                <window.Icons.MoreHorizontal className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        <p className="mt-1 text-[15px] sm:text-base leading-relaxed text-neutral-100 whitespace-pre-wrap">{post.text}</p>
+
+                                        {post.image && (
+                                            <div className="mt-3 rounded-2xl overflow-hidden border border-neutral-800/60 max-h-96">
+                                                <img src={post.image} alt="Post media" className="w-full h-full object-cover" />
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center justify-between mt-3 max-w-md text-neutral-500 pr-4">
+                                            <button className="flex items-center gap-2 hover:text-indigo-400 transition-colors bg-transparent border-none p-0 cursor-pointer text-[13px] sm:text-[14px]">
+                                                <window.Icons.MessageCircle className="w-[18px] h-[18px]" /> {post.stats.comments}
+                                            </button>
+                                            <button className="flex items-center gap-2 hover:text-green-500 transition-colors bg-transparent border-none p-0 cursor-pointer text-[13px] sm:text-[14px]">
+                                                <window.Icons.Repeat className="w-[18px] h-[18px]" /> {post.stats.reposts}
+                                            </button>
+                                            <button className="flex items-center gap-2 hover:text-pink-500 transition-colors bg-transparent border-none p-0 cursor-pointer text-[13px] sm:text-[14px]">
+                                                <window.Icons.Heart className="w-[18px] h-[18px]" /> {post.stats.likes}
+                                            </button>
+                                            <button className="hover:text-indigo-400 transition-colors"><window.Icons.Share2 className="w-[18px] h-[18px]" /></button>
+                                        </div>
+                                    </div>
+                                </article>
+                            )) : (
+                                <div className="p-16 text-center text-neutral-500">
+                                    <p className="font-bold text-xl text-white mb-2">No {activeTab.toLowerCase()} yet</p>
+                                    <p className="text-[15px]">When Alex {activeTab === 'Replies' ? 'replies to posts' : activeTab === 'Media' ? 'posts photos' : 'likes posts'}, they will show up here.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </React.Fragment>
+            );
+        }
+
+        function App() {
+            const [ready, setReady] = useState(false);
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    if (window.SocialLayout && window.Icons) {
+                        setReady(true);
+                        clearInterval(interval);
+                    }
+                }, 50);
+                return () => clearInterval(interval);
+            }, []);
+
+            if (!ready) return <div className="h-screen w-full flex bg-[#0a0a0a]"></div>;
+
+            const SocialLayout = window.SocialLayout;
+            return (
+                <SocialLayout activePage="Profile">
+                    <ProfileContent />
+                </SocialLayout>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

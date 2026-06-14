@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillForge - All Programs</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                            950: '#042f2e',
+                        },
+                        accent: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        condensed: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // --- Common SVG Icons ---
+        const Icons = {
+            Menu: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
+            X: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>,
+            ChevronRight: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>,
+            ChevronDown: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>,
+            Search: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>,
+            Clock: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+            Calendar: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+            Tag: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>,
+            Filter: ({ className }) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>,
+        };
+
+        // --- Shared Layout Components ---
+        const Header = () => {
+            const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+            return (
+                <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-20">
+                            <div className="flex-shrink-0 flex items-center">
+                                <a href="index.html" className="flex items-center gap-2" aria-label="SkillForge Home">
+                                    <div className="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                                        SF
+                                    </div>
+                                    <span className="font-condensed font-bold text-2xl text-slate-900 tracking-tight">SkillForge</span>
+                                </a>
+                            </div>
+
+                            <nav className="hidden md:flex space-x-8 items-center" aria-label="Main Navigation">
+                                <a href="courses.html" className="text-brand-600 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-md px-2 py-1" aria-current="page">Programs</a>
+                                <a href="course-detail.html" className="text-slate-600 hover:text-brand-600 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-md px-2 py-1">Certifications</a>
+                                <a href="pricing.html" className="text-slate-600 hover:text-brand-600 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-md px-2 py-1">Pricing</a>
+                                <div className="h-6 w-px bg-slate-200"></div>
+                                <a href="dashboard.html" className="text-slate-600 hover:text-brand-600 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-md px-2 py-1">Log in</a>
+                                <a href="courses.html" className="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-sm">
+                                    Get Started
+                                </a>
+                            </nav>
+
+                            <div className="md:hidden flex items-center">
+                                <button
+                                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                    className="p-2 rounded-md text-slate-400 hover:text-slate-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500"
+                                    aria-expanded={isMenuOpen}
+                                    aria-label="Toggle navigation menu"
+                                >
+                                    {isMenuOpen ? <Icons.X className="h-6 w-6" /> : <Icons.Menu className="h-6 w-6" />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {isMenuOpen && (
+                        <div className="md:hidden border-t border-slate-200 bg-white shadow-lg">
+                            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                                <a href="courses.html" className="block px-3 py-2 rounded-md text-base font-medium text-brand-700 bg-brand-50" aria-current="page">Programs</a>
+                                <a href="course-detail.html" className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-brand-600 hover:bg-slate-50">Certifications</a>
+                                <a href="study-tool.html" className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-brand-600 hover:bg-slate-50">Classroom</a>
+                                <a href="pricing.html" className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-brand-600 hover:bg-slate-50">Pricing</a>
+                                <a href="dashboard.html" className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-brand-600 hover:bg-slate-50">Log in</a>
+                            </div>
+                        </div>
+                    )}
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-slate-900 border-t border-slate-800 text-slate-300 mt-auto">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+                        <div className="mt-12 pt-8 border-t border-slate-800 text-sm text-slate-500 flex flex-col md:flex-row justify-between items-center gap-4">
+                            <p>&copy; {new Date().getFullYear()} SkillForge Education Inc. All rights reserved.</p>
+                            <div className="flex space-x-6">
+                                <a href="#" className="text-slate-500 hover:text-white transition-colors focus:outline-none focus:text-white" aria-label="Twitter">Twitter</a>
+                                <a href="#" className="text-slate-500 hover:text-white transition-colors focus:outline-none focus:text-white" aria-label="LinkedIn">LinkedIn</a>
+                                <a href="#" className="text-slate-500 hover:text-white transition-colors focus:outline-none focus:text-white" aria-label="Facebook">Facebook</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        // --- Page Components ---
+
+        const mockCourses = [
+            {
+                id: 1,
+                title: "Medical Administrative Assistant",
+                field: "Healthcare",
+                format: "Cohort",
+                duration: "8 weeks",
+                hours: "120 hours",
+                cost: "$349",
+                costType: "Under $500",
+                credential: "Certificate",
+                startDate: "March 3",
+                description: "Master medical billing, patient scheduling, and EHR software to launch your healthcare career.",
+                featured: true
+            },
+            {
+                id: 2,
+                title: "IT Helpdesk Technician Fundamentals",
+                field: "IT",
+                format: "Self-Paced",
+                duration: "4 weeks",
+                hours: "40 hours",
+                cost: "Free",
+                costType: "Free",
+                credential: "Badge",
+                startDate: "Start Anytime",
+                description: "Learn core troubleshooting, networking basics, and customer service for entry-level IT roles."
+            },
+            {
+                id: 3,
+                title: "Certified Bookkeeper Professional",
+                field: "Business",
+                format: "Live Online",
+                duration: "12 weeks",
+                hours: "180 hours",
+                cost: "$850",
+                costType: "$500+",
+                credential: "Certificate",
+                startDate: "April 15",
+                description: "Get hands-on with QuickBooks and master modern accounting principles for small businesses."
+            },
+            {
+                id: 4,
+                title: "Pharmacy Technician Prep",
+                field: "Healthcare",
+                format: "Cohort",
+                duration: "10 weeks",
+                hours: "150 hours",
+                cost: "$450",
+                costType: "Under $500",
+                credential: "Certificate",
+                startDate: "March 15",
+                description: "Prepare for the PTCB exam while learning pharmacology, dosage calculations, and law."
+            },
+            {
+                id: 5,
+                title: "Project Management Foundations",
+                field: "Business",
+                format: "Self-Paced",
+                duration: "6 weeks",
+                hours: "60 hours",
+                cost: "Free",
+                costType: "Free",
+                credential: "CEU",
+                startDate: "Start Anytime",
+                description: "Gain foundational skills in Agile, Scrum, and traditional project lifecycle management."
+            },
+            {
+                id: 6,
+                title: "Network Security Specialist",
+                field: "IT",
+                format: "Live Online",
+                duration: "16 weeks",
+                hours: "240 hours",
+                cost: "$1,200",
+                costType: "$500+",
+                credential: "Certificate",
+                startDate: "May 1",
+                description: "Advanced track covering threat detection, risk management, and network defense strategies."
+            }
+        ];
+
+        const FilterSidebar = ({ filters, setFilters, isMobileOpen, setIsMobileOpen }) => {
+            const filterCategories = [
+                { id: 'field', name: 'Career Field', options: ['Healthcare', 'IT', 'Business'] },
+                { id: 'format', name: 'Format', options: ['Self-Paced', 'Cohort', 'Live Online'] },
+                { id: 'costType', name: 'Cost', options: ['Free', 'Under $500', '$500+'] },
+                { id: 'credential', name: 'Credential Type', options: ['Certificate', 'Badge', 'CEU'] },
+            ];
+
+            const handleFilterChange = (categoryId, option) => {
+                setFilters(prev => {
+                    const currentValues = prev[categoryId] || [];
+                    const newValues = currentValues.includes(option)
+                        ? currentValues.filter(o => o !== option)
+                        : [...currentValues, option];
+                    return { ...prev, [categoryId]: newValues };
+                });
+            };
+
+            const FilterContent = () => (
+                <div className="space-y-8">
+                    {filterCategories.map((category) => (
+                        <div key={category.id}>
+                            <h3 className="text-sm font-semibold text-slate-900 tracking-wider uppercase mb-4" id={`filter-${category.id}`}>{category.name}</h3>
+                            <div className="space-y-3" role="group" aria-labelledby={`filter-${category.id}`}>
+                                {category.options.map((option, idx) => {
+                                    const isChecked = filters[category.id]?.includes(option);
+                                    return (
+                                        <label key={idx} className="flex items-center group cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 transition-shadow transition-colors"
+                                                checked={isChecked || false}
+                                                onChange={() => handleFilterChange(category.id, option)}
+                                                aria-label={`${option} filter`}
+                                            />
+                                            <span className="ml-3 text-sm text-slate-600 group-hover:text-slate-900 transition-colors">{option}</span>
+                                        </label>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                    <button
+                        onClick={() => setFilters({})}
+                        className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
+                    >
+                        Clear all filters
+                    </button>
+                </div>
+            );
+
+            return (
+                <>
+                    {/* Desktop Sidebar */}
+                    <aside className="hidden lg:block w-1/4 pr-8">
+                        <FilterContent />
+                    </aside>
+
+                    {/* Mobile Filter Modal */}
+                    {isMobileOpen && (
+                        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+                            <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setIsMobileOpen(false)}></div>
+                            <div className="absolute inset-y-0 right-0 w-full max-w-xs bg-white shadow-xl flex flex-col h-full transform transition-all duration-300 ease-in-out">
+                                <div className="px-4 py-6 border-b border-slate-200 flex items-center justify-between">
+                                    <h2 className="text-lg font-bold text-slate-900 font-condensed">Filters</h2>
+                                    <button
+                                        onClick={() => setIsMobileOpen(false)}
+                                        className="text-slate-400 hover:text-slate-500 p-2 focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-md"
+                                        aria-label="Close filters"
+                                    >
+                                        <Icons.X className="h-6 w-6" />
+                                    </button>
+                                </div>
+                                <div className="px-4 py-6 flex-1 overflow-y-auto">
+                                    <FilterContent />
+                                </div>
+                                <div className="p-4 border-t border-slate-200">
+                                    <button
+                                        onClick={() => setIsMobileOpen(false)}
+                                        className="w-full bg-brand-600 text-white py-3 rounded-lg font-medium hover:bg-brand-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+                                    >
+                                        Apply Filters
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
+            );
+        };
+
+        const CourseCard = ({ course }) => {
+            const formatColors = {
+                'Cohort': 'bg-accent-100 text-accent-800 border-accent-200',
+                'Self-Paced': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                'Live Online': 'bg-indigo-100 text-indigo-800 border-indigo-200'
+            };
+
+            return (
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-brand-400 hover:shadow-xl transition-all duration-300 group flex flex-col focus-within:ring-2 focus-within:ring-brand-500">
+                    <div className="p-6 flex-grow">
+                        <div className="flex justify-between items-start mb-4">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${formatColors[course.format]}`}>
+                                {course.format}
+                            </span>
+                            <span className="text-sm font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded">
+                                {course.cost}
+                            </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2 font-condensed line-clamp-2 leading-tight">
+                            {course.title}
+                        </h3>
+                        <p className="text-sm text-slate-600 mb-6 line-clamp-2">
+                            {course.description}
+                        </p>
+
+                        <div className="space-y-3 mt-auto">
+                            <div className="flex items-center text-sm text-slate-500">
+                                <Icons.Calendar className="h-4 w-4 mr-2 text-slate-400" />
+                                <span>Starts: <strong className="text-slate-700">{course.startDate}</strong></span>
+                            </div>
+                            <div className="flex items-center text-sm text-slate-500">
+                                <Icons.Clock className="h-4 w-4 mr-2 text-slate-400" />
+                                <span>{course.duration} ({course.hours})</span>
+                            </div>
+                            <div className="flex items-center text-sm text-slate-500">
+                                <Icons.Tag className="h-4 w-4 mr-2 text-slate-400" />
+                                <span>{course.credential} in {course.field}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center group-hover:bg-brand-50 transition-colors">
+                        <a href="course-detail.html" className="text-brand-600 font-medium text-sm hover:text-brand-800 focus:outline-none focus:underline" aria-label={`View details for ${course.title}`}>
+                            View details
+                        </a>
+                        <a href="course-detail.html" className="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 shadow-sm" aria-label={`Enroll in ${course.title}`}>
+                            Enroll Now
+                        </a>
+                    </div>
+                </div>
+            );
+        };
+
+        const CoursesPage = () => {
+            const [searchTerm, setSearchTerm] = useState("");
+            const [filters, setFilters] = useState({});
+            const [isFilterOpenMobile, setIsFilterOpenMobile] = useState(false);
+
+            // Filter logic
+            const filteredCourses = mockCourses.filter(course => {
+                const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    course.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+                let matchesFilters = true;
+                Object.keys(filters).forEach(category => {
+                    const selectedOptions = filters[category];
+                    if (selectedOptions && selectedOptions.length > 0) {
+                        if (!selectedOptions.includes(course[category])) {
+                            matchesFilters = false;
+                        }
+                    }
+                });
+
+                return matchesSearch && matchesFilters;
+            });
+
+            return (
+                <div className="bg-slate-50 min-h-screen pb-20">
+                    {/* Header Banner */}
+                    <div className="bg-slate-900 py-16">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <h1 className="text-3xl md:text-5xl font-extrabold text-white font-condensed tracking-tight mb-4 animate-fade-in-up">
+                                Find Your Learning Path
+                            </h1>
+                            <p className="text-xl text-slate-300 max-w-2xl animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                                Browse our industry-recognized programs and start building the career you deserve today.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 -mt-8 relative z-10">
+                        {/* Search Bar */}
+                        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-2 md:p-3 flex flex-col md:flex-row gap-4 items-center mb-10">
+                            <div className="relative flex-1 w-full">
+                                <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                    <Icons.Search className="h-5 w-5 text-slate-400" />
+                                </span>
+                                <input
+                                    type="text"
+                                    className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-transparent rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white focus:border-transparent transition-colors sm:text-sm"
+                                    placeholder="Search by role, skill, or certification..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    aria-label="Search courses"
+                                />
+                            </div>
+                            <button
+                                onClick={() => setIsFilterOpenMobile(true)}
+                                className="lg:hidden w-full md:w-auto px-6 py-3 border border-slate-300 rounded-lg text-slate-700 bg-white hover:bg-slate-50 font-medium flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            >
+                                <Icons.Filter className="h-5 w-5 mr-2" />
+                                Filters
+                                {Object.values(filters).flat().length > 0 && (
+                                    <span className="ml-2 bg-brand-100 text-brand-700 py-0.5 px-2 rounded-full text-xs font-bold">
+                                        {Object.values(filters).flat().length}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+
+                        <div className="flex flex-col lg:flex-row">
+                            <FilterSidebar
+                                filters={filters}
+                                setFilters={setFilters}
+                                isMobileOpen={isFilterOpenMobile}
+                                setIsMobileOpen={setIsFilterOpenMobile}
+                            />
+
+                            <main className="lg:w-3/4">
+                                <div className="mb-6 flex justify-between items-end">
+                                    <h2 className="text-2xl font-bold text-slate-900 font-condensed">
+                                        {filteredCourses.length} {filteredCourses.length === 1 ? 'Program' : 'Programs'} Found
+                                    </h2>
+                                </div>
+
+                                {filteredCourses.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {filteredCourses.map(course => (
+                                            <CourseCard key={course.id} course={course} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+                                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <Icons.Search className="h-8 w-8 text-slate-400" />
+                                        </div>
+                                        <h3 className="text-lg font-medium text-slate-900 mb-2">No programs found</h3>
+                                        <p className="text-slate-500 max-w-sm mx-auto mb-6">We couldn't find any programs matching your current filters. Try adjusting your search or clearing filters.</p>
+                                        <button
+                                            onClick={() => setFilters({})}
+                                            className="text-brand-600 font-medium hover:text-brand-700 transition-colors focus:outline-none focus:underline"
+                                        >
+                                            Clear all filters
+                                        </button>
+                                    </div>
+                                )}
+                            </main>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            return (
+                <div className="min-h-screen flex flex-col font-sans">
+                    <Header />
+                    <CoursesPage />
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduPortal – Learn Anything, Advance Everywhere</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary:   { 50:'#EFF6FF',100:'#DBEAFE',500:'#3B82F6',600:'#2563EB',700:'#1D4ED8' },
+            secondary: { 50:'#F5F3FF',100:'#EDE9FE',500:'#8B5CF6',600:'#7C3AED',700:'#6D28D9' },
+          },
+          fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="styles/main.css" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+    const BP = ''; // basePath for root level
+
+    /* ── Announcement Bar ── */
+    const AnnouncementBar = () => {
+      const [closed, setClosed] = useState(false);
+      if (closed) return null;
+      return (
+        <div className="bg-blue-600 text-white text-sm py-2 px-4" role="alert" aria-live="polite">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex-1 text-center">
+              🎓 Limited time: Get <strong>30% off</strong> any Professional Certificate — Offer ends Friday.
+              <a href={BP+'plans/plans.html'} className="ml-2 underline font-semibold hover:text-blue-100">Claim offer →</a>
+            </div>
+            <button onClick={() => setClosed(true)} aria-label="Dismiss announcement"
+              className="text-blue-200 hover:text-white text-2xl leading-none flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">×</button>
+          </div>
+        </div>
+      );
+    };
+
+    /* ── Global Header ── */
+    const GlobalHeader = ({ navMode='category', basePath='' }) => {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [searchVal, setSearchVal] = useState('');
+      const catLinks = [
+        { label:'Courses',    href: basePath+'courses/courses.html' },
+        { label:'Subjects',   href: basePath+'subjects/subjects.html' },
+        { label:'Curriculum', href: basePath+'curriculum/curriculum.html' },
+        { label:'Plans',      href: basePath+'plans/plans.html' },
+        { label:'Enterprise', href: basePath+'enterprise/enterprise.html' },
+        { label:'Dashboard',  href: basePath+'dashboard/dashboard.html' },
+      ];
+      const studyLinks = [
+        { label:'Study',      href: basePath+'study/study.html' },
+        { label:'Flashcards', href: basePath+'study/flashcards/flashcards.html' },
+        { label:'Test',       href: basePath+'study/test/test.html' },
+        { label:'Match',      href: '#' },
+        { label:'Create',     href: '#', highlight: true },
+      ];
+      const links = navMode === 'learning' ? studyLinks : catLinks;
+      return (
+        <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm" role="banner">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center h-16 gap-4">
+              <a href={basePath+'index.html'} className="flex items-center gap-2 flex-shrink-0" aria-label="EduPortal home">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center gradient-brand">
+                  <span className="text-white font-bold text-sm">E</span>
+                </div>
+                <span className="text-xl font-bold text-gray-900 hidden sm:block">EduPortal</span>
+              </a>
+              <nav className="hidden md:flex items-center gap-0.5" aria-label="Primary navigation">
+                {links.map(l => (
+                  <a key={l.label} href={l.href}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 ${l.highlight ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'}`}>
+                    {l.label}
+                  </a>
+                ))}
+              </nav>
+              <div className="flex-1 hidden sm:block">
+                <div className="relative max-w-md mx-auto">
+                  <input type="search" value={searchVal} onChange={e=>setSearchVal(e.target.value)}
+                    placeholder="Search courses, topics, subjects…"
+                    className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-full bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    aria-label="Search EduPortal" />
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  </svg>
+                </div>
+              </div>
+              <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+                <a href={basePath+'account/account.html'} className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-lg hover:bg-gray-100 transition-colors">Log in</a>
+                <a href={basePath+'plans/plans.html'} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Start free</a>
+              </div>
+              <button onClick={()=>setMenuOpen(!menuOpen)} aria-label={menuOpen?'Close menu':'Open menu'} aria-expanded={menuOpen} aria-controls="mobile-nav"
+                className="md:hidden p-2 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors focus-visible:ring-2 focus-visible:ring-blue-500">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  {menuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>}
+                </svg>
+              </button>
+            </div>
+            {menuOpen && (
+              <nav id="mobile-nav" className="md:hidden py-3 border-t border-gray-100 space-y-1" aria-label="Mobile navigation">
+                <div className="px-2 pb-3">
+                  <input type="search" placeholder="Search…" className="w-full pl-4 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Search"/>
+                </div>
+                {links.map(l=>(
+                  <a key={l.label} href={l.href} className="block px-4 py-3 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg">{l.label}</a>
+                ))}
+                <div className="pt-3 px-2 flex flex-col gap-2">
+                  <a href={basePath+'account/account.html'} className="py-2.5 text-center text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Log in</a>
+                  <a href={basePath+'plans/plans.html'} className="py-2.5 text-center text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Start free</a>
+                </div>
+              </nav>
+            )}
+          </div>
+        </header>
+      );
+    };
+
+    /* ── Hero A – Course Discovery ── */
+    const HeroCourseDiscovery = () => {
+      const [activeSegment, setActiveSegment] = useState(0);
+      const segments = [
+        { icon:'🚀', label:'Start a new career', desc:'Switch roles with guided career paths' },
+        { icon:'⚡', label:'Gain job skills',     desc:'Learn in-demand skills for any industry' },
+        { icon:'🎓', label:'Earn a degree',        desc:'Accredited online degrees from top universities' },
+      ];
+      return (
+        <section className="relative overflow-hidden gradient-hero text-white" aria-labelledby="hero-heading">
+          <div className="absolute inset-0 opacity-10" aria-hidden="true" style={{backgroundImage:'radial-gradient(circle at 70% 50%, #7C3AED 0%, transparent 60%),'+'radial-gradient(circle at 20% 80%, #0D9488 0%, transparent 40%)'}}/>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 lg:py-24">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left */}
+              <div className="fade-in-up">
+                <span className="badge bg-blue-500/20 text-blue-200 mb-4 inline-flex">⭐ Trusted by 10M+ learners worldwide</span>
+                <h1 id="hero-heading" className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-5">
+                  Advance Your Career.<br/><span className="text-blue-300">Expand Your World.</span>
+                </h1>
+                <p className="text-lg text-blue-100 mb-8 max-w-lg">
+                  Access 12,000+ courses, professional certificates, and online degrees from world-class universities and leading companies.
+                </p>
+                <div className="flex flex-wrap gap-3 mb-10">
+                  <a href={BP+'courses/courses.html'} className="px-7 py-3.5 bg-white text-blue-700 font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-lg focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700">
+                    Start Learning Free
+                  </a>
+                  <a href={BP+'courses/courses.html'} className="px-7 py-3.5 bg-blue-500/20 text-white font-semibold rounded-xl border border-blue-400/40 hover:bg-blue-500/30 transition-colors focus-visible:ring-2 focus-visible:ring-white">
+                    Browse All Courses
+                  </a>
+                </div>
+                {/* Segment cards */}
+                <div className="grid grid-cols-3 gap-3" role="group" aria-label="Learning goals">
+                  {segments.map((s,i)=>(
+                    <button key={i} onClick={()=>setActiveSegment(i)}
+                      className={`p-3 rounded-xl text-left transition-all focus-visible:ring-2 focus-visible:ring-white border ${activeSegment===i ? 'bg-white/20 border-white/40' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                      aria-pressed={activeSegment===i}>
+                      <div className="text-2xl mb-1">{s.icon}</div>
+                      <div className="text-xs font-semibold leading-snug">{s.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Right – Stats visual */}
+              <div className="fade-in-up stagger-2 hidden lg:flex flex-col items-center gap-5">
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 w-full max-w-sm">
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    {[{n:'12,000+',l:'Courses'},{n:'500+',l:'Institutions'},{n:'10M+',l:'Learners'},{n:'95%',l:'Completion rate'}].map(s=>(
+                      <div key={s.l} className="bg-white/10 rounded-xl p-4 text-center">
+                        <div className="text-3xl font-bold">{s.n}</div>
+                        <div className="text-blue-200 text-xs mt-1">{s.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-white/10 rounded-xl p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-green-400 flex items-center justify-center font-bold text-green-900 text-sm">JD</div>
+                      <div>
+                        <div className="font-semibold text-sm">Just enrolled in</div>
+                        <div className="text-blue-200 text-xs">Machine Learning Fundamentals</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-white/20 rounded-full h-2"><div className="bg-green-400 h-2 rounded-full" style={{width:'68%'}}/></div>
+                      <span className="text-xs text-blue-200">68%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    /* ── Logo Trust Strip ── */
+    const LogoTrustStrip = () => {
+      const logos = ['Google','IBM','Microsoft','Stanford','MIT','Harvard','Amazon','Meta','Coursera','NASA'];
+      return (
+        <section className="bg-white border-y border-gray-100 py-8" aria-label="Trusted by leading organizations">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <p className="text-center text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Trusted by learners from world-leading organizations</p>
+            <div className="flex flex-wrap justify-center items-center gap-3">
+              {logos.map(name=>(
+                <span key={name} className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-full text-sm font-semibold text-gray-500 hover:border-blue-300 hover:text-blue-600 transition-colors cursor-default">
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    /* ── Category Quick Grid ── */
+    const CategoryQuickGrid = () => {
+      const cats = [
+        { icon:'💼', title:'Career Paths',     desc:'Guided tracks to your dream role',        color:'from-blue-500 to-blue-700',   href: BP+'courses/courses.html' },
+        { icon:'⚡', title:'Technical Skills', desc:'Programming, data, cloud & more',         color:'from-purple-500 to-purple-700',href: BP+'subjects/subjects.html' },
+        { icon:'🎓', title:'Online Degrees',   desc:'Accredited BS & MS degrees',               color:'from-teal-500 to-teal-700',   href: BP+'courses/courses.html' },
+        { icon:'📜', title:'Certificates',     desc:'Industry-recognized credentials',          color:'from-orange-500 to-red-600',  href: BP+'courses/courses.html' },
+        { icon:'👩‍🏫', title:'Teacher Resources',desc:'Curriculum tools for educators',          color:'from-green-500 to-green-700', href: BP+'curriculum/curriculum.html' },
+        { icon:'🤖', title:'AI & Technology',  desc:'Machine learning, LLMs, automation',      color:'from-indigo-500 to-blue-600', href: BP+'courses/courses.html' },
+      ];
+      return (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 py-14" aria-labelledby="categories-heading">
+          <div className="flex items-center justify-between mb-8">
+            <h2 id="categories-heading" className="text-2xl sm:text-3xl font-bold text-gray-900">Explore by category</h2>
+            <a href={BP+'courses/courses.html'} className="text-sm font-semibold text-blue-600 hover:underline">View all →</a>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {cats.map(c=>(
+              <a key={c.title} href={c.href}
+                className="card p-5 flex flex-col items-start gap-2 group focus-visible:ring-2 focus-visible:ring-blue-500 rounded-2xl">
+                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center text-xl mb-1 group-hover:scale-110 transition-transform`} aria-hidden="true">{c.icon}</div>
+                <span className="text-sm font-semibold text-gray-900">{c.title}</span>
+                <span className="text-xs text-gray-500 leading-snug">{c.desc}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      );
+    };
+
+    /* ── Trending Section ── */
+    const TrendingSection = () => {
+      const courses = [
+        { title:'Python for Data Science', inst:'Dr. Ana Silva',      rating:4.8, students:'92K', badge:'Bestseller',  color:'bg-blue-100 text-blue-700' },
+        { title:'Machine Learning A–Z',    inst:'Prof. Ken Zhang',    rating:4.9, students:'140K',badge:'Top rated',   color:'bg-purple-100 text-purple-700' },
+        { title:'Business Analytics',      inst:'Priya Patel, MBA',   rating:4.7, students:'58K', badge:'New',         color:'bg-green-100 text-green-700' },
+        { title:'UX Design Masterclass',   inst:'Sofia Mendez',       rating:4.8, students:'73K', badge:'Trending',    color:'bg-orange-100 text-orange-700' },
+        { title:'Cybersecurity Essentials',inst:'James O\'Brien',     rating:4.6, students:'44K', badge:'Bestseller',  color:'bg-red-100 text-red-700' },
+        { title:'React & TypeScript Pro',  inst:'Yuki Tanaka',        rating:4.9, students:'115K',badge:'Top rated',   color:'bg-indigo-100 text-indigo-700' },
+        { title:'Digital Marketing 2024',  inst:'Camille Durand',     rating:4.7, students:'67K', badge:'Trending',    color:'bg-pink-100 text-pink-700' },
+        { title:'Cloud Architecture AWS',  inst:'Ravi Kumar',         rating:4.8, students:'89K', badge:'Bestseller',  color:'bg-teal-100 text-teal-700' },
+      ];
+      return (
+        <section className="bg-white py-14" aria-labelledby="trending-heading">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center justify-between mb-8">
+              <h2 id="trending-heading" className="text-2xl sm:text-3xl font-bold text-gray-900">🔥 Trending this week</h2>
+              <a href={BP+'courses/courses.html'} className="text-sm font-semibold text-blue-600 hover:underline">See all courses →</a>
+            </div>
+            <div className="h-scroll gap-5 pb-2" role="list" aria-label="Trending courses">
+              {courses.map(c=>(
+                <a key={c.title} href={BP+'courses/detail.html'}
+                  className="card w-64 flex-shrink-0 overflow-hidden group focus-visible:ring-2 focus-visible:ring-blue-500 rounded-2xl scroll-item" role="listitem">
+                  <div className="h-36 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-2xl bg-white shadow-md flex items-center justify-center text-3xl">📘</div>
+                  </div>
+                  <div className="p-4">
+                    <span className={`badge text-xs mb-2 ${c.color}`}>{c.badge}</span>
+                    <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-1 group-hover:text-blue-600 transition-colors">{c.title}</h3>
+                    <p className="text-xs text-gray-500 mb-2">{c.inst}</p>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <span className="font-bold text-amber-500">{c.rating}</span>
+                      <span aria-hidden="true">★★★★★</span>
+                      <span className="text-gray-400">({c.students})</span>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    /* ── CTA Banner ── */
+    const CtaBanner = () => (
+      <section className="gradient-brand text-white py-16" aria-labelledby="cta-heading">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <h2 id="cta-heading" className="text-3xl sm:text-4xl font-extrabold mb-4">Ready to start learning?</h2>
+          <p className="text-blue-100 text-lg mb-8">Join over 10 million learners already on EduPortal. First course is free.</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <a href={BP+'plans/plans.html'} className="px-8 py-3.5 bg-white text-blue-700 font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-lg focus-visible:ring-2 focus-visible:ring-white">
+              Start for free
+            </a>
+            <a href={BP+'enterprise/enterprise.html'} className="px-8 py-3.5 bg-white/20 text-white font-semibold rounded-xl border border-white/30 hover:bg-white/30 transition-colors focus-visible:ring-2 focus-visible:ring-white">
+              Enterprise solutions
+            </a>
+          </div>
+        </div>
+      </section>
+    );
+
+    /* ── Footer ── */
+    const Footer = ({ basePath='' }) => {
+      const cols = [
+        { title:'Learn', links:[
+          {l:'Courses',    h:basePath+'courses/courses.html'},
+          {l:'Subjects',   h:basePath+'subjects/subjects.html'},
+          {l:'Curriculum', h:basePath+'curriculum/curriculum.html'},
+          {l:'Study Tools',h:basePath+'study/study.html'},
+        ]},
+        { title:'Tools', links:[
+          {l:'Flashcards',    h:basePath+'study/flashcards/flashcards.html'},
+          {l:'Practice Tests',h:basePath+'study/test/test.html'},
+          {l:'Dashboard',     h:basePath+'dashboard/dashboard.html'},
+        ]},
+        { title:'Plans', links:[
+          {l:'Pricing',    h:basePath+'plans/plans.html'},
+          {l:'Enterprise', h:basePath+'enterprise/enterprise.html'},
+          {l:'For Teachers',h:'#'},
+        ]},
+        { title:'Company', links:[
+          {l:'About',   h:'#'},
+          {l:'Careers', h:'#'},
+          {l:'Blog',    h:'#'},
+          {l:'Contact', h:'#'},
+        ]},
+      ];
+      return (
+        <footer className="bg-gray-900 text-gray-400" role="contentinfo">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
+              <div className="col-span-2 md:col-span-1">
+                <a href={basePath+'index.html'} className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center"><span className="text-white font-bold text-sm">E</span></div>
+                  <span className="text-white font-bold text-lg">EduPortal</span>
+                </a>
+                <p className="text-sm text-gray-500 leading-relaxed">Empowering learners worldwide with world-class education tools and content.</p>
+              </div>
+              {cols.map(col=>(
+                <div key={col.title}>
+                  <h3 className="text-white font-semibold text-sm mb-3">{col.title}</h3>
+                  <ul className="space-y-2">
+                    {col.links.map(lk=>(
+                      <li key={lk.l}><a href={lk.h} className="text-sm text-gray-400 hover:text-white transition-colors">{lk.l}</a></li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <div className="pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-gray-500">© 2024 EduPortal, Inc. All rights reserved.</p>
+              <div className="flex gap-5">
+                {['Privacy Policy','Terms of Service','Cookie Policy'].map(t=>(
+                  <a key={t} href="#" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">{t}</a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </footer>
+      );
+    };
+
+    /* ── App ── */
+    const App = () => (
+      <>
+        <AnnouncementBar/>
+        <GlobalHeader navMode="category" basePath={BP}/>
+        <main id="main-content">
+          <HeroCourseDiscovery/>
+          <LogoTrustStrip/>
+          <CategoryQuickGrid/>
+          <TrendingSection/>
+          <CtaBanner/>
+        </main>
+        <Footer basePath={BP}/>
+      </>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

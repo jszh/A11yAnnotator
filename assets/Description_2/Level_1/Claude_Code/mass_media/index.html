@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Groundwork — Investigative Journalism on Climate & Science</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Playfair Display"', 'Georgia', 'serif'],
+            prose: ['"Source Serif 4"', 'Georgia', 'serif'],
+            ui: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            gw: {
+              green: '#15803d',
+              'green-dark': '#14532d',
+              'green-light': '#dcfce7',
+              ink: '#111827',
+              muted: '#6b7280',
+              border: '#e5e7eb',
+              bg: '#f9fafb',
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: #fff; color: #111827; font-family: 'Inter', system-ui, sans-serif; }
+    *:focus-visible { outline: 2px solid #15803d; outline-offset: 3px; border-radius: 3px; }
+    img { display: block; max-width: 100%; }
+    .font-display { font-family: 'Playfair Display', Georgia, serif; }
+    .font-prose { font-family: 'Source Serif 4', Georgia, serif; }
+    .font-ui { font-family: 'Inter', system-ui, sans-serif; }
+    .breaking-ticker {
+      display: flex;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useId } = React;
+
+/* ── Icons ──────────────────────────────────────────────────── */
+const IconMenu = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>;
+const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>;
+const IconArrow = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>;
+const IconChevronRight = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>;
+const IconHeart = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /></svg>;
+
+/* ── Nav data ───────────────────────────────────────────────── */
+const NAV_LINKS = [
+  { label: 'Climate',  href: 'climate.html' },
+  { label: 'Energy',   href: '#energy' },
+  { label: 'Policy',   href: '#policy' },
+  { label: 'Science',  href: '#science' },
+  { label: 'Data',     href: '#data' },
+  { label: 'Opinion',  href: 'opinion.html' },
+];
+
+/* ── Header ─────────────────────────────────────────────────── */
+function Header() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  return (
+    <header className="font-ui border-b border-gray-200 bg-white sticky top-0 z-40 shadow-sm">
+      {/* Top nav */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+        <a href="index.html" aria-label="Groundwork — home" className="flex items-center gap-2">
+          <span className="font-display text-2xl font-black tracking-tight text-gray-900">
+            <span className="text-green-700">Ground</span>work
+          </span>
+        </a>
+
+        {/* Desktop nav */}
+        <nav aria-label="Primary navigation" className="hidden md:flex items-center gap-1">
+          {NAV_LINKS.map(({ label, href }) => (
+            <a key={label} href={href}
+              className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors">
+              {label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-3">
+          <a href="subscribe.html"
+            className="hidden sm:inline-flex items-center gap-1.5 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+            <IconHeart /> Support Us
+          </a>
+          <button onClick={() => setMobileOpen(p => !p)} aria-expanded={mobileOpen} aria-controls="mobile-menu"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            className="md:hidden p-2 text-gray-600 hover:text-gray-900 rounded-lg">
+            {mobileOpen ? <IconX /> : <IconMenu />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile menu */}
+      {mobileOpen && (
+        <div id="mobile-menu" className="md:hidden border-t border-gray-100 bg-white px-4 pb-4 pt-2">
+          <nav aria-label="Mobile navigation">
+            <ul className="space-y-1" role="list">
+              {NAV_LINKS.map(({ label, href }) => (
+                <li key={label}>
+                  <a href={href} className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-lg transition-colors">
+                    {label}
+                  </a>
+                </li>
+              ))}
+              <li className="pt-2">
+                <a href="subscribe.html" className="flex items-center gap-2 bg-green-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg">
+                  <IconHeart /> Support Groundwork
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      )}
+    </header>
+  );
+}
+
+/* ── Breaking Banner ─────────────────────────────────────────── */
+function BreakingBanner() {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+  return (
+    <div role="alert" aria-live="assertive" className="font-ui bg-amber-50 border-b-2 border-amber-400">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-3 py-2.5">
+        <span className="flex-shrink-0 bg-amber-500 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded">
+          Breaking
+        </span>
+        <p className="text-sm text-amber-900 font-medium flex-1 truncate">
+          <a href="article.html" className="hover:underline">
+            USGS confirms record aquifer depletion across 7 Western states — worst in 50 years of measurement
+          </a>
+        </p>
+        <button onClick={() => setDismissed(true)} aria-label="Dismiss breaking news banner"
+          className="flex-shrink-0 text-amber-600 hover:text-amber-800 text-xs underline">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Category Nav Strip ─────────────────────────────────────── */
+function CategoryStrip() {
+  const cats = [
+    { label: '⬤ Climate', href: 'climate.html', color: 'text-green-700' },
+    { label: '⬤ Energy', href: '#energy', color: 'text-blue-600' },
+    { label: '⬤ Policy', href: '#policy', color: 'text-purple-600' },
+    { label: '⬤ Science', href: '#science', color: 'text-teal-600' },
+    { label: '⬤ Data', href: '#data', color: 'text-orange-600' },
+  ];
+  return (
+    <nav aria-label="Topic categories" className="font-ui border-b border-gray-100 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-0 overflow-x-auto">
+        {cats.map(({ label, href, color }) => (
+          <a key={label} href={href}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-3 text-xs font-semibold tracking-wide hover:bg-white transition-colors border-b-2 border-transparent hover:border-green-600 ${color}`}>
+            {label}
+          </a>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+/* ── Hero Feature ────────────────────────────────────────────── */
+function HeroFeature() {
+  return (
+    <section aria-labelledby="hero-headline" className="max-w-7xl mx-auto px-4 sm:px-6 py-10 md:py-14">
+      <div className="grid lg:grid-cols-5 gap-8 items-start">
+        {/* Text side */}
+        <div className="lg:col-span-3 order-2 lg:order-1 flex flex-col justify-center">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="font-ui text-[10px] font-bold uppercase tracking-widest text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded">
+              Investigation
+            </span>
+            <span className="font-ui text-xs text-gray-400">Climate · Groundwater</span>
+          </div>
+          <h1 id="hero-headline" className="font-display text-4xl sm:text-5xl lg:text-[56px] font-black leading-[1.08] text-gray-900 mb-5">
+            The Invisible Flood
+          </h1>
+          <p className="font-prose text-xl text-gray-700 leading-relaxed mb-6">
+            How Groundwater Collapse Is Reshaping the American West — and why eight decades of policy have failed to stop it.
+          </p>
+          <div className="flex items-center gap-3 font-ui text-sm text-gray-500 mb-6">
+            <img src="https://picsum.photos/seed/reporter_sarah/32/32" alt="Sarah Chen, Investigative Reporter"
+              className="w-8 h-8 rounded-full object-cover" />
+            <span>By <a href="#" className="text-green-700 font-medium hover:underline">Sarah Chen</a> and <a href="#" className="text-green-700 font-medium hover:underline">Marcus Webb</a></span>
+            <span className="text-gray-300">·</span>
+            <time dateTime="2026-03-27">March 27, 2026</time>
+            <span className="text-gray-300">·</span>
+            <span>22 min read</span>
+          </div>
+          <a href="article.html"
+            className="font-ui inline-flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold px-6 py-3 rounded-lg transition-colors self-start">
+            Read the Investigation <IconArrow />
+          </a>
+        </div>
+
+        {/* Image side */}
+        <div className="lg:col-span-2 order-1 lg:order-2">
+          <figure>
+            <a href="article.html" tabIndex={-1} aria-hidden="true">
+              <img
+                src="https://picsum.photos/seed/groundwater_hero/800/560"
+                alt="Cracked, parched earth in a former riverbed in the American West, stretching to the horizon under a harsh midday sun"
+                className="w-full rounded-2xl object-cover aspect-[4/3]"
+              />
+            </a>
+            <figcaption className="font-ui mt-2 text-xs text-gray-400 italic">
+              Formerly irrigated farmland in Tulare County, California, now fallowed as groundwater levels plummet. Photo: USGS / Landsat.
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Latest Investigations ───────────────────────────────────── */
+const INVESTIGATIONS = [
+  {
+    tag: 'Energy', tagColor: 'text-blue-600 bg-blue-50',
+    headline: "EPA's Carbon Market Watchdog Has Never Fined a Single Project",
+    deck: "An agency created to police voluntary carbon offsets has issued zero enforcement actions in four years.",
+    author: 'Elena Vasquez', date: 'March 25, 2026', readTime: '16 min',
+    img: 'https://picsum.photos/seed/carbon_market/400/280',
+    imgAlt: 'Industrial smokestacks silhouetted against a sunset sky, representing carbon emissions subject to offset trading',
+    href: 'article.html',
+  },
+  {
+    tag: 'Science', tagColor: 'text-teal-600 bg-teal-50',
+    headline: 'Inside the Permafrost: What Arctic Drilling Really Costs',
+    deck: "New data from Siberian field stations reveals methane release rates far exceeding IPCC projections.",
+    author: 'Dr. James Adler', date: 'March 22, 2026', readTime: '19 min',
+    img: 'https://picsum.photos/seed/permafrost/400/280',
+    imgAlt: 'Scientists in field gear sampling thawing permafrost in the Siberian tundra',
+    href: 'article.html',
+  },
+  {
+    tag: 'Policy', tagColor: 'text-purple-600 bg-purple-50',
+    headline: 'The Coal Towns That Federal Aid Left Behind',
+    deck: "Promised transition funds for laid-off miners reached fewer than 12% of eligible communities.",
+    author: 'Renata Osei', date: 'March 18, 2026', readTime: '14 min',
+    img: 'https://picsum.photos/seed/coal_towns/400/280',
+    imgAlt: 'An empty main street in a former coal mining town in Appalachia, storefronts closed, one church visible',
+    href: 'article.html',
+  },
+];
+
+function InvestigationCard({ story }) {
+  return (
+    <article aria-label={`Investigation: ${story.headline}`} className="flex flex-col border-b border-gray-100 pb-6 last:border-0 last:pb-0 sm:border-0 sm:pb-0">
+      <a href={story.href} tabIndex={-1} aria-hidden="true">
+        <img src={story.img} alt={story.imgAlt}
+          className="w-full rounded-xl object-cover aspect-[16/10] mb-3 transition-opacity hover:opacity-90" loading="lazy" />
+      </a>
+      <div>
+        <span className={`font-ui inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded mb-2 ${story.tagColor}`}>
+          {story.tag}
+        </span>
+        <h3 className="font-display text-lg font-bold leading-snug text-gray-900 mb-1.5">
+          <a href={story.href} className="hover:text-green-700 transition-colors">{story.headline}</a>
+        </h3>
+        <p className="font-prose text-sm text-gray-600 leading-relaxed mb-2">{story.deck}</p>
+        <p className="font-ui text-xs text-gray-400">
+          {story.author} · <time>{story.date}</time> · {story.readTime} read
+        </p>
+      </div>
+    </article>
+  );
+}
+
+function LatestInvestigations() {
+  return (
+    <section aria-labelledby="latest-heading" className="bg-gray-50 py-12 border-y border-gray-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-baseline justify-between mb-8">
+          <h2 id="latest-heading" className="font-display text-2xl font-bold text-gray-900">Latest Investigations</h2>
+          <a href="climate.html" className="font-ui text-sm text-green-700 hover:text-green-800 font-medium flex items-center gap-1">
+            View all <IconChevronRight />
+          </a>
+        </div>
+        <div className="grid sm:grid-cols-3 gap-8">
+          {INVESTIGATIONS.map(s => <InvestigationCard key={s.headline} story={s} />)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── By the Numbers ─────────────────────────────────────────── */
+const STATS = [
+  { figure: '2.3B', unit: 'acres', label: 'of U.S. land overlying depleted aquifer zones', href: 'article.html' },
+  { figure: '47%', unit: '', label: 'decline in groundwater levels across the High Plains since 1950', href: 'article.html' },
+  { figure: '$340B', unit: '', label: 'projected economic losses from water scarcity by 2035', href: 'article.html' },
+  { figure: '12', unit: 'states', label: 'currently experiencing critical or near-critical aquifer stress', href: 'article.html' },
+];
+
+function ByTheNumbers() {
+  return (
+    <section aria-labelledby="numbers-heading" className="py-16 max-w-7xl mx-auto px-4 sm:px-6">
+      <h2 id="numbers-heading" className="font-display text-2xl font-bold text-gray-900 mb-2">By the Numbers</h2>
+      <p className="font-ui text-sm text-gray-500 mb-10">Key findings from Groundwork's groundwater investigation. <a href="article.html" className="text-green-700 hover:underline">Read the full methodology →</a></p>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200 rounded-2xl overflow-hidden">
+        {STATS.map(({ figure, unit, label, href }) => (
+          <a key={figure} href={href}
+            className="group flex flex-col bg-white p-8 hover:bg-green-50 transition-colors"
+            aria-label={`${figure}${unit ? ' ' + unit : ''} — ${label}`}
+          >
+            <div className="font-display text-5xl font-black text-green-700 group-hover:text-green-800 leading-none mb-1">
+              {figure}
+              {unit && <span className="text-2xl font-bold ml-1 text-green-600">{unit}</span>}
+            </div>
+            <p className="font-ui text-sm text-gray-600 mt-3 leading-relaxed">{label}</p>
+            <span className="font-ui mt-4 text-xs text-green-700 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              See data <IconArrow />
+            </span>
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ── More Coverage ───────────────────────────────────────────── */
+const MORE_STORIES = [
+  {
+    tag: 'Climate', tagColor: 'text-green-700',
+    headline: "California's Snowpack Is Gone. Now What?",
+    author: 'Marcus Webb', date: 'Mar 14',
+    img: 'https://picsum.photos/seed/snowpack/120/80',
+    imgAlt: 'Barren Sierra Nevada mountain range showing bare rock where snowpack once blanketed the peaks',
+    href: 'article.html',
+  },
+  {
+    tag: 'Data', tagColor: 'text-orange-600',
+    headline: 'We Mapped Every Oil Spill the Federal Government Tried to Hide',
+    author: 'Data Desk', date: 'Mar 10',
+    img: 'https://picsum.photos/seed/oil_spill/120/80',
+    imgAlt: 'Satellite imagery showing an oil slick spreading across coastal waters',
+    href: 'article.html',
+  },
+  {
+    tag: 'Energy', tagColor: 'text-blue-600',
+    headline: 'Rooftop Solar Promised Savings. Utilities Fought Back—and Won.',
+    author: 'Elena Vasquez', date: 'Mar 7',
+    img: 'https://picsum.photos/seed/solar_house/120/80',
+    imgAlt: 'Suburban house with rooftop solar panels under a partly cloudy sky',
+    href: 'article.html',
+  },
+  {
+    tag: 'Science', tagColor: 'text-teal-600',
+    headline: 'The Coral Restoration Projects That Are Working—and the Ones That Aren\'t',
+    author: 'Dr. James Adler', date: 'Mar 3',
+    img: 'https://picsum.photos/seed/coral/120/80',
+    imgAlt: 'An underwater photograph of bleached and recovering coral reef sections side by side',
+    href: 'article.html',
+  },
+];
+
+function MoreCoverage() {
+  return (
+    <section aria-labelledby="more-heading" className="max-w-7xl mx-auto px-4 sm:px-6 pb-14">
+      <h2 id="more-heading" className="font-display text-xl font-bold text-gray-900 mb-6 pb-3 border-b border-gray-200">More Coverage</h2>
+      <div className="space-y-5">
+        {MORE_STORIES.map(s => (
+          <article key={s.headline} className="flex gap-4 items-start" aria-label={s.headline}>
+            <a href={s.href} tabIndex={-1} aria-hidden="true" className="flex-shrink-0">
+              <img src={s.img} alt={s.imgAlt} className="w-24 h-16 rounded-lg object-cover" loading="lazy" />
+            </a>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`font-ui text-[10px] font-bold uppercase tracking-wide ${s.tagColor}`}>{s.tag}</span>
+                <span className="text-gray-300 text-xs">·</span>
+                <time className="font-ui text-xs text-gray-400">{s.date}</time>
+              </div>
+              <h3 className="font-display text-base font-bold leading-snug text-gray-900">
+                <a href={s.href} className="hover:text-green-700 transition-colors">{s.headline}</a>
+              </h3>
+              <p className="font-ui text-xs text-gray-400 mt-1">{s.author}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ── Donation CTA ────────────────────────────────────────────── */
+function DonationCTA() {
+  return (
+    <section aria-labelledby="donate-heading" className="bg-green-900 py-16">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+        <p className="font-ui text-green-300 text-sm font-semibold uppercase tracking-widest mb-4">Reader Supported</p>
+        <h2 id="donate-heading" className="font-display text-3xl sm:text-4xl font-black text-white mb-4 leading-tight">
+          This reporting is only possible<br />because of readers like you.
+        </h2>
+        <p className="font-prose text-green-200 text-lg leading-relaxed mb-8">
+          Groundwork accepts no advertising and no corporate funding. Every investigation you read is powered entirely by reader support.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a href="subscribe.html"
+            className="font-ui bg-white text-green-900 font-bold px-8 py-3.5 rounded-lg hover:bg-green-50 transition-colors text-base">
+            Support Groundwork
+          </a>
+          <a href="subscribe.html"
+            className="font-ui border border-green-500 text-white font-medium px-8 py-3.5 rounded-lg hover:bg-green-800 transition-colors text-base">
+            Learn about tiers
+          </a>
+        </div>
+        <p className="font-ui mt-6 text-green-400 text-sm">Your support funds an average of 40 hours of investigative reporting per story.</p>
+      </div>
+    </section>
+  );
+}
+
+/* ── Newsletter ──────────────────────────────────────────────── */
+function Newsletter() {
+  const [email, setEmail] = useState('');
+  const emailId = useId();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (email) { alert(`Thank you! "${email}" added to the Groundwork newsletter. (demo)`); setEmail(''); }
+  };
+  return (
+    <section aria-labelledby="newsletter-heading" className="py-12 border-t border-gray-100">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center">
+        <h2 id="newsletter-heading" className="font-display text-2xl font-bold text-gray-900 mb-2">The Weekly Briefing</h2>
+        <p className="font-prose text-gray-600 mb-6 text-base">Our editors' picks, data highlights, and unreported angles — every Friday morning.</p>
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+          <label htmlFor={emailId} className="sr-only">Your email address</label>
+          <input
+            id={emailId}
+            type="email"
+            required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            autoComplete="email"
+            className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-green-600 focus:outline-none"
+          />
+          <button type="submit"
+            className="font-ui bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-6 py-3 rounded-lg transition-colors whitespace-nowrap">
+            Subscribe Free
+          </button>
+        </form>
+        <p className="font-ui text-xs text-gray-400 mt-3">No spam. Unsubscribe any time. Read our <a href="#" className="text-green-700 hover:underline">Privacy Policy</a>.</p>
+      </div>
+    </section>
+  );
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+function Footer() {
+  return (
+    <footer className="font-ui bg-gray-900 text-gray-400 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+          <div className="lg:col-span-2">
+            <span className="font-display text-2xl font-black text-white">
+              <span className="text-green-400">Ground</span>work
+            </span>
+            <p className="font-prose mt-3 text-sm text-gray-400 leading-relaxed max-w-sm">
+              Groundwork is an independent, nonprofit investigative newsroom covering climate, science, and environmental policy. We are reader-supported and accept no advertising.
+            </p>
+          </div>
+          <div>
+            <h3 className="text-white text-sm font-semibold mb-4 uppercase tracking-wide">Coverage</h3>
+            <ul className="space-y-2 text-sm" role="list">
+              {['Climate', 'Energy', 'Policy', 'Science', 'Data Reports'].map(l => (
+                <li key={l}><a href="climate.html" className="hover:text-white transition-colors">{l}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-white text-sm font-semibold mb-4 uppercase tracking-wide">About</h3>
+            <ul className="space-y-2 text-sm" role="list">
+              {['Our Mission', 'Editorial Ethics', 'Staff', 'Contact', 'Corrections', 'Donate'].map(l => (
+                <li key={l}><a href={l === 'Donate' ? 'subscribe.html' : '#'} className="hover:text-white transition-colors">{l}</a></li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <p className="text-xs text-gray-500">© 2026 Groundwork Investigative Press. All rights reserved. <a href="#" className="hover:text-gray-300">Privacy</a> · <a href="#" className="hover:text-gray-300">Terms</a></p>
+          <p className="text-xs text-gray-600">Groundwork is a 501(c)(3) nonprofit organization.</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ── App ─────────────────────────────────────────────────────── */
+function App() {
+  return (
+    <>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-1/2 focus:-translate-x-1/2 focus:z-50 focus:bg-green-700 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:font-ui focus:text-sm">
+        Skip to main content
+      </a>
+      <BreakingBanner />
+      <Header />
+      <CategoryStrip />
+      <main id="main-content">
+        <HeroFeature />
+        <LatestInvestigations />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="lg:grid lg:grid-cols-3 lg:gap-12 py-12">
+            <div className="lg:col-span-2">
+              <ByTheNumbers />
+            </div>
+            <aside aria-label="More coverage" className="lg:col-span-1 lg:border-l lg:border-gray-100 lg:pl-12 lg:pt-12 pb-12">
+              <MoreCoverage />
+            </aside>
+          </div>
+        </div>
+        <DonationCTA />
+        <Newsletter />
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaMart – Browse Products | Electronics, Kitchen, Clothing &amp; Sports</title>
+  <meta name="description" content="Browse all NovaMart products. Filter by brand, price, rating, and availability. Shop electronics, kitchen, clothing, and sports." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *:focus-visible { outline: 3px solid #facc15 !important; outline-offset: 2px !important; }
+    .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0; }
+    html { scroll-behavior: smooth; }
+    .line-clamp-2 { display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+
+const PRODUCTS = [
+  { id:1,  name:"Sony WH-1000XM5 Wireless Headphones",         price:279.99, orig:399.99, disc:30, rating:4.8, reviews:2847, cat:"Electronics", brand:"Sony",         badge:"Best Seller",    stock:true,  hue:"1e40af" },
+  { id:2,  name:"Apple AirPods Pro (2nd Gen)",                  price:199.99, orig:249.99, disc:20, rating:4.7, reviews:5621, cat:"Electronics", brand:"Apple",        badge:"Top Rated",      stock:true,  hue:"0891b2" },
+  { id:3,  name:'Samsung 55" 4K QLED Smart TV',                 price:549.99, orig:649.99, disc:15, rating:4.6, reviews:1203, cat:"Electronics", brand:"Samsung",      badge:null,             stock:true,  hue:"059669" },
+  { id:4,  name:"Instant Pot Duo 7-in-1 Pressure Cooker",       price:89.99,  orig:119.99, disc:25, rating:4.9, reviews:8934, cat:"Kitchen",     brand:"Instant Pot",  badge:"Best Seller",    stock:true,  hue:"d97706" },
+  { id:5,  name:"KitchenAid 5-Qt Artisan Stand Mixer",          price:299.99, orig:349.99, disc:14, rating:4.8, reviews:3421, cat:"Kitchen",     brand:"KitchenAid",   badge:null,             stock:true,  hue:"dc2626" },
+  { id:6,  name:"Cuisinart 12-Cup Programmable Coffee Maker",   price:69.99,  orig:89.99,  disc:22, rating:4.4, reviews:2156, cat:"Kitchen",     brand:"Cuisinart",    badge:null,             stock:true,  hue:"7c3aed" },
+  { id:7,  name:"Nike Air Max 270 Running Shoes",               price:129.99, orig:160.00, disc:19, rating:4.5, reviews:1876, cat:"Clothing",    brand:"Nike",         badge:null,             stock:true,  hue:"c026d3" },
+  { id:8,  name:"Levi's 501 Original Fit Jeans",                price:79.99,  orig:94.99,  disc:16, rating:4.6, reviews:4523, cat:"Clothing",    brand:"Levi's",       badge:"Top Rated",      stock:true,  hue:"2563eb" },
+  { id:9,  name:"Adidas Ultraboost 22 Sneakers",                price:159.99, orig:190.00, disc:16, rating:4.7, reviews:2234, cat:"Clothing",    brand:"Adidas",       badge:null,             stock:true,  hue:"16a34a" },
+  { id:10, name:"Manduka PRO Premium Yoga Mat",                  price:49.99,  orig:69.99,  disc:29, rating:4.7, reviews:3102, cat:"Sports",      brand:"Manduka",      badge:null,             stock:true,  hue:"ea580c" },
+  { id:11, name:"Fitbit Charge 5 Fitness Tracker",              price:149.99, orig:199.99, disc:25, rating:4.5, reviews:1987, cat:"Electronics", brand:"Fitbit",       badge:null,             stock:true,  hue:"0e7490" },
+  { id:12, name:"Canon EOS Rebel SL3 DSLR Camera",              price:699.99, orig:849.99, disc:18, rating:4.8, reviews:876,  cat:"Electronics", brand:"Canon",        badge:null,             stock:true,  hue:"4f46e5" },
+  { id:13, name:"Nespresso Vertuo Next Coffee Machine",         price:119.99, orig:159.99, disc:25, rating:4.6, reviews:1543, cat:"Kitchen",     brand:"Nespresso",    badge:null,             stock:true,  hue:"b45309" },
+  { id:14, name:"Lodge 12-inch Cast Iron Skillet",              price:39.99,  orig:49.99,  disc:20, rating:4.9, reviews:6789, cat:"Kitchen",     brand:"Lodge",        badge:"Best Seller",    stock:true,  hue:"374151" },
+  { id:15, name:"Under Armour UA Rush Compression Shirt",       price:44.99,  orig:59.99,  disc:25, rating:4.5, reviews:987,  cat:"Clothing",    brand:"Under Armour", badge:null,             stock:true,  hue:"1d4ed8" },
+  { id:16, name:"Hydro Flask 32oz Insulated Water Bottle",      price:44.95,  orig:49.95,  disc:10, rating:4.8, reviews:5432, cat:"Sports",      brand:"Hydro Flask",  badge:null,             stock:true,  hue:"0284c7" },
+  { id:17, name:"Bowflex SelectTech 552 Adjustable Dumbbells",  price:349.99, orig:429.99, disc:19, rating:4.7, reviews:2341, cat:"Sports",      brand:"Bowflex",      badge:null,             stock:false, hue:"9333ea" },
+  { id:18, name:"Logitech MX Master 3 Wireless Mouse",          price:79.99,  orig:99.99,  disc:20, rating:4.8, reviews:3456, cat:"Electronics", brand:"Logitech",     badge:null,             stock:true,  hue:"0f766e" },
+  { id:19, name:"Amazon Echo Dot (5th Gen)",                    price:49.99,  orig:64.99,  disc:23, rating:4.6, reviews:7823, cat:"Electronics", brand:"Amazon",       badge:"Deal of the Day",stock:true,  hue:"475569" },
+  { id:20, name:"Patagonia Down Sweater Hoody Jacket",          price:229.99, orig:279.99, disc:18, rating:4.7, reviews:1234, cat:"Clothing",    brand:"Patagonia",    badge:null,             stock:true,  hue:"166534" },
+  { id:21, name:"Le Creuset Enameled Cast Iron Dutch Oven",     price:219.99, orig:279.99, disc:21, rating:4.9, reviews:2098, cat:"Kitchen",     brand:"Le Creuset",   badge:null,             stock:true,  hue:"b91c1c" },
+  { id:22, name:"Resistance Bands Set (11-Piece)",              price:29.99,  orig:39.99,  disc:25, rating:4.6, reviews:4321, cat:"Sports",      brand:"TheraBand",    badge:null,             stock:true,  hue:"15803d" },
+  { id:23, name:"Apple Watch Series 9 GPS 45mm",                price:399.99, orig:449.99, disc:11, rating:4.8, reviews:3210, cat:"Electronics", brand:"Apple",        badge:null,             stock:true,  hue:"1e3a8a" },
+  { id:24, name:"Columbia Men's Fleece Pullover Jacket",        price:89.99,  orig:119.99, disc:25, rating:4.5, reviews:876,  cat:"Clothing",    brand:"Columbia",     badge:null,             stock:true,  hue:"92400e" },
+  { id:25, name:"NordicTrack T 6.5 Si Treadmill",              price:899.99, orig:1099.99,disc:18, rating:4.6, reviews:654,  cat:"Sports",      brand:"NordicTrack",  badge:null,             stock:true,  hue:"6b21a8" },
+];
+
+function productImg(p) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="400" height="400" fill="#${p.hue}18"/><rect x="140" y="110" width="120" height="120" rx="16" fill="#${p.hue}35"/><text x="200" y="190" font-family="Arial" font-size="72" font-weight="bold" fill="#${p.hue}" text-anchor="middle">${p.name[0]}</text><text x="200" y="330" font-family="Arial,sans-serif" font-size="15" fill="#${p.hue}aa" text-anchor="middle">${p.cat}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function getCartCount() {
+  try { return (JSON.parse(localStorage.getItem('novamart_cart')||'[]')).reduce((s,i)=>s+i.quantity,0); } catch { return 0; }
+}
+function addToCart(product, qty=1) {
+  try {
+    const cart = JSON.parse(localStorage.getItem('novamart_cart')||'[]');
+    const idx = cart.findIndex(i=>i.id===product.id);
+    if (idx>=0) cart[idx].quantity+=qty; else cart.push({...product,quantity:qty});
+    localStorage.setItem('novamart_cart', JSON.stringify(cart));
+    return true;
+  } catch { return false; }
+}
+
+function Stars({ rating, reviews }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span role="img" aria-label={`${rating} out of 5 stars`} className="flex text-sm">
+        {[1,2,3,4,5].map(i=><span key={i} aria-hidden="true" className={i<=Math.floor(rating)?'text-yellow-400':'text-gray-300'}>★</span>)}
+      </span>
+      <span className="text-gray-500 text-xs">({reviews.toLocaleString()})</span>
+    </div>
+  );
+}
+
+function Header() {
+  const [count, setCount] = useState(getCartCount());
+  useEffect(()=>{
+    const h = ()=>setCount(getCartCount());
+    window.addEventListener('storage', h);
+    document.addEventListener('novamart:cartupdate', h);
+    return ()=>{ window.removeEventListener('storage', h); document.removeEventListener('novamart:cartupdate', h); };
+  },[]);
+  return (
+    <header className="bg-blue-900 text-white sticky top-0 z-50 shadow-lg">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:bg-yellow-400 focus:text-blue-900 focus:px-4 focus:py-2 focus:rounded-md focus:font-semibold focus:z-50">Skip to main content</a>
+      <div className="container mx-auto px-4">
+        <div className="flex items-center gap-4 py-3">
+          <a href="index.html" className="flex-shrink-0 text-2xl font-bold text-yellow-400 hover:text-yellow-300 rounded px-1 focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-label="NovaMart – Go to homepage">NovaMart</a>
+          <div className="flex-1 max-w-2xl">
+            <form role="search" onSubmit={e=>e.preventDefault()} className="flex">
+              <label htmlFor="site-search" className="sr-only">Search NovaMart products</label>
+              <input id="site-search" type="search" placeholder="Search products, brands, categories…" className="flex-1 px-4 py-2 rounded-l text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 border-2 border-transparent" aria-label="Search NovaMart products"/>
+              <button type="submit" className="bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-semibold px-5 py-2 rounded-r focus:outline-none focus:ring-2 focus:ring-yellow-300 transition-colors" aria-label="Submit search">
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              </button>
+            </form>
+          </div>
+          <nav aria-label="User account and shopping" className="flex items-center gap-1">
+            <a href="account.html" className="flex flex-col items-center text-sm hover:text-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded px-2 py-1 transition-colors" aria-label="My account">
+              <svg aria-hidden="true" className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              <span aria-hidden="true" className="hidden md:block text-xs">Account</span>
+            </a>
+            <a href="cart.html" className="relative flex flex-col items-center text-sm hover:text-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded px-2 py-1 transition-colors" aria-label={`Shopping cart, ${count} item${count!==1?'s':''}`}>
+              <svg aria-hidden="true" className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              <span aria-hidden="true" className="hidden md:block text-xs">Cart</span>
+              {count>0 && <span aria-hidden="true" className="absolute -top-1 right-0 bg-yellow-400 text-blue-900 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{count>99?'99+':count}</span>}
+            </a>
+          </nav>
+        </div>
+        <nav aria-label="Main navigation" className="border-t border-blue-800">
+          <ul className="flex gap-1 py-2 overflow-x-auto" role="list">
+            {[['Home','index.html'],['Electronics','products.html'],['Kitchen','products.html'],['Clothing','products.html'],['Sports','products.html'],["Today's Deals",'index.html#deals']].map(([l,h])=>(
+              <li key={l}><a href={h} className="whitespace-nowrap text-sm hover:text-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded px-3 py-1 block transition-colors">{l}</a></li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="bg-blue-900 text-white mt-12" role="contentinfo">
+      <div className="container mx-auto px-4 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <p className="text-yellow-400 font-bold text-xl mb-3">NovaMart</p>
+            <p className="text-blue-200 text-sm">Your modern marketplace for electronics, home goods, and apparel.</p>
+          </div>
+          {[['Shop',['Electronics','Kitchen','Clothing','Sports']],['Service',['Help Center','Returns','Order Tracking','Contact Us']],['Company',['About NovaMart','Careers','Press','Privacy Policy']]].map(([h,ls])=>(
+            <div key={h}>
+              <h2 className="font-semibold mb-3 text-base">{h}</h2>
+              <ul className="space-y-2 text-blue-200 text-sm" role="list">
+                {ls.map(l=><li key={l}><a href="#" className="hover:text-yellow-400 focus:outline-none focus:ring-1 focus:ring-yellow-400 rounded transition-colors">{l}</a></li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-blue-800 mt-8 pt-6 text-center">
+          <p className="text-blue-200 text-sm">© 2024 NovaMart, Inc. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ─── Filter Panel ─── */
+const BRANDS = ['Sony','Apple','Samsung','Nike','Levi\'s','Adidas','Fitbit','Canon','KitchenAid','Cuisinart','Lodge','Under Armour','Hydro Flask','Logitech','Amazon','Patagonia','Columbia','NordicTrack'];
+const PRICE_RANGES = [{label:'Under $50',min:0,max:50},{label:'$50 – $100',min:50,max:100},{label:'$100 – $250',min:100,max:250},{label:'$250+',min:250,max:Infinity}];
+const RATING_OPTS = [{label:'4 Stars & Up',val:4},{label:'3 Stars & Up',val:3},{label:'2 Stars & Up',val:2}];
+
+function FilterPanel({ filters, onChange }) {
+  const toggle = (key, val) => {
+    const cur = filters[key]||[];
+    onChange({ ...filters, [key]: cur.includes(val) ? cur.filter(v=>v!==val) : [...cur, val] });
+  };
+  return (
+    <aside aria-label="Product filters" className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+      <h2 className="font-bold text-lg text-gray-800 mb-5">Filters</h2>
+
+      {/* Category */}
+      <fieldset className="mb-5">
+        <legend className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Department</legend>
+        <div className="space-y-2">
+          {['Electronics','Kitchen','Clothing','Sports'].map(c=>(
+            <label key={c} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-blue-700">
+              <input type="checkbox" checked={(filters.cats||[]).includes(c)} onChange={()=>toggle('cats',c)}
+                className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4" aria-label={`Filter by ${c} department`}/>
+              {c}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      {/* Price */}
+      <fieldset className="mb-5">
+        <legend className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Price Range</legend>
+        <div className="space-y-2">
+          {PRICE_RANGES.map(r=>(
+            <label key={r.label} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-blue-700">
+              <input type="checkbox" checked={(filters.prices||[]).includes(r.label)} onChange={()=>toggle('prices',r.label)}
+                className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4" aria-label={`Filter by price range ${r.label}`}/>
+              {r.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      {/* Brand */}
+      <fieldset className="mb-5">
+        <legend className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Brand</legend>
+        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          {BRANDS.map(b=>(
+            <label key={b} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-blue-700">
+              <input type="checkbox" checked={(filters.brands||[]).includes(b)} onChange={()=>toggle('brands',b)}
+                className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4" aria-label={`Filter by brand ${b}`}/>
+              {b}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      {/* Rating */}
+      <fieldset className="mb-5">
+        <legend className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Customer Rating</legend>
+        <div className="space-y-2">
+          {RATING_OPTS.map(r=>(
+            <label key={r.label} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-blue-700">
+              <input type="radio" name="rating-filter" checked={(filters.minRating||0)===r.val} onChange={()=>onChange({...filters,minRating:r.val})}
+                className="text-blue-600 focus:ring-blue-500 w-4 h-4" aria-label={`Show products rated ${r.label}`}/>
+              <span className="text-yellow-400 text-xs">{'★'.repeat(r.val)}</span> {r.label}
+            </label>
+          ))}
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-blue-700">
+            <input type="radio" name="rating-filter" checked={!filters.minRating} onChange={()=>onChange({...filters,minRating:0})}
+              className="text-blue-600 focus:ring-blue-500 w-4 h-4" aria-label="Show all ratings"/>
+            All ratings
+          </label>
+        </div>
+      </fieldset>
+
+      {/* Availability */}
+      <fieldset>
+        <legend className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wide">Availability</legend>
+        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-blue-700">
+          <input type="checkbox" checked={filters.inStockOnly||false} onChange={e=>onChange({...filters,inStockOnly:e.target.checked})}
+            className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4" aria-label="Show in-stock items only"/>
+          In Stock Only
+        </label>
+      </fieldset>
+
+      <button onClick={()=>onChange({})} className="mt-6 w-full py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" aria-label="Clear all product filters">
+        Clear All Filters
+      </button>
+    </aside>
+  );
+}
+
+/* ─── Product Card ─── */
+function ProductCard({ product, onAddToCart }) {
+  const [added, setAdded] = useState(false);
+  const handleAdd = () => {
+    addToCart(product);
+    setAdded(true);
+    document.dispatchEvent(new Event('novamart:cartupdate'));
+    onAddToCart && onAddToCart(product.name);
+    setTimeout(()=>setAdded(false),1500);
+  };
+  return (
+    <article className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100 flex flex-col h-full" aria-label={product.name}>
+      <a href="product-detail.html" className="block relative focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500" aria-label={`View details for ${product.name}`}>
+        <div className="relative">
+          <img src={productImg(product)} alt={`${product.name} product image`} className="w-full h-44 object-cover" loading="lazy"/>
+          {product.badge && <span aria-label={`Label: ${product.badge}`} className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded">{product.badge}</span>}
+          {product.disc>0 && <span aria-hidden="true" className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-0.5 rounded">-{product.disc}%</span>}
+          {!product.stock && <div aria-hidden="true" className="absolute inset-0 bg-gray-900/50 flex items-center justify-center"><span className="bg-white text-gray-700 font-semibold px-3 py-1 rounded text-sm">Out of Stock</span></div>}
+        </div>
+      </a>
+      <div className="p-3 flex flex-col flex-1">
+        <p className="text-xs text-gray-400 mb-1">{product.brand} · {product.cat}</p>
+        <a href="product-detail.html" className="focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+          <h3 className="font-semibold text-gray-800 text-sm line-clamp-2 hover:text-blue-700 transition-colors leading-snug">{product.name}</h3>
+        </a>
+        <div className="mt-1"><Stars rating={product.rating} reviews={product.reviews}/></div>
+        <div className="mt-2 flex items-baseline gap-2">
+          <span className="text-blue-800 font-bold text-lg">${product.price.toFixed(2)}</span>
+          {product.orig>product.price && <span className="text-gray-400 text-sm line-through" aria-label={`Original price $${product.orig.toFixed(2)}`}>${product.orig.toFixed(2)}</span>}
+        </div>
+        <div className="mt-auto pt-3">
+          <button onClick={handleAdd} disabled={!product.stock||added}
+            className={`w-full py-2 px-3 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ${!product.stock?'bg-gray-200 text-gray-500 cursor-not-allowed':added?'bg-green-600 text-white focus:ring-green-500':'bg-yellow-400 hover:bg-yellow-500 text-blue-900 focus:ring-yellow-500'}`}
+            aria-label={product.stock?`Add ${product.name} to cart`:`${product.name} is out of stock`}
+            aria-disabled={!product.stock}>
+            {added?'✓ Added to Cart':product.stock?'Add to Cart':'Out of Stock'}
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ─── App ─── */
+function App() {
+  const [filters, setFilters] = useState({});
+  const [sort, setSort] = useState('best');
+  const [msg, setMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+  const resultsRef = useRef(null);
+
+  const handleAdd = name => {
+    setMsg(`${name} has been added to your cart.`);
+    setTimeout(()=>setMsg(''),3000);
+  };
+
+  const handleFilterChange = newFilters => {
+    setLoading(true);
+    setFilters(newFilters);
+    setTimeout(()=>{
+      setLoading(false);
+      setMsg(`Filters updated. Showing ${filtered.length} products.`);
+      setTimeout(()=>setMsg(''),3000);
+    },300);
+  };
+
+  const filtered = useMemo(()=>{
+    let list = [...PRODUCTS];
+    if (filters.cats?.length) list = list.filter(p=>filters.cats.includes(p.cat));
+    if (filters.brands?.length) list = list.filter(p=>filters.brands.includes(p.brand));
+    if (filters.prices?.length) {
+      list = list.filter(p=>filters.prices.some(label=>{
+        const r = PRICE_RANGES.find(x=>x.label===label);
+        return r && p.price>=r.min && p.price<r.max;
+      }));
+    }
+    if (filters.minRating) list = list.filter(p=>p.rating>=filters.minRating);
+    if (filters.inStockOnly) list = list.filter(p=>p.stock);
+    if (sort==='price-asc') list.sort((a,b)=>a.price-b.price);
+    else if (sort==='price-desc') list.sort((a,b)=>b.price-a.price);
+    else if (sort==='rating') list.sort((a,b)=>b.rating-a.rating);
+    else if (sort==='discount') list.sort((a,b)=>b.disc-a.disc);
+    return list;
+  },[filters, sort]);
+
+  const activeCount = (filters.cats?.length||0)+(filters.brands?.length||0)+(filters.prices?.length||0)+(filters.minRating?1:0)+(filters.inStockOnly?1:0);
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{msg}</div>
+      <Header/>
+      <main id="main-content" className="flex-1 container mx-auto px-4 py-6" tabIndex="-1">
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" className="mb-4">
+          <ol className="flex items-center gap-2 text-sm text-gray-500" role="list">
+            <li><a href="index.html" className="hover:text-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded">Home</a></li>
+            <li aria-hidden="true" className="text-gray-300">/</li>
+            <li aria-current="page" className="text-gray-800 font-medium">All Products</li>
+          </ol>
+        </nav>
+
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">
+          All Products
+          {activeCount>0 && <span className="ml-2 text-sm font-normal text-blue-700">({activeCount} filter{activeCount!==1?'s':''} active)</span>}
+        </h1>
+
+        <div className="flex gap-6">
+          {/* Sidebar */}
+          <div className="w-60 flex-shrink-0 hidden md:block">
+            <FilterPanel filters={filters} onChange={handleFilterChange}/>
+          </div>
+
+          {/* Main content */}
+          <div className="flex-1">
+            {/* Sort + result count */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+              <p className="text-sm text-gray-600" aria-live="polite" aria-atomic="true">
+                Showing <strong>{filtered.length}</strong> of <strong>{PRODUCTS.length}</strong> products
+              </p>
+              <fieldset>
+                <legend className="sr-only">Sort products</legend>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 font-medium" aria-hidden="true">Sort:</span>
+                  {[['best','Best Match'],['price-asc','Price: Low to High'],['price-desc','Price: High to Low'],['rating','Customer Rating'],['discount','Biggest Discount']].map(([v,l])=>(
+                    <button key={v} onClick={()=>setSort(v)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${sort===v?'bg-blue-800 text-white':'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                      aria-pressed={sort===v} aria-label={`Sort by ${l}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+
+            {/* Results */}
+            <div ref={resultsRef} aria-busy={loading} aria-live="polite">
+              {loading && <p className="sr-only" aria-live="assertive">Loading filtered results…</p>}
+              {filtered.length===0 ? (
+                <div className="text-center py-20">
+                  <p className="text-5xl mb-4" aria-hidden="true">🔍</p>
+                  <h2 className="text-xl font-bold text-gray-700 mb-2">No products found</h2>
+                  <p className="text-gray-500 mb-4">Try adjusting your filters to see more results.</p>
+                  <button onClick={()=>setFilters({})} className="bg-blue-800 text-white px-6 py-2 rounded-lg hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" aria-label="Clear all filters and show all products">
+                    Clear All Filters
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filtered.map(p=><ProductCard key={p.id} product={p} onAddToCart={handleAdd}/>)}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

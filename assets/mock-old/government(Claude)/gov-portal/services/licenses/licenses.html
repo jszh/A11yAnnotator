@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Licenses &amp; Permits – GovPortal</title>
+  <link rel="stylesheet" href="../../styles/main.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            'gov-dark': '#1a4480',
+            'gov-mid':  '#1d5fad',
+            'gov-gold': '#c9600a',
+            'gov-green':'#1b7a4b',
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* ── Licenses page extras ── */
+    .lic-hero {
+      background: linear-gradient(135deg, #1a4480 0%, #2563a8 100%);
+      padding: 56px 0 48px;
+      color: #fff;
+    }
+    .lic-hero h1 { font-size: clamp(1.75rem, 4vw, 2.75rem); font-weight: 700; margin-bottom: .75rem; }
+    .lic-hero p  { font-size: 1.1rem; opacity: .9; max-width: 600px; }
+
+    /* Tab nav */
+    .tab-nav {
+      display: flex; border-bottom: 2px solid #e5e7eb;
+      gap: 0; flex-wrap: wrap;
+      margin-bottom: 36px;
+    }
+    .tab-btn {
+      padding: 12px 24px;
+      background: none; border: none;
+      font-size: .9rem; font-weight: 600; color: #6b7280;
+      cursor: pointer; position: relative;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color .15s;
+    }
+    .tab-btn:hover { color: var(--gov-dark); }
+    .tab-btn[aria-selected="true"] { color: var(--gov-dark); border-bottom-color: var(--gov-mid); }
+    .tab-btn:focus-visible { outline: 3px solid var(--gov-gold); outline-offset: 2px; border-radius: 4px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* License type cards */
+    .lic-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .lic-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: var(--r-md);
+      padding: 28px 24px;
+      display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.05);
+      text-decoration: none; color: inherit;
+      transition: box-shadow .2s, border-color .2s;
+    }
+    .lic-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.1); border-color: var(--gov-mid); }
+    .lic-card:focus-visible { outline: 3px solid var(--gov-gold); outline-offset: 3px; border-radius: var(--r-md); }
+    .lic-icon { font-size: 2rem; }
+    .lic-type { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--gov-gold); }
+    .lic-card h3 { font-size: 1rem; font-weight: 700; color: var(--gov-dark); }
+    .lic-card p  { font-size: .85rem; color: #4b5563; flex: 1; }
+    .lic-meta {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      font-size: .78rem; color: #6b7280;
+    }
+    .lic-meta span { display: flex; align-items: center; gap: 4px; }
+    .lic-cta { font-size: .82rem; font-weight: 600; color: var(--gov-mid); display: flex; align-items: center; gap: 4px; }
+
+    /* Renewal notice */
+    .renew-alert {
+      background: #fffbeb; border: 1px solid #f59e0b;
+      border-radius: var(--r-md); padding: 20px 24px;
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .renew-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .renew-body h3 { font-size: .95rem; font-weight: 700; color: #92400e; margin-bottom: 4px; }
+    .renew-body p  { font-size: .85rem; color: #78350f; }
+
+    /* Requirements list */
+    .req-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .req-list li {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 16px;
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: var(--r-sm); font-size: .875rem;
+    }
+    .req-check { color: var(--gov-green); font-weight: 700; flex-shrink: 0; }
+
+    /* Office locator */
+    .office-card {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: var(--r-md); padding: 20px;
+    }
+    .office-card h4 { font-size: .95rem; font-weight: 700; color: var(--gov-dark); margin-bottom: 6px; }
+    .office-info { font-size: .8rem; color: #4b5563; line-height: 1.6; }
+    .office-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .office-btn {
+      padding: 6px 14px;
+      border: 1px solid var(--gov-mid);
+      border-radius: 20px;
+      font-size: .78rem; font-weight: 600; color: var(--gov-mid);
+      background: transparent; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .office-btn:hover { background: var(--gov-mid); color: #fff; }
+    .office-btn:focus-visible { outline: 3px solid var(--gov-gold); outline-offset: 3px; }
+
+    /* Section headings */
+    .sec-label { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gov-gold); margin-bottom: 8px; }
+    .sec-heading { font-size: 1.6rem; font-weight: 700; color: var(--gov-dark); margin-bottom: 8px; }
+    .sec-sub { font-size: .95rem; color: #4b5563; max-width: 580px; }
+    .section-gap { padding: 56px 0; }
+  </style>
+</head>
+<body>
+
+  <!-- Skip link -->
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- Trust Banner -->
+  <div class="trust-banner" role="region" aria-label="Official website notice">
+    <div class="container trust-banner-inner">
+      <div class="trust-left">
+        <span class="trust-flag" aria-hidden="true">🏛️</span>
+        <span>An official government website. <a href="#verify" class="trust-link">Here's how you know</a></span>
+      </div>
+      <div class="trust-right">
+        <a href="../../index.html#accessibility" class="trust-link">Accessibility</a>
+        <a href="../../index.html#language" class="trust-link">Language</a>
+        <a href="../../contact/contact.html" class="trust-link">Contact</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="site-header" role="banner">
+    <div class="container hdr-inner">
+      <a href="../../index.html" class="gov-logo" aria-label="GovPortal – Home">
+        <span class="logo-emblem" aria-hidden="true">⚖️</span>
+        <span class="logo-text"><strong>Gov</strong>Portal</span>
+      </a>
+      <form class="header-search" role="search" aria-label="Site search">
+        <label for="hdr-q" class="sr-only">Search</label>
+        <input type="search" id="hdr-q" name="q" placeholder="Search licenses, permits, requirements…" autocomplete="off" />
+        <button type="submit" aria-label="Submit search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+      </form>
+      <div class="header-actions">
+        <select aria-label="Select language" class="lang-select">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="zh">中文</option>
+        </select>
+        <a href="../../index.html#help" class="hdr-action-link">Help</a>
+        <a href="../../contact/contact.html" class="hdr-action-link">Contact</a>
+        <a href="../../index.html#signin" class="btn btn-outline-sm">Sign In</a>
+      </div>
+      <button class="ham-btn" id="ham-btn" aria-controls="mobile-nav" aria-expanded="false" aria-label="Open navigation menu">
+        <span class="ham-bar" aria-hidden="true"></span>
+        <span class="ham-bar" aria-hidden="true"></span>
+        <span class="ham-bar" aria-hidden="true"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Service Nav -->
+  <nav class="service-nav" id="service-nav" aria-label="Services navigation">
+    <div class="container nav-inner">
+      <ul class="nav-list" role="list">
+        <li class="nav-item">
+          <button class="nav-link" aria-haspopup="true" aria-expanded="false" aria-controls="menu-benefits">
+            Benefits <span class="nav-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div class="mega-menu" id="menu-benefits" role="menu" aria-hidden="true">
+            <div class="mega-col">
+              <p class="mega-cat">Financial Assistance</p>
+              <a role="menuitem" href="../benefits/benefits.html" class="mega-link">All Benefits</a>
+              <a role="menuitem" href="../benefits/benefits.html#health" class="mega-link">Health Coverage</a>
+              <a role="menuitem" href="../benefits/benefits.html#housing" class="mega-link">Housing Assistance</a>
+            </div>
+            <div class="mega-col">
+              <p class="mega-cat">Food &amp; Nutrition</p>
+              <a role="menuitem" href="../benefits/benefits.html#food" class="mega-link">SNAP / Food Stamps</a>
+            </div>
+            <div class="mega-col">
+              <p class="mega-cat">Disability &amp; Senior</p>
+              <a role="menuitem" href="../benefits/benefits.html#disability" class="mega-link">Disability Benefits</a>
+              <a role="menuitem" href="../benefits/benefits.html#senior" class="mega-link">Senior Assistance</a>
+            </div>
+          </div>
+        </li>
+
+        <li class="nav-item">
+          <button class="nav-link" aria-haspopup="true" aria-expanded="false" aria-controls="menu-taxes">
+            Taxes <span class="nav-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div class="mega-menu" id="menu-taxes" role="menu" aria-hidden="true">
+            <div class="mega-col">
+              <p class="mega-cat">File &amp; Pay</p>
+              <a role="menuitem" href="../taxes/taxes.html" class="mega-link">File My Taxes</a>
+              <a role="menuitem" href="../taxes/taxes.html#pay" class="mega-link">Make a Payment</a>
+              <a role="menuitem" href="../taxes/taxes.html#refund" class="mega-link">Check Refund Status</a>
+            </div>
+            <div class="mega-col">
+              <p class="mega-cat">Forms</p>
+              <a role="menuitem" href="../taxes/taxes.html#forms" class="mega-link">Tax Forms</a>
+              <a role="menuitem" href="../taxes/taxes.html#deadlines" class="mega-link">Key Deadlines</a>
+            </div>
+          </div>
+        </li>
+
+        <li class="nav-item">
+          <button class="nav-link active" aria-haspopup="true" aria-expanded="false" aria-controls="menu-licenses">
+            Licenses <span class="nav-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div class="mega-menu" id="menu-licenses" role="menu" aria-hidden="true">
+            <div class="mega-col">
+              <p class="mega-cat">Driver &amp; ID</p>
+              <a role="menuitem" href="licenses.html" class="mega-link">Driver's License</a>
+              <a role="menuitem" href="#id" class="mega-link">State ID Card</a>
+              <a role="menuitem" href="#real-id" class="mega-link">REAL ID</a>
+            </div>
+            <div class="mega-col">
+              <p class="mega-cat">Business</p>
+              <a role="menuitem" href="#business" class="mega-link">Business License</a>
+              <a role="menuitem" href="#professional" class="mega-link">Professional License</a>
+              <a role="menuitem" href="#permits" class="mega-link">Permits</a>
+            </div>
+          </div>
+        </li>
+
+        <li class="nav-item"><a href="../../index.html#payments" class="nav-link">Payments</a></li>
+        <li class="nav-item"><a href="../../about/about.html" class="nav-link">About</a></li>
+        <li class="nav-item"><a href="../../contact/contact.html" class="nav-link">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Mobile Nav -->
+  <div id="mobile-nav" hidden role="dialog" aria-modal="true" aria-label="Navigation menu">
+    <div id="mobile-backdrop" class="mobile-backdrop" aria-hidden="true"></div>
+    <div class="mobile-panel">
+      <div class="mobile-header">
+        <span class="mobile-title">Menu</span>
+        <button id="mobile-close" class="mobile-close" aria-label="Close navigation menu">✕</button>
+      </div>
+      <nav aria-label="Mobile navigation">
+        <ul class="mobile-list" role="list">
+          <li><a href="../../index.html" class="mobile-link">Home</a></li>
+          <li><a href="../benefits/benefits.html" class="mobile-link">Benefits</a></li>
+          <li><a href="../taxes/taxes.html" class="mobile-link">Taxes</a></li>
+          <li><a href="licenses.html" class="mobile-link active">Licenses</a></li>
+          <li><a href="../../about/about.html" class="mobile-link">About</a></li>
+          <li><a href="../../contact/contact.html" class="mobile-link">Contact</a></li>
+        </ul>
+      </nav>
+      <div class="mobile-footer">
+        <a href="../../index.html#signin" class="btn btn-primary w-full text-center">Sign In to MyGov</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main id="main" tabindex="-1">
+
+    <!-- Hero -->
+    <section class="lic-hero" aria-labelledby="lic-h1">
+      <div class="container">
+        <nav class="breadcrumb" aria-label="Breadcrumb" style="margin-bottom:20px;">
+          <ol class="breadcrumb-list" role="list">
+            <li class="breadcrumb-item"><a href="../../index.html" class="breadcrumb-link">Home</a></li>
+            <li class="breadcrumb-item"><a href="../services.html" class="breadcrumb-link">Services</a></li>
+            <li class="breadcrumb-item breadcrumb-current" aria-current="page">Licenses &amp; Permits</li>
+          </ol>
+        </nav>
+        <h1 id="lic-h1">Licenses &amp; Permits</h1>
+        <p>Apply for, renew, or replace driver's licenses, state ID cards, business licenses, and professional permits — all online.</p>
+        <div class="flex flex-wrap gap-3 mt-6">
+          <a href="#driver" class="btn btn-primary">Driver's License</a>
+          <a href="#business" class="btn btn-outline-white">Business License</a>
+          <a href="#renew" class="btn btn-outline-white">Renew a License</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Renewal notice -->
+    <div class="container" style="padding-top:24px;">
+      <div class="renew-alert" role="note" aria-label="Renewal reminder">
+        <span class="renew-icon" aria-hidden="true">⚠️</span>
+        <div class="renew-body">
+          <h3>Check If Your License Is Due for Renewal</h3>
+          <p>Driver's licenses expire every 5 years. Sign in to your MyGov account to view your expiration date and renew online without visiting a DMV office. <a href="../../index.html#signin" style="color:#92400e; font-weight:600;">Check now →</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- License Categories Tabs -->
+    <section class="container section-gap" aria-labelledby="cat-h2">
+      <div class="sec-label">License Categories</div>
+      <h2 class="sec-heading" id="cat-h2">Browse by Category</h2>
+      <p class="sec-sub" style="margin-bottom:24px;">Select a category to see available licenses and application requirements.</p>
+
+      <div role="tablist" aria-label="License categories" class="tab-nav">
+        <button role="tab" class="tab-btn" aria-selected="true" aria-controls="panel-driver" id="tab-driver">
+          Driver &amp; ID
+        </button>
+        <button role="tab" class="tab-btn" aria-selected="false" aria-controls="panel-business" id="tab-business" tabindex="-1">
+          Business
+        </button>
+        <button role="tab" class="tab-btn" aria-selected="false" aria-controls="panel-professional" id="tab-professional" tabindex="-1">
+          Professional
+        </button>
+        <button role="tab" class="tab-btn" aria-selected="false" aria-controls="panel-permits" id="tab-permits" tabindex="-1">
+          Permits
+        </button>
+      </div>
+
+      <!-- Driver & ID Panel -->
+      <div id="panel-driver" role="tabpanel" aria-labelledby="tab-driver" class="tab-panel active">
+        <div class="lic-grid" role="list" id="driver">
+          <a href="#apply-driver" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🚗</span>
+            <span class="lic-type">Driver</span>
+            <h3>Standard Driver's License</h3>
+            <p>Required to operate a motor vehicle on public roads. Valid for all standard passenger vehicles.</p>
+            <div class="lic-meta">
+              <span>⏱ 5-year validity</span>
+              <span>💵 $35 fee</span>
+            </div>
+            <span class="lic-cta">Apply or Renew <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#apply-cdl" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🚛</span>
+            <span class="lic-type">Commercial</span>
+            <h3>Commercial Driver's License (CDL)</h3>
+            <p>Required to operate large trucks, buses, and other commercial motor vehicles. Includes written and skills tests.</p>
+            <div class="lic-meta">
+              <span>⏱ 5-year validity</span>
+              <span>💵 $75 fee</span>
+            </div>
+            <span class="lic-cta">Apply or Renew <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#id" class="lic-card" role="listitem" id="id">
+            <span class="lic-icon" aria-hidden="true">🪪</span>
+            <span class="lic-type">Identification</span>
+            <h3>State ID Card</h3>
+            <p>Official government-issued photo ID for residents who do not drive. Accepted for all identification purposes.</p>
+            <div class="lic-meta">
+              <span>⏱ 5-year validity</span>
+              <span>💵 $15 fee</span>
+            </div>
+            <span class="lic-cta">Apply or Renew <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#real-id" class="lic-card" role="listitem" id="real-id">
+            <span class="lic-icon" aria-hidden="true">⭐</span>
+            <span class="lic-type">Federal Compliance</span>
+            <h3>REAL ID</h3>
+            <p>Federally compliant ID required for domestic air travel, federal buildings, and military bases starting May 2025.</p>
+            <div class="lic-meta">
+              <span>⏱ 5-year validity</span>
+              <span>💵 $40 fee</span>
+            </div>
+            <span class="lic-cta">Apply or Upgrade <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Business Panel -->
+      <div id="panel-business" role="tabpanel" aria-labelledby="tab-business" class="tab-panel" id="business">
+        <div class="lic-grid" role="list">
+          <a href="#apply-biz" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🏢</span>
+            <span class="lic-type">Business</span>
+            <h3>General Business License</h3>
+            <p>Required for any business operating within city or county limits. Must be renewed annually.</p>
+            <div class="lic-meta">
+              <span>⏱ 1-year validity</span>
+              <span>💵 $50–$200 fee</span>
+            </div>
+            <span class="lic-cta">Apply Now <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#apply-seller" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🛍</span>
+            <span class="lic-type">Retail</span>
+            <h3>Seller's Permit</h3>
+            <p>Required to sell tangible goods and collect sales tax from customers in the state.</p>
+            <div class="lic-meta">
+              <span>⏱ No expiration</span>
+              <span>💵 No fee</span>
+            </div>
+            <span class="lic-cta">Apply Now <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#apply-home" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🏠</span>
+            <span class="lic-type">Home Business</span>
+            <h3>Home Occupation Permit</h3>
+            <p>Allows you to legally operate a low-impact business from your residential property.</p>
+            <div class="lic-meta">
+              <span>⏱ 2-year validity</span>
+              <span>💵 $30 fee</span>
+            </div>
+            <span class="lic-cta">Apply Now <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#apply-food" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🍽</span>
+            <span class="lic-type">Food Service</span>
+            <h3>Food Service Establishment License</h3>
+            <p>Required for restaurants, food trucks, catering services, and any business handling food for sale.</p>
+            <div class="lic-meta">
+              <span>⏱ 1-year validity</span>
+              <span>💵 $100–$500 fee</span>
+            </div>
+            <span class="lic-cta">Apply Now <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Professional Panel -->
+      <div id="panel-professional" role="tabpanel" aria-labelledby="tab-professional" class="tab-panel" id="professional">
+        <div class="lic-grid" role="list">
+          <a href="#apply-medical" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">⚕️</span>
+            <span class="lic-type">Healthcare</span>
+            <h3>Medical License</h3>
+            <p>Required for physicians, nurses, dentists, and all licensed healthcare providers practicing in the state.</p>
+            <div class="lic-meta">
+              <span>⏱ 2-year validity</span>
+              <span>💵 $200–$600 fee</span>
+            </div>
+            <span class="lic-cta">Apply or Renew <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#apply-legal" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">⚖️</span>
+            <span class="lic-type">Legal</span>
+            <h3>Attorney License (Bar)</h3>
+            <p>State bar admission required to practice law. Includes background check and character review.</p>
+            <div class="lic-meta">
+              <span>⏱ 1-year validity</span>
+              <span>💵 $375 fee</span>
+            </div>
+            <span class="lic-cta">Apply or Renew <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#apply-contractor" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🔨</span>
+            <span class="lic-type">Construction</span>
+            <h3>Contractor's License</h3>
+            <p>Required for general contractors, electricians, plumbers, and HVAC professionals.</p>
+            <div class="lic-meta">
+              <span>⏱ 2-year validity</span>
+              <span>💵 $150–$400 fee</span>
+            </div>
+            <span class="lic-cta">Apply or Renew <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#apply-realestate" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🏡</span>
+            <span class="lic-type">Real Estate</span>
+            <h3>Real Estate License</h3>
+            <p>Required for real estate agents and brokers facilitating property transactions in the state.</p>
+            <div class="lic-meta">
+              <span>⏱ 2-year validity</span>
+              <span>💵 $245 fee</span>
+            </div>
+            <span class="lic-cta">Apply or Renew <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Permits Panel -->
+      <div id="panel-permits" role="tabpanel" aria-labelledby="tab-permits" class="tab-panel" id="permits">
+        <div class="lic-grid" role="list">
+          <a href="#apply-build" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🏗</span>
+            <span class="lic-type">Construction</span>
+            <h3>Building Permit</h3>
+            <p>Required before starting major construction, renovation, or demolition on any property.</p>
+            <div class="lic-meta">
+              <span>⏱ Project duration</span>
+              <span>💵 Varies by project</span>
+            </div>
+            <span class="lic-cta">Apply Now <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#apply-event" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🎪</span>
+            <span class="lic-type">Event</span>
+            <h3>Special Event Permit</h3>
+            <p>Required for public gatherings, festivals, parades, and events expecting 50 or more attendees.</p>
+            <div class="lic-meta">
+              <span>⏱ Event specific</span>
+              <span>💵 $50–$500 fee</span>
+            </div>
+            <span class="lic-cta">Apply Now <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#apply-signage" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🪧</span>
+            <span class="lic-type">Signage</span>
+            <h3>Sign Permit</h3>
+            <p>Required for installing new business signage, billboards, or exterior signs on commercial property.</p>
+            <div class="lic-meta">
+              <span>⏱ 2-year validity</span>
+              <span>💵 $25–$150 fee</span>
+            </div>
+            <span class="lic-cta">Apply Now <span aria-hidden="true">→</span></span>
+          </a>
+
+          <a href="#apply-vehicle" class="lic-card" role="listitem">
+            <span class="lic-icon" aria-hidden="true">🚕</span>
+            <span class="lic-type">Transportation</span>
+            <h3>Vehicle For Hire Permit</h3>
+            <p>Required for taxis, rideshare drivers, limousines, and other commercial passenger transport.</p>
+            <div class="lic-meta">
+              <span>⏱ 1-year validity</span>
+              <span>💵 $100 fee</span>
+            </div>
+            <span class="lic-cta">Apply Now <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Requirements Section -->
+    <section class="section-gap" style="background:#f8fafc;" aria-labelledby="req-h2" id="apply-driver">
+      <div class="container">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div>
+            <div class="sec-label">Requirements</div>
+            <h2 class="sec-heading" id="req-h2">Driver's License Requirements</h2>
+            <p style="font-size:.9rem; color:#4b5563; margin-bottom:24px;">First-time applicants must visit a DMV office in person. Renewals for eligible drivers can be completed online.</p>
+
+            <ul class="req-list" aria-label="Driver's license requirements">
+              <li><span class="req-check" aria-label="Required">✓</span>Proof of identity (birth certificate, valid U.S. passport, or certificate of citizenship)</li>
+              <li><span class="req-check" aria-label="Required">✓</span>Social Security Number or proof of SSN ineligibility</li>
+              <li><span class="req-check" aria-label="Required">✓</span>Two proofs of state residency (utility bills, bank statements, lease — dated within 60 days)</li>
+              <li><span class="req-check" aria-label="Required">✓</span>Pass a written knowledge test (waived for renewals)</li>
+              <li><span class="req-check" aria-label="Required">✓</span>Pass a vision screening test</li>
+              <li><span class="req-check" aria-label="Required">✓</span>Pass a driving skills test (waived for renewals with clean record)</li>
+              <li><span class="req-check" aria-label="Required">✓</span>Payment of applicable fees ($35 for standard, $40 for REAL ID)</li>
+            </ul>
+
+            <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;">
+              <a href="../../index.html#signin" class="btn btn-primary">Start Application Online</a>
+              <a href="#offices" class="btn btn-outline">Find a DMV Office</a>
+            </div>
+          </div>
+
+          <!-- Renew online -->
+          <div id="renew">
+            <div class="sec-label">Renewal</div>
+            <h3 style="font-size:1.3rem; font-weight:700; color:var(--gov-dark); margin-bottom:8px;">Renew Online in Minutes</h3>
+            <p style="font-size:.875rem; color:#4b5563; margin-bottom:20px;">Most drivers can renew their license online without visiting a DMV. Check your eligibility below.</p>
+
+            <div style="background:#fff; border:1px solid #e5e7eb; border-radius:var(--r-md); padding:24px;">
+              <form id="renew-check" aria-label="Renewal eligibility check">
+                <div style="margin-bottom:14px;">
+                  <label for="ren-dl" style="display:block; font-weight:600; font-size:.875rem; margin-bottom:6px; color:#374151;">Driver's License Number</label>
+                  <input type="text" id="ren-dl" name="dl" placeholder="e.g. DL1234567"
+                         style="width:100%; padding:10px 14px; border:1px solid #d1d5db; border-radius:var(--r-sm); font-size:.9rem;"
+                         autocomplete="off" />
+                </div>
+                <div style="margin-bottom:16px;">
+                  <label for="ren-dob" style="display:block; font-weight:600; font-size:.875rem; margin-bottom:6px; color:#374151;">Date of Birth</label>
+                  <input type="date" id="ren-dob" name="dob"
+                         style="width:100%; padding:10px 14px; border:1px solid #d1d5db; border-radius:var(--r-sm); font-size:.9rem;" />
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;">Check Renewal Eligibility</button>
+              </form>
+
+              <div id="renew-result" hidden aria-live="polite" style="margin-top:16px; padding:14px; background:#dcfce7; border-radius:var(--r-sm); border:1px solid #16a34a;">
+                <p style="font-weight:700; color:#15803d; margin-bottom:4px;">✓ Eligible for Online Renewal</p>
+                <p style="font-size:.85rem; color:#166534;">Your license is eligible for online renewal. Proceed to complete your renewal securely. Fee: $35.</p>
+                <a href="../../index.html#signin" class="btn btn-primary" style="margin-top:12px; display:inline-block;">Renew Now</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Office Locator -->
+    <section class="container section-gap" id="offices" aria-labelledby="offices-h2">
+      <div class="sec-label">In-Person Services</div>
+      <h2 class="sec-heading" id="offices-h2">Find a License Office</h2>
+      <p class="sec-sub" style="margin-bottom:28px;">Some services require an in-person visit. Find the nearest DMV or licensing office.</p>
+
+      <form class="hero-search" style="max-width:460px; margin-bottom:28px;" aria-label="Office search">
+        <label for="office-zip" class="sr-only">Search by ZIP code or city</label>
+        <input type="text" id="office-zip" name="zip" placeholder="Enter ZIP code or city name…" autocomplete="postal-code" />
+        <button type="submit" aria-label="Search for nearby offices">Search</button>
+      </form>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px;" role="list" aria-label="Nearby license offices">
+        <article class="office-card" role="listitem">
+          <h4>Downtown DMV Office</h4>
+          <div class="office-info">
+            <p>123 Main Street, Suite 100<br>City Center, ST 10001</p>
+            <p style="margin-top:6px;"><strong>Hours:</strong> Mon–Fri 8:00 AM – 5:00 PM<br>Sat 9:00 AM – 1:00 PM</p>
+            <p style="margin-top:6px;"><strong>Wait time:</strong> ~25 minutes</p>
+          </div>
+          <div class="office-actions">
+            <button class="office-btn" aria-label="Get directions to Downtown DMV Office">Directions</button>
+            <button class="office-btn" aria-label="Schedule appointment at Downtown DMV">Schedule Appt</button>
+          </div>
+        </article>
+
+        <article class="office-card" role="listitem">
+          <h4>Westside Licensing Center</h4>
+          <div class="office-info">
+            <p>450 West Boulevard<br>Westside, ST 10024</p>
+            <p style="margin-top:6px;"><strong>Hours:</strong> Mon–Thu 9:00 AM – 6:00 PM<br>Fri 9:00 AM – 4:00 PM</p>
+            <p style="margin-top:6px;"><strong>Wait time:</strong> ~12 minutes</p>
+          </div>
+          <div class="office-actions">
+            <button class="office-btn" aria-label="Get directions to Westside Licensing Center">Directions</button>
+            <button class="office-btn" aria-label="Schedule appointment at Westside Licensing Center">Schedule Appt</button>
+          </div>
+        </article>
+
+        <article class="office-card" role="listitem">
+          <h4>Northgate Service Hub</h4>
+          <div class="office-info">
+            <p>789 North Avenue, Bldg C<br>Northgate, ST 10089</p>
+            <p style="margin-top:6px;"><strong>Hours:</strong> Tue–Sat 8:30 AM – 4:30 PM</p>
+            <p style="margin-top:6px;"><strong>Wait time:</strong> ~40 minutes</p>
+          </div>
+          <div class="office-actions">
+            <button class="office-btn" aria-label="Get directions to Northgate Service Hub">Directions</button>
+            <button class="office-btn" aria-label="Schedule appointment at Northgate Service Hub">Schedule Appt</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section-gap" style="background:#f8fafc;" aria-labelledby="faq-h2">
+      <div class="container">
+        <div class="sec-label">Common Questions</div>
+        <h2 class="sec-heading" id="faq-h2">Frequently Asked Questions</h2>
+        <p class="sec-sub" style="margin-bottom:32px;">Need more help? <a href="../../contact/contact.html" style="color:var(--gov-mid);">Contact our team.</a></p>
+
+        <div class="accordion" id="lic-faq" aria-label="Licenses FAQ">
+          <div class="acc-item">
+            <button class="acc-btn" aria-expanded="false" aria-controls="lfaq-1" id="lfaq-btn-1">
+              How early can I renew my driver's license before it expires?
+              <span class="acc-icon" aria-hidden="true"></span>
+            </button>
+            <div class="acc-panel" id="lfaq-1" role="region" aria-labelledby="lfaq-btn-1">
+              <div class="acc-body">
+                <p>You can renew your driver's license up to 12 months before the expiration date. Your new license will retain the same expiration month but advance 5 years from your current expiration date. Renewing early does not cause you to lose any validity time.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="acc-item">
+            <button class="acc-btn" aria-expanded="false" aria-controls="lfaq-2" id="lfaq-btn-2">
+              What do I need to get a REAL ID?
+              <span class="acc-icon" aria-hidden="true"></span>
+            </button>
+            <div class="acc-panel" id="lfaq-2" role="region" aria-labelledby="lfaq-btn-2">
+              <div class="acc-body">
+                <p>To obtain a REAL ID-compliant card, you must present in person: (1) proof of identity with full legal name, (2) proof of SSN, (3) two proofs of state residency. REAL ID cannot be applied for or renewed online — an in-person DMV visit is required. The REAL ID upgrade fee is $5 above the standard license fee.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="acc-item">
+            <button class="acc-btn" aria-expanded="false" aria-controls="lfaq-3" id="lfaq-btn-3">
+              Can I operate my business while my license application is pending?
+              <span class="acc-icon" aria-hidden="true"></span>
+            </button>
+            <div class="acc-panel" id="lfaq-3" role="region" aria-labelledby="lfaq-btn-3">
+              <div class="acc-body">
+                <p>It depends on your business type. Most business licenses allow provisional operation upon application submission and payment of fees while the review is in progress. However, food service, healthcare, and professional licenses require full approval before operations begin. Check your specific license type for interim operating rules.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="acc-item">
+            <button class="acc-btn" aria-expanded="false" aria-controls="lfaq-4" id="lfaq-btn-4">
+              What if I lose my driver's license?
+              <span class="acc-icon" aria-hidden="true"></span>
+            </button>
+            <div class="acc-panel" id="lfaq-4" role="region" aria-labelledby="lfaq-btn-4">
+              <div class="acc-body">
+                <p>If your license is lost or stolen, you can request a duplicate online through your MyGov account for a $15 replacement fee. Alternatively, visit any DMV office with proof of identity. Your replacement card will carry the same expiration date as your original license. Report a stolen license to local police if your identity may have been compromised.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container footer-main">
+      <div class="footer-brand">
+        <a href="../../index.html" class="gov-logo" aria-label="GovPortal Home" style="margin-bottom:12px;">
+          <span class="logo-emblem" aria-hidden="true">⚖️</span>
+          <span class="logo-text"><strong>Gov</strong>Portal</span>
+        </a>
+        <p class="footer-tagline">Serving residents with accessible, transparent government services.</p>
+        <p class="footer-legal-text" style="font-size:.75rem; opacity:.6; margin-top:8px;">An official government website.</p>
+      </div>
+      <div class="footer-col">
+        <h3 class="footer-heading">Services</h3>
+        <ul class="footer-links" role="list">
+          <li><a href="../benefits/benefits.html" class="footer-link">Benefits</a></li>
+          <li><a href="../taxes/taxes.html" class="footer-link">Taxes</a></li>
+          <li><a href="licenses.html" class="footer-link">Licenses</a></li>
+          <li><a href="../../index.html#payments" class="footer-link">Payments</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3 class="footer-heading">Agency</h3>
+        <ul class="footer-links" role="list">
+          <li><a href="../../about/about.html" class="footer-link">About Us</a></li>
+          <li><a href="../../contact/contact.html" class="footer-link">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3 class="footer-heading">Legal</h3>
+        <ul class="footer-links" role="list">
+          <li><a href="#" class="footer-link">Privacy Policy</a></li>
+          <li><a href="#" class="footer-link">Accessibility</a></li>
+          <li><a href="#" class="footer-link">FOIA Requests</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container footer-bottom-inner">
+        <p>© 2026 GovPortal. All rights reserved.</p>
+        <select aria-label="Select language" class="lang-select" style="background:transparent; color:rgba(255,255,255,.7); border-color:rgba(255,255,255,.3);">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="zh">中文</option>
+        </select>
+      </div>
+    </div>
+  </footer>
+
+  <button id="scroll-top" aria-label="Scroll back to top" style="display:none;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 15l-6-6-6 6"/></svg>
+  </button>
+
+  <script src="../../components/nav.js"></script>
+  <script>
+    /* ── Tab navigation (ARIA tablist pattern) ── */
+    (function () {
+      var tabs   = Array.from(document.querySelectorAll('[role="tab"]'));
+      var panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+
+      function activateTab(tab) {
+        tabs.forEach(function (t) {
+          t.setAttribute('aria-selected', 'false');
+          t.setAttribute('tabindex', '-1');
+        });
+        panels.forEach(function (p) { p.classList.remove('active'); });
+        tab.setAttribute('aria-selected', 'true');
+        tab.removeAttribute('tabindex');
+        var panelId = tab.getAttribute('aria-controls');
+        var panel   = document.getElementById(panelId);
+        if (panel) panel.classList.add('active');
+      }
+
+      tabs.forEach(function (tab, i) {
+        tab.addEventListener('click', function () { activateTab(tab); });
+        tab.addEventListener('keydown', function (e) {
+          var idx = tabs.indexOf(document.activeElement);
+          if (e.key === 'ArrowRight') { e.preventDefault(); activateTab(tabs[(idx + 1) % tabs.length]); tabs[(idx + 1) % tabs.length].focus(); }
+          if (e.key === 'ArrowLeft')  { e.preventDefault(); activateTab(tabs[(idx - 1 + tabs.length) % tabs.length]); tabs[(idx - 1 + tabs.length) % tabs.length].focus(); }
+          if (e.key === 'Home') { e.preventDefault(); activateTab(tabs[0]); tabs[0].focus(); }
+          if (e.key === 'End')  { e.preventDefault(); activateTab(tabs[tabs.length - 1]); tabs[tabs.length - 1].focus(); }
+        });
+      });
+    })();
+
+    /* ── Renewal eligibility check demo ── */
+    document.getElementById('renew-check').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var dl  = document.getElementById('ren-dl').value.trim();
+      var dob = document.getElementById('ren-dob').value;
+      if (!dl || !dob) {
+        alert('Please enter your driver\'s license number and date of birth.');
+        return;
+      }
+      var result = document.getElementById('renew-result');
+      result.hidden = false;
+      result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    /* ── Office buttons demo ── */
+    document.querySelectorAll('.office-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var label = btn.getAttribute('aria-label');
+        alert(label + '\n\nIn a production environment, this would open Google Maps or a scheduling calendar.');
+      });
+    });
+  </script>
+</body>
+</html>

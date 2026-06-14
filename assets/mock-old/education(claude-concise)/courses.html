@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meridian – All Courses</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const ALL_COURSES = [
+  { title: 'Python for Data Science & ML Bootcamp', instructor: 'Dr. Sarah Chen', category: 'Data Science', rating: 4.8, students: 124000, duration: '42h', level: 'Beginner', price: 89, bestseller: true },
+  { title: 'Complete Web Development 2026', instructor: 'Marcus Webb', category: 'Web Dev', rating: 4.7, students: 98000, duration: '55h', level: 'All Levels', price: 94, bestseller: true },
+  { title: 'UI/UX Design Fundamentals', instructor: 'Priya Anand', category: 'Design', rating: 4.9, students: 67000, duration: '28h', level: 'Beginner', price: 79 },
+  { title: 'Machine Learning A–Z with PyTorch', instructor: 'Dr. James Liu', category: 'AI & ML', rating: 4.8, students: 88000, duration: '38h', level: 'Intermediate', price: 94 },
+  { title: 'Advanced React & Next.js', instructor: 'Layla Hassan', category: 'Web Dev', rating: 4.7, students: 54000, duration: '32h', level: 'Advanced', price: 84 },
+  { title: 'SQL & Database Design Masterclass', instructor: 'David Kim', category: 'Data Science', rating: 4.6, students: 72000, duration: '24h', level: 'Beginner', price: 69 },
+  { title: 'Figma: UI Design from Zero', instructor: 'Ana Costa', category: 'Design', rating: 4.8, students: 45000, duration: '20h', level: 'Beginner', price: 64, bestseller: true },
+  { title: 'ChatGPT & LLMs for Developers', instructor: 'Kevin Zhao', category: 'AI & ML', rating: 4.9, students: 92000, duration: '18h', level: 'Beginner', price: 79 },
+  { title: 'Digital Marketing Strategy 2026', instructor: 'Mona Adler', category: 'Marketing', rating: 4.5, students: 38000, duration: '22h', level: 'Beginner', price: 59 },
+  { title: 'Financial Modeling & Valuation', instructor: 'Robert Fischer', category: 'Business', rating: 4.7, students: 43000, duration: '30h', level: 'Intermediate', price: 84 },
+  { title: 'Spanish for Complete Beginners', instructor: 'Elena Vega', category: 'Language', rating: 4.8, students: 61000, duration: '15h', level: 'Beginner', price: 49 },
+  { title: 'Landscape Photography Masterclass', instructor: 'Jin Park', category: 'Photography', rating: 4.9, students: 29000, duration: '17h', level: 'Beginner', price: 59 },
+];
+
+const CATEGORIES = ['All', 'Data Science', 'Web Dev', 'Design', 'AI & ML', 'Business', 'Marketing', 'Language', 'Photography'];
+const LEVELS = ['All Levels', 'Beginner', 'Intermediate', 'Advanced'];
+const SORT = ['Most Popular', 'Highest Rated', 'Newest', 'Price: Low to High', 'Price: High to Low'];
+
+function CoursesPage() {
+  const [cat, setCat]   = React.useState('All');
+  const [level, setLevel] = React.useState('All Levels');
+  const [sort, setSort] = React.useState('Most Popular');
+  const [query, setQuery] = React.useState('');
+
+  let courses = ALL_COURSES.filter(c =>
+    (cat === 'All' || c.category === cat) &&
+    (level === 'All Levels' || c.level === level || c.level === 'All Levels') &&
+    (query === '' || c.title.toLowerCase().includes(query.toLowerCase()) || c.instructor.toLowerCase().includes(query.toLowerCase()))
+  );
+
+  if (sort === 'Highest Rated')         courses = [...courses].sort((a,b) => b.rating - a.rating);
+  else if (sort === 'Price: Low to High') courses = [...courses].sort((a,b) => a.price - b.price);
+  else if (sort === 'Price: High to Low') courses = [...courses].sort((a,b) => b.price - a.price);
+  else                                   courses = [...courses].sort((a,b) => b.students - a.students);
+
+  return (
+    <Meridian.Shell active="courses.html">
+      {/* ── Page header ── */}
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--rule)', padding: '2rem 0' }}>
+        <div className="container">
+          <h1 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, color: 'var(--ink)', marginBottom: '0.35rem' }}>
+            Explore Courses
+          </h1>
+          <p style={{ color: 'var(--muted)', fontSize: '1rem', marginBottom: '1.25rem' }}>
+            {ALL_COURSES.length} courses · Updated for 2026
+          </p>
+          {/* Search */}
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--surface)', border: '1px solid var(--rule)', borderRadius: 'var(--r-md)', padding: '0.55rem 1rem', flex: '1', minWidth: '220px', maxWidth: '400px' }}>
+              <span>🔍</span>
+              <input type="text" placeholder="Search by title or instructor…" value={query} onChange={e => setQuery(e.target.value)}
+                style={{ border: 'none', outline: 'none', background: 'transparent', flex: 1, fontSize: '0.88rem', color: 'var(--ink)' }} />
+            </div>
+            <select value={sort} onChange={e => setSort(e.target.value)}
+              style={{ padding: '0.55rem 1rem', border: '1px solid var(--rule)', borderRadius: 'var(--r-md)', fontSize: '0.85rem', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer' }}>
+              {SORT.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="container" style={{ padding: '2rem 1.5rem' }}>
+        <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+          {/* ── Sidebar filters ── */}
+          <aside style={{ width: '220px', flexShrink: 0, position: 'sticky', top: '76px' }}>
+            {/* Category */}
+            <div style={{ marginBottom: '1.75rem' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.75rem' }}>Category</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                {CATEGORIES.map(c => (
+                  <button key={c} onClick={() => setCat(c)}
+                    style={{ textAlign: 'left', padding: '0.5rem 0.75rem', borderRadius: 'var(--r-sm)', border: 'none', background: cat === c ? 'var(--indigo-lt)' : 'transparent', color: cat === c ? 'var(--indigo)' : 'var(--ink-3)', fontWeight: cat === c ? 600 : 400, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s' }}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Level */}
+            <div style={{ marginBottom: '1.75rem' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.75rem' }}>Level</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                {LEVELS.map(l => (
+                  <button key={l} onClick={() => setLevel(l)}
+                    style={{ textAlign: 'left', padding: '0.5rem 0.75rem', borderRadius: 'var(--r-sm)', border: 'none', background: level === l ? 'var(--indigo-lt)' : 'transparent', color: level === l ? 'var(--indigo)' : 'var(--ink-3)', fontWeight: level === l ? 600 : 400, fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s' }}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Pro nudge */}
+            <div style={{ background: 'linear-gradient(135deg, #1e1b4b, #4c1d95)', borderRadius: 'var(--r-lg)', padding: '1.25rem', color: '#fff' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: '0.35rem' }}>Pro Plan</div>
+              <p style={{ fontSize: '0.82rem', lineHeight: 1.55, marginBottom: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>
+                Unlimited access to every course for $19/mo.
+              </p>
+              <a href="plans.html" className="btn btn-primary btn-sm" style={{ background: '#fff', color: 'var(--indigo)', width: '100%', justifyContent: 'center' }}>
+                Try Pro Free
+              </a>
+            </div>
+          </aside>
+
+          {/* ── Main grid ── */}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--muted)', marginBottom: '1.25rem' }}>
+              Showing <strong style={{ color: 'var(--ink)' }}>{courses.length}</strong> courses
+            </div>
+            {courses.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--muted)' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
+                <p style={{ fontWeight: 600 }}>No courses match your filters.</p>
+                <button onClick={() => { setCat('All'); setLevel('All Levels'); setQuery(''); }}
+                  className="btn btn-secondary" style={{ marginTop: '1rem' }}>Clear Filters</button>
+              </div>
+            ) : (
+              <div className="grid-3">
+                {courses.map(c => (
+                  <Meridian.CourseCard key={c.title} {...c} href="course-detail.html" />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </Meridian.Shell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<CoursesPage />);
+</script>
+</body>
+</html>

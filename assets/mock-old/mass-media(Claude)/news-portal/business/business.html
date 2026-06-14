@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Business & Economy — The Pulse</title>
+  <meta name="description" content="Business news, financial markets, economic analysis, company earnings, and personal finance." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['"Playfair Display"', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body class="bg-white">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="../components/components.js" data-presets="react"></script>
+
+  <script type="text/babel" data-presets="react">
+    window.BASE_PATH = '../';
+
+    /* Full Market Ticker */
+    const MarketTicker = () => {
+      const markets = [
+        { symbol: 'S&P 500',  value: '5,842.12', change: '+43.10', pct: '+0.74%', up: true },
+        { symbol: 'NASDAQ',   value: '18,430.55', change: '+204.30', pct: '+1.12%', up: true },
+        { symbol: 'DOW',      value: '43,210.08', change: '-121.40', pct: '-0.28%', up: false },
+        { symbol: 'Russell',  value: '2,301.44', change: '+18.76', pct: '+0.82%', up: true },
+        { symbol: 'BTC/USD',  value: '$94,320', change: '+3,128', pct: '+3.41%', up: true },
+        { symbol: 'ETH/USD',  value: '$3,841', change: '-86', pct: '-2.19%', up: false },
+        { symbol: 'Gold',     value: '$2,418', change: '+12.40', pct: '+0.51%', up: true },
+        { symbol: 'Oil (WTI)',value: '$78.42', change: '-1.21', pct: '-1.52%', up: false },
+        { symbol: '10Y Yield',value: '4.28%', change: '+0.03', pct: '+0.03', up: true },
+        { symbol: 'EUR/USD',  value: '1.0842', change: '-0.0016', pct: '-0.15%', up: false },
+      ];
+      return (
+        <div className="bg-slate-900 border-b border-slate-800 py-2 overflow-hidden" role="region" aria-label="Live market data">
+          <div className="max-w-screen-2xl mx-auto px-4 flex items-center gap-4">
+            <span className="text-green-400 text-xs font-bold uppercase flex-shrink-0">Markets</span>
+            <div className="overflow-hidden flex-1">
+              <div className="ticker-track">
+                {[...markets, ...markets].map((m, i) => (
+                  <span key={i} className="flex items-center gap-2 text-xs">
+                    <span className="text-slate-400 font-medium">{m.symbol}</span>
+                    <span className="text-white font-semibold">{m.value}</span>
+                    <span className={m.up ? 'market-up' : 'market-down'}>{m.pct}</span>
+                    <span className="text-slate-700 mx-2" aria-hidden="true">|</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <time className="text-xs text-slate-500 flex-shrink-0">
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} EST
+            </time>
+          </div>
+        </div>
+      );
+    };
+
+    /* Earnings Calendar */
+    const EarningsCalendar = () => {
+      const earnings = [
+        { ticker: 'MSFT', name: 'Microsoft', date: 'Tomorrow', est: '$2.94 EPS', time: 'After close' },
+        { ticker: 'AAPL', name: 'Apple', date: 'Thu', est: '$1.54 EPS', time: 'After close' },
+        { ticker: 'GOOG', name: 'Alphabet', date: 'Fri', est: '$1.89 EPS', time: 'Pre-market' },
+        { ticker: 'AMZN', name: 'Amazon', date: 'Next Mon', est: '$0.92 EPS', time: 'After close' },
+      ];
+      return (
+        <aside className="sidebar-widget" aria-label="Upcoming earnings reports">
+          <div className="sidebar-widget-header">Earnings Calendar</div>
+          <div className="sidebar-widget-body p-0">
+            {earnings.map((e) => (
+              <div key={e.ticker} className="p-3 border-b border-slate-100 last:border-0 flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-slate-700">{e.ticker}</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-slate-800">{e.name}</p>
+                  <p className="text-xs text-slate-400">{e.est} · {e.time}</p>
+                </div>
+                <time className="text-xs text-blue-600 font-semibold flex-shrink-0">{e.date}</time>
+              </div>
+            ))}
+          </div>
+        </aside>
+      );
+    };
+
+    /* Sector Performance */
+    const SectorPerformance = () => {
+      const sectors = [
+        { name: 'Technology', pct: '+1.84%', up: true },
+        { name: 'Healthcare', pct: '+0.62%', up: true },
+        { name: 'Financials', pct: '-0.31%', up: false },
+        { name: 'Energy', pct: '-1.20%', up: false },
+        { name: 'Consumer Disc.', pct: '+0.94%', up: true },
+        { name: 'Industrials', pct: '+0.17%', up: true },
+      ];
+      return (
+        <aside className="sidebar-widget" aria-label="Sector performance today">
+          <div className="sidebar-widget-header">S&P Sectors Today</div>
+          <div className="sidebar-widget-body p-3">
+            {sectors.map((s) => (
+              <div key={s.name} className="flex items-center gap-2 mb-2 last:mb-0">
+                <span className="text-xs text-slate-600 flex-1">{s.name}</span>
+                <div className="flex-1 h-2 bg-slate-100 rounded overflow-hidden">
+                  <div
+                    className={`h-full rounded ${s.up ? 'bg-green-400' : 'bg-red-400'}`}
+                    style={{ width: `${Math.min(Math.abs(parseFloat(s.pct)) * 30 + 20, 100)}%` }}
+                    aria-hidden="true"
+                  />
+                </div>
+                <span className={`text-xs font-bold w-14 text-right ${s.up ? 'market-up' : 'market-down'}`}>{s.pct}</span>
+              </div>
+            ))}
+          </div>
+        </aside>
+      );
+    };
+
+    /* Section tabs */
+    const SECTIONS = ['All', 'Markets', 'Economy', 'Companies', 'Personal Finance', 'Entrepreneurship'];
+
+    const App = () => {
+      const [section, setSection] = React.useState('All');
+      const businessStories = ALL_STORIES.filter(s => s.category === 'business');
+      const allStories = ALL_STORIES;
+
+      return (
+        <PageLayout currentCategory="business">
+          {/* Page banner */}
+          <div className="bg-gradient-to-r from-teal-900 via-teal-800 to-slate-900 py-8 px-4">
+            <div className="max-w-screen-2xl mx-auto">
+              <p className="text-teal-300 text-xs font-bold uppercase tracking-widest mb-2">Business & Economy</p>
+              <h1 className="headline-lg text-white">Markets, Companies & Economic Trends</h1>
+              <p className="text-teal-200 mt-2">Real-time market data, earnings analysis, and the economics driving your decisions.</p>
+            </div>
+          </div>
+
+          <MarketTicker />
+          <LiveTicker />
+
+          {/* Section filter tabs */}
+          <div className="border-b border-slate-200" role="tablist" aria-label="Business section filter">
+            <div className="max-w-screen-2xl mx-auto px-4 flex gap-0 overflow-x-auto">
+              {SECTIONS.map((s) => (
+                <button
+                  key={s}
+                  role="tab"
+                  aria-selected={section === s}
+                  onClick={() => setSection(s)}
+                  className={`flex-shrink-0 px-4 py-3 text-xs font-semibold border-b-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    section === s ? 'border-teal-600 text-teal-700' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <section className="max-w-screen-2xl mx-auto px-4 py-8">
+            <div className="flex gap-8">
+              {/* Main */}
+              <div className="flex-1 min-w-0">
+                {/* Lead story */}
+                <article className="mb-8 pb-8 border-b border-slate-100">
+                  <div className="rounded-xl overflow-hidden aspect-video bg-slate-100 mb-4">
+                    <img src={businessStories[1]?.mediaUrl} alt="" className="w-full h-full object-cover" loading="eager" />
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="cat-label cat-business">Business</span>
+                  </div>
+                  <a href={R('article/article.html')}>
+                    <h2 className="headline-md hover:text-teal-700 transition-colors">{businessStories[1]?.title}</h2>
+                  </a>
+                  <p className="body-base text-slate-500 mt-3">{businessStories[1]?.summary}</p>
+                  <p className="text-sm text-slate-400 mt-3">{businessStories[1]?.author} · {businessStories[1]?.publishTime} · {businessStories[1]?.readLength}</p>
+                </article>
+
+                {/* Grid */}
+                <div className="section-header">
+                  <span className="section-header-accent" style={{ background: '#0F766E' }} />
+                  <h2 className="section-header-title">Latest Business News</h2>
+                </div>
+                <StoryGrid stories={businessStories.concat(allStories.slice(0, 4)).slice(0, 6)} columns={3} showSummary={true} />
+
+                {/* Feature banner */}
+                <FeatureBanner story={businessStories[3] || allStories[13]} />
+
+                {/* Horizontal list */}
+                <div className="mt-8">
+                  <div className="section-header">
+                    <span className="section-header-accent" style={{ background: '#0F766E' }} />
+                    <h2 className="section-header-title">Economy & Labour</h2>
+                  </div>
+                  {allStories.slice(12, 17).map((story) => (
+                    <StoryCard key={story.id} story={story} layout="horizontal" size="sm" />
+                  ))}
+                </div>
+
+                <SubscriptionModule variant="inline" />
+              </div>
+
+              {/* Sidebar */}
+              <aside className="hidden xl:block w-80 flex-shrink-0">
+                <EarningsCalendar />
+                <SectorPerformance />
+                <SidebarModule type="trending" stories={businessStories.concat(allStories.slice(0,3))} title="Most Read in Business" />
+                <SidebarModule type="newsletter" />
+                <SidebarModule type="ad" />
+              </aside>
+            </div>
+          </section>
+        </PageLayout>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opinion & Editorial | The Meridian</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="./live-server-compat.js"></script>
+
+    <style>
+        body {
+            background-color: #fdfdfc;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    
+
+    <script type="text/babel">
+
+    const { useState, useEffect } = React;
+    const { Menu, Search, User, Facebook, Twitter, Instagram, PenTool, MessageCircle } = window.IconCompat;
+
+    // --- Header Component ---
+    function Header() {
+      const [isScrolled, setIsScrolled] = useState(false);
+
+      useEffect(() => {
+        const handleScroll = () => {
+          setIsScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
+
+      return (
+        <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-2' : 'bg-white/95 backdrop-blur-sm py-4 border-b border-gray-200'}`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center">
+              {/* Left: Mobile Menu & Date */}
+              <div className="flex items-center space-x-4 flex-1">
+                <button className="p-2 -ml-2 text-gray-700 hover:text-black focus:outline-none">
+                  <Menu size={24} />
+                </button>
+                <span className="hidden md:block text-xs font-inter text-gray-500 uppercase tracking-wider">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </span>
+              </div>
+
+              {/* Center: Logo */}
+              <div className="flex-1 text-center flex justify-center">
+                <a href="index.html" className="font-playfair font-black text-3xl md:text-5xl tracking-tight text-gray-900 hover:text-red-700 transition-colors">
+                  The Meridian
+                </a>
+              </div>
+
+              {/* Right: Actions */}
+              <div className="flex items-center justify-end space-x-4 flex-1">
+                <a href="subscription.html" className="hidden sm:flex text-sm font-semibold text-gray-700 hover:text-red-700 transition-colors uppercase tracking-wider font-inter">
+                  Subscribe
+                </a>
+                <button className="p-2 text-gray-700 hover:text-black focus:outline-none hidden sm:block">
+                  <Search size={20} />
+                </button>
+                <button className="text-gray-700 hover:text-black focus:outline-none flex items-center space-x-1">
+                  <User size={20} />
+                  <span className="hidden md:inline-block text-sm font-inter">Sign In</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Global Navigation */}
+            <nav className={`hidden md:block mt-4 pt-4 border-t border-gray-100 transition-all duration-300 ${isScrolled ? 'hidden' : 'block'}`}>
+              <ul className="flex justify-center space-x-8 text-sm font-inter font-medium text-gray-800 tracking-wide uppercase">
+                <li><a href="index.html" className="hover:text-red-700 transition-colors">Home</a></li>
+                <li><a href="category.html" className="hover:text-red-700 transition-colors">World</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Politics</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Business</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Tech</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Science</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Culture</a></li>
+                <li><a href="opinion.html" className="hover:text-red-700 transition-colors">Opinion</a></li>
+              </ul>
+            </nav>
+          </div>
+        </header>
+      );
+    }
+
+    // --- Footer Component ---
+    function Footer() {
+      return (
+        <footer className="bg-slate-950 text-white pt-16 pb-8 border-t-4 border-red-700 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+            {/* Newsletter Pitch */}
+            <div className="w-full max-w-2xl text-center mb-16">
+              <h3 className="font-playfair text-3xl font-bold mb-4">The World in Your Inbox</h3>
+              <p className="font-inter text-gray-400 mb-8">Sign up for the Daily Meridian newsletter to get the top stories of the day delivered straight to you.</p>
+              <form className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
+                <input 
+                  type="email" 
+                  placeholder="Your email address" 
+                  className="flex-1 px-4 py-3 bg-slate-800 border-none text-white focus:ring-2 focus:ring-red-600 font-inter outline-none"
+                />
+                <button type="submit" className="px-6 py-3 bg-red-700 hover:bg-red-600 font-inter font-bold uppercase tracking-wider transition-colors">
+                  Subscribe
+                </button>
+              </form>
+            </div>
+
+            <div className="w-full border-t border-slate-800 mb-12"></div>
+
+            <div className="w-full grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 font-inter text-sm">
+              <div className="col-span-2 md:col-span-4 lg:col-span-1">
+                 <a href="index.html" className="font-playfair font-black text-2xl tracking-tight text-white block mb-6">
+                  The Meridian
+                </a>
+                <p className="text-gray-400 mb-6 font-merriweather text-sm leading-relaxed">
+                  Independent journalism holding power to account.
+                </p>
+                <div className="flex space-x-4 text-gray-400">
+                  <a href="#" className="hover:text-white transition-colors"><Facebook size={20} /></a>
+                  <a href="#" className="hover:text-white transition-colors"><Twitter size={20} /></a>
+                  <a href="#" className="hover:text-white transition-colors"><Instagram size={20} /></a>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Sections</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="category.html" className="hover:text-white transition-colors">World</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Politics</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Business</a></li>
+                  <li><a href="opinion.html" className="hover:text-white transition-colors">Opinion</a></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">About</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="#" className="hover:text-white transition-colors">Our Story</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Journalistic Ethics</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+                </ul>
+              </div>
+              
+               <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Legal</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Cookie Policy</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Accessibility</a></li>
+                </ul>
+              </div>
+
+               <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Account</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="subscription.html" className="text-red-500 hover:text-red-400 transition-colors font-semibold">Subscribe</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Manage Subscription</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="w-full border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 font-inter">
+              <p>&copy; {new Date().getFullYear()} The Meridian Media Company. All rights reserved.</p>
+              <p className="mt-2 md:mt-0">Powered by Antigravity</p>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+
+                
+        tailwind.config = {
+            theme: { extend: { fontFamily: { playfair: ['"Playfair Display"', 'serif'], merriweather: ['Merriweather', 'serif'], inter: ['Inter', 'sans-serif'] } } }
+        };
+
+        function OpinionPage() {
+            return (
+                <div className="min-h-screen flex flex-col font-merriweather text-gray-900 bg-orange-50/30">
+                    <Header />
+
+                    <main className="flex-grow pt-28 md:pt-32">
+
+                        {/* Opinion Header */}
+                        <div className="border-b border-gray-200 py-10 bg-white">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                                <h1 className="font-playfair font-black text-5xl md:text-6xl text-slate-900 mb-2">Opinion</h1>
+                                <p className="font-inter text-gray-600 text-lg uppercase tracking-widest font-semibold">
+                                    Editorials, Columns & Guest Essays
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+                                {/* Main Column */}
+                                <div className="lg:col-span-8">
+                                    {/* Featured Essay */}
+                                    <article className="mb-16 pb-12 border-b-2 border-slate-900">
+                                        <span className="font-inter text-sm font-bold uppercase tracking-widest text-red-700 mb-6 block flex items-center gap-2">
+                                            <PenTool size={16} /> The Sunday Essay
+                                        </span>
+
+                                        <a href="article.html" className="group block">
+                                            <h2 className="font-playfair font-black text-4xl lg:text-5xl leading-tight mb-6 group-hover:text-slate-600 transition-colors">
+                                                The Illusion of Control: Why Our Infrastructure Cannot Handle Tomorrow's Climate
+                                            </h2>
+
+                                            <div className="aspect-[21/9] w-full bg-gray-200 overflow-hidden mb-8">
+                                                <img src="https://images.unsplash.com/photo-1473448912268-2022ce9509d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" alt="Storm" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
+                                            </div>
+
+                                            <p className="font-merriweather text-xl text-gray-700 leading-relaxed max-w-3xl mb-8 italic">
+                                                "We have built our coastal cities on a fundamental misunderstanding of geology and a profound overestimation of engineering."
+                                            </p>
+                                        </a>
+
+                                        <div className="flex items-center gap-4">
+                                            <img src="https://ui-avatars.com/api/?name=Jonathan+Franzen&background=random" className="w-16 h-16 rounded-full grayscale border-2 border-white shadow-md" alt="Author" />
+                                            <div>
+                                                <div className="font-inter font-bold text-lg text-slate-900">Jonathan Davies</div>
+                                                <div className="font-inter text-sm text-gray-500">Guest Contributor • Oct 25</div>
+                                            </div>
+                                        </div>
+                                    </article>
+
+                                    {/* Columnists Grid */}
+                                    <div className="mb-12">
+                                        <h3 className="font-inter font-bold text-xl uppercase tracking-wider text-slate-900 border-b border-gray-300 pb-2 mb-8">Latest Columns</h3>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12">
+                                            {[
+                                                { author: "David Brooks", role: "Politics & Society", title: "The End of the Post-Cold War Illusion", snippet: "History has returned, and it demands more of us than mere economic management.", img: "https://ui-avatars.com/api/?name=David+Brooks&background=random" },
+                                                { author: "Sarah Jeong", role: "Technology & Culture", title: "AI's Data Hunger Cannot Go Unchecked Forever", snippet: "The extractive model of the major language models is colliding with the physical limits of the internet.", img: "https://ui-avatars.com/api/?name=Sarah+Jeong&background=random" },
+                                                { author: "Paul Krugman", role: "Economics", title: "Why the Soft Landing Might Still Be Hard", snippet: "The inflation data looks promising, but structural weaknesses in commercial real estate remain deeply troubling.", img: "https://ui-avatars.com/api/?name=Paul+Krugman&background=random" },
+                                                { author: "Roxane Gay", role: "Culture", title: "The Exhausted American Audience", snippet: "We are asking art to do the work of politics, and politics to provide the entertainment of art.", img: "https://ui-avatars.com/api/?name=Roxane+Gay&background=random" }
+                                            ].map((col, i) => (
+                                                <article key={i} className="group border-b border-gray-200 pb-6 md:border-b-0 md:pb-0">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <img src={col.img} className="w-12 h-12 rounded-full grayscale" alt={col.author} />
+                                                        <div>
+                                                            <div className="font-inter font-bold text-slate-900">{col.author}</div>
+                                                            <div className="font-inter text-xs text-red-700 uppercase tracking-widest">{col.role}</div>
+                                                        </div>
+                                                    </div>
+                                                    <h4 className="font-playfair font-bold text-2xl leading-snug mb-3 group-hover:text-slate-600 transition-colors">
+                                                        <a href="article.html">{col.title}</a>
+                                                    </h4>
+                                                    <p className="font-merriweather text-gray-600 text-sm leading-relaxed">
+                                                        {col.snippet}
+                                                    </p>
+                                                </article>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                {/* Sidebar */}
+                                <div className="lg:col-span-4">
+                                    {/* Editorial Board */}
+                                    <div className="bg-slate-900 text-white p-8 mb-10">
+                                        <span className="font-inter text-xs font-bold uppercase tracking-wider text-red-500 mb-2 block">The Board</span>
+                                        <h3 className="font-playfair font-black text-3xl mb-4 border-b border-slate-700 pb-4 text-white">
+                                            <a href="article.html" className="hover:text-gray-300 transition-colors">The Senate Must Reject This Deeply Flawed Treaty</a>
+                                        </h3>
+                                        <p className="font-merriweather text-gray-300 text-sm leading-relaxed mb-6">
+                                            The proposed security pact compromises essential liberties while providing negligible tactical advantages in the region.
+                                        </p>
+                                        <a href="article.html" className="font-inter text-sm font-bold uppercase tracking-wider pb-1 border-b-2 border-red-500 hover:text-red-400 transition-colors">Read the Editorial</a>
+                                    </div>
+
+                                    {/* Letters to the Editor */}
+                                    <div className="bg-white border border-gray-200 p-6 md:p-8">
+                                        <h3 className="font-inter font-bold text-lg uppercase tracking-wider text-slate-900 flex items-center gap-2 border-b border-gray-200 pb-4 mb-6">
+                                            <MessageCircle size={20} /> Letters to the Editor
+                                        </h3>
+
+                                        <ul className="space-y-6">
+                                            <li>
+                                                <h4 className="font-playfair font-bold text-lg leading-snug mb-2 hover:text-red-700 cursor-pointer">
+                                                    On "The Disappearance of the Dollar"
+                                                </h4>
+                                                <p className="font-merriweather text-sm text-gray-600 italic mb-2">
+                                                    "Your analysis misses the fundamental reality that digital heavily relies on..."
+                                                </p>
+                                                <div className="font-inter text-xs font-bold text-slate-500">— Mark T., Chicago, IL</div>
+                                            </li>
+                                            <li className="border-t border-gray-100 pt-6">
+                                                <h4 className="font-playfair font-bold text-lg leading-snug mb-2 hover:text-red-700 cursor-pointer">
+                                                    Funding the Local Arts
+                                                </h4>
+                                                <p className="font-merriweather text-sm text-gray-600 italic mb-2">
+                                                    "As a community organizer, I witnessed firsthand what happens when federal grants dry up..."
+                                                </p>
+                                                <div className="font-inter text-xs font-bold text-slate-500">— Sarah B., Portland, OR</div>
+                                            </li>
+                                        </ul>
+
+                                        <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+                                            <button className="font-inter text-xs font-bold uppercase tracking-widest text-slate-900 border border-slate-900 px-6 py-2 hover:bg-slate-900 hover:text-white transition-colors">
+                                                Submit a Letter
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<OpinionPage />);
+    </script>
+</body>
+
+</html>

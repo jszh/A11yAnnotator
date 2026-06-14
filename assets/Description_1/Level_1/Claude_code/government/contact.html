@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Contact the City of Lakewood — department directory, inquiry form, City Hall location, and social media." />
+  <title>Contact — City of Lakewood, CO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { 'lk-navy': '#0d2340', 'lk-blue': '#1a3a6b', 'lk-brand': '#1a56db' } } }
+    }
+  </script>
+  <style>
+    :focus-visible { outline: 3px solid #3b82f6; outline-offset: 2px; }
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="components.js"></script>
+
+<script type="text/babel">
+
+const DEPARTMENTS = [
+  {
+    name: 'City Manager\'s Office',
+    phone: '(303) 987-7050',
+    email: 'citymanager@lakewood.org',
+    hours: 'Mon–Fri 8 am–5 pm',
+    icon: '🏛',
+  },
+  {
+    name: 'Police Department',
+    phone: '(303) 987-7111',
+    email: 'police@lakewood.org',
+    hours: '24/7 Non-emergency',
+    emergency: '911',
+    icon: '🚓',
+  },
+  {
+    name: 'Fire Department',
+    phone: '(303) 987-7900',
+    email: 'fire@lakewood.org',
+    hours: '24/7 Non-emergency',
+    emergency: '911',
+    icon: '🚒',
+  },
+  {
+    name: 'Public Works',
+    phone: '(303) 987-7900',
+    email: 'publicworks@lakewood.org',
+    hours: 'Mon–Fri 7 am–4 pm',
+    icon: '🔧',
+  },
+  {
+    name: 'Utilities & Billing',
+    phone: '(303) 987-7900',
+    email: 'utilities@lakewood.org',
+    hours: 'Mon–Fri 8 am–5 pm',
+    icon: '💧',
+  },
+  {
+    name: 'Permits & Licensing',
+    phone: '(303) 987-7140',
+    email: 'permits@lakewood.org',
+    hours: 'Mon–Fri 8 am–4:30 pm',
+    icon: '📋',
+  },
+  {
+    name: 'Parks & Recreation',
+    phone: '(303) 987-7800',
+    email: 'parks@lakewood.org',
+    hours: 'Mon–Fri 8 am–5 pm',
+    icon: '🌳',
+  },
+  {
+    name: 'Community Development',
+    phone: '(303) 987-7500',
+    email: 'planning@lakewood.org',
+    hours: 'Mon–Fri 8 am–4:30 pm',
+    icon: '🏗',
+  },
+  {
+    name: 'City Clerk',
+    phone: '(303) 987-7080',
+    email: 'cityclerk@lakewood.org',
+    hours: 'Mon–Fri 8 am–5 pm',
+    icon: '📋',
+  },
+  {
+    name: 'Finance Department',
+    phone: '(303) 987-7300',
+    email: 'finance@lakewood.org',
+    hours: 'Mon–Fri 8 am–5 pm',
+    icon: '📊',
+  },
+  {
+    name: 'Human Resources',
+    phone: '(303) 987-7200',
+    email: 'hr@lakewood.org',
+    hours: 'Mon–Fri 8 am–5 pm',
+    icon: '🤝',
+  },
+  {
+    name: 'Communications Office',
+    phone: '(303) 987-7055',
+    email: 'communications@lakewood.org',
+    hours: 'Mon–Fri 8 am–5 pm',
+    icon: '📢',
+  },
+];
+
+const DEPT_OPTIONS = ['Select a department…', ...DEPARTMENTS.map(d => d.name), 'General Inquiry', 'Other'];
+
+// ── Contact Form ──────────────────────────────────────────────
+function ContactForm() {
+  const [form, setForm]       = React.useState({ name: '', email: '', department: '', message: '' });
+  const [errors, setErrors]   = React.useState({});
+  const [submitted, setSubmit] = React.useState(false);
+
+  const set = f => e => setForm(v => ({ ...v, [f]: e.target.value }));
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim())    e.name       = 'Name is required.';
+    if (!form.email.trim())   e.email      = 'Email address is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email.';
+    if (!form.department || form.department === DEPT_OPTIONS[0]) e.department = 'Please select a department.';
+    if (!form.message.trim()) e.message    = 'Message is required.';
+    else if (form.message.trim().length < 10) e.message = 'Please provide a more detailed message.';
+    return e;
+  };
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    const e2 = validate();
+    if (Object.keys(e2).length) {
+      setErrors(e2);
+      document.getElementById(`cf-${Object.keys(e2)[0]}`)?.focus();
+      return;
+    }
+    setErrors({});
+    setSubmit(true);
+  };
+
+  const inputCls = id =>
+    `w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+      errors[id] ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white hover:border-gray-400'
+    }`;
+
+  const Field = ({ id, label, required, children }) => (
+    <div>
+      <label htmlFor={`cf-${id}`} className="block text-sm font-semibold text-gray-700 mb-1.5">
+        {label}{required && <span className="text-red-600 ml-1" aria-label="required">*</span>}
+      </label>
+      {children}
+      {errors[id] && (
+        <p role="alert" className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+          <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          {errors[id]}
+        </p>
+      )}
+    </div>
+  );
+
+  if (submitted) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="bg-green-50 border-2 border-green-300 rounded-2xl p-10 text-center"
+      >
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5" aria-hidden="true">
+          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-bold text-green-800 mb-2">Message Sent!</h3>
+        <p className="text-green-700 text-sm mb-1">Thank you, <strong>{form.name}</strong>.</p>
+        <p className="text-gray-600 text-sm">
+          We've received your inquiry and will respond to <strong>{form.email}</strong> within 2 business days.
+        </p>
+        <button
+          type="button"
+          onClick={() => { setSubmit(false); setForm({ name: '', email: '', department: '', message: '' }); }}
+          className="mt-6 px-6 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Send Another Message
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} noValidate aria-label="Contact inquiry form" className="space-y-6">
+      <Field id="name" label="Full Name" required>
+        <input
+          id="cf-name"
+          type="text"
+          value={form.name}
+          onChange={set('name')}
+          autoComplete="name"
+          aria-required="true"
+          className={inputCls('name')}
+        />
+      </Field>
+      <Field id="email" label="Email Address" required>
+        <input
+          id="cf-email"
+          type="email"
+          value={form.email}
+          onChange={set('email')}
+          autoComplete="email"
+          aria-required="true"
+          className={inputCls('email')}
+        />
+      </Field>
+      <Field id="department" label="Department" required>
+        <select
+          id="cf-department"
+          value={form.department}
+          onChange={set('department')}
+          aria-required="true"
+          className={inputCls('department')}
+        >
+          {DEPT_OPTIONS.map(d => (
+            <option key={d} value={d === DEPT_OPTIONS[0] ? '' : d}>{d}</option>
+          ))}
+        </select>
+      </Field>
+      <Field id="message" label="Message" required>
+        <textarea
+          id="cf-message"
+          value={form.message}
+          onChange={set('message')}
+          rows={5}
+          aria-required="true"
+          placeholder="How can we help you? Please include relevant details such as addresses, permit numbers, or account numbers."
+          className={`${inputCls('message')} resize-none`}
+        />
+        <p className="text-xs text-gray-400 mt-1 text-right">{form.message.length} characters</p>
+      </Field>
+      <button
+        type="submit"
+        className="w-full py-3 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      >
+        Send Message
+      </button>
+      <p className="text-xs text-gray-500 text-center">
+        For emergencies, always call <strong>911</strong>. For after-hours emergencies, call{' '}
+        <a href="tel:3039877111" className="text-blue-600 hover:underline focus:outline-none focus:underline">(303) 987-7111</a>.
+      </p>
+    </form>
+  );
+}
+
+// ── Map Placeholder ──────────────────────────────────────────
+function MapPlaceholder() {
+  return (
+    <div
+      className="bg-gradient-to-br from-slate-200 to-slate-300 rounded-2xl overflow-hidden relative"
+      style={{ minHeight: 320 }}
+      role="img"
+      aria-label="Map showing City Hall at 480 S Allison Pkwy, Lakewood, CO 80226"
+    >
+      {/* Simulated map background */}
+      <div className="absolute inset-0" aria-hidden="true">
+        {/* Grid lines */}
+        {[20,40,60,80].map(y => (
+          <div key={y} className="absolute left-0 right-0 h-px bg-slate-300" style={{ top: `${y}%` }} />
+        ))}
+        {[20,40,60,80].map(x => (
+          <div key={x} className="absolute top-0 bottom-0 w-px bg-slate-300" style={{ left: `${x}%` }} />
+        ))}
+        {/* Simulated roads */}
+        <div className="absolute bg-white h-1.5 left-0 right-0" style={{ top: '52%' }} />
+        <div className="absolute bg-white w-1.5 top-0 bottom-0" style={{ left: '48%' }} />
+        <div className="absolute bg-amber-200 h-1 left-0 right-0" style={{ top: '35%' }} />
+        <div className="absolute bg-amber-200 h-1 left-0 right-0" style={{ top: '70%' }} />
+        {/* Simulated blocks */}
+        {[[10,60,20,15],[60,60,20,15],[10,15,20,15],[60,15,20,15],[10,40,15,10],[65,42,15,8]].map(([l,t,w,h], i) => (
+          <div key={i} className="absolute bg-slate-300 rounded-sm" style={{ left:`${l}%`, top:`${t}%`, width:`${w}%`, height:`${h}%` }} />
+        ))}
+      </div>
+
+      {/* Pin */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full z-10" aria-hidden="true">
+        <div className="flex flex-col items-center">
+          <div className="w-10 h-10 bg-blue-700 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+            <span className="text-white text-base">🏛</span>
+          </div>
+          <div className="w-2 h-4 bg-blue-700 rounded-b" />
+        </div>
+      </div>
+
+      {/* Label */}
+      <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur rounded-xl px-4 py-3 shadow-md">
+        <p className="font-bold text-gray-900 text-sm">City Hall</p>
+        <p className="text-xs text-gray-600 mt-0.5">480 S Allison Pkwy · Lakewood, CO 80226</p>
+        <a
+          href="https://maps.google.com/?q=480+S+Allison+Pkwy,+Lakewood,+CO+80226"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block mt-2 text-xs text-blue-700 font-semibold hover:underline focus:outline-none focus:underline"
+          aria-label="Open City Hall location in Google Maps (opens in new tab)"
+        >
+          Open in Maps ↗
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────
+function ContactPage() {
+  const [deptSearch, setDeptSearch] = React.useState('');
+
+  const filteredDepts = deptSearch.trim()
+    ? DEPARTMENTS.filter(d =>
+        d.name.toLowerCase().includes(deptSearch.toLowerCase()) ||
+        d.email.toLowerCase().includes(deptSearch.toLowerCase())
+      )
+    : DEPARTMENTS;
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <CityHeader currentPage="contact" />
+
+      <main id="main-content" tabIndex={-1} className="flex-1 pb-16">
+
+        {/* Hero */}
+        <div className="bg-gradient-to-r from-[#0d2340] to-[#1a3a6b] text-white py-14 px-4">
+          <div className="max-w-7xl mx-auto">
+            <nav aria-label="Breadcrumb" className="mb-4">
+              <ol className="flex items-center gap-2 text-sm text-blue-300" role="list">
+                <li><a href="index.html" className="hover:text-white focus:text-white focus:outline-none hover:underline">Home</a></li>
+                <li aria-hidden="true"><span className="text-blue-500">›</span></li>
+                <li><span className="text-white font-medium" aria-current="page">Contact</span></li>
+              </ol>
+            </nav>
+            <h1 className="text-4xl font-bold mb-3">Contact City of Lakewood</h1>
+            <p className="text-blue-200 max-w-2xl text-lg">
+              Find the right department, send us an inquiry, or visit City Hall in person.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-4 text-sm">
+              <a href="tel:3039877000" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white/50">
+                <span aria-hidden="true">📞</span> (303) 987-7000
+              </a>
+              <a href="mailto:info@lakewood.org" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-white/50">
+                <span aria-hidden="true">✉</span> info@lakewood.org
+              </a>
+              <span className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl">
+                <span aria-hidden="true">📍</span> 480 S Allison Pkwy, Lakewood, CO 80226
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Emergency banner */}
+        <div className="bg-red-700 text-white py-3 px-4" role="note">
+          <div className="max-w-7xl mx-auto flex items-center gap-3 text-sm">
+            <span className="text-base flex-shrink-0" aria-hidden="true">🚨</span>
+            <span>
+              <strong>Emergency?</strong> Call <a href="tel:911" className="font-bold underline text-white hover:text-red-200 focus:text-red-200 focus:outline-none">911</a>.
+              For non-emergency police: <a href="tel:3039877111" className="underline hover:text-red-200 focus:text-red-200 focus:outline-none">(303) 987-7111</a>.
+            </span>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+
+            {/* Left: Inquiry Form */}
+            <div className="lg:col-span-1">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Send an Inquiry</h2>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                <ContactForm />
+              </div>
+
+              {/* Social media */}
+              <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h2 className="text-base font-bold text-gray-900 mb-4">Follow the City</h2>
+                <div className="space-y-3">
+                  {[
+                    { icon: 'f',  label: 'Facebook',    handle: '@CityofLakewood',     href: '#' },
+                    { icon: '𝕏',  label: 'X (Twitter)', handle: '@LakewoodGovCO',      href: '#' },
+                    { icon: '◎',  label: 'Instagram',   handle: '@LakewoodColorado',   href: '#' },
+                    { icon: '▶',  label: 'YouTube',     handle: 'City of Lakewood CO', href: '#' },
+                    { icon: '🔗', label: 'Nextdoor',    handle: 'City of Lakewood',    href: '#' },
+                  ].map(s => (
+                    <a
+                      key={s.label}
+                      href={s.href}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 group"
+                      aria-label={`City of Lakewood on ${s.label}: ${s.handle}`}
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-[#1a3a6b] text-white flex items-center justify-center text-sm font-bold flex-shrink-0" aria-hidden="true">
+                        {s.icon}
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 leading-none">{s.label}</p>
+                        <p className="text-sm font-semibold text-gray-800 group-hover:text-blue-800">{s.handle}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Department Directory + Map */}
+            <div className="lg:col-span-2 space-y-10">
+
+              {/* Map */}
+              <section aria-labelledby="map-heading">
+                <h2 id="map-heading" className="text-2xl font-bold text-gray-900 mb-4">Find City Hall</h2>
+                <MapPlaceholder />
+                <dl className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
+                    <dt className="font-semibold text-gray-500 text-xs uppercase tracking-wide">Address</dt>
+                    <dd className="text-gray-800 mt-1">480 S Allison Pkwy<br/>Lakewood, CO 80226</dd>
+                  </div>
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
+                    <dt className="font-semibold text-gray-500 text-xs uppercase tracking-wide">Hours</dt>
+                    <dd className="text-gray-800 mt-1">Mon–Fri: 8 am–5 pm<br/>Sat–Sun: Closed</dd>
+                  </div>
+                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
+                    <dt className="font-semibold text-gray-500 text-xs uppercase tracking-wide">Transit</dt>
+                    <dd className="text-gray-800 mt-1">W Line: Lakewood/Wadsworth<br/>Bus: RTD 16, 28</dd>
+                  </div>
+                </dl>
+              </section>
+
+              {/* Department Directory */}
+              <section aria-labelledby="directory-heading">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                  <h2 id="directory-heading" className="text-2xl font-bold text-gray-900">Department Directory</h2>
+                  <div>
+                    <label htmlFor="dept-search" className="sr-only">Filter departments</label>
+                    <input
+                      id="dept-search"
+                      type="search"
+                      value={deptSearch}
+                      onChange={e => setDeptSearch(e.target.value)}
+                      placeholder="Filter departments…"
+                      className="px-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-48"
+                    />
+                  </div>
+                </div>
+
+                {filteredDepts.length === 0 ? (
+                  <p className="text-gray-500 text-sm py-4">No departments match your search.</p>
+                ) : (
+                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100 overflow-hidden">
+                    {filteredDepts.map(dept => (
+                      <div
+                        key={dept.name}
+                        className="px-6 py-4 flex flex-col sm:flex-row sm:items-center gap-3"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <span className="text-xl flex-shrink-0" aria-hidden="true">{dept.icon}</span>
+                          <div className="min-w-0">
+                            <h3 className="font-bold text-gray-900 text-sm">{dept.name}</h3>
+                            <p className="text-xs text-gray-500 mt-0.5">{dept.hours}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-sm sm:text-right sm:flex-col sm:gap-1 sm:flex-shrink-0">
+                          <a
+                            href={`tel:${dept.phone.replace(/[^\d]/g, '')}`}
+                            className="text-blue-700 font-semibold hover:text-blue-900 hover:underline focus:outline-none focus:underline"
+                          >
+                            {dept.phone}
+                          </a>
+                          <a
+                            href={`mailto:${dept.email}`}
+                            className="text-gray-500 text-xs hover:text-blue-700 hover:underline focus:outline-none focus:underline truncate max-w-[200px]"
+                          >
+                            {dept.email}
+                          </a>
+                          {dept.emergency && (
+                            <span className="text-xs text-red-600 font-semibold">Emergency: {dept.emergency}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+            </div>
+          </div>
+        </div>
+
+      </main>
+      <CityFooter />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<ContactPage />);
+</script>
+</body>
+</html>

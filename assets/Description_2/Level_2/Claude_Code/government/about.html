@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Vermont State Government — Vermont.gov</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'gov-navy':   '#1A3A6B',
+            'gov-navy-h': '#142E56',
+            'gov-blue':   '#2558A3',
+            'gov-blue-h': '#1E4A8A',
+            'gov-green':  '#2D6A3F',
+            'gov-green-h':'#245531',
+            'gov-light':  '#EEF3FB',
+            'gov-gray':   '#F5F6F8',
+            'gov-border': '#D1D9E6',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #F5F6F8; color: #1A1A2E; }
+    :focus-visible { outline: 3px solid #2558A3 !important; outline-offset: 2px !important; }
+    .skip-link { position: absolute; top: -52px; left: 8px; background: #1A3A6B; color: #fff; padding: 10px 18px; z-index: 9999; border-radius: 4px; font-weight: 600; transition: top 0.15s; text-decoration: none; font-size: 14px; }
+    .skip-link:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    function Header() {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [lang, setLang] = useState('EN');
+      const navLinks = [
+        { label: 'Home',     href: 'index.html',    key: 'home' },
+        { label: 'Services', href: 'services.html', key: 'services' },
+        { label: 'About',    href: 'about.html',    key: 'about' },
+        { label: 'Contact',  href: 'contact.html',  key: 'contact' },
+      ];
+      return (
+        <header className="bg-gov-navy text-white shadow-lg">
+          <div className="bg-gov-navy-h border-b border-white/10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex items-center justify-between">
+              <p className="text-xs text-white/70">Official Vermont State Website</p>
+              <div role="navigation" aria-label="Language selection">
+                <label htmlFor="lang-select" className="sr-only">Select language</label>
+                <select id="lang-select" value={lang} onChange={e=>setLang(e.target.value)} className="bg-transparent border border-white/20 text-white text-xs rounded px-2 py-0.5" aria-label="Select display language">
+                  {[{code:'EN',label:'English'},{code:'ES',label:'Español'},{code:'FR',label:'Français'}].map(l=><option key={l.code} value={l.code} className="text-black">{l.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-20 gap-6">
+              <a href="index.html" className="flex items-center gap-3 flex-shrink-0" aria-label="Vermont.gov — Go to homepage">
+                <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border-2 border-white/20 flex-shrink-0" aria-hidden="true"><svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+                <div><p className="font-extrabold text-lg leading-tight tracking-tight">Vermont.gov</p><p className="text-white/60 text-xs leading-tight">Official State Portal</p></div>
+              </a>
+              <nav aria-label="Main navigation" className="hidden md:block">
+                <ul className="flex items-center gap-1" role="list">
+                  {navLinks.map(l=><li key={l.key}><a href={l.href} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${l.key==='about'?'bg-white/15 text-white':'text-white/80 hover:text-white hover:bg-white/10'}`} aria-current={l.key==='about'?'page':undefined}>{l.label}</a></li>)}
+                </ul>
+              </nav>
+              <button className="md:hidden p-2 rounded-lg hover:bg-white/10" aria-expanded={menuOpen} aria-controls="mobile-nav" aria-label={menuOpen?'Close':'Open navigation menu'} onClick={()=>setMenuOpen(o=>!o)}>
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </button>
+            </div>
+          </div>
+          {menuOpen && <nav id="mobile-nav" aria-label="Mobile navigation"><ul className="border-t border-white/10 px-4 py-3 space-y-1" role="list">{navLinks.map(l=><li key={l.key}><a href={l.href} className="block px-4 py-2.5 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10">{l.label}</a></li>)}</ul></nav>}
+        </header>
+      );
+    }
+
+    function Footer() {
+      return (
+        <footer className="bg-gov-navy-h text-white" role="contentinfo">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+              <div className="lg:col-span-2"><p className="font-extrabold text-lg mb-2">Vermont.gov</p><p className="text-sm text-white/60 leading-relaxed mb-4">The official website of the State of Vermont.</p><p className="text-xs text-white/40">© 2025 State of Vermont. All rights reserved.</p></div>
+              <nav aria-label="Services navigation"><h2 className="font-semibold text-sm uppercase tracking-wider text-white/50 mb-3">Services</h2><ul className="space-y-2" role="list">{['Driver\'s License','Benefits','Voter Registration','Tax Filing'].map(l=><li key={l}><a href="services.html" className="text-sm text-white/70 hover:text-white transition-colors">{l}</a></li>)}</ul></nav>
+              <nav aria-label="Government navigation"><h2 className="font-semibold text-sm uppercase tracking-wider text-white/50 mb-3">Government</h2><ul className="space-y-2" role="list">{['Governor\'s Office','Legislature','Agency Directory','Open Data'].map(l=><li key={l}><a href="#" className="text-sm text-white/70 hover:text-white transition-colors">{l}</a></li>)}</ul></nav>
+              <nav aria-label="Help navigation"><h2 className="font-semibold text-sm uppercase tracking-wider text-white/50 mb-3">Help</h2><ul className="space-y-2" role="list">{[{l:'Contact',h:'contact.html'},{l:'Accessibility',h:'#'},{l:'Privacy',h:'#'},{l:'Site Map',h:'#'}].map(({l,h})=><li key={l}><a href={h} className="text-sm text-white/70 hover:text-white transition-colors">{l}</a></li>)}</ul></nav>
+            </div>
+            <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <p className="text-xs text-white/40">An official website of the State of Vermont.</p>
+              <div className="flex gap-4">{['Accessibility Statement','Non-Discrimination','Web Privacy'].map(l=><a key={l} href="#" className="text-xs text-white/40 hover:text-white/70 transition-colors">{l}</a>)}</div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    const AGENCIES = [
+      { name:'Agency of Administration',                abbr:'ADS',  href:'#' },
+      { name:'Agency of Agriculture, Food & Markets',  abbr:'AAFM', href:'#' },
+      { name:'Agency of Commerce & Community Dev.',     abbr:'ACCD', href:'#' },
+      { name:'Agency of Digital Services',              abbr:'ADS',  href:'#' },
+      { name:'Agency of Education',                     abbr:'AOE',  href:'#' },
+      { name:'Agency of Human Services',                abbr:'AHS',  href:'#' },
+      { name:'Agency of Natural Resources',             abbr:'ANR',  href:'#' },
+      { name:'Agency of Transportation',                abbr:'VTrans',href:'#' },
+      { name:'Dept. of Financial Regulation',           abbr:'DFR',  href:'#' },
+      { name:'Dept. for Children & Families',           abbr:'DCF',  href:'#' },
+      { name:'Dept. of Labor',                          abbr:'DOL',  href:'#' },
+      { name:'Dept. of Motor Vehicles',                 abbr:'DMV',  href:'#' },
+      { name:'Dept. of Public Safety',                  abbr:'DPS',  href:'#' },
+      { name:'Dept. of Taxes',                          abbr:'VDT',  href:'#' },
+      { name:'Secretary of State',                      abbr:'SoS',  href:'#' },
+      { name:'Vermont Dept. of Health',                 abbr:'VDH',  href:'#' },
+    ];
+
+    const NEWS = [
+      { date:'March 25, 2025', title:'Governor Signs FY2026 Budget into Law', excerpt:'The $8.7 billion spending plan includes record investments in housing, childcare, and climate resilience.', tag:'Budget' },
+      { date:'March 18, 2025', title:'Vermont Passes Paid Family & Medical Leave Act', excerpt:'Effective January 2026, all Vermont workers will have access to up to 12 weeks of paid leave.', tag:'Legislation' },
+      { date:'March 10, 2025', title:'Agency of Education Releases 2025 School Accountability Report', excerpt:'New metrics show improvements in reading proficiency across 85% of Vermont school districts.', tag:'Education' },
+      { date:'March 5, 2025',  title:'Vermont Launches Clean Heat Standard Program', excerpt:'New program incentivizes Vermont homeowners to switch to cleaner, more efficient heating systems.', tag:'Environment' },
+    ];
+
+    const REPORTS = [
+      { title:'Vermont State Budget FY2025', size:'4.2 MB PDF', date:'July 2024', icon:'📊' },
+      { title:'Annual Transparency Report 2024', size:'2.8 MB PDF', date:'Jan 2025', icon:'📋' },
+      { title:'State Workforce Diversity Report', size:'1.5 MB PDF', date:'Feb 2025', icon:'👥' },
+      { title:'Open Data Portal — 2024 Summary', size:'3.1 MB PDF', date:'Mar 2025', icon:'🔓' },
+      { title:'Climate Action Plan Progress 2024', size:'5.6 MB PDF', date:'Dec 2024', icon:'🌱' },
+      { title:'Digital Services Accessibility Audit', size:'890 KB PDF', date:'Feb 2025', icon:'♿' },
+    ];
+
+    function AboutPage() {
+      const [openAgency, setOpenAgency] = useState(null);
+
+      return (
+        <>
+          <Header />
+
+          <div className="bg-gov-navy text-white py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <nav aria-label="Breadcrumb" className="mb-3">
+                <ol className="flex items-center gap-2 text-sm text-white/60" role="list">
+                  <li><a href="index.html" className="hover:text-white transition-colors">Home</a></li>
+                  <li aria-hidden="true">/</li>
+                  <li aria-current="page" className="text-white font-medium">About Vermont</li>
+                </ol>
+              </nav>
+              <h1 className="text-2xl sm:text-3xl font-extrabold">About Vermont State Government</h1>
+              <p className="text-white/70 text-sm mt-1">Government transparency, open data, and legislative updates</p>
+            </div>
+          </div>
+
+          <main id="main-content" tabIndex={-1}>
+
+            {/* Governor's welcome */}
+            <section aria-labelledby="gov-heading" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+              <div className="grid lg:grid-cols-3 gap-10 items-start">
+                {/* Photo + title */}
+                <div className="flex flex-col items-center text-center">
+                  <div
+                    className="w-44 h-44 rounded-full bg-gradient-to-br from-gov-blue to-gov-navy flex items-center justify-center text-white text-5xl font-bold mb-4 border-4 border-white shadow-lg"
+                    role="img"
+                    aria-label="Official portrait of Governor Phil Scott"
+                  >
+                    PS
+                  </div>
+                  <h2 id="gov-heading" className="font-extrabold text-xl text-gov-navy">Governor Phil Scott</h2>
+                  <p className="text-gray-500 text-sm mt-1">73rd Governor of Vermont</p>
+                  <p className="text-gray-500 text-xs mt-0.5">Serving since January 2017</p>
+                  <div className="flex gap-2 mt-4">
+                    <a href="#" className="text-xs border border-gov-border text-gov-blue px-3 py-1.5 rounded-lg hover:bg-gov-light transition-colors" aria-label="Visit the Governor's official website">Official Website</a>
+                    <a href="contact.html" className="text-xs border border-gov-border text-gov-blue px-3 py-1.5 rounded-lg hover:bg-gov-light transition-colors" aria-label="Contact the Governor's office">Contact Office</a>
+                  </div>
+                </div>
+
+                {/* Welcome message */}
+                <div className="lg:col-span-2">
+                  <h3 className="font-bold text-lg text-gov-navy mb-4">A Message from the Governor</h3>
+                  <div className="prose text-gray-700 text-sm leading-relaxed space-y-4">
+                    <p className="text-base italic text-gray-600">"Vermont is a place where neighbors look out for one another, where hard work is valued, and where every resident deserves the opportunity to thrive."</p>
+                    <p>Since taking office, our administration has focused on making Vermont more affordable, more competitive, and more livable for all residents — regardless of background or circumstance.</p>
+                    <p>We have delivered record investments in housing, expanded broadband access to rural communities, strengthened our childcare and education systems, and taken bold action on climate. Vermont.gov is our commitment to making state services accessible to every Vermonter, 24 hours a day.</p>
+                    <p>Whether you need to renew your license, apply for assistance, or simply find information about state programs — we are here to serve you. Thank you for being part of the Vermont community.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* State Agency Directory */}
+            <section aria-labelledby="agencies-heading" className="bg-white border-y border-gov-border py-14">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 id="agencies-heading" className="text-2xl font-bold text-gov-navy">State Agency Directory</h2>
+                    <p className="text-gray-500 text-sm mt-1">Vermont's principal departments and agencies of state government</p>
+                  </div>
+                  <a href="#" className="text-sm text-gov-blue font-semibold hover:underline hidden sm:block" aria-label="View complete A to Z state agency directory">Full A–Z Directory →</a>
+                </div>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3" role="list" aria-label="State agencies list">
+                  {AGENCIES.map(ag => (
+                    <a
+                      key={ag.name}
+                      href={ag.href}
+                      role="listitem"
+                      className="flex items-center gap-3 bg-gov-gray border border-gov-border rounded-xl p-3.5 hover:border-gov-blue hover:bg-gov-light transition-all group"
+                      aria-label={`${ag.name} (${ag.abbr})`}
+                    >
+                      <span className="text-xs font-bold text-gov-blue bg-gov-light group-hover:bg-white px-2 py-1 rounded font-mono flex-shrink-0 transition-colors" aria-hidden="true">{ag.abbr}</span>
+                      <span className="text-xs font-medium text-gov-navy group-hover:text-gov-blue transition-colors leading-tight">{ag.name}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Transparency & Reports + Legislative News */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+              <div className="grid lg:grid-cols-2 gap-10">
+
+                {/* Transparency Reports */}
+                <section aria-labelledby="reports-heading">
+                  <h2 id="reports-heading" className="text-xl font-bold text-gov-navy mb-6">Open Data &amp; Transparency Reports</h2>
+                  <div className="space-y-3" role="list" aria-label="Available transparency and open data reports">
+                    {REPORTS.map(r => (
+                      <a
+                        key={r.title}
+                        href="#"
+                        role="listitem"
+                        className="flex items-center gap-4 bg-white border border-gov-border rounded-xl p-4 hover:border-gov-blue hover:shadow-sm transition-all group"
+                        aria-label={`Download ${r.title} — ${r.size} — Published ${r.date}`}
+                      >
+                        <span aria-hidden="true" className="text-2xl flex-shrink-0">{r.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-gov-navy group-hover:text-gov-blue transition-colors">{r.title}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{r.size} · {r.date}</p>
+                        </div>
+                        <svg aria-hidden="true" className="w-4 h-4 text-gray-400 group-hover:text-gov-blue transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      </a>
+                    ))}
+                  </div>
+                  <a href="#" className="mt-4 inline-flex items-center gap-1 text-gov-blue font-semibold text-sm hover:underline" aria-label="View Vermont Open Data Portal">Open Data Portal →</a>
+                </section>
+
+                {/* Legislative News */}
+                <section aria-labelledby="news-heading">
+                  <h2 id="news-heading" className="text-xl font-bold text-gov-navy mb-6">Legislative News</h2>
+                  <div className="space-y-4" role="list" aria-label="Recent Vermont legislative news">
+                    {NEWS.map(n => (
+                      <article key={n.title} role="listitem" className="bg-white border border-gov-border rounded-xl p-5 hover:shadow-sm transition-shadow">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <span className="text-xs font-semibold bg-gov-light text-gov-blue px-2.5 py-0.5 rounded-full">{n.tag}</span>
+                              <time className="text-xs text-gray-500">{n.date}</time>
+                            </div>
+                            <h3 className="font-semibold text-sm text-gov-navy leading-snug">{n.title}</h3>
+                            <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">{n.excerpt}</p>
+                          </div>
+                        </div>
+                        <a href="#" className="mt-3 inline-flex items-center gap-1 text-xs text-gov-blue font-semibold hover:underline" aria-label={`Read full article: ${n.title}`}>Read more →</a>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            {/* Accessibility Statement */}
+            <section aria-labelledby="a11y-heading" className="bg-gov-light border-t border-gov-border py-12">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 id="a11y-heading" className="text-xl font-bold text-gov-navy mb-4 flex items-center gap-2">
+                  <span aria-hidden="true">♿</span>
+                  Accessibility Compliance Statement
+                </h2>
+                <div className="prose text-sm text-gray-700 space-y-3 leading-relaxed">
+                  <p>The State of Vermont is committed to ensuring digital accessibility for people with disabilities. We continually improve the user experience for all visitors and apply the relevant accessibility standards outlined in <strong>WCAG 2.1 Level AA</strong>, as required by <em>Vermont Act 71</em> and Section 508 of the Rehabilitation Act.</p>
+                  <h3 className="font-semibold text-base text-gov-navy mt-4">Measures taken</h3>
+                  <ul className="list-disc list-inside space-y-1 ml-2" aria-label="Accessibility measures taken">
+                    <li>Regular automated and manual accessibility audits</li>
+                    <li>Testing with assistive technologies including NVDA, VoiceOver, and JAWS</li>
+                    <li>Full keyboard navigation support on all interactive elements</li>
+                    <li>Sufficient color contrast ratios (minimum 4.5:1 for body text)</li>
+                    <li>Descriptive alternative text for all images and icons</li>
+                    <li>Language selection available in English, Spanish, and French</li>
+                  </ul>
+                  <h3 className="font-semibold text-base text-gov-navy mt-4">Known limitations</h3>
+                  <p>Some older PDF documents may not be fully accessible. We are actively working to remediate these. If you encounter an accessibility barrier, please <a href="contact.html" className="text-gov-blue underline hover:no-underline">contact our accessibility team</a>.</p>
+                  <p className="text-xs text-gray-500 mt-4">This statement was last reviewed: March 1, 2025. Next scheduled review: September 1, 2025.</p>
+                </div>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <a href="contact.html" className="bg-gov-navy text-white font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-gov-navy-h transition-colors" aria-label="Report an accessibility issue">Report an Accessibility Issue</a>
+                  <a href="#" className="border border-gov-border text-gov-navy font-semibold text-sm px-5 py-2.5 rounded-xl hover:border-gov-blue transition-colors" aria-label="Download full accessibility compliance report PDF">Download Full Report (PDF)</a>
+                </div>
+              </div>
+            </section>
+          </main>
+
+          <Footer />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AboutPage />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subscribe | The Meridian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    .skip-link { position: absolute; top: -100%; left: 0; padding: 0.5rem 1rem; background: #7f1d1d; color: #fff; z-index: 9999; font-weight: 600; text-decoration: none; }
+    .skip-link:focus { top: 0; }
+    html { scroll-padding-top: 76px; }
+    :focus-visible { outline: 3px solid #b91c1c; outline-offset: 2px; }
+    .sticky-header { position: sticky; top: 0; z-index: 100; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 font-sans">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useCallback } = React;
+
+    /* ─── Focus Trap Hook ─── */
+    function useFocusTrap(active) {
+      const ref = useRef(null);
+      useEffect(() => {
+        if (!active || !ref.current) return;
+        const el = ref.current;
+        const focusable = Array.from(el.querySelectorAll(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ));
+        if (focusable.length) focusable[0].focus();
+        const handler = e => {
+          if (e.key !== 'Tab') return;
+          const first = focusable[0], last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        };
+        const escHandler = e => { if (e.key === 'Escape') el.dispatchEvent(new CustomEvent('modal-close')); };
+        document.addEventListener('keydown', handler);
+        document.addEventListener('keydown', escHandler);
+        return () => { document.removeEventListener('keydown', handler); document.removeEventListener('keydown', escHandler); };
+      }, [active]);
+      return ref;
+    }
+
+    function CookieBanner() {
+      const [dismissed, setDismissed] = useState(false);
+      const btnRef = useRef(null);
+      useEffect(() => { if (!dismissed && btnRef.current) btnRef.current.focus(); }, []);
+      if (dismissed) return null;
+      return (
+        <div role="region" aria-label="Cookie consent"
+          className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 text-white px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl"
+          onKeyDown={e => e.key === 'Escape' && setDismissed(true)}>
+          <p className="text-sm">We use cookies to improve your experience. See our <a href="#" className="underline hover:text-gray-200">Cookie Policy</a>.</p>
+          <div className="flex gap-2 flex-shrink-0">
+            <button ref={btnRef} onClick={() => setDismissed(true)} className="px-4 py-1.5 text-sm bg-white text-gray-900 rounded font-semibold hover:bg-gray-100">Accept</button>
+            <button onClick={() => setDismissed(true)} aria-label="Decline cookies and close banner" className="px-4 py-1.5 text-sm border border-gray-500 rounded hover:border-white">Decline</button>
+          </div>
+        </div>
+      );
+    }
+
+    function Header({ current }) {
+      const [open, setOpen] = useState(false);
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const nav = [
+        { label: 'World', href: 'world.html' },
+        { label: 'Politics', href: '#' },
+        { label: 'Tech', href: '#' },
+        { label: 'Culture', href: '#' },
+        { label: 'Opinion', href: 'opinion.html' },
+      ];
+      return (
+        <header className="sticky-header bg-gray-950 text-white">
+          <div className="border-b border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 py-1.5 flex justify-between text-xs text-gray-400">
+              <span>{today}</span>
+              <div className="flex gap-4">
+                {['Twitter','Facebook','Instagram'].map(s => (
+                  <a key={s} href="#" aria-label={`Follow The Meridian on ${s}`} className="hover:text-white transition-colors">{s}</a>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center justify-between py-3">
+              <a href="index.html" className="font-serif text-3xl font-black tracking-tight hover:text-gray-200">THE MERIDIAN</a>
+              <nav aria-label="Main navigation" className="hidden md:flex items-center gap-0.5">
+                {nav.map(({ label, href }) => (
+                  <a key={label} href={href}
+                    className={`px-3 py-2 text-sm font-medium rounded transition-colors ${current === label.toLowerCase() ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
+                    aria-current={current === label.toLowerCase() ? 'page' : undefined}>{label}</a>
+                ))}
+                <a href="subscription.html" className="ml-3 px-4 py-2 text-sm font-bold bg-red-700 text-white rounded hover:bg-red-600 transition-colors">Subscribe</a>
+              </nav>
+              <button className="md:hidden p-2 rounded hover:bg-gray-700" onClick={() => setOpen(!open)}
+                aria-expanded={open} aria-controls="mobile-nav" aria-label="Toggle navigation menu">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {open && (
+            <nav id="mobile-nav" aria-label="Mobile navigation" className="md:hidden border-t border-gray-800 pb-2">
+              {nav.map(({ label, href }) => (
+                <a key={label} href={href} className="block px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white">{label}</a>
+              ))}
+              <a href="subscription.html" className="block px-4 py-2.5 text-sm font-bold text-red-400 hover:bg-gray-800">Subscribe</a>
+            </nav>
+          )}
+        </header>
+      );
+    }
+
+    function Footer() {
+      return (
+        <footer className="bg-gray-950 text-gray-400 mt-16">
+          <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+            {[
+              { h: 'Sections', l: [['World','world.html'],['Politics','#'],['Technology','#'],['Culture','#'],['Opinion','opinion.html']] },
+              { h: 'Company', l: [['About Us','#'],['Editorial Standards','#'],['Contact','#'],['Careers','#']] },
+              { h: 'Subscribe', l: [['Digital Access','#'],['All-Access','#'],['Gift Subscriptions','#'],['Student Discount','#']] },
+              { h: 'Legal', l: [['Privacy Policy','#'],['Terms','#'],['Cookies','#'],['Accessibility','#']] },
+            ].map(({ h, l }) => (
+              <div key={h}>
+                <h3 className="text-white font-semibold text-sm mb-3">{h}</h3>
+                <ul className="space-y-1.5">
+                  {l.map(([label, href]) => <li key={label}><a href={href} className="hover:text-white transition-colors">{label}</a></li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-gray-800">
+            <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between text-xs text-gray-600">
+              <span>© 2026 The Meridian. All rights reserved.</span>
+              <span>Independent journalism since 2008</span>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ─── Subscription Modal (cat_5: focus trap) ─── */
+    function SubscriptionModal({ plan, onClose }) {
+      const [formData, setFormData] = useState({ email: '', password: '', card: '', expiry: '', cvv: '' });
+      const [errors, setErrors] = useState({});
+      const [submitted, setSubmitted] = useState(false);
+      const triggerRef = useRef(null);
+      const modalRef = useFocusTrap(true);
+
+      useEffect(() => {
+        // Restore focus on close (cat_5)
+        return () => { if (triggerRef.current) triggerRef.current.focus(); };
+      }, []);
+
+      const validate = () => {
+        const e = {};
+        if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) e.email = 'Please enter a valid email address.';
+        if (!formData.password || formData.password.length < 8) e.password = 'Password must be at least 8 characters.';
+        if (plan !== 'Free') {
+          if (!formData.card || formData.card.replace(/\s/g,'').length < 16) e.card = 'Please enter a valid 16-digit card number.';
+          if (!formData.expiry || !/^\d{2}\/\d{2}$/.test(formData.expiry)) e.expiry = 'Please enter expiry as MM/YY.';
+          if (!formData.cvv || !/^\d{3,4}$/.test(formData.cvv)) e.cvv = 'Please enter a valid CVV (3–4 digits).';
+        }
+        return e;
+      };
+
+      const handleSubmit = e => {
+        e.preventDefault();
+        const errs = validate();
+        setErrors(errs);
+        if (Object.keys(errs).length === 0) setSubmitted(true);
+      };
+
+      const handleClose = () => onClose();
+
+      // Listen for Escape via custom event from focus trap hook
+      useEffect(() => {
+        const el = modalRef.current;
+        if (!el) return;
+        el.addEventListener('modal-close', handleClose);
+        return () => el.removeEventListener('modal-close', handleClose);
+      }, []);
+
+      const prices = { Free: '$0', Digital: '$9.99/mo', 'All-Access': '$19.99/mo' };
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          <div className="absolute inset-0 bg-black/60" onClick={handleClose} aria-hidden="true" />
+          <div ref={modalRef} className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+              <div>
+                <h2 id="modal-title" className="font-serif text-xl font-bold">Start Your Subscription</h2>
+                <p className="text-sm text-gray-500">{plan} Plan · {prices[plan]}</p>
+              </div>
+              <button onClick={handleClose} aria-label="Close subscription form"
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 text-xl font-bold">×</button>
+            </div>
+
+            <div className="px-6 py-6">
+              <div aria-live="polite" aria-atomic="true">
+                {submitted && (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">✓</div>
+                    <h3 className="font-serif text-2xl font-bold mb-2">Welcome to The Meridian!</h3>
+                    <p className="text-gray-600 text-sm mb-6">Your {plan} subscription is now active. Check your email for confirmation.</p>
+                    <button onClick={handleClose} className="px-6 py-2.5 bg-gray-900 text-white rounded font-bold text-sm hover:bg-gray-700">Start Reading</button>
+                  </div>
+                )}
+              </div>
+
+              {!submitted && (
+                <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                  <div>
+                    <label htmlFor="modal-email" className="block text-sm font-semibold mb-1">
+                      Email <span className="text-red-600" aria-hidden="true">*</span>
+                    </label>
+                    <input id="modal-email" type="email" value={formData.email}
+                      onChange={e => setFormData(d => ({ ...d, email: e.target.value }))}
+                      aria-required="true" aria-invalid={!!errors.email}
+                      aria-describedby={errors.email ? 'modal-email-err' : undefined}
+                      placeholder="you@example.com"
+                      className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-red-500 ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                    {errors.email && <p id="modal-email-err" role="alert" className="text-red-600 text-xs mt-1">{errors.email}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="modal-password" className="block text-sm font-semibold mb-1">
+                      Password <span className="text-red-600" aria-hidden="true">*</span>
+                    </label>
+                    <input id="modal-password" type="password" value={formData.password}
+                      onChange={e => setFormData(d => ({ ...d, password: e.target.value }))}
+                      aria-required="true" aria-invalid={!!errors.password}
+                      aria-describedby={errors.password ? 'modal-pass-err' : 'modal-pass-hint'}
+                      className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-red-500 ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                    <p id="modal-pass-hint" className="text-xs text-gray-400 mt-1">Minimum 8 characters.</p>
+                    {errors.password && <p id="modal-pass-err" role="alert" className="text-red-600 text-xs mt-1">{errors.password}</p>}
+                  </div>
+
+                  {plan !== 'Free' && (
+                    <>
+                      <hr className="border-gray-200" />
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Payment Details</p>
+                      <div>
+                        <label htmlFor="modal-card" className="block text-sm font-semibold mb-1">
+                          Card Number <span className="text-red-600" aria-hidden="true">*</span>
+                        </label>
+                        <input id="modal-card" type="text" value={formData.card} maxLength={19}
+                          onChange={e => setFormData(d => ({ ...d, card: e.target.value }))}
+                          aria-required="true" aria-invalid={!!errors.card}
+                          aria-describedby={errors.card ? 'modal-card-err' : undefined}
+                          placeholder="1234 5678 9012 3456"
+                          className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-red-500 ${errors.card ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                        {errors.card && <p id="modal-card-err" role="alert" className="text-red-600 text-xs mt-1">{errors.card}</p>}
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label htmlFor="modal-expiry" className="block text-sm font-semibold mb-1">
+                            Expiry <span className="text-red-600" aria-hidden="true">*</span>
+                          </label>
+                          <input id="modal-expiry" type="text" value={formData.expiry} maxLength={5}
+                            onChange={e => setFormData(d => ({ ...d, expiry: e.target.value }))}
+                            aria-required="true" aria-invalid={!!errors.expiry}
+                            aria-describedby={errors.expiry ? 'modal-expiry-err' : 'modal-expiry-hint'}
+                            placeholder="MM/YY"
+                            className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-red-500 ${errors.expiry ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                          <p id="modal-expiry-hint" className="text-xs text-gray-400 mt-1">Format: MM/YY</p>
+                          {errors.expiry && <p id="modal-expiry-err" role="alert" className="text-red-600 text-xs mt-1">{errors.expiry}</p>}
+                        </div>
+                        <div>
+                          <label htmlFor="modal-cvv" className="block text-sm font-semibold mb-1">
+                            CVV <span className="text-red-600" aria-hidden="true">*</span>
+                          </label>
+                          <input id="modal-cvv" type="text" value={formData.cvv} maxLength={4}
+                            onChange={e => setFormData(d => ({ ...d, cvv: e.target.value }))}
+                            aria-required="true" aria-invalid={!!errors.cvv}
+                            aria-describedby={errors.cvv ? 'modal-cvv-err' : 'modal-cvv-hint'}
+                            placeholder="123"
+                            className={`w-full px-3 py-2 border rounded text-sm focus:outline-none focus:border-red-500 ${errors.cvv ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                          <p id="modal-cvv-hint" className="text-xs text-gray-400 mt-1">3–4 digits on card back</p>
+                          {errors.cvv && <p id="modal-cvv-err" role="alert" className="text-red-600 text-xs mt-1">{errors.cvv}</p>}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <button type="submit" className="w-full py-3 bg-red-700 text-white rounded font-bold hover:bg-red-600 transition-colors mt-2">
+                    {plan === 'Free' ? 'Create Free Account' : `Start ${plan} — ${prices[plan]}`}
+                  </button>
+                  <p className="text-xs text-gray-400 text-center">
+                    By subscribing you agree to our <a href="#" className="underline">Terms of Service</a> and <a href="#" className="underline">Privacy Policy</a>. Cancel anytime.
+                  </p>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── Main App ─── */
+    function App() {
+      const [selectedPlan, setSelectedPlan] = useState('Digital');
+      const [modalPlan, setModalPlan] = useState(null);
+      const [openFaqs, setOpenFaqs] = useState([]);
+      const planBtnRefs = { Free: useRef(null), Digital: useRef(null), 'All-Access': useRef(null) };
+
+      const openModal = plan => { setModalPlan(plan); };
+      const closeModal = () => {
+        const plan = modalPlan;
+        setModalPlan(null);
+        // Restore focus to the plan's subscribe button (cat_5)
+        setTimeout(() => { if (planBtnRefs[plan] && planBtnRefs[plan].current) planBtnRefs[plan].current.focus(); }, 50);
+      };
+
+      const toggleFaq = id => {
+        setOpenFaqs(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+      };
+
+      const plans = [
+        {
+          id: 'Free',
+          name: 'Free',
+          price: '$0',
+          period: 'forever',
+          description: 'Access to a selection of articles each month.',
+          features: ['5 articles per month', 'Breaking news alerts', 'Weekly newsletter', 'Limited archive access'],
+          cta: 'Get Started Free',
+          highlighted: false,
+        },
+        {
+          id: 'Digital',
+          name: 'Digital',
+          price: '$9.99',
+          period: 'per month',
+          description: 'Full digital access to all Meridian journalism.',
+          features: ['Unlimited articles', 'Full archive (15+ years)', 'Podcasts & audio editions', 'Ad-free reading', 'Mobile app access', 'Exclusive newsletters'],
+          cta: 'Start Free Trial',
+          highlighted: true,
+          badge: 'Most Popular',
+        },
+        {
+          id: 'All-Access',
+          name: 'All-Access',
+          price: '$19.99',
+          period: 'per month',
+          description: 'Everything in Digital plus premium features.',
+          features: ['All Digital features', 'Live Q&A with journalists', 'Exclusive events & webinars', 'Early access to investigations', 'Gift articles (10/month)', 'Dedicated reader service'],
+          cta: 'Start Free Trial',
+          highlighted: false,
+        },
+      ];
+
+      const faqs = [
+        { id: 'f1', q: 'Can I cancel my subscription at any time?', a: 'Yes. You can cancel your subscription at any time from your account settings. You will continue to have access until the end of your current billing period. No cancellation fees apply.' },
+        { id: 'f2', q: 'Is there a student or educational discount?', a: 'Yes. Students and educators at accredited institutions can receive 50% off Digital and All-Access plans. Verify your eligibility with your institutional email address on the Student Discount page.' },
+        { id: 'f3', q: 'What payment methods do you accept?', a: 'We accept all major credit and debit cards (Visa, Mastercard, American Express), PayPal, and Apple Pay. All payments are processed securely through Stripe.' },
+        { id: 'f4', q: 'How does the free trial work?', a: 'Your free trial gives you 30 days of full access at no charge. We will send you a reminder 7 days before your trial ends. If you cancel before the trial period ends, you will not be charged.' },
+        { id: 'f5', q: 'Can I share my subscription with family members?', a: 'Digital subscribers can access The Meridian on up to 3 devices simultaneously. All-Access subscribers can add up to 4 additional family accounts at a discounted rate of $4.99/month per account.' },
+        { id: 'f6', q: 'How do I access the full archive?', a: 'Paid subscribers can access our full archive dating back to 2008 through the Archive section in the navigation menu or the search function. Articles are available in full, including original multimedia content.' },
+      ];
+
+      const tableFeatures = [
+        { label: 'Monthly articles', free: '5/month', digital: 'Unlimited', allAccess: 'Unlimited' },
+        { label: 'Full archive access', free: '✗', digital: '✓', allAccess: '✓' },
+        { label: 'Ad-free reading', free: '✗', digital: '✓', allAccess: '✓' },
+        { label: 'Mobile app', free: '✗', digital: '✓', allAccess: '✓' },
+        { label: 'Audio editions', free: '✗', digital: '✓', allAccess: '✓' },
+        { label: 'Exclusive newsletters', free: '✗', digital: '✓', allAccess: '✓' },
+        { label: 'Live journalist Q&As', free: '✗', digital: '✗', allAccess: '✓' },
+        { label: 'Exclusive events', free: '✗', digital: '✗', allAccess: '✓' },
+        { label: 'Gift articles', free: '✗', digital: '✗', allAccess: '10/month' },
+        { label: 'Family accounts', free: '✗', digital: '✗', allAccess: '✓' },
+      ];
+
+      const testimonials = [
+        { quote: 'The Meridian is the only publication I trust to give me context, not just headlines. Worth every penny.', name: 'Dr. Aisha M.', role: 'Professor of International Relations, Georgetown', avatar: 'https://picsum.photos/seed/aishatest/80/80' },
+        { quote: "I switched from three different news subscriptions to just The Meridian. The depth of reporting on technology and geopolitics can't be matched.", name: 'Ravi K.', role: 'Senior Software Engineer, Toronto', avatar: 'https://picsum.photos/seed/ravitest/80/80' },
+        { quote: 'The opinion section alone is worth the price. Eleanor Hart and Kwame Asante consistently make me reconsider positions I thought were settled.', name: 'Sarah T.', role: 'Public Policy Consultant, London', avatar: 'https://picsum.photos/seed/sarahtest/80/80' },
+      ];
+
+      return (
+        <>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+          <CookieBanner />
+          <Header current="subscribe" />
+
+          {/* Modal */}
+          {modalPlan && (
+            <SubscriptionModal plan={modalPlan} onClose={closeModal} />
+          )}
+
+          <main id="main-content">
+            {/* Hero */}
+            <div className="bg-gray-950 text-white">
+              <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+                <p className="text-red-400 text-xs font-black uppercase tracking-widest mb-4">Subscribe</p>
+                <h1 className="font-serif text-5xl md:text-6xl font-black mb-4 leading-tight">Independent journalism<br />worth paying for.</h1>
+                <p className="text-gray-400 text-lg max-w-xl mx-auto">The Meridian is funded by readers, not advertisers. Your subscription keeps our newsroom free to investigate without fear or favour.</p>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4">
+
+              {/* Pricing tiers — cat_7: aria-pressed/aria-selected */}
+              <section aria-labelledby="plans-heading" className="py-16">
+                <h2 id="plans-heading" className="sr-only">Subscription Plans</h2>
+                {/* Plan selector tabs */}
+                <div role="tablist" aria-label="Subscription plan options" className="flex justify-center gap-2 mb-10">
+                  {plans.map(plan => (
+                    <button key={plan.id} role="tab" id={`tab-${plan.id}`}
+                      aria-selected={selectedPlan === plan.id}
+                      aria-controls={`panel-${plan.id}`}
+                      onClick={() => setSelectedPlan(plan.id)}
+                      className={`px-5 py-2 rounded-full text-sm font-bold border-2 transition-colors ${
+                        selectedPlan === plan.id
+                          ? 'bg-gray-900 text-white border-gray-900'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-gray-600'
+                      }`}>
+                      {plan.name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Plan cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+                  {plans.map(plan => (
+                    <div key={plan.id} id={`panel-${plan.id}`} role="tabpanel" aria-labelledby={`tab-${plan.id}`}
+                      className={`relative rounded-2xl p-8 border-2 flex flex-col transition-all ${
+                        plan.highlighted
+                          ? 'border-gray-900 bg-gray-950 text-white shadow-xl scale-105'
+                          : 'border-gray-200 bg-white hover:border-gray-400'
+                      }`}>
+                      {plan.badge && (
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-700 text-white text-xs font-bold px-3 py-1 rounded-full" aria-label={`${plan.badge} plan`}>
+                          {plan.badge}
+                        </span>
+                      )}
+                      <div className="mb-6">
+                        <p className={`text-xs font-black uppercase tracking-widest mb-1 ${plan.highlighted ? 'text-red-400' : 'text-red-700'}`}>{plan.name}</p>
+                        <div className="flex items-end gap-1 mb-1">
+                          <span className="font-serif text-4xl font-black">{plan.price}</span>
+                          <span className={`text-sm mb-1.5 ${plan.highlighted ? 'text-gray-400' : 'text-gray-500'}`}>{plan.period}</span>
+                        </div>
+                        <p className={`text-sm ${plan.highlighted ? 'text-gray-400' : 'text-gray-600'}`}>{plan.description}</p>
+                      </div>
+                      <ul className="space-y-2.5 mb-8 flex-1" aria-label={`${plan.name} plan features`}>
+                        {plan.features.map((f, i) => (
+                          <li key={i} className="flex items-center gap-2.5 text-sm">
+                            <span className={`flex-shrink-0 ${plan.highlighted ? 'text-green-400' : 'text-green-600'}`} aria-hidden="true">✓</span>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                      <button ref={planBtnRefs[plan.id]} onClick={() => openModal(plan.id)}
+                        aria-pressed={selectedPlan === plan.id}
+                        className={`w-full py-3 rounded-xl font-bold text-sm transition-colors ${
+                          plan.highlighted
+                            ? 'bg-red-700 text-white hover:bg-red-600'
+                            : 'bg-gray-900 text-white hover:bg-gray-700'
+                        }`}>
+                        {plan.cta}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Comparison Table */}
+              <section aria-labelledby="comparison-heading" className="pb-16">
+                <h2 id="comparison-heading" className="font-serif text-3xl font-bold text-center mb-10">Compare Plans</h2>
+                <div className="overflow-x-auto rounded-xl border border-gray-200">
+                  <table className="w-full min-w-[560px]">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th scope="col" className="text-left px-6 py-4 text-sm font-bold text-gray-700">Feature</th>
+                        {plans.map(p => (
+                          <th key={p.id} scope="col" className="px-6 py-4 text-center text-sm font-bold text-gray-700">{p.name}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tableFeatures.map((row, i) => (
+                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <th scope="row" className="text-left px-6 py-3.5 text-sm text-gray-700 font-normal">{row.label}</th>
+                          {[row.free, row.digital, row.allAccess].map((val, j) => (
+                            <td key={j} className={`px-6 py-3.5 text-center text-sm ${val === '✗' ? 'text-gray-300' : val === '✓' ? 'text-green-600 font-bold' : 'text-gray-700 font-semibold'}`}>
+                              {val === '✓' ? <span aria-label="Yes">✓</span> : val === '✗' ? <span aria-label="No">✗</span> : val}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              {/* Testimonials */}
+              <section aria-labelledby="testimonials-heading" className="pb-16 bg-gray-50 -mx-4 px-4 rounded-2xl py-12">
+                <h2 id="testimonials-heading" className="font-serif text-3xl font-bold text-center mb-10">What Our Readers Say</h2>
+                <div className="grid md:grid-cols-3 gap-8">
+                  {testimonials.map((t, i) => (
+                    <figure key={i} className="bg-white rounded-xl p-6 shadow-sm">
+                      <blockquote className="mb-4">
+                        <p className="text-gray-700 leading-relaxed text-sm italic">"{t.quote}"</p>
+                      </blockquote>
+                      <figcaption className="flex items-center gap-3">
+                        <img src={t.avatar} alt={`${t.name}, subscriber testimonial`}
+                          className="w-10 h-10 rounded-full object-cover" />
+                        <div>
+                          <p className="font-bold text-sm">{t.name}</p>
+                          <p className="text-xs text-gray-500">{t.role}</p>
+                        </div>
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </section>
+
+              {/* FAQ Accordion — cat_4/cat_7: keyboard-operable, aria-expanded */}
+              <section aria-labelledby="faq-heading" className="py-16">
+                <h2 id="faq-heading" className="font-serif text-3xl font-bold text-center mb-10">Frequently Asked Questions</h2>
+                <div className="max-w-2xl mx-auto divide-y divide-gray-200 border border-gray-200 rounded-xl overflow-hidden">
+                  {faqs.map(faq => {
+                    const isOpen = openFaqs.includes(faq.id);
+                    return (
+                      <div key={faq.id}>
+                        <button
+                          onClick={() => toggleFaq(faq.id)}
+                          aria-expanded={isOpen}
+                          aria-controls={`faq-answer-${faq.id}`}
+                          id={`faq-btn-${faq.id}`}
+                          className="w-full flex items-center justify-between px-6 py-4 text-left text-sm font-semibold hover:bg-gray-50 transition-colors focus-visible:bg-gray-50">
+                          <span>{faq.q}</span>
+                          <span className={`flex-shrink-0 ml-4 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true">▾</span>
+                        </button>
+                        <div id={`faq-answer-${faq.id}`} role="region" aria-labelledby={`faq-btn-${faq.id}`}
+                          hidden={!isOpen}>
+                          <div className="px-6 pb-4 text-sm text-gray-600 leading-relaxed bg-gray-50">
+                            {faq.a}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {/* Standalone Sign-Up Form */}
+              <section aria-labelledby="signup-heading" className="pb-16">
+                <div className="max-w-lg mx-auto bg-gray-950 text-white rounded-2xl p-10">
+                  <div className="text-center mb-8">
+                    <p className="text-red-400 text-xs font-black uppercase tracking-widest mb-2">Get Started</p>
+                    <h2 id="signup-heading" className="font-serif text-3xl font-bold">Start your free trial</h2>
+                    <p className="text-gray-400 text-sm mt-2">30 days free. Cancel anytime. No credit card required for Free plan.</p>
+                  </div>
+
+                  <SignupForm plans={plans} onSuccess={plan => openModal(plan)} />
+                </div>
+              </section>
+            </div>
+          </main>
+          <Footer />
+        </>
+      );
+    }
+
+    /* ─── Standalone Signup Form ─── */
+    function SignupForm({ plans, onSuccess }) {
+      const [email, setEmail] = useState('');
+      const [plan, setPlan] = useState('Digital');
+      const [errors, setErrors] = useState({});
+      const [status, setStatus] = useState('');
+
+      const handleSubmit = e => {
+        e.preventDefault();
+        const errs = {};
+        if (!email || !/\S+@\S+\.\S+/.test(email)) errs.email = 'Please enter a valid email address.';
+        if (!plan) errs.plan = 'Please select a plan.';
+        setErrors(errs);
+        if (Object.keys(errs).length === 0) {
+          setStatus('success');
+          onSuccess(plan);
+        }
+      };
+
+      return (
+        <form onSubmit={handleSubmit} noValidate aria-labelledby="signup-heading" className="space-y-5">
+          <div aria-live="polite" aria-atomic="true">
+            {status === 'success' && <p className="text-green-400 text-sm">Opening {plan} plan checkout…</p>}
+          </div>
+
+          <div>
+            <label htmlFor="signup-email" className="block text-sm font-semibold mb-1.5">
+              Email <span className="text-red-400" aria-hidden="true">*</span>
+            </label>
+            <input id="signup-email" type="email" value={email}
+              onChange={e => setEmail(e.target.value)}
+              aria-required="true" aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? 'signup-email-err' : undefined}
+              placeholder="you@example.com"
+              className={`w-full px-4 py-2.5 rounded-lg bg-gray-800 text-white placeholder-gray-500 border focus:outline-none focus:border-red-500 text-sm ${errors.email ? 'border-red-500' : 'border-gray-700'}`} />
+            {errors.email && <p id="signup-email-err" role="alert" className="text-red-400 text-xs mt-1">{errors.email} Please include an @ symbol and a domain.</p>}
+          </div>
+
+          {/* Plan selector — cat_7: aria-pressed for each option */}
+          <fieldset>
+            <legend className="block text-sm font-semibold mb-2">
+              Choose a plan <span className="text-red-400" aria-hidden="true">*</span>
+            </legend>
+            <div className="grid grid-cols-3 gap-2" role="group" aria-label="Plan selection">
+              {plans.map(p => (
+                <button key={p.id} type="button"
+                  onClick={() => setPlan(p.id)}
+                  aria-pressed={plan === p.id}
+                  className={`py-2.5 px-2 rounded-lg text-xs font-bold border-2 transition-colors ${
+                    plan === p.id
+                      ? 'bg-white text-gray-900 border-white'
+                      : 'bg-transparent text-gray-300 border-gray-600 hover:border-gray-400'
+                  }`}>
+                  <span className="block">{p.name}</span>
+                  <span className={`block text-xs font-normal mt-0.5 ${plan === p.id ? 'text-gray-500' : 'text-gray-500'}`}>{p.price}</span>
+                </button>
+              ))}
+            </div>
+            {errors.plan && <p role="alert" className="text-red-400 text-xs mt-1">{errors.plan}</p>}
+          </fieldset>
+
+          <button type="submit"
+            className="w-full py-3 bg-red-700 text-white rounded-xl font-bold hover:bg-red-600 transition-colors text-sm">
+            Continue with {plan} Plan →
+          </button>
+          <p className="text-xs text-gray-500 text-center">All transactions secured with 256-bit SSL encryption.</p>
+        </form>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

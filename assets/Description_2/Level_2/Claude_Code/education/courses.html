@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Courses | SkillForge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'sf-navy':   '#1B3F6B',
+            'sf-navy-h': '#254F82',
+            'sf-amber':  '#E8760A',
+            'sf-amber-h':'#D06508',
+            'sf-teal':   '#1D7A8A',
+            'sf-light':  '#F0F4F8',
+            'sf-slate':  '#64748B',
+            'sf-green':  '#1A7F4B',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #F0F4F8; color: #111827; }
+    :focus-visible { outline: 3px solid #E8760A !important; outline-offset: 2px !important; }
+    .skip-link { position: absolute; top: -56px; left: 8px; background: #1B3F6B; color: #fff; padding: 10px 18px; z-index: 9999; border-radius: 6px; font-weight: 600; transition: top 0.15s; text-decoration: none; font-size: 0.9rem; }
+    .skip-link:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+    .card-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,0.1); }
+    /* Filter drawer */
+    .filter-drawer { transition: transform 0.3s ease; }
+    .filter-drawer.closed { transform: translateX(-100%); }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useMemo } = React;
+
+    /* ─── Shared Header ─────────────────────────────────────────────── */
+    function Header({ current = 'courses' }) {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const toggleRef = useRef(null);
+
+      const navLinks = [
+        { label: 'Home',      href: 'index.html',     key: 'home' },
+        { label: 'Courses',   href: 'courses.html',   key: 'courses' },
+        { label: 'Pricing',   href: 'pricing.html',   key: 'pricing' },
+        { label: 'Dashboard', href: 'dashboard.html', key: 'dashboard' },
+      ];
+
+      useEffect(() => {
+        function handleKey(e) {
+          if (e.key === 'Escape' && menuOpen) { setMenuOpen(false); toggleRef.current?.focus(); }
+        }
+        document.addEventListener('keydown', handleKey);
+        return () => document.removeEventListener('keydown', handleKey);
+      }, [menuOpen]);
+
+      return (
+        <header className="sticky top-0 z-50 shadow-lg">
+          <div className="bg-sf-amber text-white text-xs text-center py-2 px-4 font-semibold" role="note" aria-label="Promotional announcement">
+            🎓 Spring Cohort starting March 3 — only <strong>4 seats left</strong> in Medical Admin!&nbsp;
+            <a href="course-detail.html" className="underline hover:no-underline">Enroll now →</a>
+          </div>
+          <div className="bg-sf-navy text-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16 gap-4">
+                <a href="index.html" className="font-extrabold text-xl sm:text-2xl tracking-tight" aria-label="SkillForge — Go to homepage">
+                  Skill<span className="text-sf-amber">Forge</span>
+                </a>
+                <nav aria-label="Primary navigation" className="hidden md:flex items-center gap-1">
+                  {navLinks.map(l => (
+                    <a key={l.key} href={l.href} aria-current={current === l.key ? 'page' : undefined}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${current === l.key ? 'bg-sf-amber text-white' : 'text-gray-200 hover:bg-sf-navy-h'}`}>
+                      {l.label}
+                    </a>
+                  ))}
+                </nav>
+                <div className="hidden md:flex items-center gap-3">
+                  <a href="dashboard.html" className="text-sm text-gray-200 hover:text-white px-3 py-1.5 rounded">Sign In</a>
+                  <a href="pricing.html" className="bg-sf-amber hover:bg-sf-amber-h text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors">Start Free</a>
+                </div>
+                <button ref={toggleRef} aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen(o => !o)}
+                  className="md:hidden p-2 rounded-md text-gray-200 hover:bg-sf-navy-h">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    {menuOpen ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                               : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />}
+                  </svg>
+                </button>
+              </div>
+            </div>
+            {menuOpen && (
+              <nav id="mobile-menu" aria-label="Mobile navigation" className="md:hidden border-t border-sf-navy-h px-4 pb-4 pt-2 space-y-1">
+                {navLinks.map(l => (
+                  <a key={l.key} href={l.href} aria-current={current === l.key ? 'page' : undefined}
+                    className={`block px-4 py-2 rounded-md text-sm font-medium ${current === l.key ? 'bg-sf-amber text-white' : 'text-gray-200 hover:bg-sf-navy-h'}`}>
+                    {l.label}
+                  </a>
+                ))}
+              </nav>
+            )}
+          </div>
+        </header>
+      );
+    }
+
+    /* ─── Footer ────────────────────────────────────────────────────── */
+    function Footer() {
+      return (
+        <footer className="bg-gray-900 text-gray-300 pt-10 pb-6" aria-label="Site footer">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+              <div>
+                <p className="font-extrabold text-xl text-white mb-2">Skill<span className="text-sf-amber">Forge</span></p>
+                <p className="text-xs leading-relaxed">Vocational &amp; professional certification for adult learners.</p>
+              </div>
+              {[['Learn',['Browse Courses','Tracks','Free Resources','Live Events']],['Support',['Help Center','Contact','Employers','Scholarships']],['Company',['About','Careers','Press','Accreditation']]].map(([title, links]) => (
+                <nav key={title} aria-label={`${title} footer links`}>
+                  <p className="text-white font-semibold text-sm mb-3">{title}</p>
+                  <ul className="space-y-1.5 text-xs">
+                    {links.map(l => <li key={l}><a href="index.html" className="hover:text-white">{l}</a></li>)}
+                  </ul>
+                </nav>
+              ))}
+            </div>
+            <div className="border-t border-gray-700 pt-5 text-xs text-gray-500 flex flex-col sm:flex-row justify-between gap-2">
+              <p>© 2026 SkillForge Inc.</p>
+              <div className="flex gap-4"><a href="#" className="hover:text-white">Privacy</a><a href="#" className="hover:text-white">Terms</a><a href="#" className="hover:text-white">Accessibility</a></div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ─── Course data ───────────────────────────────────────────────── */
+    const allCourses = [
+      { id: 1,  title: 'Medical Administrative Assistant Certificate', instructor: 'Dr. Angela Reyes',  field: 'Healthcare',  format: 'Cohort',     weeks: 8,  price: 349,  priceLabel: '$349',  credential: 'Certificate', starts: 'Mar 3' },
+      { id: 2,  title: 'Medical Billing & Coding Specialist',          instructor: 'Nurse Tamara Hill', field: 'Healthcare',  format: 'Cohort',     weeks: 10, price: 399,  priceLabel: '$399',  credential: 'Certificate', starts: 'Mar 10' },
+      { id: 3,  title: 'Phlebotomy Technician Training',               instructor: 'James Monroe, RN', field: 'Healthcare',  format: 'Live Online',weeks: 6,  price: 299,  priceLabel: '$299',  credential: 'Badge',       starts: 'Mar 24' },
+      { id: 4,  title: 'EKG Technician Fundamentals',                  instructor: 'Dr. Carla Bennett', field: 'Healthcare', format: 'Self-Paced', weeks: 8,  price: 249,  priceLabel: '$249',  credential: 'Certificate', starts: 'Anytime' },
+      { id: 5,  title: 'Certified Nursing Assistant (CNA) Prep',       instructor: 'Linda Caruso, RN', field: 'Healthcare',  format: 'Cohort',     weeks: 8,  price: 199,  priceLabel: '$199',  credential: 'Certificate', starts: 'Apr 7' },
+      { id: 6,  title: 'CompTIA A+ Certification Prep',                instructor: 'Marcus Webb',      field: 'IT',          format: 'Self-Paced', weeks: 10, price: 199,  priceLabel: '$199',  credential: 'Certificate', starts: 'Anytime' },
+      { id: 7,  title: 'Cybersecurity Fundamentals',                   instructor: 'David Chang',      field: 'IT',          format: 'Self-Paced', weeks: 14, price: 0,    priceLabel: 'Free',  credential: 'Badge',       starts: 'Anytime' },
+      { id: 8,  title: 'Google IT Support Professional Certificate',   instructor: 'Priya Mehta',      field: 'IT',          format: 'Self-Paced', weeks: 16, price: 149,  priceLabel: '$149',  credential: 'Certificate', starts: 'Anytime' },
+      { id: 9,  title: 'Network+ Exam Prep Boot Camp',                 instructor: 'Kyle Torres',      field: 'IT',          format: 'Cohort',     weeks: 4,  price: 499,  priceLabel: '$499',  credential: 'Certificate', starts: 'Mar 17' },
+      { id: 10, title: 'AWS Cloud Practitioner Essentials',            instructor: 'Sarah Kim',        field: 'IT',          format: 'Live Online',weeks: 6,  price: 299,  priceLabel: '$299',  credential: 'Badge',       starts: 'Mar 31' },
+      { id: 11, title: 'HVAC Fundamentals & Safety',                   instructor: 'Ray Figueroa',     field: 'Trades',      format: 'Live Online',weeks: 12, price: 499,  priceLabel: '$499',  credential: 'Certificate', starts: 'Mar 17' },
+      { id: 12, title: 'Electrical Wiring Basics',                     instructor: 'Tom Vance',        field: 'Trades',      format: 'Self-Paced', weeks: 10, price: 249,  priceLabel: '$249',  credential: 'Badge',       starts: 'Anytime' },
+      { id: 13, title: 'Plumbing Fundamentals',                        instructor: 'Sam Ortega',       field: 'Trades',      format: 'Cohort',     weeks: 8,  price: 379,  priceLabel: '$379',  credential: 'Certificate', starts: 'Apr 14' },
+      { id: 14, title: 'QuickBooks Pro & Payroll Essentials',          instructor: 'Sandra Ortiz',     field: 'Business',    format: 'Cohort',     weeks: 6,  price: 279,  priceLabel: '$279',  credential: 'Certificate', starts: 'Mar 10' },
+      { id: 15, title: 'Administrative Professional Certificate',      instructor: 'Monica Lee',       field: 'Business',    format: 'Self-Paced', weeks: 8,  price: 199,  priceLabel: '$199',  credential: 'Certificate', starts: 'Anytime' },
+      { id: 16, title: 'Project Management Fundamentals (PMI Prep)',   instructor: 'Eric Nguyen',      field: 'Business',    format: 'Cohort',     weeks: 10, price: 449,  priceLabel: '$449',  credential: 'CEU',         starts: 'Mar 24' },
+    ];
+
+    /* ─── Filter Sidebar ────────────────────────────────────────────── */
+    const filterDefs = [
+      { key: 'field',      legend: 'Career Field',    options: ['Healthcare','IT','Trades','Business'] },
+      { key: 'format',     legend: 'Format',          options: ['Self-Paced','Cohort','Live Online'] },
+      { key: 'cost',       legend: 'Cost',            options: ['Free','Under $500','$500+'] },
+      { key: 'credential', legend: 'Credential Type', options: ['Certificate','Badge','CEU'] },
+    ];
+
+    function FilterSidebar({ filters, onChange, onClear }) {
+      return (
+        <aside aria-label="Course filters" className="w-64 flex-shrink-0">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-24">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="font-bold text-sf-navy text-sm uppercase tracking-wide">Filter Courses</h2>
+              <button onClick={onClear} className="text-xs text-sf-amber hover:underline font-medium">Clear all</button>
+            </div>
+            {filterDefs.map(fd => (
+              <fieldset key={fd.key} className="mb-5 last:mb-0">
+                <legend className="text-sm font-semibold text-gray-700 mb-2">{fd.legend}</legend>
+                <div className="space-y-1.5">
+                  {fd.options.map(opt => {
+                    const checked = filters[fd.key]?.includes(opt) ?? false;
+                    return (
+                      <label key={opt} className="flex items-center gap-2.5 cursor-pointer group">
+                        <input type="checkbox" className="accent-sf-amber w-4 h-4 rounded"
+                          aria-label={`${fd.legend}: ${opt}`}
+                          checked={checked}
+                          onChange={() => onChange(fd.key, opt)} />
+                        <span className="text-sm text-gray-600 group-hover:text-gray-900">{opt}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ))}
+          </div>
+        </aside>
+      );
+    }
+
+    /* ─── Course Card ───────────────────────────────────────────────── */
+    function CourseCard({ course }) {
+      const badgeColor = {
+        'Cohort':      'bg-amber-100 text-amber-800',
+        'Self-Paced':  'bg-teal-100 text-teal-800',
+        'Live Online': 'bg-blue-100 text-blue-800',
+      }[course.format] || 'bg-gray-100 text-gray-800';
+
+      const credColor = {
+        'Certificate': 'bg-green-100 text-green-800',
+        'Badge':       'bg-purple-100 text-purple-800',
+        'CEU':         'bg-indigo-100 text-indigo-800',
+      }[course.credential] || 'bg-gray-100 text-gray-800';
+
+      return (
+        <article className="bg-white rounded-xl shadow-sm border border-gray-100 card-hover overflow-hidden flex flex-col"
+          aria-label={`${course.title}, taught by ${course.instructor}`}>
+          <div className={`h-1.5 ${course.format === 'Cohort' ? 'bg-sf-amber' : course.format === 'Self-Paced' ? 'bg-sf-teal' : 'bg-sf-navy'}`} aria-hidden="true" />
+          <div className="p-5 flex flex-col flex-1">
+            <div className="flex flex-wrap gap-2 mb-3">
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badgeColor}`} aria-label={`Format: ${course.format}`}>{course.format}</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${credColor}`} aria-label={`Credential: ${course.credential}`}>{course.credential}</span>
+            </div>
+            <h3 className="font-bold text-sf-navy text-sm leading-snug mb-1 flex-1">{course.title}</h3>
+            <p className="text-xs text-gray-500 mb-4">Instructor: <span className="font-medium text-gray-700">{course.instructor}</span></p>
+            <div className="grid grid-cols-3 text-xs text-gray-500 border-t pt-3 mb-4 gap-1">
+              <span><span className="font-semibold text-gray-700">{course.weeks}w</span><br />Duration</span>
+              <span className="text-center"><span className="font-semibold text-gray-700">{course.starts}</span><br />Starts</span>
+              <span className="text-right"><span className="font-semibold text-gray-800">{course.priceLabel}</span><br />Cost</span>
+            </div>
+            <a href="course-detail.html"
+              aria-label={`Enroll now in ${course.title} — ${course.instructor} — ${course.weeks} weeks — ${course.priceLabel}`}
+              className="block w-full text-center bg-sf-navy hover:bg-sf-navy-h text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">
+              Enroll Now
+            </a>
+          </div>
+        </article>
+      );
+    }
+
+    /* ─── Courses Page ──────────────────────────────────────────────── */
+    function CoursesPage() {
+      const [filters, setFilters] = useState({ field: [], format: [], cost: [], credential: [] });
+      const [sort, setSort] = useState('relevance');
+      const [search, setSearch] = useState('');
+      const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+      const filterPanelRef = useRef(null);
+      const filterBtnRef = useRef(null);
+      const liveRef = useRef(null);
+
+      function toggleFilter(key, val) {
+        setFilters(prev => {
+          const cur = prev[key] || [];
+          return { ...prev, [key]: cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val] };
+        });
+      }
+
+      function clearFilters() {
+        setFilters({ field: [], format: [], cost: [], credential: [] });
+        setSearch('');
+      }
+
+      // Close mobile drawer on Escape
+      useEffect(() => {
+        function onKey(e) {
+          if (e.key === 'Escape' && mobileFilterOpen) {
+            setMobileFilterOpen(false);
+            filterBtnRef.current?.focus();
+          }
+        }
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+      }, [mobileFilterOpen]);
+
+      const filtered = useMemo(() => {
+        let list = allCourses.filter(c => {
+          if (search && !c.title.toLowerCase().includes(search.toLowerCase()) && !c.instructor.toLowerCase().includes(search.toLowerCase())) return false;
+          if (filters.field.length && !filters.field.includes(c.field)) return false;
+          if (filters.format.length && !filters.format.includes(c.format)) return false;
+          if (filters.credential.length && !filters.credential.includes(c.credential)) return false;
+          if (filters.cost.length) {
+            const costMatch = filters.cost.some(fc => {
+              if (fc === 'Free') return c.price === 0;
+              if (fc === 'Under $500') return c.price > 0 && c.price < 500;
+              if (fc === '$500+') return c.price >= 500;
+              return true;
+            });
+            if (!costMatch) return false;
+          }
+          return true;
+        });
+        if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price);
+        if (sort === 'price-desc') list = [...list].sort((a, b) => b.price - a.price);
+        if (sort === 'duration') list = [...list].sort((a, b) => a.weeks - b.weeks);
+        return list;
+      }, [filters, sort, search]);
+
+      const activeFilterCount = Object.values(filters).flat().length;
+
+      return (
+        <>
+          <Header current="courses" />
+          <main id="main-content" tabIndex={-1}>
+            {/* Page header */}
+            <div className="bg-sf-navy text-white py-10">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h1 className="text-3xl font-bold mb-2">Browse All Programs</h1>
+                <p className="text-blue-200 text-sm">40+ programs in Healthcare, IT, Trades &amp; Business — cohorts filling fast</p>
+              </div>
+            </div>
+
+            {/* Live region for filter results */}
+            <div ref={liveRef} aria-live="polite" aria-atomic="true" className="sr-only">
+              {filtered.length} {filtered.length === 1 ? 'course' : 'courses'} found
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              {/* Search + sort toolbar */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                <div className="relative flex-1">
+                  <label htmlFor="course-search" className="sr-only">Search courses by title or instructor</label>
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                  </svg>
+                  <input id="course-search" type="search" placeholder="Search by title or instructor…"
+                    value={search} onChange={e => setSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sf-amber bg-white"
+                    aria-label="Search courses" />
+                </div>
+                <div className="flex gap-2 items-center">
+                  <label htmlFor="sort-select" className="text-sm text-gray-600 whitespace-nowrap">Sort by:</label>
+                  <select id="sort-select" value={sort} onChange={e => setSort(e.target.value)}
+                    className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sf-amber">
+                    <option value="relevance">Relevance</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="duration">Shortest First</option>
+                  </select>
+                  {/* Mobile filter button */}
+                  <button ref={filterBtnRef}
+                    onClick={() => setMobileFilterOpen(true)}
+                    aria-label={`Open filters${activeFilterCount ? `, ${activeFilterCount} active` : ''}`}
+                    aria-expanded={mobileFilterOpen}
+                    aria-controls="mobile-filter-drawer"
+                    className="lg:hidden flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-gray-50">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M7 10h10M11 16h2" />
+                    </svg>
+                    Filters {activeFilterCount > 0 && <span className="bg-sf-amber text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{activeFilterCount}</span>}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-6">
+                {/* Desktop filter sidebar */}
+                <div className="hidden lg:block">
+                  <FilterSidebar filters={filters} onChange={toggleFilter} onClear={clearFilters} />
+                </div>
+
+                {/* Mobile filter drawer */}
+                {mobileFilterOpen && (
+                  <div className="lg:hidden fixed inset-0 z-50 flex">
+                    <div className="absolute inset-0 bg-black/50" onClick={() => { setMobileFilterOpen(false); filterBtnRef.current?.focus(); }} aria-hidden="true" />
+                    <div id="mobile-filter-drawer" ref={filterPanelRef} role="dialog" aria-modal="true" aria-label="Course filters"
+                      className="relative bg-white w-72 h-full overflow-y-auto p-5 shadow-xl z-10">
+                      <div className="flex justify-between items-center mb-4">
+                        <h2 className="font-bold text-sf-navy">Filter Courses</h2>
+                        <button onClick={() => { setMobileFilterOpen(false); filterBtnRef.current?.focus(); }}
+                          aria-label="Close filters" className="p-1.5 rounded-md hover:bg-gray-100">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      {filterDefs.map(fd => (
+                        <fieldset key={fd.key} className="mb-5">
+                          <legend className="text-sm font-semibold text-gray-700 mb-2">{fd.legend}</legend>
+                          <div className="space-y-1.5">
+                            {fd.options.map(opt => {
+                              const checked = filters[fd.key]?.includes(opt) ?? false;
+                              return (
+                                <label key={opt} className="flex items-center gap-2.5 cursor-pointer">
+                                  <input type="checkbox" className="accent-sf-amber w-4 h-4"
+                                    aria-label={`${fd.legend}: ${opt}`}
+                                    checked={checked} onChange={() => toggleFilter(fd.key, opt)} />
+                                  <span className="text-sm text-gray-600">{opt}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </fieldset>
+                      ))}
+                      <button onClick={() => { clearFilters(); setMobileFilterOpen(false); filterBtnRef.current?.focus(); }}
+                        className="w-full mt-2 border border-gray-200 text-gray-600 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">
+                        Clear All Filters
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Course grid */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-sm text-gray-500">
+                      Showing <strong className="text-gray-800">{filtered.length}</strong> {filtered.length === 1 ? 'program' : 'programs'}
+                      {activeFilterCount > 0 && <span className="text-sf-amber"> (filtered)</span>}
+                    </p>
+                    {activeFilterCount > 0 && (
+                      <button onClick={clearFilters} className="text-xs text-sf-amber hover:underline">Clear filters</button>
+                    )}
+                  </div>
+
+                  {filtered.length === 0 ? (
+                    /* cat_9: Empty state with descriptive text, not only illustration */
+                    <div className="bg-white rounded-xl p-12 text-center border border-gray-100">
+                      <div className="text-5xl mb-4" aria-hidden="true">🔍</div>
+                      <h2 className="text-lg font-bold text-gray-700 mb-2">No programs match your filters</h2>
+                      <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                        We couldn't find any courses matching "{search || 'your selected filters'}".
+                        Try adjusting your search or clearing some filters.
+                      </p>
+                      <button onClick={clearFilters}
+                        className="bg-sf-amber text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-sf-amber-h transition-colors">
+                        Clear All Filters
+                      </button>
+                    </div>
+                  ) : (
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5" role="list" aria-label={`${filtered.length} course results`}>
+                      {filtered.map(c => (
+                        <li key={c.id} role="listitem">
+                          <CourseCard course={c} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          </main>
+          <Footer />
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<CoursesPage />);
+  </script>
+</body>
+</html>

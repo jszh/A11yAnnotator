@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NovaMart | Home</title>
+    <meta
+      name="description"
+      content="NovaMart marketplace homepage with flash sale hero, trending categories, and today's deals."
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', "sans-serif"]
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="site-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { useEffect, useState } = React;
+      const { Header, Footer, products, categories, formatPrice, renderStars } = window.NovaMartShared;
+
+      const heroSlides = [
+        {
+          eyebrow: "Flash Sale",
+          title: "Up to 50% off Electronics",
+          body: "Upgrade your desk, audio, and streaming setup with limited-time pricing across top-rated devices.",
+          cta: "Shop electronics",
+          secondary: "View all deals"
+        },
+        {
+          eyebrow: "Weekend Home Refresh",
+          title: "New kitchen and home arrivals",
+          body: "Browse practical upgrades for cooking, comfort, and better-organized spaces.",
+          cta: "Explore home goods",
+          secondary: "See room picks"
+        },
+        {
+          eyebrow: "Style Update",
+          title: "Apparel and sport essentials",
+          body: "Move through work, travel, and training with versatile layers and gear.",
+          cta: "Browse clothing",
+          secondary: "Find activewear"
+        }
+      ];
+
+      function DealCard({ product }) {
+        return (
+          <article className="deal-card min-w-[260px] rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition">
+            <div className="relative overflow-hidden rounded-2xl bg-slate-100">
+              <img src={product.image} alt={product.alt} className="product-image w-full" />
+              <span className="absolute left-3 top-3 rounded-full bg-orange-600 px-3 py-1 text-xs font-bold text-white">
+                {product.badge}
+              </span>
+            </div>
+            <div className="mt-4 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{product.category}</p>
+              <h3 className="text-lg font-bold text-slate-950">{product.name}</h3>
+              <p className="text-sm text-slate-600">
+                <span aria-label={`${product.rating} out of 5 stars`} className="font-semibold text-amber-500">
+                  {renderStars(product.rating)}
+                </span>
+                <span className="ml-2">{product.rating.toFixed(1)}</span>
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-xl font-extrabold text-slate-950">{formatPrice(product.price)}</span>
+                <span className="text-sm text-slate-500 line-through">{formatPrice(product.originalPrice)}</span>
+              </div>
+              <a
+                href={product.slug === "sony-wh-1000xm5-headphones" ? "product.html" : "products.html"}
+                className="inline-flex rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-slate-800"
+              >
+                View deal
+              </a>
+            </div>
+          </article>
+        );
+      }
+
+      function App() {
+        const [slideIndex, setSlideIndex] = useState(0);
+        const featuredDeals = products.slice(0, 8);
+        const currentSlide = heroSlides[slideIndex];
+
+        useEffect(() => {
+          const id = setInterval(() => {
+            setSlideIndex((index) => (index + 1) % heroSlides.length);
+          }, 4200);
+          return () => clearInterval(id);
+        }, []);
+
+        return (
+          <>
+            <a
+              href="#main-content"
+              className="absolute left-4 top-4 z-50 -translate-y-20 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg focus:translate-y-0 focus-visible:translate-y-0"
+            >
+              Skip to main content
+            </a>
+            <Header activePath="index.html" />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+              <section className="hero-banner overflow-hidden rounded-[2rem] p-8 text-white shadow-2xl lg:p-12" aria-label="Promotional hero">
+                <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
+                  <div className="space-y-6">
+                    <span className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-orange-200">
+                      {currentSlide.eyebrow}
+                    </span>
+                    <div className="space-y-4">
+                      <h1 className="max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl">
+                        {currentSlide.title}
+                      </h1>
+                      <p className="max-w-2xl text-lg leading-8 text-slate-200">{currentSlide.body}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <a
+                        href="products.html"
+                        className="rounded-full bg-orange-500 px-6 py-3 text-sm font-bold text-white no-underline hover:bg-orange-400"
+                      >
+                        {currentSlide.cta}
+                      </a>
+                      <a
+                        href="product.html"
+                        className="rounded-full border border-white/30 px-6 py-3 text-sm font-bold text-white no-underline hover:bg-white/10"
+                      >
+                        {currentSlide.secondary}
+                      </a>
+                    </div>
+                  </div>
+                  <div className="glass-panel rounded-[1.75rem] border border-white/10 p-6 text-slate-950 shadow-xl">
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Live campaign</p>
+                    <ul className="mt-4 space-y-4">
+                      {heroSlides.map((slide, index) => (
+                        <li key={slide.title}>
+                          <button
+                            type="button"
+                            onClick={() => setSlideIndex(index)}
+                            className={`w-full rounded-2xl border px-4 py-3 text-left ${
+                              index === slideIndex
+                                ? "border-orange-200 bg-orange-50"
+                                : "border-slate-200 bg-white hover:border-slate-300"
+                            }`}
+                            aria-pressed={index === slideIndex}
+                          >
+                            <span className="block text-base font-bold text-slate-950">{slide.eyebrow}</span>
+                            <span className="mt-1 block text-sm text-slate-600">{slide.title}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-12" aria-labelledby="categories-title">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-700">Trending now</p>
+                    <h2 id="categories-title" className="mt-2 text-3xl font-extrabold text-slate-950">
+                      Shop by category
+                    </h2>
+                  </div>
+                  <a href="products.html" className="text-sm font-semibold text-slate-700 hover:text-slate-950">
+                    Browse all products
+                  </a>
+                </div>
+                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {categories.map((category, index) => (
+                    <a
+                      key={category.name}
+                      href="products.html"
+                      className="category-tile rounded-[1.75rem] border border-slate-200 bg-white p-6 no-underline shadow-sm transition hover:border-slate-300"
+                    >
+                      <div className={`mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl ${
+                        ["bg-blue-100 text-blue-700", "bg-orange-100 text-orange-700", "bg-emerald-100 text-emerald-700", "bg-fuchsia-100 text-fuchsia-700"][index]
+                      }`}>
+                        <span className="text-xl font-bold">{category.name[0]}</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-950">{category.name}</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{category.description}</p>
+                    </a>
+                  ))}
+                </div>
+              </section>
+
+              <section className="mt-12" aria-labelledby="deals-title">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-700">Today's deals</p>
+                    <h2 id="deals-title" className="mt-2 text-3xl font-extrabold text-slate-950">
+                      Scroll through curated picks
+                    </h2>
+                  </div>
+                  <a href="cart.html" className="text-sm font-semibold text-slate-700 hover:text-slate-950">
+                    View cart
+                  </a>
+                </div>
+                <div className="horizontal-scroll mt-6 flex gap-5 overflow-x-auto pb-4" tabIndex="0" aria-label="Today's deals product carousel">
+                  {featuredDeals.map((product) => (
+                    <DealCard key={product.id} product={product} />
+                  ))}
+                </div>
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

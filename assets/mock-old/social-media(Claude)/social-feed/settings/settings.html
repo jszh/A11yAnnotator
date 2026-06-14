@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Nexus Social — Account settings, privacy, notifications, and preferences." />
+  <title>Settings — Nexus Social</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="../components/components.js"></script>
+
+  <script>
+  (function () {
+    const e = React.createElement;
+    const { TopHeader, SidebarNav, MobileBottomNav } = window.NexusComponents;
+
+    const SETTINGS_SECTIONS = [
+      { key: 'account',       icon: '👤', label: 'Account' },
+      { key: 'security',      icon: '🔒', label: 'Security & Access' },
+      { key: 'privacy',       icon: '🛡',  label: 'Privacy & Safety' },
+      { key: 'notifications', icon: '🔔', label: 'Notifications' },
+      { key: 'appearance',    icon: '🎨', label: 'Appearance' },
+      { key: 'accessibility', icon: '♿', label: 'Accessibility' },
+      { key: 'data',          icon: '📊', label: 'Data & Analytics' },
+      { key: 'premium',       icon: '⭐', label: 'Nexus Premium' },
+      { key: 'help',          icon: '❓', label: 'Help & Support' },
+    ];
+
+    function Toggle({ id, defaultChecked, label }) {
+      const [checked, setChecked] = React.useState(defaultChecked || false);
+      return e('label', {
+        className: 'toggle-switch',
+        htmlFor: id,
+        'aria-label': label
+      },
+        e('input', {
+          id,
+          type: 'checkbox',
+          checked,
+          onChange: ev => setChecked(ev.target.checked),
+          role: 'switch',
+          'aria-checked': checked
+        }),
+        e('span', { className: 'toggle-switch__slider', 'aria-hidden': 'true' })
+      );
+    }
+
+    function AccountSection() {
+      return e('div', { className: 'settings-section' },
+        e('h2', { className: 'settings-section__title' }, 'Account Information'),
+
+        /* Avatar */
+        e('div', {
+          style: {
+            display: 'flex', alignItems: 'center', gap: '16px',
+            padding: '16px 0', borderBottom: '1px solid var(--clr-border)'
+          }
+        },
+          e('img', {
+            src: 'https://i.pravatar.cc/80?img=33',
+            alt: 'Your current avatar',
+            style: { width: '72px', height: '72px', borderRadius: '50%', objectFit: 'cover' }
+          }),
+          e('div', null,
+            e('div', { style: { fontWeight: '600', color: 'var(--clr-text)', marginBottom: '4px' } }, 'Profile Photo'),
+            e('div', { style: { fontSize: '0.8125rem', color: 'var(--clr-text-3)', marginBottom: '8px' } },
+              'JPG, PNG or GIF — max 5MB'
+            ),
+            e('button', {
+              className: 'btn-outline',
+              style: { fontSize: '0.8125rem', padding: '6px 14px' },
+              'aria-label': 'Change profile photo'
+            }, 'Change Photo')
+          )
+        ),
+
+        e('div', { className: 'form-field', style: { marginTop: '16px' } },
+          e('label', { htmlFor: 'display-name', className: 'form-label' }, 'Display Name'),
+          e('input', {
+            id: 'display-name',
+            type: 'text',
+            className: 'form-input',
+            defaultValue: 'Jordan Parker',
+            'aria-label': 'Your display name'
+          })
+        ),
+        e('div', { className: 'form-field' },
+          e('label', { htmlFor: 'username', className: 'form-label' }, 'Username'),
+          e('input', {
+            id: 'username',
+            type: 'text',
+            className: 'form-input',
+            defaultValue: '@jordan_p',
+            'aria-label': 'Your username'
+          })
+        ),
+        e('div', { className: 'form-field' },
+          e('label', { htmlFor: 'email', className: 'form-label' }, 'Email Address'),
+          e('input', {
+            id: 'email',
+            type: 'email',
+            className: 'form-input',
+            defaultValue: 'jordan@example.com',
+            'aria-label': 'Your email address'
+          })
+        ),
+        e('div', { className: 'form-field' },
+          e('label', { htmlFor: 'bio', className: 'form-label' }, 'Bio'),
+          e('textarea', {
+            id: 'bio',
+            className: 'form-input',
+            rows: 3,
+            defaultValue: 'Designer & developer building at the intersection of craft and code.',
+            'aria-label': 'Your bio',
+            style: { resize: 'vertical' }
+          })
+        ),
+        e('div', { className: 'form-field' },
+          e('label', { htmlFor: 'location', className: 'form-label' }, 'Location'),
+          e('input', {
+            id: 'location',
+            type: 'text',
+            className: 'form-input',
+            defaultValue: 'San Francisco, CA',
+            'aria-label': 'Your location'
+          })
+        ),
+
+        e('div', { style: { marginTop: '8px' } },
+          e('button', {
+            className: 'btn-primary',
+            style: { width: 'auto', padding: '10px 24px' },
+            'aria-label': 'Save account changes'
+          }, 'Save Changes')
+        )
+      );
+    }
+
+    function NotificationsSection() {
+      const rows = [
+        { id: 'notif-likes',     label: 'Likes',           desc: 'When someone likes your post',    checked: true  },
+        { id: 'notif-replies',   label: 'Replies',         desc: 'When someone replies to you',     checked: true  },
+        { id: 'notif-mentions',  label: 'Mentions',        desc: 'When someone mentions @jordan_p', checked: true  },
+        { id: 'notif-follows',   label: 'New Followers',   desc: 'When someone follows you',        checked: true  },
+        { id: 'notif-reposts',   label: 'Reposts',         desc: 'When someone reposts your content', checked: false },
+        { id: 'notif-dms',       label: 'Direct Messages', desc: 'New message notifications',       checked: true  },
+        { id: 'notif-email',     label: 'Email Digest',    desc: 'Weekly summary via email',        checked: false },
+        { id: 'notif-push',      label: 'Push Notifications', desc: 'Browser push notifications',  checked: true  },
+      ];
+      return e('div', { className: 'settings-section' },
+        e('h2', { className: 'settings-section__title' }, 'Notification Preferences'),
+        rows.map(row =>
+          e('div', { key: row.id, className: 'settings-row' },
+            e('div', null,
+              e('div', { className: 'settings-row__label' }, row.label),
+              e('div', { className: 'settings-row__desc' }, row.desc)
+            ),
+            e(Toggle, { id: row.id, defaultChecked: row.checked, label: `Toggle ${row.label}` })
+          )
+        )
+      );
+    }
+
+    function PrivacySection() {
+      const rows = [
+        { id: 'priv-private',    label: 'Private Account',     desc: 'Only approved followers can see your posts', checked: false },
+        { id: 'priv-search',     label: 'Appear in Search',    desc: 'Let others discover your account',          checked: true  },
+        { id: 'priv-dms',        label: 'Allow DMs from Anyone', desc: 'Receive messages from non-followers',      checked: false },
+        { id: 'priv-tags',       label: 'Allow Photo Tagging', desc: 'Let others tag you in posts',               checked: true  },
+        { id: 'priv-location',   label: 'Location Sharing',    desc: 'Share your location in posts',              checked: false },
+        { id: 'priv-activity',   label: 'Show Online Status',  desc: 'Let followers see when you\'re active',     checked: true  },
+      ];
+      return e('div', { className: 'settings-section' },
+        e('h2', { className: 'settings-section__title' }, 'Privacy & Safety'),
+        rows.map(row =>
+          e('div', { key: row.id, className: 'settings-row' },
+            e('div', null,
+              e('div', { className: 'settings-row__label' }, row.label),
+              e('div', { className: 'settings-row__desc' }, row.desc)
+            ),
+            e(Toggle, { id: row.id, defaultChecked: row.checked, label: `Toggle ${row.label}` })
+          )
+        )
+      );
+    }
+
+    function AppearanceSection() {
+      return e('div', { className: 'settings-section' },
+        e('h2', { className: 'settings-section__title' }, 'Appearance'),
+        e('div', { className: 'settings-row' },
+          e('div', null,
+            e('div', { className: 'settings-row__label' }, 'Theme'),
+            e('div', { className: 'settings-row__desc' }, 'Choose your interface theme')
+          ),
+          e('div', { style: { display: 'flex', gap: '8px' } },
+            ['Dark', 'Light', 'Auto'].map((theme, i) =>
+              e('button', {
+                key: theme,
+                style: {
+                  padding: '6px 14px',
+                  borderRadius: '9999px',
+                  fontSize: '0.8125rem',
+                  fontWeight: '600',
+                  border: '1.5px solid ' + (i === 0 ? 'var(--clr-accent)' : 'var(--clr-border)'),
+                  background: i === 0 ? 'var(--clr-accent)' : 'transparent',
+                  color: i === 0 ? '#fff' : 'var(--clr-text-2)',
+                  transition: 'all 120ms'
+                },
+                'aria-pressed': i === 0,
+                'aria-label': `${theme} theme`
+              }, theme)
+            )
+          )
+        ),
+        e('div', { className: 'settings-row' },
+          e('div', null,
+            e('div', { className: 'settings-row__label' }, 'Font Size'),
+            e('div', { className: 'settings-row__desc' }, 'Adjust the reading text size')
+          ),
+          e('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
+            e('span', { style: { fontSize: '0.75rem', color: 'var(--clr-text-3)' } }, 'A'),
+            e('input', {
+              type: 'range',
+              min: 12, max: 20, defaultValue: 16,
+              style: { width: '100px', accentColor: 'var(--clr-accent)' },
+              'aria-label': 'Font size slider'
+            }),
+            e('span', { style: { fontSize: '1.125rem', color: 'var(--clr-text-3)', fontWeight: '700' } }, 'A')
+          )
+        ),
+        e('div', { className: 'settings-row' },
+          e('div', null,
+            e('div', { className: 'settings-row__label' }, 'Reduce Motion'),
+            e('div', { className: 'settings-row__desc' }, 'Minimize animations and transitions')
+          ),
+          e(Toggle, { id: 'reduce-motion', defaultChecked: false, label: 'Toggle Reduce Motion' })
+        ),
+        e('div', { className: 'settings-row' },
+          e('div', null,
+            e('div', { className: 'settings-row__label' }, 'High Contrast Mode'),
+            e('div', { className: 'settings-row__desc' }, 'Increase contrast for better readability')
+          ),
+          e(Toggle, { id: 'high-contrast', defaultChecked: false, label: 'Toggle High Contrast Mode' })
+        )
+      );
+    }
+
+    function PremiumSection() {
+      return e('div', { className: 'settings-section' },
+        e('h2', { className: 'settings-section__title' }, '⭐ Nexus Premium'),
+        e('div', {
+          style: {
+            background: 'linear-gradient(135deg, var(--clr-accent-muted) 0%, #1a0d38 100%)',
+            border: '1px solid var(--clr-accent)',
+            borderRadius: '16px',
+            padding: '24px',
+            marginBottom: '24px'
+          }
+        },
+          e('div', { style: { fontSize: '1.125rem', fontWeight: '800', color: 'var(--clr-text)', marginBottom: '8px' } },
+            '✦ Upgrade to Nexus Premium'
+          ),
+          e('div', { style: { fontSize: '0.9375rem', color: 'var(--clr-text-2)', lineHeight: '1.6', marginBottom: '20px' } },
+            'Unlock the full Nexus experience with premium features:'
+          ),
+          e('ul', { style: { listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' } },
+            [
+              '✓ Up to 25,000 character posts',
+              '✓ Edit posts up to 5 times',
+              '✓ Full post analytics dashboard',
+              '✓ Priority in replies and search',
+              '✓ Ad-free browsing experience',
+              '✓ Exclusive creator monetization tools',
+              '✓ Early access to new features',
+            ].map((feat, i) =>
+              e('li', {
+                key: i,
+                style: { fontSize: '0.9375rem', color: 'var(--clr-text)', display: 'flex', alignItems: 'center', gap: '8px' }
+              }, feat)
+            )
+          ),
+          e('div', { style: { display: 'flex', gap: '12px', flexWrap: 'wrap' } },
+            e('button', {
+              className: 'btn-premium',
+              style: { padding: '12px 24px', fontSize: '0.9375rem' },
+              'aria-label': 'Subscribe monthly — $9.99 per month'
+            }, '⭐ Monthly — $9.99/mo'),
+            e('button', {
+              style: {
+                padding: '12px 24px',
+                background: 'transparent',
+                border: '1.5px solid var(--clr-accent-light)',
+                borderRadius: '9999px',
+                color: 'var(--clr-accent-light)',
+                fontSize: '0.9375rem',
+                fontWeight: '700',
+                transition: 'background 120ms'
+              },
+              'aria-label': 'Subscribe annually — $99.99 per year — save 17%'
+            }, '⭐ Annual — $99.99/yr')
+          )
+        )
+      );
+    }
+
+    function DangerZone() {
+      return e('div', { className: 'settings-section' },
+        e('h2', {
+          className: 'settings-section__title',
+          style: { color: 'var(--clr-danger)' }
+        }, '⚠ Account Actions'),
+        e('div', { className: 'settings-row' },
+          e('div', null,
+            e('div', { className: 'settings-row__label' }, 'Deactivate Account'),
+            e('div', { className: 'settings-row__desc' }, 'Temporarily hide your account and posts')
+          ),
+          e('button', {
+            style: {
+              padding: '8px 16px',
+              borderRadius: '9999px',
+              border: '1.5px solid var(--clr-warning)',
+              color: 'var(--clr-warning)',
+              fontSize: '0.8125rem',
+              fontWeight: '600',
+              transition: 'background 120ms'
+            },
+            'aria-label': 'Deactivate your account'
+          }, 'Deactivate')
+        ),
+        e('div', { className: 'settings-row' },
+          e('div', null,
+            e('div', { className: 'settings-row__label', style: { color: 'var(--clr-danger)' } }, 'Delete Account'),
+            e('div', { className: 'settings-row__desc' }, 'Permanently delete your account and all data')
+          ),
+          e('button', {
+            style: {
+              padding: '8px 16px',
+              borderRadius: '9999px',
+              border: '1.5px solid var(--clr-danger)',
+              color: 'var(--clr-danger)',
+              fontSize: '0.8125rem',
+              fontWeight: '600',
+              transition: 'background 120ms'
+            },
+            'aria-label': 'Permanently delete your account'
+          }, 'Delete Account')
+        )
+      );
+    }
+
+    const SECTION_COMPONENTS = {
+      account:       AccountSection,
+      notifications: NotificationsSection,
+      privacy:       PrivacySection,
+      appearance:    AppearanceSection,
+      premium:       PremiumSection,
+    };
+
+    function SettingsPage() {
+      const [activeSection, setActiveSection] = React.useState('account');
+
+      const ActiveComp = SECTION_COMPONENTS[activeSection] || null;
+
+      return e(React.Fragment, null,
+        e(TopHeader, { activePage: 'settings' }),
+
+        e('div', { className: 'page-shell' },
+          e(SidebarNav, { activePage: 'settings' }),
+
+          e('main', {
+            id: 'main-content',
+            className: 'main-content',
+            role: 'main',
+            'aria-label': 'Settings'
+          },
+            e('div', { className: 'settings-layout' },
+
+              /* Settings sub-nav */
+              e('nav', {
+                className: 'settings-nav',
+                'aria-label': 'Settings categories'
+              },
+                e('div', { className: 'settings-nav__title' }, 'Settings'),
+                e('ul', { role: 'list' },
+                  SETTINGS_SECTIONS.map(sec =>
+                    e('li', { key: sec.key },
+                      e('button', {
+                        className: 'settings-nav-item' + (activeSection === sec.key ? ' active' : ''),
+                        onClick: () => setActiveSection(sec.key),
+                        'aria-current': activeSection === sec.key ? 'true' : undefined,
+                        'aria-label': sec.label
+                      },
+                        e('span', { 'aria-hidden': 'true', style: { fontSize: '1rem' } }, sec.icon),
+                        e('span', null, sec.label)
+                      )
+                    )
+                  )
+                )
+              ),
+
+              /* Settings content */
+              e('div', {
+                className: 'settings-content',
+                role: 'region',
+                'aria-label': `${SETTINGS_SECTIONS.find(s => s.key === activeSection)?.label || 'Settings'} section`
+              },
+                ActiveComp
+                  ? e(ActiveComp)
+                  : e('div', {
+                      style: { padding: '40px 0', color: 'var(--clr-text-3)', textAlign: 'center' }
+                    },
+                      e('div', { style: { fontSize: '2rem', marginBottom: '12px' } },
+                        SETTINGS_SECTIONS.find(s => s.key === activeSection)?.icon || '⚙'
+                      ),
+                      e('div', { style: { fontWeight: '600', marginBottom: '4px', color: 'var(--clr-text)' } },
+                        SETTINGS_SECTIONS.find(s => s.key === activeSection)?.label
+                      ),
+                      e('div', { style: { fontSize: '0.875rem' } }, 'Settings content coming soon.')
+                    ),
+                activeSection !== 'premium' && e(DangerZone)
+              )
+            )
+          )
+        ),
+
+        e(MobileBottomNav, { activePage: 'settings' })
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('app'));
+    root.render(e(SettingsPage));
+  })();
+  </script>
+</body>
+</html>

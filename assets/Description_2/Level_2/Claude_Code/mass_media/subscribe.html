@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Keep Groundwork Independent — Subscribe | Groundwork</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'gw-bg':      '#F9F8F5',
+            'gw-surf':    '#F0EEE9',
+            'gw-border':  '#E2DDD6',
+            'gw-text':    '#1A1A1A',
+            'gw-muted':   '#6B6560',
+            'gw-accent':  '#1B4332',
+            'gw-accent-h':'#166534',
+            'gw-amber':   '#92400E',
+            'gw-break':   '#B91C1C',
+            'gw-nav':     '#0F1F14',
+            'gw-gold':    '#D97706',
+          },
+          fontFamily: {
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #F9F8F5; color: #1A1A1A; scroll-padding-top: 112px; }
+    h1, h2, h3, h4, .serif { font-family: 'Playfair Display', Georgia, serif; }
+    :focus-visible { outline: 3px solid #D97706 !important; outline-offset: 2px !important; }
+    .skip-link { position:absolute;top:-60px;left:8px;background:#1B4332;color:#fff;padding:10px 18px;z-index:9999;border-radius:6px;font-weight:600;transition:top 0.15s;text-decoration:none;font-size:14px; }
+    .skip-link:focus { top:8px; }
+    .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+    .nav-link { font-size:14px;font-weight:600;color:#a3b18a;text-decoration:none;padding:6px 4px;letter-spacing:0.03em;text-transform:uppercase;transition:color 0.15s; }
+    .nav-link:hover, .nav-link[aria-current="page"] { color:#fff; }
+    .cat-link { font-size:13px;font-weight:600;color:#78716C;text-decoration:none;padding:8px 16px;letter-spacing:0.04em;text-transform:uppercase;transition:all 0.15s;border-bottom:3px solid transparent; }
+    .cat-link:hover { color:#1B4332;border-bottom-color:#1B4332; }
+    .plan-card { border:2px solid;border-radius:4px;padding:24px;transition:all 0.2s;cursor:pointer; }
+    .plan-card-default  { border-color:#E2DDD6;background:#fff; }
+    .plan-card-selected { border-color:#1B4332;background:#fff; }
+    .plan-card-featured { border-color:#D97706;background:#fff; }
+    .plan-card-featured-sel { border-color:#D97706;background:#fffbf0; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    function Header() {
+      const NAV = [
+        { key:'home', label:'Home', href:'index.html' },
+        { key:'climate', label:'Climate', href:'climate.html' },
+        { key:'energy', label:'Energy', href:'climate.html' },
+        { key:'policy', label:'Policy', href:'climate.html' },
+        { key:'opinion', label:'Perspectives', href:'opinion.html' },
+      ];
+      return (
+        <header className="sticky top-0 z-40 bg-gw-nav shadow-lg">
+          <div className="border-b border-white/10">
+            <div className="max-w-7xl mx-auto px-4 h-8 flex items-center justify-between">
+              <span className="text-xs text-white/50">Independent Climate Journalism</span>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="index.html" className="flex items-center gap-2.5" aria-label="Groundwork — home">
+              <div className="w-7 h-7 bg-gw-gold flex items-center justify-center" aria-hidden="true">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <span className="font-serif text-xl font-black text-white">Groundwork</span>
+            </a>
+            <nav aria-label="Main site navigation" className="hidden md:flex items-center gap-5">
+              {NAV.map(n => <a key={n.key} href={n.href} className="nav-link">{n.label}</a>)}
+            </nav>
+          </div>
+          <div className="border-t border-white/10 bg-white">
+            <nav aria-label="Topic categories" className="max-w-7xl mx-auto px-4 flex overflow-x-auto gap-0">
+              {[
+                { key:'climate', label:'Climate', href:'climate.html' },
+                { key:'energy', label:'Energy', href:'climate.html' },
+                { key:'policy', label:'Policy', href:'climate.html' },
+                { key:'opinion', label:'Perspectives', href:'opinion.html' },
+              ].map(c => <a key={c.key} href={c.href} className="cat-link whitespace-nowrap">{c.label}</a>)}
+            </nav>
+          </div>
+        </header>
+      );
+    }
+
+    function Footer() {
+      return (
+        <footer className="bg-gw-nav text-white mt-16" aria-label="Site footer">
+          <div className="max-w-7xl mx-auto px-4 py-10">
+            <div className="flex flex-col sm:flex-row justify-between gap-6 pb-6 border-b border-white/10">
+              <div>
+                <span className="font-serif text-lg font-black text-white">Groundwork</span>
+                <p className="text-white/40 text-xs mt-1">A 501(c)(3) nonprofit news organization.</p>
+              </div>
+              <div className="flex gap-4">{['Privacy','Terms','Accessibility','Contact'].map(l => <a key={l} href="#" className="text-white/40 text-xs hover:text-white transition-colors">{l}</a>)}</div>
+            </div>
+            <p className="pt-4 text-white/25 text-xs">© {new Date().getFullYear()} Groundwork.</p>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── FAQ Accordion ─────────────────────────────────────────── */
+    function FAQ() {
+      const [open, setOpen] = useState(null);
+      const ITEMS = [
+        { id:'q1', q:'Is Groundwork really free to read?', a:'Yes. All of our journalism is free to read, share, and republish under a Creative Commons license. We believe climate information is a public good. Subscriptions and donations fund the reporting — they don\'t create a paywall.' },
+        { id:'q2', q:'Where does Groundwork\'s funding come from?', a:'Groundwork is funded entirely by readers and philanthropic foundations. We do not accept advertising, government funding, or money from any company with a financial interest in the issues we cover. Our full donor list is published annually.' },
+        { id:'q3', q:'What\'s included in the Investigator tier?', a:'Investigator subscribers receive our weekly climate briefing, monthly data digest with exclusive datasets, early access to interactive maps and visualizations, and occasional virtual briefings with our reporting team. You also get our sincere gratitude.' },
+        { id:'q4', q:'Can I give a gift subscription?', a:'Yes. On the payment page, check "This is a gift" and enter the recipient\'s name and email. They\'ll receive a welcome message with instructions. Gift subscriptions are available in 3, 6, and 12-month increments.' },
+        { id:'q5', q:'How do I cancel my subscription?', a:'You can cancel at any time from your account settings page, or by emailing support@groundwork.org. If you cancel, your access continues until the end of your current billing period. We don\'t do retention calls or dark patterns.' },
+        { id:'q6', q:'Is my donation tax-deductible?', a:'Yes. Groundwork is a 501(c)(3) nonprofit organization (EIN: 47-1234567). All donations are tax-deductible to the fullest extent permitted by law. You will receive an email receipt for your records.' },
+        { id:'q7', q:'Do you have student or educator discounts?', a:'Yes — we offer 50% off all paid tiers for current students and K–12 educators. Email education@groundwork.org with proof of eligibility and we\'ll send you a discount code.' },
+      ];
+
+      function handleKey(e, id) {
+        const items = document.querySelectorAll('[data-faq-trigger]');
+        const arr = Array.from(items);
+        const idx = arr.findIndex(el => el.dataset.faqTrigger === id);
+        if (e.key === 'ArrowDown') { e.preventDefault(); arr[Math.min(idx+1, arr.length-1)]?.focus(); }
+        if (e.key === 'ArrowUp')   { e.preventDefault(); arr[Math.max(idx-1, 0)]?.focus(); }
+        if (e.key === 'Home') { e.preventDefault(); arr[0]?.focus(); }
+        if (e.key === 'End')  { e.preventDefault(); arr[arr.length-1]?.focus(); }
+      }
+
+      return (
+        <section aria-labelledby="faq-heading" className="mt-16">
+          <h2 id="faq-heading" className="font-serif text-2xl font-black mb-6 text-center">Frequently Asked Questions</h2>
+          <div className="max-w-2xl mx-auto divide-y divide-gw-border border border-gw-border rounded-sm">
+            {ITEMS.map(item => (
+              <div key={item.id}>
+                <h3>
+                  <button
+                    id={`faq-trigger-${item.id}`}
+                    data-faq-trigger={item.id}
+                    aria-expanded={open === item.id}
+                    aria-controls={`faq-panel-${item.id}`}
+                    onClick={() => setOpen(o => o === item.id ? null : item.id)}
+                    onKeyDown={e => handleKey(e, item.id)}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left font-semibold text-sm text-gw-text hover:bg-gw-surf transition-colors font-sans"
+                  >
+                    <span>{item.q}</span>
+                    <svg
+                      aria-hidden="true"
+                      className={`w-5 h-5 flex-shrink-0 ml-3 text-gw-muted transition-transform ${open === item.id ? 'rotate-180' : ''}`}
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </h3>
+                <div
+                  id={`faq-panel-${item.id}`}
+                  role="region"
+                  aria-labelledby={`faq-trigger-${item.id}`}
+                  hidden={open !== item.id}
+                  className={`px-5 pb-4 text-sm text-gw-muted font-sans leading-relaxed ${open === item.id ? '' : 'hidden'}`}
+                >
+                  {item.a}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    /* ── Payment form ──────────────────────────────────────────── */
+    function PaymentModal({ plan, billing, onClose, triggerRef }) {
+      const closeBtnRef = useRef(null);
+      const modalRef = useRef(null);
+      const successRef = useRef(null);
+      const [step, setStep] = useState('form'); // 'form' | 'success'
+      const [formData, setFormData] = useState({ name:'', email:'', card:'', expiry:'', cvc:'' });
+      const [errors, setErrors] = useState({});
+      const [busy, setBusy] = useState(false);
+
+      useEffect(() => {
+        closeBtnRef.current?.focus();
+        function trap(e) {
+          const focusable = modalRef.current?.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+          if (!focusable || !focusable.length) return;
+          const first = focusable[0]; const last = focusable[focusable.length-1];
+          if (e.key === 'Tab') {
+            if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
+            else { if (document.activeElement === last) { e.preventDefault(); first.focus(); } }
+          }
+          if (e.key === 'Escape') { onClose(); triggerRef.current?.focus(); }
+        }
+        document.addEventListener('keydown', trap);
+        return () => document.removeEventListener('keydown', trap);
+      }, []);
+
+      useEffect(() => { if (step === 'success') successRef.current?.focus(); }, [step]);
+
+      const update = (field, val) => setFormData(d => ({ ...d, [field]: val }));
+
+      function validate() {
+        const errs = {};
+        if (!formData.name.trim()) errs.name = 'Your full name is required.';
+        if (!formData.email.trim()) errs.email = 'Your email address is required.';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errs.email = 'Enter a valid email (e.g., name@example.com).';
+        if (!formData.card.replace(/\s/g,'') || formData.card.replace(/\s/g,'').length < 13) errs.card = 'Enter a valid card number.';
+        if (!formData.expiry || !/^\d{2}\/\d{2}$/.test(formData.expiry)) errs.expiry = 'Enter expiry as MM/YY.';
+        if (!formData.cvc || formData.cvc.length < 3) errs.cvc = 'Enter your 3 or 4-digit security code.';
+        return errs;
+      }
+
+      function handleSubmit(e) {
+        e.preventDefault();
+        const errs = validate();
+        setErrors(errs);
+        if (Object.keys(errs).length === 0) {
+          setBusy(true);
+          setTimeout(() => { setBusy(false); setStep('success'); }, 1200);
+        } else {
+          const firstId = Object.keys(errs)[0];
+          document.getElementById(`pay-${firstId}`)?.focus();
+        }
+      }
+
+      const FIELDS = [
+        { id:'name',   label:'Full name',       type:'text',       placeholder:'Jane Smith',          hint:'Name as it appears on your card.',  autocomplete:'name' },
+        { id:'email',  label:'Email address',   type:'email',      placeholder:'jane@example.com',    hint:'Your receipt will be sent here.',   autocomplete:'email' },
+        { id:'card',   label:'Card number',     type:'text',       placeholder:'1234 5678 9012 3456', hint:null,  autocomplete:'cc-number',   maxLength:19 },
+        { id:'expiry', label:'Expiry (MM/YY)',  type:'text',       placeholder:'MM/YY',               hint:null,  autocomplete:'cc-exp',      maxLength:5 },
+        { id:'cvc',    label:'Security code',   type:'text',       placeholder:'CVC',                 hint:'3 digits on back of card (4 digits for Amex).', autocomplete:'cc-csc', maxLength:4 },
+      ];
+
+      const amount = billing === 'monthly'
+        ? (plan === 'supporter' ? '$7/month' : plan === 'investigator' ? '$20/month' : 'Free')
+        : (plan === 'supporter' ? '$70/year' : plan === 'investigator' ? '$200/year' : 'Free');
+
+      const planLabel = plan === 'free' ? 'Free Reader' : plan === 'supporter' ? 'Supporter' : 'Investigator';
+
+      return (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" ref={modalRef}>
+          <div className="bg-white rounded-sm w-full max-w-md shadow-2xl my-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gw-border bg-gw-nav rounded-t-sm">
+              <div>
+                <h2 id="payment-modal-title" className="font-serif text-lg font-bold text-white">Secure Checkout</h2>
+                <p className="text-xs text-white/50 font-sans">{planLabel} plan · {amount}</p>
+              </div>
+              <button ref={closeBtnRef} onClick={() => { onClose(); triggerRef.current?.focus(); }} aria-label="Close payment form" className="p-1.5 rounded text-white/60 hover:text-white transition-colors">
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="px-6 py-6">
+              {step === 'success' ? (
+                <div role="status" aria-live="polite" ref={successRef} tabIndex={-1} className="focus:outline-none text-center py-4">
+                  <div className="w-14 h-14 bg-gw-accent rounded-full flex items-center justify-center mx-auto mb-4" aria-hidden="true">
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  <h3 className="font-serif text-2xl font-black mb-2">Welcome to Groundwork.</h3>
+                  <p className="text-gw-muted text-sm font-sans leading-relaxed mb-1">Your {planLabel} subscription is active.</p>
+                  <p className="text-gw-muted text-sm font-sans leading-relaxed">A receipt has been sent to <strong>{formData.email || 'your email'}</strong>. Thank you for supporting independent climate journalism.</p>
+                  <button onClick={() => { onClose(); triggerRef.current?.focus(); }} className="mt-6 px-8 py-3 bg-gw-accent text-white font-bold text-sm rounded-sm hover:bg-gw-accent-h transition-colors font-sans">
+                    Start Reading
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} noValidate aria-label="Subscription payment form">
+                  {/* Impact note */}
+                  <div className="bg-gw-accent/5 border border-gw-accent/20 rounded-sm px-4 py-3 mb-5">
+                    <p className="text-xs text-gw-accent font-semibold font-sans">
+                      Your {amount} {billing === 'monthly' ? 'monthly' : 'annual'} support funds approximately{' '}
+                      {plan === 'supporter' ? '3 hours' : plan === 'investigator' ? '9 hours' : '1 hour'} of investigative reporting per {billing === 'monthly' ? 'month' : 'year'}.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {FIELDS.map(f => (
+                      <div key={f.id}>
+                        <label htmlFor={`pay-${f.id}`} className="block text-sm font-semibold text-gw-text mb-1 font-sans">
+                          {f.label} <span aria-hidden="true" className="text-gw-break">*</span>
+                        </label>
+                        {f.hint && <p id={`pay-${f.id}-hint`} className="text-xs text-gw-muted mb-1 font-sans">{f.hint}</p>}
+                        <input
+                          id={`pay-${f.id}`}
+                          type={f.type}
+                          value={formData[f.id]}
+                          onChange={e => update(f.id, e.target.value)}
+                          required
+                          aria-required="true"
+                          aria-invalid={!!errors[f.id]}
+                          aria-describedby={[f.hint && `pay-${f.id}-hint`, errors[f.id] && `pay-${f.id}-err`].filter(Boolean).join(' ') || undefined}
+                          autoComplete={f.autocomplete}
+                          placeholder={f.placeholder}
+                          maxLength={f.maxLength}
+                          className={`w-full px-3 py-2.5 border rounded-sm text-sm outline-none transition-colors font-sans ${errors[f.id] ? 'border-gw-break focus:border-gw-break focus:ring-1 focus:ring-gw-break' : 'border-gw-border focus:border-gw-accent focus:ring-1 focus:ring-gw-accent'}`}
+                        />
+                        {errors[f.id] && <p id={`pay-${f.id}-err`} role="alert" className="text-xs text-gw-break mt-1 font-sans">{errors[f.id]}</p>}
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-xs text-gw-muted font-sans mt-4 flex items-center gap-1.5">
+                    <svg aria-hidden="true" className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    Payment processed securely. We never store your card number.
+                  </p>
+
+                  <button type="submit" disabled={busy} aria-busy={busy} className="w-full mt-5 py-3 bg-gw-gold text-white font-bold text-sm rounded-sm hover:bg-amber-600 transition-colors disabled:opacity-60 font-sans">
+                    {busy ? 'Processing…' : `Subscribe — ${amount}`}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Plan card ─────────────────────────────────────────────── */
+    function PlanCard({ plan, selected, billing, onSelect, onSubscribe, subscribeRef }) {
+      const prices = {
+        free:        { monthly: 'Free',   annual: 'Free' },
+        supporter:   { monthly: '$7/mo',  annual: '$70/yr' },
+        investigator:{ monthly: '$20/mo', annual: '$200/yr' },
+      };
+      const labels = { free:'Free Reader', supporter:'Supporter', investigator:'Investigator' };
+      const descriptions = {
+        free: 'Full access to all our journalism, always.',
+        supporter: 'Fund the investigations that hold power to account.',
+        investigator: 'Go deeper with data, newsletters, and direct access.',
+      };
+      const features = {
+        free: ['All articles, investigations, and data', 'Public newsletter', 'Republication rights'],
+        supporter: ['Everything in Free', 'Weekly Climate Briefing newsletter', 'Early access to interactive maps', 'Member acknowledgment'],
+        investigator: ['Everything in Supporter', 'Monthly Data Digest with raw datasets', 'Exclusive briefings with reporting team', 'Annual Impact Report'],
+      };
+      const isFeatured = plan === 'investigator';
+      const cardClass = isFeatured
+        ? (selected ? 'plan-card plan-card-featured-sel' : 'plan-card plan-card-featured')
+        : (selected ? 'plan-card plan-card-selected' : 'plan-card plan-card-default');
+
+      return (
+        <div
+          className={`${cardClass} relative`}
+          onClick={() => onSelect(plan)}
+          role="button"
+          aria-pressed={selected}
+          aria-label={`${labels[plan]} plan — ${prices[plan][billing]}. ${selected ? 'Currently selected.' : 'Click to select.'}`}
+          tabIndex={0}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(plan); } }}
+        >
+          {isFeatured && (
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="bg-gw-gold text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full whitespace-nowrap font-sans">Most Popular</span>
+            </div>
+          )}
+          <div className="mb-3">
+            <h3 className="font-serif text-lg font-bold text-gw-text">{labels[plan]}</h3>
+            <p className="text-2xl font-extrabold text-gw-text font-sans mt-1 mb-0.5">{prices[plan][billing]}</p>
+            {plan !== 'free' && <p className="text-xs text-gw-muted font-sans">{billing === 'annual' ? 'billed annually' : 'billed monthly'}</p>}
+          </div>
+          <p className="text-sm text-gw-muted font-sans mb-4">{descriptions[plan]}</p>
+          <ul className="space-y-2 mb-5" role="list" aria-label={`${labels[plan]} features`}>
+            {features[plan].map(f => (
+              <li key={f} className="flex items-start gap-2 text-sm font-sans">
+                <svg aria-hidden="true" className="w-4 h-4 text-gw-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                <span className="text-gw-text">{f}</span>
+              </li>
+            ))}
+          </ul>
+          <button
+            ref={subscribeRef}
+            onClick={e => { e.stopPropagation(); onSelect(plan); onSubscribe(plan); }}
+            aria-label={`Subscribe to ${labels[plan]} plan — ${prices[plan][billing]}`}
+            className={`w-full py-2.5 text-sm font-bold rounded-sm transition-colors font-sans ${
+              isFeatured
+                ? 'bg-gw-gold text-white hover:bg-amber-600'
+                : plan === 'free'
+                  ? 'bg-gw-surf border border-gw-border text-gw-text hover:bg-gw-border'
+                  : 'bg-gw-accent text-white hover:bg-gw-accent-h'
+            }`}
+          >
+            {plan === 'free' ? 'Start Reading Free' : `Subscribe — ${prices[plan][billing]}`}
+          </button>
+        </div>
+      );
+    }
+
+    /* ── Subscribe page ────────────────────────────────────────── */
+    function SubscribePage() {
+      const [billing, setBilling] = useState('monthly');
+      const [selectedPlan, setSelectedPlan] = useState('investigator');
+      const [modalOpen, setModalOpen] = useState(false);
+      const [modalPlan, setModalPlan] = useState('investigator');
+      const [liveMsg, setLiveMsg] = useState('');
+
+      const freeRef = useRef(null);
+      const supporterRef = useRef(null);
+      const investigatorRef = useRef(null);
+      const planRefs = { free: freeRef, supporter: supporterRef, investigator: investigatorRef };
+
+      function handlePlanSelect(plan) {
+        setSelectedPlan(plan);
+        const labels = { free:'Free Reader', supporter:'Supporter', investigator:'Investigator' };
+        setLiveMsg(`${labels[plan]} plan selected`);
+        setTimeout(() => setLiveMsg(''), 2000);
+      }
+
+      function handleSubscribe(plan) {
+        if (plan === 'free') { setLiveMsg('You are now a Free Reader. All journalism remains accessible.'); setTimeout(()=>setLiveMsg(''),3000); return; }
+        setModalPlan(plan);
+        setModalOpen(true);
+      }
+
+      return (
+        <div className="min-h-screen bg-gw-bg">
+          {modalOpen && <PaymentModal plan={modalPlan} billing={billing} onClose={() => setModalOpen(false)} triggerRef={planRefs[modalPlan]} />}
+          <Header />
+
+          <main id="main-content" tabIndex={-1} className="focus:outline-none">
+            <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{liveMsg}</div>
+
+            {/* Hero */}
+            <section className="bg-gw-nav text-white py-16 px-4 text-center" aria-labelledby="subscribe-hero-heading">
+              <div className="max-w-2xl mx-auto">
+                <p className="text-xs font-bold uppercase tracking-widest text-gw-gold mb-3 font-sans">Reader Supported</p>
+                <h1 id="subscribe-hero-heading" className="font-serif text-4xl lg:text-5xl font-black leading-tight mb-4">Keep Groundwork Independent.</h1>
+                <p className="text-white/70 text-base font-sans leading-relaxed max-w-xl mx-auto">
+                  No advertising. No government money. No corporate sponsors. Every investigation we publish is funded entirely by readers like you. Your support is the only thing that makes this journalism possible.
+                </p>
+              </div>
+            </section>
+
+            {/* Impact metrics */}
+            <section aria-labelledby="impact-heading" className="bg-gw-accent text-white py-10 px-4">
+              <div className="max-w-4xl mx-auto">
+                <h2 id="impact-heading" className="sr-only">Your support's impact</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center" role="list" aria-label="Impact statistics">
+                  {[
+                    { stat:'$7/mo', label:'funds 3 hours of investigative reporting' },
+                    { stat:'$20/mo', label:'funds 9 hours of investigative reporting' },
+                    { stat:'47', label:'FOIA requests filed in 2025' },
+                    { stat:'83', label:'sources interviewed for our groundwater investigation alone' },
+                  ].map(item => (
+                    <div key={item.stat} role="listitem" className="border-t-2 border-gw-gold pt-4">
+                      <p className="font-serif text-3xl font-black text-gw-gold" aria-label={`${item.stat}: ${item.label}`}>{item.stat}</p>
+                      <p className="text-white/60 text-xs mt-1 font-sans leading-relaxed">{item.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Plans */}
+            <section aria-labelledby="plans-heading" className="max-w-5xl mx-auto px-4 py-14">
+              <h2 id="plans-heading" className="font-serif text-2xl font-black text-center mb-3">Choose Your Level of Support</h2>
+              <p className="text-center text-gw-muted text-sm font-sans mb-8 max-w-lg mx-auto">
+                All journalism remains free to read regardless of plan. Paid tiers are how you support the work and unlock a few extras.
+              </p>
+
+              {/* Billing toggle */}
+              <div className="flex justify-center mb-8">
+                <div className="inline-flex items-center gap-0 p-1 bg-gw-surf border border-gw-border rounded-sm" role="group" aria-label="Billing frequency">
+                  {['monthly','annual'].map(type => (
+                    <button
+                      key={type}
+                      onClick={() => { setBilling(type); setLiveMsg(`Switched to ${type} billing`); setTimeout(()=>setLiveMsg(''),2000); }}
+                      aria-pressed={billing === type}
+                      aria-label={`${type === 'annual' ? 'Annual billing (save 17%)' : 'Monthly billing'}`}
+                      className={`px-5 py-2 text-sm font-semibold rounded-sm transition-colors font-sans ${billing === type ? 'bg-gw-accent text-white' : 'text-gw-muted hover:text-gw-text'}`}
+                    >
+                      {type === 'monthly' ? 'Monthly' : 'Annual'}
+                      {type === 'annual' && <span aria-hidden="true" className="ml-1.5 text-[10px] font-bold text-gw-gold">Save 17%</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Plan cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start" role="radiogroup" aria-label="Subscription plan options">
+                {['free','supporter','investigator'].map(plan => (
+                  <PlanCard
+                    key={plan}
+                    plan={plan}
+                    selected={selectedPlan === plan}
+                    billing={billing}
+                    onSelect={handlePlanSelect}
+                    onSubscribe={handleSubscribe}
+                    subscribeRef={planRefs[plan]}
+                  />
+                ))}
+              </div>
+
+              <p className="text-center text-xs text-gw-muted font-sans mt-6">
+                All plans include a 30-day money-back guarantee. Cancel anytime. Tax-deductible as a charitable donation.
+              </p>
+            </section>
+
+            {/* Testimonials */}
+            <section aria-labelledby="testimonials-heading" className="bg-gw-surf border-t border-b border-gw-border py-12 px-4">
+              <div className="max-w-4xl mx-auto">
+                <h2 id="testimonials-heading" className="font-serif text-2xl font-black text-center mb-8">What Our Supporters Say</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6" role="list" aria-label="Reader testimonials">
+                  {[
+                    { quote: "Groundwork's PFAS investigation changed how our county manages water testing. This is journalism that actually moves policy.", name: "Dr. Rachel Obi", role:"County Environmental Health Officer, CA", grad:'from-teal-500 to-emerald-700' },
+                    { quote: "I've been a science journalist for 20 years. Groundwork does the work that major outlets have stopped doing. I support because it matters.", name: "Thomas Larssen", role:"Science Journalist &amp; Investigator Subscriber", grad:'from-blue-500 to-indigo-700' },
+                    { quote: "As a farmer watching our aquifer disappear, having this journalism exist — and be free — is not a small thing. Thank you.", name: "Maria Echeverría", role:"Farmer, Fresno County, CA", grad:'from-amber-500 to-orange-700' },
+                  ].map(t => (
+                    <figure key={t.name} role="listitem" className="bg-white border border-gw-border p-5 rounded-sm">
+                      <blockquote className="font-serif text-base leading-relaxed text-gw-text mb-4 italic">"{t.quote}"</blockquote>
+                      <figcaption className="flex items-center gap-2.5">
+                        <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${t.grad} flex items-center justify-center text-white font-bold text-xs font-sans flex-shrink-0`} role="img" aria-label={`${t.name}'s avatar`}>
+                          {t.name.split(' ').map(w=>w[0]).join('')}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-gw-text font-sans">{t.name}</p>
+                          <p className="text-xs text-gw-muted font-sans" dangerouslySetInnerHTML={{ __html: t.role }} />
+                        </div>
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* FAQ */}
+            <div className="max-w-3xl mx-auto px-4 py-8">
+              <FAQ />
+            </div>
+          </main>
+
+          <Footer />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<SubscribePage />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MarketFlow - Products</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: "#2563eb",
+              ink: "#0f172a",
+              soft: "#f8fafc"
+            },
+            boxShadow: {
+              card: "0 10px 35px rgba(15, 23, 42, 0.08)"
+            }
+          }
+        }
+      };
+    </script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-slate-100 text-ink">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const navLinks = [
+        { href: "index.html", label: "Home" },
+        { href: "products.html", label: "Products" },
+        { href: "product.html", label: "Product Detail" },
+        { href: "cart.html", label: "Cart" },
+        { href: "account.html", label: "Account" }
+      ];
+
+      function Header({ active }) {
+        return (
+          <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+            <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-4 sm:px-6">
+              <a href="index.html" className="text-2xl font-black tracking-tight text-brand">MarketFlow</a>
+              <div className="hidden flex-1 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 md:flex">
+                <input className="w-full bg-transparent text-sm outline-none" placeholder="Search products, brands, categories..." />
+              </div>
+              <nav className="flex gap-1 overflow-x-auto text-sm font-medium">
+                {navLinks.map((item) => (
+                  <a key={item.href} href={item.href} className={`whitespace-nowrap rounded-lg px-3 py-2 ${active === item.href ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </header>
+        );
+      }
+
+      function Footer() {
+        return (
+          <footer className="mt-14 border-t border-slate-200 bg-white">
+            <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-slate-500 sm:px-6">
+              <p className="font-semibold text-slate-700">MarketFlow Marketplace</p>
+              <p className="mt-1">Fast checkout, global shipping, and curated product collections.</p>
+            </div>
+          </footer>
+        );
+      }
+
+      function ProductsPage() {
+        const products = [
+          { name: "Wireless Earbuds", category: "Audio", price: "$79", image: "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?auto=format&fit=crop&w=800&q=80" },
+          { name: "4K Monitor", category: "Office", price: "$299", image: "https://images.unsplash.com/photo-1527443224154-c4b7a86f1a6f?auto=format&fit=crop&w=800&q=80" },
+          { name: "Mechanical Keyboard", category: "Accessories", price: "$109", image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=800&q=80" },
+          { name: "Gaming Chair", category: "Furniture", price: "$229", image: "https://images.unsplash.com/photo-1598300053653-a6e8f1d7737a?auto=format&fit=crop&w=800&q=80" },
+          { name: "Smart Home Hub", category: "Smart Living", price: "$119", image: "https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=800&q=80" },
+          { name: "Action Camera", category: "Photography", price: "$259", image: "https://images.unsplash.com/photo-1519183071298-a2962be96a9f?auto=format&fit=crop&w=800&q=80" }
+        ];
+
+        return (
+          <>
+            <Header active="products.html" />
+            <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+              <section className="rounded-2xl bg-white p-5 shadow-card sm:p-6">
+                <h1 className="text-3xl font-black">All Products</h1>
+                <p className="mt-2 text-slate-500">Browse top categories and compare best sellers.</p>
+              </section>
+
+              <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {products.map((item) => (
+                  <article key={item.name} className="overflow-hidden rounded-xl bg-white shadow-card">
+                    <img src={item.image} alt={item.name} className="h-48 w-full object-cover" />
+                    <div className="p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-brand">{item.category}</p>
+                      <h2 className="mt-1 text-lg font-semibold">{item.name}</h2>
+                      <div className="mt-4 flex items-center justify-between">
+                        <span className="text-xl font-bold">{item.price}</span>
+                        <a href="product.html" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">View Details</a>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<ProductsPage />);
+    </script>
+  </body>
+</html>

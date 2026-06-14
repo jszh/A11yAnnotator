@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop Electronics, Home Goods & Apparel – NovaMart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eff6ff', 100:'#dbeafe', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 800:'#1e40af' },
+            accent: { 400:'#fb923c', 500:'#f97316', 600:'#ea580c' }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; border-radius: 3px; }
+    .badge-sale { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    input[type="range"] { accent-color: #2563eb; }
+    input[type="checkbox"] { accent-color: #2563eb; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    const NAV_LINKS = [
+      { label: 'Electronics', href: 'products.html?cat=electronics' },
+      { label: 'Kitchen', href: 'products.html?cat=kitchen' },
+      { label: 'Clothing', href: 'products.html?cat=clothing' },
+      { label: 'Sports', href: 'products.html?cat=sports' },
+      { label: "Today's Deals", href: 'products.html?cat=deals' },
+    ];
+
+    const ALL_PRODUCTS = [
+      { id:1,  name:'Sony WH-1000XM5 Wireless Headphones',       price:279.99, original:349.99, rating:4.8, reviews:12847, brand:'Sony',       category:'Electronics', available:true,  img:'headphones',  alt:'Sony WH-1000XM5 noise-cancelling headphones in black' },
+      { id:2,  name:'Apple AirPods Pro (3rd Generation)',          price:199.99, original:249.99, rating:4.7, reviews:19560, brand:'Apple',      category:'Electronics', available:true,  img:'airpods',     alt:'Apple AirPods Pro earbuds with charging case' },
+      { id:3,  name:'Samsung 65" 4K QLED Smart TV',                price:899.99, original:1199.99,rating:4.6, reviews:6210,  brand:'Samsung',    category:'Electronics', available:true,  img:'tv65',        alt:'Samsung 65-inch 4K QLED TV showing vivid nature scene' },
+      { id:4,  name:'Dell XPS 15 Laptop – Intel Core i7',          price:1299.99,original:1599.99,rating:4.5, reviews:3840,  brand:'Dell',       category:'Electronics', available:false, img:'laptop',      alt:'Dell XPS 15 laptop open showing slim bezel display' },
+      { id:5,  name:'iPad Air 6th Gen 11" Wi-Fi 256GB',            price:599.99, original:749.99, rating:4.7, reviews:8810,  brand:'Apple',      category:'Electronics', available:true,  img:'ipad',        alt:'Apple iPad Air in space grey with Apple Pencil' },
+      { id:6,  name:'Bose QuietComfort 45 Headphones',             price:229.99, original:329.99, rating:4.6, reviews:7240,  brand:'Bose',       category:'Electronics', available:true,  img:'bose',        alt:'Bose QuietComfort 45 headphones folded in white' },
+      { id:7,  name:'Instant Pot Duo 7-in-1 Electric Pressure Cooker', price:79.99, original:99.99, rating:4.8, reviews:48300, brand:'Instant Pot', category:'Kitchen', available:true,  img:'instantpot',  alt:'Instant Pot Duo 6-quart stainless steel cooker' },
+      { id:8,  name:'Ninja Air Fryer XL 5.5 Quart',               price:89.99,  original:129.99, rating:4.7, reviews:8302,  brand:'Ninja',      category:'Kitchen',     available:true,  img:'airfryer',    alt:'Ninja XL air fryer with digital display panel' },
+      { id:9,  name:'KitchenAid 5 Qt Artisan Stand Mixer',         price:349.99, original:449.99, rating:4.9, reviews:31000, brand:'KitchenAid', category:'Kitchen',     available:true,  img:'mixer',       alt:'KitchenAid stand mixer in Empire Red on marble' },
+      { id:10, name:'Dyson V15 Detect Absolute Vacuum',            price:549.99, original:699.99, rating:4.8, reviews:8740,  brand:'Dyson',      category:'Home',        available:true,  img:'vacuum',      alt:'Dyson V15 cordless vacuum in gold and purple' },
+      { id:11, name:'Nike Air Max 270 Running Shoes',              price:129.99, original:149.99, rating:4.5, reviews:15200, brand:'Nike',       category:'Clothing',    available:true,  img:'nike',        alt:'Nike Air Max 270 in triple white colourway' },
+      { id:12, name:'Levi\'s 501 Original Fit Jeans',              price:49.99,  original:79.99,  rating:4.4, reviews:5430,  brand:'Levi\'s',    category:'Clothing',    available:true,  img:'jeans',       alt:'Dark-wash Levi\'s 501 jeans folded on wooden shelf' },
+      { id:13, name:'Patagonia Better Sweater Fleece Jacket',      price:159.99, original:199.99, rating:4.7, reviews:3490,  brand:'Patagonia',  category:'Clothing',    available:true,  img:'jacket',      alt:'Patagonia fleece jacket in navy blue on hanger' },
+      { id:14, name:'Adidas Ultraboost 23 Running Shoes',          price:119.99, original:159.99, rating:4.5, reviews:9800,  brand:'Adidas',     category:'Clothing',    available:true,  img:'adidas',      alt:'Adidas Ultraboost 23 in core black and white' },
+      { id:15, name:'Yoga Mat Premium Non-Slip 6mm',               price:32.99,  original:49.99,  rating:4.6, reviews:4120,  brand:'Gaiam',      category:'Sports',      available:true,  img:'yoga',        alt:'Purple yoga mat rolled out on hardwood floor' },
+      { id:16, name:'Resistance Bands Set (5 Levels)',              price:24.99,  original:34.99,  rating:4.5, reviews:6700,  brand:'Fit Simplify',category:'Sports',     available:true,  img:'bands',       alt:'Set of five colourful resistance bands on white background' },
+      { id:17, name:'Hydro Flask 32 oz Wide Mouth Water Bottle',   price:34.95,  original:44.95,  rating:4.8, reviews:22100, brand:'Hydro Flask',category:'Sports',      available:true,  img:'flask',       alt:'Teal Hydro Flask 32 oz bottle with flex straw lid' },
+      { id:18, name:'Bowflex SelectTech 552 Dumbbells (Pair)',     price:379.99, original:549.99, rating:4.7, reviews:11200, brand:'Bowflex',    category:'Sports',      available:false, img:'dumbbells',   alt:'Bowflex SelectTech adjustable dumbbells on gym floor' },
+      { id:19, name:'Kindle Paperwhite (16GB, 2024)',               price:139.99, original:159.99, rating:4.8, reviews:25000, brand:'Amazon',     category:'Electronics', available:true,  img:'kindle',      alt:'Amazon Kindle Paperwhite displaying an e-book page' },
+      { id:20, name:'Echo Dot (5th Gen) Smart Speaker',            price:29.99,  original:49.99,  rating:4.6, reviews:15300, brand:'Amazon',     category:'Electronics', available:true,  img:'echo',        alt:'Charcoal Amazon Echo Dot on wooden side table' },
+      { id:21, name:'Ring Video Doorbell Pro 2',                   price:149.99, original:199.99, rating:4.5, reviews:9870,  brand:'Ring',       category:'Electronics', available:true,  img:'doorbell',    alt:'Ring Video Doorbell Pro 2 installed on brick wall' },
+      { id:22, name:'iRobot Roomba i7+ Self-Emptying Robot Vacuum',price:499.99, original:699.99, rating:4.5, reviews:4900,  brand:'iRobot',     category:'Home',        available:true,  img:'roomba',      alt:'iRobot Roomba i7 robot vacuum on hardwood floor' },
+      { id:23, name:'Fitbit Charge 6 Fitness Tracker',             price:129.99, original:159.99, rating:4.5, reviews:7100,  brand:'Fitbit',     category:'Electronics', available:true,  img:'fitbit',      alt:'Fitbit Charge 6 in obsidian on wrist showing heart rate' },
+      { id:24, name:'GoPro HERO12 Black Action Camera',            price:349.99, original:399.99, rating:4.6, reviews:5500,  brand:'GoPro',      category:'Electronics', available:true,  img:'gopro',       alt:'GoPro HERO12 camera mounted on helmet in daylight' },
+    ];
+
+    const BRANDS = ['Apple', 'Sony', 'Samsung', 'Dell', 'Bose', 'Ninja', 'Instant Pot', 'KitchenAid', 'Dyson', 'Nike', 'Adidas', 'Patagonia', 'Amazon'];
+    const SORT_OPTIONS = [
+      { value: 'best', label: 'Best Match' },
+      { value: 'price_asc', label: 'Price: Low to High' },
+      { value: 'price_desc', label: 'Price: High to Low' },
+      { value: 'rating', label: 'Customer Rating' },
+      { value: 'reviews', label: 'Most Reviewed' },
+    ];
+
+    /* ─── Stars ───────────────────────────────────── */
+    const Stars = ({ rating, reviews }) => {
+      const full = Math.floor(rating);
+      const half = rating % 1 >= 0.5;
+      return (
+        <div className="flex items-center gap-1" aria-label={`${rating} out of 5 stars, ${reviews.toLocaleString()} reviews`}>
+          {Array.from({ length: 5 }, (_, i) => (
+            <span key={i} aria-hidden="true" className={i < full ? 'text-amber-400' : i === full && half ? 'text-amber-300' : 'text-gray-300'}>★</span>
+          ))}
+          <span className="text-xs text-gray-500 ml-0.5">({reviews.toLocaleString()})</span>
+        </div>
+      );
+    };
+
+    /* ─── Header ──────────────────────────────────── */
+    const Header = () => {
+      const [query, setQuery] = useState('');
+      const [mobileOpen, setMobileOpen] = useState(false);
+      const handleSearch = (e) => { e.preventDefault(); };
+      return (
+        <header role="banner">
+          <div className="bg-brand-800 text-white text-sm py-1.5 text-center">
+            🚚 Free shipping on orders over $35 — <a href="products.html" className="underline font-medium hover:text-brand-100">Shop Now</a>
+          </div>
+          <div className="bg-brand-700 text-white shadow-lg">
+            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+              <a href="index.html" className="flex items-center gap-2 shrink-0 rounded" aria-label="NovaMart home">
+                <div className="w-8 h-8 bg-accent-500 rounded-lg flex items-center justify-center font-black text-white text-lg" aria-hidden="true">N</div>
+                <span className="text-xl font-black tracking-tight hidden sm:block">NovaMart</span>
+              </a>
+              <form onSubmit={handleSearch} role="search" className="flex-1 flex max-w-2xl" aria-label="Site search">
+                <label htmlFor="site-search" className="sr-only">Search NovaMart</label>
+                <input id="site-search" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search products, brands, categories…"
+                  className="flex-1 px-4 py-2 rounded-l-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-400" />
+                <button type="submit" className="bg-accent-500 hover:bg-accent-600 px-4 rounded-r-lg font-semibold text-sm transition-colors" aria-label="Submit search">🔍 Search</button>
+              </form>
+              <nav aria-label="Account and cart" className="flex items-center gap-3 shrink-0">
+                <a href="account.html" className="flex flex-col items-center text-xs hover:text-brand-100 px-2 py-1" aria-label="Your account"><span aria-hidden="true" className="text-xl">👤</span><span className="hidden sm:block">Account</span></a>
+                <a href="cart.html" className="relative flex flex-col items-center text-xs hover:text-brand-100 px-2 py-1" aria-label="Cart, 3 items">
+                  <span aria-hidden="true" className="text-xl">🛒</span><span className="hidden sm:block">Cart</span>
+                  <span className="absolute -top-1 -right-1 bg-accent-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center" aria-hidden="true">3</span>
+                </a>
+              </nav>
+            </div>
+            <nav aria-label="Main categories" className="bg-brand-600">
+              <div className="max-w-7xl mx-auto px-4">
+                <ul className="flex gap-1">
+                  {NAV_LINKS.map(link => (
+                    <li key={link.label}>
+                      <a href={link.href} className="block px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 rounded-t transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">{link.label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </nav>
+          </div>
+        </header>
+      );
+    };
+
+    /* ─── Footer ──────────────────────────────────── */
+    const Footer = () => (
+      <footer className="bg-gray-900 text-gray-300 mt-16" role="contentinfo">
+        <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 bg-accent-500 rounded-lg flex items-center justify-center font-black text-white" aria-hidden="true">N</div>
+              <span className="text-white font-black text-lg">NovaMart</span>
+            </div>
+            <p className="text-sm text-gray-400">Your trusted marketplace for electronics, home goods, and apparel.</p>
+          </div>
+          {[
+            { title:'Shop', items:['Electronics','Kitchen','Clothing','Sports',"Today's Deals"] },
+            { title:'Help',  items:['Track Order','Returns & Refunds','Shipping Info','FAQs','Contact Us'] },
+            { title:'Company', items:['About NovaMart','Careers','Press','Sell on NovaMart','Affiliate Program'] },
+          ].map(col => (
+            <div key={col.title}>
+              <h3 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">{col.title}</h3>
+              <ul className="space-y-2 text-sm">
+                {col.items.map(item => <li key={item}><a href="#" className="hover:text-white transition-colors">{item}</a></li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-gray-800 max-w-7xl mx-auto px-4 py-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+          <p>© 2026 NovaMart, Inc. All rights reserved.</p>
+          <div className="flex gap-4">
+            <a href="#" className="hover:text-white">Privacy Policy</a>
+            <a href="#" className="hover:text-white">Terms of Service</a>
+            <a href="#" className="hover:text-white">Accessibility</a>
+          </div>
+        </div>
+      </footer>
+    );
+
+    /* ─── Filter Sidebar ──────────────────────────── */
+    const FilterSidebar = ({ filters, setFilters, onClear }) => {
+      const toggleBrand = (brand) => {
+        setFilters(f => ({
+          ...f,
+          brands: f.brands.includes(brand) ? f.brands.filter(b => b !== brand) : [...f.brands, brand]
+        }));
+      };
+
+      return (
+        <aside aria-label="Product filters" className="w-full md:w-64 shrink-0">
+          <div className="bg-white rounded-xl border border-gray-200 p-5 sticky top-4">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-bold text-gray-900">Filters</h2>
+              <button onClick={onClear} className="text-sm text-brand-600 hover:text-brand-700 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 rounded">Clear all</button>
+            </div>
+
+            {/* Availability */}
+            <fieldset className="mb-6">
+              <legend className="font-semibold text-sm text-gray-800 mb-3">Availability</legend>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={filters.inStockOnly} onChange={e => setFilters(f => ({...f, inStockOnly: e.target.checked}))}
+                  className="w-4 h-4 rounded" aria-describedby="availability-desc" />
+                In stock only
+              </label>
+              <span id="availability-desc" className="sr-only">Filter to show only products currently in stock</span>
+            </fieldset>
+
+            {/* Brand */}
+            <fieldset className="mb-6">
+              <legend className="font-semibold text-sm text-gray-800 mb-3">Brand</legend>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {BRANDS.map(brand => (
+                  <label key={brand} className="flex items-center gap-2 text-sm cursor-pointer hover:text-brand-600">
+                    <input type="checkbox" checked={filters.brands.includes(brand)} onChange={() => toggleBrand(brand)} className="w-4 h-4 rounded" />
+                    {brand}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            {/* Price Range */}
+            <fieldset className="mb-6">
+              <legend className="font-semibold text-sm text-gray-800 mb-3">Price Range</legend>
+              <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                <span>${filters.minPrice}</span>
+                <span className="flex-1 text-center text-gray-400">—</span>
+                <span>${filters.maxPrice}</span>
+              </div>
+              <label className="sr-only" htmlFor="price-max">Maximum price: ${filters.maxPrice}</label>
+              <input id="price-max" type="range" min="0" max="1600" step="10" value={filters.maxPrice}
+                onChange={e => setFilters(f => ({...f, maxPrice: Number(e.target.value)}))}
+                className="w-full" aria-valuenow={filters.maxPrice} aria-valuemin={0} aria-valuemax={1600} />
+            </fieldset>
+
+            {/* Customer Rating */}
+            <fieldset>
+              <legend className="font-semibold text-sm text-gray-800 mb-3">Customer Rating</legend>
+              <div className="space-y-2">
+                {[4, 3, 2].map(star => (
+                  <label key={star} className="flex items-center gap-2 text-sm cursor-pointer hover:text-brand-600">
+                    <input type="radio" name="rating-filter" checked={filters.minRating === star}
+                      onChange={() => setFilters(f => ({...f, minRating: star}))} className="w-4 h-4" />
+                    <span className="text-amber-400" aria-hidden="true">{'★'.repeat(star)}{'☆'.repeat(5 - star)}</span>
+                    <span>& Up</span>
+                  </label>
+                ))}
+                <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-brand-600">
+                  <input type="radio" name="rating-filter" checked={filters.minRating === 0}
+                    onChange={() => setFilters(f => ({...f, minRating: 0}))} className="w-4 h-4" />
+                  All ratings
+                </label>
+              </div>
+            </fieldset>
+          </div>
+        </aside>
+      );
+    };
+
+    /* ─── Product Card ────────────────────────────── */
+    const ProductCard = ({ product }) => {
+      const discount = Math.round((1 - product.price / product.original) * 100);
+      return (
+        <article className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col overflow-hidden group">
+          <a href="product-detail.html" aria-label={`View ${product.name}`} className="block relative overflow-hidden focus-visible:ring-2 focus-visible:ring-brand-600 rounded-t-xl">
+            <img src={`https://picsum.photos/seed/${product.img}/280/200`} alt={product.alt} width="280" height="200"
+              className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300" />
+            {discount > 0 && (
+              <span className="badge-sale absolute top-2 left-2 text-white text-xs font-bold px-2 py-0.5 rounded-full" aria-label={`${discount}% off`}>{discount}% OFF</span>
+            )}
+            {!product.available && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <span className="bg-white text-gray-700 text-xs font-bold px-3 py-1 rounded-full">Out of Stock</span>
+              </div>
+            )}
+          </a>
+          <div className="p-4 flex flex-col flex-1">
+            <span className="text-xs text-brand-600 font-medium mb-1">{product.brand} · {product.category}</span>
+            <h3 className="text-sm font-semibold text-gray-800 leading-snug mb-2 line-clamp-2">
+              <a href="product-detail.html" className="hover:text-brand-600 focus-visible:text-brand-600 focus-visible:outline-none">{product.name}</a>
+            </h3>
+            <Stars rating={product.rating} reviews={product.reviews} />
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-base font-black text-gray-900" aria-label={`Price $${product.price}`}>${product.price.toFixed(2)}</span>
+              <span className="text-xs text-gray-400 line-through" aria-label={`Was $${product.original}`}>${product.original.toFixed(2)}</span>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <a href="cart.html"
+                className={`flex-1 text-center text-sm font-semibold py-2 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${product.available ? 'bg-brand-600 hover:bg-brand-700 text-white' : 'bg-gray-200 text-gray-400 pointer-events-none'}`}
+                aria-label={`Add ${product.name} to cart`}
+                aria-disabled={!product.available}
+              >
+                {product.available ? 'Add to Cart' : 'Out of Stock'}
+              </a>
+              <a href="product-detail.html" className="px-3 py-2 border border-gray-200 rounded-lg text-gray-600 hover:border-brand-400 hover:text-brand-600 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                aria-label={`View details for ${product.name}`}>👁</a>
+            </div>
+          </div>
+        </article>
+      );
+    };
+
+    /* ─── App ─────────────────────────────────────── */
+    const App = () => {
+      const [filters, setFilters] = useState({ brands: [], minPrice: 0, maxPrice: 1600, minRating: 0, inStockOnly: false });
+      const [sort, setSort] = useState('best');
+      const [page, setPage] = useState(1);
+      const PER_PAGE = 12;
+
+      const clearFilters = () => setFilters({ brands: [], minPrice: 0, maxPrice: 1600, minRating: 0, inStockOnly: false });
+
+      const filtered = useMemo(() => {
+        let result = ALL_PRODUCTS.filter(p => {
+          if (filters.brands.length > 0 && !filters.brands.includes(p.brand)) return false;
+          if (p.price > filters.maxPrice) return false;
+          if (p.rating < filters.minRating) return false;
+          if (filters.inStockOnly && !p.available) return false;
+          return true;
+        });
+        switch (sort) {
+          case 'price_asc': result = [...result].sort((a,b) => a.price - b.price); break;
+          case 'price_desc': result = [...result].sort((a,b) => b.price - a.price); break;
+          case 'rating': result = [...result].sort((a,b) => b.rating - a.rating); break;
+          case 'reviews': result = [...result].sort((a,b) => b.reviews - a.reviews); break;
+        }
+        return result;
+      }, [filters, sort]);
+
+      const totalPages = Math.ceil(filtered.length / PER_PAGE);
+      const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+      const activeFilterCount = filters.brands.length + (filters.inStockOnly ? 1 : 0) + (filters.minRating > 0 ? 1 : 0) + (filters.maxPrice < 1600 ? 1 : 0);
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-brand-600 text-white px-4 py-2 rounded z-50 font-semibold">Skip to main content</a>
+          <Header />
+          <main id="main-content" className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
+            {/* Breadcrumb */}
+            <nav aria-label="Breadcrumb" className="mb-4">
+              <ol className="flex items-center gap-2 text-sm text-gray-500" role="list">
+                <li><a href="index.html" className="hover:text-brand-600 focus-visible:text-brand-600">Home</a></li>
+                <li aria-hidden="true">›</li>
+                <li className="text-gray-900 font-medium" aria-current="page">All Products</li>
+              </ol>
+            </nav>
+
+            <div className="flex flex-col md:flex-row gap-6">
+              <FilterSidebar filters={filters} setFilters={setFilters} onClear={clearFilters} />
+
+              {/* Product Grid */}
+              <div className="flex-1">
+                {/* Sort + Results header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 bg-white p-4 rounded-xl border border-gray-200">
+                  <div>
+                    <p className="text-sm text-gray-600">
+                      Showing <strong>{filtered.length}</strong> results
+                      {activeFilterCount > 0 && <span> · <button onClick={clearFilters} className="text-brand-600 hover:underline focus-visible:underline">{activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active</button></span>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="sort-select" className="text-sm text-gray-600 font-medium whitespace-nowrap">Sort by:</label>
+                    <select id="sort-select" value={sort} onChange={e => { setSort(e.target.value); setPage(1); }}
+                      className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-600 bg-white">
+                      {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Grid */}
+                {paginated.length === 0 ? (
+                  <div className="text-center py-20 text-gray-500">
+                    <p className="text-5xl mb-4" aria-hidden="true">🔍</p>
+                    <p className="text-lg font-semibold">No products match your filters.</p>
+                    <button onClick={clearFilters} className="mt-4 text-brand-600 hover:underline font-medium">Clear all filters</button>
+                  </div>
+                ) : (
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" role="list" aria-label="Product results">
+                    {paginated.map(p => (
+                      <li key={p.id} role="listitem"><ProductCard product={p} /></li>
+                    ))}
+                  </ul>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <nav aria-label="Search results pages" className="mt-8 flex justify-center gap-2">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium disabled:opacity-40 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                      aria-label="Previous page"
+                    >← Previous</button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                      <button key={n} onClick={() => setPage(n)}
+                        className={`w-10 h-10 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${page === n ? 'bg-brand-600 text-white' : 'border border-gray-300 hover:bg-gray-50'}`}
+                        aria-label={`Page ${n}`} aria-current={page === n ? 'page' : undefined}>
+                        {n}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium disabled:opacity-40 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                      aria-label="Next page"
+                    >Next →</button>
+                  </nav>
+                )}
+              </div>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

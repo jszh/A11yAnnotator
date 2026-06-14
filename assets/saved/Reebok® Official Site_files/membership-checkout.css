@@ -1,0 +1,270 @@
+/* Membership Checkout Button Styles */
+
+.membership-checkout-wrapper {
+  padding: 7px;
+  background-color: var(--membership-wrapper-bg-color, #f8f9fa) !important;
+  width: 100%;
+  margin-top: var(--membership-wrapper-margin-top, 0px);
+  margin-bottom: var(--membership-wrapper-margin-bottom, 0px);
+}
+
+/* Price Text and Loading States */
+.price-container {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: baseline;
+}
+
+.price-text {
+  display: inline;
+}
+
+.price-loading {
+  display: inline-block;
+  width: 4em;
+  height: 1em;
+  background: currentColor;
+  opacity: 0.18;
+  border-radius: 3px;
+  vertical-align: baseline;
+  animation: shimmer-pulse 1.4s ease-in-out infinite;
+}
+
+.price-error {
+  color: #d73527 !important;
+  font-weight: 500;
+}
+
+@keyframes shimmer-pulse {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.28; }
+}
+
+.membership-checkout-button-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+member-checkout-button {
+  width: 100%;
+}
+
+.membership-checkout-button {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  background-color: var(--membership-button-bg-color, #FFFFFF) !important;
+  color: var(--membership-button-text-color, #000000) !important;
+  border-color: var(--membership-button-bg-color, #FFFFFF) !important;
+}
+
+.membership-checkout-button:hover {
+  background-color: var(--membership-button-hover-color, #000000) !important;
+  color: var(--membership-button-text-hover-color, #FFFFFF) !important;
+  border-color: var(--membership-button-hover-color, #000000) !important;
+}
+
+.membership-checkout-button::after {
+  content: '';
+  position: absolute;
+  top: var(--membership-outline-offset, 8px);
+  left: var(--membership-outline-offset, 8px);
+  right: var(--membership-outline-offset, 8px);
+  bottom: var(--membership-outline-offset, 8px);
+  border: var(--membership-outline-width, 2px) solid var(--membership-outline-color, #000000);
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.membership-checkout-button:hover::after {
+  border-color: var(--membership-outline-hover-color, #FFFFFF);
+}
+
+/* Hide outline when disabled */
+.membership-checkout-button[data-outline-disabled]::after {
+  display: none !important;
+}
+
+.membership-checkout-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.membership-checkout-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.membership-checkout-button:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .membership-checkout-button {
+    /* flex-direction: column; */
+    text-align: center;
+    gap: 0.25rem;
+  }
+
+  .button-text {
+    text-align: center;
+    /* width: 100%; */
+    display: inline-block;
+    white-space: nowrap;
+  }
+}
+
+/* Loading States */
+.membership-checkout-button.loading {
+  position: relative;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.membership-checkout-button.loading .button-text,
+.membership-checkout-button.loading .price-container {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.membership-checkout-button.loading::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--membership-button-text-color, #000000);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  position: absolute;
+  top: calc(50% - 10px);
+  left: calc(50% - 10px);
+  z-index: 3;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error States */
+.membership-checkout-error {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #dc3545;
+  color: white;
+  padding: 1rem;
+  border-radius: 4px;
+  z-index: 10000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  font-size: 0.9rem;
+  max-width: 300px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Theme Integration */
+.membership-checkout-wrapper.theme-light {
+  background: #ffffff;
+}
+
+.membership-checkout-wrapper.theme-dark {
+  background: #343a40;
+}
+
+.membership-checkout-wrapper.theme-dark .membership-signup {
+  color: #adb5bd;
+}
+
+/* Accessibility */
+.membership-checkout-button:focus-visible {
+  outline: 2px solid #007cba;
+  outline-offset: 2px;
+}
+
+.membership-checkout-button[aria-busy="true"] {
+  cursor: wait;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+
+  .membership-checkout-button {
+    border-width: 3px;
+  }
+}
+
+/* Hide button when user is a member */
+.membership-checkout-button[data-is-member="true"] {
+  display: none !important;
+}
+
+/* Dual Checkout Button Color Inversion */
+.cart.dual-checkout-active:has(member-checkout-button[data-is-member="false"]) .checkout__button,
+.cart.dual-checkout-active:has(member-checkout-button[data-is-member="false"]) .checkout__button:focus,
+.cart.dual-checkout-active:has(member-checkout-button[data-is-member="false"]) .checkout__button:active {
+  background-color: var(--cart-btn-bg-dual) !important;
+  color: var(--cart-btn-color-dual) !important;
+  transition: background-color .5s !important;
+}
+
+.cart.dual-checkout-active:has(member-checkout-button[data-is-member="false"]) .checkout__button:hover {
+  background-color: var(--cart-btn-bg-hover-dual) !important;
+  color: var(--cart-btn-color-hover-dual) !important;
+}
+
+.cart.dual-checkout-active:has(member-checkout-button[data-is-member="false"]) .checkout__button::after {
+  border-color: var(--cart-btn-outline-dual) !important;
+  transition: border-color .5s !important;
+}
+
+.cart.dual-checkout-active:has(member-checkout-button[data-is-member="false"]) .checkout__button:hover::after {
+  border-color: var(--cart-btn-outline-hover-dual) !important;
+}
+
+/* Checkout Wrapper Color Inversion */
+.cart.dual-checkout-active:has(member-checkout-button[data-is-member="false"]) .checkout__button__wrapper {
+  background-color: var(--cart-wrapper-bg-dual) !important;
+  transition: background-color .5s !important;
+}
+
+.cart.dual-checkout-active:has(member-checkout-button[data-is-member="false"]) .checkout__button__wrapper:has(.checkout__button:hover) {
+  background-color: var(--cart-wrapper-bg-hover-dual) !important;
+}
+
+/* Checkout Button Border */
+.cart.dual-checkout-active:has(member-checkout-button[data-is-member="false"]) .checkout__button {
+  border: var(--cart-btn-border-width-dual) solid var(--cart-btn-border-color-dual) !important;
+}
+
+.cart.dual-checkout-active:has(member-checkout-button[data-is-member="false"]) .checkout__button:hover {
+  border-color: var(--cart-btn-border-color-hover-dual) !important;
+}
+

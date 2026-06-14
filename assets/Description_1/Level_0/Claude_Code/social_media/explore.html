@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse — Explore</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            pulse: { 400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7c3aed' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0d0d0f; color: #f1f0f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .card { background: #161618; border: 1px solid #2a2a30; }
+    .card-hover:hover { background: #1c1c1f; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #3a3a42; border-radius: 4px; }
+    .nav-link { transition: all .15s ease; }
+    .nav-link:hover { background: #1e1e24; }
+    .nav-link.active { color: #a855f7; }
+    .hashtag-pill { background: #1a1025; border: 1px solid #3d2062; color: #c084fc; border-radius: 9999px; padding: 8px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .hashtag-pill:hover { background: #2d1a45; border-color: #a855f7; }
+    .avatar { border-radius: 9999px; object-fit: cover; }
+    .grid-post { position: relative; overflow: hidden; border-radius: 12px; cursor: pointer; }
+    .grid-post img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
+    .grid-post:hover img { transform: scale(1.05); }
+    .grid-post .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0); transition: background .3s; display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .grid-post:hover .overlay { background: rgba(0,0,0,0.45); }
+    .grid-post .overlay-stat { display: none; color: white; font-size: 0.85rem; font-weight: 600; align-items: center; gap: 4px; }
+    .grid-post:hover .overlay-stat { display: flex; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Sidebar -->
+  <aside class="fixed left-0 top-0 h-full w-16 xl:w-64 flex flex-col py-4 z-50 border-r" style="background:#0d0d0f;border-color:#2a2a30;">
+    <div class="px-3 xl:px-5 mb-6">
+      <a href="index.html" class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
+          <i class="fa-solid fa-bolt text-white text-sm"></i>
+        </div>
+        <span class="hidden xl:block text-xl font-bold tracking-tight text-white">Pulse</span>
+      </a>
+    </div>
+    <nav class="flex-1 flex flex-col gap-1 px-2 xl:px-3">
+      <a href="index.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium">
+        <i class="fa-solid fa-house w-5 text-center"></i>
+        <span class="hidden xl:block">Home</span>
+      </a>
+      <a href="explore.html" class="nav-link active flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl font-semibold">
+        <i class="fa-solid fa-compass w-5 text-center" style="color:#a855f7;"></i>
+        <span class="hidden xl:block" style="color:#a855f7;">Explore</span>
+      </a>
+      <a href="notifications.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium relative">
+        <i class="fa-solid fa-bell w-5 text-center"></i>
+        <span class="hidden xl:block">Notifications</span>
+        <span class="absolute top-2 left-6 xl:static xl:ml-auto bg-pulse-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center xl:w-auto xl:h-auto xl:px-2 xl:py-0.5">4</span>
+      </a>
+      <a href="messages.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium relative">
+        <i class="fa-solid fa-envelope w-5 text-center"></i>
+        <span class="hidden xl:block">Messages</span>
+        <span class="absolute top-2 left-6 xl:static xl:ml-auto bg-pulse-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center xl:w-auto xl:h-auto xl:px-2 xl:py-0.5">2</span>
+      </a>
+      <a href="profile.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium">
+        <i class="fa-solid fa-user w-5 text-center"></i>
+        <span class="hidden xl:block">Profile</span>
+      </a>
+      <a href="settings.html" class="nav-link flex items-center gap-4 px-2 xl:px-3 py-3 rounded-xl text-zinc-400 font-medium">
+        <i class="fa-solid fa-gear w-5 text-center"></i>
+        <span class="hidden xl:block">Settings</span>
+      </a>
+    </nav>
+    <div class="px-2 xl:px-3 mb-4">
+      <button class="w-full xl:flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white transition-all hover:opacity-90" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">
+        <i class="fa-solid fa-plus xl:hidden"></i>
+        <i class="fa-solid fa-feather hidden xl:block text-sm"></i>
+        <span class="hidden xl:block">New Post</span>
+      </button>
+    </div>
+    <div class="px-2 xl:px-3">
+      <a href="profile.html" class="flex items-center gap-3 p-2 rounded-xl card-hover cursor-pointer">
+        <img src="https://i.pravatar.cc/40?img=12" class="avatar w-9 h-9 flex-shrink-0" alt="Alex" />
+        <div class="hidden xl:block min-w-0">
+          <p class="text-sm font-semibold text-white truncate">Alex Rivera</p>
+          <p class="text-xs text-zinc-500 truncate">@alexrivera</p>
+        </div>
+        <i class="fa-solid fa-ellipsis hidden xl:block ml-auto text-zinc-500 text-xs"></i>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="ml-16 xl:ml-64 min-h-screen pb-20 lg:pb-0">
+
+    <!-- Top bar with search -->
+    <div class="sticky top-0 z-30 px-5 py-4 border-b" style="background:rgba(13,13,15,0.9);backdrop-filter:blur(12px);border-color:#2a2a30;">
+      <div class="relative max-w-2xl">
+        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+        <input type="text" placeholder="Search topics, people, posts..." class="w-full pl-11 pr-4 py-3 rounded-2xl text-zinc-200 placeholder-zinc-600 border focus:outline-none focus:border-pulse-500 transition-colors text-sm" style="background:#161618;border-color:#2a2a30;" />
+        <button class="absolute right-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl text-xs font-semibold text-white" style="background:#a855f7;">Search</button>
+      </div>
+    </div>
+
+    <div class="px-5 py-5 max-w-5xl">
+
+      <!-- Explore tabs -->
+      <div class="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
+        <button class="px-4 py-2 rounded-full text-sm font-semibold text-white flex-shrink-0" style="background:linear-gradient(135deg,#a855f7,#7c3aed);">All</button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium text-zinc-400 border hover:border-pulse-500 hover:text-white transition-colors flex-shrink-0" style="border-color:#2a2a30;">Trending</button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium text-zinc-400 border hover:border-pulse-500 hover:text-white transition-colors flex-shrink-0" style="border-color:#2a2a30;">News</button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium text-zinc-400 border hover:border-pulse-500 hover:text-white transition-colors flex-shrink-0" style="border-color:#2a2a30;">Technology</button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium text-zinc-400 border hover:border-pulse-500 hover:text-white transition-colors flex-shrink-0" style="border-color:#2a2a30;">Sports</button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium text-zinc-400 border hover:border-pulse-500 hover:text-white transition-colors flex-shrink-0" style="border-color:#2a2a30;">Art</button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium text-zinc-400 border hover:border-pulse-500 hover:text-white transition-colors flex-shrink-0" style="border-color:#2a2a30;">Music</button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium text-zinc-400 border hover:border-pulse-500 hover:text-white transition-colors flex-shrink-0" style="border-color:#2a2a30;">Science</button>
+        <button class="px-4 py-2 rounded-full text-sm font-medium text-zinc-400 border hover:border-pulse-500 hover:text-white transition-colors flex-shrink-0" style="border-color:#2a2a30;">Travel</button>
+      </div>
+
+      <!-- Trending hashtags -->
+      <section class="mb-8">
+        <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><i class="fa-solid fa-fire text-orange-400"></i> Trending Hashtags</h2>
+        <div class="flex flex-wrap gap-2">
+          <span class="hashtag-pill">#ClimateWeek</span>
+          <span class="hashtag-pill">#TechLayoffs</span>
+          <span class="hashtag-pill">#WorldCup2026</span>
+          <span class="hashtag-pill">#AIWinter</span>
+          <span class="hashtag-pill">#Coachella2026</span>
+          <span class="hashtag-pill">#SpaceX</span>
+          <span class="hashtag-pill">#Mindfulness</span>
+          <span class="hashtag-pill">#StreetFood</span>
+          <span class="hashtag-pill">#UrbanPhotography</span>
+          <span class="hashtag-pill">#FinTech</span>
+          <span class="hashtag-pill">#SustainableDesign</span>
+          <span class="hashtag-pill">#NightRun</span>
+          <span class="hashtag-pill">#BuildInPublic</span>
+          <span class="hashtag-pill">#Retrocomputing</span>
+        </div>
+      </section>
+
+      <!-- Trending topics cards -->
+      <section class="mb-8">
+        <h2 class="text-lg font-bold text-white mb-4">🔥 Hot Topics</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div class="card rounded-2xl overflow-hidden hover:border-zinc-600 transition-colors cursor-pointer">
+            <div class="h-28 relative">
+              <img src="https://images.unsplash.com/photo-1569163139599-0f4517e36f51?w=400&q=80" class="w-full h-full object-cover" alt="Climate" />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+              <span class="absolute bottom-2 left-3 text-xs font-bold text-orange-400 bg-black/40 px-2 py-0.5 rounded-full">84K posts</span>
+            </div>
+            <div class="p-3">
+              <p class="text-xs text-zinc-500 mb-0.5">Environment · Trending</p>
+              <p class="font-bold text-white text-sm">#ClimateWeek</p>
+            </div>
+          </div>
+          <div class="card rounded-2xl overflow-hidden hover:border-zinc-600 transition-colors cursor-pointer">
+            <div class="h-28 relative">
+              <img src="https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&q=80" class="w-full h-full object-cover" alt="Tech" />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+              <span class="absolute bottom-2 left-3 text-xs font-bold text-blue-400 bg-black/40 px-2 py-0.5 rounded-full">52K posts</span>
+            </div>
+            <div class="p-3">
+              <p class="text-xs text-zinc-500 mb-0.5">Technology · Trending</p>
+              <p class="font-bold text-white text-sm">#TechLayoffs</p>
+            </div>
+          </div>
+          <div class="card rounded-2xl overflow-hidden hover:border-zinc-600 transition-colors cursor-pointer">
+            <div class="h-28 relative">
+              <img src="https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?w=400&q=80" class="w-full h-full object-cover" alt="Football" />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+              <span class="absolute bottom-2 left-3 text-xs font-bold text-green-400 bg-black/40 px-2 py-0.5 rounded-full">218K posts</span>
+            </div>
+            <div class="p-3">
+              <p class="text-xs text-zinc-500 mb-0.5">Sports · Trending</p>
+              <p class="font-bold text-white text-sm">#WorldCup2026</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Suggested for You -->
+      <section class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold text-white">Suggested for You</h2>
+          <a href="#" class="text-sm font-medium" style="color:#a855f7;">See all</a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <!-- User 1 -->
+          <div class="card rounded-2xl p-4 flex flex-col items-center text-center hover:border-zinc-600 transition-colors">
+            <img src="https://i.pravatar.cc/60?img=25" class="avatar w-14 h-14 mb-3" alt="Kai" />
+            <p class="font-semibold text-white text-sm">Kai Nakamura</p>
+            <p class="text-xs text-zinc-500 mb-1">@kainaka</p>
+            <p class="text-xs text-zinc-500 mb-3">AI researcher & philosopher. Thinking about consciousness and code.</p>
+            <div class="flex gap-3 text-xs text-zinc-500 mb-3">
+              <span><strong class="text-white">28.4K</strong> followers</span>
+              <span><strong class="text-white">512</strong> following</span>
+            </div>
+            <button class="w-full py-2 rounded-xl text-sm font-semibold border border-pulse-500 text-pulse-400 hover:bg-pulse-500 hover:text-white transition-colors">Follow</button>
+          </div>
+          <!-- User 2 -->
+          <div class="card rounded-2xl p-4 flex flex-col items-center text-center hover:border-zinc-600 transition-colors">
+            <img src="https://i.pravatar.cc/60?img=30" class="avatar w-14 h-14 mb-3" alt="Elena" />
+            <p class="font-semibold text-white text-sm">Elena Vasquez</p>
+            <p class="text-xs text-zinc-500 mb-1">@elenavas</p>
+            <p class="text-xs text-zinc-500 mb-3">Photographer in Mexico City. Chasing light and good tacos 📷</p>
+            <div class="flex gap-3 text-xs text-zinc-500 mb-3">
+              <span><strong class="text-white">14.7K</strong> followers</span>
+              <span><strong class="text-white">280</strong> following</span>
+            </div>
+            <button class="w-full py-2 rounded-xl text-sm font-semibold border border-pulse-500 text-pulse-400 hover:bg-pulse-500 hover:text-white transition-colors">Follow</button>
+          </div>
+          <!-- User 3 -->
+          <div class="card rounded-2xl p-4 flex flex-col items-center text-center hover:border-zinc-600 transition-colors">
+            <img src="https://i.pravatar.cc/60?img=42" class="avatar w-14 h-14 mb-3" alt="Omar" />
+            <p class="font-semibold text-white text-sm">Omar Hassan</p>
+            <p class="text-xs text-zinc-500 mb-1">@omarhassan</p>
+            <p class="text-xs text-zinc-500 mb-3">Climate journalist. Writing about the planet so it keeps existing.</p>
+            <div class="flex gap-3 text-xs text-zinc-500 mb-3">
+              <span><strong class="text-white">9.2K</strong> followers</span>
+              <span><strong class="text-white">194</strong> following</span>
+            </div>
+            <button class="w-full py-2 rounded-xl text-sm font-semibold border border-pulse-500 text-pulse-400 hover:bg-pulse-500 hover:text-white transition-colors">Follow</button>
+          </div>
+          <!-- User 4 -->
+          <div class="card rounded-2xl p-4 flex flex-col items-center text-center hover:border-zinc-600 transition-colors">
+            <img src="https://i.pravatar.cc/60?img=48" class="avatar w-14 h-14 mb-3" alt="Zoe" />
+            <p class="font-semibold text-white text-sm">Zoe Fontaine</p>
+            <p class="text-xs text-zinc-500 mb-1">@zoefontaine</p>
+            <p class="text-xs text-zinc-500 mb-3">UX designer & side project hoarder. Building things nobody asked for.</p>
+            <div class="flex gap-3 text-xs text-zinc-500 mb-3">
+              <span><strong class="text-white">22.1K</strong> followers</span>
+              <span><strong class="text-white">631</strong> following</span>
+            </div>
+            <button class="w-full py-2 rounded-xl text-sm font-semibold border border-pulse-500 text-pulse-400 hover:bg-pulse-500 hover:text-white transition-colors">Follow</button>
+          </div>
+          <!-- User 5 -->
+          <div class="card rounded-2xl p-4 flex flex-col items-center text-center hover:border-zinc-600 transition-colors">
+            <img src="https://i.pravatar.cc/60?img=52" class="avatar w-14 h-14 mb-3" alt="Marcus" />
+            <p class="font-semibold text-white text-sm">Marcus Webb</p>
+            <p class="text-xs text-zinc-500 mb-1">@marcuswebb</p>
+            <p class="text-xs text-zinc-500 mb-3">Startup founder. 2x exit. Now writing about what I got wrong.</p>
+            <div class="flex gap-3 text-xs text-zinc-500 mb-3">
+              <span><strong class="text-white">41.8K</strong> followers</span>
+              <span><strong class="text-white">888</strong> following</span>
+            </div>
+            <button class="w-full py-2 rounded-xl text-sm font-semibold border border-pulse-500 text-pulse-400 hover:bg-pulse-500 hover:text-white transition-colors">Follow</button>
+          </div>
+          <!-- User 6 -->
+          <div class="card rounded-2xl p-4 flex flex-col items-center text-center hover:border-zinc-600 transition-colors">
+            <img src="https://i.pravatar.cc/60?img=57" class="avatar w-14 h-14 mb-3" alt="Amara" />
+            <p class="font-semibold text-white text-sm">Amara Diallo</p>
+            <p class="text-xs text-zinc-500 mb-1">@amarad</p>
+            <p class="text-xs text-zinc-500 mb-3">Afrobeats artist & producer. New EP dropping March 28th 🎵</p>
+            <div class="flex gap-3 text-xs text-zinc-500 mb-3">
+              <span><strong class="text-white">63.5K</strong> followers</span>
+              <span><strong class="text-white">213</strong> following</span>
+            </div>
+            <button class="w-full py-2 rounded-xl text-sm font-semibold border border-pulse-500 text-pulse-400 hover:bg-pulse-500 hover:text-white transition-colors">Follow</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Popular Posts Grid -->
+      <section>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold text-white">Popular Posts</h2>
+          <div class="flex gap-2">
+            <button class="w-8 h-8 flex items-center justify-center rounded-lg card text-zinc-400 hover:text-white"><i class="fa-solid fa-grip text-sm"></i></button>
+            <button class="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-600 hover:text-white"><i class="fa-solid fa-list text-sm"></i></button>
+          </div>
+        </div>
+
+        <!-- Masonry-style grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div class="grid-post h-48">
+            <img src="https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=400&q=80" alt="Post" />
+            <div class="overlay">
+              <span class="overlay-stat"><i class="fa-solid fa-heart"></i> 4.2K</span>
+              <span class="overlay-stat"><i class="fa-regular fa-comment"></i> 287</span>
+            </div>
+          </div>
+          <div class="grid-post h-48 sm:row-span-2 sm:h-auto" style="min-height:100px;">
+            <img src="https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&q=80" alt="Post" style="height:100%;min-height:200px;" />
+            <div class="overlay">
+              <span class="overlay-stat"><i class="fa-solid fa-heart"></i> 8.9K</span>
+              <span class="overlay-stat"><i class="fa-regular fa-comment"></i> 641</span>
+            </div>
+          </div>
+          <div class="grid-post h-48">
+            <img src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&q=80" alt="Post" />
+            <div class="overlay">
+              <span class="overlay-stat"><i class="fa-solid fa-heart"></i> 2.1K</span>
+              <span class="overlay-stat"><i class="fa-regular fa-comment"></i> 93</span>
+            </div>
+          </div>
+          <div class="grid-post h-48">
+            <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&q=80" alt="Post" />
+            <div class="overlay">
+              <span class="overlay-stat"><i class="fa-solid fa-heart"></i> 6.7K</span>
+              <span class="overlay-stat"><i class="fa-regular fa-comment"></i> 418</span>
+            </div>
+          </div>
+          <div class="grid-post h-48">
+            <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&q=80" alt="Post" />
+            <div class="overlay">
+              <span class="overlay-stat"><i class="fa-solid fa-heart"></i> 3.3K</span>
+              <span class="overlay-stat"><i class="fa-regular fa-comment"></i> 155</span>
+            </div>
+          </div>
+          <div class="grid-post h-48">
+            <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80" alt="Post" />
+            <div class="overlay">
+              <span class="overlay-stat"><i class="fa-solid fa-heart"></i> 11.2K</span>
+              <span class="overlay-stat"><i class="fa-regular fa-comment"></i> 823</span>
+            </div>
+          </div>
+          <div class="grid-post h-48">
+            <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&q=80" alt="Post" />
+            <div class="overlay">
+              <span class="overlay-stat"><i class="fa-solid fa-heart"></i> 7.4K</span>
+              <span class="overlay-stat"><i class="fa-regular fa-comment"></i> 502</span>
+            </div>
+          </div>
+          <div class="grid-post h-48">
+            <img src="https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?w=400&q=80" alt="Post" />
+            <div class="overlay">
+              <span class="overlay-stat"><i class="fa-solid fa-heart"></i> 5.8K</span>
+              <span class="overlay-stat"><i class="fa-regular fa-comment"></i> 341</span>
+            </div>
+          </div>
+          <div class="grid-post h-48">
+            <img src="https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=400&q=80" alt="Post" />
+            <div class="overlay">
+              <span class="overlay-stat"><i class="fa-solid fa-heart"></i> 9.1K</span>
+              <span class="overlay-stat"><i class="fa-regular fa-comment"></i> 777</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- Mobile bottom nav -->
+  <nav class="fixed bottom-0 left-0 right-0 lg:hidden flex border-t z-50" style="background:#0d0d0f;border-color:#2a2a30;">
+    <a href="index.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500"><i class="fa-solid fa-house text-lg"></i></a>
+    <a href="explore.html" class="flex-1 flex flex-col items-center py-3 gap-1" style="color:#a855f7;"><i class="fa-solid fa-compass text-lg"></i></a>
+    <a href="notifications.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500"><i class="fa-solid fa-bell text-lg"></i></a>
+    <a href="messages.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500"><i class="fa-solid fa-envelope text-lg"></i></a>
+    <a href="profile.html" class="flex-1 flex flex-col items-center py-3 gap-1 text-zinc-500"><i class="fa-solid fa-user text-lg"></i></a>
+  </nav>
+
+</body>
+</html>

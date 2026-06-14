@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulse | Messages</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Manrope"', "sans-serif"] }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="pulse-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { Layout, conversations } = window.PulseShared;
+
+      const chat = [
+        { side: "left", time: "9:14 AM", text: "Morning. Did you still want the draft before lunch?" },
+        { side: "right", time: "9:16 AM", text: "Yes, send whatever version you have. I can mark it up on the train." },
+        { side: "left", time: "9:18 AM", text: "Perfect. I also added the image options so you can choose one for the thread." },
+        { side: "right", time: "9:20 AM", text: "Great. I’ll reply with notes in about an hour." }
+      ];
+
+      function App() {
+        return (
+          <Layout activePath="messages.html">
+            <main id="main-content" className="mt-6">
+              <section className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+                <div className="card-surface rounded-[1.75rem] p-5">
+                  <h1 className="text-2xl font-extrabold text-slate-950">Messages</h1>
+                  <div className="mt-5 space-y-3">
+                    {conversations.map((conversation) => (
+                      <button key={conversation.name} type="button" className="w-full rounded-[1.25rem] border border-slate-200 bg-white p-4 text-left hover:bg-slate-50">
+                        <div className="flex items-start gap-3">
+                          <img src={conversation.avatar} alt={conversation.alt} className="h-12 w-12 rounded-full object-cover" />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="font-bold text-slate-950">{conversation.name}</span>
+                              <span className="text-xs text-slate-500">{conversation.time}</span>
+                            </div>
+                            <p className="mt-1 truncate text-sm text-slate-600">{conversation.preview}</p>
+                          </div>
+                          {conversation.unread ? (
+                            <span className="rounded-full bg-pink-600 px-2 py-1 text-xs font-bold text-white">{conversation.unread}</span>
+                          ) : null}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="card-surface rounded-[1.75rem] p-6">
+                  <div className="border-b border-slate-200 pb-4">
+                    <h2 className="text-2xl font-extrabold text-slate-950">Maya Chen</h2>
+                    <p className="mt-1 text-sm text-slate-500">@maya.builds</p>
+                  </div>
+                  <div className="mt-6 space-y-5" aria-label="Active chat messages">
+                    <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Today</p>
+                    {chat.map((message, index) => (
+                      <div key={message.time + index} className={`flex ${message.side === "right" ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-xl rounded-[1.25rem] px-4 py-3 text-sm leading-7 ${
+                          message.side === "right" ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-800"
+                        }`}>
+                          <p>{message.text}</p>
+                          <p className={`mt-2 text-xs ${message.side === "right" ? "text-slate-300" : "text-slate-500"}`}>{message.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <form className="mt-6 border-t border-slate-200 pt-5" aria-label="Send a message">
+                    <label htmlFor="message-input" className="sr-only">Message</label>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <textarea
+                        id="message-input"
+                        rows="3"
+                        className="w-full rounded-[1.25rem] border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                        placeholder="Write a message"
+                      ></textarea>
+                      <div className="flex gap-2 sm:flex-col">
+                        <button type="button" className="rounded-full border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50" aria-label="Open emoji picker">
+                          🙂
+                        </button>
+                        <button type="submit" className="rounded-full bg-teal-700 px-5 py-3 text-sm font-bold text-white hover:bg-teal-800">
+                          Send
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </section>
+            </main>
+          </Layout>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

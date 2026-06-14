@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Shopping Cart | NovaMart</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' } }, fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        *:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+    <div id="root"></div>
+
+    <script type="text/babel" src="components.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Header, Footer, A11yAnnouncer, announceToScreenReader } = window.NovaMart;
+
+        const INITIAL_CART = [
+            { id: 'item-1', productId: '1', name: 'Sony WH-1000XM5 Headphones', brand: 'Sony', price: 279.99, image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&q=80&w=300', quantity: 1, color: 'Black' },
+            { id: 'item-2', productId: '2', name: 'MacBook Air M2', brand: 'Apple', price: 999.00, image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=300', quantity: 1, color: 'Silver', size: '256GB' },
+        ];
+
+        const CartPage = () => {
+            const [items, setItems] = useState(INITIAL_CART);
+            const [promoCode, setPromoCode] = useState('');
+            const [promoStatus, setPromoStatus] = useState({ error: false, message: '', appliedCode: null });
+
+            const updateQuantity = (id, newQuantity) => {
+                if (newQuantity < 1) return;
+                setItems(prev => prev.map(item => {
+                    if (item.id === id) {
+                        announceToScreenReader(`Quantity for ${item.name} updated to ${newQuantity}`);
+                        return { ...item, quantity: newQuantity };
+                    }
+                    return item;
+                }));
+            };
+
+            const removeItem = (id) => {
+                const itemToRemove = items.find(i => i.id === id);
+                setItems(prev => prev.filter(item => item.id !== id));
+                announceToScreenReader(`Removed ${itemToRemove.name} from cart`);
+            };
+
+            const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const shipping = subtotal > 50 ? 0 : 9.99;
+            const discount = promoStatus.appliedCode ? subtotal * 0.1 : 0; // 10% discount simple mock
+            const tax = (subtotal - discount) * 0.08;
+            const total = subtotal + shipping - discount + tax;
+
+            const handlePromoApply = (e) => {
+                e.preventDefault();
+                if (!promoCode.trim()) {
+                    setPromoStatus({ error: true, message: 'Please enter a promo code.', appliedCode: null });
+                    announceToScreenReader('Error: Please enter a promo code.');
+                    return;
+                }
+                if (promoCode.toLowerCase() === 'save10') {
+                    setPromoStatus({ error: false, message: 'Promo code applied successfully!', appliedCode: promoCode });
+                    announceToScreenReader('Promo code SAVE10 applied successfully. 10 percent discount activated.');
+                } else {
+                    setPromoStatus({ error: true, message: 'Invalid or expired promo code.', appliedCode: null });
+                    announceToScreenReader('Error: Invalid or expired promo code.');
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col bg-gray-50">
+                    <A11yAnnouncer />
+                    <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[60] bg-blue-600 text-white px-4 py-2 font-bold rounded shadow-lg outline-none">
+                        Skip to main content
+                    </a>
+
+                    <div className="bg-white border-b border-gray-200">
+                        <Header activePage="cart" />
+                    </div>
+
+                    <main id="main-content" className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 w-full outline-none" tabIndex="-1">
+
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-8">Shopping Cart</h1>
+
+                        {items.length === 0 ? (
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center max-w-2xl mx-auto">
+                                <svg className="mx-auto h-16 w-16 text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
+                                <p className="text-gray-500 mb-8">Looks like you haven't added anything to your cart yet.</p>
+                                <a href="products.html" className="inline-flex items-center justify-center bg-blue-600 text-white font-bold py-3 px-8 rounded-md hover:bg-blue-700 shadow-sm transition-colors focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-offset-2">
+                                    Start Shopping
+                                </a>
+                            </div>
+                        ) : (
+                            <div className="lg:grid lg:grid-cols-12 lg:gap-x-12 lg:items-start" aria-live="polite">
+
+                                {/* Cart Items List */}
+                                <section aria-labelledby="cart-heading" className="lg:col-span-8">
+                                    <h2 id="cart-heading" className="sr-only">Items in your shopping cart</h2>
+
+                                    <ul role="list" className="border-t border-b border-gray-200 divide-y divide-gray-200">
+                                        {items.map((item, itemIdx) => (
+                                            <li key={item.id} className="flex py-6 sm:py-8">
+                                                <div className="flex-shrink-0">
+                                                    <img src={item.image} alt="" className="w-24 h-24 sm:w-32 sm:h-32 rounded-md object-cover object-center border border-gray-100" />
+                                                </div>
+
+                                                <div className="ml-4 sm:ml-6 flex-1 flex flex-col justify-between">
+                                                    <div className="relative pr-9 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:pr-0">
+                                                        <div>
+                                                            <div className="flex justify-between">
+                                                                <h3 className="text-base font-bold text-gray-900">
+                                                                    <a href={`product-detail.html?id=${item.productId}`} className="hover:text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">{item.name}</a>
+                                                                </h3>
+                                                            </div>
+                                                            <div className="mt-1 flex text-sm text-gray-500">
+                                                                <p className="mr-4 pr-4 border-r border-gray-200">Brand: {item.brand}</p>
+                                                                <p>{item.color}</p>
+                                                                {item.size && <p className="ml-4 pl-4 border-l border-gray-200">{item.size}</p>}
+                                                            </div>
+                                                            <p className="mt-2 text-lg font-bold text-gray-900">${item.price.toFixed(2)}</p>
+                                                        </div>
+
+                                                        <div className="mt-4 sm:mt-0 sm:pr-9">
+                                                            {/* Semantic Label for Quantity - Cat 1 */}
+                                                            <label htmlFor={`quantity-${item.id}`} className="sr-only">Quantity, {item.name}</label>
+                                                            <div className="flex items-center border border-gray-300 rounded-md w-max h-10 bg-white">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                                                    className="px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 h-full"
+                                                                    aria-label={`Decrease quantity for ${item.name}`}
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"></path></svg>
+                                                                </button>
+                                                                <input
+                                                                    id={`quantity-${item.id}`}
+                                                                    type="number"
+                                                                    min="1"
+                                                                    value={item.quantity}
+                                                                    onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                                                                    className="w-12 text-center border-none p-0 focus:ring-2 focus:ring-inset focus:ring-blue-500 h-full font-medium"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                                                    className="px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 h-full"
+                                                                    aria-label={`Increase quantity for ${item.name}`}
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                                                                </button>
+                                                            </div>
+
+                                                            <div className="absolute top-0 right-0 sm:relative sm:top-auto sm:right-auto sm:mt-4">
+                                                                <button
+                                                                    type="button"
+                                                                    className="-m-2 p-2 inline-flex text-gray-400 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
+                                                                    onClick={() => removeItem(item.id)}
+                                                                >
+                                                                    <span className="sr-only">Remove {item.name}</span>
+                                                                    <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <p className="mt-4 flex text-sm text-green-700 space-x-2">
+                                                        <svg className="flex-shrink-0 h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                        </svg>
+                                                        <span>In stock</span>
+                                                    </p>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </section>
+
+                                {/* Order Summary */}
+                                <section aria-labelledby="summary-heading" className="mt-16 bg-white rounded-xl shadow-sm border border-gray-200 px-4 py-6 sm:p-6 lg:p-8 lg:mt-0 lg:col-span-4 lg:sticky lg:top-24">
+                                    <h2 id="summary-heading" className="text-xl font-bold text-gray-900 mb-6">Order summary</h2>
+
+                                    <dl className="space-y-4 text-sm text-gray-600">
+                                        <div className="flex items-center justify-between">
+                                            <dt>Subtotal</dt>
+                                            <dd className="font-medium text-gray-900">${subtotal.toFixed(2)}</dd>
+                                        </div>
+
+                                        <div className="flex items-center justify-between">
+                                            <dt className="flex items-center">
+                                                Shipping estimate
+                                            </dt>
+                                            <dd className="font-medium text-gray-900">{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</dd>
+                                        </div>
+
+                                        {discount > 0 && (
+                                            <div className="flex items-center justify-between">
+                                                <dt className="flex items-center text-green-600">
+                                                    Discount ({promoStatus.appliedCode})
+                                                </dt>
+                                                <dd className="font-medium text-green-600">-${discount.toFixed(2)}</dd>
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center justify-between">
+                                            <dt>Tax estimate</dt>
+                                            <dd className="font-medium text-gray-900">${tax.toFixed(2)}</dd>
+                                        </div>
+
+                                        <div className="border-t border-gray-200 pt-4 flex items-center justify-between">
+                                            <dt className="text-base font-bold text-gray-900">Order total</dt>
+                                            <dd className="text-xl font-bold text-gray-900">${total.toFixed(2)}</dd>
+                                        </div>
+                                    </dl>
+
+                                    {/* Promo Code Form - Cat 9 Form Error Identification */}
+                                    <form className="mt-8 mb-6" onSubmit={handlePromoApply} noValidate>
+                                        <label htmlFor="promo-code" className="block text-sm font-bold text-gray-900 mb-2">Discount code</label>
+                                        <div className="flex space-x-2">
+                                            <input
+                                                type="text"
+                                                id="promo-code"
+                                                value={promoCode}
+                                                onChange={(e) => setPromoCode(e.target.value)}
+                                                className={`block w-full border ${promoStatus.error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'} rounded-md shadow-sm sm:text-sm px-3 py-2 outline-none focus:ring-2`}
+                                                placeholder="Try 'SAVE10'"
+                                                aria-invalid={promoStatus.error ? 'true' : 'false'}
+                                                aria-describedby={promoStatus.message ? 'promo-error' : undefined}
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="bg-gray-100 border border-gray-300 rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            >
+                                                Apply
+                                            </button>
+                                        </div>
+                                        {/* Error message / Success message accessible block */}
+                                        {promoStatus.message && (
+                                            <p
+                                                id="promo-error"
+                                                className={`mt-2 text-sm ${promoStatus.error ? 'text-red-600' : 'text-green-600'}`}
+                                                role="alert"
+                                            >
+                                                {promoStatus.message}
+                                            </p>
+                                        )}
+                                    </form>
+
+                                    <div className="mt-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => alert('Proceeding to checkout...')}
+                                            className="w-full bg-blue-600 border border-transparent rounded-md shadow-sm py-4 px-4 text-base font-bold text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-50"
+                                        >
+                                            Proceed to Checkout
+                                        </button>
+                                    </div>
+                                </section>
+                            </div>
+                        )}
+
+                        <section aria-labelledby="shipping-promise-heading" className="mt-16 border-t border-gray-200 pt-8" hidden={items.length === 0}>
+                            <h2 id="shipping-promise-heading" className="sr-only">Shipping Promise</h2>
+                            <div className="flex items-center justify-center p-4 bg-gray-100 rounded-lg max-w-2xl mx-auto">
+                                <svg className="h-6 w-6 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                <span className="text-sm font-medium text-gray-700">Secure Checkout. 100% Satisfaction Guarantee.</span>
+                            </div>
+                        </section>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CartPage />);
+    </script>
+</body>
+
+</html>

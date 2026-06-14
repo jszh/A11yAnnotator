@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Detail - Sphere</title>
+    <style>
+        /* 样式与主页 100% 保持一致 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #1d9bf0; --bg-primary: #ffffff; --bg-secondary: #f7f9f9;
+            --text-primary: #0f1419; --text-secondary: #536471; --border-primary: #eff3f4;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); }
+        .top-header { position: sticky; top: 0; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-primary); height: 56px; }
+        .header-content { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; padding: 0 16px; height: 100%; }
+        .logo { width: 32px; height: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; cursor: pointer; }
+        .main-container { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 275px 1fr 350px; gap: 32px; padding: 0 16px; }
+        .main-feed { border-left: 1px solid var(--border-primary); border-right: 1px solid var(--border-primary); min-height: 100vh; }
+        .nav-header { display: flex; align-items: center; gap: 20px; padding: 0 16px; height: 53px; border-bottom: 1px solid var(--border-primary); position: sticky; top: 56px; background: white; }
+        .back-btn { cursor: pointer; font-size: 20px; padding: 8px; border-radius: 50%; }
+        .back-btn:hover { background: #eee; }
+        .detail-content { padding: 16px; }
+        .user-block { display: flex; gap: 12px; margin-bottom: 16px; }
+        .avatar-large { width: 48px; height: 48px; border-radius: 50%; }
+        .author-name { font-weight: 700; font-size: 16px; }
+        .post-body-large { font-size: 23px; line-height: 1.3; margin-bottom: 20px; }
+        .stats-bar { padding: 16px 0; border-top: 1px solid var(--border-primary); border-bottom: 1px solid var(--border-primary); color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <header class="top-header"><div class="header-content"><div class="logo" onclick="location.href='social-media.html'"></div></div></header>
+    <div class="main-container">
+        <aside class="left-sidebar"></aside>
+        <main class="main-feed">
+            <div class="nav-header"><div class="back-btn" onclick="location.href='social-media.html'">←</div><div style="font-weight:700">Post</div></div>
+            <div id="detail-target" class="detail-content">
+                </div>
+        </main>
+        <aside class="right-sidebar"></aside>
+    </div>
+
+    <script>
+        // 同样的数据源
+        const posts = [
+            { id: 1, author: 'Emma Chen', handle: '@emmachen', text: 'Just shipped the biggest feature of my career! 🚀 Our team worked tirelessly to make this happen.', avatar: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', likes: '4,521', views: '127K' },
+            { id: 2, author: 'Tech Pulse', handle: '@techpulse', text: 'BREAKING: Major AI breakthrough announced. This changes everything we know about machine learning.', avatar: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', likes: '31,245', views: '892K' },
+            { id: 3, author: 'Sarah Miller', handle: '@sarahmdesign', text: 'New design system just dropped 🎨 Spent 6 months perfecting every detail.', avatar: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', likes: '5,892', views: '89K' }
+        ];
+
+        // 解析 URL 参数中的 ID
+        const urlParams = new URLSearchParams(window.location.search);
+        const postId = parseInt(urlParams.get('id'));
+
+        // 查找对应数据
+        const post = posts.find(p => p.id === postId);
+
+        if (post) {
+            document.getElementById('detail-target').innerHTML = `
+                <div class="user-block">
+                    <div class="avatar-large" style="background: ${post.avatar}"></div>
+                    <div><div class="author-name">${post.author}</div><div style="color:var(--text-secondary)">${post.handle}</div></div>
+                </div>
+                <div class="post-body-large">${post.text}</div>
+                <div class="stats-bar"><strong>${post.likes}</strong> Likes · <strong>${post.views}</strong> Views</div>
+            `;
+        } else {
+            document.getElementById('detail-target').innerHTML = "<p>Post not found.</p>";
+        }
+    </script>
+</body>
+</html>

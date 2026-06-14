@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subscribe — The Meridian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            body: ['"Source Serif 4"', 'Georgia', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: #be123c;
+      color: white;
+      padding: 8px 16px;
+      font-family: Inter, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 9999;
+      border-radius: 0 0 4px 0;
+      transition: top 0.15s;
+    }
+    .skip-link:focus {
+      top: 0;
+    }
+    @keyframes ticker-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .ticker-track {
+      display: flex;
+      animation: ticker-scroll 30s linear infinite;
+      width: max-content;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ticker-track { animation: none; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const NAV_LINKS = [
+      { href: 'index.html', label: 'Home' },
+      { href: 'world.html', label: 'World' },
+      { href: '#', label: 'Politics' },
+      { href: '#', label: 'Technology' },
+      { href: '#', label: 'Culture' },
+      { href: 'opinion.html', label: 'Opinion' },
+    ];
+
+    function MeridianHeader({ currentPage }) {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [searchOpen, setSearchOpen] = useState(false);
+      const searchInputRef = useRef(null);
+
+      useEffect(() => {
+        if (searchOpen && searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, [searchOpen]);
+
+      return (
+        <header role="banner" className="bg-slate-900 text-white sticky top-0 z-50 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-8">
+                <a href="index.html" className="font-serif font-black text-2xl tracking-widest text-white hover:text-rose-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded" aria-label="The Meridian — Home">
+                  THE MERIDIAN
+                </a>
+                <nav aria-label="Primary navigation" className="hidden lg:flex items-center gap-1">
+                  {NAV_LINKS.map(link => (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      aria-current={currentPage === link.label ? 'page' : undefined}
+                      className={`px-3 py-2 text-sm font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 ${
+                        currentPage === link.label
+                          ? 'text-rose-400 border-b-2 border-rose-400'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                      }`}
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+              <div className="flex items-center gap-2">
+                {searchOpen && (
+                  <div className="hidden sm:flex items-center bg-slate-800 rounded-full px-3 py-1">
+                    <label htmlFor="header-search" className="sr-only">Search The Meridian</label>
+                    <input
+                      id="header-search"
+                      ref={searchInputRef}
+                      type="search"
+                      placeholder="Search stories…"
+                      className="bg-transparent text-white placeholder-slate-400 text-sm outline-none w-48 focus-visible:outline-none"
+                    />
+                  </div>
+                )}
+                <button
+                  onClick={() => setSearchOpen(!searchOpen)}
+                  aria-label={searchOpen ? 'Close search' : 'Open search'}
+                  aria-expanded={searchOpen}
+                  className="p-2 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+                <a
+                  href="subscription.html"
+                  className="hidden sm:inline-flex items-center px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white text-sm font-semibold rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                >
+                  Subscribe
+                </a>
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                  aria-expanded={menuOpen}
+                  aria-controls="mobile-menu"
+                  className="lg:hidden p-2 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    {menuOpen
+                      ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    }
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          {menuOpen && (
+            <nav id="mobile-menu" aria-label="Mobile navigation" className="lg:hidden bg-slate-800 border-t border-slate-700">
+              <div className="px-4 py-3 space-y-1">
+                {NAV_LINKS.map(link => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    aria-current={currentPage === link.label ? 'page' : undefined}
+                    className={`block px-3 py-2 text-sm font-medium rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 ${
+                      currentPage === link.label
+                        ? 'text-rose-400 bg-slate-700'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                    }`}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+                <a href="subscription.html" className="block px-3 py-2 text-sm font-semibold text-rose-400 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">
+                  Subscribe →
+                </a>
+              </div>
+            </nav>
+          )}
+        </header>
+      );
+    }
+
+    function MeridianFooter() {
+      const [email, setEmail] = useState('');
+      const [submitted, setSubmitted] = useState(false);
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (email) setSubmitted(true);
+      };
+
+      return (
+        <footer role="contentinfo" className="bg-slate-900 text-white mt-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 pb-10 border-b border-slate-700">
+              <div className="lg:col-span-2">
+                <a href="index.html" className="font-serif font-black text-2xl tracking-widest text-white hover:text-rose-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">
+                  THE MERIDIAN
+                </a>
+                <p className="mt-3 text-slate-400 text-sm leading-relaxed font-body">
+                  Independent global journalism since 2008. We report without fear or favor, funded by readers who believe in the power of a free press.
+                </p>
+                <form onSubmit={handleSubmit} className="mt-5" aria-label="Newsletter signup">
+                  <p className="text-sm font-semibold text-white mb-2">Get our Daily Brief newsletter</p>
+                  {submitted ? (
+                    <p className="text-rose-400 text-sm font-medium">Thanks! You're subscribed.</p>
+                  ) : (
+                    <div className="flex gap-2">
+                      <label htmlFor="footer-email" className="sr-only">Your email address</label>
+                      <input
+                        id="footer-email"
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        required
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                      />
+                      <button type="submit" className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white text-sm font-semibold rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">
+                        Subscribe
+                      </button>
+                    </div>
+                  )}
+                </form>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Sections</h3>
+                <ul className="space-y-2">
+                  {['World', 'Politics', 'Technology', 'Culture', 'Opinion', 'Science', 'Economy', 'Health'].map(s => (
+                    <li key={s}><a href="#" className="text-slate-400 hover:text-white text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">{s}</a></li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Company</h3>
+                <ul className="space-y-2">
+                  {['About Us', 'Careers', 'Press', 'Advertise', 'Contact', 'Ethics Policy', 'Privacy Policy', 'Terms of Use'].map(s => (
+                    <li key={s}><a href="#" className="text-slate-400 hover:text-white text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">{s}</a></li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Readers</h3>
+                <ul className="space-y-2 mb-6">
+                  {['Subscribe', 'Sign In', 'Newsletters', 'App — iOS', 'App — Android', 'Audio Edition', 'Gift a Subscription', 'Student Discount'].map(s => (
+                    <li key={s}><a href={s === 'Subscribe' ? 'subscription.html' : '#'} className="text-slate-400 hover:text-white text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">{s}</a></li>
+                  ))}
+                </ul>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Follow Us</h3>
+                <div className="flex gap-3">
+                  {['Twitter/X', 'Instagram', 'Facebook', 'YouTube'].map(s => (
+                    <a key={s} href="#" aria-label={`Follow The Meridian on ${s}`} className="w-8 h-8 bg-slate-800 hover:bg-slate-700 rounded flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">
+                      <span className="text-xs text-slate-400" aria-hidden="true">{s[0]}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-slate-500 text-xs">© 2026 The Meridian Media Group. All rights reserved.</p>
+              <p className="text-slate-600 text-xs">Independent. Accountable. Essential.</p>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    const TABLE_FEATURES = [
+      { label: 'Article access', free: '5 articles/month', digital: 'Unlimited', allAccess: 'Unlimited' },
+      { label: 'Breaking news alerts', free: true, digital: true, allAccess: true },
+      { label: 'Newsletters', free: true, digital: true, allAccess: true },
+      { label: 'Audio edition', free: false, digital: true, allAccess: true },
+      { label: 'Ad-free experience', free: false, digital: true, allAccess: true },
+      { label: 'Reader commenting', free: false, digital: true, allAccess: true },
+      { label: 'Offline reading', free: false, digital: true, allAccess: true },
+      { label: 'Print edition (US)', free: false, digital: false, allAccess: true },
+      { label: 'Exclusive events', free: false, digital: false, allAccess: true },
+      { label: 'Direct journalist Q&As', free: false, digital: false, allAccess: true },
+    ];
+
+    const TESTIMONIALS = [
+      {
+        quote: "The Meridian has completely changed how I understand global events. The depth of analysis, the quality of writing, the independence — I've tried every other major outlet and nothing comes close.",
+        name: 'Sarah K.',
+        location: 'New York, NY',
+        since: 2021,
+        stars: 5,
+      },
+      {
+        quote: "As someone who works in international development, I need journalism I can trust. The Meridian's foreign reporting is genuinely world-class. Worth every penny of the subscription.",
+        name: 'David O.',
+        location: 'Washington, D.C.',
+        since: 2020,
+        stars: 5,
+      },
+      {
+        quote: "I was skeptical about another subscription, but the All-Access events alone have been worth it. I've asked questions to foreign correspondents in real time. That doesn't happen anywhere else.",
+        name: 'Priya L.',
+        location: 'London, UK',
+        since: 2022,
+        stars: 5,
+      },
+    ];
+
+    const FAQ_ITEMS = [
+      {
+        id: 'faq-cancel',
+        question: 'Can I cancel anytime?',
+        answer: 'Yes — you can cancel your subscription at any time directly from your account settings, with no cancellation fees and no questions asked. Your access continues until the end of the billing period you\'ve already paid for.',
+      },
+      {
+        id: 'faq-student',
+        question: 'Is there a student discount?',
+        answer: 'Yes! Students get 50% off any paid plan with a valid .edu email address. Simply sign up with your student email and the discount will be applied automatically. The discount applies for up to four years of continuous enrollment.',
+      },
+      {
+        id: 'faq-access',
+        question: 'How do I access my subscription?',
+        answer: 'You can access your subscription on the web at themeridian.com by signing in to your account. We also have apps for iOS (App Store) and Android (Google Play) that support offline reading and push notifications for breaking news.',
+      },
+      {
+        id: 'faq-payment',
+        question: 'What payment methods do you accept?',
+        answer: 'We accept Visa, Mastercard, American Express, Discover, PayPal, Apple Pay, and Google Pay. All payments are processed securely. We do not store your payment information on our servers.',
+      },
+      {
+        id: 'faq-share',
+        question: 'Can I share my subscription?',
+        answer: 'Individual subscriptions are for single-account use. If you\'d like to share access with family members, we offer a Family Plan for up to 4 accounts at $24.99/month — a significant saving versus individual plans.',
+      },
+      {
+        id: 'faq-refund',
+        question: 'Do you offer refunds?',
+        answer: 'We offer a full, no-questions-asked refund within 30 days of your initial subscription or annual renewal. After 30 days, we do not offer partial refunds, but you can cancel to prevent future charges.',
+      },
+    ];
+
+    function CheckIcon({ label }) {
+      return (
+        <span aria-label={label || 'Included'} className="text-green-600 font-bold text-lg">
+          ✓
+        </span>
+      );
+    }
+
+    function CrossIcon({ label }) {
+      return (
+        <span aria-label={label || 'Not included'} className="text-gray-300 font-bold text-lg">
+          ✗
+        </span>
+      );
+    }
+
+    function StarRating({ count }) {
+      return (
+        <span aria-label={`${count} out of 5 stars`} className="flex gap-0.5">
+          {Array.from({ length: count }).map((_, i) => (
+            <svg key={i} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          ))}
+        </span>
+      );
+    }
+
+    function App() {
+      const [openFaq, setOpenFaq] = useState(null);
+      const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        plan: 'digital',
+        newsletters: {
+          dailyBrief: false,
+          weekendEdition: false,
+          techWeekly: false,
+          cultureRoundup: false,
+        },
+      });
+      const [formSubmitted, setFormSubmitted] = useState(false);
+
+      const toggleFaq = (id) => {
+        setOpenFaq(prev => prev === id ? null : id);
+      };
+
+      const handleFormChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        if (name.startsWith('nl-')) {
+          const key = name.replace('nl-', '');
+          setFormData(prev => ({
+            ...prev,
+            newsletters: { ...prev.newsletters, [key]: checked },
+          }));
+        } else {
+          setFormData(prev => ({ ...prev, [name]: value }));
+        }
+      };
+
+      const handleFormSubmit = (e) => {
+        e.preventDefault();
+        setFormSubmitted(true);
+      };
+
+      return (
+        <div>
+          <MeridianHeader currentPage="" />
+          <main id="main-content">
+            {/* Hero */}
+            <section aria-labelledby="sub-hero-heading" className="bg-slate-900 text-white py-16">
+              <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <p className="text-rose-400 text-sm font-bold uppercase tracking-widest mb-3">Subscribe to The Meridian</p>
+                <h1 id="sub-hero-heading" className="font-serif font-black text-4xl md:text-5xl mb-5 leading-tight">
+                  Fund the journalism that matters.
+                </h1>
+                <p className="text-slate-300 font-body text-lg leading-relaxed max-w-2xl mx-auto">
+                  The Meridian reaches 4 million readers monthly. We're independent, ad-light, and funded by people who care about quality reporting. No billionaire owner, no political agenda — just rigorous, fearless journalism.
+                </p>
+              </div>
+            </section>
+
+            {/* Pricing Cards */}
+            <section aria-labelledby="pricing-heading" className="py-14 bg-white">
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 id="pricing-heading" className="text-center font-serif font-bold text-3xl text-slate-900 mb-10">Choose your plan</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+
+                  {/* Free */}
+                  <div className="border border-gray-200 rounded-2xl p-7 flex flex-col bg-white">
+                    <div className="mb-5">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Free</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-serif font-black text-4xl text-slate-900">$0</span>
+                        <span className="text-slate-500 text-sm">/month</span>
+                      </div>
+                    </div>
+                    <ul className="space-y-2 flex-1 mb-7" aria-label="Free plan features">
+                      {['5 articles/month', 'Breaking news alerts', 'Newsletters', 'Web access only'].map(f => (
+                        <li key={f} className="flex items-center gap-2 text-sm text-slate-700">
+                          <CheckIcon label={`${f}: included`} />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <a
+                      href="#signup-form"
+                      className="block text-center border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-semibold py-3 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                    >
+                      Start Reading
+                    </a>
+                  </div>
+
+                  {/* Digital — Recommended */}
+                  <div
+                    aria-label="Recommended plan"
+                    className="border-2 border-rose-700 rounded-2xl p-7 flex flex-col bg-white shadow-xl relative"
+                  >
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="bg-rose-700 text-white text-xs font-black uppercase tracking-wider px-4 py-1 rounded-full">Most Popular</span>
+                    </div>
+                    <div className="mb-5 pt-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-rose-700 mb-1">Digital</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-serif font-black text-4xl text-slate-900">$9.99</span>
+                        <span className="text-slate-500 text-sm">/month</span>
+                      </div>
+                      <p className="text-sm text-slate-500 mt-1">or $99/year <span className="text-green-600 font-semibold">— Save 17%</span></p>
+                    </div>
+                    <ul className="space-y-2 flex-1 mb-7" aria-label="Digital plan features">
+                      {[
+                        'Unlimited articles',
+                        'All newsletters',
+                        'Audio edition',
+                        'Reader commenting',
+                        'Offline reading',
+                        'Ad-free experience',
+                        'iOS & Android apps',
+                      ].map(f => (
+                        <li key={f} className="flex items-center gap-2 text-sm text-slate-700">
+                          <CheckIcon label={`${f}: included`} />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <a
+                      href="#signup-form"
+                      aria-label="Subscribe to Digital plan"
+                      className="block text-center bg-rose-700 hover:bg-rose-600 text-white font-semibold py-3 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                    >
+                      Subscribe Now
+                    </a>
+                  </div>
+
+                  {/* All-Access */}
+                  <div className="border border-gray-200 rounded-2xl p-7 flex flex-col bg-white">
+                    <div className="mb-5">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">All-Access</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-serif font-black text-4xl text-slate-900">$19.99</span>
+                        <span className="text-slate-500 text-sm">/month</span>
+                      </div>
+                    </div>
+                    <ul className="space-y-2 flex-1 mb-7" aria-label="All-Access plan features">
+                      {[
+                        'Everything in Digital',
+                        'Print edition (US)',
+                        'Exclusive events',
+                        'Early access to investigations',
+                        'Direct journalist Q&As',
+                        'Merchandise discount',
+                      ].map(f => (
+                        <li key={f} className="flex items-center gap-2 text-sm text-slate-700">
+                          <CheckIcon label={`${f}: included`} />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <a
+                      href="#signup-form"
+                      aria-label="Subscribe to All-Access plan"
+                      className="block text-center border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white font-semibold py-3 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                    >
+                      Go All-Access
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Comparison Table */}
+            <section aria-labelledby="comparison-heading" className="py-12 bg-gray-50">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 id="comparison-heading" className="font-serif font-bold text-2xl text-slate-900 mb-6 text-center">Full feature comparison</h2>
+                <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                  <table className="w-full bg-white text-sm">
+                    <caption className="sr-only">Plan feature comparison table for Free, Digital, and All-Access plans</caption>
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th scope="col" className="text-left px-5 py-4 font-semibold text-slate-700 w-1/2">Feature</th>
+                        <th scope="col" className="text-center px-5 py-4 font-semibold text-slate-700">Free</th>
+                        <th scope="col" className="text-center px-5 py-4 font-bold text-rose-700 bg-rose-50">Digital</th>
+                        <th scope="col" className="text-center px-5 py-4 font-semibold text-slate-700">All-Access</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {TABLE_FEATURES.map((row, i) => (
+                        <tr key={i} className={`border-b border-gray-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                          <th scope="row" className="text-left px-5 py-3.5 font-medium text-slate-700">{row.label}</th>
+                          <td className="text-center px-5 py-3.5">
+                            {typeof row.free === 'string'
+                              ? <span className="text-slate-600">{row.free}</span>
+                              : row.free
+                                ? <CheckIcon label="Included in Free plan" />
+                                : <CrossIcon label="Not included in Free plan" />
+                            }
+                          </td>
+                          <td className="text-center px-5 py-3.5 bg-rose-50">
+                            {typeof row.digital === 'string'
+                              ? <span className="text-slate-600">{row.digital}</span>
+                              : row.digital
+                                ? <CheckIcon label="Included in Digital plan" />
+                                : <CrossIcon label="Not included in Digital plan" />
+                            }
+                          </td>
+                          <td className="text-center px-5 py-3.5">
+                            {typeof row.allAccess === 'string'
+                              ? <span className="text-slate-600">{row.allAccess}</span>
+                              : row.allAccess
+                                ? <CheckIcon label="Included in All-Access plan" />
+                                : <CrossIcon label="Not included in All-Access plan" />
+                            }
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            {/* Testimonials */}
+            <section aria-labelledby="testimonials-heading" className="py-14 bg-white">
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 id="testimonials-heading" className="font-serif font-bold text-2xl text-slate-900 mb-8 text-center">What our subscribers say</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
+                  {TESTIMONIALS.map((t, i) => (
+                    <figure key={i} className="bg-gray-50 rounded-2xl p-7 border border-gray-200">
+                      <div className="mb-3">
+                        <StarRating count={t.stars} />
+                      </div>
+                      <blockquote className="font-body text-slate-700 leading-relaxed text-sm italic mb-4">
+                        "{t.quote}"
+                      </blockquote>
+                      <figcaption>
+                        <p className="font-semibold text-sm text-slate-900">{t.name}</p>
+                        <p className="text-xs text-slate-500">{t.location} · Subscriber since {t.since}</p>
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* FAQ Accordion */}
+            <section aria-labelledby="faq-heading" className="py-14 bg-gray-50">
+              <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 id="faq-heading" className="font-serif font-bold text-2xl text-slate-900 mb-8 text-center">Frequently Asked Questions</h2>
+                <dl className="space-y-3">
+                  {FAQ_ITEMS.map((item) => {
+                    const isOpen = openFaq === item.id;
+                    return (
+                      <div key={item.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                        <dt>
+                          <button
+                            aria-expanded={isOpen}
+                            aria-controls={`${item.id}-answer`}
+                            onClick={() => toggleFaq(item.id)}
+                            className="w-full flex items-center justify-between px-6 py-4 text-left font-semibold text-slate-900 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                          >
+                            <span>{item.question}</span>
+                            <svg
+                              className={`w-5 h-5 text-slate-500 flex-shrink-0 ml-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              aria-hidden="true"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </dt>
+                        <dd
+                          id={`${item.id}-answer`}
+                          role="region"
+                          aria-labelledby={`${item.id}-btn`}
+                          hidden={!isOpen}
+                          className="px-6 pb-5"
+                        >
+                          <p className="text-sm text-slate-600 font-body leading-relaxed">{item.answer}</p>
+                        </dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              </div>
+            </section>
+
+            {/* Sign-Up Form */}
+            <section aria-labelledby="signup-form-heading" id="signup-form" className="py-14 bg-white">
+              <div className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 id="signup-form-heading" className="font-serif font-bold text-3xl text-slate-900 mb-2 text-center">Start your subscription today</h2>
+                <p className="text-center text-slate-500 font-body mb-8">Join over 400,000 subscribers worldwide.</p>
+                {formSubmitted ? (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
+                    <p className="text-green-700 font-semibold text-lg mb-2">Welcome to The Meridian!</p>
+                    <p className="text-green-600 text-sm">Check your email for a verification link to activate your account.</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleFormSubmit} className="space-y-5 bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="signup-first-name" className="block text-sm font-medium text-slate-700 mb-1">First name</label>
+                        <input
+                          id="signup-first-name"
+                          name="firstName"
+                          type="text"
+                          value={formData.firstName}
+                          onChange={handleFormChange}
+                          required
+                          autoComplete="given-name"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="signup-last-name" className="block text-sm font-medium text-slate-700 mb-1">Last name</label>
+                        <input
+                          id="signup-last-name"
+                          name="lastName"
+                          type="text"
+                          value={formData.lastName}
+                          onChange={handleFormChange}
+                          required
+                          autoComplete="family-name"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label htmlFor="signup-email" className="block text-sm font-medium text-slate-700 mb-1">Email address</label>
+                      <input
+                        id="signup-email"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleFormChange}
+                        required
+                        autoComplete="email"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="signup-password" className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                      <input
+                        id="signup-password"
+                        name="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={handleFormChange}
+                        required
+                        autoComplete="new-password"
+                        minLength={8}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">Minimum 8 characters</p>
+                    </div>
+                    <div>
+                      <label htmlFor="signup-plan" className="block text-sm font-medium text-slate-700 mb-1">Select plan</label>
+                      <select
+                        id="signup-plan"
+                        name="plan"
+                        value={formData.plan}
+                        onChange={handleFormChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                      >
+                        <option value="free">Free — $0/month</option>
+                        <option value="digital">Digital — $9.99/month</option>
+                        <option value="all-access">All-Access — $19.99/month</option>
+                      </select>
+                    </div>
+                    <fieldset className="border border-gray-200 rounded-lg px-4 py-3">
+                      <legend className="text-sm font-medium text-slate-700 px-1">Newsletter preferences</legend>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {[
+                          { id: 'nl-dailyBrief', label: 'Daily Brief' },
+                          { id: 'nl-weekendEdition', label: 'Weekend Edition' },
+                          { id: 'nl-techWeekly', label: 'Tech Weekly' },
+                          { id: 'nl-cultureRoundup', label: 'Culture Roundup' },
+                        ].map(({ id, label }) => (
+                          <label key={id} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              id={id}
+                              name={id}
+                              checked={formData.newsletters[id.replace('nl-', '')]}
+                              onChange={handleFormChange}
+                              className="rounded border-gray-300 text-rose-700 focus-visible:ring-rose-500"
+                            />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                    <button
+                      type="submit"
+                      className="w-full bg-rose-700 hover:bg-rose-600 text-white font-semibold py-3 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 text-base"
+                    >
+                      Create My Account
+                    </button>
+                    <p className="text-xs text-slate-400 text-center leading-relaxed">
+                      By creating an account, you agree to our{' '}
+                      <a href="#" className="underline hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">Terms of Use</a>{' '}
+                      and{' '}
+                      <a href="#" className="underline hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">Privacy Policy</a>.
+                      We will never sell your personal data to third parties.
+                    </p>
+                  </form>
+                )}
+              </div>
+            </section>
+
+            {/* Trust Signals */}
+            <section aria-labelledby="trust-heading" className="py-10 bg-gray-50 border-t border-gray-200">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 id="trust-heading" className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-5">As featured in &amp; recognized by</h2>
+                <div className="flex flex-wrap items-center justify-center gap-6 text-slate-400">
+                  {[
+                    'Columbia Journalism Review',
+                    'Press Gazette',
+                    'Reuters Institute',
+                    'World Press Freedom Index',
+                    'Online Journalism Awards',
+                  ].map(name => (
+                    <span key={name} className="text-sm font-semibold border border-gray-300 rounded-full px-4 py-1.5 bg-white">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-400 mt-6 font-body">
+                  The Meridian has been awarded the Society of Publishers in Asia Digital Media Award for Excellence in International Reporting three years running, and was shortlisted for the Pulitzer Prize for International Reporting in 2025.
+                </p>
+              </div>
+            </section>
+          </main>
+          <MeridianFooter />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

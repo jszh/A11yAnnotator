@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>City of Lakewood | Pay a Bill</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Public Sans"', "sans-serif"]
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="portal-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { useState } = React;
+      const { Header, Footer } = window.LakewoodPortal;
+
+      function App() {
+        const [lookupComplete, setLookupComplete] = useState(false);
+        const [paymentComplete, setPaymentComplete] = useState(false);
+        const [method, setMethod] = useState("credit-card");
+
+        return (
+          <>
+            <a
+              href="#main-content"
+              className="absolute left-4 top-4 z-50 -translate-y-20 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg focus:translate-y-0 focus-visible:translate-y-0"
+            >
+              Skip to main content
+            </a>
+            <Header activePath="billing.html" />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+              <section className="page-section rounded-[2rem] p-8">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-600">Utilities & Billing</p>
+                <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-slate-950">Pay a utility bill</h1>
+                <p className="mt-3 max-w-3xl text-base leading-7 text-slate-700">
+                  Look up your account, review the current balance, and submit a payment by card or bank transfer.
+                </p>
+              </section>
+
+              <section className="mt-8 grid gap-8 xl:grid-cols-[1fr_320px]">
+                <div className="page-section rounded-[1.75rem] p-6">
+                  <h2 className="text-2xl font-bold text-slate-950">Account lookup</h2>
+                  <form
+                    className="mt-6 space-y-5"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      setLookupComplete(true);
+                    }}
+                  >
+                    <div>
+                      <label htmlFor="account-number" className="mb-2 block text-sm font-semibold text-slate-700">
+                        Account number
+                      </label>
+                      <input
+                        id="account-number"
+                        type="text"
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+                        placeholder="Example: 4478-2201"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white hover:bg-slate-800"
+                    >
+                      Find account
+                    </button>
+                  </form>
+
+                  {lookupComplete && (
+                    <div className="mt-8 space-y-6">
+                      <div className="rounded-[1.25rem] bg-slate-50 p-5">
+                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Current balance</p>
+                        <p className="mt-2 text-4xl font-extrabold text-slate-950">$128.44</p>
+                        <p className="mt-2 text-sm text-slate-600">Due date: November 28</p>
+                      </div>
+
+                      <fieldset>
+                        <legend className="text-sm font-semibold text-slate-700">Payment method</legend>
+                        <div className="mt-3 space-y-3">
+                          {[
+                            ["credit-card", "Credit card"],
+                            ["bank-transfer", "Bank transfer"]
+                          ].map(([value, label]) => (
+                            <label key={value} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                              <input
+                                type="radio"
+                                name="payment-method"
+                                checked={method === value}
+                                onChange={() => setMethod(value)}
+                                className="h-4 w-4 border-slate-300 text-slate-900"
+                              />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+
+                      <button
+                        type="button"
+                        onClick={() => setPaymentComplete(true)}
+                        className="rounded-full bg-green-700 px-6 py-3 text-sm font-bold text-white hover:bg-green-800"
+                      >
+                        Submit payment
+                      </button>
+
+                      {paymentComplete && (
+                        <div className="rounded-[1.25rem] border border-green-200 bg-green-50 p-4 text-sm text-green-900" role="status" aria-live="polite">
+                          Payment successful. Receipt #UT-88210 has been emailed. Confirmation screen displayed below for your records.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <aside className="page-section rounded-[1.75rem] p-6" aria-labelledby="payment-summary-title">
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-600">Payment confirmation</p>
+                  <h2 id="payment-summary-title" className="mt-2 text-2xl font-extrabold text-slate-950">Summary</h2>
+                  <div className="mt-5 space-y-4 rounded-[1.25rem] bg-slate-50 p-5 text-sm text-slate-700">
+                    <p>
+                      <span className="font-semibold text-slate-950">Account:</span> 4478-2201
+                    </p>
+                    <p>
+                      <span className="font-semibold text-slate-950">Method:</span> {method === "credit-card" ? "Credit card" : "Bank transfer"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-slate-950">Amount:</span> $128.44
+                    </p>
+                    <p>
+                      <span className="font-semibold text-slate-950">Status:</span> {paymentComplete ? "Paid" : "Pending"}
+                    </p>
+                  </div>
+                </aside>
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

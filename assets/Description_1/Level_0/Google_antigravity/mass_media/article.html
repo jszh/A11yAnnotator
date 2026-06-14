@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Article | The Meridian</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="./live-server-compat.js"></script>
+
+    <style>
+        body {
+            background-color: #fdfdfc;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Article specific typography */
+        .article-body p {
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+            font-size: 1.125rem;
+            color: #334155;
+        }
+
+        .article-body h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            color: #0f172a;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    
+
+    <script type="text/babel">
+
+    const { useState, useEffect } = React;
+    const { Menu, Search, User, Facebook, Twitter, Instagram, ChevronRight, Clock, Share2, Bookmark, MessageSquare, Heart, MoreHorizontal } = window.IconCompat;
+
+    // --- Header Component ---
+    function Header() {
+      const [isScrolled, setIsScrolled] = useState(false);
+
+      useEffect(() => {
+        const handleScroll = () => {
+          setIsScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
+
+      return (
+        <header className={`fixed w-full top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-2' : 'bg-white/95 backdrop-blur-sm py-4 border-b border-gray-200'}`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center">
+              {/* Left: Mobile Menu & Date */}
+              <div className="flex items-center space-x-4 flex-1">
+                <button className="p-2 -ml-2 text-gray-700 hover:text-black focus:outline-none">
+                  <Menu size={24} />
+                </button>
+                <span className="hidden md:block text-xs font-inter text-gray-500 uppercase tracking-wider">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </span>
+              </div>
+
+              {/* Center: Logo */}
+              <div className="flex-1 text-center flex justify-center">
+                <a href="index.html" className="font-playfair font-black text-3xl md:text-5xl tracking-tight text-gray-900 hover:text-red-700 transition-colors">
+                  The Meridian
+                </a>
+              </div>
+
+              {/* Right: Actions */}
+              <div className="flex items-center justify-end space-x-4 flex-1">
+                <a href="subscription.html" className="hidden sm:flex text-sm font-semibold text-gray-700 hover:text-red-700 transition-colors uppercase tracking-wider font-inter">
+                  Subscribe
+                </a>
+                <button className="p-2 text-gray-700 hover:text-black focus:outline-none hidden sm:block">
+                  <Search size={20} />
+                </button>
+                <button className="text-gray-700 hover:text-black focus:outline-none flex items-center space-x-1">
+                  <User size={20} />
+                  <span className="hidden md:inline-block text-sm font-inter">Sign In</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Global Navigation */}
+            <nav className={`hidden md:block mt-4 pt-4 border-t border-gray-100 transition-all duration-300 ${isScrolled ? 'hidden' : 'block'}`}>
+              <ul className="flex justify-center space-x-8 text-sm font-inter font-medium text-gray-800 tracking-wide uppercase">
+                <li><a href="index.html" className="hover:text-red-700 transition-colors">Home</a></li>
+                <li><a href="category.html" className="hover:text-red-700 transition-colors">World</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Politics</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Business</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Tech</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Science</a></li>
+                <li><a href="#" className="hover:text-red-700 transition-colors">Culture</a></li>
+                <li><a href="opinion.html" className="hover:text-red-700 transition-colors">Opinion</a></li>
+              </ul>
+            </nav>
+          </div>
+        </header>
+      );
+    }
+
+    // --- Footer Component ---
+    function Footer() {
+      return (
+        <footer className="bg-slate-950 text-white pt-16 pb-8 border-t-4 border-red-700 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center">
+            {/* Newsletter Pitch */}
+            <div className="w-full max-w-2xl text-center mb-16">
+              <h3 className="font-playfair text-3xl font-bold mb-4">The World in Your Inbox</h3>
+              <p className="font-inter text-gray-400 mb-8">Sign up for the Daily Meridian newsletter to get the top stories of the day delivered straight to you.</p>
+              <form className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto" onSubmit={(e) => e.preventDefault()}>
+                <input 
+                  type="email" 
+                  placeholder="Your email address" 
+                  className="flex-1 px-4 py-3 bg-slate-800 border-none text-white focus:ring-2 focus:ring-red-600 font-inter outline-none"
+                />
+                <button type="submit" className="px-6 py-3 bg-red-700 hover:bg-red-600 font-inter font-bold uppercase tracking-wider transition-colors">
+                  Subscribe
+                </button>
+              </form>
+            </div>
+
+            <div className="w-full border-t border-slate-800 mb-12"></div>
+
+            <div className="w-full grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12 font-inter text-sm">
+              <div className="col-span-2 md:col-span-4 lg:col-span-1">
+                 <a href="index.html" className="font-playfair font-black text-2xl tracking-tight text-white block mb-6">
+                  The Meridian
+                </a>
+                <p className="text-gray-400 mb-6 font-merriweather text-sm leading-relaxed">
+                  Independent journalism holding power to account.
+                </p>
+                <div className="flex space-x-4 text-gray-400">
+                  <a href="#" className="hover:text-white transition-colors"><Facebook size={20} /></a>
+                  <a href="#" className="hover:text-white transition-colors"><Twitter size={20} /></a>
+                  <a href="#" className="hover:text-white transition-colors"><Instagram size={20} /></a>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Sections</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="category.html" className="hover:text-white transition-colors">World</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Politics</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Business</a></li>
+                  <li><a href="opinion.html" className="hover:text-white transition-colors">Opinion</a></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">About</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="#" className="hover:text-white transition-colors">Our Story</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Journalistic Ethics</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+                </ul>
+              </div>
+              
+               <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Legal</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Cookie Policy</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Accessibility</a></li>
+                </ul>
+              </div>
+
+               <div>
+                <h4 className="font-bold uppercase tracking-wider mb-4 text-gray-200">Account</h4>
+                <ul className="space-y-3 text-gray-400">
+                  <li><a href="subscription.html" className="text-red-500 hover:text-red-400 transition-colors font-semibold">Subscribe</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Manage Subscription</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="w-full border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 font-inter">
+              <p>&copy; {new Date().getFullYear()} The Meridian Media Company. All rights reserved.</p>
+              <p className="mt-2 md:mt-0">Powered by Antigravity</p>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+
+                
+        tailwind.config = {
+            theme: { extend: { fontFamily: { playfair: ['"Playfair Display"', 'serif'], merriweather: ['Merriweather', 'serif'], inter: ['Inter', 'sans-serif'] } } }
+        };
+
+        function ArticlePage() {
+            return (
+                <div className="min-h-screen flex flex-col font-merriweather text-gray-900">
+                    <Header />
+
+                    <main className="flex-grow pt-28 md:pt-40">
+
+                        <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                            {/* Article Header */}
+                            <header className="mb-10 text-center max-w-3xl mx-auto">
+                                <a href="category.html" className="font-inter text-xs font-bold uppercase tracking-widest text-red-700 hover:text-red-800 transition-colors mb-4 inline-block">World</a>
+                                <h1 className="font-playfair font-black text-4xl md:text-5xl lg:text-6xl leading-tight mb-6">
+                                    Global Markets Brace for Impact Following Diplomatic Breakdown
+                                </h1>
+                                <h2 className="font-merriweather text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto font-light italic">
+                                    Emergency summits yield no resolution as major shipping routes face indefinite closure, prompting fears of renewed supply chain crises.
+                                </h2>
+                            </header>
+
+                            {/* Author & Meta */}
+                            <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start border-t border-b border-gray-200 py-6 mb-10 max-w-3xl mx-auto">
+                                <div className="flex items-center space-x-4 mb-4 sm:mb-0">
+                                    <img src="https://ui-avatars.com/api/?name=Eleanor+Vance&background=random" alt="Author" className="w-12 h-12 rounded-full ring-2 ring-white shadow-sm" />
+                                    <div>
+                                        <div className="font-inter font-bold text-gray-900">By <a href="#" className="hover:text-red-700">Eleanor Vance</a> & <a href="#" className="hover:text-red-700">Marcus Chen</a></div>
+                                        <div className="font-inter text-xs text-gray-500 flex items-center gap-3 mt-1">
+                                            <span>Published October 24, 2026</span>
+                                            <span className="flex items-center gap-1"><Clock size={12} /> 6 min read</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex space-x-3 text-gray-600">
+                                    <button className="p-2 border border-gray-200 rounded-full hover:bg-gray-50 hover:text-black transition-colors" title="Share"><Share2 size={18} /></button>
+                                    <button className="p-2 border border-gray-200 rounded-full hover:bg-gray-50 hover:text-black transition-colors" title="Save"><Bookmark size={18} /></button>
+                                    <a href="#comments" className="p-2 border border-gray-200 rounded-full hover:bg-gray-50 hover:text-black transition-colors flex items-center gap-1" title="Comments">
+                                        <MessageSquare size={18} />
+                                        <span className="text-xs font-inter font-medium">102</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Hero Image */}
+                            <figure className="mb-12 w-full max-w-5xl mx-auto">
+                                <div className="aspect-[16/9] w-full bg-gray-100 overflow-hidden rounded-sm">
+                                    <img src="https://images.unsplash.com/photo-1541887089898-144e47417e07?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80" alt="Diplomats" className="w-full h-full object-cover" />
+                                </div>
+                                <figcaption className="text-right font-inter text-xs text-gray-500 mt-3 max-w-3xl mx-auto px-4">
+                                    Delegates gather for an emergency session at the United Nations headquarters in Geneva following escalating tensions. <span className="uppercase tracking-wider">Photo: REUTERS/Fabrice Coffrini</span>
+                                </figcaption>
+                            </figure>
+
+                            {/* Article Content Area */}
+                            <div className="flex flex-col lg:flex-row gap-12 max-w-5xl mx-auto">
+                                <div className="lg:w-1/6 hidden lg:block sticky top-32 self-start space-y-4 text-gray-400">
+                                    {/* Ghost sidebar for alignment / sharing sticky */}
+                                    <button className="block p-3 rounded-full hover:bg-gray-100 hover:text-black transition-colors"><Share2 size={24} /></button>
+                                    <button className="block p-3 rounded-full hover:bg-gray-100 hover:text-black transition-colors"><Bookmark size={24} /></button>
+                                    <button className="block p-3 rounded-full hover:bg-gray-100 hover:text-black transition-colors"><MessageSquare size={24} /></button>
+                                </div>
+
+                                <div className="lg:w-4/6 article-body">
+                                    <p>
+                                        <span className="float-left text-6xl font-playfair font-black leading-none pr-3 pt-2 text-slate-800">G</span>
+                                        ENEVA — The much-anticipated emergency summit failed to produce a unified response to the accelerating maritime crisis, leaving global equity markets sharply lower and raising the specter of severe supply chain disruptions heading into the crucial winter holiday season.
+                                    </p>
+                                    <p>
+                                        After fourteen hours of closed-door negotiations, the joint declaration issued at dawn lacked the decisive enforcement mechanisms Western allies had sought. The omission has triggered an immediate reaction in global financial centers, where insurance premiums for cargo vessels traversing the affected straits tripled within hours of the announcement.
+                                    </p>
+
+                                    {/* Inline Related Article */}
+                                    <aside className="my-8 p-6 bg-slate-50 border-l-4 border-red-700 shadow-sm float-right w-full sm:w-1/2 sm:ml-6 mb-6">
+                                        <span className="font-inter text-xs font-bold uppercase tracking-widest text-red-700 block mb-2">Related Coverage</span>
+                                        <h3 className="font-playfair font-bold text-lg leading-snug mb-2">
+                                            <a href="#" className="hover:text-red-700 transition-colors">How a Blocked Strait Could Cost the Global Economy $400M Daily</a>
+                                        </h3>
+                                        <a href="#" className="font-inter text-sm font-semibold text-gray-900 border-b border-gray-900 pb-0.5 hover:text-red-700 hover:border-red-700 transition-colors inline-block">Read full analysis</a>
+                                    </aside>
+
+                                    <p>
+                                        "We are witnessing a profound real-time stress test of the globalized economy," stated Dr. Amara Kone, senior director at the Institute for Global Trade Analysis. "The rerouting of major commercial shipping lanes adds approximately 14 to 18 days to transit times, significantly increasing fuel expenditures and fundamentally altering inventory-to-sales ratios."
+                                    </p>
+
+                                    <h2>A Strategy in Gridlock</h2>
+                                    <p>
+                                        The crux of the diplomatic impasse centers on the interpretation of maritime territorial claims and the proportional deployment of naval escorts. While a coalition led by the United States and several European nations advocated for a muscular, coordinated military presence to deter further incidents, regional powers pushed back, citing concerns over militarizing civilian trade routes.
+                                    </p>
+
+                                    {/* Pull Quote */}
+                                    <blockquote className="my-10 pl-8 border-l-4 border-slate-300 py-2">
+                                        <p className="font-playfair font-bold text-2xl lg:text-3xl leading-snug text-slate-800 italic m-0">
+                                            "This isn't just about container ships; it's about the fragility of the entire just-in-time manufacturing model that the modern world relies upon."
+                                        </p>
+                                        <footer className="mt-4 font-inter text-sm font-bold text-gray-500 uppercase tracking-wider">— Dr. Amara Kone, IGTA</footer>
+                                    </blockquote>
+
+                                    <p>
+                                        Retailers, particularly those dependent on electronics and specialized manufacturing components from Asia, have already begun issuing revised earnings guidance. Several major conglomerates indicated they might resort to costly air freight to fulfill critical orders, a cost that will inevitably be passed on to consumers facing already persistent inflationary pressures.
+                                    </p>
+                                    <p>
+                                        As the delegates departed the Palais des Nations, the underlying message was clear: a swift resolution is unlikely. For the foreseeable future, the global economy must navigate a significantly more turbulent and expensive reality.
+                                    </p>
+
+                                    {/* Tags */}
+                                    <div className="mt-12 flex flex-wrap gap-2 pt-8 border-t border-gray-200">
+                                        <a href="#" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-inter text-gray-700 rounded-full transition-colors">Global Economy</a>
+                                        <a href="#" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-inter text-gray-700 rounded-full transition-colors">Supply Chain</a>
+                                        <a href="#" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-inter text-gray-700 rounded-full transition-colors">Diplomacy</a>
+                                        <a href="#" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm font-inter text-gray-700 rounded-full transition-colors">United Nations</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        {/* Comments Section */}
+                        <section id="comments" className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-24">
+                            <div className="flex justify-between border-b-2 border-slate-800 pb-4 mb-8">
+                                <h3 className="font-playfair font-bold text-2xl text-slate-800">Conversation <span className="text-gray-400 font-inter text-lg ml-2">(102)</span></h3>
+                                <button className="font-inter text-sm font-semibold text-red-700 hover:text-red-800 transition-colors uppercase tracking-wider">Log in to comment</button>
+                            </div>
+
+                            <div className="bg-slate-50 p-6 border border-slate-200 mb-8 rounded-sm">
+                                <div className="flex gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-gray-300 flex-shrink-0"></div>
+                                    <textarea
+                                        placeholder="What are your thoughts?"
+                                        className="w-full bg-white border border-gray-300 p-3 font-inter text-sm resize-none focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 min-h-[100px]"
+                                    ></textarea>
+                                </div>
+                                <div className="flex justify-end mt-4">
+                                    <button className="px-6 py-2 bg-slate-900 border border-slate-900 text-white font-inter text-sm font-bold uppercase tracking-wider hover:bg-white hover:text-slate-900 transition-colors">Submit</button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-8">
+                                {/* Comment 1 */}
+                                <div className="flex gap-4">
+                                    <img src="https://ui-avatars.com/api/?name=David+S&background=random" className="w-10 h-10 rounded-full flex-shrink-0" />
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-inter font-bold text-sm">David S.</span>
+                                            <span className="font-inter text-xs text-gray-500">2 hours ago</span>
+                                        </div>
+                                        <p className="font-merriweather text-sm text-gray-700 leading-relaxed mb-3">
+                                            This underscores the danger of relying on a single major corridor for 12% of global trade. We need more robust, distributed supply chains, even if it means slightly higher baseline costs. Efficiency has been prioritized over resilience for too long.
+                                        </p>
+                                        <div className="flex gap-4 text-xs font-inter font-semibold text-gray-500">
+                                            <button className="flex items-center gap-1 hover:text-slate-900"><Heart size={14} /> 45</button>
+                                            <button className="hover:text-slate-900">Reply</button>
+                                            <button className="hover:text-slate-900"><MoreHorizontal size={14} /></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Comment 2 */}
+                                <div className="flex gap-4">
+                                    <img src="https://ui-avatars.com/api/?name=Maria+G&background=random" className="w-10 h-10 rounded-full flex-shrink-0" />
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-inter font-bold text-sm font-inter">Maria G.</span>
+                                            <span className="font-inter text-xs text-gray-500">4 hours ago</span>
+                                        </div>
+                                        <p className="font-merriweather text-sm text-gray-700 leading-relaxed mb-3">
+                                            The hesitation by regional powers is understandable. A massive militarization of the strait could easily escalate a localized dispute into a broader regional conflict. A diplomatic solution, however prolonged, is preferable to an armed convoy system.
+                                        </p>
+                                        <div className="flex gap-4 text-xs font-inter font-semibold text-gray-500">
+                                            <button className="flex items-center gap-1 hover:text-slate-900"><Heart size={14} /> 12</button>
+                                            <button className="hover:text-slate-900">Reply</button>
+                                            <button className="hover:text-slate-900"><MoreHorizontal size={14} /></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button className="w-full mt-8 py-3 bg-white border border-gray-300 font-inter text-sm font-semibold uppercase tracking-wider text-slate-800 hover:bg-gray-50 transition-colors">
+                                Load More Comments
+                            </button>
+                        </section>
+
+                        {/* Read More Section */}
+                        <section className="bg-slate-100 py-16 border-t border-slate-200">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-8">
+                                    <h3 className="font-playfair font-black text-3xl text-slate-900">More from World</h3>
+                                    <a href="category.html" className="font-inter text-sm font-semibold text-red-700 hover:text-red-800 uppercase tracking-wider flex items-center">View All <ChevronRight size={16} className="ml-1" /></a>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {[
+                                        { title: "Coalition Unity Tested as Energy Package Debated in Brussels", img: "https://images.unsplash.com/photo-1574359411659-15573a27fd0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", category: "Europe" },
+                                        { title: "Elections in Sub-Saharan Africa Mark Shift from Traditional Alliances", img: "https://images.unsplash.com/photo-1489749798305-4fea3ae63d43?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", category: "Africa" },
+                                        { title: "Diplomatic Thaw Reported Following Unprecedented Border Talks", img: "https://images.unsplash.com/photo-1520697960351-40b43bb6ebcd?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", category: "Asia" },
+                                        { title: "Protests Over Austerity Measures Continue for Fourth Week", img: "https://images.unsplash.com/photo-1526470608155-61f22e70e27c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80", category: "Americas" }
+                                    ].map((story, i) => (
+                                        <article key={i} className="group cursor-pointer">
+                                            <div className="aspect-[3/2] overflow-hidden mb-3 bg-white border border-gray-200">
+                                                <img src={story.img} alt={story.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            </div>
+                                            <span className="font-inter text-xs font-bold uppercase tracking-wider text-red-700 mb-1 block">{story.category}</span>
+                                            <h4 className="font-playfair font-bold text-lg leading-snug group-hover:text-slate-600 transition-colors">
+                                                <a href="article.html">{story.title}</a>
+                                            </h4>
+                                        </article>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<ArticlePage />);
+    </script>
+</body>
+
+</html>

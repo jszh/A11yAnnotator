@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resident Services Home | State of Vermont Official Resident Services Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              pine: {
+                50: "#f4f8f6",
+                100: "#dce9e2",
+                200: "#bdd4c8",
+                500: "#4b7661",
+                700: "#28503f",
+                900: "#173528",
+              },
+              stone: {
+                25: "#fcfcfb",
+              },
+            },
+            boxShadow: {
+              civic: "0 18px 45px rgba(23, 53, 40, 0.10)",
+            },
+            borderRadius: {
+              "4xl": "2rem",
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="stylesheet" href="./assets/shared.css" />
+  </head>
+  <body>
+    <div id="global-live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    <div id="root"></div>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel">
+const {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} = React;
+
+const GovPortal = (() => {
+  const navLinks = [
+    { href: "./index.html", label: "Home" },
+    { href: "./services.html", label: "Services" },
+    { href: "./license-renewal.html", label: "License Renewal" },
+    { href: "./benefits.html", label: "Benefits" },
+    { href: "./about.html", label: "About" },
+    { href: "./contact.html", label: "Contact" },
+  ];
+
+  const quickTasks = [
+    {
+      title: "Renew Driver's License",
+      href: "./license-renewal.html",
+      description: "Check eligibility, upload documents, and schedule an appointment.",
+      iconLabel: "Motor vehicle services",
+    },
+    {
+      title: "Apply for Benefits",
+      href: "./benefits.html",
+      description: "Screen for food, health, and heating support in one place.",
+      iconLabel: "Benefits and assistance services",
+    },
+    {
+      title: "Register to Vote",
+      href: "./services.html#families",
+      description: "Update your voter registration and review local election deadlines.",
+      iconLabel: "Voting and civic participation services",
+    },
+    {
+      title: "Find a School",
+      href: "./services.html#students",
+      description: "Explore district resources, enrollment support, and transportation tools.",
+      iconLabel: "Education and school finder services",
+    },
+  ];
+
+  const lifeStages = [
+    {
+      id: "new-residents",
+      title: "New Residents",
+      description: "Transfer records, update residency, and connect utilities and local services.",
+      services: [
+        { name: "Driver's License Renewal", time: "~10 minutes online", href: "./license-renewal.html" },
+        { name: "Vehicle Registration Transfer", time: "~15 minutes online", href: "./services.html" },
+        { name: "Residency Checklist", time: "~5 minutes", href: "./about.html" },
+      ],
+    },
+    {
+      id: "families",
+      title: "Families",
+      description: "Support for childcare, nutrition, school enrollment, and family health programs.",
+      services: [
+        { name: "Apply for Benefits", time: "~12 minutes", href: "./benefits.html" },
+        { name: "Childcare Search", time: "~7 minutes", href: "./services.html" },
+        { name: "Register to Vote", time: "~6 minutes", href: "./services.html" },
+      ],
+    },
+    {
+      id: "students",
+      title: "Students",
+      description: "Grants, tuition support, school lookups, and career planning tools.",
+      services: [
+        { name: "Find a School", time: "~4 minutes", href: "./services.html" },
+        { name: "Tuition Assistance", time: "~14 minutes", href: "./services.html" },
+        { name: "Internship Portal", time: "~9 minutes", href: "./about.html" },
+      ],
+    },
+    {
+      id: "seniors",
+      title: "Seniors",
+      description: "Health coverage, independence services, transportation, and heating relief.",
+      services: [
+        { name: "Medicaid Renewal", time: "~11 minutes", href: "./benefits.html" },
+        { name: "Heating Assistance", time: "~8 minutes", href: "./benefits.html" },
+        { name: "Senior Transit Pass", time: "~5 minutes", href: "./services.html" },
+      ],
+    },
+    {
+      id: "businesses",
+      title: "Businesses",
+      description: "Licensing, hiring support, tax filing, and procurement resources.",
+      services: [
+        { name: "Business Registration", time: "~18 minutes", href: "./services.html" },
+        { name: "Tax Filing Reminder", time: "~3 minutes", href: "./index.html" },
+        { name: "Workforce Grants", time: "~9 minutes", href: "./about.html" },
+      ],
+    },
+  ];
+
+  const departmentFeed = [
+    { department: "Department of Taxes", time: "Updated 45 minutes ago", message: "Online filing support is available for individual returns through April 15." },
+    { department: "Agency of Education", time: "Updated 2 hours ago", message: "School calendar guidance and transportation weather notices have been posted for this week." },
+    { department: "Department for Children and Families", time: "Updated today", message: "SNAP and heating assistance interviews can now be scheduled online." },
+  ];
+
+  const departmentDirectory = [
+    { name: "Agency of Human Services", contact: "(802) 555-0114", label: "Health and benefits administration" },
+    { name: "Department of Motor Vehicles", contact: "(802) 555-0125", label: "Motor vehicle licensing office" },
+    { name: "Agency of Education", contact: "(802) 555-0172", label: "Education and district services office" },
+    { name: "Department of Taxes", contact: "(802) 555-0198", label: "State taxes and filing support office" },
+  ];
+
+  function announce(message) {
+    const region = document.getElementById("global-live-region");
+    if (!region) return;
+    region.textContent = "";
+    window.setTimeout(() => {
+      region.textContent = message;
+    }, 40);
+  }
+
+  function Header({ currentPath = "" }) {
+    return (
+      <header className="sticky-header border-b border-pine-100 bg-stone-25/95 backdrop-blur">
+        <div className="mx-auto max-w-7xl px-4 py-3 lg:px-8">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
+              <div className="flex items-center gap-4">
+                <div className="rounded-2xl bg-pine-700 px-4 py-3 text-white shadow-civic">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em]">State of Vermont</p>
+                  <p className="text-lg font-semibold">Resident Services Portal</p>
+                </div>
+                <p className="max-w-xl text-sm text-slate-600">Official online access to resident licensing, health, education, and benefits services.</p>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <a href="./contact.html" className="focus-ring rounded-full border border-pine-200 px-4 py-2 font-semibold text-pine-900" aria-label="Contact the State of Vermont resident services portal">
+                  Help Center
+                </a>
+                <span className="rounded-full bg-pine-50 px-3 py-2 font-medium text-pine-900">Secure access</span>
+              </div>
+            </div>
+            <nav aria-label="Primary" className="overflow-x-auto portal-scroll">
+              <ul className="flex min-w-max items-center gap-2 pb-1">
+                {navLinks.map((link) => {
+                  const active = currentPath === link.href;
+                  return (
+                    <li key={link.href}>
+                      <a
+                        href={link.href}
+                        className={`focus-ring inline-flex rounded-full px-4 py-2 text-sm font-semibold ${active ? "bg-pine-700 text-white" : "bg-white text-slate-700 border border-slate-200"}`}
+                        aria-current={active ? "page" : undefined}
+                        aria-label={`Go to ${link.label}`}
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  function Footer() {
+    return (
+      <footer className="mt-16 border-t border-pine-100 bg-white">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
+          <section aria-labelledby="footer-mission">
+            <h2 id="footer-mission" className="text-xl font-semibold text-pine-900">Resident-first digital services</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">This portal organizes trusted state services around life events, plain language guidance, and accessible online tasks.</p>
+          </section>
+          <nav aria-label="Footer">
+            <ul className="grid gap-3 text-sm text-slate-700">
+              {navLinks.map((link) => (
+                <li key={link.href}>
+                  <a href={link.href} className="focus-ring font-medium hover:text-pine-700" aria-label={`Open ${link.label} page`}>
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+      </footer>
+    );
+  }
+
+  function Breadcrumbs({ items }) {
+    return (
+      <nav aria-label="Breadcrumb" className="mb-6">
+        <ol className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+          {items.map((item, index) => (
+            <li key={`${item.label}-${index}`} className="flex items-center gap-2">
+              {index > 0 ? <span aria-hidden="true">/</span> : null}
+              {item.href ? (
+                <a href={item.href} className="focus-ring rounded font-medium text-pine-700" aria-label={`Navigate to ${item.label}`}>
+                  {item.label}
+                </a>
+              ) : (
+                <span aria-current="page" className="font-semibold text-slate-800">{item.label}</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </nav>
+    );
+  }
+
+  function PageShell({ currentPath, title, eyebrow, description, breadcrumbs, children, aside }) {
+    return (
+      <div className="page-shell">
+        <a href="#main-content" className="sr-anchor focus-ring rounded bg-white px-4 py-2 text-sm font-semibold text-slate-900">Skip to main content</a>
+        <Header currentPath={currentPath} />
+        <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+          {breadcrumbs ? <Breadcrumbs items={breadcrumbs} /> : null}
+          <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-pine-700">{eyebrow}</p>
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950 lg:text-5xl">{title}</h1>
+              <p className="mt-4 max-w-3xl text-base leading-8 text-slate-600 lg:text-lg">{description}</p>
+            </div>
+            {aside ? <aside>{aside}</aside> : null}
+          </section>
+          {children}
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  function IconBadge({ label, children }) {
+    return (
+      <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-pine-50 text-pine-700" role="img" aria-label={label}>
+        {children}
+      </div>
+    );
+  }
+
+  function Modal({ open, title, description, onClose, children }) {
+    const dialogRef = useRef(null);
+    const lastFocused = useRef(null);
+
+    useEffect(() => {
+      if (!open) return undefined;
+      lastFocused.current = document.activeElement;
+      const node = dialogRef.current;
+      if (!node) return undefined;
+      const focusable = () => Array.from(node.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')).filter((item) => !item.hasAttribute("disabled"));
+      const currentFocusable = focusable();
+      if (currentFocusable.length) currentFocusable[0].focus();
+
+      const onKeyDown = (event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          onClose();
+          return;
+        }
+        if (event.key !== "Tab") return;
+        const list = focusable();
+        if (!list.length) {
+          event.preventDefault();
+          return;
+        }
+        const first = list[0];
+        const last = list[list.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      };
+
+      document.addEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.removeEventListener("keydown", onKeyDown);
+        document.body.style.overflow = "";
+        if (lastFocused.current && typeof lastFocused.current.focus === "function") {
+          lastFocused.current.focus();
+        }
+      };
+    }, [open, onClose]);
+
+    if (!open) return null;
+
+    return (
+      <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description" className="w-full max-w-2xl rounded-[2rem] bg-white p-6 shadow-2xl">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="modal-title" className="text-2xl font-semibold text-slate-950">{title}</h2>
+              <p id="modal-description" className="mt-2 text-sm text-slate-600">{description}</p>
+            </div>
+            <button type="button" onClick={onClose} className="focus-ring rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700" aria-label={`Close ${title}`}>
+              Close
+            </button>
+          </div>
+          <div className="mt-6">{children}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return {
+    announce,
+    Breadcrumbs,
+    departmentDirectory,
+    departmentFeed,
+    Footer,
+    Header,
+    IconBadge,
+    lifeStages,
+    Modal,
+    PageShell,
+    quickTasks,
+    useMemo,
+    useRef,
+    useState,
+  };
+})();
+
+window.GovPortal = GovPortal;
+
+    </script>
+    <script type="text/babel">
+const {
+  IconBadge,
+  PageShell,
+  announce,
+  departmentFeed,
+  quickTasks,
+  useState,
+} = window.GovPortal;
+
+function HomePage() {
+  const [language, setLanguage] = useState("EN");
+
+  return (
+    <PageShell
+      currentPath="./index.html"
+      eyebrow="Official state services"
+      title="Find resident services and complete common tasks online"
+      description="Access trusted Vermont government services for licensing, benefits, education, and resident support through one clear public portal."
+      breadcrumbs={[{ label: "Home" }]}
+      aside={
+        <section className="rounded-[2rem] border border-pine-100 bg-white p-6 shadow-civic" aria-labelledby="language-tools">
+          <h2 id="language-tools" className="text-lg font-semibold text-slate-950">Accessibility and language</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Choose a preferred language for navigation labels and service assistance.</p>
+          <div className="mt-4 flex flex-wrap gap-3" role="group" aria-label="Language selector">
+            {["EN", "ES", "FR"].map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  setLanguage(option);
+                  announce(`Language preference set to ${option}.`);
+                }}
+                className={`focus-ring rounded-full px-4 py-2 text-sm font-semibold ${language === option ? "bg-pine-700 text-white" : "border border-slate-300 bg-white text-slate-700"}`}
+                aria-pressed={language === option}
+                aria-label={`Set portal language to ${option}`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </section>
+      }
+    >
+      <section role="alert" aria-live="assertive" className="mt-10 rounded-[2rem] border border-amber-200 bg-amber-50 px-6 py-5 shadow-sm">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-amber-800">Seasonal reminder</p>
+            <h2 className="mt-2 text-2xl font-semibold text-amber-950">Tax Filing Deadline: April 15 - File Online Now</h2>
+            <p className="mt-2 text-sm leading-6 text-amber-900">Use secure online filing support, payment plans, and deadline guidance from the Department of Taxes.</p>
+          </div>
+          <a href="./services.html" className="focus-ring inline-flex rounded-full bg-amber-900 px-5 py-3 text-sm font-semibold text-white" aria-label="View tax filing and resident services">
+            View filing services
+          </a>
+        </div>
+      </section>
+
+      <section className="mt-10 overflow-hidden rounded-[2rem] border border-pine-100 bg-white shadow-civic" aria-labelledby="task-search-heading">
+        <div className="grid lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="surface-mask px-6 py-10 text-white lg:px-10">
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-pine-100">Resident task center</p>
+            <h2 id="task-search-heading" className="mt-3 text-4xl font-semibold tracking-tight">What do you need today?</h2>
+            <p className="mt-4 max-w-2xl text-base leading-8 text-pine-50">Search for a service, or start with a common task below.</p>
+            <form className="mt-6" role="search" aria-label="Search resident services">
+              <label htmlFor="service-search" className="sr-only">Search resident services</label>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input
+                  id="service-search"
+                  type="search"
+                  className="focus-ring min-w-0 flex-1 rounded-full border border-white/30 bg-white px-5 py-4 text-base text-slate-900 placeholder:text-slate-500"
+                  placeholder="Search licenses, schools, benefits, and more"
+                  aria-label="Search licenses, schools, benefits, and more"
+                />
+                <button type="button" className="focus-ring rounded-full bg-pine-100 px-6 py-4 text-sm font-semibold text-pine-950" aria-label="Search resident services">
+                  Search services
+                </button>
+              </div>
+            </form>
+          </div>
+          <aside className="bg-pine-50 px-6 py-10 lg:px-8" aria-labelledby="live-updates-heading">
+            <h2 id="live-updates-heading" className="text-2xl font-semibold text-slate-950">Live updates</h2>
+            <ul className="mt-6 space-y-4" aria-label="Recent updates from state departments">
+              {departmentFeed.map((item) => (
+                <li key={item.department} className="rounded-3xl border border-pine-100 bg-white p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-pine-700">{item.department}</p>
+                  <p className="mt-2 text-sm font-medium text-slate-500">{item.time}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{item.message}</p>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section className="mt-12" aria-labelledby="quick-links-heading">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 id="quick-links-heading" className="text-3xl font-semibold text-slate-950">Quick links</h2>
+            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">Start common resident services with clear next steps and estimated effort.</p>
+          </div>
+          <a href="./services.html" className="focus-ring hidden rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 lg:inline-flex" aria-label="Open the full services overview page">
+            View all services
+          </a>
+        </div>
+        <nav aria-label="Task-based quick links" className="mt-8">
+          <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {quickTasks.map((task) => (
+              <li key={task.title}>
+                <a href={task.href} className="focus-ring block rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-civic" aria-label={task.title}>
+                  <div className="flex items-center justify-between gap-4">
+                    <IconBadge label={task.iconLabel}>
+                      <span aria-hidden="true" className="text-xl">+</span>
+                    </IconBadge>
+                    <span className="rounded-full bg-pine-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-pine-700">Start</span>
+                  </div>
+                  <h3 className="mt-5 text-xl font-semibold text-slate-950">{task.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{task.description}</p>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </section>
+    </PageShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<HomePage />);
+
+    </script>
+  </body>
+  </html>

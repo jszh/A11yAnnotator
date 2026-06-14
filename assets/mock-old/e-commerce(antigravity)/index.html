@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Market | Everything You Need</title>
+
+    <!-- Tailwind via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles/main.css">
+
+    <!-- Configure Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { DEFAULT: '#1a1f2c', 800: '#232f3e', 900: '#131a22' },
+                        cta: { DEFAULT: '#ffd814', hover: '#f7ca00' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React and ReactDOM via CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body id="top" class="bg-gray-100 flex flex-col min-h-screen">
+
+    <!-- React Mounting Point -->
+    <div id="root"></div>
+
+    <!-- Components Loading -->
+    <script type="text/babel" src="components/Header.js"></script>
+    <script type="text/babel" src="components/NavBar.js"></script>
+    <script type="text/babel" src="components/HeroBanner.js"></script>
+    <script type="text/babel" src="components/ProductCard.js"></script>
+    <script type="text/babel" src="components/DealCard.js"></script>
+    <script type="text/babel" src="components/SponsoredCard.js"></script>
+    <script type="text/babel" src="components/Footer.js"></script>
+
+    <!-- Main Page Application Logic -->
+    <script type="text/babel">
+        const App = () => {
+            return (
+                <React.Fragment>
+                    <Header />
+                    <NavBar />
+
+                    <main className="flex-grow">
+                        <HeroBanner />
+
+                        {/* Main Grid Layout */}
+                        <section className="container mx-auto px-4 -mt-12 relative z-10 mb-12" aria-labelledby="featured-categories">
+                            <h2 id="featured-categories" className="sr-only">Featured Categories and Deals</h2>
+
+                            {/* Responsive 4-Column Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                                <ProductCard
+                                    title="Continue shopping for"
+                                    imagePlaceholder="https://via.placeholder.com/300?text=History"
+                                    link="/products/products.html"
+                                    linkText="View your browsing history"
+                                />
+
+                                <DealCard
+                                    title="Top deals picked for you"
+                                    imagePlaceholder="https://via.placeholder.com/300?text=Tablet"
+                                    discount={35}
+                                    dealDesc="Latest Tech Brands"
+                                    link="/deals/deals.html"
+                                />
+
+                                <ProductCard
+                                    title="Gift ideas for everyone"
+                                    imagePlaceholder="https://via.placeholder.com/300?text=Gifts"
+                                    link="/products/products.html"
+                                    linkText="Shop gift guides"
+                                />
+
+                                <SponsoredCard
+                                    brandTitle="Logitech"
+                                    brandImage="https://via.placeholder.com/400x150?text=Logitech"
+                                    products={[
+                                        "https://via.placeholder.com/100?text=Mouse",
+                                        "https://via.placeholder.com/100?text=KB",
+                                        "https://via.placeholder.com/100?text=Webcam"
+                                    ]}
+                                    link="/products/products.html"
+                                />
+
+                            </div>
+                        </section>
+                    </main>
+
+                    <Footer />
+                </React.Fragment>
+            );
+        };
+
+        // Render App once components load. In production this would be handled by an import bundler.
+        // For standalone babel we wait slightly to ensure window variables are mapped.
+        setTimeout(() => {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        }, 100);
+    </script>
+</body>
+
+</html>

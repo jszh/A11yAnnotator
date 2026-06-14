@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LearnPath | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Plus Jakarta Sans"', "sans-serif"] }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="learn-shell">
+    <div id="root"></div>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="shared.js"></script>
+    <script type="text/babel">
+      const { Header, Footer, courses, CourseCard } = window.LearnPathShared;
+
+      function Ring({ value, label }) {
+        return (
+          <div className="dashboard-card page-surface rounded-[1.5rem] p-5 transition">
+            <div className="progress-ring mx-auto flex h-24 w-24 items-center justify-center rounded-full" style={{ "--value": value }}>
+              <div className="progress-ring-inner flex h-16 w-16 items-center justify-center rounded-full">
+                <span className="text-lg font-extrabold text-slate-950">{label}</span>
+              </div>
+            </div>
+            <p className="mt-4 text-center text-sm font-semibold text-slate-700">Course progress</p>
+          </div>
+        );
+      }
+
+      function App() {
+        return (
+          <>
+            <a href="#main-content" className="absolute left-4 top-4 z-50 -translate-y-20 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg focus:translate-y-0 focus-visible:translate-y-0">
+              Skip to main content
+            </a>
+            <Header activePath="dashboard.html" />
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+              <section className="page-surface rounded-[2rem] p-8">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-800">Learner dashboard</p>
+                <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-slate-950">Welcome back, Jordan</h1>
+                <p className="mt-2 text-base leading-7 text-slate-700">Keep your momentum with active courses, new recommendations, and your weekly streak.</p>
+              </section>
+
+              <section className="mt-8 grid gap-5 md:grid-cols-3">
+                <Ring value="72%" label="72%" />
+                <Ring value="46%" label="46%" />
+                <Ring value="88%" label="88%" />
+              </section>
+
+              <section className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="space-y-8">
+                  <div className="page-surface rounded-[1.75rem] p-6">
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <h2 className="text-3xl font-extrabold text-slate-950">Continue Learning</h2>
+                        <p className="mt-2 text-sm text-slate-600">Resume active lessons without losing your place.</p>
+                      </div>
+                    </div>
+                    <div className="mt-5 space-y-4">
+                      {courses.slice(0, 2).map((course) => (
+                        <article key={course.title} className="rounded-[1.25rem] bg-slate-50 p-4">
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                              <h3 className="text-xl font-bold text-slate-950">{course.title}</h3>
+                              <p className="mt-1 text-sm text-slate-600">{course.instructor} · {course.duration}</p>
+                            </div>
+                            <a href="study.html" className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-slate-800">
+                              Resume
+                            </a>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="page-surface rounded-[1.75rem] p-6">
+                    <h2 className="text-3xl font-extrabold text-slate-950">Recommended for You</h2>
+                    <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                      {courses.slice(2, 5).map((course) => (
+                        <CourseCard key={course.title} course={course} href="courses.html" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <aside className="space-y-6">
+                  <div className="page-surface rounded-[1.75rem] p-6">
+                    <h2 className="text-2xl font-bold text-slate-950">Achievements</h2>
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      {["Consistency", "Fast Starter", "Data Explorer"].map((badge) => (
+                        <span key={badge} className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900">{badge}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="page-surface rounded-[1.75rem] p-6">
+                    <h2 className="text-2xl font-bold text-slate-950">Learning streak</h2>
+                    <p className="mt-4 text-4xl font-extrabold text-slate-950">12 days</p>
+                    <p className="mt-2 text-sm text-slate-600">You’ve completed at least one lesson every day this week.</p>
+                  </div>
+                </aside>
+              </section>
+            </main>
+            <Footer />
+          </>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

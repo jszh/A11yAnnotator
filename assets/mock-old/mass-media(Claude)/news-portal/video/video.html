@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video — The Pulse</title>
+  <meta name="description" content="Documentaries, news reports, live streams, and original video content from The Pulse." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['"Playfair Display"', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body style="background:#0A0A0F; color:#E8EAED;">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="../components/components.js" data-presets="react"></script>
+
+  <script type="text/babel" data-presets="react">
+    window.BASE_PATH = '../';
+
+    const VIDEO_CATS = ['All Videos', 'Documentaries', 'News Reports', 'Live', 'Explainers', 'Interviews', 'Originals'];
+
+    const SERIES = [
+      { title: 'The Dispatch', desc: 'Daily video news briefings', episodes: 248, img: 'https://picsum.photos/seed/series1/400/225', color: '#DC2626' },
+      { title: 'Ground Truth', desc: 'On-the-ground investigative docs', episodes: 42, img: 'https://picsum.photos/seed/series2/400/225', color: '#2563EB' },
+      { title: 'Tech Forward', desc: 'Weekly deep-dives into technology', episodes: 87, img: 'https://picsum.photos/seed/series3/400/225', color: '#7C3AED' },
+      { title: 'Money Matters', desc: 'Personal finance & markets', episodes: 63, img: 'https://picsum.photos/seed/series4/400/225', color: '#0F766E' },
+    ];
+
+    /* Live Stream Banner */
+    const LiveBanner = () => (
+      <div style={{ background: '#DC2626', padding: '12px 16px' }}>
+        <div className="max-w-screen-2xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="badge-live">LIVE NOW</span>
+            <span style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 600 }}>
+              UN Security Council Emergency Session — Middle East Ceasefire Talks
+            </span>
+          </div>
+          <a href="#"
+            style={{ background: '#fff', color: '#DC2626', padding: '6px 16px', borderRadius: '4px', fontSize: '0.8125rem', fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}
+            className="hover:bg-red-50 transition-colors">
+            Watch Live
+          </a>
+        </div>
+      </div>
+    );
+
+    /* Video Card — dark mode */
+    const VideoCard = ({ story, featured = false }) => (
+      <article
+        className="group cursor-pointer"
+        style={{ background: '#12131A', border: '1px solid #1E2028', borderRadius: '12px', overflow: 'hidden' }}
+      >
+        <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
+          <img
+            src={story.mediaUrl}
+            alt=""
+            loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75, transition: 'transform 400ms, opacity 300ms' }}
+            className="group-hover:scale-105 group-hover:opacity-90"
+          />
+          {/* Overlay gradient */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)' }} />
+
+          {/* Play button */}
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button
+              className="play-btn"
+              aria-label={`Play video: ${story.title}`}
+              style={{ width: featured ? '72px' : '52px', height: featured ? '72px' : '52px' }}>
+              <IconPlay />
+            </button>
+          </div>
+
+          {/* Duration */}
+          <div style={{ position: 'absolute', bottom: '12px', right: '12px', background: 'rgba(0,0,0,0.8)', color: '#fff', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace' }}>
+            {story.readLength}
+          </div>
+
+          {story.isLive && (
+            <div style={{ position: 'absolute', top: '12px', left: '12px' }}>
+              <span className="badge-live">LIVE</span>
+            </div>
+          )}
+
+          {/* Category */}
+          <div style={{ position: 'absolute', bottom: '12px', left: '12px' }}>
+            <span className={`cat-label cat-${story.category}`}>{story.categoryLabel}</span>
+          </div>
+        </div>
+
+        <div style={{ padding: '16px' }}>
+          <a href={R('article/article.html')}>
+            <h3 style={{ fontWeight: 700, lineHeight: 1.3, color: '#E8EAED', fontSize: featured ? '1.125rem' : '0.9375rem' }}
+              className="hover:text-red-400 transition-colors">
+              {story.title}
+            </h3>
+          </a>
+          {featured && (
+            <p style={{ color: '#9AA0A6', fontSize: '0.875rem', marginTop: '8px', lineHeight: 1.6 }} className="line-clamp-2">
+              {story.summary}
+            </p>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', fontSize: '0.75rem', color: '#5F6368' }}>
+            <span style={{ color: '#9AA0A6', fontWeight: 600 }}>{story.author}</span>
+            <span>·</span>
+            <time>{story.publishTime}</time>
+            <span>·</span>
+            <span>{story.engagementMetrics?.views} views</span>
+          </div>
+        </div>
+      </article>
+    );
+
+    /* Series Carousel */
+    const SeriesSection = () => (
+      <section style={{ padding: '2.5rem 0' }} aria-labelledby="series-title">
+        <div className="max-w-screen-2xl mx-auto px-4">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', borderBottom: '2px solid #1E2028', paddingBottom: '10px' }}>
+            <span style={{ display: 'inline-block', width: '4px', height: '24px', background: '#DC2626', borderRadius: '2px' }} />
+            <h2 id="series-title" style={{ fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E8EAED' }}>
+              Original Series
+            </h2>
+          </div>
+          <div className="scroll-row">
+            {SERIES.map((s) => (
+              <article key={s.title}
+                style={{ flexShrink: 0, width: '240px', background: '#12131A', border: '1px solid #1E2028', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }}
+                className="hover:border-red-600 transition-colors">
+                <div style={{ position: 'relative', height: '135px', overflow: 'hidden' }}>
+                  <img src={s.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} loading="lazy" />
+                  <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(135deg, ${s.color}66, transparent)` }} />
+                  <div style={{ position: 'absolute', bottom: '12px', left: '12px' }}>
+                    <p style={{ fontWeight: 900, fontSize: '1.25rem', color: '#fff', lineHeight: 1 }}>{s.title}</p>
+                  </div>
+                </div>
+                <div style={{ padding: '12px 14px' }}>
+                  <p style={{ fontSize: '0.8125rem', color: '#9AA0A6' }}>{s.desc}</p>
+                  <p style={{ fontSize: '0.75rem', color: '#5F6368', marginTop: '6px' }}>{s.episodes} episodes</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+
+    const App = () => {
+      const [cat, setCat] = React.useState('All Videos');
+      const allStories = ALL_STORIES;
+      const videoStory = allStories.find(s => s.mediaType === 'video') || allStories[14];
+
+      return (
+        <div style={{ background: '#0A0A0F', minHeight: '100vh', color: '#E8EAED' }}>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+          <GlobalUtilityBar />
+          <BrandHeader currentCategory="video" />
+          <CategoryNav currentCategory="video" />
+
+          <LiveBanner />
+
+          {/* Video page header */}
+          <div style={{ background: 'linear-gradient(180deg, #12131A 0%, #0A0A0F 100%)', padding: '40px 16px', borderBottom: '1px solid #1E2028' }}>
+            <div className="max-w-screen-2xl mx-auto">
+              <p style={{ color: '#DC2626', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '8px' }}>
+                Video
+              </p>
+              <h1 style={{ fontFamily: '"Playfair Display", serif', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700, color: '#E8EAED', lineHeight: 1.1 }}>
+                Watch The World Unfold
+              </h1>
+              <p style={{ color: '#9AA0A6', marginTop: '12px' }}>
+                Documentaries, breaking news, explainers, and original series.
+              </p>
+            </div>
+          </div>
+
+          {/* Category filter */}
+          <div style={{ borderBottom: '1px solid #1E2028', overflowX: 'auto' }} role="tablist" aria-label="Video category filter">
+            <div className="max-w-screen-2xl mx-auto px-4 flex gap-0">
+              {VIDEO_CATS.map((c) => (
+                <button
+                  key={c}
+                  role="tab"
+                  aria-selected={cat === c}
+                  onClick={() => setCat(c)}
+                  style={{
+                    flexShrink: 0, padding: '12px 16px',
+                    fontSize: '0.8125rem', fontWeight: 600,
+                    borderBottom: cat === c ? '2px solid #DC2626' : '2px solid transparent',
+                    color: cat === c ? '#DC2626' : '#9AA0A6',
+                    background: 'transparent', border: 'none',
+                    borderBottom: cat === c ? '2px solid #DC2626' : '2px solid transparent',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                    transition: 'color 150ms',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => { e.target.style.outline = '3px solid #3B82F6'; e.target.style.outlineOffset = '-2px'; }}
+                  onBlur={(e) => { e.target.style.outline = 'none'; }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <main id="main-content" tabIndex="-1">
+            <section className="max-w-screen-2xl mx-auto px-4 py-8">
+              <div className="flex gap-8">
+                {/* Main */}
+                <div className="flex-1 min-w-0">
+                  {/* Featured video */}
+                  <div className="mb-8">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', borderBottom: '2px solid #1E2028', paddingBottom: '10px' }}>
+                      <span style={{ display: 'inline-block', width: '4px', height: '24px', background: '#DC2626', borderRadius: '2px' }} />
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E8EAED' }}>
+                        Featured
+                      </span>
+                    </div>
+                    <VideoCard story={videoStory} featured={true} />
+                  </div>
+
+                  {/* Grid */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', borderBottom: '2px solid #1E2028', paddingBottom: '10px' }}>
+                    <span style={{ display: 'inline-block', width: '4px', height: '24px', background: '#3B82F6', borderRadius: '2px' }} />
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E8EAED' }}>
+                      Latest Videos
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {allStories.slice(0, 6).map((story) => (
+                      <VideoCard key={story.id} story={story} />
+                    ))}
+                  </div>
+
+                  {/* More videos */}
+                  <div style={{ marginTop: '2.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', borderBottom: '2px solid #1E2028', paddingBottom: '10px' }}>
+                      <span style={{ display: 'inline-block', width: '4px', height: '24px', background: '#F59E0B', borderRadius: '2px' }} />
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E8EAED' }}>
+                        Documentaries
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {allStories.slice(6, 12).map((story) => (
+                        <VideoCard key={story.id} story={story} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sidebar */}
+                <aside className="hidden xl:block w-80 flex-shrink-0">
+                  <div style={{ background: '#12131A', border: '1px solid #1E2028', borderRadius: '8px', overflow: 'hidden', marginBottom: '1.5rem' }}
+                    aria-label="Up next">
+                    <div style={{ background: '#1E2028', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9AA0A6' }}>
+                      Up Next
+                    </div>
+                    <div style={{ padding: '0' }}>
+                      {allStories.slice(0, 5).map((story) => (
+                        <a key={story.id} href={R('article/article.html')}
+                          style={{ display: 'flex', gap: '12px', padding: '12px 16px', borderBottom: '1px solid #1E2028', textDecoration: 'none', transition: 'background 150ms' }}
+                          className="hover:bg-white/5">
+                          <div style={{ width: '80px', height: '56px', flexShrink: 0, position: 'relative', overflow: 'hidden', borderRadius: '6px', background: '#1E2028' }}>
+                            <img src={story.mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} loading="lazy" />
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <IconPlay />
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <h4 style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#C9D1D9', lineHeight: 1.3 }} className="line-clamp-2">{story.title}</h4>
+                            <p style={{ fontSize: '0.75rem', color: '#6E7681', marginTop: '4px' }}>{story.readLength}</p>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Live streams */}
+                  <div style={{ background: '#12131A', border: '1px solid #1E2028', borderRadius: '8px', overflow: 'hidden', marginBottom: '1.5rem' }}
+                    aria-label="Live streams">
+                    <div style={{ background: '#1E2028', padding: '10px 16px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9AA0A6', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="badge-live">LIVE</span> Now Streaming
+                    </div>
+                    <div style={{ padding: '16px' }}>
+                      {[
+                        { title: 'UN Security Council Session', viewers: '142K' },
+                        { title: 'Senate Judiciary Hearing', viewers: '38K' },
+                        { title: 'Tech Earnings Call — Apple Q2', viewers: '56K' },
+                      ].map((s) => (
+                        <div key={s.title} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #1E2028' }}
+                          className="last:border-0">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#DC2626', flexShrink: 0, animation: 'pulse-dot 1.5s ease-in-out infinite' }} />
+                            <span style={{ fontSize: '0.8125rem', color: '#C9D1D9', fontWeight: 600 }}>{s.title}</span>
+                          </div>
+                          <span style={{ fontSize: '0.75rem', color: '#6E7681', flexShrink: 0 }}>{s.viewers} watching</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </section>
+
+            <SeriesSection />
+          </main>
+
+          {/* Dark subscribe CTA */}
+          <div style={{ background: '#12131A', borderTop: '1px solid #1E2028', padding: '3rem 1rem', textAlign: 'center' }}>
+            <p style={{ color: '#DC2626', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '12px' }}>
+              Subscriber Exclusive
+            </p>
+            <h2 style={{ fontFamily: '"Playfair Display", serif', fontSize: 'clamp(1.5rem, 3vw, 2.25rem)', fontWeight: 700, color: '#E8EAED', lineHeight: 1.1 }}>
+              Full access to every documentary & original series.
+            </h2>
+            <a href={R('subscribe/subscribe.html')}
+              style={{ display: 'inline-block', marginTop: '20px', padding: '12px 28px', background: '#DC2626', color: '#fff', borderRadius: '6px', fontWeight: 700, fontSize: '0.9375rem', textDecoration: 'none' }}
+              className="hover:opacity-90 transition-opacity">
+              Start Free Trial
+            </a>
+          </div>
+
+          <Footer />
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

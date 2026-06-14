@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Folia — Explore</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background-color: #09090B; color: #FAFAFA; font-family: system-ui, -apple-system, sans-serif; }
+    *:focus-visible { outline: 2px solid #7C3AED; outline-offset: 2px; border-radius: 6px; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #3F3F46; border-radius: 99px; }
+    img { display: block; }
+    .tile-overlay { opacity: 0; transition: opacity 0.2s; }
+    .tile:hover .tile-overlay, .tile:focus-within .tile-overlay { opacity: 1; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+/* ── Icons ──────────────────────────────────────────────────── */
+const IconHome = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>;
+const IconCompass = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" /></svg>;
+const IconBell = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" /></svg>;
+const IconChat = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" /></svg>;
+const IconUser = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>;
+const IconCog = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>;
+const IconHeart = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>;
+const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
+const IconSearch = () => <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>;
+
+const NAV = [
+  { label: 'Home', href: 'index.html', icon: IconHome },
+  { label: 'Explore', href: 'explore.html', icon: IconCompass },
+  { label: 'Notifications', href: 'notifications.html', icon: IconBell, badge: 3 },
+  { label: 'Messages', href: 'messages.html', icon: IconChat },
+  { label: 'Profile', href: 'profile.html', icon: IconUser },
+  { label: 'Settings', href: 'settings.html', icon: IconCog },
+];
+
+function Sidebar({ current }) {
+  return (
+    <nav aria-label="Primary navigation" className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-60 bg-zinc-900 border-r border-zinc-800 z-30 px-3 py-6">
+      <a href="index.html" className="flex items-center gap-2.5 px-3 mb-8 rounded-xl" aria-label="Folia — go to home feed">
+        <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center font-bold text-white text-sm flex-shrink-0" aria-hidden="true">F</div>
+        <span className="text-lg font-bold tracking-tight text-white">Folia</span>
+      </a>
+      <ul className="flex flex-col gap-0.5 flex-1" role="list">
+        {NAV.map(({ label, href, icon: Icon, badge }) => {
+          const active = current === label;
+          return (
+            <li key={label}>
+              <a href={href} aria-current={active ? 'page' : undefined} aria-label={badge ? `${label} (${badge} unread)` : label}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${active ? 'bg-violet-600/15 text-violet-400' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'}`}>
+                <Icon />
+                <span>{label}</span>
+                {badge && <span className="ml-auto bg-violet-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1" aria-hidden="true">{badge}</span>}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+      <a href="index.html#composer" className="flex items-center justify-center gap-2 mt-4 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl px-4 py-3 transition-colors">
+        <IconPlus />New Post
+      </a>
+    </nav>
+  );
+}
+
+function MobileNav({ current }) {
+  return (
+    <nav aria-label="Mobile navigation" className="lg:hidden fixed bottom-0 inset-x-0 bg-zinc-900/95 backdrop-blur border-t border-zinc-800 z-30 flex">
+      {NAV.map(({ label, href, icon: Icon, badge }) => {
+        const active = current === label;
+        return (
+          <a key={label} href={href} aria-current={active ? 'page' : undefined} aria-label={badge ? `${label}, ${badge} unread` : label}
+            className={`relative flex-1 flex flex-col items-center py-3 gap-0.5 text-[10px] transition-colors ${active ? 'text-violet-400' : 'text-zinc-500'}`}>
+            <Icon />
+            <span>{label}</span>
+            {badge && <span className="absolute top-2 left-1/2 ml-2 bg-violet-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center" aria-hidden="true">{badge}</span>}
+          </a>
+        );
+      })}
+    </nav>
+  );
+}
+
+/* ── Data ────────────────────────────────────────────────────── */
+const MEDIUM_TABS = ['All', 'Digital Art', 'Photography', 'Typography', '3D', 'Motion'];
+
+const GRID_ITEMS = [
+  { id: 1, seed: 101, title: 'Ethereal Forest', creator: 'Hana Kimura', medium: 'Digital Art', appreciations: 1204, imageAlt: 'Lush ethereal forest scene with magical lighting rendered digitally' },
+  { id: 2, seed: 102, title: 'Rooftop Solitude', creator: 'Marco Ferreira', medium: 'Photography', appreciations: 876, imageAlt: 'Photograph of a solitary figure on a city rooftop at golden hour' },
+  { id: 3, seed: 103, title: 'Kinetic Sans', creator: 'Yael Cohen', medium: 'Typography', appreciations: 543, imageAlt: 'Dynamic typographic composition with kinetic letterforms in bold colors' },
+  { id: 4, seed: 104, title: 'Tidal', creator: 'Sofia Reyes', medium: '3D', appreciations: 2100, imageAlt: '3D render of abstract tidal wave forms with glass-like translucency' },
+  { id: 5, seed: 105, title: 'Chrysalis', creator: 'Lena Park', medium: 'Motion', appreciations: 1388, imageAlt: 'Still frame from a motion piece showing metamorphosis of geometric forms' },
+  { id: 6, seed: 106, title: 'Sakura Drift', creator: 'Nico Brun', medium: 'Digital Art', appreciations: 921, imageAlt: 'Digital painting of cherry blossom petals drifting in a stylized wind' },
+  { id: 7, seed: 107, title: 'Concrete Psalms', creator: 'Amara Diop', medium: 'Photography', appreciations: 671, imageAlt: 'High-contrast photography of brutalist concrete architecture at dusk' },
+  { id: 8, seed: 108, title: 'Verdigris', creator: 'Tomás Ruiz', medium: 'Typography', appreciations: 448, imageAlt: 'Hand-lettered typographic piece in verdigris and copper tones' },
+  { id: 9, seed: 109, title: 'Nebula VI', creator: 'Jin Soo', medium: '3D', appreciations: 1563, imageAlt: 'Photorealistic 3D visualization of a nebula with volumetric light and particles' },
+  { id: 10, seed: 110, title: 'Pulse Loop', creator: 'Riya Mehta', medium: 'Motion', appreciations: 789, imageAlt: 'Looping motion graphic showing an animated pulse waveform' },
+  { id: 11, seed: 111, title: 'Ocean Glass', creator: 'Priya Das', medium: 'Digital Art', appreciations: 1102, imageAlt: 'Digital artwork of a glass-encased ocean with detailed wave simulation' },
+  { id: 12, seed: 112, title: 'Grain Study', creator: 'Kira Novak', medium: 'Photography', appreciations: 334, imageAlt: 'Film-grain textured portrait of an elderly woman in soft window light' },
+];
+
+const RISING_CREATORS = [
+  { name: 'Riya Mehta', discipline: 'Motion Design', followers: '2.1k', avatar: 'https://picsum.photos/seed/riya/48/48', bio: 'Making things move in Mumbai' },
+  { name: 'Jin Soo', discipline: '3D Art', followers: '4.8k', avatar: 'https://picsum.photos/seed/jinsoo/48/48', bio: 'Seoul-based 3D generalist' },
+  { name: 'Tomás Ruiz', discipline: 'Typography', followers: '1.6k', avatar: 'https://picsum.photos/seed/tomas/48/48', bio: 'Letters are architecture' },
+  { name: 'Kira Novak', discipline: 'Photography', followers: '3.2k', avatar: 'https://picsum.photos/seed/kira/48/48', bio: 'Analog + digital, Prague' },
+];
+
+const PALETTES = [
+  { name: 'Solstice Glow', swatches: ['#F4A261', '#E76F51', '#264653', '#2A9D8F', '#E9C46A'] },
+  { name: 'Midnight Bloom', swatches: ['#240046', '#3C096C', '#7B2D8B', '#C77DFF', '#E0AAFF'] },
+  { name: 'Ceramic Dusk', swatches: ['#B5838D', '#6D6875', '#E5989B', '#FFB4A2', '#FFCDB2'] },
+  { name: 'Deep Forest', swatches: ['#1B4332', '#2D6A4F', '#52B788', '#B7E4C7', '#D8F3DC'] },
+];
+
+/* ── Grid Tile ──────────────────────────────────────────────── */
+function GridTile({ item }) {
+  return (
+    <a
+      href="profile.html"
+      aria-label={`${item.title} by ${item.creator} — ${item.appreciations.toLocaleString()} appreciations. Medium: ${item.medium}`}
+      className="tile relative block rounded-xl overflow-hidden bg-zinc-800 group"
+    >
+      <img
+        src={`https://picsum.photos/seed/${item.seed}/400/400`}
+        alt={item.imageAlt}
+        className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
+        loading="lazy"
+      />
+      <div className="tile-overlay absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-3">
+        <p className="text-sm font-semibold text-white leading-tight">{item.title}</p>
+        <p className="text-xs text-zinc-300 mt-0.5">{item.creator}</p>
+        <div className="flex items-center gap-1 mt-1 text-pink-400 text-xs">
+          <IconHeart />
+          <span>{item.appreciations.toLocaleString()}</span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+/* ── App ─────────────────────────────────────────────────────── */
+function App() {
+  const [activeMedium, setActiveMedium] = useState('All');
+  const [query, setQuery] = useState('');
+
+  const filtered = GRID_ITEMS.filter(item =>
+    (activeMedium === 'All' || item.medium === activeMedium) &&
+    (query === '' || item.title.toLowerCase().includes(query.toLowerCase()) || item.creator.toLowerCase().includes(query.toLowerCase()))
+  );
+
+  return (
+    <div className="min-h-screen flex">
+      <Sidebar current="Explore" />
+      <MobileNav current="Explore" />
+
+      <main id="main-content" className="flex-1 lg:ml-60 px-4 py-6 pb-24 lg:pb-6 max-w-6xl mx-auto w-full">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-violet-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">
+          Skip to main content
+        </a>
+
+        <h1 className="text-2xl font-bold text-zinc-100 mb-2">Explore</h1>
+        <p className="text-zinc-400 text-sm mb-6">Discover work across every creative discipline</p>
+
+        {/* Search */}
+        <div className="relative mb-6">
+          <label htmlFor="search" className="sr-only">Search creators and works</label>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"><IconSearch /></span>
+          <input
+            id="search"
+            type="search"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search creators, works, tags…"
+            className="w-full bg-zinc-900 border border-zinc-800 text-zinc-100 placeholder-zinc-500 rounded-xl pl-10 pr-4 py-3 text-sm focus:border-violet-500 focus:outline-none"
+          />
+        </div>
+
+        {/* Medium tabs */}
+        <div role="tablist" aria-label="Filter by medium" className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+          {MEDIUM_TABS.map(tab => (
+            <button
+              key={tab}
+              role="tab"
+              aria-selected={activeMedium === tab}
+              onClick={() => setActiveMedium(tab)}
+              className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors
+                ${activeMedium === tab ? 'bg-violet-600 text-white' : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Discovery grid */}
+        <section aria-label="Discover creative works">
+          <h2 className="sr-only">Creative works grid</h2>
+          {filtered.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-10">
+              {filtered.map(item => <GridTile key={item.id} item={item} />)}
+            </div>
+          ) : (
+            <p className="text-zinc-500 text-center py-16">No works found for this search.</p>
+          )}
+        </section>
+
+        {/* Rising Creators */}
+        <section aria-labelledby="rising-heading" className="mb-10">
+          <h2 id="rising-heading" className="text-lg font-bold text-zinc-100 mb-4">Rising Creators</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {RISING_CREATORS.map(({ name, discipline, followers, avatar, bio }) => (
+              <a
+                key={name}
+                href="profile.html"
+                aria-label={`View ${name}'s profile — ${discipline}, ${followers} followers`}
+                className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex flex-col items-center text-center hover:border-violet-600/40 transition-colors group"
+              >
+                <img src={avatar} alt={`${name}'s avatar`} className="w-14 h-14 rounded-full object-cover mb-3" />
+                <p className="font-semibold text-sm text-zinc-100 group-hover:text-violet-400 transition-colors">{name}</p>
+                <p className="text-xs text-violet-400 mt-0.5">{discipline}</p>
+                <p className="text-xs text-zinc-500 mt-1">{bio}</p>
+                <p className="text-xs text-zinc-400 mt-2">{followers} followers</p>
+                <button
+                  className="mt-3 w-full text-xs bg-violet-600/10 border border-violet-600/30 text-violet-400 hover:bg-violet-600/20 rounded-lg py-1.5 transition-colors"
+                  aria-label={`Follow ${name}`}
+                  onClick={e => { e.preventDefault(); }}
+                >
+                  Follow
+                </button>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* Trending Palettes */}
+        <section aria-labelledby="palettes-heading">
+          <h2 id="palettes-heading" className="text-lg font-bold text-zinc-100 mb-4">Trending Palettes</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {PALETTES.map(({ name, swatches }) => (
+              <div key={name} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+                <div className="flex h-12 rounded-xl overflow-hidden mb-3" role="img" aria-label={`${name} color palette`}>
+                  {swatches.map((color, i) => (
+                    <div key={i} style={{ backgroundColor: color }} className="flex-1" />
+                  ))}
+                </div>
+                <p className="text-sm font-medium text-zinc-200">{name}</p>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {swatches.map((color, i) => (
+                    <button
+                      key={i}
+                      aria-label={`Copy color ${color}`}
+                      onClick={() => navigator.clipboard?.writeText(color)}
+                      className="text-[10px] text-zinc-500 hover:text-zinc-300 font-mono transition-colors"
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse | Explore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #f5f5f5;
+            margin: 0;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-display {
+            font-family: 'Outfit', 'Inter', sans-serif;
+        }
+
+        .env-pb {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { indigo: { 500: '#6366f1', 600: '#4f46e5' } } } }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel" src="shared.js"></script>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function ExploreContent() {
+            const hashtags = ['#Photography', '#ReactJS', '#Design', '#AI', '#Travel2026', '#SpaceX'];
+            const usersToFollow = [
+                { name: 'Elena Rogers', handle: '@elenarise', img: '32', desc: 'Creative Director' },
+                { name: 'DevCentral', handle: '@devcentral', img: '44', desc: 'Web Dev News' },
+                { name: 'Nomad Stories', handle: '@nomad', img: '19', desc: 'Travel blogger' },
+            ];
+
+            const gridItems = [
+                { type: 'image', src: 'https://images.unsplash.com/photo-1510793664726-22a84e6223d6?auto=format&fit=crop&q=80&w=600', span: 'col-span-2 row-span-2' },
+                { type: 'text', title: 'Why I moved from VS Code to Neovim', desc: 'A deep dive into keyboard-centric development.' },
+                { type: 'image', src: 'https://images.unsplash.com/photo-1627398246734-d832d207d57c?auto=format&fit=crop&q=80&w=600', span: 'col-span-1 row-span-1' },
+                { type: 'image', src: 'https://images.unsplash.com/photo-1491895200222-0fc4a4c35e18?auto=format&fit=crop&q=80&w=600', span: 'col-span-1 row-span-2' },
+                { type: 'text', title: 'Breaking: Mars Rover discovers water crystals', desc: 'Science · Trending' },
+                { type: 'image', src: 'https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=600', span: 'col-span-2 row-span-1' },
+            ];
+
+            return (
+                <React.Fragment>
+                    {/* Mobile Search Bar Header */}
+                    <header className="sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-neutral-800/60 z-10 px-4 py-3 sm:py-4 lg:hidden">
+                        <div className="relative group">
+                            <window.Icons.Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-indigo-400 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Search Pulse"
+                                className="w-full bg-neutral-900 border border-neutral-800 rounded-full py-2.5 pl-12 pr-4 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all font-medium"
+                                aria-label="Search Pulse"
+                            />
+                        </div>
+                    </header>
+
+                    <div className="p-4 sm:p-6 pb-20 sm:pb-8">
+                        <h1 className="hidden lg:block font-extrabold text-2xl mb-6 font-display">Explore</h1>
+
+                        {/* Trending Hastags */}
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+                            {hashtags.map(t => (
+                                <button key={t} className="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 font-medium py-2 px-5 rounded-full text-[15px] whitespace-nowrap transition-colors flex-shrink-0">
+                                    {t}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Suggested for You */}
+                        <h2 className="font-extrabold text-xl mt-6 mb-4 font-display">Suggested for You</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {usersToFollow.map(u => (
+                                <div key={u.handle} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex items-center justify-between hover:border-neutral-700 transition-colors cursor-pointer">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <img src={`https://i.pravatar.cc/150?u=${u.img}`} alt={u.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="font-bold text-[15px] truncate text-white">{u.name}</span>
+                                            <span className="text-neutral-500 text-sm truncate">{u.handle}</span>
+                                            <span className="text-neutral-400 text-xs truncate mt-0.5">{u.desc}</span>
+                                        </div>
+                                    </div>
+                                    <button className="bg-white text-neutral-900 hover:bg-neutral-200 font-bold py-1.5 px-4 rounded-full text-sm transition-colors ml-2 shrink-0 shadow-sm active:scale-95">
+                                        Follow
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Explore Grid */}
+                        <h2 className="font-extrabold text-xl mt-10 mb-4 font-display">Trending Posts</h2>
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[150px]">
+                            {gridItems.map((item, idx) => (
+                                <div key={idx} className={`rounded-xl overflow-hidden cursor-pointer relative group ${item.span || 'col-span-1 row-span-1'} ${item.type === 'text' ? 'bg-neutral-900 border border-neutral-800 p-4 sm:p-5 flex flex-col justify-center' : ''}`}>
+                                    {item.type === 'image' ? (
+                                        <React.Fragment>
+                                            <img src={item.src} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Explore grid item" />
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"></div>
+                                        </React.Fragment>
+                                    ) : (
+                                        <React.Fragment>
+                                            <h3 className="font-bold text-white text-base sm:text-lg leading-snug line-clamp-3">{item.title}</h3>
+                                            <p className="text-neutral-500 text-sm mt-2 font-medium">{item.desc}</p>
+                                        </React.Fragment>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </React.Fragment>
+            );
+        }
+
+        function App() {
+            const [ready, setReady] = useState(false);
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    if (window.SocialLayout && window.Icons) {
+                        setReady(true);
+                        clearInterval(interval);
+                    }
+                }, 50);
+                return () => clearInterval(interval);
+            }, []);
+
+            if (!ready) return <div className="h-screen w-full flex items-center justify-center bg-[#0a0a0a] text-indigo-500"><svg className="animate-spin w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg></div>;
+
+            const SocialLayout = window.SocialLayout;
+            return (
+                <SocialLayout activePage="Explore">
+                    <ExploreContent />
+                </SocialLayout>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

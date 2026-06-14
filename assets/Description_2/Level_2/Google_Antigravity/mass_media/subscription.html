@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Groundwork | Keep Our Journalism Independent</title>
+
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Public+Sans:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+            background-color: #fafafa;
+            color: #111;
+        }
+
+        .font-serif {
+            font-family: 'Merriweather', serif;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #000;
+            color: white;
+            padding: 8px;
+            z-index: 100;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        *:focus-visible {
+            outline: 3px solid #005fcc;
+            outline-offset: 2px;
+        }
+
+        .plan-card[aria-pressed="true"] {
+            border-color: #005fcc;
+            background-color: #f0f7ff;
+            box-shadow: 0 0 0 2px #005fcc;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        function App() {
+            const [billingCycle, setBillingCycle] = React.useState('recurring');
+            const [selectedPlan, setSelectedPlan] = React.useState('supporter');
+            const [isModalOpen, setIsModalOpen] = React.useState(false);
+            const [emailError, setEmailError] = React.useState('');
+            const [cardError, setCardError] = React.useState('');
+            const [formStatus, setFormStatus] = React.useState('idle'); // idle, loading, success
+            const [openFaq, setOpenFaq] = React.useState(null);
+
+            const modalRef = React.useRef(null);
+            const returnFocusRef = React.useRef(null);
+
+            React.useEffect(() => {
+                lucide.createIcons();
+            }, []);
+
+            // Re-render icons after state changes that affect the DOM
+            React.useEffect(() => {
+                lucide.createIcons();
+            });
+
+            // Focus Trap for Modal
+            React.useEffect(() => {
+                if (isModalOpen) {
+                    returnFocusRef.current = document.activeElement;
+                    setTimeout(() => {
+                        if (modalRef.current) {
+                            const closeBtn = modalRef.current.querySelector('#close-modal-btn');
+                            if (closeBtn) closeBtn.focus();
+                        }
+                    }, 50);
+
+                    const handleKeyDown = (e) => {
+                        if (e.key === 'Escape') closeModal();
+                        if (e.key === 'Tab' && modalRef.current) {
+                            const focusable = modalRef.current.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                            const firstElement = focusable[0];
+                            const lastElement = focusable[focusable.length - 1];
+                            if (e.shiftKey) {
+                                if (document.activeElement === firstElement) {
+                                    lastElement.focus();
+                                    e.preventDefault();
+                                }
+                            } else {
+                                if (document.activeElement === lastElement) {
+                                    firstElement.focus();
+                                    e.preventDefault();
+                                }
+                            }
+                        }
+                    };
+                    document.addEventListener('keydown', handleKeyDown);
+                    return () => document.removeEventListener('keydown', handleKeyDown);
+                } else {
+                    if (returnFocusRef.current) {
+                        returnFocusRef.current.focus();
+                    }
+                }
+            }, [isModalOpen]);
+
+            const openModal = () => setIsModalOpen(true);
+            const closeModal = () => { setIsModalOpen(false); setFormStatus('idle'); setEmailError(''); setCardError(''); };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                let valid = true;
+                const email = e.target.email.value;
+                const card = e.target.card.value;
+
+                if (!email || !email.includes('@')) {
+                    setEmailError('Error: Please enter a valid email address.');
+                    valid = false;
+                    const emailInput = document.getElementById('email-input');
+                    if (emailInput) emailInput.focus();
+                } else {
+                    setEmailError('');
+                }
+
+                if (selectedPlan !== 'free' && (!card || card.length < 15)) {
+                    if (valid) { // Only focus if email was valid
+                        const cardInput = document.getElementById('cc-input');
+                        if (cardInput) cardInput.focus();
+                    }
+                    setCardError('Error: Please enter a valid 16-digit credit card number.');
+                    valid = false;
+                } else {
+                    setCardError('');
+                }
+
+                if (!valid) return;
+
+                setFormStatus('loading');
+                setTimeout(() => {
+                    setFormStatus('success');
+                }, 1500);
+            };
+
+            const toggleFaq = (index) => {
+                if (openFaq === index) {
+                    setOpenFaq(null);
+                } else {
+                    setOpenFaq(index);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col relative">
+                    <a href="#main-content" className="skip-link font-bold text-sm">Skip to main content</a>
+
+                    {/* Header Minimalist for checkout */}
+                    <header className="bg-white border-b border-gray-200 py-6 text-center shadow-sm">
+                        <div className="container mx-auto px-4">
+                            <a href="index.html" className="text-3xl font-serif font-black tracking-tight inline-block focus-visible:ring-4 focus-visible:ring-blue-600 outline-none rounded p-1" aria-label="Return to Groundwork Homepage">GROUNDWORK</a>
+                        </div>
+                    </header>
+
+                    <main id="main-content" className="flex-grow bg-white">
+                        <div className="container mx-auto px-4 py-12 md:py-24 max-w-4xl">
+
+                            <div className="text-center mb-16">
+                                <i data-lucide="shield-check" className="w-16 h-16 mx-auto text-yellow-500 mb-6 drop-shadow"></i>
+                                <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-tight text-gray-900">
+                                    Keep Groundwork Independent
+                                </h1>
+                                <p className="text-xl md:text-2xl text-gray-600 font-serif leading-relaxed max-w-3xl mx-auto">
+                                    We don't answer to corporate advertisers or billionaire owners. Our journalism is completely funded by reader contributions.
+                                </p>
+                            </div>
+
+                            {/* Impact Metrics Block */}
+                            <div className="bg-blue-50 rounded-2xl p-8 md:p-10 mb-16 border border-blue-100 flex flex-col md:flex-row gap-8 items-center" aria-label="Support Impact Metrics">
+                                <div className="text-center md:text-left md:w-1/2">
+                                    <h2 className="font-bold text-3xl text-blue-900 mb-4">Your Support Matters</h2>
+                                    <p className="text-gray-700 leading-relaxed text-lg">Every dollar contributed goes directly into the newsroom. As a non-profit, we run zero programmatic ads and keep our investigations free of paywalls.</p>
+                                </div>
+                                <div className="md:w-1/2 grid grid-cols-2 gap-4 w-full">
+                                    <div className="bg-white p-6 rounded-xl shadow-sm text-center border border-blue-50">
+                                        <div className="text-4xl font-black text-blue-600 mb-2">40h</div>
+                                        <div className="text-sm font-bold text-gray-600 uppercase tracking-widest">A $20 tier funds half a week of data analysis</div>
+                                    </div>
+                                    <div className="bg-white p-6 rounded-xl shadow-sm text-center border border-blue-50">
+                                        <div className="text-4xl font-black text-blue-600 mb-2">100%</div>
+                                        <div className="text-sm font-bold text-gray-600 uppercase tracking-widest">Tax Deductible Contributions</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Plans Selection Section */}
+                            <div className="mb-16">
+                                <section aria-labelledby="choose-plan-heading">
+                                    <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+                                        <h2 id="choose-plan-heading" className="font-serif text-3xl font-bold">Choose a Payment Plan</h2>
+
+                                        <fieldset className="bg-gray-100 p-1.5 rounded-lg flex gap-1 shadow-inner border border-gray-200" aria-label="Billing Cycle">
+                                            <legend className="sr-only">Select billing cycle</legend>
+                                            <button
+                                                className={`px-6 py-2.5 rounded-md text-sm font-bold uppercase tracking-wider transition-colors outline-none focus-visible:ring-4 focus-visible:ring-blue-600 ${billingCycle === 'recurring' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
+                                                aria-pressed={billingCycle === 'recurring'}
+                                                onClick={() => setBillingCycle('recurring')}
+                                            >
+                                                Monthly
+                                            </button>
+                                            <button
+                                                className={`px-6 py-2.5 rounded-md text-sm font-bold uppercase tracking-wider transition-colors outline-none focus-visible:ring-4 focus-visible:ring-blue-600 ${billingCycle === 'onetime' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'}`}
+                                                aria-pressed={billingCycle === 'onetime'}
+                                                onClick={() => setBillingCycle('onetime')}
+                                            >
+                                                One-Time
+                                            </button>
+                                        </fieldset>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6" role="group" aria-label="Subscription Tiers">
+
+                                        {/* Free Tier */}
+                                        <button
+                                            className="plan-card text-left bg-white rounded-xl shadow-sm border-2 border-gray-200 p-6 md:p-8 hover:border-gray-400 transition-colors focus-visible:ring-4 focus-visible:ring-blue-600 outline-none relative"
+                                            aria-pressed={selectedPlan === 'free'}
+                                            onClick={() => setSelectedPlan('free')}
+                                        >
+                                            {selectedPlan === 'free' && <div className="absolute top-4 right-4 text-blue-600"><i data-lucide="check-circle-2" className="w-6 h-6"></i></div>}
+                                            <h3 className="font-bold text-gray-500 uppercase tracking-widest text-sm mb-4">Free Reader</h3>
+                                            <div className="text-4xl font-black mb-4">$0 <span className="text-lg text-gray-500 font-medium">/{billingCycle === 'recurring' ? 'mo' : 'once'}</span></div>
+                                            <ul className="text-gray-600 text-sm space-y-3 font-medium">
+                                                <li className="flex items-start gap-2"><i data-lucide="check" className="w-4 h-4 text-green-500 shrink-0 mt-0.5"></i> Read all articles</li>
+                                                <li className="flex items-start gap-2"><i data-lucide="check" className="w-4 h-4 text-green-500 shrink-0 mt-0.5"></i> Standard weekly digest</li>
+                                            </ul>
+                                        </button>
+
+                                        {/* Supporter Tier */}
+                                        <button
+                                            className="plan-card text-left bg-white rounded-xl shadow-sm border-2 border-gray-200 p-6 md:p-8 hover:border-gray-400 transition-colors focus-visible:ring-4 focus-visible:ring-blue-600 outline-none relative"
+                                            aria-pressed={selectedPlan === 'supporter'}
+                                            onClick={() => setSelectedPlan('supporter')}
+                                        >
+                                            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -mt-3 bg-yellow-400 text-black text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow">Recommended</div>
+                                            {selectedPlan === 'supporter' && <div className="absolute top-4 right-4 text-blue-600"><i data-lucide="check-circle-2" className="w-6 h-6"></i></div>}
+                                            <h3 className="font-bold text-gray-500 uppercase tracking-widest text-sm mb-4 mt-2">Supporter</h3>
+                                            <div className="text-4xl font-black mb-4">${billingCycle === 'recurring' ? '7' : '50'} <span className="text-lg text-gray-500 font-medium">/{billingCycle === 'recurring' ? 'mo' : 'once'}</span></div>
+                                            <ul className="text-gray-600 text-sm space-y-3 font-medium">
+                                                <li className="flex items-start gap-2"><i data-lucide="check" className="w-4 h-4 text-green-500 shrink-0 mt-0.5"></i> Everything in Free</li>
+                                                <li className="flex items-start gap-2"><i data-lucide="check" className="w-4 h-4 text-green-500 shrink-0 mt-0.5"></i> Name on donor wall</li>
+                                                <li className="flex items-start gap-2"><i data-lucide="check" className="w-4 h-4 text-green-500 shrink-0 mt-0.5"></i> "Behind the Story" email</li>
+                                            </ul>
+                                        </button>
+
+                                        {/* Investigator Tier */}
+                                        <button
+                                            className="plan-card text-left bg-white rounded-xl shadow-sm border-2 border-gray-200 p-6 md:p-8 hover:border-gray-400 transition-colors focus-visible:ring-4 focus-visible:ring-blue-600 outline-none relative"
+                                            aria-pressed={selectedPlan === 'investigator'}
+                                            onClick={() => setSelectedPlan('investigator')}
+                                        >
+                                            {selectedPlan === 'investigator' && <div className="absolute top-4 right-4 text-blue-600"><i data-lucide="check-circle-2" className="w-6 h-6"></i></div>}
+                                            <h3 className="font-bold text-gray-500 uppercase tracking-widest text-sm mb-4">Investigator</h3>
+                                            <div className="text-4xl font-black mb-4">${billingCycle === 'recurring' ? '20' : '150'} <span className="text-lg text-gray-500 font-medium">/{billingCycle === 'recurring' ? 'mo' : 'once'}</span></div>
+                                            <ul className="text-gray-600 text-sm space-y-3 font-medium">
+                                                <li className="flex items-start gap-2"><i data-lucide="check" className="w-4 h-4 text-green-500 shrink-0 mt-0.5"></i> Everything in Supporter</li>
+                                                <li className="flex items-start gap-2"><i data-lucide="check" className="w-4 h-4 text-green-500 shrink-0 mt-0.5"></i> Direct data repo access</li>
+                                                <li className="flex items-start gap-2"><i data-lucide="check" className="w-4 h-4 text-green-500 shrink-0 mt-0.5"></i> Annual town hall invite</li>
+                                            </ul>
+                                        </button>
+
+                                    </div>
+
+                                    <div className="mt-10 flex justify-center border-b border-gray-200 pb-16">
+                                        <button
+                                            onClick={openModal}
+                                            className="bg-black hover:bg-gray-800 text-white font-bold text-lg px-12 py-5 rounded-lg shadow-lg uppercase tracking-wider transition-transform hover:-translate-y-1 focus-visible:ring-4 focus-visible:ring-blue-600 outline-none w-full md:w-auto flex justify-center items-center gap-2"
+                                        >
+                                            Continue to Payment <i data-lucide="arrow-right" className="w-5 h-5"></i>
+                                        </button>
+                                    </div>
+                                </section>
+                            </div>
+
+                            {/* FAQ Accordion */}
+                            <section aria-labelledby="faq-heading" className="max-w-2xl mx-auto">
+                                <h2 id="faq-heading" className="font-serif text-3xl font-bold mb-8 text-center text-gray-900">Frequently Asked Questions</h2>
+
+                                <div className="space-y-4">
+                                    {[{
+                                        q: "Is my donation tax-deductible?",
+                                        a: "Yes. Groundwork is a 501(c)(3) non-profit organization. All donations are tax-deductible to the fullest extent permitted by law. You will receive an email receipt acknowledging your contribution."
+                                    }, {
+                                        q: "Can I cancel my recurring donation?",
+                                        a: "Absolutely. You can modify, pause, or cancel your recurring contribution at any time through the donor portal link provided in your welcome email."
+                                    }, {
+                                        q: "I can't afford a paid tier, but want to help. What can I do?",
+                                        a: "The most important thing you can do is share our reporting. Select the 'Free Reader' tier above to join our newsletter and forward it to friends, family, and local policymakers."
+                                    }].map((faq, index) => (
+                                        <div key={index} className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                                            <button
+                                                className="w-full text-left px-6 py-5 flex justify-between items-center focus-visible:ring-4 focus-visible:ring-blue-600 outline-none rounded-lg"
+                                                aria-expanded={openFaq === index}
+                                                aria-controls={`faq-answer-${index}`}
+                                                id={`faq-btn-${index}`}
+                                                onClick={() => toggleFaq(index)}
+                                            >
+                                                <span className="font-bold text-lg text-gray-900 pr-4">{faq.q}</span>
+                                                <i data-lucide={openFaq === index ? "minus" : "plus"} className="w-5 h-5 text-blue-600 shrink-0 transition-transform"></i>
+                                            </button>
+                                            <div
+                                                id={`faq-answer-${index}`}
+                                                className={`px-6 pb-6 text-gray-600 leading-relaxed ${openFaq === index ? 'block' : 'hidden'}`}
+                                                aria-labelledby={`faq-btn-${index}`}
+                                            >
+                                                <div className="pt-2 border-t border-gray-100 mt-2">
+                                                    {faq.a}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+
+                        </div>
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="bg-gray-100 border-t border-gray-300 py-10 mt-auto">
+                        <div className="container mx-auto px-4 text-center">
+                            <p className="text-gray-500 font-medium text-sm mb-4">&copy; 2026 Groundwork News Center. All rights reserved.</p>
+                            <div className="flex justify-center gap-6 text-xs uppercase tracking-widest font-bold text-gray-400">
+                                <a href="#" className="hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-blue-600 outline-none rounded p-1">Privacy</a>
+                                <a href="#" className="hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-blue-600 outline-none rounded p-1">Terms</a>
+                            </div>
+                        </div>
+                    </footer>
+
+                    {/* Payment Modal (Focus Trap compliant) */}
+                    {isModalOpen && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+                            <div
+                                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]"
+                                ref={modalRef}
+                                tabIndex="-1"
+                            >
+                                {/* Header */}
+                                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                                    <h2 id="modal-title" className="font-bold text-xl text-gray-900">Secure Checkout</h2>
+                                    <button
+                                        id="close-modal-btn"
+                                        onClick={closeModal}
+                                        className="text-gray-400 hover:text-gray-900 bg-white hover:bg-gray-200 p-2 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-blue-600 outline-none"
+                                        aria-label="Close modal and cancel payment"
+                                    >
+                                        <i data-lucide="x" className="w-5 h-5"></i>
+                                    </button>
+                                </div>
+
+                                <div className="p-6 md:p-8 overflow-y-auto">
+
+                                    {/* Order Summary */}
+                                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-5 mb-8 flex justify-between items-center">
+                                        <div>
+                                            <div className="text-sm font-bold uppercase tracking-widest text-blue-900 mb-1">Plan</div>
+                                            <div className="font-serif text-lg font-bold capitalize">{selectedPlan} Tier</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-2xl font-black text-gray-900">${selectedPlan === 'free' ? '0' : (selectedPlan === 'supporter' ? (billingCycle === 'recurring' ? '7' : '50') : (billingCycle === 'recurring' ? '20' : '150'))}</div>
+                                            <div className="text-sm text-gray-500 font-medium">{billingCycle === 'recurring' ? 'Charged Monthly' : 'One-Time Charge'}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Form Container */}
+                                    {formStatus !== 'success' ? (
+                                        <form onSubmit={handleSubmit} noValidate>
+
+                                            <div className="space-y-6">
+                                                {/* Email input */}
+                                                <div>
+                                                    <label htmlFor="email-input" className="block text-sm font-bold text-gray-900 mb-2">Email Address <span className="text-red-500" aria-hidden="true">*</span></label>
+                                                    <input
+                                                        type="email"
+                                                        id="email-input"
+                                                        name="email"
+                                                        aria-required="true"
+                                                        aria-invalid={!!emailError}
+                                                        aria-describedby={emailError ? "email-error" : undefined}
+                                                        className={`w-full border-2 ${emailError ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg px-4 py-3 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-colors font-medium`}
+                                                        placeholder="you@example.com"
+                                                    />
+                                                    {emailError && <p id="email-error" className="text-red-600 text-sm font-bold mt-2" role="alert"><i data-lucide="alert-circle" className="w-4 h-4 inline mr-1"></i>{emailError}</p>}
+                                                </div>
+
+                                                {/* Billing info based on plan */}
+                                                {selectedPlan !== 'free' && (
+                                                    <div className="pt-4 border-t border-gray-200">
+                                                        <h3 className="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">Payment Information</h3>
+
+                                                        <div className="mb-4">
+                                                            <label htmlFor="cc-input" className="block text-sm font-bold text-gray-900 mb-2">Card Number <span className="text-red-500" aria-hidden="true">*</span></label>
+                                                            <div className="relative">
+                                                                <input
+                                                                    type="text"
+                                                                    id="cc-input"
+                                                                    name="card"
+                                                                    aria-required="true"
+                                                                    aria-invalid={!!cardError}
+                                                                    aria-describedby={cardError ? "card-error" : undefined}
+                                                                    className={`w-full border-2 ${cardError ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-lg px-4 py-3 pl-10 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-colors font-medium`}
+                                                                    placeholder="0000 0000 0000 0000"
+                                                                />
+                                                                <i data-lucide="credit-card" className="w-5 h-5 text-gray-400 absolute left-3 top-3.5"></i>
+                                                            </div>
+                                                            {cardError && <p id="card-error" className="text-red-600 text-sm font-bold mt-2" role="alert"><i data-lucide="alert-circle" className="w-4 h-4 inline mr-1"></i>{cardError}</p>}
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label htmlFor="exp-input" className="block text-sm font-bold text-gray-900 mb-2">Expiration <span className="text-red-500" aria-hidden="true">*</span></label>
+                                                                <input type="text" id="exp-input" aria-required="true" className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 font-medium" placeholder="MM/YY" />
+                                                            </div>
+                                                            <div>
+                                                                <label htmlFor="cvc-input" className="block text-sm font-bold text-gray-900 mb-2">CVC <span className="text-red-500" aria-hidden="true">*</span></label>
+                                                                <input type="text" id="cvc-input" aria-required="true" className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 font-medium" placeholder="123" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                            </div>
+
+                                            <div className="mt-10">
+                                                <button
+                                                    type="submit"
+                                                    disabled={formStatus === 'loading'}
+                                                    className={`w-full text-white font-bold text-lg px-6 py-4 rounded-lg flex justify-center items-center shadow uppercase tracking-wider focus-visible:ring-4 focus-visible:ring-blue-400 outline-none ${formStatus === 'loading' ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800 transition-colors'}`}
+                                                >
+                                                    {formStatus === 'loading' ? (
+                                                        <><i data-lucide="loader-2" className="w-5 h-5 animate-spin mr-2"></i> Processing...</>
+                                                    ) : (
+                                                        selectedPlan === 'free' ? 'Confirm Account' : `Pay $${selectedPlan === 'supporter' ? (billingCycle === 'recurring' ? '7' : '50') : (billingCycle === 'recurring' ? '20' : '150')}`
+                                                    )}
+                                                </button>
+                                                <p className="text-center text-xs text-gray-500 mt-4"><i data-lucide="lock" className="w-3 h-3 inline mr-1 relative -top-0.5"></i>Securely processed via Stripe. Cancel anytime.</p>
+                                            </div>
+                                        </form>
+                                    ) : (
+                                        /* Success State via Aria-Live region*/
+                                        <div className="text-center py-10" aria-live="polite">
+                                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 shrink-0">
+                                                <i data-lucide="check" className="w-10 h-10 text-green-600"></i>
+                                            </div>
+                                            <h3 className="font-serif text-3xl font-bold text-gray-900 mb-2">Thank You!</h3>
+                                            <p className="text-gray-600 text-lg mb-8 leading-relaxed">Your contribution directly fuels our public interest reporting. A receipt has been sent to your email.</p>
+                                            <a href="index.html" className="inline-block bg-black text-white font-bold uppercase tracking-wider text-sm px-8 py-4 rounded-lg hover:bg-gray-800 transition-colors focus-visible:ring-4 focus-visible:ring-blue-600 outline-none">
+                                                Return to Homepage
+                                            </a>
+                                        </div>
+                                    )}
+
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

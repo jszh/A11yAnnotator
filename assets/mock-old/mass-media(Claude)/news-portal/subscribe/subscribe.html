@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subscribe — The Pulse</title>
+  <meta name="description" content="Subscribe to The Pulse for unlimited access to independent journalism, ad-free reading, and exclusive subscriber benefits." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { serif: ['"Playfair Display"', 'Georgia', 'serif'], sans: ['Inter', 'system-ui', 'sans-serif'] } } }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body class="bg-white">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="../components/components.js" data-presets="react"></script>
+
+  <script type="text/babel" data-presets="react">
+    window.BASE_PATH = '../';
+
+    const PLANS = [
+      {
+        id: 'monthly',
+        name: 'Monthly',
+        price: '$9.99',
+        period: '/month',
+        billed: 'Billed monthly. Cancel anytime.',
+        popular: false,
+        features: [
+          'Unlimited article access',
+          'Ad-free reading',
+          'Daily newsletter',
+          'Mobile app access',
+          'Cancel anytime',
+        ],
+      },
+      {
+        id: 'annual',
+        name: 'Annual',
+        price: '$6.58',
+        period: '/month',
+        billedAs: '$79/year',
+        billed: 'Billed annually — save 34%',
+        popular: true,
+        badge: 'Most Popular',
+        features: [
+          'Everything in Monthly',
+          'Save 34% vs monthly',
+          'Subscriber-only podcasts',
+          'Exclusive long reads',
+          'Early access to new features',
+          'Priority support',
+        ],
+      },
+      {
+        id: 'student',
+        name: 'Student',
+        price: '$4.99',
+        period: '/month',
+        billed: 'Verified .edu email required',
+        popular: false,
+        badge: 'Best Value',
+        features: [
+          'Everything in Monthly',
+          '50% student discount',
+          'Academic research tools',
+          'Citation-ready articles',
+        ],
+      },
+    ];
+
+    const FEATURES = [
+      { emoji: '📰', title: 'Unlimited Access', desc: 'Read every article, investigation, and feature with no paywall.' },
+      { emoji: '🚫', title: 'Ad-Free', desc: 'A clean, distraction-free reading experience on all devices.' },
+      { emoji: '📬', title: 'Daily Newsletter', desc: 'Wake up to the morning briefing, curated by our editors.' },
+      { emoji: '🎙', title: 'Subscriber Podcasts', desc: 'Exclusive audio deep-dives available only to subscribers.' },
+      { emoji: '📱', title: 'Mobile App', desc: 'Full access on iOS and Android with offline reading.' },
+      { emoji: '🔖', title: 'Save & Sync', desc: 'Bookmark articles and access your reading list anywhere.' },
+    ];
+
+    const TESTIMONIALS = [
+      { name: 'Rachel K.', location: 'New York, NY', text: 'The Pulse is the only news source I trust for depth. I read it every morning without fail.' },
+      { name: 'Amir S.', location: 'London, UK', text: 'Worth every penny. The investigative reporting is unlike anything else in digital media.' },
+      { name: 'Camille D.', location: 'Paris, France', text: 'The Tech and Climate coverage is extraordinary. Thoughtful, accurate, essential.' },
+    ];
+
+    /* Plan Card */
+    const PlanCard = ({ plan, selected, onSelect }) => (
+      <article
+        className={`relative rounded-2xl border-2 p-6 cursor-pointer transition-all flex flex-col ${
+          plan.popular
+            ? 'border-red-500 bg-white shadow-lg shadow-red-100'
+            : selected === plan.id
+            ? 'border-slate-800 bg-white'
+            : 'border-slate-200 bg-white hover:border-slate-300'
+        }`}
+        onClick={() => onSelect(plan.id)}
+        role="option"
+        aria-selected={selected === plan.id}
+        tabIndex="0"
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(plan.id)}
+      >
+        {plan.badge && (
+          <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold ${plan.popular ? 'bg-red-600 text-white' : 'bg-amber-400 text-slate-900'}`}>
+            {plan.badge}
+          </div>
+        )}
+
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="font-bold text-slate-800 text-lg">{plan.name}</h3>
+            {plan.billedAs && (
+              <p className="text-xs text-slate-400 mt-0.5">{plan.billedAs}</p>
+            )}
+          </div>
+          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+            selected === plan.id ? 'border-red-600 bg-red-600' : 'border-slate-300'
+          }`} aria-hidden="true">
+            {selected === plan.id && (
+              <span className="text-white text-xs font-bold">✓</span>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <span className={`text-4xl font-black ${plan.popular ? 'text-red-600' : 'text-slate-800'}`}>{plan.price}</span>
+          <span className="text-slate-400 text-sm">{plan.period}</span>
+        </div>
+
+        <p className="text-xs text-slate-400 mb-5">{plan.billed}</p>
+
+        <ul className="space-y-2.5 flex-1" aria-label={`${plan.name} plan features`}>
+          {plan.features.map((f) => (
+            <li key={f} className="flex items-center gap-2.5 text-sm text-slate-700">
+              <span className="text-green-500 font-bold flex-shrink-0" aria-hidden="true">✓</span>
+              {f}
+            </li>
+          ))}
+        </ul>
+      </article>
+    );
+
+    /* Checkout Step */
+    const CheckoutForm = ({ plan, onBack }) => (
+      <div className="bg-white rounded-2xl border border-slate-200 p-8 max-w-xl mx-auto">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 mb-6 transition-colors">
+          ← Back to plans
+        </button>
+
+        <h2 className="headline-sm mb-2">Start your 7-day free trial</h2>
+        <p className="text-sm text-slate-500 mb-6">
+          Selected: <strong className="text-slate-800">{plan?.name} Plan</strong> —{' '}
+          {plan?.billedAs || plan?.price + plan?.period}
+        </p>
+
+        <form onSubmit={(e) => e.preventDefault()} aria-label="Subscription checkout form">
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="checkout-email" className="block text-sm font-medium text-slate-700 mb-1.5">
+                Email address
+              </label>
+              <input
+                id="checkout-email"
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                required
+                className="w-full border border-slate-200 rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label htmlFor="card-number" className="block text-sm font-medium text-slate-700 mb-1.5">
+                Card number
+              </label>
+              <input
+                id="card-number"
+                type="text"
+                placeholder="1234 5678 9012 3456"
+                inputMode="numeric"
+                autoComplete="cc-number"
+                className="w-full border border-slate-200 rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="expiry" className="block text-sm font-medium text-slate-700 mb-1.5">Expiry</label>
+                <input
+                  id="expiry"
+                  type="text"
+                  placeholder="MM / YY"
+                  autoComplete="cc-exp"
+                  className="w-full border border-slate-200 rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="cvv" className="block text-sm font-medium text-slate-700 mb-1.5">CVC</label>
+                <input
+                  id="cvv"
+                  type="text"
+                  placeholder="123"
+                  autoComplete="cc-csc"
+                  className="w-full border border-slate-200 rounded-lg px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Disclaimer */}
+            <p className="text-xs text-slate-400 bg-slate-50 rounded-lg p-3 border border-slate-100">
+              🔒 Your card won't be charged during the 7-day trial. Cancel anytime before the trial ends. Payments are processed securely via Stripe.
+            </p>
+
+            <button type="submit" className="w-full btn btn-primary py-4 text-base font-bold">
+              Start 7-Day Free Trial
+            </button>
+            <p className="text-center text-xs text-slate-400">
+              Already have an account?{' '}
+              <a href={R('account/account.html')} className="text-red-600 hover:underline font-semibold">Sign in</a>
+            </p>
+          </div>
+        </form>
+      </div>
+    );
+
+    const App = () => {
+      const [selected, setSelected] = React.useState('annual');
+      const [step, setStep] = React.useState('plans'); // 'plans' | 'checkout'
+      const selectedPlan = PLANS.find((p) => p.id === selected);
+
+      return (
+        <PageLayout currentCategory="">
+          {/* Hero */}
+          <section className="bg-gradient-to-b from-slate-900 to-slate-800 py-16 px-4 text-white text-center" aria-label="Subscription offer">
+            <p className="text-red-400 text-xs font-bold uppercase tracking-widest mb-3">Limited Offer</p>
+            <h1 className="headline-xl max-w-3xl mx-auto">
+              Independent journalism that earns your trust.
+            </h1>
+            <p className="body-lg text-slate-300 mt-4 max-w-xl mx-auto">
+              Join 2 million readers who rely on The Pulse for fact-checked, ad-free reporting. Start your 7-day free trial — no payment required.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-slate-300">
+              {['2M+ subscribers', '7-day free trial', 'Cancel anytime', 'No ads'].map((p) => (
+                <span key={p} className="flex items-center gap-2">
+                  <span className="text-green-400 font-bold" aria-hidden="true">✓</span> {p}
+                </span>
+              ))}
+            </div>
+          </section>
+
+          {/* Pricing cards */}
+          <section className="max-w-4xl mx-auto px-4 py-16" aria-label="Subscription plans">
+            {step === 'plans' ? (
+              <>
+                <h2 className="headline-md text-center mb-2">Choose your plan</h2>
+                <p className="text-center text-slate-500 mb-10">All plans include a 7-day free trial. Cancel anytime.</p>
+
+                <div
+                  className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10"
+                  role="listbox"
+                  aria-label="Available subscription plans"
+                >
+                  {PLANS.map((plan) => (
+                    <PlanCard key={plan.id} plan={plan} selected={selected} onSelect={setSelected} />
+                  ))}
+                </div>
+
+                <div className="text-center">
+                  <button
+                    className="btn btn-primary px-12 py-4 text-lg font-bold"
+                    onClick={() => setStep('checkout')}
+                    aria-label={`Continue with ${selectedPlan?.name} plan`}
+                  >
+                    Start Free Trial →
+                  </button>
+                  <p className="text-xs text-slate-400 mt-3">No credit card required for trial</p>
+                </div>
+              </>
+            ) : (
+              <CheckoutForm plan={selectedPlan} onBack={() => setStep('plans')} />
+            )}
+          </section>
+
+          {/* Features grid */}
+          <section className="bg-slate-50 border-t border-slate-200 py-16 px-4" aria-labelledby="features-title">
+            <div className="max-w-5xl mx-auto">
+              <h2 id="features-title" className="headline-md text-center mb-10">Everything included in your subscription</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {FEATURES.map((f) => (
+                  <div key={f.title} className="bg-white rounded-xl p-6 border border-slate-200 hover:border-red-200 transition-colors">
+                    <div className="text-3xl mb-3" aria-hidden="true">{f.emoji}</div>
+                    <h3 className="font-bold text-slate-800 mb-1.5">{f.title}</h3>
+                    <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Testimonials */}
+          <section className="py-16 px-4 max-w-5xl mx-auto" aria-labelledby="testimonials-title">
+            <h2 id="testimonials-title" className="headline-md text-center mb-10">What our readers say</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {TESTIMONIALS.map((t) => (
+                <figure key={t.name} className="bg-white border border-slate-200 rounded-xl p-6">
+                  <blockquote className="text-slate-700 text-sm leading-relaxed italic">"{t.text}"</blockquote>
+                  <figcaption className="mt-4 font-semibold text-sm text-slate-800">
+                    {t.name} <span className="text-slate-400 font-normal">· {t.location}</span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </section>
+
+          {/* FAQ */}
+          <section className="bg-slate-50 border-t border-slate-200 py-16 px-4" aria-labelledby="faq-title">
+            <div className="max-w-2xl mx-auto">
+              <h2 id="faq-title" className="headline-md text-center mb-10">Frequently asked questions</h2>
+              <dl className="space-y-4">
+                {[
+                  { q: 'Do I need to enter payment info for the free trial?', a: 'No. You can start reading immediately without providing any payment details. We only ask for payment information if you choose to continue after the 7-day trial.' },
+                  { q: 'Can I cancel anytime?', a: 'Absolutely. You can cancel your subscription from your account dashboard at any time. If you cancel before your billing date, you\'ll retain access until the end of your paid period.' },
+                  { q: 'Is there a family plan?', a: 'We\'re working on a family plan. In the meantime, each subscriber gets full access on up to 3 devices simultaneously.' },
+                  { q: 'How do I verify my student status?', a: 'After selecting the Student plan, you\'ll be asked to verify your .edu email address. Verification is instant and the discount applies immediately.' },
+                ].map((faq) => (
+                  <div key={faq.q} className="bg-white rounded-xl border border-slate-200 p-5">
+                    <dt className="font-semibold text-slate-800 mb-2 text-sm">{faq.q}</dt>
+                    <dd className="text-sm text-slate-500 leading-relaxed">{faq.a}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </section>
+
+          {/* Bottom CTA */}
+          <section className="bg-gradient-to-r from-slate-900 to-slate-800 py-16 px-4 text-center" aria-label="Final subscription call to action">
+            <h2 className="headline-md text-white mb-4">Ready to read without limits?</h2>
+            <p className="text-slate-300 mb-8 max-w-md mx-auto">Start your 7-day free trial. No credit card required. Cancel anytime.</p>
+            <button
+              className="btn btn-primary px-12 py-4 text-lg font-bold"
+              onClick={() => { setStep('checkout'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              aria-label="Start your free trial">
+              Start Free Trial
+            </button>
+          </section>
+        </PageLayout>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

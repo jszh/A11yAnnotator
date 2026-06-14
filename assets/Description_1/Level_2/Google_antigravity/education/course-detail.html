@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python for Data Science | LearnPath</title>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        secondary: {
+                            500: '#ec4899',
+                            600: '#db2777',
+                        },
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-heading {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .focus-ring {
+            @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Icons Component Helper
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconRef = React.useRef(null);
+
+            React.useEffect(() => {
+                if (iconRef.current) {
+                    iconRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
+                    lucide.createIcons({
+                        icons: { [name]: lucide.icons[name] },
+                        nameAttr: 'data-lucide',
+                        attrs: {
+                            class: className,
+                            width: size,
+                            height: size,
+                            'stroke-width': 2
+                        }
+                    });
+                    
+                }
+            }, [name, size, className]);
+
+            return <span ref={iconRef} className="inline-flex items-center justify-center"></span>;
+        };
+
+        const Header = () => {
+            return (
+                <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-16">
+                            <div className="flex-shrink-0 flex items-center">
+                                <a href="index.html" className="flex items-center gap-2 focus-ring rounded-md" aria-label="LearnPath Homepage">
+                                    <div className="bg-primary-600 text-white p-1.5 rounded-lg">
+                                        <Icon name="BookOpen" size={24} />
+                                    </div>
+                                    <span className="font-heading font-bold text-xl text-dark-900 tracking-tight">LearnPath</span>
+                                </a>
+                            </div>
+
+                            <nav className="hidden md:flex space-x-8" aria-label="Main Navigation">
+                                <a href="courses.html" className="text-gray-600 hover:text-primary-600 font-medium transition-colors focus-ring rounded-md px-2 py-1">Explore Courses</a>
+                                <a href="pricing.html" className="text-gray-600 hover:text-primary-600 font-medium transition-colors focus-ring rounded-md px-2 py-1">Pricing</a>
+                                <a href="#" className="flex items-center gap-1 text-gray-600 hover:text-primary-600 font-medium transition-colors focus-ring rounded-md px-2 py-1">
+                                    Study Tools
+                                    <Icon name="ChevronDown" size={16} />
+                                </a>
+                            </nav>
+
+                            <div className="hidden md:flex items-center space-x-4">
+                                <button className="text-gray-600 hover:text-dark-900 font-medium focus-ring rounded-md px-3 py-2" aria-label="Search">
+                                    <Icon name="Search" size={20} />
+                                </button>
+                                <a href="dashboard.html" className="text-primary-600 hover:text-primary-700 font-medium focus-ring rounded-md px-3 py-2">Log in</a>
+                                <a href="dashboard.html" className="bg-primary-600 hover:bg-primary-700 text-white font-medium px-5 py-2 rounded-full transition-colors focus-ring shadow-md hover:shadow-lg">
+                                    Sign up free
+                                </a>
+                            </div>
+
+                            <div className="md:hidden flex items-center">
+                                <button className="text-gray-600 hover:text-dark-900 focus-ring rounded-md p-2" aria-label="Open menu">
+                                    <Icon name="Menu" size={24} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-dark-900 text-gray-300 pt-16 pb-8 border-t border-dark-800 relative z-10 mt-auto">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="border-t border-dark-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
+                            <p>&copy; {new Date().getFullYear()} LearnPath Inc. All rights reserved.</p>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        const CourseDetailPage = () => {
+            const [openAccordion, setOpenAccordion] = React.useState(0);
+
+            const curriculum = [
+                {
+                    id: "mod-1",
+                    title: "Module 1: Introduction to Data Science",
+                    lessons: 5,
+                    duration: "2h 15m",
+                    items: ["What is Data Science?", "Setting up your Python Environment", "Jupyter Notebooks overview", "Your first Python script", "Module 1 Quiz"]
+                },
+                {
+                    id: "mod-2",
+                    title: "Module 2: Python Crash Course",
+                    lessons: 8,
+                    duration: "4h 30m",
+                    items: ["Variables and Data Types", "Lists, Dictionaries, and Sets", "Control Flow", "Functions and Lambdas", "Object-Oriented Programming basics", "Error Handling", "File I/O", "Module 2 Project"]
+                },
+                {
+                    id: "mod-3",
+                    title: "Module 3: Data Analysis with Pandas",
+                    lessons: 7,
+                    duration: "5h 45m",
+                    items: ["Introduction to Pandas", "Series and DataFrames", "Data Indexing and Selection", "Handling Missing Data", "Concatenating and Merging", "Aggregation and Grouping", "Pivot Tables"]
+                },
+                {
+                    id: "mod-4",
+                    title: "Module 4: Data Visualization",
+                    lessons: 6,
+                    duration: "4h 10m",
+                    items: ["Matplotlib basics", "Customizing plots", "Seaborn introduction", "Statistical data visualization", "Interactive plots with Plotly", "Module 4 Challenge"]
+                },
+                {
+                    id: "mod-5",
+                    title: "Module 5: Capstone Project",
+                    lessons: 6,
+                    duration: "7h 20m",
+                    items: ["Project Overview", "Data Collection", "Exploratory Data Analysis", "Feature Engineering", "Final Presentation", "Peer Review"]
+                }
+            ];
+
+            const toggleAccordion = (index) => {
+                setOpenAccordion(openAccordion === index ? null : index);
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <Header />
+
+                    {/* Dark Hero Section */}
+                    <div className="bg-dark-900 text-white pt-12 pb-16 lg:pt-16 lg:pb-24 border-b border-dark-800">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
+                                <div className="lg:w-2/3">
+                                    <nav aria-label="Breadcrumb" className="mb-6 text-sm text-gray-400">
+                                        <ol className="flex items-center space-x-2">
+                                            <li><a href="index.html" className="hover:text-white focus-ring rounded-sm">Home</a></li>
+                                            <li><span className="mx-2">/</span></li>
+                                            <li><a href="courses.html" className="hover:text-white focus-ring rounded-sm">Data Science</a></li>
+                                            <li><span className="mx-2">/</span></li>
+                                            <li><span className="text-white font-medium" aria-current="page">Python for Data Science</span></li>
+                                        </ol>
+                                    </nav>
+
+                                    <h1 className="text-3xl lg:text-5xl font-heading font-extrabold text-white mb-6 leading-tight">
+                                        Python for Data Science — Intermediate
+                                    </h1>
+                                    <p className="text-lg lg:text-xl text-gray-300 mb-8 max-w-3xl leading-relaxed">
+                                        Master the ultimate skill in the current job market. Learn to analyze data, create beautiful visualizations, and use powerful machine learning algorithms.
+                                    </p>
+
+                                    <div className="flex flex-wrap items-center gap-6 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <span className="bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-md font-bold">Bestseller</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                                            <span>4.8</span>
+                                            <div className="flex text-amber-500">
+                                                <Icon name="Star" size={16} className="fill-current" />
+                                                <Icon name="Star" size={16} className="fill-current" />
+                                                <Icon name="Star" size={16} className="fill-current" />
+                                                <Icon name="Star" size={16} className="fill-current" />
+                                                <Icon name="StarHalf" size={16} className="fill-current" />
+                                            </div>
+                                            <a href="#reviews" className="text-primary-300 hover:text-white font-normal underline focus-ring rounded-sm ml-1">(12,450 ratings)</a>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-300">
+                                            <Icon name="Users" size={18} />
+                                            <span>35,214 students enrolled</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-8 flex items-center gap-4">
+                                        <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Dr. Sarah Chen" className="w-12 h-12 rounded-full border-2 border-primary-500/50 object-cover" />
+                                        <div>
+                                            <p className="text-gray-400 text-sm">Created by</p>
+                                            <a href="#instructor" className="text-white font-medium hover:text-primary-400 focus-ring rounded-sm">Dr. Sarah Chen</a>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-8 flex gap-6 text-sm text-gray-400 border-t border-dark-700/50 pt-6">
+                                        <div className="flex items-center gap-2"><Icon name="AlertCircle" size={16} /> Last updated 10/2023</div>
+                                        <div className="flex items-center gap-2"><Icon name="Globe" size={16} /> English</div>
+                                        <div className="flex items-center gap-2"><Icon name="Captions" size={16} /> English, Spanish, French [Auto]</div>
+                                    </div>
+                                </div>
+
+                                {/* Desktop Sidebar Placeholder (Handled outside hero visually but DOM dictates otherwise for layout, we use sticky div below) */}
+                            </div>
+                        </div>
+                    </div>
+
+                    <main className="flex-grow bg-white">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                            <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
+
+                                {/* Main Content Column */}
+                                <div className="lg:w-2/3">
+
+                                    {/* What you'll learn */}
+                                    <section className="bg-gray-50 border border-gray-200 rounded-2xl p-6 lg:p-8 mb-12">
+                                        <h2 className="text-2xl font-heading font-bold text-dark-900 mb-6">What you'll learn</h2>
+                                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {["Clean and analyze data precisely using Pandas", "Create beautiful visual representations of data", "Understand inner workings of machine learning algorithms", "Use Numpy to operate on arrays rapidly", "Solve real-world business problems using Python", "Create interactive dashboards for insights"].map((item, idx) => (
+                                                <li key={idx} className="flex gap-3">
+                                                    <Icon name="Check" size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
+                                                    <span className="text-gray-700 text-sm">{item}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </section>
+
+                                    {/* Course Content Accordion */}
+                                    <section className="mb-12">
+                                        <div className="flex justify-between items-end mb-6">
+                                            <h2 className="text-2xl font-heading font-bold text-dark-900">Course content</h2>
+                                            <p className="text-sm text-gray-500 font-medium">{curriculum.length} sections &bull; 32 lectures &bull; 24h total length</p>
+                                        </div>
+
+                                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm list-none p-0" role="list">
+                                            {curriculum.map((section, index) => {
+                                                const isOpen = openAccordion === index;
+                                                const contentId = `sect-content-${index}`;
+                                                return (
+                                                    <div key={section.id} className="border-b border-gray-200 last:border-b-0" role="listitem">
+                                                        <h3 className="m-0 p-0">
+                                                            <button
+                                                                className="w-full text-left px-6 py-4 bg-gray-50 hover:bg-gray-100 flex items-center justify-between focus-ring rounded-none transition-colors"
+                                                                onClick={() => toggleAccordion(index)}
+                                                                aria-expanded={isOpen}
+                                                                aria-controls={contentId}
+                                                            >
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+                                                                        <Icon name="ChevronDown" size={20} className="text-gray-500" />
+                                                                    </div>
+                                                                    <span className="font-semibold text-dark-900">{section.title}</span>
+                                                                </div>
+                                                                <div className="text-sm text-gray-500 font-medium hidden sm:block">
+                                                                    {section.lessons} lectures &bull; {section.duration}
+                                                                </div>
+                                                            </button>
+                                                        </h3>
+                                                        <div
+                                                            id={contentId}
+                                                            className={`px-6 overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[500px] py-4' : 'max-h-0 py-0'}`}
+                                                            hidden={!isOpen}
+                                                        >
+                                                            <ul className="space-y-3">
+                                                                {section.items.map((item, itemIdx) => (
+                                                                    <li key={itemIdx} className="flex justify-between text-sm group cursor-pointer hover:text-primary-600">
+                                                                        <div className="flex items-center gap-3">
+                                                                            <Icon name={item.includes("Quiz") || item.includes("Challenge") ? "HelpCircle" : "PlayCircle"} size={16} className={item.includes("Quiz") ? "text-amber-500" : "text-gray-400 group-hover:text-primary-500"} />
+                                                                            <span className={`text-gray-700 group-hover:text-primary-600 ${item.includes("Quiz") ? 'font-medium' : ''}`}>{item}</span>
+                                                                        </div>
+                                                                        {itemIdx === 0 && <span className="text-primary-600 text-xs font-semibold underline">Preview</span>}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </section>
+
+                                    {/* Requirements & Description */}
+                                    <section className="mb-12">
+                                        <h2 className="text-2xl font-heading font-bold text-dark-900 mb-6">Requirements</h2>
+                                        <ul className="list-disc pl-5 space-y-2 text-gray-700 mb-8 max-w-2xl">
+                                            <li>No programming experience needed. You will learn everything you need to know</li>
+                                            <li>Mac or PC computer with access to the internet</li>
+                                            <li>No paid software required - we will use fully open source tools</li>
+                                        </ul>
+
+                                        <h2 className="text-2xl font-heading font-bold text-dark-900 mb-6">Description</h2>
+                                        <div className="prose text-gray-700 max-w-none space-y-4">
+                                            <p>Are you ready to start your path to becoming a Data Scientist!</p>
+                                            <p>This comprehensive course will be your guide to learning how to use the power of Python to analyze data, create beautiful visualizations, and use powerful machine learning algorithms! </p>
+                                            <p>Data Scientist has been ranked the number one job on Glassdoor and the average salary of a data scientist is over $120,000 in the United States according to Indeed! Data Science is a rewarding career that allows you to solve some of the world's most interesting problems!</p>
+                                            <p>This course is designed for both beginners with some programming experience or experienced developers looking to make the jump to Data Science!</p>
+                                        </div>
+                                    </section>
+
+                                    {/* Instructor Section */}
+                                    <section id="instructor" className="mb-12 pt-8 border-t border-gray-200">
+                                        <h2 className="text-2xl font-heading font-bold text-dark-900 mb-6">Instructor</h2>
+                                        <div className="flex flex-col sm:flex-row gap-6">
+                                            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80" alt="Dr. Sarah Chen" className="w-32 h-32 rounded-full object-cover shadow-md" />
+                                            <div>
+                                                <h3 className="text-xl font-bold text-primary-600 mb-1">Dr. Sarah Chen</h3>
+                                                <p className="text-gray-500 font-medium mb-3">Head of Data Science at TechInnovate, ex-Google</p>
+
+                                                <div className="flex gap-4 text-sm text-gray-700 mb-4 bg-gray-50 p-3 rounded-lg w-max">
+                                                    <div className="flex items-center gap-1.5"><Icon name="Star" size={16} className="text-amber-500" /> 4.8 Rating</div>
+                                                    <div className="flex items-center gap-1.5"><Icon name="Award" size={16} className="text-primary-600" /> 84k Students</div>
+                                                    <div className="flex items-center gap-1.5"><Icon name="PlayCircle" size={16} className="text-emerald-500" /> 12 Courses</div>
+                                                </div>
+
+                                                <p className="text-gray-700 text-sm leading-relaxed max-w-2xl">
+                                                    Dr. Sarah Chen holds a Ph.D. in Computer Science from Stanford University. With over a decade of industry experience deploying machine learning models at massive scale, she now dedicates her time to making complex technical concepts accessible to everyone. Her courses are known for their clarity, hands-on projects, and practical industry relevance.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    {/* Reviews Section */}
+                                    <section id="reviews" className="mb-12 pt-8 border-t border-gray-200">
+                                        <h2 className="text-2xl font-heading font-bold text-dark-900 mb-6">Student Feedback</h2>
+
+                                        <div className="flex flex-col sm:flex-row gap-8 mb-10">
+                                            <div className="text-center sm:text-left flex flex-col items-center sm:items-start shrink-0">
+                                                <div className="text-7xl font-heading font-bold text-amber-500 mb-2 leading-none">4.8</div>
+                                                <div className="flex text-amber-500 mb-2">
+                                                    <Icon name="Star" size={20} className="fill-current" />
+                                                    <Icon name="Star" size={20} className="fill-current" />
+                                                    <Icon name="Star" size={20} className="fill-current" />
+                                                    <Icon name="Star" size={20} className="fill-current" />
+                                                    <Icon name="StarHalf" size={20} className="fill-current" />
+                                                </div>
+                                                <p className="font-semibold text-dark-900">Course Rating</p>
+                                            </div>
+
+                                            <div className="w-full flex-grow flex flex-col gap-2">
+                                                {[
+                                                    { stars: 5, pct: 75 },
+                                                    { stars: 4, pct: 18 },
+                                                    { stars: 3, pct: 5 },
+                                                    { stars: 2, pct: 1 },
+                                                    { stars: 1, pct: 1 }
+                                                ].map(bar => (
+                                                    <div key={bar.stars} className="flex items-center gap-3">
+                                                        <div className="w-24 border-2 border-transparent hover:border-gray-200 px-1 rounded cursor-pointer flex items-center gap-1 focus-ring">
+                                                            <div className="w-[85%] bg-gray-200 rounded-full h-2.5 overflow-hidden flex-grow">
+                                                                <div className="bg-amber-500 h-full" style={{ width: `${bar.pct}%` }}></div>
+                                                            </div>
+                                                            <div className="flex text-amber-500 text-xs">
+                                                                <Icon name="Star" size={10} className="fill-current" /> {bar.stars}
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-xs text-gray-500 font-medium w-8">{bar.pct}%</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {[
+                                                { name: "Michael T.", date: "2 weeks ago", rating: 5, text: "Absolutely phenomenal course. Dr. Chen explains complex pandas operations in a way that just clicks. The capstone project was incredibly valuable for my portfolio." },
+                                                { name: "Jennifer K.", date: "1 month ago", rating: 5, text: "I've tried learning Python before but kept giving up. This course was different. The structure makes sense, and the progression is logical without being overwhelming." },
+                                                { name: "Robert P.", date: "2 months ago", rating: 4, text: "Great content overall. Subtracted one star because I wish there were a few more exercises in the visualization module, but the pandas section is top tier." },
+                                                { name: "Alisha M.", date: "3 months ago", rating: 5, text: "Worth every penny. I got a job as a Junior Data Analyst halfway through completing this course. The practical knowledge directly applied to my interview questions!" }
+                                            ].map((review, idx) => (
+                                                <div key={idx} className="bg-white border text-sm text-gray-600 border-gray-200 p-5 rounded-2xl shadow-sm">
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 bg-gray-800 text-white font-bold rounded-full flex items-center justify-center">
+                                                                {review.name.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-bold text-dark-900">{review.name}</h4>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="flex text-amber-500">
+                                                                        {[...Array(5)].map((_, i) => (
+                                                                            <Icon key={i} name="Star" size={12} className={i < review.rating ? "fill-current" : "text-gray-300"} />
+                                                                        ))}
+                                                                    </div>
+                                                                    <span className="text-xs text-gray-400">{review.date}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <p>{review.text}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <button className="mt-8 px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 focus-ring transition-colors block mx-auto">
+                                            Show more reviews
+                                        </button>
+                                    </section>
+                                </div>
+
+                                {/* Right Sidebar Column (Sticky relative to main grid) */}
+                                <div className="lg:w-1/3">
+                                    {/* Sidebar won't float over main content due to flex row layout; it acts within its container.*/}
+                                    <div className="sticky top-28 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden z-20">
+                                        <div className="relative">
+                                            <img src="https://images.unsplash.com/photo-1555949963-aa79dcee981c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Course preview thumbnail" className="w-full h-48 object-cover" />
+                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                                <button className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-dark-900 shadow-lg group focus-ring z-10" aria-label="Play course preview video">
+                                                    <Icon name="Play" size={28} className="translate-x-0.5 group-hover:text-primary-600 transition-colors" />
+                                                </button>
+                                            </div>
+                                            <div className="absolute bottom-3 left-0 w-full text-center font-semibold text-white text-sm">Preview this course</div>
+                                        </div>
+
+                                        <div className="p-6">
+                                            <div className="flex items-baseline gap-3 mb-6">
+                                                <span className="text-3xl font-heading font-extrabold text-dark-900">$49</span>
+                                                <span className="text-lg text-gray-400 line-through">$149</span>
+                                                <span className="text-sm font-bold text-red-500">67% off</span>
+                                            </div>
+
+                                            <div className="space-y-3 mb-6">
+                                                <a href="study-tool.html" className="w-full flex items-center justify-center block bg-primary-600 hover:bg-primary-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition-all hover:shadow-lg focus-ring text-lg">
+                                                    Enroll Now
+                                                </a>
+                                                <button className="w-full bg-white border-2 border-primary-600 text-primary-600 hover:bg-primary-50 font-bold py-3 px-4 rounded-xl transition-colors focus-ring">
+                                                    Add to Wishlist
+                                                </button>
+                                            </div>
+
+                                            <div className="text-center text-xs text-gray-500 mb-6">
+                                                30-Day Money-Back Guarantee
+                                            </div>
+
+                                            <div className="mb-6 pt-6 border-t border-gray-200">
+                                                <h3 className="font-heading font-bold text-dark-900 mb-4 text-lg">This course includes:</h3>
+                                                <ul className="space-y-3 text-sm text-gray-700">
+                                                    <li className="flex items-center gap-3"><Icon name="MonitorPlay" size={18} className="text-gray-400" /> 24 hours on-demand video</li>
+                                                    <li className="flex items-center gap-3"><Icon name="FileCode2" size={18} className="text-gray-400" /> 12 coding exercises</li>
+                                                    <li className="flex items-center gap-3"><Icon name="FileText" size={18} className="text-gray-400" /> 45 downloadable resources</li>
+                                                    <li className="flex items-center gap-3"><Icon name="Smartphone" size={18} className="text-gray-400" /> Access on mobile and TV</li>
+                                                    <li className="flex items-center gap-3"><Icon name="Infinity" size={18} className="text-gray-400" /> Full lifetime access</li>
+                                                    <li className="flex items-center gap-3"><Icon name="Trophy" size={18} className="text-gray-400" /> Certificate of completion</li>
+                                                </ul>
+                                            </div>
+
+                                            <div className="pt-6 border-t border-gray-200">
+                                                <button className="w-full text-center text-primary-600 font-semibold hover:text-primary-700 focus-ring rounded-sm">
+                                                    Share this course
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </main>
+
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CourseDetailPage />);
+    </script>
+</body>
+
+</html>

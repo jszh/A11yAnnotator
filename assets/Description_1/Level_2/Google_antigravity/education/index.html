@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnPath | Online Learning Platform</title>
+
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        secondary: {
+                            500: '#ec4899',
+                            600: '#db2777',
+                        },
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        .font-heading {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .focus-ring {
+            @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Icons Component Helper
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const iconRef = React.useRef(null);
+
+            React.useEffect(() => {
+                if (iconRef.current) {
+                    iconRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
+                    lucide.createIcons({
+                        icons: { [name]: lucide.icons[name] },
+                        nameAttr: 'data-lucide',
+                        attrs: {
+                            class: className,
+                            width: size,
+                            height: size,
+                            'stroke-width': 2
+                        }
+                    });
+                    
+                }
+            }, [name, size, className]);
+
+            return <span ref={iconRef} className="inline-flex items-center justify-center"></span>;
+        };
+
+        // --- Shared Components ---
+
+        const Header = () => {
+            return (
+                <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-16">
+                            {/* Logo */}
+                            <div className="flex-shrink-0 flex items-center">
+                                <a href="index.html" className="flex items-center gap-2 focus-ring rounded-md" aria-label="LearnPath Homepage">
+                                    <div className="bg-primary-600 text-white p-1.5 rounded-lg">
+                                        <Icon name="BookOpen" size={24} />
+                                    </div>
+                                    <span className="font-heading font-bold text-xl text-dark-900 tracking-tight">LearnPath</span>
+                                </a>
+                            </div>
+
+                            {/* Desktop Nav */}
+                            <nav className="hidden md:flex space-x-8" aria-label="Main Navigation">
+                                <a href="courses.html" className="text-gray-600 hover:text-primary-600 font-medium transition-colors focus-ring rounded-md px-2 py-1">Explore Courses</a>
+                                <a href="pricing.html" className="text-gray-600 hover:text-primary-600 font-medium transition-colors focus-ring rounded-md px-2 py-1">Pricing</a>
+                                <a href="#" className="flex items-center gap-1 text-gray-600 hover:text-primary-600 font-medium transition-colors focus-ring rounded-md px-2 py-1">
+                                    Study Tools
+                                    <Icon name="ChevronDown" size={16} />
+                                </a>
+                            </nav>
+
+                            {/* Actions */}
+                            <div className="hidden md:flex items-center space-x-4">
+                                <button className="text-gray-600 hover:text-dark-900 font-medium focus-ring rounded-md px-3 py-2" aria-label="Search">
+                                    <Icon name="Search" size={20} />
+                                </button>
+                                <a href="dashboard.html" className="text-primary-600 hover:text-primary-700 font-medium focus-ring rounded-md px-3 py-2">Log in</a>
+                                <a href="dashboard.html" className="bg-primary-600 hover:bg-primary-700 text-white font-medium px-5 py-2 rounded-full transition-colors focus-ring shadow-md hover:shadow-lg">
+                                    Sign up free
+                                </a>
+                            </div>
+
+                            {/* Mobile menu button */}
+                            <div className="md:hidden flex items-center">
+                                <button className="text-gray-600 hover:text-dark-900 focus-ring rounded-md p-2" aria-label="Open menu">
+                                    <Icon name="Menu" size={24} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-dark-900 text-gray-300 pt-16 pb-8 border-t border-dark-800 relative z-10">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
+                            <div className="lg:col-span-2">
+                                <a href="index.html" className="flex items-center gap-2 mb-4 focus-ring rounded-md w-max">
+                                    <div className="bg-primary-500 text-white p-1.5 rounded-lg">
+                                        <Icon name="BookOpen" size={24} />
+                                    </div>
+                                    <span className="font-heading font-bold text-2xl text-white tracking-tight">LearnPath</span>
+                                </a>
+                                <p className="text-gray-400 mb-6 max-w-sm">
+                                    Empowering global learners with skills for the future. Unlock your potential at your own pace with expert-led courses.
+                                </p>
+                                <div className="flex space-x-4">
+                                    <a href="#" className="text-gray-400 hover:text-white transition-colors focus-ring rounded-md p-1" aria-label="Twitter">
+                                        <Icon name="Twitter" size={20} />
+                                    </a>
+                                    <a href="#" className="text-gray-400 hover:text-white transition-colors focus-ring rounded-md p-1" aria-label="LinkedIn">
+                                        <Icon name="Linkedin" size={20} />
+                                    </a>
+                                    <a href="#" className="text-gray-400 hover:text-white transition-colors focus-ring rounded-md p-1" aria-label="GitHub">
+                                        <Icon name="Github" size={20} />
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-white font-heading font-semibold mb-4 text-lg">Platform</h3>
+                                <ul className="space-y-3">
+                                    <li><a href="courses.html" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Browse Courses</a></li>
+                                    <li><a href="pricing.html" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Pricing Plans</a></li>
+                                    <li><a href="#" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Certificates</a></li>
+                                    <li><a href="#" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Enterprise</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-white font-heading font-semibold mb-4 text-lg">Resources</h3>
+                                <ul className="space-y-3">
+                                    <li><a href="#" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Help Center</a></li>
+                                    <li><a href="#" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Blog</a></li>
+                                    <li><a href="#" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Community</a></li>
+                                    <li><a href="#" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Career Guide</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-white font-heading font-semibold mb-4 text-lg">Company</h3>
+                                <ul className="space-y-3">
+                                    <li><a href="#" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">About Us</a></li>
+                                    <li><a href="#" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Careers</a></li>
+                                    <li><a href="#" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Teachers</a></li>
+                                    <li><a href="#" className="hover:text-primary-400 transition-colors focus-ring rounded-sm">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-dark-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
+                            <p>&copy; {new Date().getFullYear()} LearnPath Inc. All rights reserved.</p>
+                            <div className="flex space-x-6 mt-4 md:mt-0">
+                                <a href="#" className="hover:text-white transition-colors focus-ring rounded-sm">Privacy Policy</a>
+                                <a href="#" className="hover:text-white transition-colors focus-ring rounded-sm">Terms of Service</a>
+                                <a href="#" className="hover:text-white transition-colors focus-ring rounded-sm">Cookie Settings</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        // --- Homepage Components ---
+
+        const Hero = () => {
+            return (
+                <section className="relative overflow-hidden bg-white">
+                    {/* Background decorations */}
+                    <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] rounded-full bg-primary-50 opacity-50 blur-3xl pointer-events-none"></div>
+                    <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] rounded-full bg-secondary-500 opacity-10 blur-3xl pointer-events-none"></div>
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 relative z-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                            <div className="max-w-2xl">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-100 text-primary-700 font-medium text-sm mb-6 border border-primary-200 shadow-sm">
+                                    <span className="flex h-2 w-2 rounded-full bg-primary-600"></span>
+                                    New courses added daily
+                                </div>
+                                <h1 className="text-5xl lg:text-6xl font-heading font-extrabold text-dark-900 leading-tight mb-6">
+                                    Unlock Your Potential. <br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-secondary-500">
+                                        Learn at Your Own Pace.
+                                    </span>
+                                </h1>
+                                <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-xl">
+                                    Build world-class skills with expert-led courses in technology, business, design, and personal development. Accelerate your career today.
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <a href="courses.html" className="inline-flex justify-center items-center px-6 py-3.5 border border-transparent text-base font-semibold rounded-full shadow-lg text-white bg-primary-600 hover:bg-primary-700 hover:shadow-xl transition-all focus-ring">
+                                        Browse Courses
+                                    </a>
+                                    <a href="pricing.html" className="inline-flex justify-center items-center px-6 py-3.5 border-2 border-gray-200 text-base font-semibold rounded-full text-dark-800 bg-white hover:border-gray-300 hover:bg-gray-50 transition-all focus-ring">
+                                        Start Free Trial
+                                    </a>
+                                </div>
+                                <div className="mt-8 flex items-center gap-4 text-sm text-gray-500 font-medium">
+                                    <div className="flex -space-x-2">
+                                        {[1, 2, 3, 4].map(i => (
+                                            <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center overflow-hidden">
+                                                <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="" className="w-full h-full object-cover" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p>Join <span className="text-dark-900 font-bold">2M+</span> learners worldwide</p>
+                                </div>
+                            </div>
+
+                            <div className="relative lg:ml-auto">
+                                <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-100 group">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-dark-900/40 to-transparent z-10"></div>
+                                    <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Students collaborating with laptops" className="w-full h-[500px] object-cover transition-transform duration-700 group-hover:scale-105" />
+
+                                    {/* Floating card 1 */}
+                                    <div className="absolute bottom-6 left-6 z-20 bg-white/95 backdrop-blur rounded-xl p-4 shadow-xl border border-white/20 animate-bounce" style={{ animationDuration: '3s' }}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-green-100 text-green-600 p-2 rounded-lg">
+                                                <Icon name="CheckCircle" size={20} />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-dark-900">Certificate Earned</p>
+                                                <p className="text-xs text-gray-500">UX Design Fundamentals</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Floating card 2 */}
+                                    <div className="absolute top-12 -left-6 z-20 bg-white/95 backdrop-blur rounded-xl p-4 shadow-xl border border-white/20 hidden md:block">
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-blue-100 text-blue-600 p-2 rounded-lg">
+                                                <Icon name="TrendingUp" size={20} />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-dark-900">+40% Salary Boost</p>
+                                                <p className="text-xs text-gray-500">Average tech graduate</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const CategoryTiles = () => {
+            const categories = [
+                { name: "Web Development", count: "1,240 Courses", icon: "Code", color: "text-blue-600", bg: "bg-blue-50", hover: "hover:border-blue-200 hover:shadow-blue-100" },
+                { name: "Data Science", count: "850 Courses", icon: "Database", color: "text-indigo-600", bg: "bg-indigo-50", hover: "hover:border-indigo-200 hover:shadow-indigo-100" },
+                { name: "UX/UI Design", count: "540 Courses", icon: "PenTool", color: "text-pink-600", bg: "bg-pink-50", hover: "hover:border-pink-200 hover:shadow-pink-100" },
+                { name: "Business Strategy", count: "920 Courses", icon: "Briefcase", color: "text-emerald-600", bg: "bg-emerald-50", hover: "hover:border-emerald-200 hover:shadow-emerald-100" },
+                { name: "Digital Marketing", count: "730 Courses", icon: "Smartphone", color: "text-orange-600", bg: "bg-orange-50", hover: "hover:border-orange-200 hover:shadow-orange-100" },
+            ];
+
+            return (
+                <section className="py-16 bg-gray-50 border-t border-gray-100">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-end mb-10">
+                            <div>
+                                <h2 className="text-3xl font-heading font-bold text-dark-900 mb-2">Explore Top Categories</h2>
+                                <p className="text-gray-600">Discover skills tailored for today's dynamic job market.</p>
+                            </div>
+                            <a href="courses.html" className="hidden md:flex items-center gap-1 text-primary-600 font-semibold hover:text-primary-700 transition-colors focus-ring rounded-md p-1">
+                                View all categories <Icon name="ArrowRight" size={16} />
+                            </a>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                            {categories.map((cat, idx) => (
+                                <a key={idx} href="courses.html" className={`flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group ${cat.hover} focus-ring`}>
+                                    <div className={`w-14 h-14 rounded-xl ${cat.bg} ${cat.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                                        <Icon name={cat.icon} size={28} />
+                                    </div>
+                                    <h3 className="font-heading font-semibold text-dark-900 text-center mb-1">{cat.name}</h3>
+                                    <p className="text-xs text-gray-500 font-medium">{cat.count}</p>
+                                </a>
+                            ))}
+                        </div>
+                        <div className="mt-8 text-center md:hidden">
+                            <a href="courses.html" className="inline-flex items-center gap-2 text-primary-600 font-semibold focus-ring rounded-md p-2">
+                                View all categories <Icon name="ArrowRight" size={16} />
+                            </a>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const FeaturedCourses = () => {
+            const courses = [
+                {
+                    id: 1,
+                    title: "Python for Data Science Fundamentals",
+                    instructor: "Dr. Sarah Chen",
+                    rating: 4.8,
+                    reviews: 12450,
+                    enrolled: "35k",
+                    price: "$49",
+                    image: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
+                    badge: "Bestseller",
+                    badgeColor: "bg-amber-100 text-amber-800"
+                },
+                {
+                    id: 2,
+                    title: "Advanced React Patterns & State Management",
+                    instructor: "Marcus Johnson",
+                    rating: 4.9,
+                    reviews: 8320,
+                    enrolled: "18k",
+                    price: "$59",
+                    image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
+                    badge: "Highest Rated",
+                    badgeColor: "bg-emerald-100 text-emerald-800"
+                },
+                {
+                    id: 3,
+                    title: "Complete UI/UX Design Masterclass",
+                    instructor: "Elena Rodriguez",
+                    rating: 4.7,
+                    reviews: 9150,
+                    enrolled: "22k",
+                    price: "$45",
+                    image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
+                    badge: "New",
+                    badgeColor: "bg-blue-100 text-blue-800"
+                },
+                {
+                    id: 4,
+                    title: "Strategic Business Management 101",
+                    instructor: "Prof. David Miller",
+                    rating: 4.6,
+                    reviews: 5400,
+                    enrolled: "12k",
+                    price: "$39",
+                    image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
+                    badge: null
+                }
+            ];
+
+            return (
+                <section className="py-20 bg-white">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center max-w-2xl mx-auto mb-16">
+                            <h2 className="text-3xl lg:text-4xl font-heading font-bold text-dark-900 mb-4">Featured Courses</h2>
+                            <p className="text-lg text-gray-600">Hand-picked by our editors. Upgrade your skills with these premium learning experiences.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {courses.map(course => (
+                                <div key={course.id} className="group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300">
+                                    <div className="relative h-48 overflow-hidden">
+                                        <img src={course.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        {course.badge && (
+                                            <span className={`absolute top-3 left-3 px-2 py-1 text-xs font-bold rounded-md ${course.badgeColor}`}>
+                                                {course.badge}
+                                            </span>
+                                        )}
+                                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div>
+                                        <button className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-white transition-colors focus-ring" aria-label={`Save ${course.title} to wishlist`}>
+                                            <Icon name="Heart" size={16} />
+                                        </button>
+                                    </div>
+                                    <div className="p-5 flex flex-col flex-grow">
+                                        {/* Accessibility linking: Wrap title and ensure visual overlay makes whole card clicky or just link the title */}
+                                        <h3 className="font-heading font-bold text-lg text-dark-900 mb-1 leading-tight group-hover:text-primary-600 transition-colors">
+                                            <a href="course-detail.html" className="focus-ring rounded-sm before:absolute before:inset-0" aria-label={`${course.title} by ${course.instructor}`}>
+                                                {course.title}
+                                            </a>
+                                        </h3>
+                                        <p className="text-sm text-gray-500 mb-3">{course.instructor}</p>
+
+                                        <div className="flex items-center gap-1 text-amber-500 mb-4 text-sm font-semibold">
+                                            <span className="text-dark-900">{course.rating}</span>
+                                            <Icon name="Star" size={14} className="fill-current" />
+                                            <span className="text-gray-400 font-normal ml-1">({course.reviews})</span>
+                                        </div>
+
+                                        <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+                                            <div className="flex items-center gap-1.5 text-sm text-gray-600 font-medium">
+                                                <Icon name="Users" size={14} className="text-gray-400" />
+                                                <span>{course.enrolled}</span>
+                                            </div>
+                                            <span className="font-bold text-lg text-dark-900">{course.price}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const HowItWorks = () => {
+            const steps = [
+                {
+                    num: "01",
+                    title: "Discover Your Path",
+                    desc: "Browse our expansive catalog and find the perfect course aligned with your career goals.",
+                    icon: "Compass",
+                    color: "bg-blue-100 text-blue-600"
+                },
+                {
+                    num: "02",
+                    title: "Learn Interactively",
+                    desc: "Engage with high-quality video lessons, hands-on projects, and real-time quizzes.",
+                    icon: "PlayCircle",
+                    color: "bg-indigo-100 text-indigo-600"
+                },
+                {
+                    num: "03",
+                    title: "Earn Credentials",
+                    desc: "Pass the final assessments to receive an industry-recognized certificate to share.",
+                    icon: "Award",
+                    color: "bg-emerald-100 text-emerald-600"
+                }
+            ];
+
+            return (
+                <section className="py-20 bg-dark-900 text-white relative overflow-hidden">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[400px] bg-primary-600/20 blur-[100px] rounded-full pointer-events-none"></div>
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl lg:text-4xl font-heading font-bold mb-4">How LearnPath Works</h2>
+                            <p className="text-gray-400 max-w-2xl mx-auto text-lg">A simple, effective journey from absolute beginner to industry professional.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+                            {steps.map((step, idx) => (
+                                <div key={idx} className="relative">
+                                    {idx !== 2 && (
+                                        <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-[2px] border-t-2 border-dashed border-dark-700"></div>
+                                    )}
+                                    <div className="relative mx-auto w-24 h-24 rounded-2xl bg-dark-800 border border-dark-700 shadow-xl flex items-center justify-center mb-6">
+                                        <span className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-sm font-bold shadow-lg shadow-primary-500/50">
+                                            {step.num}
+                                        </span>
+                                        <div className={`p-3 rounded-xl ${step.color}`}>
+                                            <Icon name={step.icon} size={32} />
+                                        </div>
+                                    </div>
+                                    <h3 className="text-xl font-heading font-bold mb-3">{step.title}</h3>
+                                    <p className="text-gray-400 leading-relaxed text-sm lg:text-base">{step.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const App = () => {
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow">
+                        <Hero />
+                        <CategoryTiles />
+                        <FeaturedCourses />
+                        <HowItWorks />
+
+                        {/* Call to Action pre-footer */}
+                        <section className="py-24 bg-primary-600 relative overflow-hidden">
+                            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                                <svg className="absolute left-full transform -translate-x-1/2 -translate-y-1/4" width="404" height="784" fill="none" viewBox="0 0 404 784"><defs><pattern id="b1e6e422-73f8-40a6-b5f9-c84969753ed6" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="4" height="4" fill="currentColor" opacity="0.1"></rect></pattern></defs><rect width="404" height="784" fill="url(#b1e6e422-73f8-40a6-b5f9-c84969753ed6)"></rect></svg>
+                                <svg className="absolute right-full transform translate-x-1/2 translate-y-1/4" width="404" height="784" fill="none" viewBox="0 0 404 784"><defs><pattern id="b1e6e422-73f8-40a6-b5f9-c84969753ed6" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="4" height="4" fill="currentColor" opacity="0.1"></rect></pattern></defs><rect width="404" height="784" fill="url(#b1e6e422-73f8-40a6-b5f9-c84969753ed6)"></rect></svg>
+                            </div>
+                            <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+                                <h2 className="text-3xl lg:text-5xl font-heading font-bold mb-6">Ready to start your learning journey?</h2>
+                                <p className="text-primary-100 text-lg lg:text-xl mb-10 max-w-2xl mx-auto">Get unlimited access to over 5,000+ top-rated courses. Join millions of learners today.</p>
+                                <a href="pricing.html" className="inline-flex justify-center items-center px-8 py-4 border border-transparent text-lg font-bold rounded-full text-primary-600 bg-white hover:bg-gray-50 shadow-xl transition-all hover:scale-105 focus-ring">
+                                    Start your 7-day free trial
+                                </a>
+                                <p className="mt-4 text-sm text-primary-200">No credit card required for trial signup.</p>
+                            </div>
+                        </section>
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

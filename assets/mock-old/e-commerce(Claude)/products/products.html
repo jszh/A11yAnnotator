@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products – ShopVerse</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    /* ── Products-page specific ─────────────────────────── */
+    .products-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+      padding: 24px 0 48px;
+    }
+
+    /* ── Filter Sidebar ─────────────────────────────────── */
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+    .filter-panel {
+      background: #fff;
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+    .filter-head {
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .filter-body { padding: 12px 16px; }
+    .filter-body label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .filter-body input[type="checkbox"] { accent-color: var(--prime); width: 14px; height: 14px; }
+
+    /* Price range */
+    .price-inputs { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+    .price-inputs input {
+      width: 80px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 13px;
+    }
+
+    /* Rating filter */
+    .rating-opt {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 0;
+    }
+    .rating-opt:hover { color: var(--prime); }
+
+    /* ── Toolbar ────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .toolbar-count { font-size: 13px; color: var(--text-muted); }
+    .toolbar-right { display: flex; align-items: center; gap: 10px; }
+    .sort-select {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+    }
+    .view-toggle { display: flex; gap: 4px; }
+    .view-btn {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .view-btn.active { background: var(--nav-bg); color: #fff; border-color: var(--nav-bg); }
+
+    /* Active filters strip */
+    .active-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .filter-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e8f4fd;
+      color: var(--prime);
+      border: 1px solid #b3d9f2;
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .filter-tag button {
+      background: none;
+      border: none;
+      color: var(--prime);
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+    }
+
+    /* ── Product Grid ───────────────────────────────────── */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .product-tile {
+      background: #fff;
+      border-radius: var(--r-md);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow 0.2s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .product-tile:hover { box-shadow: var(--shadow-lg); }
+
+    .pt-img-wrap {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      background: #f3f4f6;
+    }
+    .pt-img-wrap img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+    .product-tile:hover .pt-img-wrap img { transform: scale(1.04); }
+
+    .pt-badge-wrap {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .pt-wish {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.9);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .pt-wish:hover { transform: scale(1.15); }
+
+    .pt-body { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .pt-brand { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .pt-name {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .pt-rating { display: flex; align-items: center; gap: 4px; }
+    .pt-price-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+    .pt-price { font-size: 18px; font-weight: 800; }
+    .pt-was   { font-size: 12px; color: var(--text-muted); text-decoration: line-through; }
+    .pt-save  { font-size: 12px; color: var(--sale-red); font-weight: 600; }
+    .pt-delivery { font-size: 12px; color: var(--green); font-weight: 500; }
+    .pt-footer { padding: 0 12px 12px; }
+
+    /* ── Pagination ─────────────────────────────────────── */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 32px 0;
+      flex-wrap: wrap;
+    }
+    .page-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      background: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .page-btn:hover { background: #f3f4f6; }
+    .page-btn.active { background: var(--accent); border-color: var(--accent); color: #111; font-weight: 700; }
+    .page-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+
+    @media (max-width: 960px) {
+      .products-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }   /* collapsed on mobile — could be a drawer */
+      .products-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .products-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ──────────────────────────────────────────────── -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="hdr-logo hdr-region">
+      <div class="logo-brand">Shop<span>Verse</span></div>
+      <div class="logo-sub">.com</div>
+    </a>
+    <div class="hdr-deliver hdr-region">
+      <div class="deliver-top">📍 Deliver to</div>
+      <div class="deliver-loc">New York 10001</div>
+    </div>
+    <div class="hdr-search">
+      <select class="search-cat" aria-label="Search category">
+        <option>All</option><option selected>Electronics</option><option>Fashion</option>
+        <option>Home &amp; Garden</option><option>Books</option>
+      </select>
+      <input class="search-input" type="search" id="searchInput" placeholder="Search ShopVerse..." aria-label="Search products">
+      <button class="search-btn" id="searchBtn" aria-label="Search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+      </button>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-region" style="display:flex;align-items:center;gap:4px;">
+        <span style="font-size:16px;">🇺🇸</span>
+        <select class="lang-select" aria-label="Language"><option>EN</option><option>ES</option><option>FR</option></select>
+      </div>
+      <a href="#" class="hdr-link hdr-region"><span class="hl-top">Hello, Sign in</span><span class="hl-bottom">Account ▾</span></a>
+      <a href="products.html" class="hdr-link hdr-region"><span class="hl-top">Returns</span><span class="hl-bottom">&amp; Orders</span></a>
+      <a href="#" class="hdr-cart hdr-region"><span style="font-size:26px;">🛒</span><span class="cart-count">3</span><span class="cart-label">Cart</span></a>
+    </div>
+  </div>
+</header>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav class="site-nav" aria-label="Category navigation">
+  <div class="nav-inner">
+    <a class="nav-item bold" href="../index.html">☰ All</a>
+    <a class="nav-item" href="../index.html">Today's Deals</a>
+    <a class="nav-item" href="products.html" style="border-color:#fff;">Electronics</a>
+    <a class="nav-item" href="products.html">Fashion</a>
+    <a class="nav-item" href="products.html">Home &amp; Garden</a>
+    <a class="nav-item" href="products.html">Books</a>
+    <a class="nav-item" href="../about/about.html">About</a>
+    <a class="nav-item" href="../contact/contact.html">Contact</a>
+    <span style="flex:1;"></span>
+    <button class="nav-prime">⚡ Try Prime</button>
+  </div>
+</nav>
+
+<!-- ── BREADCRUMB ──────────────────────────────────────────── -->
+<div class="container">
+  <div class="breadcrumb">
+    <a href="../index.html">ShopVerse</a>
+    <span>›</span>
+    <a href="products.html">Electronics</a>
+    <span>›</span>
+    <span>Headphones &amp; Audio</span>
+  </div>
+</div>
+
+<!-- ── MAIN ────────────────────────────────────────────────── -->
+<main class="container">
+  <h1 style="font-size:22px; font-weight:800; margin-bottom:16px;">
+    Results for <em style="font-style:normal; color:var(--text-muted);">"headphones"</em>
+  </h1>
+
+  <div class="products-layout">
+
+    <!-- ════ SIDEBAR ════ -->
+    <aside class="sidebar" aria-label="Product filters">
+
+      <!-- Department -->
+      <div class="filter-panel">
+        <div class="filter-head">Department <span>▾</span></div>
+        <div class="filter-body">
+          <label><input type="checkbox" checked> Electronics (248)</label>
+          <label><input type="checkbox"> Headphones (86)</label>
+          <label><input type="checkbox"> Earbuds (52)</label>
+          <label><input type="checkbox"> Speakers (41)</label>
+          <label><input type="checkbox"> Home Audio (29)</label>
+          <label><input type="checkbox"> Accessories (40)</label>
+        </div>
+      </div>
+
+      <!-- Price -->
+      <div class="filter-panel">
+        <div class="filter-head">Price <span>▾</span></div>
+        <div class="filter-body">
+          <label><input type="checkbox"> Under $25</label>
+          <label><input type="checkbox"> $25 – $75</label>
+          <label><input type="checkbox"> $75 – $150</label>
+          <label><input type="checkbox"> $150 – $300</label>
+          <label><input type="checkbox"> $300 &amp; above</label>
+          <div class="price-inputs">
+            <input type="number" placeholder="Min" aria-label="Minimum price">
+            <span style="font-size:13px;">–</span>
+            <input type="number" placeholder="Max" aria-label="Maximum price">
+            <button class="btn btn-outline btn-sm">Go</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rating -->
+      <div class="filter-panel">
+        <div class="filter-head">Avg. Customer Review <span>▾</span></div>
+        <div class="filter-body">
+          <div class="rating-opt"><span class="stars">★★★★</span><span>& Up</span></div>
+          <div class="rating-opt"><span class="stars">★★★</span><span>& Up</span></div>
+          <div class="rating-opt"><span class="stars">★★</span><span>& Up</span></div>
+          <div class="rating-opt"><span class="stars">★</span><span>& Up</span></div>
+        </div>
+      </div>
+
+      <!-- Prime -->
+      <div class="filter-panel">
+        <div class="filter-head">Delivery &amp; Prime <span>▾</span></div>
+        <div class="filter-body">
+          <label><input type="checkbox"> <span class="badge badge-prime" style="font-size:10px;">prime</span> &nbsp;Prime Eligible</label>
+          <label><input type="checkbox"> Free Shipping</label>
+          <label><input type="checkbox"> Same-Day Delivery</label>
+          <label><input type="checkbox"> Tomorrow's Delivery</label>
+        </div>
+      </div>
+
+      <!-- Brand -->
+      <div class="filter-panel">
+        <div class="filter-head">Brand <span>▾</span></div>
+        <div class="filter-body">
+          <label><input type="checkbox"> SoundElite</label>
+          <label><input type="checkbox"> AudiFi</label>
+          <label><input type="checkbox"> BassKing</label>
+          <label><input type="checkbox"> NovaTech</label>
+          <label><input type="checkbox"> ClearWave</label>
+          <label><input type="checkbox"> PureAudio</label>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <div class="filter-panel">
+        <div class="filter-head">Features <span>▾</span></div>
+        <div class="filter-body">
+          <label><input type="checkbox"> Noise Cancelling</label>
+          <label><input type="checkbox"> Wireless / Bluetooth</label>
+          <label><input type="checkbox"> Built-in Microphone</label>
+          <label><input type="checkbox"> Foldable Design</label>
+          <label><input type="checkbox"> Water Resistant</label>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ════ PRODUCT GRID ════ -->
+    <div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-count">1–24 of <strong>248 results</strong></div>
+        <div class="toolbar-right">
+          <label for="sortSelect" style="font-size:13px; font-weight:600;">Sort by:</label>
+          <select class="sort-select" id="sortSelect" aria-label="Sort products">
+            <option>Featured</option>
+            <option>Price: Low to High</option>
+            <option>Price: High to Low</option>
+            <option>Avg. Customer Review</option>
+            <option>Newest Arrivals</option>
+            <option>Best Sellers</option>
+          </select>
+          <div class="view-toggle">
+            <button class="view-btn active" aria-label="Grid view" title="Grid view">⊞</button>
+            <button class="view-btn" aria-label="List view" title="List view">☰</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Filters -->
+      <div class="active-filters">
+        <div class="filter-tag">Electronics <button aria-label="Remove filter">×</button></div>
+        <div class="filter-tag">Prime Eligible <button aria-label="Remove filter">×</button></div>
+        <div class="filter-tag">4★ &amp; Up <button aria-label="Remove filter">×</button></div>
+        <a href="products.html" style="font-size:12px; color:var(--prime); align-self:center; margin-left:4px;">Clear all</a>
+      </div>
+
+      <!-- Grid -->
+      <div class="products-grid" id="productsGrid">
+
+        <!-- Product 1 -->
+        <a href="detail.html" class="product-tile">
+          <div class="pt-img-wrap">
+            <img src="https://placehold.co/320x320/e8f4fd/0284c7?text=Headphones+Pro" alt="SoundElite X900 headphones">
+            <div class="pt-badge-wrap">
+              <span class="badge badge-deal">-24%</span>
+              <span class="badge badge-prime" style="font-size:10px;">prime</span>
+            </div>
+            <button class="pt-wish" aria-label="Add to wishlist" onclick="event.preventDefault(); this.textContent = this.textContent === '♡' ? '♥' : '♡';">♡</button>
+          </div>
+          <div class="pt-body">
+            <div class="pt-brand">SoundElite</div>
+            <div class="pt-name">X900 Noise-Cancelling Wireless Headphones – 40hr Battery</div>
+            <div class="pt-rating"><span class="stars">★★★★★</span><a class="rating-link" href="#">4,821</a></div>
+            <div class="pt-price-row">
+              <span class="pt-price">$189.99</span>
+              <span class="pt-was">$249.99</span>
+              <span class="pt-save">Save $60</span>
+            </div>
+            <div class="pt-delivery">✓ Free delivery tomorrow</div>
+          </div>
+          <div class="pt-footer">
+            <button class="btn btn-accent btn-block btn-sm" onclick="event.preventDefault(); alert('Added to cart!')">Add to Cart</button>
+          </div>
+        </a>
+
+        <!-- Product 2 -->
+        <a href="detail.html" class="product-tile">
+          <div class="pt-img-wrap">
+            <img src="https://placehold.co/320x320/f0fdf4/15803d?text=AudiFi+Buds" alt="AudiFi Pro earbuds">
+            <div class="pt-badge-wrap">
+              <span class="badge badge-new">New</span>
+              <span class="badge badge-prime" style="font-size:10px;">prime</span>
+            </div>
+            <button class="pt-wish" aria-label="Add to wishlist" onclick="event.preventDefault(); this.textContent = this.textContent === '♡' ? '♥' : '♡';">♡</button>
+          </div>
+          <div class="pt-body">
+            <div class="pt-brand">AudiFi</div>
+            <div class="pt-name">ProBuds 3 True Wireless Earbuds – Active Noise Cancellation</div>
+            <div class="pt-rating"><span class="stars">★★★★★</span><a class="rating-link" href="#">12,340</a></div>
+            <div class="pt-price-row">
+              <span class="pt-price">$149.99</span>
+            </div>
+            <div class="pt-delivery">✓ Free same-day delivery</div>
+          </div>
+          <div class="pt-footer">
+            <button class="btn btn-accent btn-block btn-sm" onclick="event.preventDefault(); alert('Added to cart!')">Add to Cart</button>
+          </div>
+        </a>
+
+        <!-- Product 3 -->
+        <a href="detail.html" class="product-tile">
+          <div class="pt-img-wrap">
+            <img src="https://placehold.co/320x320/fff7ed/c2410c?text=BassKing+XR" alt="BassKing XR over-ear headphones">
+            <div class="pt-badge-wrap"><span class="badge badge-deal">-38%</span></div>
+            <button class="pt-wish" aria-label="Add to wishlist" onclick="event.preventDefault(); this.textContent = this.textContent === '♡' ? '♥' : '♡';">♡</button>
+          </div>
+          <div class="pt-body">
+            <div class="pt-brand">BassKing</div>
+            <div class="pt-name">XR Over-Ear Gaming Headset – 7.1 Surround, RGB Lighting</div>
+            <div class="pt-rating"><span class="stars">★★★★</span><a class="rating-link" href="#">3,201</a></div>
+            <div class="pt-price-row">
+              <span class="pt-price">$49.99</span>
+              <span class="pt-was">$79.99</span>
+              <span class="pt-save">Save $30</span>
+            </div>
+            <div class="pt-delivery">✓ Free delivery in 2 days</div>
+          </div>
+          <div class="pt-footer">
+            <button class="btn btn-accent btn-block btn-sm" onclick="event.preventDefault(); alert('Added to cart!')">Add to Cart</button>
+          </div>
+        </a>
+
+        <!-- Product 4 -->
+        <a href="detail.html" class="product-tile">
+          <div class="pt-img-wrap">
+            <img src="https://placehold.co/320x320/ede9fe/6d28d9?text=NovaTech+NC5" alt="NovaTech NC5 headphones">
+            <div class="pt-badge-wrap">
+              <span class="badge badge-prime" style="font-size:10px;">prime</span>
+            </div>
+            <button class="pt-wish" aria-label="Add to wishlist" onclick="event.preventDefault(); this.textContent = this.textContent === '♡' ? '♥' : '♡';">♡</button>
+          </div>
+          <div class="pt-body">
+            <div class="pt-brand">NovaTech</div>
+            <div class="pt-name">NC5 Studio Monitor Headphones – Flat Response, 32Ω</div>
+            <div class="pt-rating"><span class="stars">★★★★</span><a class="rating-link" href="#">891</a></div>
+            <div class="pt-price-row">
+              <span class="pt-price">$219.00</span>
+              <span class="pt-was">$259.00</span>
+              <span class="pt-save">Save $40</span>
+            </div>
+            <div class="pt-delivery">✓ Free delivery tomorrow</div>
+          </div>
+          <div class="pt-footer">
+            <button class="btn btn-accent btn-block btn-sm" onclick="event.preventDefault(); alert('Added to cart!')">Add to Cart</button>
+          </div>
+        </a>
+
+        <!-- Product 5 -->
+        <a href="detail.html" class="product-tile">
+          <div class="pt-img-wrap">
+            <img src="https://placehold.co/320x320/fce7f3/be185d?text=ClearWave+S2" alt="ClearWave S2 sport earphones">
+            <div class="pt-badge-wrap"><span class="badge badge-deal">-15%</span></div>
+            <button class="pt-wish" aria-label="Add to wishlist" onclick="event.preventDefault(); this.textContent = this.textContent === '♡' ? '♥' : '♡';">♡</button>
+          </div>
+          <div class="pt-body">
+            <div class="pt-brand">ClearWave</div>
+            <div class="pt-name">S2 Sport Wireless Earphones – IP68 Waterproof, 12hr Battery</div>
+            <div class="pt-rating"><span class="stars">★★★★★</span><a class="rating-link" href="#">6,521</a></div>
+            <div class="pt-price-row">
+              <span class="pt-price">$42.49</span>
+              <span class="pt-was">$49.99</span>
+            </div>
+            <div class="pt-delivery">✓ Free delivery in 3 days</div>
+          </div>
+          <div class="pt-footer">
+            <button class="btn btn-accent btn-block btn-sm" onclick="event.preventDefault(); alert('Added to cart!')">Add to Cart</button>
+          </div>
+        </a>
+
+        <!-- Product 6 -->
+        <a href="detail.html" class="product-tile">
+          <div class="pt-img-wrap">
+            <img src="https://placehold.co/320x320/f0f9ff/0369a1?text=PureAudio+H1" alt="PureAudio H1 open-back headphones">
+            <div class="pt-badge-wrap">
+              <span class="badge badge-new">New</span>
+            </div>
+            <button class="pt-wish" aria-label="Add to wishlist" onclick="event.preventDefault(); this.textContent = this.textContent === '♡' ? '♥' : '♡';">♡</button>
+          </div>
+          <div class="pt-body">
+            <div class="pt-brand">PureAudio</div>
+            <div class="pt-name">H1 Open-Back Reference Headphones – Planar Magnetic</div>
+            <div class="pt-rating"><span class="stars">★★★★★</span><a class="rating-link" href="#">2,104</a></div>
+            <div class="pt-price-row">
+              <span class="pt-price">$399.00</span>
+            </div>
+            <div class="pt-delivery">✓ Free delivery in 2 days</div>
+          </div>
+          <div class="pt-footer">
+            <button class="btn btn-accent btn-block btn-sm" onclick="event.preventDefault(); alert('Added to cart!')">Add to Cart</button>
+          </div>
+        </a>
+
+      </div><!-- /products-grid -->
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <button class="page-btn disabled" aria-label="Previous page">← Prev</button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <button class="page-btn">4</button>
+        <span style="font-size:14px; color:var(--text-muted);">...</span>
+        <button class="page-btn">11</button>
+        <button class="page-btn">Next →</button>
+      </div>
+
+    </div><!-- /grid column -->
+  </div><!-- /products-layout -->
+</main>
+
+<!-- ── FOOTER ───────────────────────────────────────────────── -->
+<footer class="site-footer">
+  <div class="footer-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ Back to top</div>
+  <div class="footer-mid">
+    <div class="footer-grid">
+      <div class="footer-col"><h4>Get to Know Us</h4><ul>
+        <li><a href="../about/about.html">About ShopVerse</a></li>
+        <li><a href="#">Careers</a></li><li><a href="#">Press</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Make Money</h4><ul>
+        <li><a href="#">Sell on ShopVerse</a></li>
+        <li><a href="#">Advertise Products</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Shipping &amp; Returns</h4><ul>
+        <li><a href="#">Track Your Order</a></li>
+        <li><a href="#">Returns</a></li>
+        <li><a href="#">ShopVerse Prime</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Help</h4><ul>
+        <li><a href="../contact/contact.html">Contact Us</a></li>
+        <li><a href="#">Help Center</a></li>
+        <li><a href="#">Your Account</a></li>
+      </ul></div>
+    </div>
+  </div>
+  <div class="footer-bot">
+    <div class="footer-bot-inner">
+      <div class="footer-brand-name">Shop<span>Verse</span></div>
+      <div class="footer-legal">
+        <a href="#">Privacy Notice</a><a href="#">Conditions of Use</a>
+        <a href="#">Cookie Policy</a><a href="#">Accessibility</a>
+      </div>
+      <div class="footer-copy">© 1996–2026, ShopVerse.com, Inc. or its affiliates</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* View toggle (grid/list) */
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+  /* Filter toggle */
+  document.querySelectorAll('.filter-head').forEach(h => {
+    h.addEventListener('click', function () {
+      const body = this.nextElementSibling;
+      body.style.display = body.style.display === 'none' ? '' : 'none';
+      this.querySelector('span').textContent = body.style.display === 'none' ? '▸' : '▾';
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Tribune – Home</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+// ─── Data ──────────────────────────────────────────────────────────────────
+const featured = [
+  {
+    eyebrow: 'Economy',
+    headline: 'Global Supply Chains Fracture as Trade Blocs Deepen Divide',
+    deck: 'Three decades of multilateral agreements are unraveling under the pressure of geopolitical rivalry and domestic political demands, economists warn.',
+    author: 'Elena Marchetti',
+    time: '2 hours ago',
+  },
+  {
+    eyebrow: 'Climate',
+    headline: 'Arctic Ice Reaches New Low as Summit Talks Stall',
+    deck: 'Scientists record the smallest winter extent on record while negotiators struggle to bridge the gap between ambitious targets and financing commitments.',
+    author: 'James Okoye',
+    time: '4 hours ago',
+  },
+  {
+    eyebrow: 'Politics',
+    headline: 'Coalition Government Survives No-Confidence Vote by Slim Margin',
+    deck: 'The ruling alliance held together after back-room negotiations produced a last-minute deal on fiscal reforms that satisfied centrist holdouts.',
+    author: 'Sarah Lindqvist',
+    time: '5 hours ago',
+  },
+];
+
+const topStories = [
+  { eyebrow: 'Technology', headline: 'AI Regulators Seek Mandatory Audit Regime for Foundation Models', author: 'David Chen', time: '1 h ago' },
+  { eyebrow: 'World', headline: 'Ceasefire Negotiations Enter Critical 48-Hour Window', author: 'Amara Diallo', time: '3 h ago' },
+  { eyebrow: 'Business', headline: 'Central Banks Signal Divergent Paths on Interest Rate Cuts', author: 'Nadia Hoffman', time: '6 h ago' },
+  { eyebrow: 'Science', headline: 'Quantum Computer Achieves First Real-World Drug Discovery Milestone', author: 'R. Patel', time: '7 h ago' },
+];
+
+const mostRead = [
+  'Inside the Secret Talks That Could Reshape Global Tax Law',
+  'Why Migration Is Now the Defining Issue of Western Politics',
+  'The Collapse of the Green Bond Market—and What Comes Next',
+  'Artificial Intelligence Is Coming for White-Collar Work. What Will Replace It?',
+  'How a Small Island Nation Became a Proving Ground for Climate Adaptation',
+];
+
+const opinions = [
+  { initials: 'KN', name: 'Katherine Nguyen', role: 'Senior Political Correspondent', headline: 'Democracy\'s Real Crisis Isn\'t Disinformation—It\'s Disengagement', excerpt: 'Blaming foreign actors is easier than confronting the systemic failures that turned citizens away from civic life.' },
+  { initials: 'MR', name: 'Marcus Reid', role: 'Economic Affairs Editor', headline: 'The IMF\'s Prescription for the Global South Was Always the Problem', excerpt: 'Austerity-led reforms exported poverty while enriching consultancies. The record must be reckoned with honestly.' },
+  { initials: 'SF', name: 'Sophia Fischer', role: 'Technology Critic', headline: 'Silicon Valley\'s Safety Theater Won\'t Save Us From AI Risk', excerpt: 'Responsible AI principles are a marketing strategy dressed in the language of ethics.' },
+];
+
+// ─── Homepage Component ────────────────────────────────────────────────────
+function HomePage() {
+  return (
+    <Tribune.SiteShell
+      active="index.html"
+      breaking="Emergency UN Security Council session convened following overnight strikes on civilian infrastructure in contested border region."
+    >
+      {/* ── Hero + Sidebar ── */}
+      <div style={{ display: 'grid', gap: '1.25rem', gridTemplateColumns: '1fr', marginBottom: '2rem' }}>
+        {/* Hero */}
+        <div className="hero-card" style={{ minHeight: '480px' }}>
+          <div className="hero-card-bg" style={{ backgroundImage: 'linear-gradient(135deg, #1a2744 0%, #0f1117 100%)' }} />
+          <span className="hero-eyebrow">Lead Story · World Affairs</span>
+          <h1 className="hero-headline">
+            The New World Order Is Being Written in Trade Corridors, Not Capitals
+          </h1>
+          <p className="hero-deck">
+            As formal diplomacy stagnates, multinational corporations, port authorities, and regional blocs are quietly
+            redrawing the map of economic power—creating facts on the ground that no treaty can easily undo.
+          </p>
+          <div className="flex items-center gap-4" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+            <a href="article.html" style={{
+              background: 'var(--red)', color: '#fff', fontSize: '0.78rem', fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0.65rem 1.4rem',
+              borderRadius: '2px', textDecoration: 'none'
+            }}>Read the Feature</a>
+            <div className="hero-meta">
+              <span className="byline">By Amara Diallo &amp; James Okoye</span>
+              <span>|</span>
+              <span>Updated 45 min ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Featured Grid ── */}
+      <div className="section-header">
+        <h2 className="section-title">Today's Top Stories</h2>
+        <a href="world.html" className="section-more">World Desk →</a>
+      </div>
+      <div className="grid-cols-3" style={{ marginBottom: '2.5rem' }}>
+        {featured.map(s => (
+          <Tribune.StoryCard key={s.headline} {...s} large href="article.html" />
+        ))}
+      </div>
+
+      {/* ── Two-column: Grid + Most Read ── */}
+      <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: '2fr 1fr', marginBottom: '2.5rem' }}>
+        {/* Left: More stories */}
+        <div>
+          <div className="section-header">
+            <h2 className="section-title">More Headlines</h2>
+          </div>
+          <div className="grid-cols-2">
+            {topStories.map(s => (
+              <Tribune.StoryCard key={s.headline} {...s} href="article.html" />
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Most Read */}
+        <div>
+          <div className="section-header">
+            <h2 className="section-title">Most Read</h2>
+          </div>
+          {mostRead.map((h, i) => (
+            <Tribune.ListStory key={h} num={i + 1} headline={h} href="article.html" />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Opinion strip ── */}
+      <div className="section-header" style={{ marginTop: '0.5rem' }}>
+        <h2 className="section-title">Opinion &amp; Analysis</h2>
+        <a href="opinion.html" className="section-more">All Opinion →</a>
+      </div>
+      <div className="grid-cols-3" style={{ marginBottom: '2.5rem' }}>
+        {opinions.map(o => (
+          <Tribune.OpinionCard key={o.name} {...o} href="opinion.html" />
+        ))}
+      </div>
+
+      {/* ── Newsletter CTA ── */}
+      <div style={{
+        background: 'var(--ink)', color: '#fff', borderRadius: '3px',
+        padding: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: '1.5rem'
+      }}>
+        <div>
+          <div style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '0.5rem' }}>
+            Tribune Daily Briefing
+          </div>
+          <h3 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+            The morning brief, delivered by 7 AM.
+          </h3>
+          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)' }}>
+            Concise, curated, and written by our senior editors. No noise.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+          <input type="email" placeholder="Your email address" style={{
+            padding: '0.7rem 1rem', fontSize: '0.85rem', background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '2px', minWidth: '220px'
+          }} />
+          <button style={{
+            background: 'var(--red)', color: '#fff', fontWeight: 700, fontSize: '0.78rem',
+            letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0.7rem 1.2rem',
+            border: 'none', borderRadius: '2px', cursor: 'pointer'
+          }}>Sign Up</button>
+        </div>
+      </div>
+    </Tribune.SiteShell>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<HomePage />);
+</script>
+</body>
+</html>

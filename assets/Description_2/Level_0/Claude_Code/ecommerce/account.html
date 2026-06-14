@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account — ThreadHouse</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sage: {
+              50: '#f2f5ee', 100: '#e4ecdc', 200: '#c9d9bc',
+              300: '#a5bf96', 400: '#7da372', 500: '#5d8752',
+              600: '#486b3f', 700: '#3a5532', 800: '#304629', 900: '#293c23'
+            }
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+        }
+      }
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>body { font-family: 'Inter', system-ui, sans-serif; background: #fafaf8; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    function AnnouncementBar() {
+      return (
+        <div className="bg-stone-800 text-stone-300 text-center text-xs py-2.5 tracking-wide font-light">
+          Free shipping on orders over $75&nbsp;&nbsp;&middot;&nbsp;&nbsp;Sustainable packaging&nbsp;&nbsp;&middot;&nbsp;&nbsp;B Corp Certified
+        </div>
+      );
+    }
+
+    function Header() {
+      return (
+        <header className="bg-white border-b border-stone-200 sticky top-0 z-50 shadow-sm">
+          <AnnouncementBar />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <a href="index.html" className="text-xl font-bold tracking-tight">
+                <span className="text-stone-900">Thread</span><span className="text-sage-600">House</span>
+              </a>
+              <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
+                {[['Home','index.html'],['Shop All','products.html'],['New Arrivals','products.html'],['Sale','#'],['Our Story','#']].map(([l,h]) => (
+                  <a key={l} href={h} className="text-stone-500 hover:text-stone-900 transition-colors">{l}</a>
+                ))}
+              </nav>
+              <div className="flex items-center gap-0.5">
+                <a href="cart.html" className="relative p-2 text-stone-500 hover:text-stone-900">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 7H4l1-7z" /></svg>
+                  <span className="absolute top-1 right-1 bg-sage-600 text-white text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">2</span>
+                </a>
+                <a href="account.html" className="p-2 text-stone-900">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    function Footer() {
+      return (
+        <footer className="bg-stone-900 text-stone-400 mt-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-10">
+              <div className="col-span-2 sm:col-span-1">
+                <div className="text-white text-xl font-bold mb-3">Thread<span className="text-sage-400">House</span></div>
+                <p className="text-sm text-stone-500 mb-5">Sustainable fashion for independent minds.</p>
+                <div className="flex gap-2">
+                  {['IG','TK','PT','TW'].map(s => <div key={s} className="w-8 h-8 rounded-full bg-stone-700 flex items-center justify-center text-xs font-medium cursor-pointer">{s}</div>)}
+                </div>
+              </div>
+              <div>
+                <h4 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-4">Shop</h4>
+                <ul className="space-y-2.5 text-sm">
+                  {['New Arrivals','Tops','Bottoms','Outerwear','Sale'].map(l => <li key={l}><a href="products.html" className="hover:text-white transition-colors">{l}</a></li>)}
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-4">Help</h4>
+                <ul className="space-y-2.5 text-sm">
+                  {['Size Guide','Shipping','Returns','FAQ','Contact'].map(l => <li key={l}><a href="#" className="hover:text-white transition-colors">{l}</a></li>)}
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-4">Newsletter</h4>
+                <div className="flex gap-2">
+                  <input type="email" placeholder="your@email.com" className="flex-1 min-w-0 bg-stone-800 border border-stone-700 rounded-lg px-3 py-2 text-sm text-white placeholder-stone-600 outline-none" />
+                  <button className="bg-sage-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Join</button>
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-stone-800 pt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-600">
+              <p>© 2026 ThreadHouse. All rights reserved.</p>
+              <div className="flex gap-4">{['Privacy','Terms','Accessibility'].map(l => <a key={l} href="#" className="hover:text-stone-400">{l}</a>)}</div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    const ORDERS = [
+      {
+        id: 'TH-82441', date: 'Mar 18, 2026', status: 'Delivered', total: 201, items: 3,
+        products: [
+          { name: 'Oversized Linen Shirt', size: 'M', color: 'Sage Green', price: 89, bg: 'd4dbc9' },
+          { name: 'Ribbed Tank', size: 'M', color: 'Cream', price: 32, bg: 'f5f0e8' },
+          { name: 'Printed Scarf', size: 'OS', color: 'Multi', price: 45, bg: 'e4d4c4' },
+        ]
+      },
+      {
+        id: 'TH-81034', date: 'Feb 28, 2026', status: 'Delivered', total: 112, items: 1,
+        products: [
+          { name: 'Wide Leg Trouser', size: 'S', color: 'Oat', price: 112, bg: 'f0e8d8' },
+        ]
+      },
+      {
+        id: 'TH-80192', date: 'Feb 9, 2026', status: 'Delivered', total: 258, items: 2,
+        products: [
+          { name: 'Linen Blazer', size: 'S', color: 'Sand', price: 145, bg: 'e8dfc8' },
+          { name: 'Wrap Midi Skirt', size: 'XS', color: 'Forest', price: 78, bg: 'c4cfc0' },
+        ]
+      },
+    ];
+
+    const SAVED_OUTFITS = [
+      { name: 'Spring Office Look', items: 4, products: ['d4dbc9', 'f0e8d8', 'e8dfc8', 'f5f0e8'], created: 'Mar 12' },
+      { name: 'Weekend Market Run', items: 3, products: ['c4cfc0', 'dfc4b0', 'f2f0ed', ''], created: 'Feb 22' },
+      { name: 'Date Night', items: 3, products: ['d0d9c4', 'd4c4b0', '', ''], created: 'Feb 15' },
+    ];
+
+    const REWARDS_HISTORY = [
+      { date: 'Mar 18, 2026', desc: 'Order TH-82441', points: +201, sign: '+' },
+      { date: 'Feb 28, 2026', desc: 'Order TH-81034', points: +112, sign: '+' },
+      { date: 'Feb 10, 2026', desc: 'Referral bonus — Jamie R.', points: +50, sign: '+' },
+      { date: 'Feb 9, 2026', desc: 'Order TH-80192', points: +258, sign: '+' },
+      { date: 'Jan 15, 2026', desc: 'Welcome bonus', points: +100, sign: '+' },
+      { date: 'Mar 5, 2026', desc: 'Redeemed — 10% off code', points: -341, sign: '-' },
+    ];
+
+    const STYLE_PROFILE = {
+      sizes: { top: 'S', bottom: 'XS', shoe: '7.5 US' },
+      styles: ['Minimalist', 'Weekend', 'Workwear'],
+      colors: ['Sage Green', 'Natural', 'Stone', 'Forest'],
+      avoid: ['Bold prints', 'Bright neons'],
+      materials: ['Organic Cotton', 'Linen'],
+    };
+
+    const NAV_ITEMS = [
+      { key: 'orders',     label: 'My Orders',       icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+      { key: 'style',      label: 'Style Profile',    icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+      { key: 'rewards',    label: 'Loyalty Rewards',  icon: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z' },
+      { key: 'outfits',    label: 'Saved Outfits',    icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+      { key: 'referral',   label: 'Referral Program', icon: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z' },
+    ];
+
+    function OrderStatusBadge({ status }) {
+      const colors = {
+        Delivered: 'bg-sage-100 text-sage-700',
+        Shipped: 'bg-blue-100 text-blue-700',
+        Processing: 'bg-amber-100 text-amber-700',
+        Cancelled: 'bg-red-100 text-red-700',
+      };
+      return <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${colors[status] || 'bg-stone-100 text-stone-600'}`}>{status}</span>;
+    }
+
+    function OrdersTab() {
+      const [expanded, setExpanded] = useState(null);
+      return (
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-stone-900">My Orders</h2>
+            <span className="text-sm text-stone-400">{ORDERS.length} orders</span>
+          </div>
+          <div className="space-y-4">
+            {ORDERS.map(order => (
+              <div key={order.id} className="bg-white border border-stone-100 rounded-2xl overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between p-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden flex-none grid grid-cols-2 gap-0.5" style={{ background: '#f0ede8' }}>
+                      {order.products.slice(0,4).map((p,i) => (
+                        <div key={i} className="w-full h-full" style={{ background: `#${p.bg}` }} />
+                      ))}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-stone-800 text-sm">Order {order.id}</p>
+                      <p className="text-xs text-stone-400">{order.date} · {order.items} item{order.items > 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <OrderStatusBadge status={order.status} />
+                    <span className="font-bold text-stone-900 text-sm hidden sm:block">${order.total}</span>
+                    <button onClick={() => setExpanded(expanded === order.id ? null : order.id)}
+                      className="p-1.5 text-stone-400 hover:text-stone-600 transition-colors">
+                      <svg className={`w-4 h-4 transition-transform ${expanded === order.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {expanded === order.id && (
+                  <div className="border-t border-stone-50 px-5 pb-5">
+                    <div className="pt-4 space-y-3">
+                      {order.products.map((p, i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <div className="w-12 h-14 rounded-lg flex-none" style={{ background: `#${p.bg}` }} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-stone-800 truncate">{p.name}</p>
+                            <p className="text-xs text-stone-400">Size {p.size} · {p.color}</p>
+                          </div>
+                          <p className="text-sm font-semibold text-stone-900">${p.price}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-3 mt-4 pt-4 border-t border-stone-50">
+                      <button className="flex-1 border border-stone-300 text-stone-700 py-2.5 rounded-xl text-xs font-semibold hover:bg-stone-50 transition-colors">View Invoice</button>
+                      {order.status === 'Delivered' && (
+                        <button className="flex-1 border border-stone-300 text-stone-700 py-2.5 rounded-xl text-xs font-semibold hover:bg-stone-50 transition-colors">Buy Again</button>
+                      )}
+                      <button className="flex-1 bg-stone-900 text-white py-2.5 rounded-xl text-xs font-semibold hover:bg-stone-700 transition-colors">
+                        {order.status === 'Delivered' ? 'Leave Review' : 'Track Order'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function StyleProfileTab() {
+      const [editing, setEditing] = useState(false);
+      return (
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-stone-900">Style Profile</h2>
+            <button onClick={() => setEditing(!editing)}
+              className="flex items-center gap-1.5 text-sm font-medium text-sage-600 hover:text-sage-800 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              {editing ? 'Save Changes' : 'Edit Profile'}
+            </button>
+          </div>
+          <p className="text-sm text-stone-500 mb-6">Your preferences help us surface styles you'll love. We'll use this to personalise your recommendations.</p>
+
+          <div className="grid sm:grid-cols-2 gap-5">
+            {/* Size Card */}
+            <div className="bg-white border border-stone-100 rounded-2xl p-5 shadow-sm">
+              <h3 className="font-semibold text-stone-800 mb-4 flex items-center gap-2">
+                <span className="w-6 h-6 bg-sage-100 rounded-lg flex items-center justify-center text-sage-600 text-xs">T</span>
+                My Sizes
+              </h3>
+              <div className="space-y-3">
+                {[['Top / Shirt', STYLE_PROFILE.sizes.top], ['Bottom / Pant', STYLE_PROFILE.sizes.bottom], ['Shoe Size', STYLE_PROFILE.sizes.shoe]].map(([l, v]) => (
+                  <div key={l} className="flex items-center justify-between">
+                    <span className="text-sm text-stone-500">{l}</span>
+                    {editing ? (
+                      <select defaultValue={v} className="text-sm border border-stone-200 rounded-lg px-2 py-1 outline-none text-stone-800">
+                        <option>{v}</option>
+                      </select>
+                    ) : (
+                      <span className="text-sm font-semibold bg-stone-100 text-stone-700 px-3 py-1 rounded-full">{v}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Style Card */}
+            <div className="bg-white border border-stone-100 rounded-2xl p-5 shadow-sm">
+              <h3 className="font-semibold text-stone-800 mb-4 flex items-center gap-2">
+                <span className="w-6 h-6 bg-sage-100 rounded-lg flex items-center justify-center text-sage-600 text-xs">S</span>
+                My Aesthetic
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {['Minimalist', 'Weekend', 'Workwear', 'Streetwear', 'Coastal', 'Cottagecore'].map(s => (
+                  <button key={s}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                      STYLE_PROFILE.styles.includes(s) ? 'bg-stone-900 text-white border-stone-900' : 'border-stone-200 text-stone-500 hover:border-stone-400'
+                    }`}>{s}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Colour Card */}
+            <div className="bg-white border border-stone-100 rounded-2xl p-5 shadow-sm">
+              <h3 className="font-semibold text-stone-800 mb-4">Favourite Colours</h3>
+              <div className="flex flex-wrap gap-2">
+                {[['Sage Green','#8aaa78'],['Natural','#e8dfc8'],['Stone','#c8c0b8'],['Forest','#4a6a3a'],['Black','#2a2a2a'],['Ivory','#f5f2ea']].map(([n, h]) => (
+                  <div key={n} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-medium ${STYLE_PROFILE.colors.includes(n) ? 'border-stone-800 bg-stone-50' : 'border-stone-100 text-stone-400'}`}>
+                    <div className="w-3 h-3 rounded-full border border-white/50 shadow-sm" style={{ background: h }} />
+                    {n}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Material Card */}
+            <div className="bg-white border border-stone-100 rounded-2xl p-5 shadow-sm">
+              <h3 className="font-semibold text-stone-800 mb-4">Preferred Materials</h3>
+              <div className="space-y-2">
+                {['Organic Cotton', 'Linen', 'Recycled Polyester', 'Tencel'].map(m => (
+                  <label key={m} className="flex items-center gap-2.5 cursor-pointer">
+                    <input type="checkbox" defaultChecked={STYLE_PROFILE.materials.includes(m)} className="w-4 h-4 rounded accent-sage-600" />
+                    <span className="text-sm text-stone-600">{m}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 p-4 bg-sage-50 border border-sage-100 rounded-xl text-sm text-sage-700">
+            <strong>Style Match is active.</strong> Your profile powers the Style Match feature on the shop page — find your next look by mood.
+          </div>
+        </div>
+      );
+    }
+
+    function RewardsTab() {
+      const points = 380;
+      const tier = 'Eco Member';
+      const nextTier = 'Earth Advocate';
+      const nextTierPoints = 600;
+
+      return (
+        <div>
+          <h2 className="text-xl font-bold text-stone-900 mb-6">Loyalty Rewards</h2>
+
+          {/* Balance card */}
+          <div className="rounded-2xl p-6 mb-6 text-white relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #3a5532 0%, #486b3f 100%)' }}>
+            <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-10" style={{ background: '#fff', transform: 'translate(30%, -30%)' }} />
+            <div className="relative">
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <p className="text-sage-200 text-xs font-semibold uppercase tracking-widest mb-1">ThreadHouse</p>
+                  <p className="text-3xl font-bold">{points} pts</p>
+                  <p className="text-sage-300 text-sm mt-1">{tier}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-sage-300">Expires</p>
+                  <p className="text-sm font-semibold text-sage-200">Dec 31, 2026</p>
+                </div>
+              </div>
+              <div className="mb-2">
+                <div className="flex justify-between text-xs text-sage-300 mb-1.5">
+                  <span>{tier}</span>
+                  <span>{nextTier} at {nextTierPoints} pts</span>
+                </div>
+                <div className="h-2 bg-sage-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-white/60 rounded-full" style={{ width: `${(points / nextTierPoints) * 100}%` }} />
+                </div>
+              </div>
+              <p className="text-xs text-sage-300">{nextTierPoints - points} points to {nextTier} — unlocks 15% birthday discount</p>
+            </div>
+          </div>
+
+          {/* Rewards to redeem */}
+          <div className="mb-8">
+            <h3 className="font-semibold text-stone-800 mb-4">Available Rewards</h3>
+            <div className="grid sm:grid-cols-3 gap-4">
+              {[
+                { pts: 500, reward: 'Free Tote Bag', locked: points < 500, icon: '👜' },
+                { pts: 750, reward: '15% Off Your Order', locked: points < 750, icon: '%' },
+                { pts: 1000, reward: 'Free Shipping — 1 Year', locked: points < 1000, icon: '→' },
+              ].map(r => (
+                <div key={r.pts} className={`border rounded-2xl p-4 text-center ${r.locked ? 'border-stone-100 bg-stone-50 opacity-60' : 'border-sage-200 bg-sage-50'}`}>
+                  <div className={`w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center text-lg ${r.locked ? 'bg-stone-200 text-stone-400' : 'bg-sage-200 text-sage-700'}`}>
+                    {r.icon}
+                  </div>
+                  <p className="font-semibold text-stone-800 text-sm mb-1">{r.reward}</p>
+                  <p className="text-xs text-stone-400 mb-3">{r.pts} points</p>
+                  <button disabled={r.locked}
+                    className={`w-full py-2 rounded-xl text-xs font-semibold transition-colors ${r.locked ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-sage-600 text-white hover:bg-sage-700'}`}>
+                    {r.locked ? `Need ${r.pts - points} more pts` : 'Redeem'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Points history */}
+          <div>
+            <h3 className="font-semibold text-stone-800 mb-4">Points History</h3>
+            <div className="bg-white border border-stone-100 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="bg-stone-50 border-b border-stone-100">
+                  <tr>
+                    {['Date','Description','Points'].map(h => (
+                      <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-50">
+                  {REWARDS_HISTORY.map((row, i) => (
+                    <tr key={i} className="hover:bg-stone-50 transition-colors">
+                      <td className="px-5 py-3.5 text-stone-400 text-xs">{row.date}</td>
+                      <td className="px-5 py-3.5 text-stone-700">{row.desc}</td>
+                      <td className={`px-5 py-3.5 font-semibold ${row.sign === '+' ? 'text-sage-600' : 'text-rose-500'}`}>
+                        {row.sign}{Math.abs(row.points)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function OutfitsTab() {
+      return (
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-stone-900">Saved Outfits</h2>
+            <button className="flex items-center gap-1.5 bg-stone-900 text-white px-4 py-2.5 rounded-full text-xs font-semibold hover:bg-stone-700 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+              Create Outfit
+            </button>
+          </div>
+          <p className="text-sm text-stone-400 mb-6">Curate and save your favourite ThreadHouse looks. Share them with friends or use them as shopping guides.</p>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {SAVED_OUTFITS.map((o, i) => (
+              <div key={i} className="bg-white border border-stone-100 rounded-2xl overflow-hidden shadow-sm group hover:shadow-md transition-shadow">
+                <div className="grid grid-cols-2 gap-1 p-1">
+                  {o.products.map((bg, j) => (
+                    <div key={j} className="aspect-square rounded-xl" style={{ background: bg ? `#${bg}` : '#f0ede8' }} />
+                  ))}
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-stone-800 group-hover:text-sage-700 transition-colors">{o.name}</h3>
+                  <p className="text-xs text-stone-400 mt-1">{o.items} items · Saved {o.created}</p>
+                  <div className="flex gap-2 mt-3">
+                    <button className="flex-1 text-xs border border-stone-200 text-stone-600 py-2 rounded-lg hover:bg-stone-50 transition-colors font-medium">Edit</button>
+                    <button className="flex-1 text-xs bg-stone-900 text-white py-2 rounded-lg hover:bg-stone-700 transition-colors font-medium">Shop Look</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Add new card */}
+            <div className="border-2 border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center py-12 cursor-pointer hover:border-stone-300 hover:bg-stone-50 transition-colors">
+              <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center mb-3 text-stone-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+              </div>
+              <p className="text-sm font-medium text-stone-500">Create New Outfit</p>
+              <p className="text-xs text-stone-400 mt-1">Mix & match your wishlist</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ReferralTab() {
+      const [copied, setCopied] = useState(false);
+      const referralLink = 'threadhouse.com/ref/alexm8847';
+      const handleCopy = () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      return (
+        <div>
+          <h2 className="text-xl font-bold text-stone-900 mb-2">Referral Program</h2>
+          <p className="text-stone-500 text-sm mb-8">Share ThreadHouse with friends. When they make their first order, you both earn rewards.</p>
+
+          {/* How it works */}
+          <div className="grid sm:grid-cols-3 gap-4 mb-8">
+            {[
+              { step: '1', title: 'Share your link', desc: 'Send your unique referral link to friends, followers, or family.' },
+              { step: '2', title: 'They sign up & shop', desc: 'Your friend creates an account and places their first order.' },
+              { step: '3', title: 'You both earn', desc: 'You get 150 pts. They get 10% off their first order.' },
+            ].map(s => (
+              <div key={s.step} className="bg-white border border-stone-100 rounded-2xl p-5 shadow-sm">
+                <div className="w-8 h-8 bg-sage-100 rounded-lg flex items-center justify-center text-sage-700 font-bold text-sm mb-3">{s.step}</div>
+                <h3 className="font-semibold text-stone-800 text-sm mb-1.5">{s.title}</h3>
+                <p className="text-xs text-stone-500 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Referral link */}
+          <div className="bg-gradient-to-r from-sage-50 to-stone-50 border border-sage-100 rounded-2xl p-6 mb-8">
+            <p className="text-sm font-semibold text-stone-800 mb-3">Your Unique Referral Link</p>
+            <div className="flex gap-2">
+              <div className="flex-1 bg-white border border-stone-200 rounded-xl px-4 py-3 text-sm text-stone-600 font-mono overflow-hidden">
+                {referralLink}
+              </div>
+              <button onClick={handleCopy}
+                className={`px-5 py-3 rounded-xl font-semibold text-sm transition-colors ${copied ? 'bg-sage-600 text-white' : 'bg-stone-900 text-white hover:bg-stone-700'}`}>
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <div className="flex gap-3 mt-4">
+              {['Email', 'Instagram', 'WhatsApp', 'Twitter'].map(c => (
+                <button key={c} className="flex-1 border border-stone-200 bg-white text-stone-600 text-xs font-medium py-2 rounded-lg hover:bg-stone-50 transition-colors">{c}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Referral stats */}
+          <div className="grid sm:grid-cols-3 gap-4">
+            {[
+              { label: 'Total Referrals', value: '4', sub: 'friends joined' },
+              { label: 'Points Earned', value: '600', sub: 'from referrals' },
+              { label: 'Pending', value: '1', sub: 'awaiting first order' },
+            ].map(s => (
+              <div key={s.label} className="bg-white border border-stone-100 rounded-2xl p-5 shadow-sm text-center">
+                <p className="text-3xl font-bold text-stone-900 mb-1">{s.value}</p>
+                <p className="text-xs font-semibold text-stone-800">{s.label}</p>
+                <p className="text-xs text-stone-400">{s.sub}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Referred friends */}
+          <div className="mt-6">
+            <h3 className="font-semibold text-stone-800 mb-4">Referred Friends</h3>
+            <div className="bg-white border border-stone-100 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="bg-stone-50 border-b border-stone-100">
+                  <tr>
+                    {['Friend','Joined','Status','Your Reward'].map(h => (
+                      <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-stone-500 uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-50">
+                  {[
+                    { name: 'Jamie R.', date: 'Feb 8, 2026', status: 'Ordered', reward: '+150 pts' },
+                    { name: 'Cam T.', date: 'Jan 22, 2026', status: 'Ordered', reward: '+150 pts' },
+                    { name: 'Sasha W.', date: 'Dec 14, 2025', status: 'Ordered', reward: '+150 pts' },
+                    { name: 'Nico A.', date: 'Mar 20, 2026', status: 'Pending', reward: 'Pending' },
+                  ].map((r, i) => (
+                    <tr key={i} className="hover:bg-stone-50 transition-colors">
+                      <td className="px-5 py-3.5 font-medium text-stone-800">{r.name}</td>
+                      <td className="px-5 py-3.5 text-stone-400 text-xs">{r.date}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${r.status === 'Ordered' ? 'bg-sage-100 text-sage-700' : 'bg-amber-100 text-amber-700'}`}>{r.status}</span>
+                      </td>
+                      <td className={`px-5 py-3.5 font-semibold text-sm ${r.reward === 'Pending' ? 'text-stone-400' : 'text-sage-600'}`}>{r.reward}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [activeTab, setActiveTab] = useState('orders');
+
+      const TAB_CONTENT = {
+        orders: <OrdersTab />,
+        style: <StyleProfileTab />,
+        rewards: <RewardsTab />,
+        outfits: <OutfitsTab />,
+        referral: <ReferralTab />,
+      };
+
+      return (
+        <div className="min-h-screen">
+          <Header />
+
+          {/* Account hero */}
+          <div className="bg-white border-b border-stone-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                {/* Avatar */}
+                <div className="w-16 h-16 rounded-2xl overflow-hidden flex-none" style={{ background: 'linear-gradient(135deg, #d4dbc9, #a5bf96)' }}>
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-2xl font-bold text-sage-700">A</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl font-bold text-stone-900">Alex M.</h1>
+                  <p className="text-stone-400 text-sm">alex.m@example.com</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-sage-100 text-sage-700 px-2.5 py-1 rounded-full">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      Eco Member
+                    </span>
+                    <span className="text-xs text-stone-400">380 loyalty points</span>
+                    <span className="text-xs text-stone-400">Member since Jan 2025</span>
+                  </div>
+                </div>
+                <button className="flex-none text-sm text-stone-500 hover:text-stone-700 border border-stone-200 px-4 py-2 rounded-full hover:bg-stone-50 transition-colors">
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex gap-8">
+
+              {/* Sidebar */}
+              <aside className="hidden lg:block w-56 flex-none">
+                <nav className="space-y-1 sticky top-24">
+                  {NAV_ITEMS.map(item => (
+                    <button key={item.key} onClick={() => setActiveTab(item.key)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors text-left ${
+                        activeTab === item.key ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+                      }`}>
+                      <svg className="w-4 h-4 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                      </svg>
+                      {item.label}
+                    </button>
+                  ))}
+                </nav>
+              </aside>
+
+              {/* Mobile tabs */}
+              <div className="lg:hidden w-full mb-6 overflow-x-auto">
+                <div className="flex gap-2 min-w-max">
+                  {NAV_ITEMS.map(item => (
+                    <button key={item.key} onClick={() => setActiveTab(item.key)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                        activeTab === item.key ? 'bg-stone-900 text-white' : 'bg-white border border-stone-200 text-stone-600 hover:border-stone-400'
+                      }`}>{item.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main content */}
+              <div className="flex-1 min-w-0">
+                {TAB_CONTENT[activeTab]}
+              </div>
+            </div>
+          </div>
+
+          <Footer />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

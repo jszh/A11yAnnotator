@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Groundwork | Investigative Journalism</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAF9F6;
+            color: #1A1A1A;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .font-serif {
+            font-family: 'Merriweather', serif;
+        }
+
+        /* Customize scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- Shared Icons ---
+        const MenuIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="18" y2="18" /></svg>;
+        const SearchIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>;
+        const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
+        const CheckIcon = () => <svg xmlns="http://www.w3.org/2000/svg" className="text-red-700 h-5 w-5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>;
+        const LockIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>;
+
+        // --- Shared Components ---
+        const Header = () => {
+            return (
+                <header className="sticky top-0 z-50 bg-[#FAF9F6] border-b border-gray-200">
+                    <div className="bg-red-700 text-white text-xs font-semibold uppercase tracking-wider py-2 px-4 text-center">
+                        <span className="opacity-80">Support Our Journalism:</span> <a href="subscription.html" className="underline hover:text-red-100 ml-1">Become an Investigator today</a>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center h-20">
+                            <div className="flex items-center md:hidden">
+                                <button type="button" className="text-gray-700 hover:text-black p-2 -ml-2 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black rounded-md" aria-label="Open main menu">
+                                    <MenuIcon />
+                                </button>
+                            </div>
+
+                            <nav className="hidden md:flex space-x-8" aria-label="Main Navigation">
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Climate</a>
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Energy</a>
+                                <a href="category.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Policy</a>
+                                <a href="opinion.html" className="text-sm font-semibold text-gray-900 hover:text-red-700 hover:underline hover:underline-offset-4 decoration-2 transition-colors">Opinion</a>
+                            </nav>
+
+                            <div className="flex-shrink-0 flex items-center justify-center absolute left-1/2 transform -translate-x-1/2">
+                                <a href="index.html" className="font-serif text-3xl font-black tracking-tighter text-black uppercase" aria-label="Groundwork Homepage">
+                                    Groundwork<span className="text-red-700">.</span>
+                                </a>
+                            </div>
+
+                            <div className="flex items-center space-x-5">
+                                <button className="text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-black rounded-full p-1 transition-colors" aria-label="Search">
+                                    <SearchIcon />
+                                </button>
+                                <a href="#" className="hidden lg:inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-bold rounded-none text-white bg-black hover:bg-neutral-800 transition-colors uppercase tracking-wide cursor-default">
+                                    Support Us
+                                </a>
+                                <button className="text-gray-700 hover:text-black focus:outline-none focus:ring-2 focus:ring-black rounded-full p-1 transition-colors" aria-label="Sign in">
+                                    <UserIcon />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const Footer = () => {
+            return (
+                <footer className="bg-neutral-900 text-white pt-16 pb-8 border-t-4 border-red-700 mt-20">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 lg:gap-8">
+                            <div className="md:col-span-1">
+                                <a href="index.html" className="font-serif text-2xl font-black tracking-tighter uppercase mb-4 block">
+                                    Groundwork<span className="text-red-500">.</span>
+                                </a>
+                                <p className="text-neutral-400 text-sm leading-relaxed mb-6 font-serif">
+                                    Independent, data-driven investigative journalism focused on climate, science, and environmental policy in the Anthropocene.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">Sections</h3>
+                                <ul className="space-y-3 text-sm">
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Climate</a></li>
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Energy</a></li>
+                                    <li><a href="category.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Data</a></li>
+                                    <li><a href="opinion.html" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Perspectives</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">About</h3>
+                                <ul className="space-y-3 text-sm">
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Our Mission</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Reporters</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Careers</a></li>
+                                    <li><a href="#" className="hover:text-red-400 transition-colors focus:outline-none focus:underline">Contact</a></li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-4">Stay Informed</h3>
+                                <p className="text-neutral-400 text-sm mb-4">Get our latest investigations delivered to your inbox.</p>
+                                <form className="flex" onSubmit={(e) => e.preventDefault()}>
+                                    <label htmlFor="email-address" className="sr-only">Email address</label>
+                                    <input
+                                        id="email-address"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        required
+                                        className="w-full min-w-0 px-4 py-2 text-base text-gray-900 bg-white border border-transparent rounded-none focus:outline-none focus:ring-2 focus:ring-white focus:border-white sm:text-sm"
+                                        placeholder="Enter your email"
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="mt-0 ml-3 flex-shrink-0 w-auto flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-none text-white bg-red-700 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-900 focus:ring-red-500 transition-colors"
+                                    >
+                                        Sign up
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div className="mt-16 pt-8 border-t border-neutral-800 flex flex-col md:flex-row justify-between items-center">
+                            <p className="text-neutral-500 text-sm text-center md:text-left">
+                                &copy; 2026 Groundwork Media Inc. All rights reserved.
+                            </p>
+                            <div className="mt-4 md:mt-0 flex space-x-6 text-sm text-neutral-500">
+                                <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Privacy Policy</a>
+                                <a href="#" className="hover:text-white transition-colors focus:outline-none focus:underline">Terms of Service</a>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            );
+        };
+
+        // --- Subscription Specific Components ---
+
+        const SubscriptionHero = () => {
+            return (
+                <div className="relative py-20 bg-black text-white overflow-hidden text-center">
+                    <div className="absolute inset-0 z-0">
+                        <img
+                            src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+                            alt="Earth abstract"
+                            className="w-full h-full object-cover opacity-20"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
+                    </div>
+
+                    <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl font-black mb-6">Keep Groundwork Independent.</h1>
+                        <p className="text-xl md:text-2xl text-gray-300 font-serif leading-relaxed mb-10 max-w-2xl mx-auto">
+                            Our reporting exposes the truths powerful interests spend millions to hide. We don't have a billionaire backer. We answer only to the facts—and to you.
+                        </p>
+
+                        <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mt-12 pt-12 border-t border-neutral-800">
+                            <div>
+                                <p className="font-serif text-4xl font-black text-red-500 mb-1">100%</p>
+                                <p className="text-xs uppercase tracking-widest text-neutral-400 font-bold">Reader Funded</p>
+                            </div>
+                            <div className="hidden sm:block h-12 w-px bg-neutral-800"></div>
+                            <div>
+                                <p className="font-serif text-4xl font-black text-red-500 mb-1">0</p>
+                                <p className="text-xs uppercase tracking-widest text-neutral-400 font-bold">Corporate Ads</p>
+                            </div>
+                            <div className="hidden sm:block h-12 w-px bg-neutral-800"></div>
+                            <div>
+                                <p className="font-serif text-4xl font-black text-red-500 mb-1">>4,500</p>
+                                <p className="text-xs uppercase tracking-widest text-neutral-400 font-bold">FOIA Requests Filed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const PricingSubscription = () => {
+            const [billing, setBilling] = React.useState('monthly');
+            const [selectedTier, setSelectedTier] = React.useState('investigator');
+
+            const handleBillingToggle = () => {
+                setBilling(billing === 'monthly' ? 'one-time' : 'monthly');
+            };
+
+            return (
+                <section className="py-16 bg-[#FAF9F6]">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                        {/* Toggle */}
+                        <div className="flex justify-center mb-16">
+                            <div className="flex bg-gray-200 p-1 border border-gray-300">
+                                <button
+                                    className={`px-6 py-2 text-sm font-bold uppercase tracking-widest transition-colors ${billing === 'monthly' ? 'bg-black text-white shadow' : 'text-gray-600 hover:bg-gray-300'}`}
+                                    onClick={() => setBilling('monthly')}
+                                >
+                                    Monthly / Annual
+                                </button>
+                                <button
+                                    className={`px-6 py-2 text-sm font-bold uppercase tracking-widest transition-colors ${billing === 'one-time' ? 'bg-black text-white shadow' : 'text-gray-600 hover:bg-gray-300'}`}
+                                    onClick={() => setBilling('one-time')}
+                                >
+                                    One-Time Gift
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Tiers */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 max-w-5xl mx-auto">
+                            {/* Tier 1 */}
+                            <div
+                                className={`border ${selectedTier === 'free' ? 'border-black border-4 shadow-xl' : 'border-gray-200 shadow-sm'} bg-white flex flex-col cursor-pointer transition-all hover:border-black`}
+                                onClick={() => setSelectedTier('free')}
+                            >
+                                <div className="p-8 flex-grow">
+                                    <h3 className="text-xl font-bold uppercase tracking-tight mb-2">Free Reader</h3>
+                                    <p className="font-serif text-3xl font-black mb-6">$0<span className="text-base font-sans font-normal text-gray-500 ml-1 block mt-1 uppercase tracking-widest font-bold">Always</span></p>
+
+                                    <p className="font-serif text-sm text-gray-600 mb-8 h-10 border-b border-gray-200 pb-12">
+                                        Access all public investigations. Information shouldn't be locked behind a paywall.
+                                    </p>
+
+                                    <ul className="space-y-4 text-sm mb-8 font-serif">
+                                        <li className="flex items-start"><CheckIcon /> Unlimited reading of major investigations</li>
+                                        <li className="flex items-start"><CheckIcon /> Weekly roundup newsletter</li>
+                                        <li className="flex items-start text-gray-400"><CheckIcon /> No ad-free experience</li>
+                                        <li className="flex items-start text-gray-400"><CheckIcon /> No backing raw data access</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            {/* Tier 2 */}
+                            <div
+                                className={`border ${selectedTier === 'supporter' ? 'border-red-700 border-4 shadow-xl' : 'border-gray-200 shadow-sm'} bg-white flex flex-col cursor-pointer transition-all hover:border-red-700 relative`}
+                                onClick={() => setSelectedTier('supporter')}
+                            >
+                                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-700 text-white px-4 py-1 text-xs font-bold uppercase tracking-widest whitespace-nowrap">
+                                    Most Popular
+                                </div>
+                                <div className="p-8 flex-grow">
+                                    <h3 className="text-xl font-bold uppercase tracking-tight mb-2 text-red-700">Supporter</h3>
+                                    <p className="font-serif text-4xl font-black mb-6 leading-none">
+                                        ${billing === 'monthly' ? '7' : '100'}
+                                        <span className="text-xs font-sans font-normal text-gray-500 ml-1 block mt-2 uppercase tracking-widest font-bold">
+                                            {billing === 'monthly' ? 'per month ($70/year)' : 'One-time support'}
+                                        </span>
+                                    </p>
+
+                                    <p className="font-serif text-sm text-gray-600 mb-8 h-10 border-b border-gray-200 pb-12">
+                                        Your support funds <span className="font-bold text-black">1.5 hours</span> of direct reporting each month.
+                                    </p>
+
+                                    <ul className="space-y-4 text-sm mb-8 font-serif">
+                                        <li className="flex items-start"><CheckIcon /> Everything in Free</li>
+                                        <li className="flex items-start"><CheckIcon /> Ad-free reading experience</li>
+                                        <li className="flex items-start"><CheckIcon /> "Behind the Story" reporter emails</li>
+                                        <li className="flex items-start"><CheckIcon /> Ability to comment on Op-Eds</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            {/* Tier 3 */}
+                            <div
+                                className={`border ${selectedTier === 'investigator' ? 'border-black border-4 shadow-xl' : 'border-gray-200 shadow-sm'} bg-black text-white flex flex-col cursor-pointer transition-all hover:border-gray-500`}
+                                onClick={() => setSelectedTier('investigator')}
+                            >
+                                <div className="p-8 flex-grow">
+                                    <h3 className="text-xl font-bold uppercase tracking-tight mb-2">Investigator</h3>
+                                    <p className="font-serif text-4xl font-black mb-6 leading-none">
+                                        ${billing === 'monthly' ? '20' : '250'}
+                                        <span className="text-xs font-sans font-normal text-gray-400 ml-1 block mt-2 uppercase tracking-widest font-bold">
+                                            {billing === 'monthly' ? 'per month ($200/year)' : 'One-time support'}
+                                        </span>
+                                    </p>
+
+                                    <p className="font-serif text-sm text-gray-300 mb-8 h-10 border-b border-neutral-800 pb-12">
+                                        Your support funds <span className="font-bold text-white">4+ hours</span> of direct investigative reporting.
+                                    </p>
+
+                                    <ul className="space-y-4 text-sm mb-8 font-serif">
+                                        <li className="flex items-start"><CheckIcon /> Everything in Supporter</li>
+                                        <li className="flex items-start"><CheckIcon /> Access to raw dataset repositories</li>
+                                        <li className="flex items-start"><CheckIcon /> Invite to quarterly editorial briefings</li>
+                                        <li className="flex items-start"><CheckIcon /> Official Groundwork annual print edition</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Payment Form (appears conditional on non-free tier) */}
+                        <div className={`transition-opacity duration-500 max-w-3xl mx-auto border border-gray-200 bg-white p-6 md:p-10 shadow-lg ${selectedTier === 'free' ? 'opacity-50 pointer-events-none filter grayscale' : 'opacity-100'}`}>
+                            <div className="mb-8 border-b border-gray-200 pb-6 flex justify-between items-end">
+                                <div>
+                                    <h2 className="font-serif text-2xl font-bold mb-2">Complete Your Contribution</h2>
+                                    <p className="text-sm text-gray-600 font-serif">Selected: <span className="font-bold text-black uppercase">{selectedTier} {billing === 'monthly' ? '(Monthly)' : '(One-time)'}</span></p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-serif text-3xl font-black">${selectedTier === 'supporter' ? (billing === 'monthly' ? '7' : '100') : selectedTier === 'investigator' ? (billing === 'monthly' ? '20' : '250') : '0'}</p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={(e) => e.preventDefault()}>
+                                <h3 className="font-bold text-xs uppercase tracking-widest text-gray-500 mb-4">Account Information</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                        <input type="text" className="w-full border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-shadow" placeholder="Jane" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                        <input type="text" className="w-full border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-shadow" placeholder="Doe" />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                                        <input type="email" className="w-full border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-shadow" placeholder="jane.doe@example.com" />
+                                    </div>
+                                </div>
+
+                                <h3 className="font-bold text-xs uppercase tracking-widest text-gray-500 mb-4 flex items-center"><LockIcon /> Secure Payment</h3>
+                                <div className="mb-8 p-4 border border-gray-300 bg-gray-50">
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
+                                        <input type="text" className="w-full border border-gray-300 p-3 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-shadow" placeholder="•••• •••• •••• ••••" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Expiration</label>
+                                            <input type="text" className="w-full border border-gray-300 p-3 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-shadow" placeholder="MM/YY" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">CVC</label>
+                                            <input type="text" className="w-full border border-gray-300 p-3 bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-shadow" placeholder="123" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    className={`w-full py-4 text-white font-bold uppercase tracking-widest text-sm transition-colors focus:outline-none focus:ring-4 focus:ring-red-900 ${selectedTier === 'free' ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-700 hover:bg-red-800'}`}
+                                    disabled={selectedTier === 'free'}
+                                >
+                                    {selectedTier === 'free' ? 'Create Free Account' : `Pay $${selectedTier === 'supporter' ? (billing === 'monthly' ? '7/mo' : '100') : selectedTier === 'investigator' ? (billing === 'monthly' ? '20/mo' : '250') : '0'} Securely`}
+                                </button>
+
+                                <p className="text-center text-xs text-gray-500 mt-4 font-serif">
+                                    Payments are securely processed by Stripe. You can cancel your support at any time.
+                                </p>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const App = () => {
+            return (
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow">
+                        <SubscriptionHero />
+                        <PricingSubscription />
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const rootLayout = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootLayout);
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

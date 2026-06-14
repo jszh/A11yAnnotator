@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Climate Coverage | Groundwork</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'gw-bg':      '#F9F8F5',
+            'gw-surf':    '#F0EEE9',
+            'gw-border':  '#E2DDD6',
+            'gw-text':    '#1A1A1A',
+            'gw-muted':   '#6B6560',
+            'gw-accent':  '#1B4332',
+            'gw-accent-h':'#166534',
+            'gw-amber':   '#92400E',
+            'gw-break':   '#B91C1C',
+            'gw-nav':     '#0F1F14',
+            'gw-gold':    '#D97706',
+          },
+          fontFamily: {
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, body { font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: #F9F8F5; color: #1A1A1A; scroll-padding-top: 112px; }
+    h1, h2, h3, h4, .serif { font-family: 'Playfair Display', Georgia, serif; }
+    :focus-visible { outline: 3px solid #D97706 !important; outline-offset: 2px !important; }
+    .skip-link { position:absolute;top:-60px;left:8px;background:#1B4332;color:#fff;padding:10px 18px;z-index:9999;border-radius:6px;font-weight:600;transition:top 0.15s;text-decoration:none;font-size:14px; }
+    .skip-link:focus { top:8px; }
+    .sr-only { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+    .nav-link { font-size:14px;font-weight:600;color:#a3b18a;text-decoration:none;padding:6px 4px;letter-spacing:0.03em;text-transform:uppercase;transition:color 0.15s; }
+    .nav-link:hover, .nav-link[aria-current="page"] { color:#fff; }
+    .nav-link[aria-current="page"] { border-bottom:2px solid #D97706; }
+    .cat-link { font-size:13px;font-weight:600;color:#78716C;text-decoration:none;padding:8px 16px;border-radius:2px;letter-spacing:0.04em;text-transform:uppercase;transition:all 0.15s;border-bottom:3px solid transparent; }
+    .cat-link:hover { color:#1B4332;border-bottom-color:#1B4332; }
+    .cat-link[aria-current="page"] { color:#1B4332;border-bottom-color:#1B4332; }
+    .tag-btn { display:inline-block;padding:4px 10px;border-radius:2px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;border:1.5px solid; }
+    .tag-btn-off { border-color:#E2DDD6;color:#6B6560;background:transparent; }
+    .tag-btn-off:hover { border-color:#1B4332;color:#1B4332; }
+    .tag-btn-on { border-color:#1B4332;color:#fff;background:#1B4332; }
+    @keyframes ticker-scroll { 0%{ transform:translateX(0); } 100%{ transform:translateX(-50%); } }
+    .ticker-inner { display:flex;animation:ticker-scroll 40s linear infinite;width:max-content; }
+    .ticker-inner.paused { animation-play-state:paused; }
+    .ticker-wrap { overflow:hidden;white-space:nowrap; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    function BreakingTicker() {
+      const [paused, setPaused] = useState(false);
+      const ITEMS = ['BREAKING: Senate committee advances landmark carbon pricing bill','UPDATE: EPA releases new methane reporting rules','EXCLUSIVE: Leaked groundwater projections revised downward by 28%','REPORT: Colorado River allocation talks collapse'];
+      return (
+        <div className="bg-gw-break text-white" role="region" aria-label="Breaking news ticker">
+          <div className="max-w-7xl mx-auto px-4 flex items-center h-10">
+            <span className="flex-shrink-0 bg-white text-gw-break text-xs font-extrabold px-2.5 py-1 mr-3 tracking-widest uppercase" aria-hidden="true">Breaking</span>
+            <div className="flex-1 ticker-wrap">
+              <div className={`ticker-inner ${paused?'paused':''}`} aria-hidden="true">
+                {[...ITEMS,...ITEMS].map((item,i) => <span key={i} className="text-sm font-medium mr-16">{item}</span>)}
+              </div>
+              <ul className="sr-only">{ITEMS.map((item,i) => <li key={i}>{item}</li>)}</ul>
+            </div>
+            <button onClick={() => setPaused(p=>!p)} aria-pressed={paused} aria-label={paused?'Resume ticker':'Pause ticker'} className="flex-shrink-0 ml-3 p-1.5 rounded hover:bg-white/20 transition-colors">
+              {paused ? <svg aria-hidden="true" className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      : <svg aria-hidden="true" className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function Header({ current = 'climate' }) {
+      const NAV = [
+        { key:'home', label:'Home', href:'index.html' },
+        { key:'climate', label:'Climate', href:'climate.html' },
+        { key:'energy', label:'Energy', href:'climate.html' },
+        { key:'policy', label:'Policy', href:'climate.html' },
+        { key:'science', label:'Science', href:'climate.html' },
+        { key:'data', label:'Data', href:'climate.html' },
+        { key:'opinion', label:'Perspectives', href:'opinion.html' },
+      ];
+      const CATS = [
+        { key:'climate', label:'Climate', href:'climate.html' },
+        { key:'energy', label:'Energy', href:'climate.html' },
+        { key:'policy', label:'Policy', href:'climate.html' },
+        { key:'science', label:'Science', href:'climate.html' },
+        { key:'data', label:'Data &amp; Maps', href:'climate.html' },
+        { key:'opinion', label:'Perspectives', href:'opinion.html' },
+        { key:'investigations', label:'Investigations', href:'climate.html' },
+      ];
+      return (
+        <header className="sticky top-0 z-40 bg-gw-nav shadow-lg">
+          <div className="border-b border-white/10">
+            <div className="max-w-7xl mx-auto px-4 h-8 flex items-center justify-between">
+              <span className="text-xs text-white/50">Independent Climate Journalism</span>
+              <a href="subscribe.html" className="text-xs text-gw-gold font-semibold hover:underline">Support Groundwork</a>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="index.html" className="flex items-center gap-2.5" aria-label="Groundwork — home">
+              <div className="w-7 h-7 bg-gw-gold flex items-center justify-center" aria-hidden="true">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <span className="font-serif text-xl font-black text-white">Groundwork</span>
+            </a>
+            <nav aria-label="Main site navigation" className="hidden md:flex items-center gap-5">
+              {NAV.map(n => <a key={n.key} href={n.href} className="nav-link" aria-current={current===n.key?'page':undefined}>{n.label}</a>)}
+            </nav>
+            <a href="subscribe.html" className="hidden md:inline-flex px-4 py-2 bg-gw-gold text-white text-xs font-bold uppercase tracking-wide rounded-sm hover:bg-amber-600 transition-colors">Subscribe</a>
+          </div>
+          <div className="border-t border-white/10 bg-white">
+            <nav aria-label="Topic categories" className="max-w-7xl mx-auto px-4 flex overflow-x-auto gap-0">
+              {CATS.map(c => <a key={c.key} href={c.href} className="cat-link whitespace-nowrap" aria-current={current===c.key?'page':undefined} dangerouslySetInnerHTML={{ __html: c.label }} />)}
+            </nav>
+          </div>
+        </header>
+      );
+    }
+
+    function Footer() {
+      return (
+        <footer className="bg-gw-nav text-white mt-16" aria-label="Site footer">
+          <div className="max-w-7xl mx-auto px-4 py-10">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-white/10">
+              <div>
+                <span className="font-serif text-lg font-black text-white">Groundwork</span>
+                <p className="text-white/40 text-xs mt-2 leading-relaxed">Independent investigative journalism on climate, science &amp; policy.</p>
+              </div>
+              {[
+                { h:'Coverage', l:['Climate','Energy','Policy','Science','Investigations'] },
+                { h:'About', l:['Our Mission','Staff','Methodology','Ethics Policy'] },
+                { h:'Support', l:['Subscribe','Donate','Newsletters','Republish'] },
+              ].map(col => (
+                <div key={col.h}>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-3">{col.h}</h3>
+                  <ul className="space-y-1.5">{col.l.map(l => <li key={l}><a href="#" className="text-white/40 text-sm hover:text-white transition-colors">{l}</a></li>)}</ul>
+                </div>
+              ))}
+            </div>
+            <div className="pt-5 flex flex-col sm:flex-row justify-between gap-2">
+              <p className="text-white/25 text-xs">© {new Date().getFullYear()} Groundwork. A 501(c)(3) nonprofit.</p>
+              <div className="flex gap-4">{['Privacy','Terms','Accessibility'].map(l => <a key={l} href="#" className="text-white/25 text-xs hover:text-white/50 transition-colors">{l}</a>)}</div>
+            </div>
+          </div>
+        </footer>
+      );
+    }
+
+    /* ── Data ──────────────────────────────────────────────────── */
+    const ALL_TAGS = ['Sea Level','Wildfire','Carbon Markets','Permafrost','Drought','Ocean Acidification','Deforestation','Heatwaves','Ice Loss'];
+
+    const STORIES = [
+      { id:1, title:'The Invisible Flood: How Groundwater Collapse Is Reshaping the American West', author:'Camille Okafor', date:'March 20, 2026', dateIso:'2026-03-20', readTime:22, tags:['Drought','Sea Level'], category:'Climate', href:'article.html', imgGrad:'from-blue-900 via-teal-800 to-emerald-900', isLead:true,
+        deck:'Aquifers that took 10,000 years to fill are emptying in decades. Our six-month investigation — drawing on 2.4 million well records — reveals what happens when the water runs out.' },
+      { id:2, title:'Sea Ice Loss in the Arctic Is Altering Polar Vortex Patterns, Bringing Extreme Cold to the U.S. Midwest', author:'Priya Vásquez', date:'March 18, 2026', dateIso:'2026-03-18', readTime:9, tags:['Ice Loss','Heatwaves'], category:'Climate', href:'article.html', imgGrad:'from-sky-300 to-blue-600' },
+      { id:3, title:'Wildfire Smoke Now Poses Year-Round Health Risk to 100 Million Americans, Study Finds', author:'David Reinholt', date:'March 15, 2026', dateIso:'2026-03-15', readTime:7, tags:['Wildfire'], category:'Climate', href:'article.html', imgGrad:'from-orange-600 to-red-800' },
+      { id:4, title:'The Carbon Markets Charade: Why Billions in Offsets Are Mathematically Impossible to Verify', author:'James Adeyemi', date:'March 12, 2026', dateIso:'2026-03-12', readTime:15, tags:['Carbon Markets'], category:'Climate', href:'article.html', imgGrad:'from-emerald-700 to-green-900' },
+      { id:5, title:'Ocean Acidification Is Dissolving Coral Reefs Faster Than Any Model Predicted', author:'Sofia Lindgren', date:'March 10, 2026', dateIso:'2026-03-10', readTime:11, tags:['Ocean Acidification'], category:'Climate', href:'article.html', imgGrad:'from-cyan-500 to-teal-700' },
+      { id:6, title:'Amazon Deforestation Rate Surges as Brazil Rolls Back Environmental Enforcement', author:'Tom Brackfield', date:'March 7, 2026', dateIso:'2026-03-07', readTime:8, tags:['Deforestation'], category:'Climate', href:'article.html', imgGrad:'from-green-600 to-lime-900' },
+      { id:7, title:'Permafrost Thaw Is Releasing Ancient Viruses — And Scientists Are Watching Closely', author:'Priya Vásquez', date:'March 4, 2026', dateIso:'2026-03-04', readTime:10, tags:['Permafrost'], category:'Climate', href:'article.html', imgGrad:'from-slate-400 to-blue-700' },
+    ];
+
+    const KEY_DOCS = [
+      { title:'USGS 2025 National Groundwater Report', pages:147, type:'PDF', href:'#' },
+      { title:'EPA Methane Emissions Database (2020–2025)', pages:83, type:'XLS', href:'#' },
+      { title:'Congressional Budget Office: Water Infrastructure Cost Study', pages:212, type:'PDF', href:'#' },
+      { title:'IPCC AR6 Working Group II Chapter 4: Water', pages:194, type:'PDF', href:'#' },
+      { title:'Groundwork FOIA Response: Federal Well Records (2024)', pages:48, type:'PDF', href:'#' },
+    ];
+
+    /* ── Climate category page ─────────────────────────────────── */
+    function ClimatePage() {
+      const [activeTags, setActiveTags] = useState([]);
+      const [liveMsg, setLiveMsg] = useState('');
+
+      function toggleTag(tag) {
+        setActiveTags(prev => {
+          const next = prev.includes(tag) ? prev.filter(t => t!==tag) : [...prev, tag];
+          setLiveMsg(next.length === 0 ? 'Showing all stories' : `Filtering by: ${next.join(', ')}`);
+          setTimeout(() => setLiveMsg(''), 2000);
+          return next;
+        });
+      }
+
+      const filtered = activeTags.length === 0 ? STORIES : STORIES.filter(s => s.tags.some(t => activeTags.includes(t)));
+      const lead = filtered.find(s => s.isLead) || filtered[0];
+      const rest = filtered.filter(s => s !== lead);
+
+      return (
+        <div className="min-h-screen bg-gw-bg">
+          <BreakingTicker />
+          <Header current="climate" />
+
+          <main id="main-content" tabIndex={-1} className="focus:outline-none">
+            <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{liveMsg}</div>
+
+            {/* Category header */}
+            <div className="bg-gw-accent text-white py-6 px-4">
+              <div className="max-w-7xl mx-auto">
+                <p className="text-xs font-bold uppercase tracking-widest text-white/50 mb-1">Coverage Area</p>
+                <h1 className="font-serif text-3xl font-black text-white">Climate</h1>
+                <p className="text-white/60 text-sm mt-1 font-sans">Investigations into climate change, its causes, effects, and the policies shaping our response.</p>
+              </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 py-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Main content */}
+                <div className="lg:col-span-2">
+                  {/* Tag filter */}
+                  <fieldset className="mb-6" aria-label="Filter stories by topic">
+                    <legend className="text-xs font-bold uppercase tracking-widest text-gw-muted mb-3 font-sans">Filter by Topic</legend>
+                    <div role="group" aria-label="Topic filter options" className="flex flex-wrap gap-2">
+                      {ALL_TAGS.map(tag => (
+                        <button
+                          key={tag}
+                          onClick={() => toggleTag(tag)}
+                          aria-pressed={activeTags.includes(tag)}
+                          aria-label={`${activeTags.includes(tag) ? 'Remove filter:' : 'Filter by:'} ${tag}`}
+                          className={`tag-btn ${activeTags.includes(tag) ? 'tag-btn-on' : 'tag-btn-off'}`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                      {activeTags.length > 0 && (
+                        <button onClick={() => { setActiveTags([]); setLiveMsg('Filters cleared'); setTimeout(()=>setLiveMsg(''),1500); }} className="tag-btn tag-btn-off text-gw-break border-gw-break hover:bg-gw-break hover:text-white" aria-label="Clear all filters">
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                  </fieldset>
+
+                  {filtered.length === 0 ? (
+                    <p className="text-gw-muted font-sans py-8 text-center">No stories match the selected filters. Try removing some tags.</p>
+                  ) : (
+                    <>
+                      {/* Lead story */}
+                      {lead && (
+                        <article className="mb-8 pb-8 border-b-2 border-gw-border" aria-label={`Lead investigation: ${lead.title}`}>
+                          <a href={lead.href} aria-label={lead.title}>
+                            <div className={`h-64 bg-gradient-to-br ${lead.imgGrad} rounded-sm mb-4`} role="img" aria-label={`Image for: ${lead.title}`} />
+                          </a>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-bold uppercase tracking-widest text-gw-amber font-sans">{lead.category}</span>
+                            <span aria-hidden="true" className="text-gw-border">·</span>
+                            <span className="text-xs text-gw-muted font-sans">{lead.readTime} min read</span>
+                            <span className="text-xs font-bold text-gw-break uppercase tracking-wide font-sans">Lead Investigation</span>
+                          </div>
+                          <h2 className="font-serif text-2xl lg:text-3xl font-black leading-tight mb-3">
+                            <a href={lead.href} className="hover:text-gw-accent transition-colors">{lead.title}</a>
+                          </h2>
+                          <p className="text-gw-muted leading-relaxed font-sans mb-4">{lead.deck}</p>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white text-xs font-bold font-sans" role="img" aria-label={`${lead.author}'s profile photo`}>
+                              {lead.author.split(' ').map(w=>w[0]).join('')}
+                            </div>
+                            <div className="font-sans">
+                              <p className="text-sm font-semibold">{lead.author}</p>
+                              <time className="text-xs text-gw-muted" dateTime={lead.dateIso}>{lead.date}</time>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 mt-3">
+                            {lead.tags.map(tag => <span key={tag} className="text-[11px] px-2 py-0.5 bg-gw-surf border border-gw-border text-gw-muted font-bold uppercase tracking-wide font-sans rounded-sm">{tag}</span>)}
+                          </div>
+                        </article>
+                      )}
+
+                      {/* Story list */}
+                      <ul className="space-y-0" aria-label="Climate stories" role="list">
+                        {rest.map(story => (
+                          <li key={story.id} className="py-5 border-b border-gw-border last:border-0">
+                            <article aria-label={story.title}>
+                              <div className="flex gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[11px] font-bold uppercase tracking-widest text-gw-amber font-sans">{story.category}</span>
+                                    <span aria-hidden="true" className="text-gw-border text-xs">·</span>
+                                    <span className="text-xs text-gw-muted font-sans">{story.readTime} min read</span>
+                                  </div>
+                                  <h3 className="font-serif text-lg font-bold leading-snug mb-1.5">
+                                    <a href={story.href} className="hover:text-gw-accent transition-colors">{story.title}</a>
+                                  </h3>
+                                  <div className="flex items-center gap-2 text-xs text-gw-muted font-sans mb-2">
+                                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center text-white text-[9px] font-bold" role="img" aria-label={`${story.author}'s avatar`}>{story.author.split(' ').map(w=>w[0]).join('')}</div>
+                                    <span>{story.author}</span>
+                                    <span aria-hidden="true">·</span>
+                                    <time dateTime={story.dateIso}>{story.date}</time>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {story.tags.map(tag => (
+                                      <span key={tag} className="text-[11px] px-2 py-0.5 bg-gw-surf border border-gw-border text-gw-muted font-bold uppercase tracking-wide font-sans rounded-sm">{tag}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <a href={story.href} aria-hidden="true" tabIndex={-1} className="flex-shrink-0 w-28 h-20">
+                                  <div className={`w-full h-full bg-gradient-to-br ${story.imgGrad} rounded-sm`} aria-hidden="true" />
+                                </a>
+                              </div>
+                            </article>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+
+                {/* Sidebar (after main content in DOM — cat_10) */}
+                <aside className="lg:col-span-1 space-y-8" aria-label="Category sidebar">
+                  {/* Data viz preview */}
+                  <section aria-labelledby="viz-heading" className="border border-gw-border rounded-sm overflow-hidden">
+                    <div className="h-36 bg-gradient-to-br from-gw-accent to-emerald-600 relative flex items-center justify-center" role="img" aria-label="Preview of groundwater depletion map visualization">
+                      <div className="text-center">
+                        <p className="text-white/60 text-xs font-sans mb-1">Interactive Map</p>
+                        <p className="text-white font-serif font-bold text-lg">U.S. Groundwater Depletion<br/>1990–2025</p>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-white">
+                      <h2 id="viz-heading" className="font-serif text-base font-bold mb-1">Groundwater Depletion Map</h2>
+                      <p className="text-xs text-gw-muted font-sans mb-3 leading-relaxed">Explore well-level data from 2.4 million federal monitoring points across the American West. County-level trends since 1990.</p>
+                      <a href="article.html" className="inline-block text-xs font-bold text-white bg-gw-accent px-4 py-2 rounded-sm hover:bg-gw-accent-h transition-colors font-sans" aria-label="View full groundwater depletion report and interactive map">
+                        View Full Report →
+                      </a>
+                    </div>
+                  </section>
+
+                  {/* Key Documents */}
+                  <section aria-labelledby="docs-heading">
+                    <h2 id="docs-heading" className="text-xs font-extrabold uppercase tracking-widest text-gw-muted mb-3 border-b border-gw-border pb-2 font-sans">Key Source Documents</h2>
+                    <ul className="space-y-3" role="list" aria-label="Source documents for climate coverage">
+                      {KEY_DOCS.map(doc => (
+                        <li key={doc.title}>
+                          <a href={doc.href} className="flex items-start gap-2 group" aria-label={`Download ${doc.title} — ${doc.pages} pages, ${doc.type} format`}>
+                            <div className={`flex-shrink-0 w-8 h-8 rounded-sm flex items-center justify-center text-[10px] font-extrabold font-sans text-white mt-0.5 ${doc.type==='PDF'?'bg-gw-break':'bg-gw-accent'}`} aria-hidden="true">
+                              {doc.type}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gw-text group-hover:text-gw-accent transition-colors leading-snug font-sans">{doc.title}</p>
+                              <p className="text-xs text-gw-muted font-sans">{doc.pages} pages</p>
+                            </div>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+
+                  {/* Newsletter */}
+                  <section aria-labelledby="nl-side-heading" className="bg-gw-surf border border-gw-border p-4 rounded-sm">
+                    <h2 id="nl-side-heading" className="font-serif text-base font-bold mb-1">The Climate Briefing</h2>
+                    <p className="text-xs text-gw-muted mb-3 font-sans leading-relaxed">Weekly digest of climate investigations and data releases. Free.</p>
+                    <a href="subscribe.html" className="block text-center text-xs font-bold bg-gw-accent text-white py-2.5 rounded-sm hover:bg-gw-accent-h transition-colors font-sans">
+                      Subscribe Free
+                    </a>
+                  </section>
+                </aside>
+              </div>
+            </div>
+          </main>
+
+          <Footer />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<ClimatePage />);
+  </script>
+</body>
+</html>
