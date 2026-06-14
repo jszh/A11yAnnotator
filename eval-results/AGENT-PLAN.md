@@ -128,6 +128,10 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
    (now real keys) shows it operates. axe `focus-order-semantics`/`tabindex`.
 4. **focus-management** — from `tabWalk`/`localTabWalk`: `trapDetected`, order vs
    DOM order, element reached but `inViewport:false` (2.4.11 obscured/off-screen).
+   **2.1.2:** `trapDetected:true` is a keyboard-trap candidate, BUT if
+   `tabWalk.advisedExitHint` is set (instructional text names a non-standard exit key),
+   a non-standard exit MAY satisfy 2.1.2 if adequately advised — record **PARTIAL** and
+   verify the advisement, don't assert a definite failure.
    Modal (from `activate.modal`): `focusMovedIntoDialog` (focus enters the modal),
    `closedByEscapeOrButton`, and `focusReturnedToTrigger` (focus RETURN after close
    — false ⇒ 2.4.3 focus-order defect). Use `srWalk`/`tabWalk` order to compare

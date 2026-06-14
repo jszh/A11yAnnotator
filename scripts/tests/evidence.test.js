@@ -115,6 +115,16 @@ test('R2.3-B trap: a TRAP-ONLY page (cycle == every focusable) is detected via t
   assert.equal(o.tabWalk.totalFocusables, 2, 'the whole page is the trap');
   assert.ok((o.tabWalk.trapCycle || []).length >= 2);
 });
+test('R2.3-B+ trap: a non-standard exit that is ADVISED emits advisedExitHint (agent → PARTIAL, not a definite trap)', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-advised.html', ['/html/body/div[1]/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, true, 'standard keys cannot escape');
+  assert.ok(o.tabWalk.advisedExitHint && /f6/.test(o.tabWalk.advisedExitHint.key || ''), 'instructional text naming the exit key is surfaced for judgment');
+});
+test('R2.3-B+ trap: a plain trap with NO advisement has advisedExitHint=null (definite trap)', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-only.html', ['/html/body/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, true);
+  assert.equal(o.tabWalk.advisedExitHint == null, true, 'no advisement → not downgraded');
+});
 test('R2.3-B trap: ordinary wraparound is still NOT a trap even though the sentinel probe always runs', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-wraparound.html', ['/html/body/button[1]']);
   assert.equal(o.tabWalk.trapDetected, false, 'Tab reaches the appended boundary sentinel → escapable');

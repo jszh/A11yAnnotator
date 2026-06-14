@@ -346,7 +346,22 @@ function loadXpaths() {
           }
         }
         await page.evaluate(() => { const s = document.querySelector('[data-a11y-trapsentinel]'); if (s) s.remove(); }).catch(() => {});
-        if (!escaped) { out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = [...new Set(recent)]; break; }
+        if (!escaped) {
+          out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = [...new Set(recent)];
+          // 2.1.2: a NON-STANDARD exit is conformant IF the user is ADVISED of it. The
+          // harness can't prove an advisement is adequate/associated, so it only emits a
+          // HINT (instructional text near the component naming an exit method); the agent
+          // treats trapDetected+advisedExitHint as PARTIAL, not a definite failure.
+          out.tabWalk.advisedExitHint = await page.evaluate(() => {
+            const el = document.activeElement; if (!el) return null;
+            let scope = el; for (let i = 0; i < 4 && scope.parentElement; i++) { const r = scope.getAttribute && scope.getAttribute('role'); if (r === 'dialog' || r === 'alertdialog' || scope.tagName === 'DIALOG') break; scope = scope.parentElement; }
+            const desc = (() => { const id = el.getAttribute('aria-describedby'); if (!id) return ''; return id.split(/\s+/).map(i => { const t = document.getElementById(i); return t ? t.textContent : ''; }).join(' '); })();
+            const txt = ((scope.innerText || scope.textContent || '') + ' ' + (el.getAttribute('aria-description') || '') + ' ' + desc).toLowerCase().replace(/\s+/g, ' ');
+            const m = txt.match(/\b(?:press|hit|use|type|tap)\b[^.]{0,40}?\b(esc|escape|arrow|enter|spacebar|space|tab|f6)\b/) || txt.match(/\bto (?:close|exit|dismiss|leave|continue)\b[^.]{0,24}/);
+            return m ? { phrase: m[0].trim().slice(0, 80), key: m[1] || null } : null;
+          }).catch(() => null);
+          break;
+        }
         out.tabWalk.escapableComponent = { via: escapeMethod }; // not a trap
         // If the only thing reached outside the cycle was the sentinel, the page is
         // fully walked and escapable — stop. Otherwise real new content exists: resume.
