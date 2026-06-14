@@ -174,6 +174,15 @@ function keyboardOperabilitySignal({ role, tabindex, reachedByTab, respondedToSy
 // Returns { present:true|false|null, basis, focusDependentComputed }.
 const VIS = 1.5; // visible-change threshold (%); spatial measure is preferred upstream
 function _nonNone(s) { return !!s && !/^\s*none/i.test(s) && !/(^|\s)0px(\s|$)/.test(s); }
+// A computed outline that actually RENDERS: a real line style with non-zero width
+// (so "none 3px ..." and "solid 0px ..." don't count, but "auto 1px"/"solid 2px" do).
+function _visibleOutlineStyle(s) {
+  if (!s) return false;
+  const style = String(s).trim().split(/\s+/)[0].toLowerCase();
+  if (style === 'none' || style === 'hidden') return false;
+  if (/(^|\s)0px(\s|$)/.test(s)) return false;
+  return /^(auto|solid|dashed|dotted|double|groove|ridge|inset|outset)$/.test(style);
+}
 function focusRingDecision(opts = {}) {
   // accept both new and legacy field names for a soft migration
   const realTabDiffPct = opts.realTabDiffPct != null ? opts.realTabDiffPct : opts.diffPct;
@@ -182,7 +191,10 @@ function focusRingDecision(opts = {}) {
   const fSh = opts.focusedBoxShadow, uSh = opts.unfocusedBoxShadow;
   const forcedDiffPct = opts.forcedDiffPct;
 
-  const outlineFocusDependent = _nonNone(fOut) && (uOut == null || fOut !== uOut);
+  // Outline focus-dependence is "strong" only when the focused outline is a real
+  // rendered line AND differs from unfocused — this both kills the always-on case
+  // and lets an off-screen `none→auto/solid` change stand without a pixel diff.
+  const outlineFocusDependent = _visibleOutlineStyle(fOut) && (uOut == null || fOut !== uOut);
   const shadowFocusDependent = (!!fSh && fSh !== 'none') && (uSh == null || fSh !== uSh);
   const focusDependentComputed = outlineFocusDependent || shadowFocusDependent;
 
@@ -197,10 +209,15 @@ function focusRingDecision(opts = {}) {
     if (focusDependentComputed) return { present: null, basis: 'conflict: computed ring changed but real pixels did not (likely clipped/wrong-crop)', focusDependentComputed };
     return { present: false, basis: 'real-keyboard: no focus-dependent change', focusDependentComputed };
   }
-  // 3) No valid real-keyboard crop → fall back to forced + computed (corroboration only).
+  // 3) No valid real-keyboard crop → forced pixel diff + computed (corroboration).
   if (forcedChange && focusDependentComputed) return { present: true, basis: 'forced-focus-visible-diff + computed (real crop unavailable)', focusDependentComputed };
+  // 3b) No usable pixel diff at all, but the forced computed OUTLINE became a real,
+  // focus-dependent rendered line (none→auto/solid) — sufficient for 2.4.7 even
+  // off-screen (an outline with a real style + width always renders).
+  if (outlineFocusDependent) return { present: true, basis: 'forced computed outline focus-dependent (none→visible style; no pixel crop)', focusDependentComputed };
   if (typeof forcedDiffPct === 'number' && !forcedChange && !focusDependentComputed) return { present: false, basis: 'forced-focus-visible: no focus-dependent change', focusDependentComputed };
-  if (focusDependentComputed && !forcedChange) return { present: null, basis: 'conflict: computed ring changed but no measurable diff', focusDependentComputed };
+  // shadow-only focus-dependence without pixels can't be confirmed visible → PARTIAL
+  if (shadowFocusDependent) return { present: null, basis: 'conflict: focus-dependent box-shadow but no pixel confirmation of visibility', focusDependentComputed };
   return { present: null, basis: 'indeterminate (no valid crop, no forced diff, no focus-dependent computed change)', focusDependentComputed };
 }
 

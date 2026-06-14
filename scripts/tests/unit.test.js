@@ -150,6 +150,16 @@ test('H1 focusRingDecision: forced is NOT independent proof (forced diff but no 
   const r = L.focusRingDecision({ realTabCropValid: false, forcedDiffPct: 2.0, focusedOutline: 'none', unfocusedOutline: 'none', focusedBoxShadow: 'none', unfocusedBoxShadow: 'none' });
   assert.notEqual(r.present, true); // null or false, never a confident true on forced-only
 });
+test('H1 focusRingDecision: off-screen element, no pixels, but forced outline none→auto => present:true', () => {
+  // Apple el7: tab-unreachable + can\'t screenshot, but forcing focus-visible changes
+  // the computed outline from none to a real rendered line → sufficient for 2.4.7.
+  const r = L.focusRingDecision({ realTabCropValid: false, forcedDiffPct: null, unfocusedOutline: 'none 3px rgb(227,227,227)', focusedOutline: 'auto 1px rgb(153,200,255)' });
+  assert.equal(r.present, true);
+});
+test('H1 focusRingDecision: off-screen, shadow-only focus-dependence, no pixels => null (can\'t confirm visible)', () => {
+  const r = L.focusRingDecision({ realTabCropValid: false, forcedDiffPct: null, unfocusedOutline: 'none', focusedOutline: 'none', unfocusedBoxShadow: 'none', focusedBoxShadow: 'rgb(0,0,0) 0 0 0 1px' });
+  assert.equal(r.present, null);
+});
 test('H1 focusRingDecision: nothing usable => indeterminate (null)', () => {
   const r = L.focusRingDecision({ realTabCropValid: false, focusedOutline: 'none', unfocusedOutline: 'none' });
   assert.equal(r.present, null);
