@@ -17,7 +17,11 @@ background still reads.
 ## Procedure — grouping (1.3.1)
 1. **Locate the visual group** (vision: cards/chips that form a set).
 2. `--eval "const c=document.querySelector('<container>'); return {tag:c.tagName, role:c.getAttribute('role'), kids:[...c.children].map(x=>x.tagName+'/'+(x.getAttribute('role')||'-')), groupingEls:c.querySelectorAll('ul,ol,[role=list],[role=group],fieldset').length}"`.
-   `groupingEls:0` with flat `div` children = **REPRODUCED** (no programmatic set).
+   `groupingEls:0` with flat `div` children is a candidate — but **M4: first establish
+   that the set relationship is REQUIRED to be programmatically determinable** (a genuine
+   list/group whose membership conveys meaning, e.g. steps, a result set, related options).
+   A handful of unrelated `div`s that merely sit near each other is NOT a 1.3.1 failure.
+   Only when the visual grouping conveys a relationship the AT can't perceive → **REPRODUCED**.
    Note: absence of grouping is *not* an axe rule — a clean axe run means nothing here.
 3. Confirm via `/ax-node` on the container: `role:none`/`generic`, `inTree:false`
    → the grouping is invisible to AT; SR announces members as ungrouped items.

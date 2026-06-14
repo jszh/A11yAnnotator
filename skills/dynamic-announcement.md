@@ -65,10 +65,13 @@ the static harness never used.
      that focus announcement), that's a *different* mechanism — judge it under
      focus management, not as a 4.1.3 failure.
 
-## Classify
-- **REPRODUCED** — state/status changes visually but nothing is announced.
+## Classify (4.1.3 = STATUS MESSAGES only — see step 6)
+- **REPRODUCED** — a genuine **status message** (success/result/progress/error that does
+  not take focus) appears visually but is not announced. A bare state change
+  (`aria-expanded`/`pressed`/`selected`) or a dialog opening is **N/A here** — route to
+  4.1.2 / focus-management, do NOT record it as a 4.1.3 failure.
 - **PARTIAL** — the change can't be triggered on this snapshot (needs backend/hydration); report the missing live-region wiring as the static signal.
-- **NOT REPRODUCED** — the change is announced.
+- **NOT REPRODUCED** — the status message is announced (a live region / role=status fired).
 - **NOT FOUND** — the control/state isn't in the snapshot.
 
 ## Limits

@@ -42,6 +42,16 @@ test('H5: page-structure separates best-practice from 1.3.1 (missing landmark !=
   assert.ok(/NOT a 1\.3\.1|not a hard 1\.3\.1|NOT a 1\.3\.1 failure/i.test(ps), 'missing landmark / heading skip must be flagged as non-1.3.1');
 });
 
+test('M4: skill Classify sections no longer contradict the corrected scope', () => {
+  const ann = read('skills/dynamic-announcement.md');
+  // the Classify REPRODUCED line must scope to status messages, not bare state changes
+  assert.ok(/STATUS MESSAGES only|genuine \*\*status message\*\*/i.test(ann), 'announcement Classify must scope 4.1.3 to status messages');
+  const grp = read('skills/grouping-and-reading-order.md');
+  assert.ok(/REQUIRED to be programmatically determinable|conveys a relationship/i.test(grp), 'grouping must require the relationship be determinable before failing 1.3.1');
+  const nrs = read('skills/name-role-state.md');
+  assert.ok(/axStates|Validate STATE exposure/i.test(nrs), 'name-role-state must have a concrete state-validation procedure (M3)');
+});
+
 test('contract SC lists are self-consistent with the schema and SC_LEVEL', () => {
   const S = require('../lib/result-schema.js');
   for (const skill of S.SKILLS) {

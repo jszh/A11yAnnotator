@@ -448,15 +448,20 @@ function loadXpaths() {
           try {
             t.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); await new Promise(r => setTimeout(r, 0));
             for (let i = 0; i < 5; i++) { try { await vsr.previous(); } catch (e) { break; } }
-            let prevSp = null; // H3: detect sticky/stale lastSpokenPhrase (unchanged across stops)
+            let prevSp = null; // M1/H3: detect sticky/stale lastSpokenPhrase across stops
             for (let i = 0; i < 16; i++) {
+              // M1: clear the transcript (sentinel) BEFORE advancing so lastSpokenPhrase
+              // reflects ONLY this stop — if it's still empty/unchanged afterwards, the
+              // attribution is uncertain rather than silently carried over.
+              try { if (vsr.clearSpokenPhraseLog) await vsr.clearSpokenPhraseLog(); } catch (e) {}
               try { await vsr.next(); } catch (e) { break; }
               const n = vsr.activeNode; if (!n) break;
               const el = n.nodeType === 1 ? n : n.parentElement;
               const isT = !!el && (el === t || (t.contains && t.contains(el)) || (el.contains && el.contains(t)));
               let sp = null; try { sp = await vsr.lastSpokenPhrase() || null; } catch (e) {}
               const stale = sp !== null && sp === prevSp; prevSp = sp;
-              stops.push({ xpath: el ? window.__getXPath(el) : null, speech: stale ? null : sp, rawSpeech: sp, stale, isTarget: isT });
+              const attribution = (sp == null) ? 'uncertain (empty after clear)' : (stale ? 'uncertain (unchanged/sticky)' : 'direct');
+              stops.push({ xpath: el ? window.__getXPath(el) : null, speech: (stale || sp == null) ? null : sp, rawSpeech: sp, stale, attribution, isTarget: isT });
             }
           } catch (e) { return { error: e.message, stops }; }
           const ti = stops.findIndex(s => s.isTarget);

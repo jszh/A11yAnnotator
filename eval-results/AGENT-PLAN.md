@@ -145,10 +145,12 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
      **PARTIAL**. NEVER conclude "no ring" from `visibleDiffPct:0`, a wrong/blank crop
      (`cropValidTab:false` / `baseBlankFrame:true`), or a `computed-only`/unfocused
      outline read — the old harness produced false "no ring" exactly this way.
-   - **Visual check is corroboration, not the verdict.** If the shot pair is the wrong
-     region or blank, you CANNOT conclude absence — defer to `present`. Only override a
-     `present:true` to a fail if you can see the change is an animation/caret/tooltip
-     (rare now that the forced diff is used).
+   - **`present` confidence depends on `basis` (M4).** `real-keyboard-diff` (real Tab
+     pixels) is strongest; `forced-focus-visible`/`computed-while-focused-outline` are
+     good but can't see JS-driven focus styles — when the basis is forced/computed-only,
+     do the **visual shot-pair check** to corroborate, and prefer PARTIAL over a confident
+     verdict if the shot is wrong-region/blank. Only override a `present:true` to a fail
+     if you can see the change is an animation/caret/tooltip.
    - **R2-H4:** `present` now uses a **spatial** measure (`focusIndicator.spatial` —
      changed-region area + perimeter band, area-independent), so a thin ring on a large
      control is detected. Cite `focusIndicator.basis`/`spatial` as evidence.

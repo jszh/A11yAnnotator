@@ -20,6 +20,14 @@ now" links, icon-only links, auto-generated alt, custom `<div>` controls.
    `curl -G /ax-node --data-urlencode file=saved/<f> --data-urlencode xpath=<xp>`
    → `{role, name, speech, inTree, ignoredReasons}`. `name` is Chrome's computed
    accessible name; `speech` is the SR rendering ("role, name, …states").
+2b. **Validate STATE exposure (M3 — the "state" in name-role-state).** collect.json now
+   carries `axStates` (authoritative, from the AX node) + DOM `states`
+   (expanded/pressed/selected/checked/disabled/current/required/invalid/…). Check that a
+   control's VISIBLE state matches what AT sees: an expanded menu/accordion must expose
+   `expanded:true`; a pressed toggle `pressed:true`; a selected tab `selected:true`; a
+   checked box `checked:true`; a disabled control `disabled:true`. A visible state with no
+   corresponding AX state → **4.1.2 REPRODUCED** (state not programmatically exposed). A
+   *dynamic* state change that isn't announced is also 4.1.2 here (NOT 4.1.3 — see C1).
 3. **Corroborate the source** with `--eval`/`--xpath`: `aria-label`,
    `aria-labelledby` (does the target id exist?), `alt`, associated `<label>`,
    `title`, `placeholder`. axe rules: `image-alt, link-name, button-name,
