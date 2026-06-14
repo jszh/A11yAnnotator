@@ -278,7 +278,7 @@ function loadXpaths() {
     await page.evaluate(() => { try { document.activeElement && document.activeElement.blur(); } catch (e) {} });
     const totalFocusables = await page.evaluate(() => {
       const sel = 'a[href],button,input:not([type=hidden]),select,textarea,summary,details,[tabindex],[contenteditable="true"]';
-      return [...document.querySelectorAll(sel)].filter(el => { const s = getComputedStyle(el); const b = el.getBoundingClientRect(); return s.visibility !== 'hidden' && s.display !== 'none' && el.getAttribute('tabindex') !== '-1' && (b.width > 0 || b.height > 0); }).length;
+      return [...document.querySelectorAll(sel)].filter(el => { const s = getComputedStyle(el); const b = el.getBoundingClientRect(); return s.visibility !== 'hidden' && s.display !== 'none' && el.getAttribute('tabindex') !== '-1' && !el.disabled && el.getAttribute('aria-disabled') !== 'true' && (b.width > 0 || b.height > 0); }).length;
     }).catch(() => 0);
     out.tabWalk.totalFocusables = totalFocusables;
     // R2-H2/R21-H1: a keyboard trap is "Tab cannot leave a COMPONENT". Detect ANY
@@ -306,27 +306,30 @@ function loadXpaths() {
       out.tabWalk.stops.push(st);
       recent.push(st.xpath); if (recent.length > NO_NEW + 2) recent.shift();
       if (seenAll.has(st.xpath)) stopsSinceNew++; else { seenAll.add(st.xpath); stopsSinceNew = 0; }
-      // suspect: stuck revisiting a bounded set while focusables remain unreached
+      // suspect: stuck revisiting a bounded set while focusables remain UNREACHED. The
+      // escape reference is the WHOLE reached set `seenAll` (not just a small recent
+      // window) so a LARGE cycle (e.g. 12 controls) can't "escape" to one of its own
+      // members that fell out of the window. A real trap reaches nothing OUTSIDE seenAll
+      // via Escape / Tab / Shift+Tab.
       if (stopsSinceNew >= NO_NEW && totalFocusables > seenAll.size) {
-        const cycleSet = new Set(recent); let escaped = false, escapeMethod = null;
-        // 1) STANDARD EXIT: Escape (focus leaves the cycle OR a dialog closes)
+        const reached = new Set(seenAll); let escaped = false, escapeMethod = null;
+        const PROBE = Math.min(reached.size + 1, 16);
         const dlgBefore = (await curState()).dialogs;
-        await page.keyboard.press('Escape'); await sleep(60);
+        await page.keyboard.press('Escape'); await sleep(60); // STANDARD EXIT (2.1.2)
         const afterEsc = await curState();
-        if ((afterEsc.xpath && !cycleSet.has(afterEsc.xpath)) || afterEsc.dialogs < dlgBefore) { escaped = true; escapeMethod = 'Escape'; }
-        // 2) Tab / Shift+Tab out of the cycle
+        if ((afterEsc.xpath && !reached.has(afterEsc.xpath)) || afterEsc.dialogs < dlgBefore) { escaped = true; escapeMethod = 'Escape'; }
         for (const press of [['Tab'], ['Shift', 'Tab']]) {
-          for (let k = 0; k < cycleSet.size + 1 && !escaped; k++) {
+          for (let k = 0; k < PROBE && !escaped; k++) {
             if (press[0] === 'Shift') { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
             else await page.keyboard.press('Tab');
             await sleep(22);
             const here = (await curState()).xpath;
-            if (here && !cycleSet.has(here)) { escaped = true; escapeMethod = press.join('+'); break; }
+            if (here && !reached.has(here)) { escaped = true; escapeMethod = press.join('+'); break; }
           }
         }
-        if (!escaped) { out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = [...cycleSet]; break; }
-        out.tabWalk.escapableComponent = { cycle: [...cycleSet], via: escapeMethod }; // not a trap
-        stopsSinceNew = 0; seenAll.clear(); // resume the walk fresh from here
+        if (!escaped) { out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = [...new Set(recent)]; break; }
+        out.tabWalk.escapableComponent = { via: escapeMethod }; // not a trap
+        stopsSinceNew = 0; // resume the walk (keep seenAll — we DID reach new content)
       }
     }
     out.tabWalk.count = out.tabWalk.stops.length;

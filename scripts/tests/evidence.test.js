@@ -89,6 +89,15 @@ test('R21-H1 trap: a modal that releases on Escape is NOT a trap (standard exit,
   assert.equal(o.tabWalk.trapDetected, false, 'Escape is a standard exit method');
   assert.equal(o.tabWalk.escapableComponent && o.tabWalk.escapableComponent.via, 'Escape');
 });
+test('R2.2-B trap: a 12-control inescapable cycle is detected (seenAll escape ref, not a small window)', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-large.html', ['/html/body/div[2]/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, true, 'a large cycle must not "escape" to one of its own members');
+});
+test('R2.2-B trap: a DISABLED control in the tab order does NOT inflate focusables (no false trap)', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-disabled-skip.html', ['/html/body/button[1]']);
+  assert.equal(o.tabWalk.totalFocusables, 2, 'disabled control excluded from focusables');
+  assert.equal(o.tabWalk.trapDetected, false);
+});
 test('R2-H3 first-focusable: the first focusable target is reached by real Tab (sentinel reset)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-firstfocus.html', ['/html/body/button[1]']);
   const lt = o.elements[0].localTabWalk;
