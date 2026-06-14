@@ -151,6 +151,15 @@ test('R2.3-D isolation: the activation probe is ALWAYS reloaded → behavioralTr
   assert.equal(bt.activation.trusted, true, 'activation used a trusted ElementHandle click');
 });
 
+test('R2.3-E consent (R22-M1): inventory is VISIBLE-only, container counted ONCE, marked PARTIAL-basis', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-consent.html', ['/html/body/main[1]/p[1]']);
+  const c = o.consentHidden;
+  assert.equal(c.count, 1, 'a container matching multiple selectors is neutralised/counted once');
+  assert.equal(c.consentState.visibleControls, 2, 'only the two visible buttons count — the display:none input is excluded');
+  assert.equal(c.consentState.unlabelledVisibleControls, 1, 'the hidden input must NOT inflate the unlabelled-control 4.1.2 signal');
+  assert.ok(/PARTIAL/.test(c.consentState.basis), 'inventory declares its static/visible-only basis');
+});
+
 test('H7 states: expanded/checked/disabled collected from DOM + AX', { skip: !serverUp }, () => {
   const o = runScript('eval-page.js', 'fx-states.html', STATE_XPS);
   const [expbtn, chk, disbtn] = o.elements;

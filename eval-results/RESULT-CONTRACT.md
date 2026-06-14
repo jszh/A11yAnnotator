@@ -50,16 +50,28 @@ Every reportable observation is one of:
 ## "Issue" definitions (stamp the basis into the JSON; no bare "N findings")
 - `subVerdict` — one element × one skill verdict (REPRODUCED or PARTIAL).
 - `elementWithIssue` — an element with ≥1 REPRODUCED/PARTIAL sub-verdict.
-- `dedupedDefect` — `summary.issues[]`: page-level dedup by `(skill, sc, normalized-evidence)`.
+- `dedupedDefect` — `summary.issues[]`: defect dedup/merge by `(scope, skill, sc, bucket,
+  rule, FULL-normalized-evidence)`; a REPRODUCED and a PARTIAL of the SAME defect MERGE with
+  precedence **REPRODUCED > PARTIAL**, so the tally is independent of element order.
 - `page` — a page with ≥1 elementWithIssue.
 `summary.countBasis` records which denominator a published number uses.
 
-## Hard invariants (schema rejects on violation — see W2)
-1. `verdict ∈ enum`; PARTIAL has a reason; REPRODUCED has evidence.
-2. `sc` ∈ the skill's allowed list above; `level` matches the SC.
+## Hard invariants (schema rejects on violation — see W2 / R2.3-C / R2.3-D)
+1. `verdict ∈ enum`; **EVERY** verdict — incl `N/A` and `NOT REPRODUCED` — carries a
+   one-line `evidence`/reason (not just issues).
+2. `sc` ∈ the skill's allowed list above; `level` matches the SC. A **normative** issue
+   MUST carry an `sc`; a **best-practice/at-compat** observation may instead carry a
+   non-SC `rule` id (no fake SC).
 3. `element.anyIssue === (∃ sub-verdict REPRODUCED|PARTIAL)`.
 4. `summary.bySkill[*]`, `summary.elementsWithIssue`, `summary.issues` are **derived**, equal
-   to a recompute from `elements[]`.
-5. No definite **dynamic** verdict (keyboard/focus/announcement) on a `notFound` element.
+   to a recompute from `elements[]`. `summary.issues` is compared as an EXACT canonical array
+   (length + per-index, incl `rule`), so duplicates and corrupted fields are rejected.
+5. No definite **dynamic** verdict (keyboard/focus/announcement) on a `notFound` element;
+   nor on a probe stamped `trust:"synthetic"` or `isolation:"shared"` — those must be PARTIAL.
 6. `bucket ∈ {normative, at-compat, best-practice}`; only `normative` REPRODUCED counts toward
    an SC tally.
+7. **Completeness:** all 3 page skills present and NOT `N/A` (inherently applicable); no
+   unexpected top-level/element/skill/verdict keys.
+8. **Provenance:** `provenance.collect.xpaths` (the collector inventory) is required; every
+   element must be IN it (no fabricated element); a fully-evaluated inventory may not drop a
+   collected element.

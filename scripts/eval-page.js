@@ -106,31 +106,42 @@ function parseRGB(s) {
     // duplicate headings into the structure or pollute the axe run. Recorded for
     // transparency; the sampled elements themselves are never hidden by selector.
     out.consentHidden = await page.evaluate((selectors) => {
-      let n = 0; const matched = [];
-      // M2: EVALUATE the consent-present state (its own controls) BEFORE neutralising it,
-      // so we record consent-overlay a11y defects instead of silently dropping them.
-      const analysis = { containers: 0, focusable: 0, unlabelledControls: 0, headings: 0, hasDialogRole: false };
-      // M2: resolve aria-labelledby to a real non-empty target (a dangling idref is NOT a name).
+      const matched = [];
+      // M2/R22-M1: EVALUATE the consent overlay's OWN controls BEFORE neutralising it —
+      // and analyse it WHILE STILL VISIBLE (display:none would zero every child rect).
+      // Only VISIBLE + actually-FOCUSABLE controls are counted (a hidden input is not a
+      // user-facing 4.1.2 target). This inventory is STATIC/visible-only: the agent must
+      // treat consent findings as PARTIAL until live keyboard / focus-trap behaviour is
+      // exercised — it does not prove the overlay's reachability or trap.
+      const analysis = { containers: 0, visibleControls: 0, unlabelledVisibleControls: 0, visibleHeadings: 0, hasDialogRole: false, basis: 'static-visible-only — PARTIAL until live keyboard/focus-trap behaviour is exercised' };
+      // resolve aria-labelledby to a real non-empty target (a dangling idref is NOT a name).
       const named = el => {
         const lb = el.getAttribute('aria-labelledby');
         if (lb && lb.split(/\s+/).some(id => { const t = document.getElementById(id); return t && (t.textContent || '').trim(); })) return true;
         return !!((el.getAttribute('aria-label') || '').trim() || (el.textContent || '').trim() || el.getAttribute('title') || el.getAttribute('alt'));
       };
-      const seenC = new Set(); // M2: a container matching MULTIPLE selectors counts once
+      const isVisible = el => { const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity || '1') === 0) return false; const b = el.getBoundingClientRect(); return b.width > 0 && b.height > 0; };
+      const isFocusableCtl = el => !el.disabled && el.getAttribute('aria-disabled') !== 'true' && el.getAttribute('tabindex') !== '-1' && el.getAttribute('aria-hidden') !== 'true';
+      const seenC = new Set(); // a container matching MULTIPLE selectors counts ONCE
+      const toHide = new Set();
       for (const sel of selectors) {
         let els = [];
         try { els = [...document.querySelectorAll(sel)]; } catch (e) { continue; }
         for (const el of els) {
-          el.setAttribute('data-a11yeval-consent-hidden', '1'); el.style.setProperty('display', 'none', 'important'); n++;
-          if (seenC.has(el)) continue; seenC.add(el);
-          analysis.containers++;
-          if (el.getAttribute('role') === 'dialog' || el.getAttribute('role') === 'alertdialog') analysis.hasDialogRole = true;
-          for (const c of el.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')) { analysis.focusable++; if (!named(c)) analysis.unlabelledControls++; }
-          analysis.headings += el.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]').length;
+          if (!seenC.has(el)) {
+            seenC.add(el);
+            analysis.containers++;
+            if (el.getAttribute('role') === 'dialog' || el.getAttribute('role') === 'alertdialog') analysis.hasDialogRole = true;
+            for (const c of el.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')) { if (!isVisible(c) || !isFocusableCtl(c)) continue; analysis.visibleControls++; if (!named(c)) analysis.unlabelledVisibleControls++; }
+            analysis.visibleHeadings += [...el.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].filter(isVisible).length;
+          }
+          toHide.add(el);
         }
         if (els.length) matched.push(sel);
       }
-      return { count: n, selectors: matched, consentState: analysis };
+      // neutralise AFTER analysis so the visibility checks above saw the live overlay.
+      for (const el of toHide) { el.setAttribute('data-a11yeval-consent-hidden', '1'); el.style.setProperty('display', 'none', 'important'); }
+      return { count: seenC.size, selectors: matched, consentState: analysis };
     }, A.CONSENT_SELECTORS).catch(() => ({ count: 0, selectors: [] }));
 
     // ---- page-level structure (one evaluate) ----

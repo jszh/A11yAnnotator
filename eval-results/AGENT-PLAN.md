@@ -154,9 +154,12 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
    - **R2-H4:** `present` now uses a **spatial** measure (`focusIndicator.spatial` —
      changed-region area + perimeter band, area-independent), so a thin ring on a large
      control is detected. Cite `focusIndicator.basis`/`spatial` as evidence.
-   - **2.4.13 Focus Appearance (AAA)** is **captured but NOT enforced**:
-     `focusIndicator.focusAppearance{areaPx,minThicknessPx,maxContrastChange,meetsIfEnforced}`
-     — record it for completeness, but do not raise a 2.4.13 finding unless AAA is in scope.
+   - **2.4.13 Focus Appearance (AAA)** is **captured as PROXIES, NOT enforced**:
+     `focusIndicator.focusAppearance{enforced:false, proxyOnly:true, areaPx,
+     thicknessProxyPx, maxSampledContrast, roughMeetsProxy}` — record it for
+     completeness, but do not raise a 2.4.13 finding unless AAA is in scope. The fields
+     are deliberately named as *proxies* (`thicknessProxyPx`, `maxSampledContrast`,
+     `roughMeetsProxy`) — they are diagnostic only and do not establish AAA conformance.
 6. **dynamic-announcement** — **C1: scope 4.1.3 to STATUS MESSAGES only.** A bare
    `expandedChanged`/`pressedChanged`/`aria-selected` change is **4.1.2** (state
    exposure), and `dialogOpened` is **focus-management/change-of-context** — NEITHER is
@@ -203,12 +206,23 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
 + `pageSkills` to `eval-results/<slug>/records.json`, then run the MANDATORY builder,
 which derives every aggregate and HARD-GATES the output through the strict validator:
 ```
-node scripts/tools/build-results.js eval-results/<slug>/records.json eval-results/<slug>/results.json
+node scripts/tools/build-results.js eval-results/<slug>/records.json eval-results/<slug>/results.json eval-results/<slug>/collect.json
 ```
-If it exits non-zero it prints the contract violations (verdict/SC/level/bucket/anyIssue
-/ notFound) — fix the records and re-run. `results.json` only exists if it validated.
-Every issue verdict MUST carry a valid `sc` (and matching `level`); tag advisory/AT-compat
-findings with `bucket:"best-practice"`/`"at-compat"` so they don't count as SC failures.
+The third arg (`collect.json`) is REQUIRED: the builder derives **provenance** from the
+collector inventory, NOT from your records, so a fabricated element cannot validate and a
+collected element cannot be silently dropped (R2.3-C). If it exits non-zero it prints the
+contract violations (verdict/SC/level/bucket/anyIssue/notFound/provenance/trust) — fix the
+records and re-run. `results.json` only exists if it validated.
+
+Every **NORMATIVE** issue verdict must carry a valid `sc` (and matching `level`). A
+best-practice/AT-compat observation may instead carry a non-SC `rule` id (with
+`bucket:"best-practice"`/`"at-compat"`) so it doesn't count as an SC failure — do NOT
+invent a fake SC for it. EVERY verdict — including `N/A` and `NOT REPRODUCED` — must carry
+a one-line `evidence`/reason, and page-level skills may never be `N/A` (they are inherently
+applicable). A DEFINITE dynamic verdict (`REPRODUCED`/`NOT REPRODUCED` on keyboard/focus/
+announcement) must rest on a TRUSTED + ISOLATED probe — read `behavioralTrust` from
+drive.json and stamp `trust:"trusted"|"synthetic"` and `isolation:"isolated"|"shared"` on
+the verdict; if the probe was synthetic or non-isolated you MUST downgrade to `PARTIAL`.
 
 `records.json` shape:
 ```json
@@ -227,15 +241,18 @@ findings with `bucket:"best-practice"`/`"at-compat"` so they don't count as SC f
       "skills": {
         "name-role-state":            {"verdict","sc","level","evidence"},
         "color-and-visual-text":      {"verdict","sc","level","evidence"},
-        "keyboard-operability":       {"verdict","sc","level","evidence"},
-        "focus-management":           {"verdict","sc","level","evidence"},
-        "focus-visibility":           {"verdict","sc","level","evidence"},
-        "dynamic-announcement":       {"verdict","sc","level","evidence"},
+        "keyboard-operability":       {"verdict","sc","level","evidence","trust","isolation"},
+        "focus-management":           {"verdict","sc","level","evidence","trust","isolation"},
+        "focus-visibility":           {"verdict","sc","level","evidence","trust","isolation"},
+        "dynamic-announcement":       {"verdict","sc","level","evidence","trust","isolation"},
         "reflow-and-pointer-affordances": {"verdict","sc","level","evidence"},
         "forms-instructions-errors":  {"verdict","sc","level","evidence"},
         "page-structure":             {"verdict","evidence"},
         "grouping-and-reading-order": {"verdict","evidence"}
       },
+      // dynamic skills (keyboard/focus/announcement): `trust`/`isolation` are OPTIONAL
+      // but a DEFINITE verdict resting on synthetic/shared evidence is rejected — use
+      // PARTIAL. best-practice/at-compat verdicts may carry `rule` instead of `sc`.
       "anyIssue": <bool>
       "notFound": <bool, optional — set when the driver could not locate the element>
     }
@@ -281,11 +298,14 @@ findings with `bucket:"best-practice"`/`"at-compat"` so they don't count as SC f
 - Treat `tabWalk.trapDetected`/`budgetExceeded` and `forms[].skipped` as harness
   bookkeeping, not page findings.
 - **M2 consent is a SEPARATE STATE, not just bookkeeping.** `consentHidden.consentState`
-  inventories the cookie/consent overlay BEFORE it was neutralised (focusable controls,
-  `unlabelledControls`, headings, `hasDialogRole`). If a consent overlay is present,
-  evaluate IT too (unlabelled controls → 4.1.2; its own focus trap; heading order) and
-  report findings scoped to the consent layer — don't silently drop them because the
-  overlay was hidden for the main pass. (This is a static inventory; a full
-  consent-present axe/keyboard pass is still a known limitation.)
+  inventories the cookie/consent overlay BEFORE it was neutralised, **VISIBLE-only**:
+  `visibleControls`, `unlabelledVisibleControls`, `visibleHeadings`, `hasDialogRole`, and
+  a `basis` note. Hidden/non-focusable controls are excluded (they are not user-facing),
+  and a container matching multiple selectors is counted once. If a consent overlay is
+  present, evaluate IT too — but the inventory is STATIC/visible-only: it does NOT prove
+  the overlay's keyboard reachability or focus trap, so consent findings (e.g.
+  `unlabelledVisibleControls` → 4.1.2, its own trap, heading order) are **PARTIAL** until
+  exercised live. Don't silently drop them, and don't raise them as definite from the
+  inventory alone.
 - Final message: 4–6 lines (counts by verdict, standout issues, problems). The
   files are the real output.
