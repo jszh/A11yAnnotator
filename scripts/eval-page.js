@@ -174,12 +174,24 @@ function parseRGB(s) {
       });
     } catch (e) { out.problems.push('axe: ' + e.message); out.axe = []; }
 
+    // R21-H2: measure the TRUE UA-default checkbox/radio size in an isolated iframe
+    // (no page CSS), so a stylesheet that resizes all checkboxes can't masquerade as a
+    // user-agent control. Done once; consumed by the per-element uaControl check.
+    out.uaDefaults = await page.evaluate(() => {
+      const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;left:-9999px;width:50px;height:50px;border:0';
+      document.body.appendChild(f); const d = f.contentDocument;
+      d.body.innerHTML = '<input type="checkbox"><input type="radio">';
+      const cb = d.body.children[0].getBoundingClientRect(), rb = d.body.children[1].getBoundingClientRect();
+      const r = { checkbox: { w: Math.round(cb.width), h: Math.round(cb.height) }, radio: { w: Math.round(rb.width), h: Math.round(rb.height) } };
+      f.remove(); return r;
+    }).catch(() => null);
+
     // ---- per-element AX + DOM/style (CDP name/role authoritative) ----
     out.elements = [];
     for (const el of elements) {
       const rec = { xpath: el.xpath, landmark: el.landmark, sampledRole: el.sampledRole, sampledName: el.sampledName };
       // DOM + computed style snapshot
-      const dom = await page.evaluate((xp) => {
+      const dom = await page.evaluate((xp, uaDefaults) => {
         const r = document.evaluate(xp, document, null, 9, null).singleNodeValue;
         if (!r) return null;
         const cs = getComputedStyle(r); const b = r.getBoundingClientRect();
@@ -235,12 +247,19 @@ function parseRGB(s) {
               const clone = blk.cloneNode(true);
               clone.querySelectorAll('a,button,input,select,textarea,summary,[role=link],[role=button],[role=menuitem],[role=tab]').forEach(n => n.remove());
               const prose = (clone.textContent || '').replace(/\s+/g, ' ').trim();
-              inSentence = prose.length >= 15; // proven prose around the inline target
+              // R21-H2: require sentence-like lowercase prose (two consecutive lowercase
+              // words), not just any 15 non-control chars (all-caps nav labels are NOT a sentence).
+              inSentence = prose.length >= 20 && /[a-z]{3,}\s+[a-z]{2,}/.test(prose);
             }
           }
         }
         // R2-H5: User-Agent-Control exception — a bare default-sized native checkbox/radio.
-        const uaControl = (r.tagName.toLowerCase() === 'input' && (r.type === 'checkbox' || r.type === 'radio') && !r.style.width && !r.style.height);
+        let uaControl = false;
+        if (r.tagName.toLowerCase() === 'input' && (r.type === 'checkbox' || r.type === 'radio') && uaDefaults && uaDefaults[r.type]) {
+          const def = uaDefaults[r.type]; const bw = Math.round(b.width), bh = Math.round(b.height);
+          // UA control only when the size is UNMODIFIED (matches the iframe default within 2px)
+          uaControl = Math.abs(bw - def.w) <= 2 && Math.abs(bh - def.h) <= 2;
+        }
         const tag = r.tagName.toLowerCase();
         const roleAttr = r.getAttribute('role');
         // H7: AX/ARIA STATE collection (the name-role-STATE skill needs these).
@@ -296,7 +315,7 @@ function parseRGB(s) {
           isFormField: formTags.includes(tag) || formRoles.includes(roleAttr),
           isImage: tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img',
         };
-      }, el.xpath).catch(e => ({ _err: e.message }));
+      }, el.xpath, out.uaDefaults).catch(e => ({ _err: e.message }));
 
       if (!dom) { rec.notFound = true; out.elements.push(rec); continue; }
       if (dom._err) { rec.error = dom._err; out.elements.push(rec); continue; }

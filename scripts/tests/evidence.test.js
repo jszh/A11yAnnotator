@@ -61,6 +61,15 @@ test('R2-H5 target exceptions: prose-link PASS (inline), nav-link FAIL (no prose
   assert.equal(checkbox.targetSize.passes, true, 'bare native checkbox => UA-control exempt (auditor false-fail)');
 });
 
+test('R21-H2: a STYLESHEET-resized checkbox is NOT a UA control (true iframe default)', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-target-exc2.html', ['/html/body/div[1]/input[1]', '/html/body/p[1]/a[1]']);
+  const [cb, navlabel] = o.elements;
+  assert.ok(o.uaDefaults && o.uaDefaults.checkbox.w >= 12, 'measured the true UA default in an isolated iframe');
+  assert.equal(cb.uaControl, false, 'a 10x10 stylesheet-resized checkbox is author-modified, not a UA control');
+  assert.equal(cb.targetSize.passes, false, 'with a neighbour it can no longer hide behind spacing → FAIL');
+  assert.equal(navlabel.inSentence, false, 'all-caps nav labels are NOT a sentence (no real prose)');
+});
+
 test('R2-H2 trap: a two-control A↔B keyboard trap is detected (not just same-element repeat)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap.html', ['/html/body/button[2]']);
   assert.equal(o.tabWalk.trapDetected, true, 'A↔B cycle that cannot escape is a trap');
