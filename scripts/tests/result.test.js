@@ -417,3 +417,24 @@ test('R2.5-C: a recorded collector page that disagrees with results.file is REJE
     provenance: { collect: { xpaths: ['/a'], count: 1, page: 'victim.html' } } });
   assert.equal(validateResults(okMatch).ok, true, 'matching page identity validates');
 });
+
+// ---- R2.5-F: fail-closed recursive validation (R24-M1) ----
+test('R2.5-F: a NOT REPRODUCED with a MALFORMED sc / level-without-sc is REJECTED', () => {
+  const bogus = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'NOT REPRODUCED', sc: 'bogus', level: 'AAA', evidence: 'checked' } })] });
+  const e = validateResults(bogus).errors;
+  assert.ok(e.some(x => /malformed sc/.test(x)), 'an unparseable sc string is rejected');
+  const lvlNoSc = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'NOT REPRODUCED', sc: null, level: 'AA', evidence: 'checked' } })] });
+  assert.ok(validateResults(lvlNoSc).errors.some(x => /level .* present with no SC/.test(x)));
+});
+test('R2.5-F: a corrupted summary.countBasis VALUE is REJECTED', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')] });
+  R.summary.countBasis.normativeFailures = 'tampered text';
+  assert.ok(validateResults(R).errors.some(x => /countBasis\.normativeFailures mismatch/.test(x)));
+});
+test('R2.5-F: a null/malformed summary.issues entry FAILS CLOSED (no throw)', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')] });
+  R.summary.issues.push(null);
+  let v; assert.doesNotThrow(() => { v = validateResults(R); });
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some(x => /summary\.issues\[\d+\] is not an object/.test(x)));
+});
