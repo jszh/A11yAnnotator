@@ -463,3 +463,14 @@ test('R2.6-A driverEvidenceFrom maps EVERY field via fieldXpaths (not just perFi
   assert.equal(ev.formByField['/f/i9'].noTextIdentificationAtAll, true);
   assert.equal(ev.formsTrust.anyNoTextId, true);
 });
+
+// ---- R2.6-B: the axe floor can't be dodged with a fabricated failure ----
+test('R2.6-B: skipping elements while axe found serious violations is REJECTED even with normativeFailures>0', () => {
+  // a fabricated REPRODUCED (nf=1) used to disable the floor; now the floor gates on skips, not nf.
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [
+    el('/a', { 'name-role-state': { verdict: 'REPRODUCED', sc: '4.1.2', level: 'A', evidence: 'fabricated to dodge the floor' } }),
+  ], provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b', reason: 'off-screen duplicate' }] } } });
+  assert.equal(R.summary.normativeFailures, 1);
+  const v = validateResults(R, { collectorAxe: { seriousCount: 9 } });
+  assert.ok(v.errors.some(e => /EVERY collected element must be evaluated/.test(e)), 'one fabricated failure no longer dodges the floor');
+});

@@ -346,14 +346,15 @@ function validateResults(R, opts = {}) {
   if (!R.pageSkills || typeof R.pageSkills !== 'object') E('results: missing pageSkills');
 
   validateProvenance(E, R);
-  // R2.5-B: ground-truth floor. If the collector's OWN axe run found critical/serious
-  // violations, the audit cannot skip elements and still claim zero normative failures —
-  // that is exactly the mass-skip-to-clean attack. (When nothing was skipped the agent
-  // took responsibility for every element, so this floor does not apply.)
+  // R2.5-B/R2.6-B: ground-truth floor. If the collector's OWN axe run found critical/
+  // serious violations, the audit may NOT skip ANY collected element — a skipped element
+  // could be one axe flagged. This no longer gates on `normativeFailures === 0`: that gate
+  // was trivially dodged by stamping one fabricated failure. An element the driver couldn't
+  // locate must be RECORDED as `notFound` (evaluated → PARTIAL), not skipped.
   const AX = opts.collectorAxe;
-  if (AX && AX.seriousCount > 0 && R.summary) {
+  if (AX && AX.seriousCount > 0) {
     const skippedN = (R.provenance && R.provenance.collect && Array.isArray(R.provenance.collect.skipped)) ? R.provenance.collect.skipped.length : 0;
-    if (skippedN > 0 && R.summary.normativeFailures === 0) E(`provenance/axe: the collector's axe run found ${AX.seriousCount} critical/serious violation(s), but the audit SKIPPED ${skippedN} element(s) and reports 0 normative failures — a clean result cannot be produced by skipping flagged elements`);
+    if (skippedN > 0) E(`provenance/axe: the collector's axe run found ${AX.seriousCount} critical/serious violation(s), so EVERY collected element must be evaluated — the audit SKIPPED ${skippedN} (record unlocatable elements as notFound, do not skip)`);
   }
 
   for (const el of R.elements) {
