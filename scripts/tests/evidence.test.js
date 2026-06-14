@@ -77,6 +77,18 @@ test('R2-H3 first-focusable: the first focusable target is reached by real Tab (
   assert.ok(lt.stopsToReach <= 1, `should reach at stop 0, got ${lt.stopsToReach}`);
 });
 
+test('R2-H6 forms: TRUSTED submit, OBSERVED invalid events, per-field validity; native validation MEETS 3.3.1', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-form.html', ['/html/body/form[1]/input[1]']);
+  const f = o.forms[0];
+  assert.equal(f.submitMethod, 'trusted', 'submit must be a trusted click');
+  assert.equal(f.submitBlocked, true, 'observed via the invalid event, not inferred');
+  assert.ok(f.invalidEventsFired >= 1);
+  assert.ok(f.perField[0].validity.valueMissing, 'per-field validity captured');
+  assert.ok(f.validationMessages.length >= 1, 'native validationMessage captured');
+  assert.equal(f.nativeTextIdentification, true);
+  assert.equal(f.noTextIdentificationAtAll, false, 'native validation provides text → NOT a 3.3.1 failure');
+});
+
 test('H7 states: expanded/checked/disabled collected from DOM + AX', { skip: !serverUp }, () => {
   const o = runScript('eval-page.js', 'fx-states.html', STATE_XPS);
   const [expbtn, chk, disbtn] = o.elements;

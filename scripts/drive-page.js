@@ -501,10 +501,18 @@ function loadXpaths() {
       }
 
       // KEYBOARD — native presumption gate (C3 refinement) vs TRUSTED Enter/Space.
-      const pre = await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return null; const ti = el.getAttribute('tabindex'); return { disabled: !!el.disabled || el.getAttribute('aria-disabled') === 'true', tabindexEff: ti !== null ? +ti : null, roleOverride: ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'].includes(el.tagName.toLowerCase()) && !!el.getAttribute('role') }; }, xp).catch(() => null);
+      const pre = await page.evaluate((x) => {
+        const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return null;
+        const ti = el.getAttribute('tabindex'); const b = el.getBoundingClientRect();
+        // R2-H1: obscured = the element's centre is covered by an unrelated node.
+        let obscured = false;
+        if (b.width > 0 && b.height > 0) { const hx = Math.min(innerWidth - 1, Math.max(0, b.x + b.width / 2)), hy = Math.min(innerHeight - 1, Math.max(0, b.y + b.height / 2)); const top = document.elementFromPoint(hx, hy); obscured = !!top && top !== el && !el.contains(top) && !top.contains(el); }
+        // pointer-only sibling: an adjacent non-focusable onclick element overlapping us
+        return { disabled: !!el.disabled || el.getAttribute('aria-disabled') === 'true', tabindexEff: ti !== null ? +ti : null, roleOverride: ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'].includes(el.tagName.toLowerCase()) && !!el.getAttribute('role'), obscured };
+      }, xp).catch(() => null);
       if (native) {
-        const presumable = pre && !pre.disabled && (pre.tabindexEff === null || pre.tabindexEff >= 0) && !pre.roleOverride && !(rec.localTabWalk && rec.localTabWalk.reachedByTab === false);
-        rec.keyboard = { native: true, presumed: !!presumable, operable: presumable ? true : null, note: presumable ? 'native + preconditions hold → presumed keyboard operable' : 'native but a precondition is in question (tabindex<0 / disabled / role override / not Tab-reached) — exercise on live page' };
+        const presumable = pre && !pre.disabled && !pre.obscured && (pre.tabindexEff === null || pre.tabindexEff >= 0) && !pre.roleOverride && !(rec.localTabWalk && rec.localTabWalk.reachedByTab === false);
+        rec.keyboard = { native: true, presumed: !!presumable, operable: presumable ? true : null, obscured: pre && pre.obscured, note: presumable ? 'native + preconditions hold → presumed keyboard operable' : 'native but a precondition is in question (tabindex<0 / disabled / obscured / role override / not Tab-reached) — exercise on live page' };
       } else {
         // focus then press real keys (trusted)
         await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el) try { el.focus(); } catch (e) {} }, xp).catch(() => {});
@@ -544,6 +552,10 @@ function loadXpaths() {
 
       // ACTIVATION — TRUSTED click (ElementHandle.click); falls back to a flagged
       // synthetic click only if the real click can't be dispatched (covered/off-screen).
+      // R2-H1: isolate activation from the (mutating) keyboard/arrow probes above by
+      // reloading to a clean page and re-locating the element first.
+      if (!native || (rec.keyboard && rec.keyboard.destructive) || rec.arrowKeys) { await reloadPage(); }
+      const actHandle = await locateHandle(xp);
       const speechBefore = await speechNow();
       await page.evaluate((x) => {
         const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) { window.__act = null; return; }
@@ -559,7 +571,8 @@ function loadXpaths() {
         window.__actObs = obs;
       }, xp).catch(() => {});
       let clickMethod = 'trusted', clickErr = null;
-      try { await handle.click({ delay: 8 }); } catch (e) { clickErr = e.message; try { await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el) el.click(); }, xp); clickMethod = 'synthetic-fallback'; } catch (e2) { clickMethod = 'failed'; } }
+      const clickH = actHandle || handle;
+      try { await clickH.click({ delay: 8 }); } catch (e) { clickErr = e.message; try { await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el) el.click(); }, xp); clickMethod = 'synthetic-fallback'; } catch (e2) { clickMethod = 'failed'; } }
       await sleep(450);
       const activate = await page.evaluate(async () => {
         const a = window.__act; if (!a) return { gone: true };
@@ -579,7 +592,7 @@ function loadXpaths() {
         if (res.dialogOpened) res.modal = { focusMovedIntoDialog: !!([...document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]')].pop() || {}).contains && [...document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]')].pop().contains(document.activeElement), afterDialogs: after.dialogs };
         return res;
       }).catch(e => ({ error: e.message }));
-      if (activate) { activate.clicked = clickMethod !== 'failed'; activate.clickMethod = clickMethod; activate.clickErr = clickErr; }
+      if (activate) { activate.clicked = clickMethod !== 'failed'; activate.clickMethod = clickMethod; activate.clickErr = clickErr; activate.synthetic = clickMethod !== 'trusted'; }
       // FOCUS RETURN after modal — TRUSTED Escape, then a close control via handle.
       if (activate && activate.dialogOpened && activate.modal) {
         await page.keyboard.press('Escape'); await sleep(250);
@@ -596,43 +609,58 @@ function loadXpaths() {
     out.forms = [];
     const formCount = await page.evaluate(() => document.querySelectorAll('form').length).catch(() => 0);
     for (let fi = 0; fi < Math.min(formCount, 4); fi++) {
-      const alive = await page.evaluate(() => location.href).catch(() => null);
-      if (alive !== url) await reloadPage();
-      const fres = await page.evaluate(async (fi) => {
-        const form = document.querySelectorAll('form')[fi]; if (!form) return null;
+      await reloadPage(); // R2-H1: isolate each form probe on a clean page
+      // 1) set up OBSERVATION (invalid-event listeners + before-state) and mark the submit
+      const setup = await page.evaluate((fi) => {
+        const form = document.querySelectorAll('form')[fi]; if (!form) return { none: true };
         const fields = [...form.querySelectorAll('input,select,textarea')].filter(f => !['hidden', 'submit', 'button'].includes(f.type));
-        // T15: skip forms with no visible editable fields (cookie/hidden/modal/0-field
-        // forms) — submitting them yields meaningless "nativeValidationOnly" results.
         const visibleFields = fields.filter(f => { const s = getComputedStyle(f); const b = f.getBoundingClientRect(); return s.visibility !== 'hidden' && s.display !== 'none' && (b.width > 0 || b.height > 0); });
         if (visibleFields.length === 0) return { skipped: true, reason: 'no visible editable fields (cookie/hidden/modal form)', fields: fields.length };
-        const before = { invalids: form.querySelectorAll('[aria-invalid="true"]').length, alerts: form.querySelectorAll('[role=alert]').length, errTextLen: (form.innerText || '').length, live: [...document.querySelectorAll('[aria-live],[role=alert],[role=status]')].map(n => (n.textContent || '').trim()).join('||') };
+        window.__fInvalidFired = []; // R2-H6: OBSERVE the UA blocking submit
+        visibleFields.forEach((f, idx) => f.addEventListener('invalid', () => window.__fInvalidFired.push(idx)));
+        window.__fBefore = { href: location.href, errTextLen: (form.innerText || '').length, alerts: form.querySelectorAll('[role=alert]').length, live: [...document.querySelectorAll('[aria-live],[role=alert],[role=status]')].map(n => (n.textContent || '').trim()).join('||') };
         const submit = form.querySelector('[type=submit],button:not([type=button])');
-        try { if (submit) submit.click(); else form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); } catch (e) {}
-        await new Promise(r => setTimeout(r, 500));
-        const after = { invalids: form.querySelectorAll('[aria-invalid="true"]').length, alerts: form.querySelectorAll('[role=alert]').length, errTextLen: (form.innerText || '').length, live: [...document.querySelectorAll('[aria-live],[role=alert],[role=status]')].map(n => (n.textContent || '').trim()).join('||') };
-        // C2: capture the NATIVE constraint-validation evidence — a non-empty
-        // validationMessage (UA text) and focus-to-invalid-field mean 3.3.1 is MET,
-        // even without ARIA. submitBlocked = the form did not submit (still on page).
-        const invalidNow = visibleFields.filter(f => f.willValidate && f.checkValidity && !f.checkValidity());
-        const nativeMessages = invalidNow.map(f => (f.validationMessage || '').trim()).filter(Boolean);
-        const ae = document.activeElement;
-        const focusOnInvalid = !!ae && invalidNow.includes(ae);
-        const submitBlocked = invalidNow.length > 0; // a field is invalid → native UA blocks submit
-        return {
-          fields: fields.length, hasRequired: fields.some(f => f.required || f.getAttribute('aria-required') === 'true'),
-          submitBlocked, invalidFieldCount: invalidNow.length,
-          validationMessages: nativeMessages.slice(0, 5), nativeTextIdentification: nativeMessages.length > 0,
-          focusMovedToInvalidField: focusOnInvalid,
-          ariaInvalidSet: after.invalids > before.invalids, alertAppeared: after.alerts > before.alerts,
-          errorTextGrew: after.errTextLen > before.errTextLen + 3, errorAnnouncedLive: after.live !== before.live,
-          // C2: native validation MEETS 3.3.1 unless there's literally no text identification anywhere.
-          noTextIdentificationAtAll: nativeMessages.length === 0 && after.errTextLen <= before.errTextLen + 3 && after.alerts === before.alerts,
-          // legacy field kept for back-compat; do NOT derive 3.3.1 from it alone.
-          nativeValidationOnly: after.invalids === before.invalids && after.alerts === before.alerts && after.errTextLen <= before.errTextLen + 3,
-        };
+        if (submit) submit.setAttribute('data-a11y-submit', '1');
+        return { skipped: false, fields: fields.length, visible: visibleFields.length, hasRequired: fields.some(f => f.required || f.getAttribute('aria-required') === 'true'), hasSubmit: !!submit };
       }, fi).catch(() => null);
-      if (fres) out.forms.push(fres);
-      if (fres && !fres.skipped) await reloadPage(); // no submit happened for skipped forms → no reload needed
+      if (!setup || setup.none) continue;
+      if (setup.skipped) { out.forms.push(setup); continue; }
+      // 2) TRUSTED submit (real click); flagged synthetic fallback if it can't be clicked
+      let submitMethod = 'none';
+      if (setup.hasSubmit) {
+        const sh = await page.$('[data-a11y-submit]');
+        if (sh) { try { await sh.click(); submitMethod = 'trusted'; } catch (e) { try { await page.evaluate(() => document.querySelector('[data-a11y-submit]').click()); submitMethod = 'synthetic-fallback'; } catch (_) { submitMethod = 'failed'; } } }
+      } else { await page.evaluate((fi) => { const f = document.querySelectorAll('form')[fi]; if (f) (f.requestSubmit ? f.requestSubmit() : f.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))); }, fi); submitMethod = 'requestSubmit'; }
+      await sleep(500);
+      // 3) read OBSERVED evidence: which fields the UA flagged invalid, per-field validity,
+      //    validationMessage, focus move, navigation, author error text/aria/live changes.
+      const fres = await page.evaluate((fi) => {
+        const form = document.querySelectorAll('form')[fi]; if (!form) return null;
+        const visibleFields = [...form.querySelectorAll('input,select,textarea')].filter(f => !['hidden', 'submit', 'button'].includes(f.type)).filter(f => { const s = getComputedStyle(f); const b = f.getBoundingClientRect(); return s.visibility !== 'hidden' && s.display !== 'none' && (b.width > 0 || b.height > 0); });
+        const before = window.__fBefore || {};
+        const after = { errTextLen: (form.innerText || '').length, alerts: form.querySelectorAll('[role=alert]').length, live: [...document.querySelectorAll('[aria-live],[role=alert],[role=status]')].map(n => (n.textContent || '').trim()).join('||'), invalids: form.querySelectorAll('[aria-invalid="true"]').length };
+        const perField = visibleFields.map(f => ({ name: f.name || f.id || null, type: f.type || f.tagName.toLowerCase(), required: !!f.required, valid: f.willValidate && f.checkValidity ? f.checkValidity() : null, validity: f.validity ? { valueMissing: f.validity.valueMissing, typeMismatch: f.validity.typeMismatch, patternMismatch: f.validity.patternMismatch, tooShort: f.validity.tooShort, rangeUnderflow: f.validity.rangeUnderflow } : null, validationMessage: (f.validationMessage || '').trim() }));
+        const invalidFired = [...new Set(window.__fInvalidFired || [])];
+        const nativeMessages = perField.filter(p => p.validationMessage).map(p => p.validationMessage);
+        const navigated = before.href != null && location.href !== before.href;
+        const ae = document.activeElement; const aeIdx = visibleFields.indexOf(ae);
+        const submitBlocked = invalidFired.length > 0 || (!navigated && nativeMessages.length > 0);
+        const r = {
+          fields: setupFieldsShim(), hasRequired: perField.some(p => p.required),
+          submitMethod: null, submitBlocked, navigated, invalidEventsFired: invalidFired.length,
+          perField: perField.slice(0, 8), validationMessages: nativeMessages.slice(0, 5),
+          nativeTextIdentification: nativeMessages.length > 0,
+          focusMovedToInvalidField: aeIdx >= 0,
+          ariaInvalidSet: after.invalids > (before.invalids || 0), alertAppeared: after.alerts > (before.alerts || 0),
+          errorTextGrew: after.errTextLen > (before.errTextLen || 0) + 3, errorAnnouncedLive: after.live !== before.live,
+          // 3.3.1 is only a FAILURE if a detected error was DEMONSTRATED with NO text id at all.
+          noTextIdentificationAtAll: submitBlocked && nativeMessages.length === 0 && after.errTextLen <= (before.errTextLen || 0) + 3 && after.alerts === (before.alerts || 0),
+        };
+        function setupFieldsShim() { return visibleFields.length; }
+        const s = form.querySelector('[data-a11y-submit]'); if (s) s.removeAttribute('data-a11y-submit');
+        return r;
+      }, fi).catch(() => null);
+      if (fres) { fres.submitMethod = submitMethod; out.forms.push(fres); }
     }
 
     try { await page.evaluate(async () => { try { await window.__vsr.stop(); } catch (e) {} }); } catch (e) {}
