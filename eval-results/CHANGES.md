@@ -260,3 +260,58 @@ checks added for summary.issues[]/countBasis/bySkill cells. · `lib/result-build
 **Build command is now:** `build-results.js <records> <results> <collect.json> <drive.json>`
 (both inputs mandatory). Auditor files (`ROUND2*-INDEPENDENT-VERIFICATION.md`,
 `fx-audit-r23-*`) remain untracked; per-page `eval-results/<slug>/` data stays frozen.
+
+---
+
+# Round 2.5 — third independent-audit remediation (2026-06-14)
+
+Two independent audits of R2.4 (an adversarial self-audit workflow + the external
+`ROUND24-INDEPENDENT-VERIFICATION.md`) converged on one deep root cause: **R2.4 bound
+verdicts to the EXISTENCE/trust of evidence, not its observed OUTCOME**, and still gated on
+representations the evaluated party shapes (skip lists, un-identity-bound artifacts) or the
+page can suppress (interference observation, sparse samples). R2.5 re-grounds on: **bind to
+the observed outcome (ground truth); where the conforming outcome can't be positively
+demonstrated, return PARTIAL/needs-judgment, never a definite verdict.**
+
+### R2.5-A — outcome-aware behavioral binding (R24-C1, CRITICAL)
+`behavioralSupport` now reads the driver's OBSERVED outcome and rejects a verdict that
+contradicts it: 2.4.7↔`focusIndicator.present`, 2.1.1↔observed key response, 4.1.3↔a
+captured `vsrAnnouncement`, 3.3.1↔the FIELD'S OWN form (perField xpath added)
+text-identification, 2.4.3↔`focusReturnedToTrigger`. Native presumption supports only
+`NOT REPRODUCED`. · `lib/result-builder.js`, `drive-page.js`.
+
+### R2.5-B — bounded + ground-truth-checked skips (my #1)
+The agent-controlled skip list could launder a mass-drop into a "0 failures" audit. Now:
+substantive reason (≥8 chars, a real word), 25% cap, `{xpath,reason}`-only, and an AXE
+FLOOR — if the collector's axe found critical/serious violations, an audit that skipped
+elements may not report 0 failures. · `lib/result-builder.js`, `tools/build-results.js`.
+
+### R2.5-C — run/page identity binding (R24-H1)
+`records.file === collect.file === drive.file` enforced; duplicate raw collector xpaths
+rejected (no silent dedup); collector page recorded in provenance and re-checked against
+`results.file`. · `tools/build-results.js`, `lib/result-builder.js`.
+
+### R2.5-D — trap: outcome-layer signals + indeterminate verdict (R24-H2, my #3/#4)
+The interference model is defeated by `stopImmediatePropagation` and disable-the-escape
+traps. Added focus-FROZEN and background-DEFOCUS (MutationObserver) signals (below the page
+event layer), fixed the `st.none` body-wrap short-circuit, and made a bounded cycle with no
+demonstrable escape **indeterminate** (`trapDetected:null`) rather than a false wraparound.
+· `drive-page.js`, fx-trap-stopimmediate/fx-trap-disable.
+
+### R2.5-E — target-size: dense hit-test, disprove-only (R24-H3, my #5/#7/#9)
+The sparse 5×5 grid can't prove a solid square. Densified to ~2px, scrollIntoView for
+off-viewport targets, and a definite pass now REQUIRES `squareFits===true` — `null`
+(unmeasurable) → needs-judgment, never a flag-pass. · `eval-page.js`, `lib/a11y-eval.js`,
+fx-target-strip/belowfold/solid.
+
+### R2.5-F — fail-closed recursive validation (R24-M1, my #8)
+Malformed `sc`, level-without-sc, corrupted `countBasis` values, and a null `summary.issues`
+entry (was a TypeError) are now rejected fail-closed. · `lib/result-builder.js`.
+
+### R2.5-G — contract/plan sync (R24-M2)
+`RESULT-CONTRACT.md` + `AGENT-PLAN.md` updated: outcome-aware binding, identity, default-
+closed completeness + skip cap + axe floor, tri-state 2.1.2.
+
+**Build command unchanged:** `build-results.js <records> <results> <collect.json> <drive.json>`.
+Auditor files (`ROUND2*-INDEPENDENT-VERIFICATION.md`, `fx-audit-*`) remain untracked; per-page
+`eval-results/<slug>/` data stays frozen.
