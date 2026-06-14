@@ -41,6 +41,9 @@ const has = (n) => args.includes('--' + n);
 
 const FILE = opt('file');
 if (!FILE) { console.error('need --file'); process.exit(2); }
+// R2.6-C: per-run id shared with the collector (same --run-id); build-results requires
+// collect.runId === drive.runId so a stale drive from an earlier run is rejected.
+const RUN_ID = opt('run-id') || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const SETTLE = parseInt(opt('settle', '1400'), 10);
 // T13: raise the default global tab-walk cap (was 50 — missed deep elements on
 // large pages) and bound it by a wall-clock budget instead.
@@ -75,7 +78,7 @@ function loadXpaths() {
 (async () => {
   try { fs.mkdirSync(SHOTDIR, { recursive: true }); } catch (e) {}
   const xpaths = loadXpaths();
-  const out = { file: FILE, noscript: NOSCRIPT, scriptsDisabled: NOSCRIPT, maxTab: MAXTAB, problems: [] };
+  const out = { file: FILE, runId: RUN_ID, drivenAt: Date.now(), noscript: NOSCRIPT, scriptsDisabled: NOSCRIPT, maxTab: MAXTAB, problems: [] };
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   try { const _bc = await browser.target().createCDPSession(); await _bc.send('Browser.setDownloadBehavior', { behavior: 'deny' }); } catch (e) {}
   try {

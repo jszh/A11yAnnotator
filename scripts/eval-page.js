@@ -44,6 +44,11 @@ const has = (n) => args.includes('--' + n);
 
 const FILE = opt('file');
 if (!FILE) { console.error('need --file "<saved file name>"'); process.exit(2); }
+// R2.6-C: a per-run id shared with the driver of the SAME run (pass the SAME --run-id to
+// eval-page and drive-page). build-results requires collect.runId === drive.runId, so a
+// STALE drive from an earlier run (different id) cannot authorize this result. Auto-
+// generated when omitted (then collect/drive differ → the gate forces a coordinated run).
+const RUN_ID = opt('run-id') || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const SETTLE = parseInt(opt('settle', '1000'), 10);
 
 function isNoscriptFlagged(file) {
@@ -88,7 +93,7 @@ function parseRGB(s) {
 
 (async () => {
   const elements = loadXpaths();
-  const out = { file: FILE, noscript: NOSCRIPT, collectedAt: null, elementCount: elements.length, problems: [] };
+  const out = { file: FILE, runId: RUN_ID, noscript: NOSCRIPT, collectedAt: Date.now(), elementCount: elements.length, problems: [] };
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   try { const _bc = await browser.target().createCDPSession(); await _bc.send('Browser.setDownloadBehavior', { behavior: 'deny' }); } catch (e) {}
   try {

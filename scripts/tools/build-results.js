@@ -50,12 +50,22 @@ if (!input.file || input.file !== collect.file || input.file !== drive.file) {
   console.error(`REFUSED: page-identity mismatch — records.file=${JSON.stringify(input.file)}, collect.file=${JSON.stringify(collect.file)}, drive.file=${JSON.stringify(drive.file)} must be identical (R2.5-C).`);
   process.exit(2);
 }
-// R2.5-C: raw collector xpaths must be UNIQUE before normalization — reject (don't
-// silently dedup) so a duplicate-laden inventory can't mask a fabricated count.
+// R2.6-C: RUN identity — collector and driver must be from the SAME run (shared --run-id),
+// so a STALE drive.json from an earlier run of the same page cannot authorize a now-wrong
+// behavioral verdict. (file identity alone can't distinguish runs of the same page.)
+if (!collect.runId || !drive.runId || collect.runId !== drive.runId) {
+  console.error(`REFUSED: run-identity mismatch — collect.runId=${JSON.stringify(collect.runId)} != drive.runId=${JSON.stringify(drive.runId)}. Pass the SAME --run-id to eval-page and drive-page in one run (stale drive rejected, R2.6-C).`);
+  process.exit(2);
+}
+// R2.5-C/R2.6-C: raw collector xpaths must be UNIQUE before normalization — reject (don't
+// silently dedup) so a duplicate-laden inventory can't mask a fabricated count. Compare on
+// a NORMALIZED form (trim + collapse internal whitespace) so a whitespace-variant can't
+// slip past as "distinct".
+const norm = x => String(x).trim().replace(/\s+/g, ' ');
 const rawXpaths = (collect.elements || []).map(e => e.xpath).filter(Boolean);
-const dupX = new Set(); { const seen = new Set(); for (const x of rawXpaths) { if (seen.has(x)) dupX.add(x); seen.add(x); } }
+const dupX = new Set(); { const seen = new Set(); for (const x of rawXpaths) { const n = norm(x); if (seen.has(n)) dupX.add(n); seen.add(n); } }
 if (dupX.size) {
-  console.error(`REFUSED: collector inventory has ${dupX.size} duplicate xpath(s) (e.g. ${String([...dupX][0]).slice(-40)}) — must be unique (R2.5-C).`);
+  console.error(`REFUSED: collector inventory has ${dupX.size} duplicate xpath(s) (e.g. ${String([...dupX][0]).slice(-40)}) — must be unique (R2.6-C, normalized).`);
   process.exit(2);
 }
 const xpaths = rawXpaths;

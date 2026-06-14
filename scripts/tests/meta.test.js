@@ -70,3 +70,21 @@ test('regression sweep PASSES (exit 0) on a clean builder-produced corpus', () =
   fs.rmSync(dir, { recursive: true, force: true });
   assert.ok(ok, 'a builder-produced corpus must pass the sweep');
 });
+
+test('R2.6-C: build-results.js CLI rejects a run-id mismatch (stale drive) and a normalized-dup inventory', () => {
+  const S = require('../lib/result-schema.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'runid_'));
+  const sk = {}; for (const k of S.SKILLS) sk[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'na' };
+  const ps = {}; for (const k of S.PAGE_SKILLS) ps[k] = { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'ok' };
+  const rec = { file: 'p.html', slug: 's', pageSkills: ps, elements: [{ xpath: '/a', axRole: 'x', axName: 'y', skills: sk }] };
+  const recP = path.join(dir, 'rec.json'); fs.writeFileSync(recP, JSON.stringify(rec));
+  fs.writeFileSync(path.join(dir, 'collect.json'), JSON.stringify({ file: 'p.html', runId: 'RUN-A', collectedAt: 1, elements: [{ xpath: '/a' }], axe: [] }));
+  fs.writeFileSync(path.join(dir, 'drive_ok.json'), JSON.stringify({ file: 'p.html', runId: 'RUN-A', elements: [], forms: [] }));
+  fs.writeFileSync(path.join(dir, 'drive_stale.json'), JSON.stringify({ file: 'p.html', runId: 'RUN-OLD', elements: [], forms: [] }));
+  fs.writeFileSync(path.join(dir, 'collect_dup.json'), JSON.stringify({ file: 'p.html', runId: 'RUN-A', collectedAt: 1, elements: [{ xpath: '/a' }, { xpath: '/a ' }], axe: [] })); // whitespace variant
+  const cli = (collect, drive) => { try { run('node', ['scripts/tools/build-results.js', recP, path.join(dir, 'out.json'), path.join(dir, collect), path.join(dir, drive)], { cwd: ROOT, encoding: 'utf8' }); return { ok: true, out: '' }; } catch (e) { return { ok: false, out: (e.stdout || '') + (e.stderr || '') }; } };
+  assert.equal(cli('collect.json', 'drive_ok.json').ok, true, 'matching run-id validates');
+  const stale = cli('collect.json', 'drive_stale.json'); assert.equal(stale.ok, false); assert.match(stale.out, /run-identity mismatch/);
+  const dup = cli('collect_dup.json', 'drive_ok.json'); assert.equal(dup.ok, false); assert.match(dup.out, /duplicate xpath/);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
