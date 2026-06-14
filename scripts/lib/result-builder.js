@@ -139,7 +139,7 @@ function validateSkillVerdict(E, tag, k, sv, allowed) {
   // (trusted+isolated probe). Enforce enum + the mandatory downgrade to PARTIAL.
   if (sv.trust != null && !['trusted', 'synthetic'].includes(sv.trust)) E(`${tag}/${k}: trust not in enum: ${JSON.stringify(sv.trust)}`);
   if (sv.isolation != null && !['isolated', 'shared'].includes(sv.isolation)) E(`${tag}/${k}: isolation not in enum: ${JSON.stringify(sv.isolation)}`);
-  if (S.DYNAMIC_SKILLS.includes(k) && (sv.verdict === 'REPRODUCED' || sv.verdict === 'NOT REPRODUCED')) {
+  if (S.BEHAVIORAL_SKILLS.includes(k) && (sv.verdict === 'REPRODUCED' || sv.verdict === 'NOT REPRODUCED')) {
     if (sv.trust === 'synthetic') E(`${tag}/${k}: definite ${sv.verdict} resting on SYNTHETIC input must be PARTIAL (R22-H3)`);
     if (sv.isolation === 'shared') E(`${tag}/${k}: definite ${sv.verdict} resting on a NON-ISOLATED probe must be PARTIAL (R22-H3)`);
   }
@@ -193,10 +193,64 @@ function validateProvenance(E, R) {
   for (const xp of skippedSet) if (seen.has(xp)) E(`provenance: ${String(xp).slice(-30)} is both evaluated and skipped`);
 }
 
-// Strict validator. Returns { ok, errors[] }.
-function validateResults(R) {
+// R2.4-B: distil drive.json into the per-element + page evidence the binding needs.
+function driverEvidenceFrom(drive) {
+  const byXpath = {};
+  for (const e of (drive && drive.elements) || []) {
+    const bt = e.behavioralTrust || {};
+    byXpath[e.xpath] = {
+      keyboard: bt.keyboard || null,
+      arrowKeys: bt.arrowKeys || null,
+      activation: bt.activation || null,
+      focusProbed: !!(e.focusIndicator && (e.focusIndicator.present === true || e.focusIndicator.present === false)),
+    };
+  }
+  const forms = (drive && drive.forms) || [];
+  // forms are reloaded per-probe (always isolated); trust hinges on a trusted submit.
+  const formsTrust = { probed: forms.length > 0, allTrustedIsolated: forms.length > 0 && forms.every(f => f.submitMethod === 'trusted') };
+  return { byXpath, formsTrust };
+}
+
+// R2.4-B (R23-C2): bind a DEFINITE behavioral verdict to the DRIVER's own evidence
+// (`drive.json` behavioralTrust / focusIndicator / forms), NOT the agent's self-attested
+// trust/isolation. Returns { ok, reason }. `ev` is the per-element driver evidence;
+// `formsTrust` is page-level. A definite verdict the driver did not support → PARTIAL.
+function behavioralSupport(skill, verdict, ev, formsTrust) {
+  if (skill === 'forms-instructions-errors') {
+    if (!formsTrust || !formsTrust.probed) return { ok: false, reason: 'no form was submit-probed by the driver' };
+    if (!formsTrust.allTrustedIsolated) return { ok: false, reason: 'a form submission was synthetic/non-trusted' };
+    return { ok: true };
+  }
+  if (!ev) return { ok: false, reason: 'element was not behaviorally probed by the driver' };
+  if (skill === 'focus-visibility') return ev.focusProbed ? { ok: true } : { ok: false, reason: 'no definite focus-indicator probe (element unreached/indeterminate)' };
+  if (skill === 'focus-management' || skill === 'dynamic-announcement') {
+    const a = ev.activation;
+    if (!a) return { ok: false, reason: 'no activation probe (element gone/not activated)' };
+    if (a.trusted !== true || a.isolated !== true) return { ok: false, reason: 'activation was synthetic or non-isolated' };
+    return { ok: true };
+  }
+  if (skill === 'keyboard-operability') {
+    const k = ev.keyboard;
+    if (k && k.exercised) return (k.trusted === true && k.isolated === true) ? { ok: true } : { ok: false, reason: 'keyboard probe was synthetic or non-isolated' };
+    if (k && k.exercised === false && k.trusted === null) {
+      // native presumption: supports "operable" (no issue), NOT a keyboard FAILURE claim.
+      return verdict === 'NOT REPRODUCED' ? { ok: true } : { ok: false, reason: 'native presumption cannot support a keyboard FAILURE — must be exercised' };
+    }
+    const a = ev.arrowKeys;
+    if (a && a.trusted === true && a.isolated === true) return { ok: true };
+    return { ok: false, reason: 'no trusted+isolated keyboard/arrow probe' };
+  }
+  return { ok: true };
+}
+
+// Strict validator. Returns { ok, errors[] }. `opts.driverEvidence` = { byXpath, formsTrust }
+// binds definite behavioral verdicts to the driver's evidence (R2.4-B); when absent, the
+// binding is skipped (library/unit use) — the mandatory gate (build-results.js) always
+// supplies it.
+function validateResults(R, opts = {}) {
   const errors = [];
   const E = m => errors.push(m);
+  const DE = opts.driverEvidence || null;
   if (!R || typeof R !== 'object') return { ok: false, errors: ['results: not an object'] };
   for (const key of Object.keys(R)) if (!TOP_KEYS.has(key)) E(`results: unexpected top-level key "${key}"`);
   if (!Array.isArray(R.elements)) { E('results: missing elements[]'); return { ok: false, errors }; }
@@ -217,6 +271,13 @@ function validateResults(R) {
       validateSkillVerdict(E, tag, k, sv, S.SKILL_SCS[k]);
       if (el.notFound && S.DYNAMIC_SKILLS.includes(k) && (sv.verdict === 'REPRODUCED' || sv.verdict === 'NOT REPRODUCED'))
         E(`${tag}/${k}: definite ${sv.verdict} on notFound element (must be PARTIAL)`);
+      // R2.4-B: bind definite behavioral verdicts to the DRIVER's evidence, not the
+      // agent's self-report. Authoritative — even an agent-stamped trust:"trusted" fails
+      // if the driver shows no trusted+isolated probe.
+      if (DE && S.BEHAVIORAL_SKILLS.includes(k) && (sv.verdict === 'REPRODUCED' || sv.verdict === 'NOT REPRODUCED')) {
+        const sup = behavioralSupport(k, sv.verdict, DE.byXpath && DE.byXpath[el.xpath], DE.formsTrust);
+        if (!sup.ok) E(`${tag}/${k}: definite ${sv.verdict} not supported by driver evidence (${sup.reason}) — must be PARTIAL`);
+      }
     }
     const derivedAny = S.SKILLS.some(k => skills[k] && isIssue(skills[k].verdict));
     if (!!el.anyIssue !== derivedAny) E(`${tag}: anyIssue=${el.anyIssue} but derived ${derivedAny}`);
@@ -254,4 +315,4 @@ function validateResults(R) {
   return { ok: errors.length === 0, errors };
 }
 
-module.exports = { buildResults, validateResults, deriveElement, fullIssue, issueIdentity };
+module.exports = { buildResults, validateResults, deriveElement, fullIssue, issueIdentity, driverEvidenceFrom, behavioralSupport };

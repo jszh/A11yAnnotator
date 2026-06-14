@@ -210,13 +210,18 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
 + `pageSkills` to `eval-results/<slug>/records.json`, then run the MANDATORY builder,
 which derives every aggregate and HARD-GATES the output through the strict validator:
 ```
-node scripts/tools/build-results.js eval-results/<slug>/records.json eval-results/<slug>/results.json eval-results/<slug>/collect.json
+node scripts/tools/build-results.js eval-results/<slug>/records.json eval-results/<slug>/results.json eval-results/<slug>/collect.json eval-results/<slug>/drive.json
 ```
-The third arg (`collect.json`) is REQUIRED: the builder derives **provenance** from the
-collector inventory, NOT from your records, so a fabricated element cannot validate and a
-collected element cannot be silently dropped (R2.3-C). If it exits non-zero it prints the
-contract violations (verdict/SC/level/bucket/anyIssue/notFound/provenance/trust) — fix the
-records and re-run. `results.json` only exists if it validated.
+Both `collect.json` and `drive.json` are REQUIRED. The builder derives **provenance** from
+the collector inventory, NOT from your records (a fabricated element can't validate; a
+collected element can't be silently dropped — declare any un-evaluated one in
+`records.skipped:[{xpath,reason}]`). It also binds every **definite behavioral verdict** to
+the **driver's own evidence** in `drive.json` (`behavioralTrust`/`focusIndicator`/`forms`) —
+NOT to any `trust`/`isolation` you write. If the driver shows no trusted+isolated probe for
+that element/skill, a definite `REPRODUCED`/`NOT REPRODUCED` is rejected and you must use
+`PARTIAL`. Native-keyboard presumption supports only “operable” (`NOT REPRODUCED`), never a
+keyboard *failure*. If it exits non-zero it prints the contract violations — fix and re-run.
+`results.json` only exists if it validated.
 
 Every **NORMATIVE** issue verdict must carry a valid `sc` (and matching `level`). A
 best-practice/AT-compat observation may instead carry a non-SC `rule` id (with

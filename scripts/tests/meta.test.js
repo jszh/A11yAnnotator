@@ -56,7 +56,8 @@ test('regression sweep PASSES (exit 0) on a clean builder-produced corpus', () =
   const S = require('../lib/result-schema.js');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sweepok_'));
   const slug = path.join(dir, 'goodpage'); fs.mkdirSync(slug);
-  fs.writeFileSync(path.join(slug, 'drive.json'), JSON.stringify({ elements: [], forms: [] }));
+  // R2.4-B: the definite focus-visibility verdict below must be backed by a driver focus probe.
+  fs.writeFileSync(path.join(slug, 'drive.json'), JSON.stringify({ elements: [{ xpath: '/a', focusIndicator: { present: false }, behavioralTrust: { activation: { trusted: true, isolated: true } } }], forms: [] }));
   const skills = {}; for (const k of S.SKILLS) skills[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'not applicable to this element' };
   skills['focus-visibility'] = { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no visible focus ring' };
   // R2.3-C: page skills are inherently applicable (no N/A); provenance ties to collect.

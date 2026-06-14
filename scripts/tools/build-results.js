@@ -3,19 +3,21 @@
 // verdicts + pageSkills to an input file; this derives all aggregates and HARD-GATES
 // the output through the strict validator. Nothing else may write results.json.
 //
-//   node scripts/tools/build-results.js <input.json> <out/results.json> <collect.json>
+//   node scripts/tools/build-results.js <input.json> <out/results.json> <collect.json> <drive.json>
 //
 // input.json: { file, slug, noscript, elements:[{xpath,axRole,axName,notFound?,
 //   skills:{<10 skills>:{verdict,sc,level,evidence,bucket?}}}], pageSkills:{...} }
-// collect.json: the COLLECTOR output. R2.3-C: provenance is derived from it HERE (NOT
+// collect.json: the COLLECTOR output. R2.4-A: provenance is derived from it HERE (NOT
 //   from the agent's input) so a fabricated element cannot validate.
+// drive.json: the DRIVER output. R2.4-B: definite behavioral verdicts are bound to its
+//   behavioralTrust/focusIndicator/forms evidence, NOT the agent's self-report.
 // Exits non-zero (writing nothing) if the built result fails validation.
 'use strict';
 const fs = require('fs');
-const { buildResults, validateResults } = require('../lib/result-builder.js');
+const { buildResults, validateResults, driverEvidenceFrom } = require('../lib/result-builder.js');
 
-const [inPath, outPath, collectPath] = process.argv.slice(2);
-if (!inPath || !outPath) { console.error('usage: build-results.js <input.json> <out/results.json> <collect.json>'); process.exit(2); }
+const [inPath, outPath, collectPath, drivePath] = process.argv.slice(2);
+if (!inPath || !outPath) { console.error('usage: build-results.js <input.json> <out/results.json> <collect.json> <drive.json>'); process.exit(2); }
 
 let input;
 try { input = JSON.parse(fs.readFileSync(inPath, 'utf8')); }
@@ -35,8 +37,18 @@ catch (e) { console.error('cannot read/parse collect.json:', e.message); process
 const xpaths = [...new Set((collect.elements || []).map(e => e.xpath).filter(Boolean))];
 input.provenance = { collect: { xpaths, count: xpaths.length, skipped: Array.isArray(input.skipped) ? input.skipped : [], collectedAt: collect.collectedAt || null } };
 
+// R2.4-B: drive.json is MANDATORY — definite behavioral verdicts must be bound to it.
+if (!drivePath) {
+  console.error('REFUSED: drive.json is REQUIRED — definite behavioral verdicts must be bound to driver evidence (R2.4-B).');
+  process.exit(2);
+}
+let drive;
+try { drive = JSON.parse(fs.readFileSync(drivePath, 'utf8')); }
+catch (e) { console.error('cannot read/parse drive.json:', e.message); process.exit(2); }
+const driverEvidence = driverEvidenceFrom(drive);
+
 const built = buildResults(input);
-const v = validateResults(built);
+const v = validateResults(built, { driverEvidence });
 if (!v.ok) {
   console.error(`REFUSED to write ${outPath} — ${v.errors.length} contract violation(s):`);
   for (const m of v.errors.slice(0, 40)) console.error('  ' + m);

@@ -63,8 +63,13 @@ for (const s of slugs) {
 
   // C5: aggregates must agree with element records.
   if (R) {
-    // schema/aggregate validator (W2) when available
-    if (builder) { const v = builder.validateResults(R); if (!v.ok) for (const m of v.errors) fails.push(`[C5] ${s}: ${m}`); }
+    // schema/aggregate validator (W2) when available — bind behavioral verdicts to the
+    // driver evidence too (R2.4-B) when a fresh drive.json is present.
+    if (builder) {
+      const opts = (D && builder.driverEvidenceFrom) ? { driverEvidence: builder.driverEvidenceFrom(D) } : {};
+      const v = builder.validateResults(R, opts);
+      if (!v.ok) for (const m of v.errors) fails.push(`[C5] ${s}: ${m}`);
+    }
     // explicit anyIssue cross-check (no builder needed)
     let withIssue = 0;
     for (const el of R.elements || []) {

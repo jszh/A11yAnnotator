@@ -279,3 +279,43 @@ test('R2.3-D: the trust/isolation rule does NOT constrain STATIC skills', () => 
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'reflow-and-pointer-affordances': { verdict: 'REPRODUCED', sc: '2.5.8', level: 'AA', evidence: 'too small', trust: 'synthetic', isolation: 'shared' } })] });
   assert.equal(validateResults(R).ok, true, 'target size (2.5.8) is a static, geometry-only skill — not behavioral');
 });
+
+// ---- R2.4-B: bind definite behavioral verdicts to DRIVER evidence (R23-C2) ----
+const { driverEvidenceFrom } = require('../lib/result-builder.js');
+function DE(byXpath, formsTrust) { return { driverEvidence: { byXpath: byXpath || {}, formsTrust: formsTrust || { probed: false, allTrustedIsolated: false } } }; }
+
+test('R2.4-B reject: a definite focus-visibility verdict with NO driver focus probe → PARTIAL', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } })] });
+  const v = validateResults(R, DE({ '/a': { focusProbed: false, activation: null, keyboard: null } }));
+  assert.ok(v.errors.some(e => /not supported by driver evidence/.test(e)));
+});
+test('R2.4-B reject: agent self-attests trusted but the DRIVER shows no trusted+isolated activation', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-management': { verdict: 'NOT REPRODUCED', sc: '2.4.3', level: 'A', evidence: 'ok', trust: 'trusted', isolation: 'isolated' } })] });
+  const v = validateResults(R, DE({ '/a': { activation: { trusted: false, isolated: true } } }));
+  assert.ok(v.errors.some(e => /not supported by driver evidence/.test(e)), 'driver evidence is authoritative over the agent stamp');
+});
+test('R2.4-B reject: forms-instructions-errors REPRODUCED with a SYNTHETIC submit → PARTIAL', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'forms-instructions-errors': { verdict: 'REPRODUCED', sc: '3.3.1', level: 'A', evidence: 'no error text' } })] });
+  const v = validateResults(R, DE({ '/a': {} }, { probed: true, allTrustedIsolated: false }));
+  assert.ok(v.errors.some(e => /synthetic\/non-trusted/.test(e)));
+});
+test('R2.4-B native presumption supports NOT REPRODUCED but NOT a keyboard FAILURE', () => {
+  const nativeEv = { '/a': { keyboard: { trusted: null, isolated: true, exercised: false }, activation: { trusted: true, isolated: true } } };
+  const pass = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'keyboard-operability': { verdict: 'NOT REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'native button operable' } })] });
+  assert.equal(validateResults(pass, DE(nativeEv)).ok, true, 'native presumption supports "operable"');
+  const fail = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'keys do nothing' } })] });
+  assert.ok(validateResults(fail, DE(nativeEv)).errors.some(e => /native presumption cannot support a keyboard FAILURE/.test(e)));
+});
+test('R2.4-B ALLOW: a definite verdict backed by a trusted+isolated probe validates', () => {
+  const ev = { '/a': { keyboard: { trusted: true, isolated: true, exercised: true }, activation: { trusted: true, isolated: true }, focusProbed: true } };
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [
+    el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'no kbd' }, 'focus-visibility': { verdict: 'NOT REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'ring ok' } }),
+  ] });
+  assert.equal(validateResults(R, DE(ev, { probed: true, allTrustedIsolated: true })).ok, true);
+});
+test('R2.4-B driverEvidenceFrom distils behavioralTrust/focusIndicator/forms', () => {
+  const ev = driverEvidenceFrom({ elements: [{ xpath: '/a', behavioralTrust: { keyboard: { trusted: true, isolated: true, exercised: true }, activation: { trusted: true, isolated: true } }, focusIndicator: { present: true } }], forms: [{ submitMethod: 'trusted' }] });
+  assert.equal(ev.byXpath['/a'].focusProbed, true);
+  assert.equal(ev.byXpath['/a'].activation.trusted, true);
+  assert.deepEqual(ev.formsTrust, { probed: true, allTrustedIsolated: true });
+});

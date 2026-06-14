@@ -13,6 +13,10 @@ const SKILLS = [
 
 // Dynamic (driver-exercised) skills — a definite verdict here on a notFound element is illegal.
 const DYNAMIC_SKILLS = ['keyboard-operability', 'focus-management', 'focus-visibility', 'dynamic-announcement'];
+// BEHAVIORAL skills — a DEFINITE verdict must be bound to (trusted + isolated) driver
+// evidence (R2.4-B). Superset of DYNAMIC_SKILLS: forms error-identification is also
+// behavioral (it rests on a trusted form submission), but is page/form-scoped.
+const BEHAVIORAL_SKILLS = ['keyboard-operability', 'focus-management', 'focus-visibility', 'dynamic-announcement', 'forms-instructions-errors'];
 
 // Allowed SCs per skill (RESULT-CONTRACT.md). REPRODUCED/PARTIAL must cite one of these.
 const SKILL_SCS = {
@@ -50,4 +54,4 @@ function scCode(sc) { const m = String(sc || '').match(/\b\d\.\d{1,2}\.\d{1,2}\b
 // ALL SC codes in a field (a verdict may legitimately cite more than one).
 function scCodes(sc) { return [...String(sc || '').matchAll(/\b\d\.\d{1,2}\.\d{1,2}\b/g)].map(m => m[0]); }
 
-module.exports = { VERDICTS, BUCKETS, SKILLS, DYNAMIC_SKILLS, SKILL_SCS, PAGE_SKILLS, PAGE_SKILL_SCS, SC_LEVEL, scCode, scCodes };
+module.exports = { VERDICTS, BUCKETS, SKILLS, DYNAMIC_SKILLS, BEHAVIORAL_SKILLS, SKILL_SCS, PAGE_SKILLS, PAGE_SKILL_SCS, SC_LEVEL, scCode, scCodes };
