@@ -213,6 +213,7 @@ function loadXpaths() {
         let nodeId = null;
         if (sr && sr.resultCount > 0) { const r = await cdp.send('DOM.getSearchResults', { searchId: sr.searchId, fromIndex: 0, toIndex: 1 }).catch(() => null); nodeId = r && r.nodeIds && r.nodeIds[0]; }
         const readOutline = () => page.evaluate(x => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return null; const c = getComputedStyle(el); return { outline: c.outlineStyle + ' ' + c.outlineWidth + ' ' + c.outlineColor, boxShadow: (c.boxShadow && c.boxShadow !== 'none') ? c.boxShadow.slice(0, 60) : 'none' }; }, xp).catch(() => null);
+        const outlineUnforced = await readOutline(); // H1: unfocused computed, for focus-dependence
         const before = inV ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
         let forced = false;
         if (nodeId) { try { await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['focus', 'focus-visible'] }); forced = true; } catch (e) {} }
@@ -222,8 +223,21 @@ function loadXpaths() {
         if (nodeId && forced) { try { await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] }); } catch (e) {} }
         const forcedDiffPct = (before && after) ? await diffPct(before, after) : null;
         const blankFrame = before ? A.isBlankFrame(await frameStats(before)) : false;
-        return { cropValid: inV && !blankFrame, forced, forcedDiffPct, focusedOutline: outlineForced && outlineForced.outline, focusedBoxShadow: outlineForced && outlineForced.boxShadow, blankFrame };
+        return {
+          cropValid: inV && !blankFrame, forced, forcedDiffPct, blankFrame,
+          unfocusedOutline: outlineUnforced && outlineUnforced.outline, unfocusedBoxShadow: outlineUnforced && outlineUnforced.boxShadow,
+          focusedOutline: outlineForced && outlineForced.outline, focusedBoxShadow: outlineForced && outlineForced.boxShadow,
+        };
       } catch (e) { return { error: e.message }; }
+    }
+
+    // Resolve an xpath to a puppeteer ElementHandle for TRUSTED pointer/click input.
+    async function locateHandle(xp) {
+      try {
+        const h = await page.evaluateHandle((x) => document.evaluate(x, document, null, 9, null).singleNodeValue, xp);
+        const el = h.asElement(); if (!el) { await h.dispose().catch(() => {}); return null; }
+        return el;
+      } catch (e) { return null; }
     }
 
     // ---------- GLOBAL TAB-WALK (traps / overall order / off-screen) ----------
@@ -240,12 +254,25 @@ function loadXpaths() {
       }).catch(() => ({ none: true }));
       if (st.none) { if (i > 0) break; else continue; }
       st.speech = await speechNow();
+      if (st.speech && A.isVsrNoisePhrase(st.speech)) st.speech = null; // T9/H3: don't carry root/noise phrases
       if (!st.outlineOrShadow) out.tabWalk.noOutlineStops++;
       if (!st.inViewport) out.tabWalk.offScreenStops++;
       seen.set(st.xpath, (seen.get(st.xpath) || 0) + 1);
-      if (st.xpath === prevKey) { repeat++; if (repeat >= 3) { out.tabWalk.trapDetected = true; break; } } else repeat = 0;
-      prevKey = st.xpath; out.tabWalk.stops.push(st);
-      if (seen.get(st.xpath) >= 4) { out.tabWalk.trapDetected = true; break; }
+      out.tabWalk.stops.push(st);
+      // C3: a TRAP is "Tab does not advance focus" (same element repeating consecutively),
+      // NOT normal wraparound (revisiting an element after cycling the page). Confirm a
+      // suspected trap with Shift+Tab — if focus escapes backward, it isn't a trap.
+      if (st.xpath === prevKey) {
+        repeat++;
+        if (repeat >= 3) {
+          const before = st.xpath;
+          await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); await sleep(22);
+          const escaped = await page.evaluate((b) => { const el = document.activeElement; return !el || el === document.body || window.__getXPath(el) !== b; }, before).catch(() => false);
+          if (!escaped) { out.tabWalk.trapDetected = true; out.tabWalk.trapXpath = before; break; }
+          repeat = 0; // Shift+Tab escaped → not a trap; keep walking
+        }
+      } else repeat = 0;
+      prevKey = st.xpath;
     }
     out.tabWalk.count = out.tabWalk.stops.length;
 
@@ -292,9 +319,14 @@ function loadXpaths() {
           const target = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!target) return { gone: true };
           let ti = all.indexOf(target);
           if (ti < 0) { const inner = target.querySelector && target.querySelector(sel); if (inner) ti = all.indexOf(inner); }
-          const startIdx = Math.max(0, ti - 5);
-          if (ti >= 0 && all[startIdx]) { try { all[startIdx].focus(); } catch (e) {} return { positioned: true, targetIndex: ti, startIdx, total: all.length }; }
-          return { positioned: false, targetIndex: ti };
+          if (ti < 0) return { positioned: false, targetIndex: ti };
+          // C3: when the target IS the first focusable (ti===0), focusing all[startIdx]
+          // would focus the target then immediately Tab OFF it → falsely "unreachable".
+          // Instead blur and let the first Tab land on it.
+          const startIdx = ti > 0 ? Math.max(0, ti - 5) : -1;
+          if (startIdx >= 0 && all[startIdx]) { try { all[startIdx].focus(); } catch (e) {} }
+          else { try { document.activeElement && document.activeElement.blur(); } catch (e) {} }
+          return { positioned: true, targetIndex: ti, startIdx, total: all.length };
         }, xp).catch(() => ({ error: true }));
         const tabStops = []; let reachedAt = -1, focusB64 = null;
         if (pos && pos.positioned) {
@@ -328,22 +360,26 @@ function loadXpaths() {
         const forced = await forcedFocusRing(xp);
         const baseBlank = baseB64 ? A.isBlankFrame(await frameStats(baseB64)) : false;
         const cropValidTab = !!(baseB64 && focusB64) && !baseBlank;
+        // H1: real-keyboard pixel change is primary; focus-DEPENDENCE comes from the
+        // forced probe's unfocused-vs-forced computed outline/shadow (an always-on
+        // outline/shadow has unfocused == focused → not counted). Forced diff = corrob.
         const decision = A.focusRingDecision({
-          diffPct: dp, cropValid: cropValidTab,
-          focusedOutline: (forced && forced.focusedOutline) || (computed && computed.outline),
-          focusedBoxShadow: (forced && forced.focusedBoxShadow) || (computed && computed.boxShadow),
+          realTabDiffPct: dp, realTabCropValid: cropValidTab,
+          unfocusedOutline: forced && forced.unfocusedOutline, focusedOutline: forced && forced.focusedOutline,
+          unfocusedBoxShadow: forced && forced.unfocusedBoxShadow, focusedBoxShadow: forced && forced.focusedBoxShadow,
           forcedDiffPct: forced && forced.forcedDiffPct,
         });
         rec.localTabWalk = { positioned: !!(pos && pos.positioned), targetIndexInFocusables: pos && pos.targetIndex, reachedByTab: reachedAt >= 0, stopsToReach: reachedAt, stops: tabStops };
         rec.focusIndicator = {
           present: decision.present,                      // TRI-STATE: true | false | null(=PARTIAL)
           indicatorPresent: decision.present === true,    // back-compat boolean
-          basis: decision.basis,
-          visibleDiffPct: dp, forcedFocusVisibleDiffPct: forced && forced.forcedDiffPct,
+          basis: decision.basis, focusDependentComputed: decision.focusDependentComputed,
+          realTabDiffPct: dp, realTabCropValid: cropValidTab,
+          forcedFocusVisibleDiffPct: forced && forced.forcedDiffPct, forcedCropValid: forced && forced.cropValid,
+          unfocusedOutline: forced && forced.unfocusedOutline, focusedOutline: forced && forced.focusedOutline,
           computedOutline: computed && computed.outline, computedBoxShadow: computed && computed.boxShadow,
-          focusedOutline: forced && forced.focusedOutline,
-          method: (forced && typeof forced.forcedDiffPct === 'number') ? 'forced-focus-visible' : ((typeof dp === 'number' && dp >= 0) ? 'real-tab-diff' : 'computed-only'),
-          cropValidTab, baseBlankFrame: baseBlank, forcedCropValid: forced && forced.cropValid,
+          baseBlankFrame: baseBlank,
+          method: cropValidTab ? 'real-keyboard-diff' : ((forced && typeof forced.forcedDiffPct === 'number') ? 'forced-focus-visible' : 'indeterminate'),
           focusShot: focusB64 ? path.join(SHOTDIR, 'el' + idx + '_focus.png') : null,
         };
         await page.evaluate(() => { try { document.activeElement && document.activeElement.blur(); } catch (e) {} }).catch(() => {});
@@ -357,18 +393,26 @@ function loadXpaths() {
           try {
             t.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); await new Promise(r => setTimeout(r, 0));
             for (let i = 0; i < 5; i++) { try { await vsr.previous(); } catch (e) { break; } }
+            let prevSp = null; // H3: detect sticky/stale lastSpokenPhrase (unchanged across stops)
             for (let i = 0; i < 16; i++) {
               try { await vsr.next(); } catch (e) { break; }
               const n = vsr.activeNode; if (!n) break;
               const el = n.nodeType === 1 ? n : n.parentElement;
               const isT = !!el && (el === t || (t.contains && t.contains(el)) || (el.contains && el.contains(t)));
               let sp = null; try { sp = await vsr.lastSpokenPhrase() || null; } catch (e) {}
-              stops.push({ xpath: el ? window.__getXPath(el) : null, speech: sp, isTarget: isT });
+              const stale = sp !== null && sp === prevSp; prevSp = sp;
+              stops.push({ xpath: el ? window.__getXPath(el) : null, speech: stale ? null : sp, rawSpeech: sp, stale, isTarget: isT });
             }
           } catch (e) { return { error: e.message, stops }; }
           const ti = stops.findIndex(s => s.isTarget);
           return { stops, reachedBySR: ti >= 0, targetSpeech: ti >= 0 ? stops[ti].speech : null };
         }, xp).catch(() => null);
+        // H3: drop root/noise phrases (node-side filter) and recompute targetSpeech.
+        if (rec.srWalk && Array.isArray(rec.srWalk.stops)) {
+          for (const s of rec.srWalk.stops) if (s.speech && A.isVsrNoisePhrase(s.speech)) s.speech = null;
+          const tgt = rec.srWalk.stops.find(s => s.isTarget);
+          rec.srWalk.targetSpeech = tgt ? tgt.speech : null;
+        }
       }
       out.elements.push(rec);
     }
@@ -378,53 +422,48 @@ function loadXpaths() {
     for (const rec of out.elements) {
       if (rec.notFound || !rec.isInteractive) continue;
       const xp = rec.xpath; const native = NATIVE.includes(rec.tag);
-      const alive = await page.evaluate(() => ({ href: location.href, hasBody: !!document.body })).catch(() => null);
-      if (!alive || alive.href !== url || !alive.hasBody) { out.problems.push('recovered (reloaded) before ' + rec.idx); await reloadPage(); }
+      // C3 ISOLATION: reload to a clean page before each element's mutating probes so
+      // a previous element's non-navigation mutation can't contaminate this one.
+      await reloadPage();
+      const handle = await locateHandle(xp);
+      if (!handle) { rec.passBNotFound = true; continue; }
 
-      // HOVER → 1.4.13 dismissible / hoverable / persistent
+      // HOVER → 1.4.13 — TRUSTED pointer move + TRUSTED Escape (C3).
       const cue = await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; return el ? !!(el.getAttribute('title') || el.getAttribute('aria-describedby')) : false; }, xp).catch(() => false);
       if (cue) {
-        rec.hover = await page.evaluate(async (x) => {
-          const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return null;
-          const cnt = () => document.querySelectorAll('[role=tooltip],.tooltip,[data-tooltip-visible]').length;
-          const before = cnt();
-          el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-          await new Promise(r => setTimeout(r, 320));
-          const onHover = cnt();
-          await new Promise(r => setTimeout(r, 1200));             // persistent: still there after a pause while hovered?
-          const persists = cnt() >= onHover && onHover > before;
-          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-          await new Promise(r => setTimeout(r, 150));
-          const afterEsc = cnt();
-          return { tooltipAppearsOnHover: onHover > before, persistentWhileHovered: persists, dismissibleByEsc: onHover > before && afterEsc < onHover, hasTitleAttr: !!el.getAttribute('title') };
-        }, xp).catch(() => null);
+        const tipCount = () => page.evaluate(() => document.querySelectorAll('[role=tooltip],.tooltip,[data-tooltip-visible]').length).catch(() => 0);
+        const box = await handle.boundingBox().catch(() => null);
+        if (box) {
+          const before = await tipCount();
+          await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await sleep(320);
+          const onHover = await tipCount(); await sleep(1200);
+          const persists = (await tipCount()) >= onHover && onHover > before;
+          await page.keyboard.press('Escape'); await sleep(150);
+          const afterEsc = await tipCount();
+          rec.hover = { tooltipAppearsOnHover: onHover > before, persistentWhileHovered: persists, dismissibleByEsc: onHover > before && afterEsc < onHover, method: 'trusted-pointer' };
+          await page.mouse.move(2, 2); // move pointer away
+        }
       }
 
-      // KEYBOARD operability — native is operable by definition; custom widgets probed with Enter+Space
-      if (native) rec.keyboard = { native: true, operable: true, note: 'native interactive element — keyboard operable by definition' };
-      else {
-        const kb = await page.evaluate(async (x) => {
-          const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return { gone: true };
-          const vsig = () => { const m = document.querySelector('main') || document.body; return location.href + '|' + (m.innerText || '').trim().slice(0, 120) + '#' + m.childElementCount + '|' + document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length; };
-          try { el.focus(); } catch (e) {}
-          const aBefore = document.activeElement, vBefore = vsig();
-          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-          el.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-          await new Promise(r => setTimeout(r, 220));
-          const vEnter = vsig(); const respEnter = (document.activeElement !== aBefore) || (vEnter !== vBefore);
-          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', keyCode: 32, bubbles: true }));
-          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', code: 'Space', keyCode: 32, bubbles: true }));
-          await new Promise(r => setTimeout(r, 220));
-          const respSpace = vsig() !== vEnter;
-          return { native: false, respondedToEnter: respEnter, respondedToSpace: respSpace, respondedToKeyboard: respEnter || respSpace, destructive: vsig() !== vBefore };
-        }, xp).catch(() => ({ error: true }));
-        rec.keyboard = kb;
-        if (kb && kb.destructive) await reloadPage();
+      // KEYBOARD — native presumption gate (C3 refinement) vs TRUSTED Enter/Space.
+      const pre = await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return null; const ti = el.getAttribute('tabindex'); return { disabled: !!el.disabled || el.getAttribute('aria-disabled') === 'true', tabindexEff: ti !== null ? +ti : null, roleOverride: ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'].includes(el.tagName.toLowerCase()) && !!el.getAttribute('role') }; }, xp).catch(() => null);
+      if (native) {
+        const presumable = pre && !pre.disabled && (pre.tabindexEff === null || pre.tabindexEff >= 0) && !pre.roleOverride && !(rec.localTabWalk && rec.localTabWalk.reachedByTab === false);
+        rec.keyboard = { native: true, presumed: !!presumable, operable: presumable ? true : null, note: presumable ? 'native + preconditions hold → presumed keyboard operable' : 'native but a precondition is in question (tabindex<0 / disabled / role override / not Tab-reached) — exercise on live page' };
+      } else {
+        // focus then press real keys (trusted)
+        await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el) try { el.focus(); } catch (e) {} }, xp).catch(() => {});
+        const vsig = () => page.evaluate(() => { const m = document.querySelector('main') || document.body; return location.href + '|' + (m.innerText || '').trim().slice(0, 120) + '#' + m.childElementCount + '|' + document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length + '|' + (document.activeElement ? window.__getXPath(document.activeElement) : ''); }).catch(() => '');
+        const vBefore = await vsig();
+        await page.keyboard.press('Enter'); await sleep(220);
+        const vEnter = await vsig(); const respEnter = vEnter !== vBefore;
+        await page.keyboard.press('Space'); await sleep(220);
+        const vSpace = await vsig(); const respSpace = vSpace !== vEnter;
+        rec.keyboard = { native: false, respondedToEnter: respEnter, respondedToSpace: respSpace, respondedToKeyboard: respEnter || respSpace, destructive: vSpace !== vBefore, method: 'trusted-keys' };
+        if (rec.keyboard.destructive) { await reloadPage(); await locateHandle(xp); }
       }
 
-      // ARROW-KEY probe for composite widgets (tab/menuitem/option/radio/slider).
-      // T2: use REAL (trusted) arrow keys via page.keyboard — synthetic dispatched
-      // KeyboardEvents are ignored by most real roving-tabindex widgets.
+      // ARROW-KEY probe for composite widgets — TRUSTED arrow keys.
       if (rec.isComposite) {
         const SIGFN = "(function(){return (document.activeElement?window.__getXPath(document.activeElement):'')+'|'+document.querySelectorAll('[aria-selected=\"true\"],[aria-checked=\"true\"]').length+'|'+[...document.querySelectorAll('[aria-selected=\"true\"]')].map(function(n){return (n.textContent||'').slice(0,12)}).join(',')})()";
         const before = await page.evaluate((x, sf) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.focus(); } catch (e) {} return eval(sf); }, xp, SIGFN).catch(() => null);
@@ -436,61 +475,66 @@ function loadXpaths() {
         } else rec.arrowKeys = { gone: true };
       }
 
-      // T2: honest keyboard-operability signal for custom/composite widgets —
-      // roving-tabindex carve-out + synthetic-event confidence (tri-state operable).
+      // T2/C3: keyboard-operability signal — now WITH focusable so the operable:false
+      // branch is reachable (custom widget, focusable:false, not Tab-reached => false).
       if (!native) {
         rec.keyboardSignal = A.keyboardOperabilitySignal({
           role: rec.role, tabindex: rec.tabindex,
           reachedByTab: rec.localTabWalk && rec.localTabWalk.reachedByTab,
           respondedToSyntheticKey: rec.keyboard && rec.keyboard.respondedToKeyboard,
           respondsToArrows: rec.arrowKeys && rec.arrowKeys.respondsToArrows,
+          focusable: rec.focusable,
         });
       }
 
-      // MOUSE activation (click) + context/nav + announcement + focus-return after modal
-      const speechBefore = await speechNow(); // baseline so a "sticky" lastSpokenPhrase isn't mistaken for a new announcement
-      const activate = await page.evaluate(async (x) => {
-        const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return { gone: true };
+      // ACTIVATION — TRUSTED click (ElementHandle.click); falls back to a flagged
+      // synthetic click only if the real click can't be dispatched (covered/off-screen).
+      const speechBefore = await speechNow();
+      await page.evaluate((x) => {
+        const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) { window.__act = null; return; }
         const link = el.closest && el.closest('a[href]');
-        const navTo = link ? { href: link.getAttribute('href'), newTab: link.getAttribute('target') === '_blank' } : null;
         const viewSig = () => { const m = document.querySelector('main') || document.body; return (m.innerText || '').trim().slice(0, 160) + '#' + m.childElementCount; };
-        const trigger = el;
-        const before = { href: location.href, title: document.title, view: viewSig(), active: document.activeElement, expanded: el.getAttribute('aria-expanded'), pressed: el.getAttribute('aria-pressed'), dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length, liveText: [...document.querySelectorAll('[aria-live],[role=status],[role=alert],[role=log],output')].map(n => (n.textContent || '').trim()).join('||') };
-        const mutations = [];
-        const obs = new MutationObserver(ms => { for (const m of ms) { let t = m.target; if (t && t.nodeType === 3) t = t.parentElement; if (t && t.closest && t.closest('[aria-live],[role=status],[role=alert],[role=log],output')) mutations.push((t.textContent || '').trim().slice(0, 80)); } });
-        obs.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-expanded', 'aria-pressed', 'aria-hidden'] });
-        let clickErr = null; try { el.click(); } catch (e) { clickErr = e.message; }
-        await new Promise(r => setTimeout(r, 450));
-        obs.disconnect();
-        const after = { href: location.href, title: document.title, view: viewSig(), active: document.activeElement, expanded: el.getAttribute('aria-expanded'), pressed: el.getAttribute('aria-pressed'), dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length, liveText: [...document.querySelectorAll('[aria-live],[role=status],[role=alert],[role=log],output')].map(n => (n.textContent || '').trim()).join('||') };
-        const res = {
-          clicked: !clickErr, clickErr, navTo,
-          focusMoved: before.active !== after.active, focusMovedTo: after.active && after.active !== document.body ? window.__getXPath(after.active) : null,
-          urlChanged: before.href !== after.href, titleChanged: before.title !== after.title, viewChanged: before.view !== after.view,
-          contextChange: before.href !== after.href || before.title !== after.title || before.view !== after.view,
-          expandedChanged: before.expanded !== after.expanded ? (before.expanded + '→' + after.expanded) : null,
-          pressedChanged: before.pressed !== after.pressed ? (before.pressed + '→' + after.pressed) : null,
-          dialogOpened: after.dialogs > before.dialogs, liveRegionChanged: before.liveText !== after.liveText, liveMutations: [...new Set(mutations)].filter(Boolean).slice(0, 5),
+        window.__act = {
+          trigger: el, navTo: link ? { href: link.getAttribute('href'), newTab: link.getAttribute('target') === '_blank' } : null,
+          before: { href: location.href, title: document.title, view: viewSig(), active: document.activeElement, expanded: el.getAttribute('aria-expanded'), pressed: el.getAttribute('aria-pressed'), dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length, liveText: [...document.querySelectorAll('[aria-live],[role=status],[role=alert],[role=log],output')].map(n => (n.textContent || '').trim()).join('||') },
+          mut: [], viewSig,
         };
-        // FOCUS RETURN after modal: if this opened a dialog, where did focus go, can we Escape it, does focus return to trigger?
-        if (res.dialogOpened) {
-          const dlg = [...document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]')].pop();
-          res.modal = { focusMovedIntoDialog: !!(dlg && dlg.contains(document.activeElement)) };
-          // try to close: Escape, then a close control
-          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-          await new Promise(r => setTimeout(r, 250));
-          let stillOpen = document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length >= after.dialogs;
-          if (stillOpen && dlg) { const close = dlg.querySelector('[aria-label*="close" i],[class*="close" i],[data-dismiss],button'); if (close) { try { close.click(); } catch (e) {} await new Promise(r => setTimeout(r, 250)); } }
-          res.modal.closedByEscapeOrButton = document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length < after.dialogs;
-          res.modal.focusReturnedToTrigger = document.activeElement === trigger;
-        }
+        const obs = new MutationObserver(ms => { for (const m of ms) { let t = m.target; if (t && t.nodeType === 3) t = t.parentElement; if (t && t.closest && t.closest('[aria-live],[role=status],[role=alert],[role=log],output')) window.__act.mut.push((t.textContent || '').trim().slice(0, 80)); } });
+        obs.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-expanded', 'aria-pressed', 'aria-hidden'] });
+        window.__actObs = obs;
+      }, xp).catch(() => {});
+      let clickMethod = 'trusted', clickErr = null;
+      try { await handle.click({ delay: 8 }); } catch (e) { clickErr = e.message; try { await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el) el.click(); }, xp); clickMethod = 'synthetic-fallback'; } catch (e2) { clickMethod = 'failed'; } }
+      await sleep(450);
+      const activate = await page.evaluate(async () => {
+        const a = window.__act; if (!a) return { gone: true };
+        if (window.__actObs) window.__actObs.disconnect();
+        const el = a.trigger; const viewSig = a.viewSig;
+        const after = { href: location.href, title: document.title, view: viewSig(), active: document.activeElement, expanded: el.getAttribute('aria-expanded'), pressed: el.getAttribute('aria-pressed'), dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length, liveText: [...document.querySelectorAll('[aria-live],[role=status],[role=alert],[role=log],output')].map(n => (n.textContent || '').trim()).join('||') };
+        const b = a.before;
+        const res = {
+          navTo: a.navTo,
+          focusMoved: b.active !== after.active, focusMovedTo: after.active && after.active !== document.body ? window.__getXPath(after.active) : null,
+          urlChanged: b.href !== after.href, titleChanged: b.title !== after.title, viewChanged: b.view !== after.view,
+          contextChange: b.href !== after.href || b.title !== after.title || b.view !== after.view,
+          expandedChanged: b.expanded !== after.expanded ? (b.expanded + '→' + after.expanded) : null,
+          pressedChanged: b.pressed !== after.pressed ? (b.pressed + '→' + after.pressed) : null,
+          dialogOpened: after.dialogs > b.dialogs, liveRegionChanged: b.liveText !== after.liveText, liveMutations: [...new Set(a.mut)].filter(Boolean).slice(0, 5),
+        };
+        if (res.dialogOpened) res.modal = { focusMovedIntoDialog: !!([...document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]')].pop() || {}).contains && [...document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]')].pop().contains(document.activeElement), afterDialogs: after.dialogs };
         return res;
-      }, xp).catch(e => ({ error: e.message }));
-      // T9/T10: only a NON-noise phrase that DIFFERS from the pre-click baseline is
-      // a real announcement (filters the "document" root artifact + sticky repeats).
+      }).catch(e => ({ error: e.message }));
+      if (activate) { activate.clicked = clickMethod !== 'failed'; activate.clickMethod = clickMethod; activate.clickErr = clickErr; }
+      // FOCUS RETURN after modal — TRUSTED Escape, then a close control via handle.
+      if (activate && activate.dialogOpened && activate.modal) {
+        await page.keyboard.press('Escape'); await sleep(250);
+        let closed = await page.evaluate((n) => document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length < n, activate.modal.afterDialogs).catch(() => false);
+        if (!closed) { const ch = await locateHandle(xp + ''); const closeH = await page.evaluateHandle(() => { const d = [...document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]')].pop(); return d ? d.querySelector('[aria-label*="close" i],[class*="close" i],[data-dismiss],button') : null; }).then(h => h.asElement()).catch(() => null); if (closeH) { try { await closeH.click(); } catch (e) {} await sleep(250); } }
+        activate.modal.closedByEscapeOrButton = await page.evaluate((n) => document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length < n, activate.modal.afterDialogs).catch(() => false);
+        activate.modal.focusReturnedToTrigger = await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; return document.activeElement === el; }, xp).catch(() => false);
+      }
       if (out.vsr && activate && !activate.gone) { const sa = await speechNow(); activate.vsrAnnouncement = A.meaningfulAnnouncement(sa, speechBefore); activate.vsrRaw = sa; }
       rec.activate = activate;
-      if (activate && (activate.urlChanged || activate.dialogOpened)) await reloadPage();
     }
 
     // ---------- FORM error-on-submit probe (3.3.1 / 3.3.3) ----------
@@ -511,10 +555,24 @@ function loadXpaths() {
         try { if (submit) submit.click(); else form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); } catch (e) {}
         await new Promise(r => setTimeout(r, 500));
         const after = { invalids: form.querySelectorAll('[aria-invalid="true"]').length, alerts: form.querySelectorAll('[role=alert]').length, errTextLen: (form.innerText || '').length, live: [...document.querySelectorAll('[aria-live],[role=alert],[role=status]')].map(n => (n.textContent || '').trim()).join('||') };
+        // C2: capture the NATIVE constraint-validation evidence — a non-empty
+        // validationMessage (UA text) and focus-to-invalid-field mean 3.3.1 is MET,
+        // even without ARIA. submitBlocked = the form did not submit (still on page).
+        const invalidNow = visibleFields.filter(f => f.willValidate && f.checkValidity && !f.checkValidity());
+        const nativeMessages = invalidNow.map(f => (f.validationMessage || '').trim()).filter(Boolean);
+        const ae = document.activeElement;
+        const focusOnInvalid = !!ae && invalidNow.includes(ae);
+        const submitBlocked = invalidNow.length > 0; // a field is invalid → native UA blocks submit
         return {
           fields: fields.length, hasRequired: fields.some(f => f.required || f.getAttribute('aria-required') === 'true'),
+          submitBlocked, invalidFieldCount: invalidNow.length,
+          validationMessages: nativeMessages.slice(0, 5), nativeTextIdentification: nativeMessages.length > 0,
+          focusMovedToInvalidField: focusOnInvalid,
           ariaInvalidSet: after.invalids > before.invalids, alertAppeared: after.alerts > before.alerts,
           errorTextGrew: after.errTextLen > before.errTextLen + 3, errorAnnouncedLive: after.live !== before.live,
+          // C2: native validation MEETS 3.3.1 unless there's literally no text identification anywhere.
+          noTextIdentificationAtAll: nativeMessages.length === 0 && after.errTextLen <= before.errTextLen + 3 && after.alerts === before.alerts,
+          // legacy field kept for back-compat; do NOT derive 3.3.1 from it alone.
           nativeValidationOnly: after.invalids === before.invalids && after.alerts === before.alerts && after.errTextLen <= before.errTextLen + 3,
         };
       }, fi).catch(() => null);

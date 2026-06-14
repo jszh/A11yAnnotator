@@ -203,12 +203,16 @@ function focusRingDecision(opts = {}) {
 // Hidden before collection so they don't darken every screenshot or inject
 // duplicate headings into the structure / forms inventory.
 const CONSENT_SELECTORS = [
-  '#onetrust-banner-sdk', '#onetrust-consent-sdk', '.onetrust-pc-dark-filter',
-  '#ot-sdk-container', '.cmplz-cookiebanner', '#cmplz-cookiebanner-container',
+  // OneTrust (banner + preference center)
+  '#onetrust-banner-sdk', '#onetrust-consent-sdk', '#onetrust-pc-sdk', '.onetrust-pc-dark-filter', '#ot-sdk-container',
+  // Complianz, TrustArc, Quantcast, Usercentrics, Cookiebot, Sourcepoint, Didomi, Osano
+  '.cmplz-cookiebanner', '#cmplz-cookiebanner-container', '#truste-consent-track', '#truste-consent-content',
+  '.qc-cmp2-container', '.qc-cmp-cleanslate', '#usercentrics-root', '#CybotCookiebotDialog',
+  '[id^="sp_message_container"]', '#onetrust-pc-sdk', '#didomi-host', '.osano-cm-window', '.osano-cm-dialog',
+  // generic
   '#cookie-banner', '#cookie-consent', '[id*="cookie-banner" i]', '[class*="cookie-banner" i]',
-  '[id*="cookieConsent" i]', '[class*="cookie-consent" i]', '[aria-label*="cookie" i][role="dialog"]',
-  '#truste-consent-track', '.qc-cmp2-container', '#usercentrics-root', '#CybotCookiebotDialog',
-  '[class*="consent-banner" i]', '[id*="gdpr" i]',
+  '[id*="cookieConsent" i]', '[class*="cookie-consent" i]', '[class*="consent-banner" i]',
+  '[aria-label*="cookie" i][role="dialog"]', '[aria-label*="consent" i][role="dialog"]', '[id*="gdpr" i]',
 ];
 
 module.exports = {

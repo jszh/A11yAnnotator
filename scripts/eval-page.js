@@ -116,13 +116,16 @@ function parseRGB(s) {
     // ---- page-level structure (one evaluate) ----
     out.structure = await page.evaluate(() => {
       const txt = el => (el.textContent || '').trim().slice(0, 60);
-      const headings = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].map(h => ({
+      // H4: exclude nodes inside a consent container we neutralised — display:none does
+      // NOT stop querySelectorAll from returning them, so filter by ancestry explicitly.
+      const inConsent = el => !!(el.closest && el.closest('[data-a11yeval-consent-hidden]'));
+      const headings = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].filter(h => !inConsent(h)).map(h => ({
         tag: h.tagName.toLowerCase(),
         level: h.getAttribute('aria-level') || (/^H([1-6])$/.test(h.tagName) ? h.tagName[1] : null),
         text: txt(h), empty: txt(h).length === 0,
       }));
       const lmSel = 'header,nav,main,aside,footer,[role=banner],[role=navigation],[role=main],[role=complementary],[role=contentinfo],[role=search],[role=region],[role=form]';
-      const landmarks = [...document.querySelectorAll(lmSel)].map(l => ({
+      const landmarks = [...document.querySelectorAll(lmSel)].filter(l => !inConsent(l)).map(l => ({
         tag: l.tagName.toLowerCase(), role: l.getAttribute('role') || null,
         label: l.getAttribute('aria-label') || null, labelledby: l.getAttribute('aria-labelledby') || null,
       }));
