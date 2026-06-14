@@ -170,12 +170,17 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
    `srWalk.targetSpeech` shows what the SR voices at the element (sticky/stale repeats
    filtered). On `scriptsDisabled` pages → PARTIAL ("noscript: snapshot can't
    hydrate"); still check the static live-region infrastructure (collect `liveRegions`).
-7. **reflow-and-pointer-affordances** — inherit the page reflow verdict. **T3: target
-   size — use collect's `targetSize{passes,reason}`, NOT a raw `box<24` rule.** It
-   already applies the WCAG 2.5.8 spacing (24px-circle non-overlap) and inline
-   (in-text) exceptions: `passes:true` → NOT a 2.5.8 defect (cite `reason`);
-   `passes:false` → 2.5.8 REPRODUCED. Cross-ref axe `target-size` (it too accounts for
-   spacing). `hover` → 1.4.13 three conditions: `dismissibleByEsc` (false ⇒ not
+7. **reflow-and-pointer-affordances** — inherit the page reflow verdict. **T3/R21-H3:
+   target size — use collect's `targetSize{verdict,reason,…}` TRI-STATE, NOT a raw
+   `box<24` rule.** `verdict:'pass'` → NOT a 2.5.8 defect (cite `reason`).
+   `verdict:'needs-judgment'` (`requiresJudgment:true` — unproven inline / no neighbour
+   geometry / non-rectangular shape `shapeUncertain`) → **PARTIAL** unless you can
+   resolve it by eye (is it in a sentence? does a 24×24 square fit the shape?).
+   `verdict:'fail'` → 2.5.8 REPRODUCED **only after** confirming none of the
+   harness-unprovable exceptions apply — `checkExceptions:['equivalent','essential']`:
+   is there an adequately-sized control elsewhere for the same function (Equivalent), or
+   is the exact presentation Essential? If so → NOT REPRODUCED/N/A. Cross-ref axe
+   `target-size`. `hover` → 1.4.13 three conditions: `dismissibleByEsc` (false ⇒ not
    Dismissible), `persistentWhileHovered` (false ⇒ not Persistent), `tooltipAppearsOnHover`.
 8. **forms-instructions-errors** — when `isFormField`: real label (not just
    placeholder/title)? `required`/`aria-required`, `aria-describedby` target exists,

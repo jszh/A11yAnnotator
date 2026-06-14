@@ -67,6 +67,22 @@ test('C4 evalTargetSize: no neighbour geometry => spacing unproven (fail + flag)
   assert.equal(r.passes, false);
   assert.equal(r.indeterminateSpacing, true);
 });
+test('R21-H3 evalTargetSize: TRI-STATE — unresolved cases are needs-judgment, not definite', () => {
+  // no neighbour geometry → can't prove/disprove spacing → needs-judgment
+  const a = L.evalTargetSize({ x: 0, y: 0, w: 16, h: 16 }, {});
+  assert.equal(a.verdict, 'needs-judgment'); assert.equal(a.requiresJudgment, true); assert.equal(a.passes, false);
+  // display:inline but in-sentence unproven, fails geometry → needs-judgment (might be exempt)
+  const b = L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { inlineCandidate: true, inSentence: false, neighbors: [{ x: 0, y: 17, w: 30, h: 16 }] });
+  assert.equal(b.verdict, 'needs-judgment');
+  // non-rectangular target whose bbox is 24x24 → can't assume a 24x24 square fits → judgment
+  const c = L.evalTargetSize({ x: 0, y: 0, w: 24, h: 24 }, { nonRectangular: true });
+  assert.equal(c.verdict, 'needs-judgment');
+});
+test('R21-H3 evalTargetSize: a definite FAIL still flags Equivalent/Essential to check', () => {
+  const r = L.evalTargetSize({ x: 0, y: 0, w: 10, h: 10 }, { neighbors: [{ x: 14, y: 0, w: 200, h: 50 }] });
+  assert.equal(r.verdict, 'fail'); assert.equal(r.passes, false);
+  assert.deepEqual(r.checkExceptions, ['equivalent', 'essential']);
+});
 test('R2-H5 evalTargetSize: UA-control exception (bare 13x13 checkbox) => pass', () => {
   const r = L.evalTargetSize({ x: 0, y: 0, w: 13, h: 13 }, { uaControl: true, neighbors: [{ x: 0, y: 16, w: 13, h: 13 }] });
   assert.equal(r.passes, true);

@@ -62,19 +62,26 @@ function _circleCircleIntersect(cx1, cy1, r1, cx2, cy2, r2) {
   const dx = cx1 - cx2, dy = cy1 - cy2;
   return dx * dx + dy * dy < (r1 + r2) * (r1 + r2);
 }
+// R21-H3: returns a TRI-STATE `verdict` ('pass' | 'fail' | 'needs-judgment') plus the
+// back-compat `passes` boolean (true only for a definite pass). 'needs-judgment' means
+// the harness cannot decide alone (unproven inline, no neighbour geometry, or a
+// non-rectangular shape) → the agent must verify or record PARTIAL. A definite 'fail'
+// still flags the exceptions the harness can't check (Equivalent, Essential) so the
+// agent confirms none applies before a definite 2.5.8 REPRODUCED.
+function _ts(verdict, reason, minDim, extra) { return { verdict, passes: verdict === 'pass', requiresJudgment: verdict === 'needs-judgment', reason, minDim, ...(extra || {}) }; }
 function evalTargetSize(box, opts = {}) {
   const w = box ? box.w : 0, h = box ? box.h : 0;
   const minDim = Math.min(w, h);
-  if (!(w > 0) || !(h > 0)) return { passes: true, reason: 'zero-size/hidden — not a rendered target', minDim };
-  if (w >= TARGET_MIN && h >= TARGET_MIN) return { passes: true, reason: 'meets 24x24', minDim, shapeAssumption: 'bounding-box' };
-  if (opts.essential) return { passes: true, reason: 'essential exception', minDim };
-  // 2.5.8 "User Agent Control" exception — a default-sized native control whose size
-  // the author did not modify (e.g. a bare checkbox/radio) is exempt.
-  if (opts.uaControl) return { passes: true, reason: 'user-agent control exception (default-sized native control)', minDim };
-  // "Equivalent" exception — another adequately-sized control offers the same function.
-  // We can't auto-prove equivalence, so we never auto-PASS on it; the caller may flag it.
-  if (opts.inSentence === true) return { passes: true, reason: 'inline exception (in a sentence — prose proven)', minDim };
-  // a display:inline target whose in-sentence status is UNPROVEN → indeterminate, not pass.
+  if (!(w > 0) || !(h > 0)) return _ts('pass', 'zero-size/hidden — not a rendered target', minDim);
+  // shape: a bounding box of 24×24 doesn't guarantee a 24×24 SQUARE fits a non-rect target.
+  const nonRect = !!opts.nonRectangular;
+  if (w >= TARGET_MIN && h >= TARGET_MIN) {
+    if (nonRect) return _ts('needs-judgment', 'meets 24x24 by bounding box, but the target is non-rectangular — confirm a 24x24 square fits', minDim, { shapeAssumption: 'bounding-box', shapeUncertain: true });
+    return _ts('pass', 'meets 24x24', minDim, { shapeAssumption: 'bounding-box' });
+  }
+  if (opts.essential) return _ts('pass', 'essential exception', minDim);
+  if (opts.uaControl) return _ts('pass', 'user-agent control exception (default-sized native control)', minDim);
+  if (opts.inSentence === true) return _ts('pass', 'inline exception (in a sentence — prose proven)', minDim);
   const inlineUncertain = !!opts.inlineCandidate && opts.inSentence !== true;
   const neighbors = Array.isArray(opts.neighbors) ? opts.neighbors : null;
   if (neighbors) {
@@ -88,11 +95,13 @@ function evalTargetSize(box, opts = {}) {
         (undersized && _circleCircleIntersect(cx, cy, TARGET_R, ncx, ncy, TARGET_R));
       if (hit) { intersected = n; break; }
     }
-    if (!intersected) return { passes: true, reason: 'spacing exception (24px circle clears all adjacent targets)', minDim };
-    return { passes: false, reason: `${w}x${h}px below 24x24; 24px circle intersects an adjacent target`, minDim, inlineUncertain, shapeAssumption: 'bounding-box' };
+    if (!intersected) return _ts('pass', 'spacing exception (24px circle clears all adjacent targets)', minDim);
+    // fails size+spacing. If inline status is unproven it might still be exempt → judgment.
+    if (inlineUncertain) return _ts('needs-judgment', `${w}x${h}px below 24x24 and 24px circle intersects a neighbour, but display:inline — confirm whether it is in a sentence`, minDim, { inlineUncertain, shapeAssumption: 'bounding-box' });
+    return _ts('fail', `${w}x${h}px below 24x24; 24px circle intersects an adjacent target`, minDim, { checkExceptions: ['equivalent', 'essential'], shapeAssumption: 'bounding-box' });
   }
-  // no neighbour geometry supplied → cannot prove the spacing exception
-  return { passes: false, reason: `${w}x${h}px below 24x24 (spacing exception unproven — no neighbour geometry)`, minDim, indeterminateSpacing: true, inlineUncertain };
+  // no neighbour geometry supplied → cannot prove/disprove the spacing exception
+  return _ts('needs-judgment', `${w}x${h}px below 24x24 (spacing exception unproven — no neighbour geometry)`, minDim, { indeterminateSpacing: true, inlineUncertain });
 }
 
 // ---- T9: filter virtual-SR "noise" phrases that are not real element announcements

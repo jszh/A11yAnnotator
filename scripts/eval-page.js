@@ -260,6 +260,9 @@ function parseRGB(s) {
           // UA control only when the size is UNMODIFIED (matches the iframe default within 2px)
           uaControl = Math.abs(bw - def.w) <= 2 && Math.abs(bh - def.h) <= 2;
         }
+        // R21-H3: a circular/clipped target whose 24x24 bbox cannot contain a 24x24 square.
+        const _br = parseFloat(cs.borderRadius) || 0;
+        const nonRectangular = cs.clipPath !== 'none' || (_br > 0 && _br >= Math.min(b.width, b.height) / 2 - 1);
         const tag = r.tagName.toLowerCase();
         const roleAttr = r.getAttribute('role');
         // H7: AX/ARIA STATE collection (the name-role-STATE skill needs these).
@@ -306,7 +309,7 @@ function parseRGB(s) {
           box: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) },
           color: cs.color, ownBg: cs.backgroundColor, ownBgImage: cs.backgroundImage,
           effBg, effBgImage, bgWalkCrossedOverlay, textInChildDiffColor,
-          display: cs.display, inSentence, inlineCandidate: cs.display === 'inline', uaControl, targetNeighbors,
+          display: cs.display, inSentence, inlineCandidate: cs.display === 'inline', uaControl, nonRectangular, targetNeighbors,
           states, tabindexEffective, roleOverridesNative, obscured,
           fontSize: cs.fontSize, fontWeight: cs.fontWeight,
           outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, outlineColor: cs.outlineColor,
@@ -349,7 +352,7 @@ function parseRGB(s) {
       if (dom.box) {
         rec.targetSize = A.evalTargetSize(dom.box, {
           inSentence: dom.inSentence, inlineCandidate: dom.inlineCandidate,
-          uaControl: dom.uaControl, neighbors: dom.targetNeighbors,
+          uaControl: dom.uaControl, nonRectangular: dom.nonRectangular, neighbors: dom.targetNeighbors,
         });
       }
 
