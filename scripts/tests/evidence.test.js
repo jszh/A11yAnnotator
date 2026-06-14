@@ -109,6 +109,16 @@ test('R2.2-B trap: a 12-control inescapable cycle is detected (seenAll escape re
   const o = runScript('drive-page.js', 'fx-trap-large.html', ['/html/body/div[2]/button[1]']);
   assert.equal(o.tabWalk.trapDetected, true, 'a large cycle must not "escape" to one of its own members');
 });
+test('R2.3-B trap: a TRAP-ONLY page (cycle == every focusable) is detected via the boundary sentinel', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-only.html', ['/html/body/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, true, 'focus cannot leave even though totalFocusables === seenAll.size (no unreached-focusable proxy)');
+  assert.equal(o.tabWalk.totalFocusables, 2, 'the whole page is the trap');
+  assert.ok((o.tabWalk.trapCycle || []).length >= 2);
+});
+test('R2.3-B trap: ordinary wraparound is still NOT a trap even though the sentinel probe always runs', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-wraparound.html', ['/html/body/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, false, 'Tab reaches the appended boundary sentinel → escapable');
+});
 test('R2.2-B trap: a DISABLED control in the tab order does NOT inflate focusables (no false trap)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-disabled-skip.html', ['/html/body/button[1]']);
   assert.equal(o.tabWalk.totalFocusables, 2, 'disabled control excluded from focusables');

@@ -281,15 +281,24 @@ function loadXpaths() {
       return [...document.querySelectorAll(sel)].filter(el => { const s = getComputedStyle(el); const b = el.getBoundingClientRect(); return s.visibility !== 'hidden' && s.display !== 'none' && el.getAttribute('tabindex') !== '-1' && !el.disabled && el.getAttribute('aria-disabled') !== 'true' && (b.width > 0 || b.height > 0); }).length;
     }).catch(() => 0);
     out.tabWalk.totalFocusables = totalFocusables;
-    // R2-H2/R21-H1: a keyboard trap is "Tab cannot leave a COMPONENT". Detect ANY
-    // bounded cycle (no arbitrary control-count cap): we keep landing on
-    // already-seen elements (`stopsSinceNew`) while the page still has UNREACHED
-    // focusables (`seenAll.size < totalFocusables`). Then CONFIRM the boundary —
-    // a real trap escapes via NEITHER Escape (a STANDARD exit, per 2.1.2) NOR
-    // Tab/Shift+Tab. A modal that contains Tab but releases on Escape is NOT a trap.
+    // R2-H2/R21-H1/R22-H1: a keyboard trap is "Tab cannot leave a COMPONENT" (WCAG
+    // 2.1.2). Detect ANY bounded cycle (no control-count cap): we keep landing on
+    // already-seen elements (`stopsSinceNew`). The TRIGGER is the cycle itself —
+    // NOT `totalFocusables > seenAll.size`. That old gate was a PROXY ("are there
+    // focusables elsewhere?") and silently disabled detection on a trap-ONLY page
+    // whose cycle already covers every focusable. 2.1.2 does not depend on another
+    // unreached focusable existing — only on whether focus can MOVE AWAY.
+    //
+    // CONFIRM the boundary directly: append a focusable BOUNDARY SENTINEL at the end
+    // of the document (outside any component, last in tab order) and test whether
+    // Escape (a STANDARD exit) or Tab/Shift+Tab can reach the sentinel or any other
+    // element outside the cycle. A real trap's JS keeps refocusing its own members,
+    // so the sentinel is never reached — true even when the trap is the whole page.
+    // A normal page (even two controls) reaches the sentinel → not a trap. A modal
+    // that releases on Escape → not a trap.
     const NO_NEW = 8; const recent = []; const seenAll = new Set(); let stopsSinceNew = 0;
     const tw0 = Date.now();
-    const curState = () => page.evaluate(() => { const el = document.activeElement; return { xpath: el && el !== document.body ? window.__getXPath(el) : null, dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length }; }).catch(() => ({ xpath: null, dialogs: 0 }));
+    const curState = () => page.evaluate(() => { const el = document.activeElement; return { xpath: el && el !== document.body ? window.__getXPath(el) : null, onSentinel: !!(el && el.getAttribute && el.getAttribute('data-a11y-trapsentinel') !== null), dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length }; }).catch(() => ({ xpath: null, onSentinel: false, dialogs: 0 }));
     for (let i = 0; i < MAXTAB; i++) {
       if (Date.now() - tw0 > TABWALK_BUDGET_MS) { out.tabWalk.budgetExceeded = true; break; }
       await page.keyboard.press('Tab'); await sleep(22);
@@ -306,29 +315,42 @@ function loadXpaths() {
       out.tabWalk.stops.push(st);
       recent.push(st.xpath); if (recent.length > NO_NEW + 2) recent.shift();
       if (seenAll.has(st.xpath)) stopsSinceNew++; else { seenAll.add(st.xpath); stopsSinceNew = 0; }
-      // suspect: stuck revisiting a bounded set while focusables remain UNREACHED. The
-      // escape reference is the WHOLE reached set `seenAll` (not just a small recent
-      // window) so a LARGE cycle (e.g. 12 controls) can't "escape" to one of its own
-      // members that fell out of the window. A real trap reaches nothing OUTSIDE seenAll
-      // via Escape / Tab / Shift+Tab.
-      if (stopsSinceNew >= NO_NEW && totalFocusables > seenAll.size) {
-        const reached = new Set(seenAll); let escaped = false, escapeMethod = null;
-        const PROBE = Math.min(reached.size + 1, 16);
+      // suspect: stuck revisiting a bounded set. The escape reference is the WHOLE
+      // reached set `seenAll` (not a small recent window) so a LARGE cycle (e.g. 12
+      // controls) can't "escape" to one of its own members. CONFIRM with a boundary
+      // sentinel: a real trap reaches NEITHER the appended sentinel NOR any element
+      // outside the cycle via Escape / Tab / Shift+Tab.
+      if (stopsSinceNew >= NO_NEW) {
+        const reached = new Set(seenAll); let escaped = false, escapeMethod = null, escapedToReal = false;
+        const PROBE = Math.min(reached.size + 2, 48);
+        // Append a focusable boundary sentinel at the very end of the document.
+        await page.evaluate(() => {
+          if (document.querySelector('[data-a11y-trapsentinel]')) return;
+          const s = document.createElement('button'); s.setAttribute('data-a11y-trapsentinel', ''); s.textContent = '.';
+          s.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px';
+          document.body.appendChild(s);
+        }).catch(() => {});
         const dlgBefore = (await curState()).dialogs;
         await page.keyboard.press('Escape'); await sleep(60); // STANDARD EXIT (2.1.2)
         const afterEsc = await curState();
-        if ((afterEsc.xpath && !reached.has(afterEsc.xpath)) || afterEsc.dialogs < dlgBefore) { escaped = true; escapeMethod = 'Escape'; }
+        if (afterEsc.onSentinel || (afterEsc.xpath && !reached.has(afterEsc.xpath)) || afterEsc.dialogs < dlgBefore) { escaped = true; escapeMethod = 'Escape'; escapedToReal = !afterEsc.onSentinel; }
         for (const press of [['Tab'], ['Shift', 'Tab']]) {
           for (let k = 0; k < PROBE && !escaped; k++) {
             if (press[0] === 'Shift') { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
             else await page.keyboard.press('Tab');
             await sleep(22);
-            const here = (await curState()).xpath;
-            if (here && !reached.has(here)) { escaped = true; escapeMethod = press.join('+'); break; }
+            const hs = await curState();
+            // Reaching the sentinel proves focus CAN leave the cycle (not a trap),
+            // even on a trap-only page where the cycle covers every real focusable.
+            if (hs.onSentinel || (hs.xpath && !reached.has(hs.xpath))) { escaped = true; escapeMethod = press.join('+'); escapedToReal = !hs.onSentinel; break; }
           }
         }
+        await page.evaluate(() => { const s = document.querySelector('[data-a11y-trapsentinel]'); if (s) s.remove(); }).catch(() => {});
         if (!escaped) { out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = [...new Set(recent)]; break; }
         out.tabWalk.escapableComponent = { via: escapeMethod }; // not a trap
+        // If the only thing reached outside the cycle was the sentinel, the page is
+        // fully walked and escapable — stop. Otherwise real new content exists: resume.
+        if (!escapedToReal) break;
         stopsSinceNew = 0; // resume the walk (keep seenAll — we DID reach new content)
       }
     }
