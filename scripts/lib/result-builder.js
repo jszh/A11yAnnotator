@@ -243,14 +243,29 @@ function driverEvidenceFrom(drive) {
       vsrAnnounced: !!(a.vsrAnnouncement && String(a.vsrAnnouncement).trim()),
       liveRegionChanged: a.liveRegionChanged === true,
       dialogOpened: a.dialogOpened === true,
+      viewChanged: a.viewChanged === true,
+      focusMoved: a.focusMoved === true,
       focusReturnedToTrigger: a.modal ? a.modal.focusReturnedToTrigger : undefined,
     };
   }
   const forms = (drive && drive.forms) || [];
-  const formsTrust = { probed: forms.length > 0, allTrustedIsolated: forms.length > 0 && forms.every(f => f.submitMethod === 'trusted') };
-  // R2.5-A #6: tie a forms verdict to the FIELD'S OWN form via the per-field xpath.
+  const probed = forms.filter(f => !f.skipped);
+  const formsTrust = {
+    probed: probed.length > 0,
+    allTrustedIsolated: probed.length > 0 && probed.every(f => f.submitMethod === 'trusted'),
+    // R2.6-A: aggregate outcome for the page-level fallback when a field isn't mapped.
+    anyNoTextId: probed.some(f => f.noTextIdentificationAtAll === true),
+    anyNativeTextId: probed.some(f => f.nativeTextIdentification === true),
+  };
+  // R2.5-A/R2.6-A: tie a forms verdict to the FIELD'S OWN form. Map EVERY visible field
+  // (form.fieldXpaths is the complete list; perField is display-capped at 8 and must NOT
+  // be the mapping source — fields beyond #8 would otherwise take the page-level fallback).
   const formByField = {};
-  for (const f of forms) for (const pf of (f.perField || [])) if (pf && pf.xpath) formByField[pf.xpath] = { nativeTextIdentification: f.nativeTextIdentification === true, noTextIdentificationAtAll: f.noTextIdentificationAtAll === true, trustedSubmit: f.submitMethod === 'trusted' };
+  for (const f of forms) {
+    const outcome = { nativeTextIdentification: f.nativeTextIdentification === true, noTextIdentificationAtAll: f.noTextIdentificationAtAll === true, trustedSubmit: f.submitMethod === 'trusted' };
+    const xps = Array.isArray(f.fieldXpaths) ? f.fieldXpaths : (f.perField || []).map(pf => pf && pf.xpath).filter(Boolean);
+    for (const xp of xps) if (xp) formByField[xp] = outcome;
+  }
   return { byXpath, formsTrust, formByField };
 }
 
@@ -262,50 +277,56 @@ function driverEvidenceFrom(drive) {
 function behavioralSupport(skill, verdict, codes, ev, formsTrust, formOutcome) {
   const REP = verdict === 'REPRODUCED', NR = verdict === 'NOT REPRODUCED';
   codes = codes || [];
+  // ---- forms (page/field scoped) ----
   if (skill === 'forms-instructions-errors') {
     if (!formsTrust || !formsTrust.probed) return { ok: false, reason: 'no form was submit-probed by the driver' };
-    if (formOutcome) { // tied to the field's OWN form
+    if (formOutcome) { // tied to the field's OWN form (every field is mapped, R2.6-A)
       if (!formOutcome.trustedSubmit) return { ok: false, reason: "the field's own form submission was synthetic/non-trusted" };
       if (REP && formOutcome.nativeTextIdentification) return { ok: false, reason: 'REPRODUCED "error not identified" (3.3.1) contradicts nativeTextIdentification:true on this field’s form' };
       if (NR && formOutcome.noTextIdentificationAtAll) return { ok: false, reason: 'NOT REPRODUCED (3.3.1) contradicts noTextIdentificationAtAll:true on this field’s form' };
       return { ok: true };
     }
+    // R2.6-A: an UNMAPPED field can only use the page-level aggregate, conservatively — a
+    // single fabricated/other clean form must not clear a field whose own form may have failed.
     if (!formsTrust.allTrustedIsolated) return { ok: false, reason: 'a form submission was synthetic/non-trusted' };
+    if (NR && formsTrust.anyNoTextId) return { ok: false, reason: 'NOT REPRODUCED (3.3.1) on an unmapped field while a probed form had noTextIdentificationAtAll:true' };
+    if (REP && !formsTrust.anyNoTextId) return { ok: false, reason: 'REPRODUCED (3.3.1) on an unmapped field but no probed form failed to identify errors in text' };
     return { ok: true };
   }
   if (!ev) return { ok: false, reason: 'element was not behaviorally probed by the driver' };
+  // ---- per-skill PROBE-EXISTENCE / trust gate ----
   if (skill === 'focus-visibility') {
     if (!ev.focusProbed) return { ok: false, reason: 'no definite focus-indicator probe (element unreached/indeterminate)' };
-    if (codes.includes('2.4.7')) { // ring existence is authoritative for 2.4.7
-      if (REP && ev.ringPresent === true) return { ok: false, reason: 'REPRODUCED "no focus indicator" (2.4.7) contradicts focusIndicator.present:true' };
-      if (NR && ev.ringPresent === false) return { ok: false, reason: 'NOT REPRODUCED (2.4.7) contradicts focusIndicator.present:false' };
-    }
-    return { ok: true };
-  }
-  if (skill === 'keyboard-operability') {
+  } else if (skill === 'keyboard-operability') {
     const k = ev.keyboard;
     if (k && k.exercised) { if (!(k.trusted === true && k.isolated === true)) return { ok: false, reason: 'keyboard probe was synthetic or non-isolated' }; }
     else if (k && k.exercised === false && k.trusted === null) { if (REP) return { ok: false, reason: 'native presumption cannot support a keyboard FAILURE — must be exercised' }; }
     else { const a = ev.arrowKeys; if (!(a && a.trusted === true && a.isolated === true)) return { ok: false, reason: 'no trusted+isolated keyboard/arrow probe' }; }
-    if (codes.includes('2.1.1') && ev.kbdResponseKnown) { // 2.1.1 operability outcome
-      const operated = ev.kbdResponded || ev.arrowsResponded;
-      if (REP && operated) return { ok: false, reason: 'REPRODUCED "keyboard inoperable" (2.1.1) contradicts an observed key response' };
-      if (NR && !operated && !ev.kbdNative) return { ok: false, reason: 'NOT REPRODUCED (2.1.1) but the driver observed no key response (non-native)' };
-    }
-    return { ok: true };
-  }
-  if (skill === 'focus-management') {
+  } else if (skill === 'focus-management' || skill === 'dynamic-announcement') {
     const a = ev.activation;
     if (!a || a.trusted !== true || a.isolated !== true) return { ok: false, reason: 'activation was synthetic, non-isolated, or absent' };
-    if (REP && ev.dialogOpened && ev.focusReturnedToTrigger === true) return { ok: false, reason: 'REPRODUCED focus-return defect contradicts focusReturnedToTrigger:true' };
-    return { ok: true };
   }
-  if (skill === 'dynamic-announcement') {
-    const a = ev.activation;
-    if (!a || a.trusted !== true || a.isolated !== true) return { ok: false, reason: 'activation was synthetic, non-isolated, or absent' };
+  // ---- SC-KEYED contradiction checks (R2.6-A #6: by the cited SC, NOT the skill, so a
+  //      2.4.7 claim on focus-management is ring-checked just like on focus-visibility) ----
+  if (codes.includes('2.4.7')) {
+    if (!ev.focusProbed) return { ok: false, reason: '2.4.7 verdict with no definite focus-indicator probe (element unreached/indeterminate)' };
+    if (REP && ev.ringPresent === true) return { ok: false, reason: 'REPRODUCED "no focus indicator" (2.4.7) contradicts focusIndicator.present:true' };
+    if (NR && ev.ringPresent === false) return { ok: false, reason: 'NOT REPRODUCED (2.4.7) contradicts focusIndicator.present:false' };
+  }
+  if (codes.includes('2.1.1') && ev.kbdResponseKnown) {
+    const operated = ev.kbdResponded || ev.arrowsResponded;
+    if (REP && operated) return { ok: false, reason: 'REPRODUCED "keyboard inoperable" (2.1.1) contradicts an observed key response' };
+    if (NR && !operated && !ev.kbdNative) return { ok: false, reason: 'NOT REPRODUCED (2.1.1) but the driver observed no key response (non-native)' };
+  }
+  if (codes.includes('4.1.3')) {
     if (REP && ev.vsrAnnounced) return { ok: false, reason: 'REPRODUCED "status not announced" (4.1.3) contradicts a meaningful vsrAnnouncement' };
-    return { ok: true };
+    // R2.6-A #5: a SILENT status change — the view changed without moving focus or opening a
+    // dialog, and nothing was announced (no live region, no VSR) — contradicts NOT REPRODUCED.
+    if (NR && ev.viewChanged && !ev.focusMoved && !ev.dialogOpened && !ev.vsrAnnounced && !ev.liveRegionChanged)
+      return { ok: false, reason: 'NOT REPRODUCED (4.1.3) but the driver observed a silent status change (view changed, no announcement)' };
   }
+  if (codes.includes('2.4.3') && REP && ev.dialogOpened && ev.focusReturnedToTrigger === true)
+    return { ok: false, reason: 'REPRODUCED focus-return defect (2.4.3) contradicts focusReturnedToTrigger:true' };
   return { ok: true };
 }
 

@@ -754,6 +754,9 @@ function loadXpaths() {
         const r = {
           fields: setupFieldsShim(), hasRequired: perField.some(p => p.required),
           submitMethod: null, submitBlocked, navigated, invalidEventsFired: invalidFired.length,
+          // R2.6-A: the COMPLETE list of field xpaths (perField is display-capped at 8) so
+          // the result binding can tie EVERY field — not just the first 8 — to its own form.
+          fieldXpaths: perField.map(p => p.xpath).filter(Boolean),
           perField: perField.slice(0, 8), validationMessages: nativeMessages.slice(0, 5),
           nativeTextIdentification: nativeMessages.length > 0,
           focusMovedToInvalidField: aeIdx >= 0,

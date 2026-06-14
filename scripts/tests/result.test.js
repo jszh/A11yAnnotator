@@ -358,7 +358,8 @@ test('R2.4-B driverEvidenceFrom distils behavioralTrust/focusIndicator/forms', (
   const ev = driverEvidenceFrom({ elements: [{ xpath: '/a', behavioralTrust: { keyboard: { trusted: true, isolated: true, exercised: true }, activation: { trusted: true, isolated: true } }, focusIndicator: { present: true } }], forms: [{ submitMethod: 'trusted' }] });
   assert.equal(ev.byXpath['/a'].focusProbed, true);
   assert.equal(ev.byXpath['/a'].activation.trusted, true);
-  assert.deepEqual(ev.formsTrust, { probed: true, allTrustedIsolated: true });
+  assert.equal(ev.formsTrust.probed, true);
+  assert.equal(ev.formsTrust.allTrustedIsolated, true);
 });
 
 // ---- R2.4-F: recursive strictness (R23-M2) ----
@@ -437,4 +438,28 @@ test('R2.5-F: a null/malformed summary.issues entry FAILS CLOSED (no throw)', ()
   let v; assert.doesNotThrow(() => { v = validateResults(R); });
   assert.equal(v.ok, false);
   assert.ok(v.errors.some(x => /summary\.issues\[\d+\] is not an object/.test(x)));
+});
+
+// ---- R2.6-A: outcome-binding completeness (R25 re-audit A-gaps) ----
+test('R2.6-A #6: a 2.4.7 "no focus ring" REPRODUCED is ring-checked even when routed via focus-management', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-management': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } })] });
+  const v = validateResults(R, DEo({ '/a': { focusProbed: true, ringPresent: true, activation: { trusted: true, isolated: true } } }));
+  assert.ok(v.errors.some(e => /contradicts focusIndicator\.present:true/.test(e)), 'the SC check is keyed to 2.4.7, not the skill');
+});
+test('R2.6-A #5: a NOT REPRODUCED 4.1.3 is rejected when the driver saw a SILENT status change', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'dynamic-announcement': { verdict: 'NOT REPRODUCED', sc: '4.1.3', level: 'AA', evidence: 'fine' } })] });
+  const v = validateResults(R, DEo({ '/a': { activation: { trusted: true, isolated: true }, viewChanged: true, focusMoved: false, dialogOpened: false, vsrAnnounced: false, liveRegionChanged: false } }));
+  assert.ok(v.errors.some(e => /silent status change/.test(e)));
+});
+test('R2.6-A #1: forms NOT REPRODUCED on an UNMAPPED field is rejected when a probed form had noTextIdentificationAtAll', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/field9', { 'forms-instructions-errors': { verdict: 'NOT REPRODUCED', sc: '3.3.1', level: 'A', evidence: 'fine' } })] });
+  // /field9 is NOT in formByField (beyond the perField cap); a probed form failed 3.3.1.
+  const v = validateResults(R, DEo({ '/field9': {} }, { formsTrust: { probed: true, allTrustedIsolated: true, anyNoTextId: true, anyNativeTextId: false }, formByField: {} }));
+  assert.ok(v.errors.some(e => /unmapped field while a probed form had noTextIdentificationAtAll/.test(e)));
+});
+test('R2.6-A driverEvidenceFrom maps EVERY field via fieldXpaths (not just perField’s first 8)', () => {
+  const ev = driverEvidenceFrom({ elements: [], forms: [{ submitMethod: 'trusted', noTextIdentificationAtAll: true, fieldXpaths: ['/f/i9'], perField: [] }] });
+  assert.ok(ev.formByField['/f/i9'], 'field beyond the perField cap is still mapped to its form');
+  assert.equal(ev.formByField['/f/i9'].noTextIdentificationAtAll, true);
+  assert.equal(ev.formsTrust.anyNoTextId, true);
 });
