@@ -56,22 +56,36 @@ Every reportable observation is one of:
 - `page` — a page with ≥1 elementWithIssue.
 `summary.countBasis` records which denominator a published number uses.
 
-## Hard invariants (schema rejects on violation — see W2 / R2.3-C / R2.3-D)
+## Hard invariants (schema rejects on violation — see W2 / R2.3-C / R2.3-D / R2.4 / R2.5)
 1. `verdict ∈ enum`; **EVERY** verdict — incl `N/A` and `NOT REPRODUCED` — carries a
    one-line `evidence`/reason (not just issues).
 2. `sc` ∈ the skill's allowed list above; `level` matches the SC. A **normative** issue
    MUST carry an `sc`; a **best-practice/at-compat** observation may instead carry a
-   non-SC `rule` id (no fake SC).
+   non-SC `rule` id (no fake SC). A malformed `sc` (parses to no valid SC) or a `level`
+   with no `sc` is rejected on ANY verdict (R2.5-F).
 3. `element.anyIssue === (∃ sub-verdict REPRODUCED|PARTIAL)`.
-4. `summary.bySkill[*]`, `summary.elementsWithIssue`, `summary.issues` are **derived**, equal
-   to a recompute from `elements[]`. `summary.issues` is compared as an EXACT canonical array
-   (length + per-index, incl `rule`), so duplicates and corrupted fields are rejected.
+4. `summary.bySkill[*]`, `summary.elementsWithIssue`, `summary.issues`, `summary.countBasis`
+   are **derived**, equal to a recompute from `elements[]`. `summary.issues` is compared as an
+   EXACT canonical array (length + per-index, incl `rule`); `countBasis` values are compared
+   too; a non-object issue fails closed (no throw). No unexpected keys at any nesting level
+   (issue/countBasis/bySkill cell).
 5. No definite **dynamic** verdict (keyboard/focus/announcement) on a `notFound` element;
-   nor on a probe stamped `trust:"synthetic"` or `isolation:"shared"` — those must be PARTIAL.
-6. `bucket ∈ {normative, at-compat, best-practice}`; only `normative` REPRODUCED counts toward
+   nor on a probe stamped `trust:"synthetic"`/`isolation:"shared"`.
+6. **Outcome-aware behavioral binding (R2.4-B/R2.5-A):** a DEFINITE behavioral verdict
+   (keyboard-operability / focus-management / focus-visibility / dynamic-announcement /
+   forms-instructions-errors) is bound to the DRIVER's `drive.json`, not the agent's stamp.
+   It is rejected when the driver did not probe it trusted+isolated, OR when the OBSERVED
+   OUTCOME contradicts the verdict: 2.4.7↔`focusIndicator.present`, 2.1.1↔observed key
+   response, 4.1.3↔a captured announcement, 3.3.1↔the FIELD'S OWN form
+   `nativeTextIdentification`/`noTextIdentificationAtAll`, 2.4.3↔`focusReturnedToTrigger`.
+   Native-keyboard presumption supports only `NOT REPRODUCED`, never a failure.
+7. `bucket ∈ {normative, at-compat, best-practice}`; only `normative` REPRODUCED counts toward
    an SC tally.
-7. **Completeness:** all 3 page skills present and NOT `N/A` (inherently applicable); no
-   unexpected top-level/element/skill/verdict keys.
-8. **Provenance:** `provenance.collect.xpaths` (the collector inventory) is required; every
-   element must be IN it (no fabricated element); a fully-evaluated inventory may not drop a
-   collected element.
+8. **Completeness:** all 3 page skills present and NOT `N/A`; no unexpected top-level/
+   element/skill/verdict keys.
+9. **Provenance + identity (R2.4-A/R2.5-B/R2.5-C):** `provenance.collect.xpaths` is derived
+   from the MANDATORY `collect.json` (not the agent); `records.file === collect.file ===
+   drive.file` (no cross-page substitution); raw collector xpaths must be unique. Completeness
+   is **default-closed**: every collected element is evaluated OR in `skipped:[{xpath,reason}]`
+   with a SUBSTANTIVE reason, skips ≤ 25% of the inventory, and if the collector's axe run
+   found critical/serious violations an audit that SKIPPED elements may not report 0 failures.

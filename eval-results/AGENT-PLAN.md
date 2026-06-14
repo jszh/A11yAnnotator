@@ -128,10 +128,13 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
    (now real keys) shows it operates. axe `focus-order-semantics`/`tabindex`.
 4. **focus-management** — from `tabWalk`/`localTabWalk`: `trapDetected`, order vs
    DOM order, element reached but `inViewport:false` (2.4.11 obscured/off-screen).
-   **2.1.2:** `trapDetected:true` is a keyboard-trap candidate, BUT if
-   `tabWalk.advisedExitHint` is set (instructional text names a non-standard exit key),
-   a non-standard exit MAY satisfy 2.1.2 if adequately advised — record **PARTIAL** and
-   verify the advisement, don't assert a definite failure.
+   **2.1.2 is TRI-STATE (R2.5-D):** `trapDetected:true` = a trap candidate (the page
+   interfered with Tab — `trapInterference` ∈ preventDefault / focus-frozen / focus-redirect
+   / background-defocus); `false` = wraparound, not a trap; **`null` + `trapIndeterminate:true`**
+   = a bounded cycle whose escape could NOT be positively demonstrated (focus confined in a
+   dialog, or listeners possibly suppressed) → record **PARTIAL**, don't assert pass or fail.
+   If `tabWalk.advisedExitHint` is set, a non-standard exit MAY satisfy 2.1.2 if adequately
+   advised — record **PARTIAL** and verify the advisement.
    Modal (from `activate.modal`): `focusMovedIntoDialog` (focus enters the modal),
    `closedByEscapeOrButton`, and `focusReturnedToTrigger` (focus RETURN after close
    — false ⇒ 2.4.3 focus-order defect). Use `srWalk`/`tabWalk` order to compare
@@ -228,10 +231,19 @@ best-practice/AT-compat observation may instead carry a non-SC `rule` id (with
 `bucket:"best-practice"`/`"at-compat"`) so it doesn't count as an SC failure — do NOT
 invent a fake SC for it. EVERY verdict — including `N/A` and `NOT REPRODUCED` — must carry
 a one-line `evidence`/reason, and page-level skills may never be `N/A` (they are inherently
-applicable). A DEFINITE dynamic verdict (`REPRODUCED`/`NOT REPRODUCED` on keyboard/focus/
-announcement) must rest on a TRUSTED + ISOLATED probe — read `behavioralTrust` from
-drive.json and stamp `trust:"trusted"|"synthetic"` and `isolation:"isolated"|"shared"` on
-the verdict; if the probe was synthetic or non-isolated you MUST downgrade to `PARTIAL`.
+applicable). A DEFINITE behavioral verdict (`REPRODUCED`/`NOT REPRODUCED` on keyboard/focus/
+announcement/forms) must rest on a TRUSTED + ISOLATED probe AND **AGREE WITH THE DRIVER'S
+OBSERVED OUTCOME** (R2.5-A) — the builder reads `drive.json` itself and REJECTS a verdict
+that contradicts it: a "no focus ring" (2.4.7) when `focusIndicator.present:true`; a
+keyboard "inoperable" (2.1.1) when a key response was observed; a status "not announced"
+(4.1.3) when a meaningful `vsrAnnouncement` was captured; an "error not identified" (3.3.1)
+when the FIELD'S OWN form set `nativeTextIdentification:true`. Where the driver did not
+prove the claimed outcome (synthetic/non-isolated probe, no probe, or a contradiction) you
+MUST use `PARTIAL`. Native-keyboard presumption supports only `NOT REPRODUCED` (operable),
+never a keyboard failure. SKIPS: any collected element you don't evaluate goes in
+`records.skipped:[{xpath,reason}]` with a SUBSTANTIVE reason; skips are capped at 25% of the
+inventory and cannot coexist with a "0 failures" result when the collector's axe found
+critical/serious violations.
 
 `records.json` shape:
 ```json
