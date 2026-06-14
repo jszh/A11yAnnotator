@@ -109,11 +109,21 @@ test('R2.2-B trap: a 12-control inescapable cycle is detected (seenAll escape re
   const o = runScript('drive-page.js', 'fx-trap-large.html', ['/html/body/div[2]/button[1]']);
   assert.equal(o.tabWalk.trapDetected, true, 'a large cycle must not "escape" to one of its own members');
 });
-test('R2.3-B trap: a TRAP-ONLY page (cycle == every focusable) is detected via the boundary sentinel', { skip: !serverUp }, () => {
+test('R2.3-B trap: a TRAP-ONLY page (cycle == every focusable) is detected without any DOM mutation', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap-only.html', ['/html/body/button[1]']);
-  assert.equal(o.tabWalk.trapDetected, true, 'focus cannot leave even though totalFocusables === seenAll.size (no unreached-focusable proxy)');
+  assert.equal(o.tabWalk.trapDetected, true, 'focus cannot leave and the page interferes with Tab');
   assert.equal(o.tabWalk.totalFocusables, 2, 'the whole page is the trap');
   assert.ok((o.tabWalk.trapCycle || []).length >= 2);
+});
+test('R2.4-C trap (R23-H1): a DELEGATED handler enumerating all buttons is caught (no sentinel to absorb)', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-delegated.html', ['/html/body/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, true, 'preventDefault on Tab is seen by a passive, non-focusable listener');
+  assert.equal(o.tabWalk.trapInterference, 'preventDefault');
+});
+test('R2.4-C trap: a focusout-REDIRECT trap (no preventDefault) is caught via excess focusins', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-redirect.html', ['/html/body/div[1]/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, true, 'focus reassigned programmatically ⇒ more focusins than Tab presses');
+  assert.equal(o.tabWalk.trapInterference, 'focus-redirect');
 });
 test('R2.3-B+ trap: a non-standard exit that is ADVISED emits advisedExitHint (agent → PARTIAL, not a definite trap)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap-advised.html', ['/html/body/div[1]/button[1]']);
@@ -125,9 +135,9 @@ test('R2.3-B+ trap: a plain trap with NO advisement has advisedExitHint=null (de
   assert.equal(o.tabWalk.trapDetected, true);
   assert.equal(o.tabWalk.advisedExitHint == null, true, 'no advisement → not downgraded');
 });
-test('R2.3-B trap: ordinary wraparound is still NOT a trap even though the sentinel probe always runs', { skip: !serverUp }, () => {
+test('R2.3-B trap: ordinary wraparound is NOT a trap (no Tab interference observed)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-wraparound.html', ['/html/body/button[1]']);
-  assert.equal(o.tabWalk.trapDetected, false, 'Tab reaches the appended boundary sentinel → escapable');
+  assert.equal(o.tabWalk.trapDetected, false, 'no preventDefault / focus-redirect ⇒ bounded wraparound, not a trap');
 });
 test('R2.2-B trap: a DISABLED control in the tab order does NOT inflate focusables (no false trap)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-disabled-skip.html', ['/html/body/button[1]']);

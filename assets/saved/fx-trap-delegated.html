@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>delegated trap</title></head><body>
+<button id="a">A</button><button id="b">B</button>
+<script>
+// Delegated: on Tab, preventDefault and move focus to the "next button" among ALL buttons,
+// wrapping. A boundary sentinel <button> would be enumerated here and falsely "escape".
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Tab')return;
+  e.preventDefault();
+  var all=[].slice.call(document.querySelectorAll('button'));
+  var i=all.indexOf(document.activeElement);
+  var next=all[(i+ (e.shiftKey?-1:1) + all.length)%all.length];
+  next.focus();
+});
+</script></body></html>

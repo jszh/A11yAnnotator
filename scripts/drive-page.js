@@ -298,7 +298,21 @@ function loadXpaths() {
     // that releases on Escape → not a trap.
     const NO_NEW = 8; const recent = []; const seenAll = new Set(); let stopsSinceNew = 0;
     const tw0 = Date.now();
-    const curState = () => page.evaluate(() => { const el = document.activeElement; return { xpath: el && el !== document.body ? window.__getXPath(el) : null, onSentinel: !!(el && el.getAttribute && el.getAttribute('data-a11y-trapsentinel') !== null), dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length }; }).catch(() => ({ xpath: null, onSentinel: false, dialogs: 0 }));
+    // R2.4-C (R23-H1): NON-MUTATING interference instrumentation. A keyboard trap
+    // INTERFERES with standard Tab — it either preventDefault()s the Tab keydown or
+    // REDIRECTS focus via a focus event (focusout→.focus()). Observe both with PASSIVE
+    // listeners — NOT a focusable node the page can enumerate/absorb (the old boundary
+    // sentinel's flaw: a page that queried "all buttons" treated the sentinel as an
+    // escape and hid a real trap). Listeners don't change the tab order.
+    await page.evaluate(() => {
+      window.__a11yTrap = { prevented: 0, focusins: 0, tabs: 0 };
+      window.__a11yTrapKD = (e) => { if (e.key === 'Tab') { window.__a11yTrap.tabs++; if (e.defaultPrevented) window.__a11yTrap.prevented++; } };
+      window.__a11yTrapFI = () => { window.__a11yTrap.focusins++; };
+      window.addEventListener('keydown', window.__a11yTrapKD, false); // bubble + last ⇒ sees final defaultPrevented
+      document.addEventListener('focusin', window.__a11yTrapFI, true);
+    }).catch(() => {});
+    const curState = () => page.evaluate(() => { const el = document.activeElement; return { xpath: el && el !== document.body ? window.__getXPath(el) : null, dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length }; }).catch(() => ({ xpath: null, dialogs: 0 }));
+    const trapSnap = () => page.evaluate(() => ({ ...window.__a11yTrap })).catch(() => ({ prevented: 0, focusins: 0, tabs: 0 }));
     for (let i = 0; i < MAXTAB; i++) {
       if (Date.now() - tw0 > TABWALK_BUDGET_MS) { out.tabWalk.budgetExceeded = true; break; }
       await page.keyboard.press('Tab'); await sleep(22);
@@ -315,42 +329,41 @@ function loadXpaths() {
       out.tabWalk.stops.push(st);
       recent.push(st.xpath); if (recent.length > NO_NEW + 2) recent.shift();
       if (seenAll.has(st.xpath)) stopsSinceNew++; else { seenAll.add(st.xpath); stopsSinceNew = 0; }
-      // suspect: stuck revisiting a bounded set. The escape reference is the WHOLE
-      // reached set `seenAll` (not a small recent window) so a LARGE cycle (e.g. 12
-      // controls) can't "escape" to one of its own members. CONFIRM with a boundary
-      // sentinel: a real trap reaches NEITHER the appended sentinel NOR any element
-      // outside the cycle via Escape / Tab / Shift+Tab.
+      // Stuck revisiting a bounded set. CONFIRM 2.1.2 directly: (1) Escape — a STANDARD
+      // exit (a modal that releases on Escape is NOT a trap); (2) can standard Tab/
+      // Shift+Tab LEAVE the cycle; (3) is the page actively INTERFERING with Tab. If
+      // focus cannot leave AND the page interferes ⇒ trap. If it cannot leave but does
+      // NOT interfere ⇒ ordinary wraparound on a bounded page (a real browser would move
+      // focus to chrome — we don't fabricate that), NOT a trap.
       if (stopsSinceNew >= NO_NEW) {
-        const reached = new Set(seenAll); let escaped = false, escapeMethod = null, escapedToReal = false;
+        const reached = new Set(seenAll); let escaped = false, escapeMethod = null;
         const PROBE = Math.min(reached.size + 2, 48);
-        // Append a focusable boundary sentinel at the very end of the document.
-        await page.evaluate(() => {
-          if (document.querySelector('[data-a11y-trapsentinel]')) return;
-          const s = document.createElement('button'); s.setAttribute('data-a11y-trapsentinel', ''); s.textContent = '.';
-          s.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px';
-          document.body.appendChild(s);
-        }).catch(() => {});
         const dlgBefore = (await curState()).dialogs;
         await page.keyboard.press('Escape'); await sleep(60); // STANDARD EXIT (2.1.2)
         const afterEsc = await curState();
-        if (afterEsc.onSentinel || (afterEsc.xpath && !reached.has(afterEsc.xpath)) || afterEsc.dialogs < dlgBefore) { escaped = true; escapeMethod = 'Escape'; escapedToReal = !afterEsc.onSentinel; }
+        if ((afterEsc.xpath && !reached.has(afterEsc.xpath)) || afterEsc.dialogs < dlgBefore) { escaped = true; escapeMethod = 'Escape'; }
+        const s0 = await trapSnap();
         for (const press of [['Tab'], ['Shift', 'Tab']]) {
           for (let k = 0; k < PROBE && !escaped; k++) {
             if (press[0] === 'Shift') { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
             else await page.keyboard.press('Tab');
             await sleep(22);
             const hs = await curState();
-            // Reaching the sentinel proves focus CAN leave the cycle (not a trap),
-            // even on a trap-only page where the cycle covers every real focusable.
-            if (hs.onSentinel || (hs.xpath && !reached.has(hs.xpath))) { escaped = true; escapeMethod = press.join('+'); escapedToReal = !hs.onSentinel; break; }
+            if (hs.xpath && !reached.has(hs.xpath)) { escaped = true; escapeMethod = press.join('+'); break; }
           }
         }
-        await page.evaluate(() => { const s = document.querySelector('[data-a11y-trapsentinel]'); if (s) s.remove(); }).catch(() => {});
-        if (!escaped) {
+        const s1 = await trapSnap();
+        const tabs = Math.max(0, s1.tabs - s0.tabs);
+        const prevented = Math.max(0, s1.prevented - s0.prevented);
+        const redirects = Math.max(0, (s1.focusins - s0.focusins) - tabs); // focusins > tabs ⇒ programmatic refocus
+        const interfered = prevented > 0 || redirects > 0;
+        if (escaped) { out.tabWalk.escapableComponent = { via: escapeMethod }; stopsSinceNew = 0; continue; }
+        if (interfered) {
           out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = [...new Set(recent)];
+          out.tabWalk.trapInterference = prevented > 0 ? 'preventDefault' : 'focus-redirect';
           // 2.1.2: a NON-STANDARD exit is conformant IF the user is ADVISED of it. The
-          // harness can't prove an advisement is adequate/associated, so it only emits a
-          // HINT (instructional text near the component naming an exit method); the agent
+          // harness can't prove an advisement is adequate/associated, so it emits a HINT
+          // only (instructional text near the component naming an exit method); the agent
           // treats trapDetected+advisedExitHint as PARTIAL, not a definite failure.
           out.tabWalk.advisedExitHint = await page.evaluate(() => {
             const el = document.activeElement; if (!el) return null;
@@ -362,13 +375,11 @@ function loadXpaths() {
           }).catch(() => null);
           break;
         }
-        out.tabWalk.escapableComponent = { via: escapeMethod }; // not a trap
-        // If the only thing reached outside the cycle was the sentinel, the page is
-        // fully walked and escapable — stop. Otherwise real new content exists: resume.
-        if (!escapedToReal) break;
-        stopsSinceNew = 0; // resume the walk (keep seenAll — we DID reach new content)
+        out.tabWalk.escapableComponent = { via: 'wraparound' }; // bounded but no interference ⇒ not a trap
+        break;
       }
     }
+    await page.evaluate(() => { try { window.removeEventListener('keydown', window.__a11yTrapKD, false); document.removeEventListener('focusin', window.__a11yTrapFI, true); delete window.__a11yTrap; delete window.__a11yTrapKD; delete window.__a11yTrapFI; } catch (e) {} }).catch(() => {});
     out.tabWalk.count = out.tabWalk.stops.length;
 
     // ---------- PASS A: appearance + LOCAL tab walk + LOCAL SR walk (per element) ----------
