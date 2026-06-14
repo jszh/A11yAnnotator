@@ -151,6 +151,19 @@ test('R2.3-D isolation: the activation probe is ALWAYS reloaded → behavioralTr
   assert.equal(bt.activation.trusted, true, 'activation used a trusted ElementHandle click');
 });
 
+test('R2.3-A+ edge: an ANCESTOR clip-path crops the target → needs-judgment (not just the element’s own)', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-shape-ancestorclip.html', ['/html/body/div[1]/a[1]']);
+  const e = o.elements[0];
+  assert.equal(e.clipped, true, 'ancestor clip-path is detected, mirroring the ancestor-transform walk');
+  assert.equal(e.targetSize.verdict, 'needs-judgment', 'a clipped hit area cannot be asserted to fit 24×24');
+});
+test('R2.3-E+ edge: NESTED consent containers count ONCE (no double-counted controls)', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-consent-nested.html', ['/html/body/main[1]/p[1]']);
+  const c = o.consentHidden;
+  assert.equal(c.count, 1, 'a matched container nested in another matched one is not a second container');
+  assert.equal(c.consentState.visibleControls, 2, 'the inner container’s control is counted once, via the top-level subtree');
+});
+
 test('R2.3-E consent (R22-M1): inventory is VISIBLE-only, container counted ONCE, marked PARTIAL-basis', { skip: !serverUp }, () => {
   const o = runScript('eval-page.js', 'fx-consent.html', ['/html/body/main[1]/p[1]']);
   const c = o.consentHidden;

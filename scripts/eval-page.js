@@ -122,22 +122,29 @@ function parseRGB(s) {
       };
       const isVisible = el => { const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity || '1') === 0) return false; const b = el.getBoundingClientRect(); return b.width > 0 && b.height > 0; };
       const isFocusableCtl = el => !el.disabled && el.getAttribute('aria-disabled') !== 'true' && el.getAttribute('tabindex') !== '-1' && el.getAttribute('aria-hidden') !== 'true';
-      const seenC = new Set(); // a container matching MULTIPLE selectors counts ONCE
+      const allMatched = new Set(); // every matched container (any selector)
       const toHide = new Set();
       for (const sel of selectors) {
         let els = [];
         try { els = [...document.querySelectorAll(sel)]; } catch (e) { continue; }
-        for (const el of els) {
-          if (!seenC.has(el)) {
-            seenC.add(el);
-            analysis.containers++;
-            if (el.getAttribute('role') === 'dialog' || el.getAttribute('role') === 'alertdialog') analysis.hasDialogRole = true;
-            for (const c of el.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')) { if (!isVisible(c) || !isFocusableCtl(c)) continue; analysis.visibleControls++; if (!named(c)) analysis.unlabelledVisibleControls++; }
-            analysis.visibleHeadings += [...el.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].filter(isVisible).length;
-          }
-          toHide.add(el);
-        }
+        for (const el of els) { allMatched.add(el); toHide.add(el); }
         if (els.length) matched.push(sel);
+      }
+      // R2.3-A+: analyse only TOP-LEVEL containers — a matched container NESTED inside
+      // another matched one would otherwise double-count (the parent's subtree already
+      // includes the child's controls/headings). A multi-selector container counts once
+      // because allMatched keys on element identity.
+      const isNested = el => { for (let a = el.parentElement; a; a = a.parentElement) if (allMatched.has(a)) return true; return false; };
+      const seenC = new Set();
+      {
+        for (const el of allMatched) {
+          if (isNested(el) || seenC.has(el)) continue;
+          seenC.add(el);
+          analysis.containers++;
+          if (el.getAttribute('role') === 'dialog' || el.getAttribute('role') === 'alertdialog') analysis.hasDialogRole = true;
+          for (const c of el.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')) { if (!isVisible(c) || !isFocusableCtl(c)) continue; analysis.visibleControls++; if (!named(c)) analysis.unlabelledVisibleControls++; }
+          analysis.visibleHeadings += [...el.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].filter(isVisible).length;
+        }
       }
       // neutralise AFTER analysis so the visibility checks above saw the live overlay.
       for (const el of toHide) { el.setAttribute('data-a11yeval-consent-hidden', '1'); el.style.setProperty('display', 'none', 'important'); }
@@ -272,14 +279,18 @@ function parseRGB(s) {
           }
         }
         // R22-H2: any element/ancestor transform with rotation/skew makes the axis-aligned
-        // bbox an over-estimate; pure scale/translate keeps it rectangular.
-        let transformed = false;
+        // bbox an over-estimate; pure scale/translate keeps it rectangular. R2.3-A+:
+        // an ancestor `clip-path` crops the target's hit area just as the element's own
+        // does, so the clip check walks ancestors TOO (was element-only → a definite
+        // pass on an ancestor-clipped target).
+        let transformed = false, clipped = cs.clipPath !== 'none';
         for (let a = r; a; a = a.parentElement) {
-          const t = getComputedStyle(a).transform; if (!t || t === 'none') continue;
-          const m = t.match(/matrix\(([^)]+)\)/); if (m) { const p = m[1].split(',').map(parseFloat); if (Math.abs(p[1]) > 0.001 || Math.abs(p[2]) > 0.001) { transformed = true; break; } }
-          else if (/matrix3d|rotate|skew/.test(t)) { transformed = true; break; }
+          const acs = getComputedStyle(a);
+          if (a !== r && acs.clipPath && acs.clipPath !== 'none') clipped = true;
+          const t = acs.transform; if (!t || t === 'none') continue;
+          const m = t.match(/matrix\(([^)]+)\)/); if (m) { const p = m[1].split(',').map(parseFloat); if (Math.abs(p[1]) > 0.001 || Math.abs(p[2]) > 0.001) { transformed = true; } }
+          else if (/matrix3d|rotate|skew/.test(t)) { transformed = true; }
         }
-        const clipped = cs.clipPath !== 'none';
         const cornerRadius = Math.max(parseFloat(cs.borderTopLeftRadius) || 0, parseFloat(cs.borderTopRightRadius) || 0, parseFloat(cs.borderBottomLeftRadius) || 0, parseFloat(cs.borderBottomRightRadius) || 0);
         // R22-H2: UA-Control exception requires the size to be UNMODIFIED by the author —
         // matching the default size is necessary but NOT sufficient. Require native
