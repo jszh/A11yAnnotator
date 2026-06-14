@@ -190,24 +190,64 @@ function parseRGB(s) {
           if (hasOwnText) childTextColors.add(getComputedStyle(d).color);
         }
         const textInChildDiffColor = [...childTextColors].some(c => c !== cs.color);
-        // T3: nearest OTHER interactive target's centre-to-centre distance (for the
-        // 2.5.8 spacing exception). Bounded scan of visible clickable targets.
-        const myCx = b.x + b.width / 2, myCy = b.y + b.height / 2;
-        let nearestTargetCenterDist = null;
+        // C4: collect adjacent target RECTANGLES near this element so the 2.5.8
+        // spacing exception can be evaluated with real circle-to-rect geometry
+        // (not a center-distance proxy). Bounded to targets whose box is within
+        // ~28px of this one (the 12px circle can only reach that far).
+        const targetNeighbors = [];
+        let inSentence = false;
         if (b.width > 0 && b.height > 0) {
           const tsel = 'a[href],button,input:not([type=hidden]),select,textarea,summary,[role=button],[role=link],[role=tab],[role=menuitem],[role=checkbox],[role=radio],[onclick]';
-          let best = Infinity;
+          const reach = 28;
           for (const t of document.querySelectorAll(tsel)) {
             if (t === r || r.contains(t) || t.contains(r)) continue;
             const tb = t.getBoundingClientRect(); if (tb.width === 0 || tb.height === 0) continue;
             const ts = getComputedStyle(t); if (ts.visibility === 'hidden' || ts.display === 'none') continue;
-            const d = Math.hypot((tb.x + tb.width / 2) - myCx, (tb.y + tb.height / 2) - myCy);
-            if (d < best) best = d;
+            // gap between the two boxes (0 if overlapping); keep only plausibly-intersecting
+            const gx = Math.max(0, Math.max(tb.x - b.right, b.x - tb.right));
+            const gy = Math.max(0, Math.max(tb.y - b.bottom, b.y - tb.bottom));
+            if (gx <= reach && gy <= reach) targetNeighbors.push({ x: Math.round(tb.x), y: Math.round(tb.y), w: Math.round(tb.width), h: Math.round(tb.height) });
+            if (targetNeighbors.length >= 40) break;
           }
-          nearestTargetCenterDist = best === Infinity ? null : +best.toFixed(1);
+          // C4 inline exception is SEMANTIC ("in a sentence"): require display:inline
+          // AND the nearest block ancestor to carry non-target text beyond this element.
+          if (cs.display === 'inline') {
+            let blk = r.parentElement;
+            while (blk && getComputedStyle(blk).display === 'inline') blk = blk.parentElement;
+            if (blk) { const own = (r.textContent || '').trim(); const around = (blk.textContent || '').trim(); inSentence = around.length > own.length + 10; }
+          }
         }
         const tag = r.tagName.toLowerCase();
         const roleAttr = r.getAttribute('role');
+        // H7: AX/ARIA STATE collection (the name-role-STATE skill needs these).
+        const stAttr = n => { const v = r.getAttribute(n); return v === null ? null : v; };
+        const nativeTag = tag === 'input' ? (r.type || 'text') : tag;
+        const states = {
+          expanded: stAttr('aria-expanded'),
+          pressed: stAttr('aria-pressed'),
+          selected: stAttr('aria-selected'),
+          checked: (r.type === 'checkbox' || r.type === 'radio') ? String(r.checked) : stAttr('aria-checked'),
+          disabled: (r.disabled === true) ? 'true' : stAttr('aria-disabled'),
+          current: stAttr('aria-current'),
+          level: stAttr('aria-level'),
+          valuetext: stAttr('aria-valuetext'),
+          valuenow: stAttr('aria-valuenow'),
+          required: (r.required === true) || stAttr('aria-required') === 'true',
+          invalid: stAttr('aria-invalid'),
+          readonly: (r.readOnly === true) || stAttr('aria-readonly') === 'true',
+          hasPopup: stAttr('aria-haspopup'),
+        };
+        // effective tab order + role override + obscuring (point hit-test at centre)
+        const tiAttr = r.getAttribute('tabindex');
+        const tabindexEffective = tiAttr !== null ? +tiAttr : (['a', 'button', 'input', 'select', 'textarea', 'summary'].includes(tag) && !r.disabled ? 0 : null);
+        const nativeInteractive = ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'].includes(tag);
+        const roleOverridesNative = nativeInteractive && !!roleAttr;
+        let obscured = false;
+        if (b.width > 0 && b.height > 0) {
+          const hx = Math.min(innerWidth - 1, Math.max(0, b.x + b.width / 2)), hy = Math.min(innerHeight - 1, Math.max(0, b.y + b.height / 2));
+          const top = document.elementFromPoint(hx, hy);
+          obscured = !!top && top !== r && !r.contains(top) && !top.contains(r);
+        }
         const interactiveTags = ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'];
         const interactiveRoles = ['link', 'button', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'checkbox', 'radio', 'switch', 'slider', 'textbox', 'combobox', 'option', 'spinbutton'];
         const formTags = ['input', 'select', 'textarea'];
@@ -223,10 +263,8 @@ function parseRGB(s) {
           box: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) },
           color: cs.color, ownBg: cs.backgroundColor, ownBgImage: cs.backgroundImage,
           effBg, effBgImage, bgWalkCrossedOverlay, textInChildDiffColor,
-          // pure `inline` only (text-flow, line-height-constrained) qualifies for the
-          // 2.5.8 inline exception — inline-block/-flex can be standalone targets.
-          display: cs.display, isInline: cs.display === 'inline',
-          nearestTargetCenterDist,
+          display: cs.display, inSentence, targetNeighbors,
+          states, tabindexEffective, roleOverridesNative, obscured,
           fontSize: cs.fontSize, fontWeight: cs.fontWeight,
           outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, outlineColor: cs.outlineColor,
           boxShadow: cs.boxShadow,
@@ -263,13 +301,12 @@ function parseRGB(s) {
         rec.contrastReliable = false;
       }
 
-      // T3: target-size (2.5.8) WITH the standard exceptions, computed by the
-      // harness so the agent doesn't re-derive a naive box<24 rule.
+      // C4: target-size (2.5.8) with the NORMATIVE circle geometry + semantic inline
+      // exception, computed by the harness so the agent doesn't re-derive box<24.
       if (dom.box) {
         rec.targetSize = A.evalTargetSize(dom.box, {
-          isInline: dom.isInline,
-          display: dom.display,
-          nearestTargetCenterDist: dom.nearestTargetCenterDist,
+          inSentence: dom.inSentence,
+          neighbors: dom.targetNeighbors,
         });
       }
 
@@ -294,6 +331,13 @@ function parseRGB(s) {
               rec.inTree = !ax.ignored;
               rec.focusable = getProp('focusable') || false;
               rec.ignoredReasons = (ax.ignoredReasons || []).map(r => r.name);
+              // H7: authoritative AX states from the computed accessibility node.
+              rec.axStates = {
+                checked: getProp('checked'), expanded: getProp('expanded'), pressed: getProp('pressed'),
+                selected: getProp('selected'), disabled: getProp('disabled'), required: getProp('required'),
+                invalid: getProp('invalid'), current: getProp('current'), level: getProp('level'),
+                valuetext: getProp('valuetext'), readonly: getProp('readonly'), haspopup: getProp('haspopup'),
+              };
             }
           }
         }
