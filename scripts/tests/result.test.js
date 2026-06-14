@@ -352,3 +352,33 @@ test('R2.4-F: an unexpected key inside summary.issues[] / countBasis / bySkill c
   const bs = base(); bs.summary.bySkill['focus-visibility'].smuggled = 1;
   assert.ok(validateResults(bs).errors.some(e => /summary\.bySkill\.focus-visibility: unexpected key "smuggled"/.test(e)));
 });
+
+// ---- R2.5-A: OUTCOME-aware behavioral binding (R24-C1) ----
+function DEo(byXpath, extra) { return { driverEvidence: Object.assign({ byXpath: byXpath || {}, formsTrust: { probed: false, allTrustedIsolated: false }, formByField: {} }, extra || {}) }; }
+test('R2.5-A reject: focus-visibility REPRODUCED 2.4.7 but the driver saw a ring (present:true)', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } })] });
+  const v = validateResults(R, DEo({ '/a': { focusProbed: true, ringPresent: true } }));
+  assert.ok(v.errors.some(e => /contradicts focusIndicator\.present:true/.test(e)), 'a "no ring" verdict cannot stand when the driver detected a ring');
+});
+test('R2.5-A reject: keyboard-operability REPRODUCED 2.1.1 but the driver saw a key response', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'does not operate' } })] });
+  const v = validateResults(R, DEo({ '/a': { keyboard: { trusted: true, isolated: true, exercised: true }, kbdResponseKnown: true, kbdResponded: true } }));
+  assert.ok(v.errors.some(e => /contradicts an observed key response/.test(e)));
+});
+test('R2.5-A reject: dynamic-announcement REPRODUCED 4.1.3 but a meaningful announcement was captured', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'dynamic-announcement': { verdict: 'REPRODUCED', sc: '4.1.3', level: 'AA', evidence: 'not announced' } })] });
+  const v = validateResults(R, DEo({ '/a': { activation: { trusted: true, isolated: true }, vsrAnnounced: true } }));
+  assert.ok(v.errors.some(e => /contradicts a meaningful vsrAnnouncement/.test(e)));
+});
+test('R2.5-A reject: forms REPRODUCED 3.3.1 but the field’s OWN form identified the error in text', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'forms-instructions-errors': { verdict: 'REPRODUCED', sc: '3.3.1', level: 'A', evidence: 'error not identified' } })] });
+  const v = validateResults(R, DEo({ '/a': {} }, { formsTrust: { probed: true, allTrustedIsolated: true }, formByField: { '/a': { nativeTextIdentification: true, noTextIdentificationAtAll: false, trustedSubmit: true } } }));
+  assert.ok(v.errors.some(e => /contradicts nativeTextIdentification:true/.test(e)), 'tied to the field’s OWN form, not a page-level any-form pass');
+});
+test('R2.5-A ALLOW: verdicts CONSISTENT with the observed outcome validate', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [
+    el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' }, 'dynamic-announcement': { verdict: 'NOT REPRODUCED', sc: '4.1.3', level: 'AA', evidence: 'announced' } }),
+  ] });
+  const v = validateResults(R, DEo({ '/a': { focusProbed: true, ringPresent: false, activation: { trusted: true, isolated: true }, vsrAnnounced: true } }));
+  assert.equal(v.ok, true, 'present:false supports "no ring"; an announcement supports NOT REPRODUCED');
+});

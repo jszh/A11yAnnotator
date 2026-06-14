@@ -202,52 +202,92 @@ function validateProvenance(E, R) {
   for (const xp of skippedSet) if (seen.has(xp)) E(`provenance: ${String(xp).slice(-30)} is both evaluated and skipped`);
 }
 
-// R2.4-B: distil drive.json into the per-element + page evidence the binding needs.
+// R2.4-B/R2.5-A: distil drive.json into per-element + page evidence, including the
+// OBSERVED OUTCOME signals (not just probe trust) the binding needs to detect a verdict
+// that contradicts the driver.
 function driverEvidenceFrom(drive) {
   const byXpath = {};
   for (const e of (drive && drive.elements) || []) {
     const bt = e.behavioralTrust || {};
+    const a = e.activate || {};
+    const kb = e.keyboard || {};
+    const ak = e.arrowKeys || null;
     byXpath[e.xpath] = {
       keyboard: bt.keyboard || null,
       arrowKeys: bt.arrowKeys || null,
       activation: bt.activation || null,
       focusProbed: !!(e.focusIndicator && (e.focusIndicator.present === true || e.focusIndicator.present === false)),
+      // OUTCOME signals (R2.5-A):
+      ringPresent: e.focusIndicator ? e.focusIndicator.present : undefined, // true|false|null|undefined
+      kbdNative: kb.native === true,
+      kbdResponseKnown: kb.native ? (kb.operable != null) : (typeof kb.respondedToKeyboard === 'boolean'),
+      kbdResponded: kb.native ? (kb.operable === true) : (kb.respondedToKeyboard === true),
+      arrowsResponded: ak ? ak.respondsToArrows === true : false,
+      vsrAnnounced: !!(a.vsrAnnouncement && String(a.vsrAnnouncement).trim()),
+      liveRegionChanged: a.liveRegionChanged === true,
+      dialogOpened: a.dialogOpened === true,
+      focusReturnedToTrigger: a.modal ? a.modal.focusReturnedToTrigger : undefined,
     };
   }
   const forms = (drive && drive.forms) || [];
-  // forms are reloaded per-probe (always isolated); trust hinges on a trusted submit.
   const formsTrust = { probed: forms.length > 0, allTrustedIsolated: forms.length > 0 && forms.every(f => f.submitMethod === 'trusted') };
-  return { byXpath, formsTrust };
+  // R2.5-A #6: tie a forms verdict to the FIELD'S OWN form via the per-field xpath.
+  const formByField = {};
+  for (const f of forms) for (const pf of (f.perField || [])) if (pf && pf.xpath) formByField[pf.xpath] = { nativeTextIdentification: f.nativeTextIdentification === true, noTextIdentificationAtAll: f.noTextIdentificationAtAll === true, trustedSubmit: f.submitMethod === 'trusted' };
+  return { byXpath, formsTrust, formByField };
 }
 
-// R2.4-B (R23-C2): bind a DEFINITE behavioral verdict to the DRIVER's own evidence
-// (`drive.json` behavioralTrust / focusIndicator / forms), NOT the agent's self-attested
-// trust/isolation. Returns { ok, reason }. `ev` is the per-element driver evidence;
-// `formsTrust` is page-level. A definite verdict the driver did not support → PARTIAL.
-function behavioralSupport(skill, verdict, ev, formsTrust) {
+// R2.4-B/R2.5-A (R23-C2 / R24-C1): bind a DEFINITE behavioral verdict to the DRIVER's
+// OBSERVED OUTCOME — not just to a probe's existence/trust. Returns { ok, reason }. A
+// verdict that the driver's evidence directly CONTRADICTS is rejected (→ PARTIAL): e.g. a
+// "no focus ring" (2.4.7 REPRODUCED) when the driver saw present:true, or "not announced"
+// (4.1.3) when the driver captured a meaningful announcement. `codes` = the cited SC list.
+function behavioralSupport(skill, verdict, codes, ev, formsTrust, formOutcome) {
+  const REP = verdict === 'REPRODUCED', NR = verdict === 'NOT REPRODUCED';
+  codes = codes || [];
   if (skill === 'forms-instructions-errors') {
     if (!formsTrust || !formsTrust.probed) return { ok: false, reason: 'no form was submit-probed by the driver' };
+    if (formOutcome) { // tied to the field's OWN form
+      if (!formOutcome.trustedSubmit) return { ok: false, reason: "the field's own form submission was synthetic/non-trusted" };
+      if (REP && formOutcome.nativeTextIdentification) return { ok: false, reason: 'REPRODUCED "error not identified" (3.3.1) contradicts nativeTextIdentification:true on this field’s form' };
+      if (NR && formOutcome.noTextIdentificationAtAll) return { ok: false, reason: 'NOT REPRODUCED (3.3.1) contradicts noTextIdentificationAtAll:true on this field’s form' };
+      return { ok: true };
+    }
     if (!formsTrust.allTrustedIsolated) return { ok: false, reason: 'a form submission was synthetic/non-trusted' };
     return { ok: true };
   }
   if (!ev) return { ok: false, reason: 'element was not behaviorally probed by the driver' };
-  if (skill === 'focus-visibility') return ev.focusProbed ? { ok: true } : { ok: false, reason: 'no definite focus-indicator probe (element unreached/indeterminate)' };
-  if (skill === 'focus-management' || skill === 'dynamic-announcement') {
-    const a = ev.activation;
-    if (!a) return { ok: false, reason: 'no activation probe (element gone/not activated)' };
-    if (a.trusted !== true || a.isolated !== true) return { ok: false, reason: 'activation was synthetic or non-isolated' };
+  if (skill === 'focus-visibility') {
+    if (!ev.focusProbed) return { ok: false, reason: 'no definite focus-indicator probe (element unreached/indeterminate)' };
+    if (codes.includes('2.4.7')) { // ring existence is authoritative for 2.4.7
+      if (REP && ev.ringPresent === true) return { ok: false, reason: 'REPRODUCED "no focus indicator" (2.4.7) contradicts focusIndicator.present:true' };
+      if (NR && ev.ringPresent === false) return { ok: false, reason: 'NOT REPRODUCED (2.4.7) contradicts focusIndicator.present:false' };
+    }
     return { ok: true };
   }
   if (skill === 'keyboard-operability') {
     const k = ev.keyboard;
-    if (k && k.exercised) return (k.trusted === true && k.isolated === true) ? { ok: true } : { ok: false, reason: 'keyboard probe was synthetic or non-isolated' };
-    if (k && k.exercised === false && k.trusted === null) {
-      // native presumption: supports "operable" (no issue), NOT a keyboard FAILURE claim.
-      return verdict === 'NOT REPRODUCED' ? { ok: true } : { ok: false, reason: 'native presumption cannot support a keyboard FAILURE — must be exercised' };
+    if (k && k.exercised) { if (!(k.trusted === true && k.isolated === true)) return { ok: false, reason: 'keyboard probe was synthetic or non-isolated' }; }
+    else if (k && k.exercised === false && k.trusted === null) { if (REP) return { ok: false, reason: 'native presumption cannot support a keyboard FAILURE — must be exercised' }; }
+    else { const a = ev.arrowKeys; if (!(a && a.trusted === true && a.isolated === true)) return { ok: false, reason: 'no trusted+isolated keyboard/arrow probe' }; }
+    if (codes.includes('2.1.1') && ev.kbdResponseKnown) { // 2.1.1 operability outcome
+      const operated = ev.kbdResponded || ev.arrowsResponded;
+      if (REP && operated) return { ok: false, reason: 'REPRODUCED "keyboard inoperable" (2.1.1) contradicts an observed key response' };
+      if (NR && !operated && !ev.kbdNative) return { ok: false, reason: 'NOT REPRODUCED (2.1.1) but the driver observed no key response (non-native)' };
     }
-    const a = ev.arrowKeys;
-    if (a && a.trusted === true && a.isolated === true) return { ok: true };
-    return { ok: false, reason: 'no trusted+isolated keyboard/arrow probe' };
+    return { ok: true };
+  }
+  if (skill === 'focus-management') {
+    const a = ev.activation;
+    if (!a || a.trusted !== true || a.isolated !== true) return { ok: false, reason: 'activation was synthetic, non-isolated, or absent' };
+    if (REP && ev.dialogOpened && ev.focusReturnedToTrigger === true) return { ok: false, reason: 'REPRODUCED focus-return defect contradicts focusReturnedToTrigger:true' };
+    return { ok: true };
+  }
+  if (skill === 'dynamic-announcement') {
+    const a = ev.activation;
+    if (!a || a.trusted !== true || a.isolated !== true) return { ok: false, reason: 'activation was synthetic, non-isolated, or absent' };
+    if (REP && ev.vsrAnnounced) return { ok: false, reason: 'REPRODUCED "status not announced" (4.1.3) contradicts a meaningful vsrAnnouncement' };
+    return { ok: true };
   }
   return { ok: true };
 }
@@ -284,7 +324,7 @@ function validateResults(R, opts = {}) {
       // agent's self-report. Authoritative — even an agent-stamped trust:"trusted" fails
       // if the driver shows no trusted+isolated probe.
       if (DE && S.BEHAVIORAL_SKILLS.includes(k) && (sv.verdict === 'REPRODUCED' || sv.verdict === 'NOT REPRODUCED')) {
-        const sup = behavioralSupport(k, sv.verdict, DE.byXpath && DE.byXpath[el.xpath], DE.formsTrust);
+        const sup = behavioralSupport(k, sv.verdict, S.scCodes(sv.sc), DE.byXpath && DE.byXpath[el.xpath], DE.formsTrust, DE.formByField && DE.formByField[el.xpath]);
         if (!sup.ok) E(`${tag}/${k}: definite ${sv.verdict} not supported by driver evidence (${sup.reason}) — must be PARTIAL`);
       }
     }
