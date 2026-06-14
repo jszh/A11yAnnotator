@@ -32,6 +32,29 @@ pass with zero executed integration assertions; its individual cases still skip.
 - `scripts/tools/regression-sweep.js` — cross-page invariants incl. the C5 aggregate
   rebuild, T6 notFound, T9/H3 walk speech, present value-domain, T3 geometry.
 
+### Round-2.1 suites (response to the independent round-2 verification)
+- `result.test.js` — STRICT validator: rejects missing summary/pageSkills, an issue with
+  no SC, a wrong level, content-corrupted issue lists, multi-SC violations, and a definite
+  dynamic verdict on a notFound element; aggregates page-level findings (R2-C1).
+- `unit.test.js` — `focusSpatialVerdict` (R2-H4: thin ring on a big control via the
+  perimeter band; 2.4.13 metrics captured-not-enforced); 2.5.8 UA-control + inline-prose
+  exceptions (R2-H5); composite roving keyboard null vs false.
+- `evidence.test.js` (deterministic fixtures) — thin-large + JS-event focus (R2-H4),
+  A↔B trap vs wraparound (R2-H2), first-focusable sentinel (R2-H3), target exceptions
+  (R2-H5: prose-link PASS / nav-link FAIL / checkbox UA-control PASS), trusted form
+  submit + observed invalid events + per-field validity (R2-H6).
+- `meta.test.js` — proves the run-all glob executes >0 tests & exits 0, and the sweep
+  fails on a known violation / passes on a clean builder-produced corpus.
+- `docs.test.js` — M4 Classify-contradiction guards (announcement/grouping/name-role-state).
+- Fixtures: `fx-focus-thin`, `fx-focus-js`, `fx-trap`, `fx-wraparound`, `fx-firstfocus`,
+  `fx-target-exc`, `fx-form` (all under `assets/saved/`).
+
+### 2.4.13 Focus Appearance (AAA)
+Captured but **not enforced**: `focusIndicator.focusAppearance{areaPx, minThicknessPx,
+maxContrastChange, meetsIfEnforced}`. The spatial measure already computes the changed-
+region area/thickness/contrast, so enabling the AAA threshold later is a config flip in
+`focusSpatialVerdict` (`meets2413`), not new instrumentation.
+
 ## QA methods used
 - **Unit** — pure logic in `scripts/lib/a11y-eval.js` tested in isolation with known
   inputs/outputs (`unit.test.js`). Deterministic, millisecond-fast, no browser.
