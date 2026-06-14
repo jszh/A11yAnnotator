@@ -9,9 +9,13 @@ fixed harness against the saved pages fresh.
 ```
 node --test scripts/tests/unit.test.js          # pure-function unit tests (fast, no browser)
 node --test --test-timeout=600000 scripts/tests/integration.test.js   # end-to-end vs live server :3001
-node --test --test-timeout=600000 scripts/tests/                      # everything
+node --test --test-timeout=600000 scripts/tests/*.test.js             # everything (glob — NOT the bare dir)
+node scripts/tools/regression-sweep.js eval-results                   # cross-page invariants
 ```
-Integration tests auto-**skip** (not fail) if `node server.js` isn't listening on :3001.
+Use the `*.test.js` glob, not the bare directory (`node --test scripts/tests/` tries to
+*load* the path as a module and fails). The integration suite has a non-skipped
+**precondition** test that FAILS if `:3001` is down, so a no-server run can't silently
+pass with zero executed integration assertions; its individual cases still skip.
 
 ## QA methods used
 - **Unit** — pure logic in `scripts/lib/a11y-eval.js` tested in isolation with known

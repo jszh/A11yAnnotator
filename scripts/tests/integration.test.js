@@ -32,6 +32,13 @@ function run(script, file, extra = []) {
 const byIdx = (o, i) => o.elements.find(e => e.idx === i);
 const byXpathName = (o, re) => o.elements.find(e => re.test(e.axName || '') || re.test(e.text || ''));
 
+// The integration suite MUST run, not silently skip-green. This precondition FAILS
+// (not skips) when the server is down, so a no-server run can never pass with zero
+// executed integration assertions. Run `node server.js` (port 3001) first.
+test('integration precondition: annotator server is up on :3001', () => {
+  assert.ok(serverUp, 'server :3001 not reachable — start it with `node server.js` before the integration suite');
+});
+
 // ---- T4 + T3 + T14 via eval-page on Domino's ----
 test('T4 Domino\'s JOIN NOW (16px bold) gets the 4.5 threshold', { skip: !serverUp }, () => {
   const o = run('eval-page.js', "Domino's.htm");
