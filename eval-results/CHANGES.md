@@ -315,3 +315,34 @@ closed completeness + skip cap + axe floor, tri-state 2.1.2.
 **Build command unchanged:** `build-results.js <records> <results> <collect.json> <drive.json>`.
 Auditor files (`ROUND2*-INDEPENDENT-VERIFICATION.md`, `fx-audit-*`) remain untracked; per-page
 `eval-results/<slug>/` data stays frozen.
+
+---
+
+# Round 2.6 — R2.5 self-audit remediation (2026-06-14)
+
+The R2.5 adversarial self-audit found 10 residual gaps (0 critical, 4 high) — mostly
+*completeness* of the R2.5 mechanisms rather than new classes. All fixed.
+
+- **A (#1/#5/#6)** outcome-binding completeness: contradiction checks are keyed to the
+  cited **SC, not the skill** (a 2.4.7 claim on focus-management is now ring-checked);
+  the driver emits the COMPLETE `fieldXpaths` so EVERY form field binds to its own form
+  (not just the first 8) with a strict page-level fallback; a `NOT REPRODUCED` 4.1.3 is
+  rejected on a SILENT status change. · `lib/result-builder.js`, `drive-page.js`.
+- **B (#2)** the axe skip-floor no longer gates on `normativeFailures===0` (a single
+  fabricated failure used to disable it) — any skip while axe found serious violations is
+  rejected. · `lib/result-builder.js`.
+- **C (#3/#9)** **run-id** identity: eval-page + drive-page stamp a shared `runId`;
+  build-results requires `collect.runId === drive.runId` so a STALE drive from an earlier
+  run of the same page is rejected; raw-dup xpath check is whitespace-normalized.
+  · `eval-page.js`, `drive-page.js`, `tools/build-results.js`.
+- **D (#4/#7)** trap walks that never reach an in-loop verdict are resolved: `count:0`
+  with focusables present → frozen-trap/indeterminate; `MAXTAB`-without-convergence →
+  indeterminate. · `drive-page.js`.
+- **E (#8/#10)** target hit-grid densified to **1px** (closes the 2px Nyquist blind spot —
+  a sub-2px comb/strip is now caught). · `eval-page.js`.
+
+R2.5-F (recursive validation) had **0** findings — that surface is exhausted. Auditor
+files remain untracked; per-page `eval-results/<slug>/` data stays frozen.
+
+**Build/CLI note:** pass the SAME `--run-id` to `eval-page.js` and `drive-page.js` in one
+run; `build-results.js <records> <results> <collect.json> <drive.json>` enforces it.
