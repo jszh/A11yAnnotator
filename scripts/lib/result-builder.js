@@ -29,11 +29,12 @@ const PREC = { 'REPRODUCED': 2, 'PARTIAL': 1 };
 // normalized evidence. Deliberately EXCLUDES xpath (a defect described identically on
 // two elements is one defect — the long-standing contract) and EXCLUDES verdict (so a
 // REPRODUCED and a PARTIAL of the SAME defect MERGE rather than racing on order).
+const normEvidence = e => String(e || '').trim().replace(/\s+/g, ' ');
 const issueIdentity = (scope, skill, sv) =>
-  `${scope}|${skill}|${S.scCodes(sv.sc).join(',')}|${bucketOf(sv)}|${sv.rule || ''}|${String(sv.evidence || '').trim().toLowerCase()}`;
+  `${scope}|${skill}|${S.scCodes(sv.sc).join(',')}|${bucketOf(sv)}|${sv.rule || ''}|${normEvidence(sv.evidence).toLowerCase()}`;
 
 // canonical full serialization of a BUILT issue object (used for exact comparison).
-const fullIssue = i => `${i.scope}|${i.xpath}|${i.skill}|${i.verdict}|${S.scCodes(i.sc).join(',')}|${i.level || ''}|${i.bucket || ''}|${i.rule || ''}|${String(i.evidence || '').trim()}`;
+const fullIssue = i => `${i.scope}|${i.xpath}|${i.skill}|${i.verdict}|${S.scCodes(i.sc).join(',')}|${i.level || ''}|${i.bucket || ''}|${i.rule || ''}|${normEvidence(i.evidence)}`;
 
 const ELEMENT_KEYS = new Set(['xpath', 'axRole', 'axName', 'appearanceShot', 'appearanceNote', 'notFound', 'skills', 'anyIssue']);
 const VERDICT_KEYS = new Set(['verdict', 'sc', 'level', 'evidence', 'bucket', 'rule', 'isolation', 'trust', 'basis']);
@@ -72,27 +73,27 @@ function buildResults(input) {
     if (isIssue(sv.verdict)) cand.push({ scope: 'page', xpath: 'page-level', skill: k, sv });
   }
 
-  // 2) MERGE by identity with deterministic precedence (REPRODUCED > PARTIAL); among
-  //    equal-precedence contributors pick the lexicographically smallest xpath. This is
-  //    order-INDEPENDENT, so the normative tally is stable regardless of element order.
-  // All members of a group share identical sc/bucket/rule/evidence (they ARE the
-  // identity), so only the VERDICT needs precedence (REPRODUCED > PARTIAL). The
-  // representative xpath is the canonical (smallest) xpath across ALL contributors,
-  // so output is identical no matter which element/order carried which verdict.
+  // 2) MERGE by identity, choosing ONE canonical contributor: highest VERDICT precedence
+  //    (REPRODUCED > PARTIAL), then the lexicographically smallest xpath AMONG that
+  //    winning verdict. The emitted issue's xpath AND raw fields both come from that one
+  //    contributor — so the representative xpath always carries the winning verdict
+  //    (R23-M1), and output is byte-stable regardless of element order or raw casing.
   const groups = new Map();
   for (const c of cand) {
     const id = issueIdentity(c.scope, c.skill, c.sv);
-    let g = groups.get(id);
-    if (!g) { groups.set(id, { scope: c.scope, skill: c.skill, sv: c.sv, xpath: c.xpath }); continue; }
-    if (PREC[c.sv.verdict] > PREC[g.sv.verdict]) g.sv = c.sv;
-    if (c.xpath < g.xpath) g.xpath = c.xpath;
+    const g = groups.get(id);
+    if (!g) { groups.set(id, { scope: c.scope, skill: c.skill, best: c }); continue; }
+    const cur = g.best;
+    const better = PREC[c.sv.verdict] > PREC[cur.sv.verdict]
+      || (PREC[c.sv.verdict] === PREC[cur.sv.verdict] && c.xpath < cur.xpath);
+    if (better) g.best = c;
   }
   let normativeFailures = 0, atCompat = 0, bestPractice = 0;
   const issues = [];
   for (const g of groups.values()) {
-    const sv = g.sv, code = S.scCode(sv.sc), bucket = bucketOf(sv);
+    const c = g.best, sv = c.sv, code = S.scCode(sv.sc), bucket = bucketOf(sv);
     if (sv.verdict === 'REPRODUCED') { if (bucket === 'normative') normativeFailures++; else if (bucket === 'at-compat') atCompat++; else bestPractice++; }
-    issues.push({ scope: g.scope, xpath: g.xpath, skill: g.skill, verdict: sv.verdict, sc: sv.sc || null, level: sv.level || (S.SC_LEVEL[code] || null), bucket, rule: sv.rule || null, evidence: String(sv.evidence || '').trim() });
+    issues.push({ scope: g.scope, xpath: c.xpath, skill: g.skill, verdict: sv.verdict, sc: sv.sc || null, level: sv.level || (S.SC_LEVEL[code] || null), bucket, rule: sv.rule || null, evidence: String(sv.evidence || '').trim().replace(/\s+/g, ' ') });
   }
   // 3) CANONICAL ORDER — identity-sorted, so output is byte-stable across input order.
   issues.sort((a, b) => fullIssue(a) < fullIssue(b) ? -1 : fullIssue(a) > fullIssue(b) ? 1 : 0);

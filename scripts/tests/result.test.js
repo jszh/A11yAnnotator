@@ -223,16 +223,32 @@ test('R2.4-A provenance: count mismatch and an unexpected collect key are REJECT
   const badKey = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')], provenance: { collect: { xpaths: ['/a'], complete: true } } });
   assert.ok(validateResults(badKey).errors.some(e => /unexpected key "complete"/.test(e)), 'the circular `complete` flag is gone');
 });
-test('R2.3-C determinism: REPRODUCED vs PARTIAL of the SAME defect MERGE to REPRODUCED regardless of order', () => {
+test('R2.3-C determinism: REPRODUCED vs PARTIAL of the SAME defect MERGE to REPRODUCED', () => {
   const rep = { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'same defect' };
   const par = { verdict: 'PARTIAL', sc: '2.4.7', level: 'AA', evidence: 'same defect' };
   const A = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': par }), el('/b', { 'focus-visibility': rep })] });
   const B = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': rep }), el('/b', { 'focus-visibility': par })] });
   assert.equal(A.summary.normativeFailures, 1);
-  assert.equal(B.summary.normativeFailures, 1, 'order must not change the normative total (merge precedence)');
+  assert.equal(B.summary.normativeFailures, 1, 'the normative total is identical regardless of which element carries REPRODUCED');
   assert.equal(A.summary.issues.length, 1);
   assert.equal(A.summary.issues[0].verdict, 'REPRODUCED', 'REPRODUCED wins the merge');
-  assert.deepEqual(A.summary.issues, B.summary.issues, 'identical canonical output regardless of input order');
+});
+test('R2.4-E (R23-M1): the representative xpath always carries the WINNING verdict', () => {
+  // PARTIAL at the smaller xpath /a, REPRODUCED at the larger /z.
+  const A = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [
+    el('/a', { 'focus-visibility': { verdict: 'PARTIAL', sc: '2.4.7', level: 'AA', evidence: 'same defect' } }),
+    el('/z', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'same defect' } }),
+  ] });
+  assert.equal(A.summary.issues[0].verdict, 'REPRODUCED');
+  assert.equal(A.summary.issues[0].xpath, '/z', 'attributed to /z (which is REPRODUCED), NOT the smaller /a (only PARTIAL)');
+});
+test('R2.4-E determinism: reordering the SAME elements yields byte-identical output (incl raw casing/whitespace)', () => {
+  const mk = order => build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: order.map(([xp, ev]) =>
+    el(xp, { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: ev } })) });
+  const A = mk([['/a', 'No   Ring'], ['/b', 'no ring']]); // casing + whitespace variants → one defect
+  const B = mk([['/b', 'no ring'], ['/a', 'No   Ring']]);
+  assert.equal(A.summary.issues.length, 1, 'casing/whitespace variants merge to one defect');
+  assert.deepEqual(A.summary.issues, B.summary.issues, 'identical output regardless of input order');
 });
 test('R2.3-C determinism: a DUPLICATE summary.issues entry is REJECTED (exact array, not a Set)', () => {
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } })] });
