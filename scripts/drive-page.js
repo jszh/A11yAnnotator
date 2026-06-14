@@ -413,6 +413,27 @@ function loadXpaths() {
         break;
       }
     }
+    // R2.6-D: resolve walks that exited WITHOUT a verdict (the in-loop confirmation never
+    // ran), so they no longer read as a silent "not a trap".
+    {
+      const reached = out.tabWalk.stops.length;
+      const unresolved = out.tabWalk.trapDetected === false && !out.tabWalk.escapableComponent && out.tabWalk.trapIndeterminate == null;
+      if (unresolved) {
+        const fin = await trapSnap();
+        if (reached === 0 && totalFocusables > 0) {
+          // #4 freeze-on-body: Tab never placed focus on ANY focusable despite focusables
+          // existing — the page is freezing/blocking focus. preventDefault seen ⇒ a trap.
+          if (fin.prevented > 0) { out.tabWalk.trapDetected = true; out.tabWalk.trapInterference = 'focus-frozen'; }
+          else { out.tabWalk.trapDetected = null; out.tabWalk.trapIndeterminate = true; }
+          out.tabWalk.trapReason = `no focusable was reached by Tab despite ${totalFocusables} focusable(s) — focus may be frozen/blocked`;
+        } else if (out.tabWalk.budgetExceeded || reached >= MAXTAB) {
+          // #7 ever-fresh-focusable: the walk kept advancing to new elements without bound
+          // and never converged — keyboard/focus cannot be assessed ⇒ indeterminate.
+          out.tabWalk.trapDetected = null; out.tabWalk.trapIndeterminate = true;
+          out.tabWalk.trapReason = 'tab-walk did not converge (focus kept advancing to new focusables without bound, or exceeded budget) — keyboard/focus indeterminate';
+        }
+      }
+    }
     await page.evaluate(() => { try { window.removeEventListener('keydown', window.__a11yTrapKD, false); document.removeEventListener('focusin', window.__a11yTrapFI, true); if (window.__a11yTrapMO) window.__a11yTrapMO.disconnect(); delete window.__a11yTrap; delete window.__a11yTrapKD; delete window.__a11yTrapFI; delete window.__a11yTrapMO; } catch (e) {} }).catch(() => {});
     out.tabWalk.count = out.tabWalk.stops.length;
 

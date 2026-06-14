@@ -160,6 +160,17 @@ test('R2.5-D trap (R24-H2): a stopImmediatePropagation modal that blocks both li
   assert.equal(o.tabWalk.trapDetected, null, 'absence of OBSERVED interference is not proof of wraparound');
   assert.equal(o.tabWalk.trapIndeterminate, true, 'focus confined in a dialog with no demonstrated escape ⇒ indeterminate (agent → PARTIAL)');
 });
+test('R2.6-D trap (#4): a FREEZE trap (preventDefault all Tab) leaves count:0 but is no longer a silent "not a trap"', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-freeze.html', ['/html/body/button[1]']);
+  assert.equal(o.tabWalk.count, 0, 'Tab never placed focus on any control');
+  assert.notEqual(o.tabWalk.trapDetected, false, 'must NOT read as "not a trap" — frozen focus with focusables present');
+  assert.match(o.tabWalk.trapReason || '', /no focusable was reached/);
+});
+test('R2.6-D trap (#7): an EVER-FRESH-focusable trap (never converges) is INDETERMINATE, not a silent pass', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-everfresh.html', ['/html/body/div[1]/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, null);
+  assert.equal(o.tabWalk.trapIndeterminate, true, 'a walk that never converges cannot assess keyboard/focus');
+});
 test('R2.5-D trap (my #3): a DISABLE-the-background trap (tabindex=-1 on outside controls) is caught', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap-disable.html', ['/html/body/div[1]/button[1]']);
   assert.equal(o.tabWalk.trapDetected, true, 'the page removed the escape routes ⇒ background-defocus interference');
