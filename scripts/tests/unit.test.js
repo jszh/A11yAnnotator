@@ -49,11 +49,25 @@ test('C4 evalTargetSize: AUDITOR COUNTEREXAMPLE — small target near a LARGE ne
   const r = L.evalTargetSize({ x: 0, y: 0, w: 10, h: 10 }, { neighbors: [{ x: 14, y: 0, w: 200, h: 50 }] });
   assert.equal(r.passes, false, 'circle-to-rectangle must catch the large neighbour');
 });
-test('C4 evalTargetSize: inline only via PROVEN in-sentence, not raw display:inline', () => {
-  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { inSentence: true }).passes, true);
-  // display:inline alone is NOT enough — without inSentence and without clearing neighbours it fails
-  const r = L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { neighbors: [{ x: 0, y: 18, w: 30, h: 16 }] });
-  assert.equal(r.passes, false);
+test('R2.3-A evalTargetSize: inline is NEVER an auto-pass — even with inSentence hint it is needs-judgment', () => {
+  // the harness cannot PROVE "in a sentence"; an inline target that fails geometry is
+  // needs-judgment regardless of the inSentence hint (lowercase-nav boilerplate defeats it)
+  const proseHint = L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { inlineCandidate: true, inSentence: true, neighbors: [{ x: 0, y: 18, w: 30, h: 16 }] });
+  assert.equal(proseHint.verdict, 'needs-judgment');
+  assert.equal(proseHint.passes, false);
+  const noHint = L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { inlineCandidate: true, inSentence: false, neighbors: [{ x: 0, y: 18, w: 30, h: 16 }] });
+  assert.equal(noHint.verdict, 'needs-judgment');
+});
+test('R2.3-A evalTargetSize: SHAPE — bbox≥24x24 is a definite pass ONLY for an axis-aligned rectangle', () => {
+  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 24, h: 24 }).verdict, 'pass'); // plain rect
+  // rotated 18x18 → 25x25 bbox: transformed → needs-judgment (page-aligned square may not fit)
+  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 25, h: 25 }, { transformed: true }).verdict, 'needs-judgment');
+  // clip-path → needs-judgment
+  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 40, h: 40 }, { clipped: true }).verdict, 'needs-judgment');
+  // tightly-rounded 24x24 (r=6) can't fit a 24x24 square → needs-judgment
+  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 24, h: 24 }, { cornerRadius: 6 }).verdict, 'needs-judgment');
+  // generously-sized rounded 40x40 (r=6) easily fits → pass
+  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 40, h: 40 }, { cornerRadius: 6 }).verdict, 'pass');
 });
 test('C4 evalTargetSize: zero-size element is not a target', () => {
   assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 0, h: 34 }).passes, true);
@@ -74,8 +88,8 @@ test('R21-H3 evalTargetSize: TRI-STATE — unresolved cases are needs-judgment, 
   // display:inline but in-sentence unproven, fails geometry → needs-judgment (might be exempt)
   const b = L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { inlineCandidate: true, inSentence: false, neighbors: [{ x: 0, y: 17, w: 30, h: 16 }] });
   assert.equal(b.verdict, 'needs-judgment');
-  // non-rectangular target whose bbox is 24x24 → can't assume a 24x24 square fits → judgment
-  const c = L.evalTargetSize({ x: 0, y: 0, w: 24, h: 24 }, { nonRectangular: true });
+  // transformed target whose bbox is 24x24 → can't assume a 24x24 square fits → judgment
+  const c = L.evalTargetSize({ x: 0, y: 0, w: 24, h: 24 }, { transformed: true });
   assert.equal(c.verdict, 'needs-judgment');
 });
 test('R21-H3 evalTargetSize: a definite FAIL still flags Equivalent/Essential to check', () => {
@@ -88,12 +102,10 @@ test('R2-H5 evalTargetSize: UA-control exception (bare 13x13 checkbox) => pass',
   assert.equal(r.passes, true);
   assert.match(r.reason, /user-agent control/);
 });
-test('R2-H5 evalTargetSize: inline link with PROVEN prose => pass; unproven => fail+flag', () => {
-  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { inlineCandidate: true, inSentence: true }).passes, true);
-  // nav link with no surrounding prose (inSentence false) packed next to a neighbour → fail, flagged
-  const r = L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { inlineCandidate: true, inSentence: false, neighbors: [{ x: 0, y: 17, w: 30, h: 16 }] });
-  assert.equal(r.passes, false);
-  assert.equal(r.inlineUncertain, true, 'unproven inline must be flagged, not silently passed');
+test('R2-H5/R2.3-A evalTargetSize: a non-inline undersized target with a neighbour is a definite FAIL', () => {
+  const r = L.evalTargetSize({ x: 0, y: 0, w: 20, h: 20 }, { neighbors: [{ x: 0, y: 21, w: 20, h: 20 }] });
+  assert.equal(r.verdict, 'fail');
+  assert.deepEqual(r.checkExceptions, ['equivalent', 'essential']);
 });
 
 // ---------------- T9/T10: VSR phrase filtering ----------------

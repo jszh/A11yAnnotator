@@ -3,6 +3,7 @@
 Date: 2026-06-14
 Pinned branch/commit: `round2-remediation` at `49784dd267469442356055e3c6c8c420eaacea97`
 Delta reviewed: `9ab5f90` through `49784dd`
+Post-audit delta reviewed: `367d1fef298d0f26de85cfc988512aee4f08150a`
 
 ## Executive conclusion
 
@@ -18,15 +19,23 @@ keyboard traps, and definite false 2.5.8 passes. The statement that the remainin
 limitations are now incapable of producing a definite false conformance verdict is
 therefore not yet true.
 
-**Recommendation: do not start W7 corpus regeneration at `49784dd`.** The remaining
-issues are bounded, but the Critical result-gate defects and High trap/target-size
-defects should be fixed before regeneration.
+**Recommendation: do not start W7 corpus regeneration at `49784dd` or the subsequent
+trap fixup `367d1fe`.** The remaining issues are bounded, but the Critical result-gate
+defects and High trap/target-size defects should be fixed before regeneration.
 
 ## Verification performed
 
 - Inspected all six Round 2.2 commits at the exact pinned SHA.
 - Ran the requested pure suite: **73 passed, 0 failed, 0 skipped**.
-- Ran the deterministic evidence suite: **13 passed, 0 failed, 0 skipped**.
+- Ran the deterministic evidence suite at the pinned SHA:
+  **13 passed, 0 failed, 0 skipped**.
+- Ran the complete browser/integration glob:
+  `node --test --test-timeout=1200000 scripts/tests/*.test.js`:
+  **96 passed, 0 failed, 0 skipped** in about 6.5 minutes. This run started at the
+  pinned SHA, but the branch moved during its child browser launches, so it is a green
+  regression signal rather than strict exact-SHA proof.
+- After the builder added `367d1fe` during this audit, reviewed its delta and reran:
+  pure **73/73** and updated evidence **15/15**.
 - Ran fresh browser fixtures for trap-only, large-cycle trap, same-size author-styled
   checkbox, lowercase navigation labels, transformed target, and consent inventory.
 - Ran adversarial result-builder and validator probes.
@@ -95,10 +104,10 @@ objects.
 
 ## High findings
 
-### R22-H1 - Generalized trap detection still misses valid traps
+### R22-H1 - Trap detection still misses a valid trap-only page
 
-The new four-control and Escape-modal fixtures pass, but the algorithm still depends
-on unreached page focusables and a ten-stop `recent` window.
+The new four-control and Escape-modal fixtures pass. At pinned SHA `49784dd`, the
+algorithm still depended on unreached page focusables and a ten-stop `recent` window.
 
 Independent browser probes found:
 
@@ -109,15 +118,19 @@ Independent browser probes found:
   `trapDetected:false`. Controls outside the ten-stop `recent` window were mistaken
   for an escape, and the output labeled the component escapable via Tab.
 
+The builder added `367d1fe` during this audit. That fixup correctly resolves the
+twelve-control case and excludes disabled controls from `totalFocusables`; its updated
+evidence suite passes 15/15. The trap-only case remains: the unchanged
+`totalFocusables > seenAll.size` gate still prevents detection, confirmed again
+against `367d1fe`.
+
 W3C 2.1.2 requires that focus can move away from a component using a keyboard
 interface; this does not depend on another unreached focusable existing elsewhere.
 
 **Required fix**
 
-Detect repeated focus sequences independently of `totalFocusables`, derive the actual
-cycle rather than a fixed recent window, and distinguish leaving the repeated
-component from moving to another member omitted from that window. Add trap-only and
-greater-than-ten-control fixtures.
+Detect repeated focus sequences independently of `totalFocusables` and add a
+trap-only fixture.
 
 ### R22-H2 - 2.5.8 still emits definite false passes
 
@@ -214,6 +227,8 @@ names, heading records, and keyboard behavior are actually collected.
 - Best-practice observations can use a `rule` instead of a fake SC.
 - The four-control trap fixture is detected.
 - The Escape-releasable modal fixture is not failed.
+- Post-audit fixup `367d1fe` detects the twelve-control trap and excludes disabled
+  controls from the focusable count.
 - The original 10x10 stylesheet-resized checkbox is not treated as a UA control.
 - The original uppercase navigation-label fixture is not treated as a sentence.
 - Target-size no-geometry, unresolved inline, and selected non-rectangular cases expose

@@ -260,16 +260,26 @@ function parseRGB(s) {
             }
           }
         }
-        // R2-H5: User-Agent-Control exception — a bare default-sized native checkbox/radio.
+        // R22-H2: any element/ancestor transform with rotation/skew makes the axis-aligned
+        // bbox an over-estimate; pure scale/translate keeps it rectangular.
+        let transformed = false;
+        for (let a = r; a; a = a.parentElement) {
+          const t = getComputedStyle(a).transform; if (!t || t === 'none') continue;
+          const m = t.match(/matrix\(([^)]+)\)/); if (m) { const p = m[1].split(',').map(parseFloat); if (Math.abs(p[1]) > 0.001 || Math.abs(p[2]) > 0.001) { transformed = true; break; } }
+          else if (/matrix3d|rotate|skew/.test(t)) { transformed = true; break; }
+        }
+        const clipped = cs.clipPath !== 'none';
+        const cornerRadius = Math.max(parseFloat(cs.borderTopLeftRadius) || 0, parseFloat(cs.borderTopRightRadius) || 0, parseFloat(cs.borderBottomLeftRadius) || 0, parseFloat(cs.borderBottomRightRadius) || 0);
+        // R22-H2: UA-Control exception requires the size to be UNMODIFIED by the author —
+        // matching the default size is necessary but NOT sufficient. Require native
+        // appearance (not appearance:none) and no transform too. Any author restyling that
+        // could affect size/appearance disqualifies the definite exception.
         let uaControl = false;
         if (r.tagName.toLowerCase() === 'input' && (r.type === 'checkbox' || r.type === 'radio') && uaDefaults && uaDefaults[r.type]) {
           const def = uaDefaults[r.type]; const bw = Math.round(b.width), bh = Math.round(b.height);
-          // UA control only when the size is UNMODIFIED (matches the iframe default within 2px)
-          uaControl = Math.abs(bw - def.w) <= 2 && Math.abs(bh - def.h) <= 2;
+          const nativeAppearance = !/^(none)$/.test(cs.appearance || cs.webkitAppearance || 'auto');
+          uaControl = nativeAppearance && !transformed && Math.abs(bw - def.w) <= 2 && Math.abs(bh - def.h) <= 2;
         }
-        // R21-H3: a circular/clipped target whose 24x24 bbox cannot contain a 24x24 square.
-        const _br = parseFloat(cs.borderRadius) || 0;
-        const nonRectangular = cs.clipPath !== 'none' || (_br > 0 && _br >= Math.min(b.width, b.height) / 2 - 1);
         const tag = r.tagName.toLowerCase();
         const roleAttr = r.getAttribute('role');
         // H7: AX/ARIA STATE collection (the name-role-STATE skill needs these).
@@ -316,7 +326,7 @@ function parseRGB(s) {
           box: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) },
           color: cs.color, ownBg: cs.backgroundColor, ownBgImage: cs.backgroundImage,
           effBg, effBgImage, bgWalkCrossedOverlay, textInChildDiffColor,
-          display: cs.display, inSentence, inlineCandidate: cs.display === 'inline', uaControl, nonRectangular, targetNeighbors,
+          display: cs.display, inSentence, inlineCandidate: cs.display === 'inline', uaControl, transformed, clipped, cornerRadius, targetNeighbors,
           states, tabindexEffective, roleOverridesNative, obscured,
           fontSize: cs.fontSize, fontWeight: cs.fontWeight,
           outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, outlineColor: cs.outlineColor,
@@ -359,7 +369,8 @@ function parseRGB(s) {
       if (dom.box) {
         rec.targetSize = A.evalTargetSize(dom.box, {
           inSentence: dom.inSentence, inlineCandidate: dom.inlineCandidate,
-          uaControl: dom.uaControl, nonRectangular: dom.nonRectangular, neighbors: dom.targetNeighbors,
+          uaControl: dom.uaControl, transformed: dom.transformed, clipped: dom.clipped, cornerRadius: dom.cornerRadius,
+          neighbors: dom.targetNeighbors,
         });
       }
 

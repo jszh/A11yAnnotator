@@ -70,6 +70,22 @@ test('R21-H2: a STYLESHEET-resized checkbox is NOT a UA control (true iframe def
   assert.equal(navlabel.inSentence, false, 'all-caps nav labels are NOT a sentence (no real prose)');
 });
 
+test('R2.3-A target-size SHAPE/exception (root: necessary≠sufficient => needs-judgment)', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-shape.html', ['/html/body/div[1]/a[1]', '/html/body/div[1]/button[1]', '/html/body/div[1]/button[2]', '/html/body/div[2]/input[1]']);
+  const [rotated, rounded24, rounded40, appnone] = o.elements;
+  assert.equal(rotated.targetSize.verdict, 'needs-judgment', 'rotated 45° bbox≥24 cannot be assumed to fit a page-aligned 24×24 square');
+  assert.equal(rounded24.targetSize.verdict, 'needs-judgment', '24×24 with r=6 cannot contain a 24×24 square');
+  assert.equal(rounded40.targetSize.verdict, 'pass', '40×40 with r=6 easily fits a 24×24 square');
+  assert.equal(appnone.uaControl, false, 'appearance:none checkbox is author-restyled, NOT a UA control even at default size');
+});
+test('R2.3-A inline is never an auto-pass: an inline link is pass-via-spacing or needs-judgment, never inline-exempt', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-target-exc.html', ['/html/body/p[1]/a[1]', '/html/body/nav[1]/a[1]', '/html/body/input[1]']);
+  const [prose, nav, checkbox] = o.elements;
+  assert.ok(!/inline exception/.test(prose.targetSize.reason), 'no auto-pass via an inline exception');
+  assert.equal(nav.targetSize.verdict, 'needs-judgment', 'inline nav link failing geometry → judgment, not a definite pass/fail');
+  assert.equal(checkbox.uaControl, true, 'a genuine default native checkbox is still a UA control');
+});
+
 test('R2-H2 trap: a two-control A↔B keyboard trap is detected (not just same-element repeat)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap.html', ['/html/body/button[2]']);
   assert.equal(o.tabWalk.trapDetected, true, 'A↔B cycle that cannot escape is a trap');
