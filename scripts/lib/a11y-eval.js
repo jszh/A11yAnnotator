@@ -41,23 +41,51 @@ function contrastThresholdFor(fontPx, fontWeight) {
   return isLargeText(fontPx, fontWeight) ? 3.0 : 4.5;
 }
 
-// ---- T3: target-size (WCAG 2.5.8, AA, 24px) WITH the standard exceptions ----
-// box: {w,h}; opts: { display, isInline, nearestTargetCenterDist, essential }
-// Exceptions per 2.5.8: Spacing (a 24px circle on each undersized target does not
-// intersect another target's circle => centre-to-centre >= 24), Inline (target in
-// a sentence / constrained by line-height), Essential, and User-agent default
-// (not modelled). Returns { passes, reason, minDim }.
+// ---- T3 / C4: target-size (WCAG 2.5.8, AA, 24px) with the NORMATIVE geometry ----
+// box: {x,y,w,h}; opts: { essential, inSentence, neighbors:[{x,y,w,h}] }.
+// Pass iff: >=24x24, OR essential, OR a *semantic* inline exception (in a sentence /
+// line-height-constrained — `inSentence`, NOT raw display:inline), OR the Spacing
+// exception: a 24px-diameter circle centred on the target does not intersect another
+// TARGET's rectangle, nor another undersized target's 24px circle
+// (https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html). Center-to-
+// center distance alone is insufficient — a large neighbour can be intersected despite
+// a >=24px centre gap. Returns { passes, reason, minDim }.
 const TARGET_MIN = 24;
+const TARGET_R = 12; // radius of the 24px-diameter circle
+function _circleRectIntersect(cx, cy, r, rect) {
+  const nx = Math.max(rect.x, Math.min(cx, rect.x + rect.w));
+  const ny = Math.max(rect.y, Math.min(cy, rect.y + rect.h));
+  const dx = cx - nx, dy = cy - ny;
+  return dx * dx + dy * dy < r * r;
+}
+function _circleCircleIntersect(cx1, cy1, r1, cx2, cy2, r2) {
+  const dx = cx1 - cx2, dy = cy1 - cy2;
+  return dx * dx + dy * dy < (r1 + r2) * (r1 + r2);
+}
 function evalTargetSize(box, opts = {}) {
   const w = box ? box.w : 0, h = box ? box.h : 0;
   const minDim = Math.min(w, h);
   if (!(w > 0) || !(h > 0)) return { passes: true, reason: 'zero-size/hidden — not a rendered target', minDim };
   if (w >= TARGET_MIN && h >= TARGET_MIN) return { passes: true, reason: 'meets 24x24', minDim };
   if (opts.essential) return { passes: true, reason: 'essential exception', minDim };
-  if (opts.isInline || opts.display === 'inline') return { passes: true, reason: 'inline exception (in text flow)', minDim };
-  const d = opts.nearestTargetCenterDist;
-  if (typeof d === 'number' && d >= TARGET_MIN) return { passes: true, reason: `spacing exception (nearest target ${Math.round(d)}px >= 24)`, minDim };
-  return { passes: false, reason: `${w}x${h}px below 24x24` + (typeof d === 'number' ? `, nearest target ${Math.round(d)}px < 24` : ''), minDim };
+  if (opts.inSentence) return { passes: true, reason: 'inline exception (in a sentence / line-height-constrained)', minDim };
+  const neighbors = Array.isArray(opts.neighbors) ? opts.neighbors : null;
+  if (neighbors) {
+    const cx = (box.x || 0) + w / 2, cy = (box.y || 0) + h / 2;
+    let intersected = null;
+    for (const n of neighbors) {
+      if (!n || !(n.w > 0) || !(n.h > 0)) continue;
+      const ncx = n.x + n.w / 2, ncy = n.y + n.h / 2;
+      const undersized = Math.min(n.w, n.h) < TARGET_MIN;
+      const hit = _circleRectIntersect(cx, cy, TARGET_R, n) ||
+        (undersized && _circleCircleIntersect(cx, cy, TARGET_R, ncx, ncy, TARGET_R));
+      if (hit) { intersected = n; break; }
+    }
+    if (!intersected) return { passes: true, reason: 'spacing exception (24px circle clears all adjacent targets)', minDim };
+    return { passes: false, reason: `${w}x${h}px below 24x24; 24px circle intersects an adjacent target`, minDim };
+  }
+  // no neighbour geometry supplied → cannot prove the spacing exception
+  return { passes: false, reason: `${w}x${h}px below 24x24 (spacing exception unproven — no neighbour geometry)`, minDim, indeterminateSpacing: true };
 }
 
 // ---- T9: filter virtual-SR "noise" phrases that are not real element announcements
@@ -128,23 +156,47 @@ function keyboardOperabilitySignal({ role, tabindex, reachedByTab, respondedToSy
   return { operable: null, confident: false, reason: 'no keyboard response observed, but only synthetic events were available on an offline snapshot — indeterminate (PARTIAL)' };
 }
 
-// ---- T1/T8: focus-indicator decision from multiple signals ----
-// Combine the (possibly unreliable) screenshot diff with the authoritative
-// computed-while-focused / forced-:focus-visible outline. A non-`none` outline or
-// a box-shadow read WHILE the element is in its focus-visible state is positive
-// evidence of a ring even when the pixel diff is 0 (wrong-crop) or below the
-// area-dependent threshold. Returns { present, basis, adequateDiff }.
-function focusRingDecision({ diffPct, cropValid, focusedOutline, focusedBoxShadow, forcedDiffPct }) {
-  const outlinePresent = !!focusedOutline && !/^\s*none/i.test(focusedOutline) && !/\s0px\s/.test(' ' + focusedOutline + ' ');
-  const shadowPresent = !!focusedBoxShadow && focusedBoxShadow !== 'none';
-  const computedRing = outlinePresent || shadowPresent;
-  // forced-:focus-visible screenshot diff is the most reliable visual signal
-  if (typeof forcedDiffPct === 'number' && forcedDiffPct >= 1.5) return { present: true, basis: 'forced-focus-visible-diff', adequateDiff: true };
-  if (cropValid && typeof diffPct === 'number' && diffPct >= 1.5) return { present: true, basis: 'tab-diff', adequateDiff: true };
-  if (computedRing) return { present: true, basis: 'computed-while-focused-outline', adequateDiff: false };
-  // crop invalid AND no computed ring AND no usable diff => cannot conclude absence
-  if (!cropValid && !(typeof forcedDiffPct === 'number')) return { present: null, basis: 'indeterminate (no valid crop, no forced diff)', adequateDiff: false };
-  return { present: false, basis: (typeof forcedDiffPct === 'number') ? 'forced-focus-visible-diff~0' : 'tab-diff~0 and no computed ring', adequateDiff: false };
+// ---- T1/T8/H1: focus-indicator decision, prioritising REAL keyboard focus ----
+// The indicator must be (a) FOCUS-DEPENDENT (differs between unfocused and focused —
+// an always-on outline/shadow does NOT count) and (b) visually present. Real-keyboard
+// pixel change is primary; forced :focus-visible + computed-style change are
+// corroboration, never an independent proof (per the audit, H1). Conflicting signals
+// or an unvalidated crop with no forced read => null (PARTIAL).
+// Inputs:
+//   realTabDiffPct, realTabCropValid  — unfocused vs real-keyboard-focused pixel diff
+//   unfocusedOutline/focusedOutline, unfocusedBoxShadow/focusedBoxShadow — computed
+//   forcedDiffPct                     — forced :focus-visible screenshot diff (corrob.)
+// Returns { present:true|false|null, basis, focusDependentComputed }.
+const VIS = 1.5; // visible-change threshold (%); spatial measure is preferred upstream
+function _nonNone(s) { return !!s && !/^\s*none/i.test(s) && !/(^|\s)0px(\s|$)/.test(s); }
+function focusRingDecision(opts = {}) {
+  // accept both new and legacy field names for a soft migration
+  const realTabDiffPct = opts.realTabDiffPct != null ? opts.realTabDiffPct : opts.diffPct;
+  const realTabCropValid = opts.realTabCropValid != null ? opts.realTabCropValid : opts.cropValid;
+  const fOut = opts.focusedOutline, uOut = opts.unfocusedOutline;
+  const fSh = opts.focusedBoxShadow, uSh = opts.unfocusedBoxShadow;
+  const forcedDiffPct = opts.forcedDiffPct;
+
+  const outlineFocusDependent = _nonNone(fOut) && (uOut == null || fOut !== uOut);
+  const shadowFocusDependent = (!!fSh && fSh !== 'none') && (uSh == null || fSh !== uSh);
+  const focusDependentComputed = outlineFocusDependent || shadowFocusDependent;
+
+  const realChange = realTabCropValid && typeof realTabDiffPct === 'number' && realTabDiffPct >= VIS;
+  const realNoChange = realTabCropValid && typeof realTabDiffPct === 'number' && realTabDiffPct < VIS;
+  const forcedChange = typeof forcedDiffPct === 'number' && forcedDiffPct >= VIS;
+
+  // 1) Real keyboard focus produced a visible change.
+  if (realChange) return { present: true, basis: focusDependentComputed ? 'real-keyboard-diff+computed' : 'real-keyboard-diff (verify not animation)', focusDependentComputed };
+  // 2) Real keyboard focus produced NO visible change.
+  if (realNoChange) {
+    if (focusDependentComputed) return { present: null, basis: 'conflict: computed ring changed but real pixels did not (likely clipped/wrong-crop)', focusDependentComputed };
+    return { present: false, basis: 'real-keyboard: no focus-dependent change', focusDependentComputed };
+  }
+  // 3) No valid real-keyboard crop → fall back to forced + computed (corroboration only).
+  if (forcedChange && focusDependentComputed) return { present: true, basis: 'forced-focus-visible-diff + computed (real crop unavailable)', focusDependentComputed };
+  if (typeof forcedDiffPct === 'number' && !forcedChange && !focusDependentComputed) return { present: false, basis: 'forced-focus-visible: no focus-dependent change', focusDependentComputed };
+  if (focusDependentComputed && !forcedChange) return { present: null, basis: 'conflict: computed ring changed but no measurable diff', focusDependentComputed };
+  return { present: null, basis: 'indeterminate (no valid crop, no forced diff, no focus-dependent computed change)', focusDependentComputed };
 }
 
 // ---- T14: known third-party cookie/consent overlay containers ----
