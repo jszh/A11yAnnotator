@@ -57,11 +57,20 @@ if (!collect.runId || !drive.runId || collect.runId !== drive.runId) {
   console.error(`REFUSED: run-identity mismatch — collect.runId=${JSON.stringify(collect.runId)} != drive.runId=${JSON.stringify(drive.runId)}. Pass the SAME --run-id to eval-page and drive-page in one run (stale drive rejected, R2.6-C).`);
   process.exit(2);
 }
-// R2.5-C/R2.6-C: raw collector xpaths must be UNIQUE before normalization — reject (don't
-// silently dedup) so a duplicate-laden inventory can't mask a fabricated count. Compare on
-// a NORMALIZED form (trim + collapse internal whitespace) so a whitespace-variant can't
-// slip past as "distinct".
-const norm = x => String(x).trim().replace(/\s+/g, ' ');
+// R2.7-C (#5): the run-id proves COORDINATION; this proves FRESHNESS. The driver must have
+// run AFTER this collect — a stale drive reused with the same --run-id carries an OLD
+// drivenAt < the fresh collect's collectedAt and is rejected. (Both timestamps required.)
+if (typeof collect.collectedAt === 'number' && typeof drive.drivenAt === 'number') {
+  if (drive.drivenAt < collect.collectedAt) {
+    console.error(`REFUSED: stale drive — drive.drivenAt (${drive.drivenAt}) is BEFORE collect.collectedAt (${collect.collectedAt}); the driver did not run after this collect (R2.7-C).`);
+    process.exit(2);
+  }
+}
+// R2.5-C/R2.6-C/R2.7-C: raw collector xpaths must be UNIQUE before normalization — reject
+// (don't silently dedup) so a duplicate-laden inventory can't mask a fabricated count.
+// Strip ALL whitespace for the comparison key so predicate-spacing variants
+// (`[@id="x"]` vs `[@id = "x"]`, which Chrome resolves to the SAME node) can't slip past.
+const norm = x => String(x).replace(/\s+/g, '');
 const rawXpaths = (collect.elements || []).map(e => e.xpath).filter(Boolean);
 const dupX = new Set(); { const seen = new Set(); for (const x of rawXpaths) { const n = norm(x); if (seen.has(n)) dupX.add(n); seen.add(n); } }
 if (dupX.size) {
