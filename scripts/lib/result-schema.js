@@ -28,6 +28,15 @@ const SKILL_SCS = {
   'grouping-and-reading-order': ['1.3.1', '1.3.2', '2.4.3'],
 };
 
+// Page-level skills live in results.pageSkills (not per element). They MUST be
+// aggregated into the summary too (the audit: 128 reproduced page-skill verdicts).
+const PAGE_SKILLS = ['page-structure', 'grouping-and-reading-order', 'reflow'];
+const PAGE_SKILL_SCS = {
+  'page-structure': ['2.4.2', '2.4.6', '1.3.1'],
+  'grouping-and-reading-order': ['1.3.1', '1.3.2', '2.4.3'],
+  'reflow': ['1.4.10'],
+};
+
 const SC_LEVEL = {
   '1.1.1': 'A', '4.1.2': 'A', '2.4.4': 'A', '2.5.3': 'A',
   '1.4.3': 'AA', '1.4.11': 'AA', '1.4.1': 'A', '1.4.5': 'AA',
@@ -38,5 +47,7 @@ const SC_LEVEL = {
 
 // Pull the first WCAG SC code out of an `sc` field that may read "1.4.3 Contrast".
 function scCode(sc) { const m = String(sc || '').match(/\b\d\.\d{1,2}\.\d{1,2}\b/); return m ? m[0] : null; }
+// ALL SC codes in a field (a verdict may legitimately cite more than one).
+function scCodes(sc) { return [...String(sc || '').matchAll(/\b\d\.\d{1,2}\.\d{1,2}\b/g)].map(m => m[0]); }
 
-module.exports = { VERDICTS, BUCKETS, SKILLS, DYNAMIC_SKILLS, SKILL_SCS, SC_LEVEL, scCode };
+module.exports = { VERDICTS, BUCKETS, SKILLS, DYNAMIC_SKILLS, SKILL_SCS, PAGE_SKILLS, PAGE_SKILL_SCS, SC_LEVEL, scCode, scCodes };

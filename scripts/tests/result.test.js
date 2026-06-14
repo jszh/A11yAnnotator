@@ -84,3 +84,47 @@ test('C5 reject: missing a skill key', () => {
   assert.equal(v.ok, false);
   assert.ok(v.errors.some(er => /missing skill key/.test(er)));
 });
+
+// ---- R2.1-B: the strict/hardening cases the round-2 validator missed ----
+test('R2-C1 pageSkills are AGGREGATED into issues + normative tally', () => {
+  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a')], pageSkills: {
+    'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1', level: 'A', evidence: 'unnamed heading in outline', bucket: 'normative' },
+    'grouping-and-reading-order': { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'ok' },
+  } });
+  assert.equal(R.summary.issues.filter(i => i.scope === 'page').length, 1, 'page-level finding must appear in issues');
+  assert.equal(R.summary.normativeFailures, 1);
+  assert.equal(R.summary.pageHasIssue, true);
+  assert.equal(validateResults(R).ok, true);
+});
+test('R2-C1 reject: an issue verdict with NO SC', () => {
+  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: null, level: null, evidence: 'no ring' } })] });
+  const v = validateResults(R); assert.equal(v.ok, false);
+  assert.ok(v.errors.some(e => /no WCAG SC/.test(e)));
+});
+test('R2-C1 reject: WRONG level for the SC', () => {
+  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'A', evidence: 'x' } })] });
+  const v = validateResults(R); assert.equal(v.ok, false);
+  assert.ok(v.errors.some(e => /level A != AA/.test(e)));
+});
+test('R2-C1 reject: missing summary / missing pageSkills', () => {
+  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a')] });
+  delete R.summary; assert.equal(validateResults(R).ok, false);
+  const R2 = buildResults({ file: 'f', slug: 's', elements: [el('/a')] });
+  delete R2.pageSkills; assert.ok(validateResults(R2).errors.some(e => /missing pageSkills/.test(e)));
+});
+test('R2-C1 reject: definite DYNAMIC verdict on a notFound element', () => {
+  const e = el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'no kbd' } }); e.notFound = true;
+  const R = buildResults({ file: 'f', slug: 's', elements: [e] });
+  const v = validateResults(R); assert.equal(v.ok, false);
+  assert.ok(v.errors.some(er => /notFound/.test(er)));
+});
+test('R2-C1 reject: summary.issues CONTENT corrupted even when length matches', () => {
+  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'real evidence' } })] });
+  R.summary.issues[0].evidence = 'totally different fabricated evidence'; // same length count, different content
+  assert.equal(validateResults(R).ok, false);
+});
+test('R2-C1 multi-SC field: every cited SC is validated', () => {
+  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1 + 4.1.3', level: 'A', evidence: 'x' } })] });
+  // 4.1.3 is NOT allowed on page-structure → must be rejected even though 1.3.1 is fine
+  assert.ok(validateResults(R).errors.some(e => /4\.1\.3 not allowed/.test(e)));
+});

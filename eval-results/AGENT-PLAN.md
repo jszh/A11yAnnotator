@@ -191,13 +191,24 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
 10. **grouping-and-reading-order** (per element) — is THIS element inside a
     list-semantics-stripped list, or out of reading order? Else `N/A (page-level)`.
 
-## 5. Write results — every skill recorded explicitly, then a filtered summary
-`eval-results/<slug>/results.json`:
+## 5. Write results — emit RECORDS only; the builder derives + validates the rest
+**R2-C1: you do NOT hand-write `summary`/`anyIssue`.** Write only per-element verdicts
++ `pageSkills` to `eval-results/<slug>/records.json`, then run the MANDATORY builder,
+which derives every aggregate and HARD-GATES the output through the strict validator:
+```
+node scripts/tools/build-results.js eval-results/<slug>/records.json eval-results/<slug>/results.json
+```
+If it exits non-zero it prints the contract violations (verdict/SC/level/bucket/anyIssue
+/ notFound) — fix the records and re-run. `results.json` only exists if it validated.
+Every issue verdict MUST carry a valid `sc` (and matching `level`); tag advisory/AT-compat
+findings with `bucket:"best-practice"`/`"at-compat"` so they don't count as SC failures.
+
+`records.json` shape:
 ```json
 {
   "file": "<FILE>", "slug": "<slug>", "noscript": <bool>,
   "pageSkills": {
-    "page-structure": {"verdict","sc","level","evidence"},
+    "page-structure": {"verdict","sc","level","evidence","bucket?"},
     "grouping-and-reading-order": {...},
     "reflow": {...}
   },
@@ -219,17 +230,12 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
         "grouping-and-reading-order": {"verdict","evidence"}
       },
       "anyIssue": <bool>
+      "notFound": <bool, optional — set when the driver could not locate the element>
     }
     // ... one object PER sampled element; skills{} ALWAYS has all 10 keys.
-  ],
-  "summary": {
-    "elements": N, "elementsWithIssue": M,
-    "bySkill": { "<skill>": {"reproduced":x,"partial":y,"notReproduced":z,"na":w}, ... all 10 ... },
-    "issues": [
-      // ONLY REPRODUCED + PARTIAL — the actionable list, deduped page-level once
-      {"xpath","skill","verdict","sc","level","evidence"}
-    ]
-  }
+  ]
+  // NO "summary" — the builder derives elements/elementsWithIssue/bySkill/pageBySkill/
+  // normativeFailures/issues (element + page-level, deduped) and writes them.
 }
 ```
 - `verdict` ∈ `REPRODUCED` | `PARTIAL` | `NOT REPRODUCED` | `N/A`. Every skill key
