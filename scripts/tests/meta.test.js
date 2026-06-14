@@ -56,7 +56,8 @@ test('regression sweep PASSES (exit 0) on a clean builder-produced corpus', () =
   fs.writeFileSync(path.join(slug, 'drive.json'), JSON.stringify({ elements: [], forms: [] }));
   const skills = {}; for (const k of S.SKILLS) skills[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'na' };
   skills['focus-visibility'] = { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no visible focus ring' };
-  const built = buildResults({ file: 'x', slug: 'goodpage', elements: [{ xpath: '/a', axRole: 'link', axName: 'y', skills }], pageSkills: {} });
+  const pageOk = {}; for (const k of S.PAGE_SKILLS) pageOk[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'na' };
+  const built = buildResults({ file: 'x', slug: 'goodpage', elements: [{ xpath: '/a', axRole: 'link', axName: 'y', skills }], pageSkills: pageOk });
   fs.writeFileSync(path.join(slug, 'results.json'), JSON.stringify(built));
   let ok = true;
   try { run('node', ['scripts/tools/regression-sweep.js', dir], { cwd: ROOT, encoding: 'utf8' }); }

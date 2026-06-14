@@ -12,10 +12,15 @@ function el(xpath, overrides = {}) {
   for (const [k, v] of Object.entries(overrides)) skills[k] = v;
   return { xpath, axRole: 'link', axName: 'x', skills };
 }
+// R21-C1: all three page skills must be present — default to N/A.
+function pageOk(overrides = {}) {
+  const ps = {}; for (const k of S.PAGE_SKILLS) ps[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'n/a' };
+  return { ...ps, ...overrides };
+}
 
 test('buildResults derives anyIssue, bySkill, elementsWithIssue, issues', () => {
   const input = {
-    file: 'f', slug: 's', noscript: false, elements: [
+    file: 'f', slug: 's', noscript: false, pageSkills: pageOk(), elements: [
       el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } }),
       el('/b', { 'keyboard-operability': { verdict: 'PARTIAL', sc: '2.1.1', level: 'A', evidence: 'indeterminate' } }),
       el('/c'),
@@ -87,10 +92,10 @@ test('C5 reject: missing a skill key', () => {
 
 // ---- R2.1-B: the strict/hardening cases the round-2 validator missed ----
 test('R2-C1 pageSkills are AGGREGATED into issues + normative tally', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a')], pageSkills: {
+  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a')], pageSkills: pageOk({
     'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1', level: 'A', evidence: 'unnamed heading in outline', bucket: 'normative' },
     'grouping-and-reading-order': { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'ok' },
-  } });
+  }) });
   assert.equal(R.summary.issues.filter(i => i.scope === 'page').length, 1, 'page-level finding must appear in issues');
   assert.equal(R.summary.normativeFailures, 1);
   assert.equal(R.summary.pageHasIssue, true);
@@ -124,7 +129,42 @@ test('R2-C1 reject: summary.issues CONTENT corrupted even when length matches', 
   assert.equal(validateResults(R).ok, false);
 });
 test('R2-C1 multi-SC field: every cited SC is validated', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1 + 4.1.3', level: 'A', evidence: 'x' } })] });
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1 + 4.1.3', level: 'A', evidence: 'x' } })] });
   // 4.1.3 is NOT allowed on page-structure → must be rejected even though 1.3.1 is fine
   assert.ok(validateResults(R).errors.some(e => /4\.1\.3 not allowed/.test(e)));
+});
+
+// ---- R2.2-A: the round-2.1 adversarial cases the gate must now reject/allow ----
+test('R21-C1 reject: an evaluation that OMITS pageSkills (empty {} default)', () => {
+  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a')] }); // no pageSkills
+  const v = validateResults(R); assert.equal(v.ok, false);
+  assert.ok(v.errors.some(e => /missing required key/.test(e)), 'must require all 3 page skills');
+});
+test('R21-C1 reject: empty elements[]', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [] });
+  assert.ok(validateResults(R).errors.some(e => /empty elements/.test(e)));
+});
+test('R21-C1 reject: a CORRUPTED issue object (verdict/level/bucket changed, key fields same)', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'real evidence here' } })] });
+  R.summary.issues[0].verdict = 'PARTIAL'; R.summary.issues[0].level = 'A'; R.summary.issues[0].xpath = '/zzz'; // corrupt non-key fields
+  assert.equal(validateResults(R).ok, false);
+});
+test('R21-C1 reject: a missing derived summary field (normativeFailures)', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'x' } })] });
+  delete R.summary.normativeFailures;
+  assert.ok(validateResults(R).errors.some(e => /normativeFailures missing/.test(e)));
+});
+test('R21-C1 reject: a page-skill with the WRONG level', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk({ 'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1', level: 'AA', evidence: 'x' } }), elements: [el('/a')] });
+  assert.ok(validateResults(R).errors.some(e => /level AA != A/.test(e)));
+});
+test('R21-M3 ALLOW: a best-practice observation with a `rule` id and NO WCAG SC', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk({ 'page-structure': { verdict: 'REPRODUCED', sc: null, level: null, bucket: 'best-practice', rule: 'page-has-heading-one', evidence: 'no h1 (best practice)' } }), elements: [el('/a')] });
+  assert.equal(validateResults(R).ok, true, 'best-practice may use a rule id instead of a fake SC');
+  assert.equal(R.summary.bestPracticeFindings, 1);
+  assert.equal(R.summary.normativeFailures, 0);
+});
+test('R21-M3 reject: a NORMATIVE issue still requires an SC', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'name-role-state': { verdict: 'REPRODUCED', sc: null, level: null, evidence: 'unnamed', bucket: 'normative' } })] });
+  assert.ok(validateResults(R).errors.some(e => /NORMATIVE.*no WCAG SC/.test(e)));
 });
