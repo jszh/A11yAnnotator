@@ -215,7 +215,32 @@ test('R2.4-A provenance: a dropped element is ACCEPTED only via skipped[{xpath,r
   assert.equal(validateResults(ok).ok, true, 'a structured skip with a reason closes completeness');
   const noReason = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
     provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b' }] } } });
-  assert.ok(validateResults(noReason).errors.some(e => /non-empty reason/.test(e)), 'a skip without a reason is rejected');
+  assert.ok(validateResults(noReason).errors.some(e => /SUBSTANTIVE reason/.test(e)), 'a skip without a reason is rejected');
+});
+test('R2.5-B skip integrity: mass-skip (>25% cap), filler reasons, and extra skip keys are REJECTED', () => {
+  const inv = Array.from({ length: 12 }, (_, i) => '/e' + i);
+  // mass-skip 11/12 with a substantive reason → cap fires
+  const massSkip = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/e0')],
+    provenance: { collect: { xpaths: inv, count: 12, skipped: inv.slice(1).map(x => ({ xpath: x, reason: 'not locatable in dynamic dom' })) } } });
+  assert.ok(validateResults(massSkip).errors.some(e => /exceeds the cap/.test(e)), 'cannot declare most of the sample un-evaluated');
+  // filler reason "........"
+  const filler = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/e0')],
+    provenance: { collect: { xpaths: ['/e0', '/e1'], count: 2, skipped: [{ xpath: '/e1', reason: '........' }] } } });
+  assert.ok(validateResults(filler).errors.some(e => /SUBSTANTIVE reason/.test(e)), 'a no-word filler reason is rejected');
+  // extra key on a skip entry
+  const extra = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/e0')],
+    provenance: { collect: { xpaths: ['/e0', '/e1'], count: 2, skipped: [{ xpath: '/e1', reason: 'off-screen duplicate', forgedVerdict: 'PASS' }] } } });
+  assert.ok(validateResults(extra).errors.some(e => /skipped: unexpected key "forgedVerdict"/.test(e)));
+});
+test('R2.5-B axe floor: skipping elements + 0 failures while the collector axe found serious violations is REJECTED', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
+    provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b', reason: 'off-screen duplicate' }] } } });
+  const blocked = validateResults(R, { collectorAxe: { seriousCount: 4 } });
+  assert.ok(blocked.errors.some(e => /collector's axe run found 4 critical\/serious/.test(e)), 'cannot launder a clean result by skipping flagged elements');
+  // no skips → the floor does not apply (agent owns every element)
+  const noSkip = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a'), el('/b')],
+    provenance: { collect: { xpaths: ['/a', '/b'], count: 2 } } });
+  assert.equal(validateResults(noSkip, { collectorAxe: { seriousCount: 4 } }).ok, true, 'no skips → floor does not fire');
 });
 test('R2.4-A provenance: count mismatch and an unexpected collect key are REJECTED', () => {
   const badCount = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')], provenance: { collect: { xpaths: ['/a'], count: 9 } } });

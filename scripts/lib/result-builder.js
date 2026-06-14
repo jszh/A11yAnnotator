@@ -183,13 +183,22 @@ function validateProvenance(E, R) {
   const invSet = new Set(inv);
   if (invSet.size !== inv.length) E('provenance.collect.xpaths: duplicate entries in the inventory');
   if (c.count != null && c.count !== inv.length) E(`provenance.collect.count=${c.count} != inventory length ${inv.length}`);
-  // skipped entries must be structured {xpath, reason}, in the inventory, reason non-empty.
+  // skipped entries must be {xpath, reason} ONLY, in the inventory, with a SUBSTANTIVE
+  // reason (R2.5-B: a "." reason no longer launders a mass-drop into a clean audit).
   const skippedSet = new Set();
-  for (const s of (Array.isArray(c.skipped) ? c.skipped : [])) {
-    if (!s || typeof s !== 'object' || !s.xpath || !String(s.reason || '').trim()) { E('provenance.collect.skipped: each entry needs {xpath, reason} with a non-empty reason'); continue; }
+  const skipList = Array.isArray(c.skipped) ? c.skipped : [];
+  for (const s of skipList) {
+    if (!s || typeof s !== 'object') { E('provenance.collect.skipped: each entry must be an object {xpath, reason}'); continue; }
+    for (const key of Object.keys(s)) if (key !== 'xpath' && key !== 'reason') E(`provenance.collect.skipped: unexpected key "${key}"`);
+    const rr = String(s.reason || '').trim();
+    if (!s.xpath || rr.length < 8 || !/[a-z]{3,}/i.test(rr)) { E('provenance.collect.skipped: each entry needs {xpath, reason} with a SUBSTANTIVE reason (a real ≥8-char justification, not "." / filler)'); continue; }
     if (!invSet.has(s.xpath)) E(`provenance.collect.skipped: ${String(s.xpath).slice(-30)} is not in the inventory`);
     skippedSet.add(s.xpath);
   }
+  // R2.5-B: an audit cannot declare MOST of its collected sample un-evaluated. Cap skips
+  // at 25% of the inventory (min 2) — completeness must be substantive, not nominal.
+  const skipCap = Math.max(2, Math.ceil(0.25 * inv.length));
+  if (skippedSet.size > skipCap) E(`provenance: ${skippedSet.size} skipped exceeds the cap of ${skipCap} (>25% of the ${inv.length}-element inventory) — an audit cannot declare most of its sample un-evaluated`);
   const elXpaths = (R.elements || []).map(e => e.xpath);
   const seen = new Set();
   for (const xp of elXpaths) {
@@ -308,6 +317,15 @@ function validateResults(R, opts = {}) {
   if (!R.pageSkills || typeof R.pageSkills !== 'object') E('results: missing pageSkills');
 
   validateProvenance(E, R);
+  // R2.5-B: ground-truth floor. If the collector's OWN axe run found critical/serious
+  // violations, the audit cannot skip elements and still claim zero normative failures —
+  // that is exactly the mass-skip-to-clean attack. (When nothing was skipped the agent
+  // took responsibility for every element, so this floor does not apply.)
+  const AX = opts.collectorAxe;
+  if (AX && AX.seriousCount > 0 && R.summary) {
+    const skippedN = (R.provenance && R.provenance.collect && Array.isArray(R.provenance.collect.skipped)) ? R.provenance.collect.skipped.length : 0;
+    if (skippedN > 0 && R.summary.normativeFailures === 0) E(`provenance/axe: the collector's axe run found ${AX.seriousCount} critical/serious violation(s), but the audit SKIPPED ${skippedN} element(s) and reports 0 normative failures — a clean result cannot be produced by skipping flagged elements`);
+  }
 
   for (const el of R.elements) {
     const tag = (el.xpath || '?').slice(-22);

@@ -36,6 +36,9 @@ try { collect = JSON.parse(fs.readFileSync(collectPath, 'utf8')); }
 catch (e) { console.error('cannot read/parse collect.json:', e.message); process.exit(2); }
 const xpaths = [...new Set((collect.elements || []).map(e => e.xpath).filter(Boolean))];
 input.provenance = { collect: { xpaths, count: xpaths.length, skipped: Array.isArray(input.skipped) ? input.skipped : [], collectedAt: collect.collectedAt || null } };
+// R2.5-B: the collector's OWN axe run is independent ground truth for the skip floor.
+const axeArr = Array.isArray(collect.axe) ? collect.axe : (collect.axe && Array.isArray(collect.axe.violations) ? collect.axe.violations : []);
+const collectorAxe = { seriousCount: axeArr.filter(v => v && (v.impact === 'critical' || v.impact === 'serious')).length };
 
 // R2.4-B: drive.json is MANDATORY — definite behavioral verdicts must be bound to it.
 if (!drivePath) {
@@ -48,7 +51,7 @@ catch (e) { console.error('cannot read/parse drive.json:', e.message); process.e
 const driverEvidence = driverEvidenceFrom(drive);
 
 const built = buildResults(input);
-const v = validateResults(built, { driverEvidence });
+const v = validateResults(built, { driverEvidence, collectorAxe });
 if (!v.ok) {
   console.error(`REFUSED to write ${outPath} — ${v.errors.length} contract violation(s):`);
   for (const m of v.errors.slice(0, 40)) console.error('  ' + m);
