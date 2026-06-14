@@ -333,25 +333,32 @@ function parseRGB(s) {
           const top = document.elementFromPoint(hx, hy);
           obscured = !!top && top !== r && !r.contains(top) && !top.contains(r);
         }
-        // R2.4-D: POSITIVELY prove a page-aligned 24×24 square fits ON the target — sample
-        // a grid inside the centred 24×24 square; every point must hit the target or a
-        // descendant of it. Catches overflow-clip, SVG/non-rect, transforms, and rounding
-        // that the enumerated shape flags miss. null = not measurable (square off-screen)
-        // → evalTargetSize falls back to the flags. on-target excludes ANCESTORS (a point
-        // over an ancestor means the target does not paint there).
+        // R2.4-D/R2.5-E: POSITIVELY prove a page-aligned 24×24 square fits ON the target —
+        // densely hit-test (≈2px grid) the centred square; EVERY point must hit the target
+        // or a descendant. The grid can only DISPROVE fit (a missed point ⇒ not solid), it
+        // is never converted to a pass by evalTargetSize unless fully on-target. A ~2px step
+        // catches realistic dead-strips/holes the old 5px grid missed. Off-viewport targets
+        // are scrolled into view first (then scroll restored), so they are MEASURED rather
+        // than silently falling back to flags. on-target excludes ANCESTORS (a point over an
+        // ancestor means the target does not paint there).
         let squareFits = null;
         if (b.width >= 24 && b.height >= 24) {
-          const cx = b.x + b.width / 2, cy = b.y + b.height / 2, half = 12;
-          const offs = [-11, -6, 0, 6, 11];
-          const sqMinX = cx - half, sqMinY = cy - half, sqMaxX = cx + half, sqMaxY = cy + half;
-          if (sqMinX >= 0 && sqMinY >= 0 && sqMaxX <= innerWidth && sqMaxY <= innerHeight) {
+          const sx0 = window.scrollX, sy0 = window.scrollY;
+          try { r.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {}
+          const hb = r.getBoundingClientRect();
+          const cx = hb.x + hb.width / 2, cy = hb.y + hb.height / 2;
+          if (cx - 12 >= 0 && cy - 12 >= 0 && cx + 12 <= innerWidth && cy + 12 <= innerHeight) {
+            // sample the [-11,11] INTERIOR at ~2px (avoid the razor ±12 edge where
+            // elementFromPoint is ambiguous from sub-pixel rounding); covers a real ≥2px
+            // dead-strip/hole while not false-failing on a solid box's boundary.
             let allOn = true;
-            for (const dx of offs) { for (const dy of offs) {
+            for (let dx = -11; dx <= 11 && allOn; dx += 2) { for (let dy = -11; dy <= 11; dy += 2) {
               const hit = document.elementFromPoint(cx + dx, cy + dy);
               if (!(hit && (hit === r || r.contains(hit)))) { allOn = false; break; }
-            } if (!allOn) break; }
+            } }
             squareFits = allOn;
           }
+          try { window.scrollTo(sx0, sy0); } catch (e) {}
         }
         const interactiveTags = ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'];
         const interactiveRoles = ['link', 'button', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'checkbox', 'radio', 'switch', 'slider', 'textbox', 'combobox', 'option', 'spinbutton'];

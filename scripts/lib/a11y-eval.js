@@ -82,16 +82,17 @@ function evalTargetSize(box, opts = {}) {
   const cornerR = opts.cornerRadius || 0;
   const shapeBlocksSquare = !!opts.transformed || !!opts.clipped || (cornerR > 0 && !_square24Fits(w, h, cornerR));
   if (w >= TARGET_MIN && h >= TARGET_MIN) {
-    // R2.4-D/ROOT: a bbox ≥24×24 is NECESSARY, not sufficient — the set of sufficiency
-    // breakers (transform, clip-path, radius, overflow-clip, SVG/inline shape) is
-    // open-ended. Prefer the POSITIVE proof: `squareFits` hit-tests whether a page-aligned
-    // 24×24 square centred on the target is fully ON the target. true → pass; false →
-    // needs-judgment. Only when it could NOT be measured (off-screen) fall back to the
-    // enumerated shape flags.
-    if (opts.squareFits === true) return _ts('pass', 'meets 24×24 — a page-aligned 24×24 square is fully on-target (hit-tested)', minDim);
-    if (opts.squareFits === false) return _ts('needs-judgment', 'bbox ≥24×24 but a page-aligned 24×24 square is NOT fully on the target (clip/overflow/rounded/SVG/non-rect — hit-tested)', minDim, { shapeUncertain: true });
-    if (shapeBlocksSquare) return _ts('needs-judgment', 'bbox ≥24×24 but the target is rotated/clipped/rounded — confirm a page-aligned 24×24 square fits', minDim, { shapeUncertain: true });
-    return _ts('pass', 'meets 24x24 (axis-aligned)', minDim);
+    // R2.4-D/R2.5-E/ROOT: a bbox ≥24×24 is NECESSARY, not sufficient — the set of
+    // sufficiency breakers (transform, clip-path, radius, overflow-clip, SVG/non-rect,
+    // obscuring overlay) is open-ended. The ONLY definite pass is a POSITIVE proof:
+    // `squareFits` densely hit-tests (≈2px grid, scrolled into view) whether a page-aligned
+    // 24×24 square centred on the target is fully ON the target. A sparse/absent sample can
+    // only DISPROVE fit — it can never be converted into a pass (R24-H3). So:
+    //   true  → pass; false → needs-judgment; null (could not be measured) → needs-judgment.
+    if (opts.squareFits === true) return _ts('pass', 'meets 24×24 — a page-aligned 24×24 square is densely hit-tested fully on-target', minDim);
+    if (opts.squareFits === false) return _ts('needs-judgment', 'bbox ≥24×24 but a page-aligned 24×24 square is NOT fully on the target (clip/overflow/rounded/SVG/obscured/non-rect — hit-tested)', minDim, { shapeUncertain: true });
+    const why = shapeBlocksSquare ? 'transform/clip/radius present' : 'hit-area could not be measured';
+    return _ts('needs-judgment', `bbox ≥24×24 but a continuous 24×24 solid area is unproven (${why}) — confirm a page-aligned 24×24 square fits`, minDim, { shapeUncertain: true });
   }
   if (opts.essential) return _ts('pass', 'essential exception', minDim);
   if (opts.uaControl) return _ts('pass', 'user-agent control exception (unmodified default-sized native control)', minDim);

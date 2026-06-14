@@ -70,6 +70,21 @@ test('R21-H2: a STYLESHEET-resized checkbox is NOT a UA control (true iframe def
   assert.equal(navlabel.inSentence, false, 'all-caps nav labels are NOT a sentence (no real prose)');
 });
 
+test('R2.5-E target-size (R24-H3/#7): a 2px pointer-dead strip across a 24×24 target is caught (dense grid) → needs-judgment', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-target-strip.html', ['/html/body/div[1]/a[1]']);
+  assert.equal(o.elements[0].squareFits, false, 'a non-target strip between samples is hit by the ~2px grid');
+  assert.equal(o.elements[0].targetSize.verdict, 'needs-judgment');
+});
+test('R2.5-E target-size (#5): an off-viewport overflow-clipped target is MEASURED (scrollIntoView), not flag-passed', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-target-belowfold.html', ['/html/body/div[2]/a[1]']);
+  assert.notEqual(o.elements[0].targetSize.verdict, 'pass', 'a below-fold clipped target must never be a definite pass via flag fallback');
+});
+test('R2.5-E target-size: a solid 30×30 link still PASSES (no false needs-judgment from edge sampling)', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-target-solid.html', ['/html/body/a[1]']);
+  assert.equal(o.elements[0].squareFits, true);
+  assert.equal(o.elements[0].targetSize.verdict, 'pass');
+});
+
 test('R2.4-D target-size (R23-H3): an OVERFLOW-clipped 40×40 link → needs-judgment; a plain 30×30 → pass', { skip: !serverUp }, () => {
   const o = runScript('eval-page.js', 'fx-target-overflow.html', ['/html/body/div[1]/a[1]', '/html/body/a[1]']);
   const [clipped, plain] = o.elements;

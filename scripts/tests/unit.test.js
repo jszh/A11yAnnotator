@@ -34,17 +34,19 @@ test('contrastRatio sanity', () => {
 });
 
 // ---------------- T3 / C4: target-size with NORMATIVE geometry ----------------
-test('C4 evalTargetSize: meets size', () => {
-  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 40, h: 40 }).passes, true);
+test('C4 evalTargetSize: meets size (with a positive dense hit-test)', () => {
+  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 40, h: 40 }, { squareFits: true }).passes, true);
+  // R2.5-E: a bare bbox with NO hit-test evidence is no longer a definite pass
+  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 40, h: 40 }).verdict, 'needs-judgment');
 });
-test('R2.4-D evalTargetSize: positive hit-area squareFits is authoritative over the flags', () => {
-  // squareFits=true → pass even if a flag would have suspected the shape
+test('R2.4-D/R2.5-E evalTargetSize: a definite PASS requires a positive dense hit-test; sparse/absent never passes', () => {
+  // squareFits=true (densely on-target) → pass, even for a transformed-but-fitting target
   assert.equal(L.evalTargetSize({ w: 40, h: 40 }, { squareFits: true, transformed: true }).verdict, 'pass');
-  // squareFits=false → needs-judgment even with no enumerated flag (e.g. overflow-clip)
+  // squareFits=false → needs-judgment (the grid DISPROVED fit)
   assert.equal(L.evalTargetSize({ w: 40, h: 40 }, { squareFits: false }).verdict, 'needs-judgment');
-  // not measured (off-screen) → fall back to the enumerated flags
+  // R2.5-E: null (could not be measured) is NEVER a pass — no flag fallback
+  assert.equal(L.evalTargetSize({ w: 40, h: 40 }, { squareFits: null }).verdict, 'needs-judgment');
   assert.equal(L.evalTargetSize({ w: 40, h: 40 }, { squareFits: null, transformed: true }).verdict, 'needs-judgment');
-  assert.equal(L.evalTargetSize({ w: 40, h: 40 }, { squareFits: null }).verdict, 'pass');
 });
 test('C4 evalTargetSize: spacing exception — small target clear of all neighbours', () => {
   // 98x15 footer link at (0,100); nearest neighbour rect is far → 24px circle clears it
@@ -67,16 +69,16 @@ test('R2.3-A evalTargetSize: inline is NEVER an auto-pass — even with inSenten
   const noHint = L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { inlineCandidate: true, inSentence: false, neighbors: [{ x: 0, y: 18, w: 30, h: 16 }] });
   assert.equal(noHint.verdict, 'needs-judgment');
 });
-test('R2.3-A evalTargetSize: SHAPE — bbox≥24x24 is a definite pass ONLY for an axis-aligned rectangle', () => {
-  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 24, h: 24 }).verdict, 'pass'); // plain rect
+test('R2.3-A evalTargetSize: SHAPE — bbox≥24x24 is a definite pass ONLY for a hit-tested axis-aligned rectangle', () => {
+  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 24, h: 24 }, { squareFits: true }).verdict, 'pass'); // plain rect, hit-tested solid
   // rotated 18x18 → 25x25 bbox: transformed → needs-judgment (page-aligned square may not fit)
   assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 25, h: 25 }, { transformed: true }).verdict, 'needs-judgment');
   // clip-path → needs-judgment
   assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 40, h: 40 }, { clipped: true }).verdict, 'needs-judgment');
   // tightly-rounded 24x24 (r=6) can't fit a 24x24 square → needs-judgment
   assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 24, h: 24 }, { cornerRadius: 6 }).verdict, 'needs-judgment');
-  // generously-sized rounded 40x40 (r=6) easily fits → pass
-  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 40, h: 40 }, { cornerRadius: 6 }).verdict, 'pass');
+  // generously-sized rounded 40x40 (r=6) easily fits — pass requires the dense hit-test
+  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 40, h: 40 }, { cornerRadius: 6, squareFits: true }).verdict, 'pass');
 });
 test('C4 evalTargetSize: zero-size element is not a target', () => {
   assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 0, h: 34 }).passes, true);
