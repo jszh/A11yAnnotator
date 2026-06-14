@@ -66,9 +66,16 @@ function evalTargetSize(box, opts = {}) {
   const w = box ? box.w : 0, h = box ? box.h : 0;
   const minDim = Math.min(w, h);
   if (!(w > 0) || !(h > 0)) return { passes: true, reason: 'zero-size/hidden — not a rendered target', minDim };
-  if (w >= TARGET_MIN && h >= TARGET_MIN) return { passes: true, reason: 'meets 24x24', minDim };
+  if (w >= TARGET_MIN && h >= TARGET_MIN) return { passes: true, reason: 'meets 24x24', minDim, shapeAssumption: 'bounding-box' };
   if (opts.essential) return { passes: true, reason: 'essential exception', minDim };
-  if (opts.inSentence) return { passes: true, reason: 'inline exception (in a sentence / line-height-constrained)', minDim };
+  // 2.5.8 "User Agent Control" exception — a default-sized native control whose size
+  // the author did not modify (e.g. a bare checkbox/radio) is exempt.
+  if (opts.uaControl) return { passes: true, reason: 'user-agent control exception (default-sized native control)', minDim };
+  // "Equivalent" exception — another adequately-sized control offers the same function.
+  // We can't auto-prove equivalence, so we never auto-PASS on it; the caller may flag it.
+  if (opts.inSentence === true) return { passes: true, reason: 'inline exception (in a sentence — prose proven)', minDim };
+  // a display:inline target whose in-sentence status is UNPROVEN → indeterminate, not pass.
+  const inlineUncertain = !!opts.inlineCandidate && opts.inSentence !== true;
   const neighbors = Array.isArray(opts.neighbors) ? opts.neighbors : null;
   if (neighbors) {
     const cx = (box.x || 0) + w / 2, cy = (box.y || 0) + h / 2;
@@ -82,10 +89,10 @@ function evalTargetSize(box, opts = {}) {
       if (hit) { intersected = n; break; }
     }
     if (!intersected) return { passes: true, reason: 'spacing exception (24px circle clears all adjacent targets)', minDim };
-    return { passes: false, reason: `${w}x${h}px below 24x24; 24px circle intersects an adjacent target`, minDim };
+    return { passes: false, reason: `${w}x${h}px below 24x24; 24px circle intersects an adjacent target`, minDim, inlineUncertain, shapeAssumption: 'bounding-box' };
   }
   // no neighbour geometry supplied → cannot prove the spacing exception
-  return { passes: false, reason: `${w}x${h}px below 24x24 (spacing exception unproven — no neighbour geometry)`, minDim, indeterminateSpacing: true };
+  return { passes: false, reason: `${w}x${h}px below 24x24 (spacing exception unproven — no neighbour geometry)`, minDim, indeterminateSpacing: true, inlineUncertain };
 }
 
 // ---- T9: filter virtual-SR "noise" phrases that are not real element announcements

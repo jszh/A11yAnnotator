@@ -53,6 +53,14 @@ test('C4 target-size: small target near a LARGE neighbour fails; isolated small 
   assert.equal(isolated.targetSize.passes, true, 'isolated 16x16 with no neighbour passes via spacing');
 });
 
+test('R2-H5 target exceptions: prose-link PASS (inline), nav-link FAIL (no prose), checkbox PASS (UA-control)', { skip: !serverUp }, () => {
+  const o = runScript('eval-page.js', 'fx-target-exc.html', ['/html/body/p[1]/a[1]', '/html/body/nav[1]/a[1]', '/html/body/input[1]']);
+  const [prose, nav, checkbox] = o.elements;
+  assert.equal(prose.targetSize.passes, true, 'inline link in real prose => exempt');
+  assert.equal(nav.targetSize.passes, false, 'inline nav link with NO surrounding prose must NOT be auto-exempt (auditor false-pass)');
+  assert.equal(checkbox.targetSize.passes, true, 'bare native checkbox => UA-control exempt (auditor false-fail)');
+});
+
 test('R2-H2 trap: a two-control A↔B keyboard trap is detected (not just same-element repeat)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap.html', ['/html/body/button[2]']);
   assert.equal(o.tabWalk.trapDetected, true, 'A↔B cycle that cannot escape is a trap');

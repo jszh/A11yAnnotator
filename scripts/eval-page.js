@@ -203,7 +203,7 @@ function parseRGB(s) {
         const targetNeighbors = [];
         let inSentence = false;
         if (b.width > 0 && b.height > 0) {
-          const tsel = 'a[href],button,input:not([type=hidden]),select,textarea,summary,[role=button],[role=link],[role=tab],[role=menuitem],[role=checkbox],[role=radio],[onclick]';
+          const tsel = 'a[href],button,input:not([type=hidden]),select,textarea,summary,[role=button],[role=link],[role=tab],[role=menuitem],[role=checkbox],[role=radio],[role=switch],[role=spinbutton],[role=option],[role=menuitemcheckbox],[role=menuitemradio],[onclick]';
           const reach = 28;
           for (const t of document.querySelectorAll(tsel)) {
             if (t === r || r.contains(t) || t.contains(r)) continue;
@@ -213,16 +213,24 @@ function parseRGB(s) {
             const gx = Math.max(0, Math.max(tb.x - b.right, b.x - tb.right));
             const gy = Math.max(0, Math.max(tb.y - b.bottom, b.y - tb.bottom));
             if (gx <= reach && gy <= reach) targetNeighbors.push({ x: Math.round(tb.x), y: Math.round(tb.y), w: Math.round(tb.width), h: Math.round(tb.height) });
-            if (targetNeighbors.length >= 40) break;
+            if (targetNeighbors.length >= 64) break;
           }
-          // C4 inline exception is SEMANTIC ("in a sentence"): require display:inline
-          // AND the nearest block ancestor to carry non-target text beyond this element.
+          // C4/R2-H5 inline exception is SEMANTIC ("in a sentence"). Require display:inline
+          // AND PROSE around the link: text in the block that is NOT inside other
+          // interactive controls (a nav of links has ~no prose → inSentence stays false).
           if (cs.display === 'inline') {
             let blk = r.parentElement;
             while (blk && getComputedStyle(blk).display === 'inline') blk = blk.parentElement;
-            if (blk) { const own = (r.textContent || '').trim(); const around = (blk.textContent || '').trim(); inSentence = around.length > own.length + 10; }
+            if (blk) {
+              const clone = blk.cloneNode(true);
+              clone.querySelectorAll('a,button,input,select,textarea,summary,[role=link],[role=button],[role=menuitem],[role=tab]').forEach(n => n.remove());
+              const prose = (clone.textContent || '').replace(/\s+/g, ' ').trim();
+              inSentence = prose.length >= 15; // proven prose around the inline target
+            }
           }
         }
+        // R2-H5: User-Agent-Control exception — a bare default-sized native checkbox/radio.
+        const uaControl = (r.tagName.toLowerCase() === 'input' && (r.type === 'checkbox' || r.type === 'radio') && !r.style.width && !r.style.height);
         const tag = r.tagName.toLowerCase();
         const roleAttr = r.getAttribute('role');
         // H7: AX/ARIA STATE collection (the name-role-STATE skill needs these).
@@ -269,7 +277,7 @@ function parseRGB(s) {
           box: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) },
           color: cs.color, ownBg: cs.backgroundColor, ownBgImage: cs.backgroundImage,
           effBg, effBgImage, bgWalkCrossedOverlay, textInChildDiffColor,
-          display: cs.display, inSentence, targetNeighbors,
+          display: cs.display, inSentence, inlineCandidate: cs.display === 'inline', uaControl, targetNeighbors,
           states, tabindexEffective, roleOverridesNative, obscured,
           fontSize: cs.fontSize, fontWeight: cs.fontWeight,
           outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, outlineColor: cs.outlineColor,
@@ -311,8 +319,8 @@ function parseRGB(s) {
       // exception, computed by the harness so the agent doesn't re-derive box<24.
       if (dom.box) {
         rec.targetSize = A.evalTargetSize(dom.box, {
-          inSentence: dom.inSentence,
-          neighbors: dom.targetNeighbors,
+          inSentence: dom.inSentence, inlineCandidate: dom.inlineCandidate,
+          uaControl: dom.uaControl, neighbors: dom.targetNeighbors,
         });
       }
 

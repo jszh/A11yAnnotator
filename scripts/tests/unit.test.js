@@ -67,6 +67,18 @@ test('C4 evalTargetSize: no neighbour geometry => spacing unproven (fail + flag)
   assert.equal(r.passes, false);
   assert.equal(r.indeterminateSpacing, true);
 });
+test('R2-H5 evalTargetSize: UA-control exception (bare 13x13 checkbox) => pass', () => {
+  const r = L.evalTargetSize({ x: 0, y: 0, w: 13, h: 13 }, { uaControl: true, neighbors: [{ x: 0, y: 16, w: 13, h: 13 }] });
+  assert.equal(r.passes, true);
+  assert.match(r.reason, /user-agent control/);
+});
+test('R2-H5 evalTargetSize: inline link with PROVEN prose => pass; unproven => fail+flag', () => {
+  assert.equal(L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { inlineCandidate: true, inSentence: true }).passes, true);
+  // nav link with no surrounding prose (inSentence false) packed next to a neighbour → fail, flagged
+  const r = L.evalTargetSize({ x: 0, y: 0, w: 30, h: 16 }, { inlineCandidate: true, inSentence: false, neighbors: [{ x: 0, y: 17, w: 30, h: 16 }] });
+  assert.equal(r.passes, false);
+  assert.equal(r.inlineUncertain, true, 'unproven inline must be flagged, not silently passed');
+});
 
 // ---------------- T9/T10: VSR phrase filtering ----------------
 test('T9 isVsrNoisePhrase filters document/landmark/empty', () => {
