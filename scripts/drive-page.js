@@ -281,14 +281,15 @@ function loadXpaths() {
       return [...document.querySelectorAll(sel)].filter(el => { const s = getComputedStyle(el); const b = el.getBoundingClientRect(); return s.visibility !== 'hidden' && s.display !== 'none' && el.getAttribute('tabindex') !== '-1' && (b.width > 0 || b.height > 0); }).length;
     }).catch(() => 0);
     out.tabWalk.totalFocusables = totalFocusables;
-    // R2-H2: a keyboard trap is "Tab cannot leave a COMPONENT" — it may cycle among
-    // SEVERAL controls (A↔B), not just repeat one. Detect a small recurring sub-cycle
-    // (the last `WIN` stops cover ≤ `CYCMAX` distinct elements while the page has MORE
-    // focusables than that), then CONFIRM by probing the component boundary: from the
-    // current element, neither Tab nor Shift+Tab reaches anything OUTSIDE the cycle set.
-    const WIN = 6, CYCMAX = 3; const window6 = [];
+    // R2-H2/R21-H1: a keyboard trap is "Tab cannot leave a COMPONENT". Detect ANY
+    // bounded cycle (no arbitrary control-count cap): we keep landing on
+    // already-seen elements (`stopsSinceNew`) while the page still has UNREACHED
+    // focusables (`seenAll.size < totalFocusables`). Then CONFIRM the boundary —
+    // a real trap escapes via NEITHER Escape (a STANDARD exit, per 2.1.2) NOR
+    // Tab/Shift+Tab. A modal that contains Tab but releases on Escape is NOT a trap.
+    const NO_NEW = 8; const recent = []; const seenAll = new Set(); let stopsSinceNew = 0;
     const tw0 = Date.now();
-    const curXpath = () => page.evaluate(() => { const el = document.activeElement; return el && el !== document.body ? window.__getXPath(el) : null; }).catch(() => null);
+    const curState = () => page.evaluate(() => { const el = document.activeElement; return { xpath: el && el !== document.body ? window.__getXPath(el) : null, dialogs: document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]').length }; }).catch(() => ({ xpath: null, dialogs: 0 }));
     for (let i = 0; i < MAXTAB; i++) {
       if (Date.now() - tw0 > TABWALK_BUDGET_MS) { out.tabWalk.budgetExceeded = true; break; }
       await page.keyboard.press('Tab'); await sleep(22);
@@ -303,23 +304,29 @@ function loadXpaths() {
       if (!st.outlineOrShadow) out.tabWalk.noOutlineStops++;
       if (!st.inViewport) out.tabWalk.offScreenStops++;
       out.tabWalk.stops.push(st);
-      window6.push(st.xpath); if (window6.length > WIN) window6.shift();
-      const cycle = [...new Set(window6)];
-      // suspect a sub-cycle trap: window saturated, few distinct, and the page has more
-      if (window6.length >= WIN && cycle.length <= CYCMAX && totalFocusables > cycle.length + 1) {
-        const cycleSet = new Set(cycle); let escaped = false;
+      recent.push(st.xpath); if (recent.length > NO_NEW + 2) recent.shift();
+      if (seenAll.has(st.xpath)) stopsSinceNew++; else { seenAll.add(st.xpath); stopsSinceNew = 0; }
+      // suspect: stuck revisiting a bounded set while focusables remain unreached
+      if (stopsSinceNew >= NO_NEW && totalFocusables > seenAll.size) {
+        const cycleSet = new Set(recent); let escaped = false, escapeMethod = null;
+        // 1) STANDARD EXIT: Escape (focus leaves the cycle OR a dialog closes)
+        const dlgBefore = (await curState()).dialogs;
+        await page.keyboard.press('Escape'); await sleep(60);
+        const afterEsc = await curState();
+        if ((afterEsc.xpath && !cycleSet.has(afterEsc.xpath)) || afterEsc.dialogs < dlgBefore) { escaped = true; escapeMethod = 'Escape'; }
+        // 2) Tab / Shift+Tab out of the cycle
         for (const press of [['Tab'], ['Shift', 'Tab']]) {
-          for (let k = 0; k < cycle.length + 1 && !escaped; k++) {
+          for (let k = 0; k < cycleSet.size + 1 && !escaped; k++) {
             if (press[0] === 'Shift') { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
             else await page.keyboard.press('Tab');
             await sleep(22);
-            const here = await curXpath();
-            if (here && !cycleSet.has(here)) { escaped = true; break; }
+            const here = (await curState()).xpath;
+            if (here && !cycleSet.has(here)) { escaped = true; escapeMethod = press.join('+'); break; }
           }
         }
-        if (!escaped) { out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = cycle; break; }
-        // escaped → not a trap; clear the window so we don't re-trigger on the same run
-        window6.length = 0;
+        if (!escaped) { out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = [...cycleSet]; break; }
+        out.tabWalk.escapableComponent = { cycle: [...cycleSet], via: escapeMethod }; // not a trap
+        stopsSinceNew = 0; seenAll.clear(); // resume the walk fresh from here
       }
     }
     out.tabWalk.count = out.tabWalk.stops.length;

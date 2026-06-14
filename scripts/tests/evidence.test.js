@@ -70,6 +70,16 @@ test('R2-H2 trap: ordinary wraparound is NOT a trap', { skip: !serverUp }, () =>
   const o = runScript('drive-page.js', 'fx-wraparound.html', ['/html/body/button[1]']);
   assert.equal(o.tabWalk.trapDetected, false);
 });
+test('R21-H1 trap: a FOUR-control inescapable cycle is detected (no CYCMAX=3 cap)', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap4.html', ['/html/body/button[2]']);
+  assert.equal(o.tabWalk.trapDetected, true);
+  assert.ok((o.tabWalk.trapCycle || []).length >= 4, 'records all 4 trapped controls');
+});
+test('R21-H1 trap: a modal that releases on Escape is NOT a trap (standard exit, 2.1.2)', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-modal-escape.html', ['/html/body/div[1]/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, false, 'Escape is a standard exit method');
+  assert.equal(o.tabWalk.escapableComponent && o.tabWalk.escapableComponent.via, 'Escape');
+});
 test('R2-H3 first-focusable: the first focusable target is reached by real Tab (sentinel reset)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-firstfocus.html', ['/html/body/button[1]']);
   const lt = o.elements[0].localTabWalk;
