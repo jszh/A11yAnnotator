@@ -112,6 +112,15 @@ test('T2 keyboardOperabilitySignal: custom widget no response => indeterminate (
   const s = L.keyboardOperabilitySignal({ role: 'button', tabindex: '0', reachedByTab: true, respondedToSyntheticKey: false, focusable: true });
   assert.equal(s.operable, null);
 });
+test('C3 keyboardOperabilitySignal: non-focusable NON-composite (div+onclick) => operable:false', () => {
+  const s = L.keyboardOperabilitySignal({ role: null, tabindex: null, reachedByTab: false, respondedToSyntheticKey: false, focusable: false });
+  assert.equal(s.operable, false);
+  assert.equal(s.confident, false);
+});
+test('C3 keyboardOperabilitySignal: non-focusable COMPOSITE (div[role=tab], un-hydrated) => null not false', () => {
+  const s = L.keyboardOperabilitySignal({ role: 'tab', tabindex: null, reachedByTab: false, respondedToSyntheticKey: false, focusable: false });
+  assert.equal(s.operable, null, 'a composite-role widget stays indeterminate on a snapshot, not a confident failure');
+});
 
 // ---------------- T1/T8/H1: focus ring decision (focus-dependent + real-keyboard-first) ----------------
 test('H1 focusRingDecision: ALWAYS-ON shadow, real focus no change => present:false (kills FP)', () => {

@@ -151,9 +151,14 @@ function keyboardOperabilitySignal({ role, tabindex, reachedByTab, respondedToSy
     return { operable: null, confident: false, reason: 'roving-tabindex item: not Tab-reachable BY DESIGN; arrow operation could not be confirmed via synthetic events on this snapshot' };
   }
   if (reachedByTab && respondedToSyntheticKey) return { operable: true, confident: true, reason: 'reached by Tab and responded to Enter/Space' };
-  if (respondedToSyntheticKey || respondsToArrows) return { operable: true, confident: false, reason: 'responded to a synthetic key (handlers present)' };
-  if (focusable === false && reachedByTab === false) return { operable: false, confident: false, reason: 'not focusable and not reached by Tab — likely not keyboard operable (verify on live page)' };
-  return { operable: null, confident: false, reason: 'no keyboard response observed, but only synthetic events were available on an offline snapshot — indeterminate (PARTIAL)' };
+  if (respondedToSyntheticKey || respondsToArrows) return { operable: true, confident: false, reason: 'responded to a key (handlers present)' };
+  // A non-focusable, non-Tab-reached element is operable:false ONLY when it is NOT a
+  // composite-role widget — for a tab/option/menuitem the missing tabindex is usually
+  // wired by the app's JS (roving), which an un-hydrated offline snapshot won't run, so
+  // we stay indeterminate rather than assert a confident failure (C3 refinement).
+  if (focusable === false && reachedByTab === false && !COMPOSITE_ROLES.has(role))
+    return { operable: false, confident: false, reason: 'not focusable and not reached by Tab — likely not keyboard operable (verify on live page)' };
+  return { operable: null, confident: false, reason: 'no keyboard response observed, but only limited/snapshot evidence was available — indeterminate (PARTIAL)' };
 }
 
 // ---- T1/T8/H1: focus-indicator decision, prioritising REAL keyboard focus ----

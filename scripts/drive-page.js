@@ -204,7 +204,7 @@ function loadXpaths() {
     // "no ring"). This is the authoritative ring signal.
     async function forcedFocusRing(xp) {
       try {
-        const located = await page.evaluate(x => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return false; if (el.scrollIntoView) el.scrollIntoView({ block: 'center', inline: 'center' }); return true; }, xp);
+        const located = await page.evaluate(x => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return false; try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {} if (el.scrollIntoView) el.scrollIntoView({ block: 'center', inline: 'center' }); return true; }, xp);
         if (!located) return null;
         await sleep(80);
         const clip = await clipOf(xp); const inV = !!(clip && clip.inViewport);
