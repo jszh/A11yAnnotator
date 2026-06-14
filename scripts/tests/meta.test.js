@@ -61,7 +61,7 @@ test('regression sweep PASSES (exit 0) on a clean builder-produced corpus', () =
   skills['focus-visibility'] = { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no visible focus ring' };
   // R2.3-C: page skills are inherently applicable (no N/A); provenance ties to collect.
   const pageOk = {}; for (const k of S.PAGE_SKILLS) pageOk[k] = { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'checked: no page-level issue' };
-  const built = buildResults({ file: 'x', slug: 'goodpage', elements: [{ xpath: '/a', axRole: 'link', axName: 'y', skills }], pageSkills: pageOk, provenance: { collect: { xpaths: ['/a'], count: 1, complete: true } } });
+  const built = buildResults({ file: 'x', slug: 'goodpage', elements: [{ xpath: '/a', axRole: 'link', axName: 'y', skills }], pageSkills: pageOk, provenance: { collect: { xpaths: ['/a'], count: 1 } } });
   fs.writeFileSync(path.join(slug, 'results.json'), JSON.stringify(built));
   let ok = true;
   try { run('node', ['scripts/tools/regression-sweep.js', dir], { cwd: ROOT, encoding: 'utf8' }); }

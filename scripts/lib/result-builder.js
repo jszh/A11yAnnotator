@@ -156,26 +156,41 @@ function validateSkillVerdict(E, tag, k, sv, allowed) {
   for (const code of codes) if (!allowed.includes(code)) E(`${tag}/${k}: SC ${code} not allowed for this skill`);
 }
 
-// R2.3-C: PROVENANCE — tie every element back to the collector inventory so a fabricated
-// ("dummy") element cannot validate, and a collected element cannot be silently dropped.
+// R2.3-C / R2.4-A: PROVENANCE — tie every element back to the INDEPENDENT collector
+// inventory so a fabricated element cannot validate, and completeness is DEFAULT-CLOSED:
+// every collected element must be evaluated OR listed in `skipped[{xpath, reason}]`. The
+// old `complete` flag was derived FROM the records (circular — dropping an element flipped
+// it false and disabled the check); it is gone. Completeness is always enforced.
+const PROV_COLLECT_KEYS = new Set(['xpaths', 'count', 'skipped', 'collectedAt']);
 function validateProvenance(E, R) {
   const p = R.provenance;
   if (!p || typeof p !== 'object') { E('provenance: missing — results must be linked to the collector inventory'); return; }
-  const inv = p.collect && Array.isArray(p.collect.xpaths) ? p.collect.xpaths : null;
+  if (Object.keys(p).some(k => k !== 'collect')) E('provenance: only a `collect` block is permitted');
+  const c = p.collect;
+  if (!c || typeof c !== 'object') { E('provenance.collect: missing'); return; }
+  for (const k of Object.keys(c)) if (!PROV_COLLECT_KEYS.has(k)) E(`provenance.collect: unexpected key "${k}"`);
+  const inv = Array.isArray(c.xpaths) ? c.xpaths : null;
   if (!inv || !inv.length) { E('provenance.collect.xpaths: missing/empty inventory'); return; }
   const invSet = new Set(inv);
-  const elXpaths = (R.elements || []).map(e => e.xpath);
-  // no fabricated element
-  for (const xp of elXpaths) if (!invSet.has(xp)) E(`provenance: element ${String(xp).slice(-30)} is not in the collector inventory (fabricated?)`);
-  // no duplicate elements
-  const seen = new Set();
-  for (const xp of elXpaths) { if (seen.has(xp)) E(`provenance: duplicate element ${String(xp).slice(-30)}`); seen.add(xp); }
-  // completeness: when the inventory is declared fully evaluated, every collected element
-  // must be present (or explicitly listed as skipped with a reason).
-  if (p.collect.complete === true) {
-    const skipped = new Set((Array.isArray(p.collect.skipped) ? p.collect.skipped : []).map(s => typeof s === 'string' ? s : s && s.xpath));
-    for (const xp of inv) if (!seen.has(xp) && !skipped.has(xp)) E(`provenance: collected element ${String(xp).slice(-30)} was dropped (not evaluated, not skipped)`);
+  if (invSet.size !== inv.length) E('provenance.collect.xpaths: duplicate entries in the inventory');
+  if (c.count != null && c.count !== inv.length) E(`provenance.collect.count=${c.count} != inventory length ${inv.length}`);
+  // skipped entries must be structured {xpath, reason}, in the inventory, reason non-empty.
+  const skippedSet = new Set();
+  for (const s of (Array.isArray(c.skipped) ? c.skipped : [])) {
+    if (!s || typeof s !== 'object' || !s.xpath || !String(s.reason || '').trim()) { E('provenance.collect.skipped: each entry needs {xpath, reason} with a non-empty reason'); continue; }
+    if (!invSet.has(s.xpath)) E(`provenance.collect.skipped: ${String(s.xpath).slice(-30)} is not in the inventory`);
+    skippedSet.add(s.xpath);
   }
+  const elXpaths = (R.elements || []).map(e => e.xpath);
+  const seen = new Set();
+  for (const xp of elXpaths) {
+    if (!invSet.has(xp)) E(`provenance: element ${String(xp).slice(-30)} is not in the collector inventory (fabricated?)`);
+    if (seen.has(xp)) E(`provenance: duplicate element ${String(xp).slice(-30)}`);
+    seen.add(xp);
+  }
+  // DEFAULT-CLOSED completeness: every collected element is evaluated OR skipped-with-reason.
+  for (const xp of inv) if (!seen.has(xp) && !skippedSet.has(xp)) E(`provenance: collected element ${String(xp).slice(-30)} was dropped (not evaluated, not skipped-with-reason)`);
+  for (const xp of skippedSet) if (seen.has(xp)) E(`provenance: ${String(xp).slice(-30)} is both evaluated and skipped`);
 }
 
 // Strict validator. Returns { ok, errors[] }.

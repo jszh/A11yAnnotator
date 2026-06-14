@@ -21,19 +21,19 @@ let input;
 try { input = JSON.parse(fs.readFileSync(inPath, 'utf8')); }
 catch (e) { console.error('cannot read/parse input:', e.message); process.exit(2); }
 
-// R2.3-C: derive provenance from the INDEPENDENT collector inventory, not the agent.
-if (collectPath) {
-  let collect;
-  try { collect = JSON.parse(fs.readFileSync(collectPath, 'utf8')); }
-  catch (e) { console.error('cannot read/parse collect.json:', e.message); process.exit(2); }
-  const xpaths = (collect.elements || []).map(e => e.xpath).filter(Boolean);
-  const evaluated = new Set((input.elements || []).map(e => e.xpath));
-  const complete = xpaths.every(x => evaluated.has(x));
-  input.provenance = { collect: { xpaths, count: xpaths.length, complete, collectedAt: collect.collectedAt || null } };
-} else if (!input.provenance) {
-  console.error('REFUSED: no collect.json given and input carries no provenance — results must be linked to the collector inventory (R2.3-C).');
+// R2.4-A: collect.json is MANDATORY and provenance is derived ONLY from it (never from
+// the agent's records — that would not be independent). Completeness is enforced by the
+// validator (default-closed); the agent declares any un-evaluated collected element via
+// `input.skipped: [{xpath, reason}]`. There is no agent-supplied-provenance fallback.
+if (!collectPath) {
+  console.error('REFUSED: collect.json is REQUIRED — provenance must be derived from the independent collector inventory (R2.4-A).');
   process.exit(2);
 }
+let collect;
+try { collect = JSON.parse(fs.readFileSync(collectPath, 'utf8')); }
+catch (e) { console.error('cannot read/parse collect.json:', e.message); process.exit(2); }
+const xpaths = [...new Set((collect.elements || []).map(e => e.xpath).filter(Boolean))];
+input.provenance = { collect: { xpaths, count: xpaths.length, skipped: Array.isArray(input.skipped) ? input.skipped : [], collectedAt: collect.collectedAt || null } };
 
 const built = buildResults(input);
 const v = validateResults(built);

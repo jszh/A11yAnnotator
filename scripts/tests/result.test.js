@@ -204,10 +204,24 @@ test('R2.3-C provenance: a DUMMY element not in the collector inventory is REJEC
     provenance: { collect: { xpaths: ['/real-1', '/real-2'], count: 2 } } });
   assert.ok(validateResults(R).errors.some(e => /not in the collector inventory/.test(e)));
 });
-test('R2.3-C provenance: a collected element silently DROPPED (complete:true) is REJECTED', () => {
+test('R2.4-A provenance: a collected element DROPPED is REJECTED by default (no flag needed)', () => {
   const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
-    provenance: { collect: { xpaths: ['/a', '/b'], count: 2, complete: true } } });
-  assert.ok(validateResults(R).errors.some(e => /was dropped/.test(e)));
+    provenance: { collect: { xpaths: ['/a', '/b'], count: 2 } } });
+  assert.ok(validateResults(R).errors.some(e => /was dropped/.test(e)), 'completeness is default-closed');
+});
+test('R2.4-A provenance: a dropped element is ACCEPTED only via skipped[{xpath,reason}]', () => {
+  const ok = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
+    provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b', reason: 'off-screen duplicate' }] } } });
+  assert.equal(validateResults(ok).ok, true, 'a structured skip with a reason closes completeness');
+  const noReason = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
+    provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b' }] } } });
+  assert.ok(validateResults(noReason).errors.some(e => /non-empty reason/.test(e)), 'a skip without a reason is rejected');
+});
+test('R2.4-A provenance: count mismatch and an unexpected collect key are REJECTED', () => {
+  const badCount = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')], provenance: { collect: { xpaths: ['/a'], count: 9 } } });
+  assert.ok(validateResults(badCount).errors.some(e => /count=9 != inventory length 1/.test(e)));
+  const badKey = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')], provenance: { collect: { xpaths: ['/a'], complete: true } } });
+  assert.ok(validateResults(badKey).errors.some(e => /unexpected key "complete"/.test(e)), 'the circular `complete` flag is gone');
 });
 test('R2.3-C determinism: REPRODUCED vs PARTIAL of the SAME defect MERGE to REPRODUCED regardless of order', () => {
   const rep = { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'same defect' };
