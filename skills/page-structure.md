@@ -27,9 +27,13 @@ landmark structure.
    or it doesn't describe the page's topic/state ("Amazon.com: Keep shopping for").
    axe `document-title` only catches *missing/empty* — descriptiveness is a vision call.
 2. **Heading tree** — `--eval "return [...document.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].map(h=>h.tagName+(h.getAttribute('aria-level')?'/al'+h.getAttribute('aria-level'):'')+':'+JSON.stringify((h.textContent||'').trim().slice(0,40)))"`.
-   Flag: **empty heading text** (1.3.1 / 2.4.6), **level skips** (axe `heading-order`
-   → 1.3.1), and **visually-prominent labels that are not headings** (a styled
-   `<div>`/`<p>` "Our Research Pillars" → 1.3.1; axe `p-as-heading` catches the
+   Flag: **empty heading text** (1.3.1 / 2.4.6 — a named heading present in the
+   outline but with no accessible name *is* a programmatic-structure defect), **level
+   skips** (axe `heading-order` — **AT-compat / best-practice, NOT a hard 1.3.1
+   failure**; WCAG does not require sequential levels — note it, don't assert 1.3.1),
+   and **visually-prominent labels that are not headings** (a styled
+   `<div>`/`<p>` "Our Research Pillars" → genuine 1.3.1: a heading relationship shown
+   visually is not exposed programmatically; axe `p-as-heading` catches the
    `<p>`-styled-as-heading case). A **missing `<h1>`** (axe `page-has-heading-one`)
    is **best-practice, not an SC** — note it as such. (`heading-order`,
    `empty-heading`, `p-as-heading`, `landmark-unique`, `region` are best-practice /
@@ -38,13 +42,22 @@ landmark structure.
 3. **Confirm via SR** — `/ax-node` on a suspect heading: an empty `<h2>` or a
    `role=heading` span with no name returns `name:null` → invisible to heading
    navigation even though it occupies the outline.
-4. **Landmarks** — `--eval` count `header/nav/main/aside/footer` + `[role=...]`;
-   a page with no `main`/`nav` landmarks fails 1.3.1 navigability.
+4. **Landmarks** — `--eval` count `header/nav/main/aside/footer` + `[role=...]`.
+   **H5: missing `main`/`nav` is NOT a 1.3.1 failure** — no SC requires landmarks;
+   they're a best-practice/AT-navigation aid (axe `landmark-*`/`region` are
+   best-practice rules). Report absence as **best practice**, not a conformance
+   violation. A landmark that exists but is mis-typed/duplicated-unlabelled can be a
+   1.3.1 issue (wrong relationship is exposed); plain absence is not.
 5. **Vision** — screenshot; map the *visual* section headers to the DOM headings.
    Visual sections with no corresponding heading element = the gap.
 
-## Classify
-- **REPRODUCED** — empty/duplicate/skipped headings, missing h1, non-heading "headings", or a title that names nothing.
+## Classify — separate the three buckets (H5); don't fold best-practice into 1.3.1
+- **REPRODUCED (normative failure)** — empty/un-named heading in the outline, a
+  visually-styled non-heading that should be a heading (relationship not exposed), a
+  mis-typed/duplicated-unlabelled landmark, or a title that names nothing (2.4.2).
+- **AT-compat / best-practice (record, do NOT count as a 1.3.1 conformance failure)** —
+  heading-level skips, missing `<h1>`, missing `main`/`nav` landmarks, duplicate heading
+  *text* (repetition alone isn't a failure). Tag these `best-practice`.
 - **NOT REPRODUCED** — outline is coherent and the title is descriptive.
 
 ## Limits

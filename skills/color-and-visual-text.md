@@ -27,7 +27,9 @@ First decide which background you're dealing with:
 1. `--eval` the *computed* colors: `getComputedStyle(el).color` + the effective
    `backgroundColor` (walk ancestors while it's `rgba(...,0)`/transparent).
 2. `--contrast "r,g,b|r,g,b"` → exact ratio. Thresholds: **1.4.3 (AA)** = 4.5:1
-   normal text, 3:1 large text (≥18.66px, or ≥14px bold); **1.4.11 (AA)** = 3:1 for
+   normal text, 3:1 large text — large = **≥24px (18pt)** OR **≥18.66px (14pt) bold**
+   (NOT "≥18.66px / ≥14px bold" — that was the harness bug; this matches
+   `lib/a11y-eval.js` `isLargeText`/`contrastThresholdFor`); **1.4.11 (AA)** = 3:1 for
    UI-component boundaries and graphical objects. **Don't trust the finding's
    stated hex** — the sweetgreen claim was inverted (real 16.75:1, not 1.14:1).
 

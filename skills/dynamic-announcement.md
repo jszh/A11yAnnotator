@@ -34,11 +34,24 @@ the static harness never used.
    delta + post plain strings).
 5. **Confirm the visual change happened** — screenshot before/after (vision), so a
    silent transcript means "changed but unannounced", not "nothing happened".
-6. **Decide**:
-   - Visual change + **empty** transcript (no live region, focus didn't move to a
-     status, no role/state update) → **REPRODUCED** (4.1.3 failure).
-   - Transcript contains the status (a `role=status`/`aria-live` fired, or
-     `aria-selected`/`aria-expanded` updated and was voiced) → **NOT REPRODUCED**.
+6. **Scope-gate FIRST (C1 — do not skip).** 4.1.3 Status Messages applies ONLY to
+   *status* information — success/result, progress/busy, or error/validation messages
+   — that appears **without receiving focus**
+   (https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html). Before deciding:
+   - A change to the control's own **state** (`aria-expanded`, `aria-pressed`,
+     `aria-selected`, `aria-checked`) is **4.1.2 Name/Role/Value**, NOT 4.1.3. Route it
+     to name-role-state; do not record a 4.1.3 failure for an un-voiced expand/toggle/select.
+   - A **dialog/menu opening** is change-of-context + **focus management**, NOT 4.1.3.
+     Judge whether focus moved into it (focus-management); a missing live-region
+     announcement of a dialog is not a 4.1.3 failure.
+   - 4.1.3 is in scope only when the action produces a *status message* (e.g. "Added to
+     bag", "3 results", "Loading…", "Invalid email") that does not take focus.
+7. **Decide (only when 4.1.3 is in scope per step 6):**
+   - A genuine **status message** appeared visually but the transcript is **empty** (no
+     live region, no focus-move to it) → **REPRODUCED** (4.1.3 failure).
+   - The status message was voiced (a `role=status`/`aria-live` fired) → **NOT REPRODUCED**.
+   - The visible change is only a state/dialog change (step 6) → 4.1.3 is **N/A**;
+     evaluate it under 4.1.2 / focus-management instead.
 7. **Static corroboration** — `--eval` count `[aria-live],[role=status],[role=alert]`
    and whether they're wired to *this* action; plain `<button>`s with no
    `role=tab`/`aria-selected` (Cloudflare plan "tabs") predict a silent change.

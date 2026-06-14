@@ -26,8 +26,12 @@ background still reads.
    VoiceOver users). Our Chrome AX still reports a list, so detect the *triggering
    condition* statically instead of relying on the AT:
    `--eval "return [...document.querySelectorAll('ul,ol')].filter(l=>getComputedStyle(l).listStyleType==='none'&&!l.getAttribute('role')&&l.querySelector('li')).length"`.
-   Count > 0 → those lists need an explicit `role="list"` to survive VoiceOver
-   (1.3.1, WebKit-specific). Verified: Klaviyo 67/67, ESPN 111/113 lists at risk.
+   Count > 0 → those lists *may* drop their role in Safari/VoiceOver. **H5: this is a
+   WebKit-specific AT-COMPAT RISK, not a confirmed 1.3.1 conformance failure on a
+   Chrome-evaluated page.** Record it as `best-practice / AT-compat` with the WebKit
+   caveat — escalate to a 1.3.1 finding ONLY if list semantics are *necessary* for the
+   content (a genuine enumeration) AND you've reasoned about actual exposure, not merely
+   counted the CSS trigger. Verified trigger present: Klaviyo 67/67, ESPN 111/113.
 
 ## Procedure — reading / focus order (1.3.2, 2.4.3)
 4. **Visual order**: `--eval` return each member's `getBoundingClientRect().x/y`.

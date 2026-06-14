@@ -151,10 +151,14 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
      (rare now that the forced diff is used).
    - Judge adequacy 2.4.7 (AA) vs 2.4.13 (AAA size/contrast). `forcedFocusVisibleDiffPct`
      and `focusedOutline` are the evidence to cite.
-6. **dynamic-announcement** — from `activate`: `liveRegionChanged`/`liveMutations`/
-   `vsrAnnouncement` present ⇒ the change IS announced (NOT REPRODUCED, record it); a
-   state change with NO announcement (`expandedChanged`/`pressedChanged` or
-   `dialogOpened` but no live/announcement) ⇒ 4.1.3 candidate. **T9:**
+6. **dynamic-announcement** — **C1: scope 4.1.3 to STATUS MESSAGES only.** A bare
+   `expandedChanged`/`pressedChanged`/`aria-selected` change is **4.1.2** (state
+   exposure), and `dialogOpened` is **focus-management/change-of-context** — NEITHER is
+   a 4.1.3 failure; do not flag 4.1.3 for an un-voiced expand/toggle/dialog. 4.1.3
+   applies only when the action emits a *status message* (success/result/progress/error
+   that doesn't take focus). For an in-scope status: `liveRegionChanged`/`liveMutations`/
+   `vsrAnnouncement` present ⇒ announced (NOT REPRODUCED); a visible status message with
+   none ⇒ 4.1.3 REPRODUCED. See `skills/dynamic-announcement.md` step 6. **T9:**
    `vsrAnnouncement` is now noise-filtered — a value here is a REAL announcement; the
    `"document"` root artifact is gone (raw is in `vsrRaw` for reference, ignore it).
    `srWalk.targetSpeech` shows what the SR voices at the element (sticky/stale repeats
@@ -170,11 +174,14 @@ stop whose `xpath` matches (dynamic), and the appearance shot (vision).
 8. **forms-instructions-errors** — when `isFormField`: real label (not just
    placeholder/title)? `required`/`aria-required`, `aria-describedby` target exists,
    `aria-invalid`. Missing label → 3.3.2/1.1.1; axe `label`/`aria-input-field-name`.
-   Use page-level `drive.forms[]` for error identification on invalid submit:
-   `ariaInvalidSet`/`alertAppeared`/`errorAnnouncedLive` false + `nativeValidationOnly`
-   ⇒ 3.3.1 (errors not programmatically identified) / 3.3.3 (no suggestion) candidate.
-   **T15:** ignore `forms[]` entries with `skipped:true` (0-field cookie/hidden/modal
-   forms) — they carry no error-identification evidence.
+   **C2:** error identification (3.3.1) requires a **demonstrated** detected error with
+   **no text identification by any means** — native HTML5 validation (the field's
+   `validationMessage`, UA focus to the field) generally **meets** 3.3.1. Do NOT infer a
+   3.3.1 failure from missing `aria-invalid`/alert/live-region alone. Use `drive.forms[]`:
+   only `submitBlocked` AND no `validationMessage` AND no visible/announced text error ⇒
+   3.3.1 REPRODUCED; a native message that's just not associated/announced ⇒ 3.3.3 /
+   robustness note, not an automatic 3.3.1. No driven submit ⇒ PARTIAL, never definite.
+   **T15:** ignore `forms[]` entries with `skipped:true` (0-field cookie/hidden/modal forms).
 9. **page-structure** (per element) — is THIS element a mis-marked heading / empty
    heading / heading-level skip? Else `N/A (page-level, see pageSkills)`.
 10. **grouping-and-reading-order** (per element) — is THIS element inside a
