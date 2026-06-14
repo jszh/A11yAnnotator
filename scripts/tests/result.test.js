@@ -12,10 +12,20 @@ function el(xpath, overrides = {}) {
   for (const [k, v] of Object.entries(overrides)) skills[k] = v;
   return { xpath, axRole: 'link', axName: 'x', skills };
 }
-// R21-C1: all three page skills must be present — default to N/A.
+// R21-C1/R2.3-C: all three page skills must be present and NOT N/A (inherently
+// applicable) — default to NOT REPRODUCED with a reason.
 function pageOk(overrides = {}) {
-  const ps = {}; for (const k of S.PAGE_SKILLS) ps[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'n/a' };
+  const ps = {}; for (const k of S.PAGE_SKILLS) ps[k] = { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'checked: no page-level issue' };
   return { ...ps, ...overrides };
+}
+// R2.3-C: provenance is mandatory. This honest wrapper derives it from the elements
+// under test (membership trivially holds) so existing builder tests still validate;
+// the dedicated provenance/determinism tests construct provenance explicitly.
+const _build = buildResults;
+function build(input) {
+  if (input.provenance) return _build(input);
+  const xpaths = (input.elements || []).map(e => e.xpath);
+  return _build({ ...input, provenance: { collect: { xpaths, count: xpaths.length } } });
 }
 
 test('buildResults derives anyIssue, bySkill, elementsWithIssue, issues', () => {
@@ -26,7 +36,7 @@ test('buildResults derives anyIssue, bySkill, elementsWithIssue, issues', () => 
       el('/c'),
     ],
   };
-  const R = buildResults(input);
+  const R = build(input);
   assert.equal(R.elements[0].anyIssue, true);
   assert.equal(R.elements[2].anyIssue, false);
   assert.equal(R.summary.elementsWithIssue, 2);
@@ -38,7 +48,7 @@ test('buildResults derives anyIssue, bySkill, elementsWithIssue, issues', () => 
 
 test('buildResults dedups issues by (skill, sc, evidence)', () => {
   const same = { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'No visible focus indicator' };
-  const R = buildResults({ file: 'f', slug: 's', elements: [
+  const R = build({ file: 'f', slug: 's', elements: [
     el('/a', { 'focus-visibility': same }), el('/b', { 'focus-visibility': { ...same } }),
   ] });
   assert.equal(R.summary.issues.length, 1, 'identical findings dedup to one');
@@ -46,7 +56,7 @@ test('buildResults dedups issues by (skill, sc, evidence)', () => {
 
 // ---- C5 rejection cases: the validator must catch each ----
 test('C5 reject: anyIssue:false but a REPRODUCED sub-verdict (the 204/37 bug)', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } })] });
+  const R = build({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } })] });
   R.elements[0].anyIssue = false; // corrupt it
   const v = validateResults(R);
   assert.equal(v.ok, false);
@@ -54,13 +64,13 @@ test('C5 reject: anyIssue:false but a REPRODUCED sub-verdict (the 204/37 bug)', 
 });
 
 test('C5 reject: bySkill cell disagrees with records', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'x' } })] });
+  const R = build({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'x' } })] });
   R.summary.bySkill['focus-visibility'].reproduced = 5; // corrupt
   assert.equal(validateResults(R).ok, false);
 });
 
 test('C5 reject: SC not allowed for the skill (e.g. 4.1.3 on focus-visibility)', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '4.1.3', level: 'AA', evidence: 'x' } })] });
+  const R = build({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '4.1.3', level: 'AA', evidence: 'x' } })] });
   const v = validateResults(R);
   assert.equal(v.ok, false);
   assert.ok(v.errors.some(e => /not allowed/.test(e)));
@@ -73,18 +83,18 @@ test('C1 reject in practice: state-change announcement must be 4.1.2 not 4.1.3 �
 });
 
 test('C5 reject: REPRODUCED with empty evidence', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: '' } })] });
+  const R = build({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: '' } })] });
   assert.equal(validateResults(R).ok, false);
 });
 
 test('C5 reject: verdict not in enum', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'MAYBE', sc: '2.4.7', evidence: 'x' } })] });
+  const R = build({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'MAYBE', sc: '2.4.7', evidence: 'x' } })] });
   assert.equal(validateResults(R).ok, false);
 });
 
 test('C5 reject: missing a skill key', () => {
   const e = el('/a'); delete e.skills['page-structure'];
-  const R = buildResults({ file: 'f', slug: 's', elements: [e] });
+  const R = build({ file: 'f', slug: 's', elements: [e] });
   const v = validateResults(R);
   assert.equal(v.ok, false);
   assert.ok(v.errors.some(er => /missing skill key/.test(er)));
@@ -92,7 +102,7 @@ test('C5 reject: missing a skill key', () => {
 
 // ---- R2.1-B: the strict/hardening cases the round-2 validator missed ----
 test('R2-C1 pageSkills are AGGREGATED into issues + normative tally', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a')], pageSkills: pageOk({
+  const R = build({ file: 'f', slug: 's', elements: [el('/a')], pageSkills: pageOk({
     'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1', level: 'A', evidence: 'unnamed heading in outline', bucket: 'normative' },
     'grouping-and-reading-order': { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'ok' },
   }) });
@@ -102,69 +112,135 @@ test('R2-C1 pageSkills are AGGREGATED into issues + normative tally', () => {
   assert.equal(validateResults(R).ok, true);
 });
 test('R2-C1 reject: an issue verdict with NO SC', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: null, level: null, evidence: 'no ring' } })] });
+  const R = build({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: null, level: null, evidence: 'no ring' } })] });
   const v = validateResults(R); assert.equal(v.ok, false);
   assert.ok(v.errors.some(e => /no WCAG SC/.test(e)));
 });
 test('R2-C1 reject: WRONG level for the SC', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'A', evidence: 'x' } })] });
+  const R = build({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'A', evidence: 'x' } })] });
   const v = validateResults(R); assert.equal(v.ok, false);
   assert.ok(v.errors.some(e => /level A != AA/.test(e)));
 });
 test('R2-C1 reject: missing summary / missing pageSkills', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a')] });
+  const R = build({ file: 'f', slug: 's', elements: [el('/a')] });
   delete R.summary; assert.equal(validateResults(R).ok, false);
-  const R2 = buildResults({ file: 'f', slug: 's', elements: [el('/a')] });
+  const R2 = build({ file: 'f', slug: 's', elements: [el('/a')] });
   delete R2.pageSkills; assert.ok(validateResults(R2).errors.some(e => /missing pageSkills/.test(e)));
 });
 test('R2-C1 reject: definite DYNAMIC verdict on a notFound element', () => {
   const e = el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'no kbd' } }); e.notFound = true;
-  const R = buildResults({ file: 'f', slug: 's', elements: [e] });
+  const R = build({ file: 'f', slug: 's', elements: [e] });
   const v = validateResults(R); assert.equal(v.ok, false);
   assert.ok(v.errors.some(er => /notFound/.test(er)));
 });
 test('R2-C1 reject: summary.issues CONTENT corrupted even when length matches', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'real evidence' } })] });
+  const R = build({ file: 'f', slug: 's', elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'real evidence' } })] });
   R.summary.issues[0].evidence = 'totally different fabricated evidence'; // same length count, different content
   assert.equal(validateResults(R).ok, false);
 });
 test('R2-C1 multi-SC field: every cited SC is validated', () => {
-  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1 + 4.1.3', level: 'A', evidence: 'x' } })] });
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1 + 4.1.3', level: 'A', evidence: 'x' } })] });
   // 4.1.3 is NOT allowed on page-structure → must be rejected even though 1.3.1 is fine
   assert.ok(validateResults(R).errors.some(e => /4\.1\.3 not allowed/.test(e)));
 });
 
 // ---- R2.2-A: the round-2.1 adversarial cases the gate must now reject/allow ----
 test('R21-C1 reject: an evaluation that OMITS pageSkills (empty {} default)', () => {
-  const R = buildResults({ file: 'f', slug: 's', elements: [el('/a')] }); // no pageSkills
+  const R = build({ file: 'f', slug: 's', elements: [el('/a')] }); // no pageSkills
   const v = validateResults(R); assert.equal(v.ok, false);
   assert.ok(v.errors.some(e => /missing required key/.test(e)), 'must require all 3 page skills');
 });
 test('R21-C1 reject: empty elements[]', () => {
-  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [] });
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [] });
   assert.ok(validateResults(R).errors.some(e => /empty elements/.test(e)));
 });
 test('R21-C1 reject: a CORRUPTED issue object (verdict/level/bucket changed, key fields same)', () => {
-  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'real evidence here' } })] });
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'real evidence here' } })] });
   R.summary.issues[0].verdict = 'PARTIAL'; R.summary.issues[0].level = 'A'; R.summary.issues[0].xpath = '/zzz'; // corrupt non-key fields
   assert.equal(validateResults(R).ok, false);
 });
 test('R21-C1 reject: a missing derived summary field (normativeFailures)', () => {
-  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'x' } })] });
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'x' } })] });
   delete R.summary.normativeFailures;
   assert.ok(validateResults(R).errors.some(e => /normativeFailures missing/.test(e)));
 });
 test('R21-C1 reject: a page-skill with the WRONG level', () => {
-  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk({ 'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1', level: 'AA', evidence: 'x' } }), elements: [el('/a')] });
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk({ 'page-structure': { verdict: 'REPRODUCED', sc: '1.3.1', level: 'AA', evidence: 'x' } }), elements: [el('/a')] });
   assert.ok(validateResults(R).errors.some(e => /level AA != A/.test(e)));
 });
 test('R21-M3 ALLOW: a best-practice observation with a `rule` id and NO WCAG SC', () => {
-  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk({ 'page-structure': { verdict: 'REPRODUCED', sc: null, level: null, bucket: 'best-practice', rule: 'page-has-heading-one', evidence: 'no h1 (best practice)' } }), elements: [el('/a')] });
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk({ 'page-structure': { verdict: 'REPRODUCED', sc: null, level: null, bucket: 'best-practice', rule: 'page-has-heading-one', evidence: 'no h1 (best practice)' } }), elements: [el('/a')] });
   assert.equal(validateResults(R).ok, true, 'best-practice may use a rule id instead of a fake SC');
   assert.equal(R.summary.bestPracticeFindings, 1);
   assert.equal(R.summary.normativeFailures, 0);
 });
 test('R21-M3 reject: a NORMATIVE issue still requires an SC', () => {
-  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'name-role-state': { verdict: 'REPRODUCED', sc: null, level: null, evidence: 'unnamed', bucket: 'normative' } })] });
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'name-role-state': { verdict: 'REPRODUCED', sc: null, level: null, evidence: 'unnamed', bucket: 'normative' } })] });
   assert.ok(validateResults(R).errors.some(e => /NORMATIVE.*no WCAG SC/.test(e)));
+});
+
+// ---- R2.3-C: completeness (R22-C1) + determinism (R22-C2) ----
+test('R2.3-C completeness: evidence-free N/A everywhere is REJECTED (blank evaluation)', () => {
+  const blank = {}; for (const k of S.SKILLS) blank[k] = { verdict: 'N/A', sc: null, level: null, evidence: '' };
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [{ xpath: '/a', axRole: 'link', axName: 'x', skills: blank }] });
+  const v = validateResults(R); assert.equal(v.ok, false);
+  assert.ok(v.errors.some(e => /N\/A with empty evidence/.test(e)), 'every N/A needs a reason');
+});
+test('R2.3-C completeness: evidence-free NOT REPRODUCED everywhere is REJECTED', () => {
+  const blank = {}; for (const k of S.SKILLS) blank[k] = { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: '' };
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [{ xpath: '/a', axRole: 'link', axName: 'x', skills: blank }] });
+  assert.ok(validateResults(R).errors.some(e => /NOT REPRODUCED with empty evidence/.test(e)));
+});
+test('R2.3-C completeness: page-level N/A is REJECTED (inherently applicable)', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk({ 'reflow': { verdict: 'N/A', sc: null, level: null, evidence: 'n/a' } }), elements: [el('/a')] });
+  assert.ok(validateResults(R).errors.some(e => /N\/A is not permitted/.test(e)));
+});
+test('R2.3-C provenance: missing provenance is REJECTED', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')] }); // raw, no provenance
+  assert.ok(validateResults(R).errors.some(e => /provenance: missing/.test(e)));
+});
+test('R2.3-C provenance: a DUMMY element not in the collector inventory is REJECTED', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/fabricated')],
+    provenance: { collect: { xpaths: ['/real-1', '/real-2'], count: 2 } } });
+  assert.ok(validateResults(R).errors.some(e => /not in the collector inventory/.test(e)));
+});
+test('R2.3-C provenance: a collected element silently DROPPED (complete:true) is REJECTED', () => {
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
+    provenance: { collect: { xpaths: ['/a', '/b'], count: 2, complete: true } } });
+  assert.ok(validateResults(R).errors.some(e => /was dropped/.test(e)));
+});
+test('R2.3-C determinism: REPRODUCED vs PARTIAL of the SAME defect MERGE to REPRODUCED regardless of order', () => {
+  const rep = { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'same defect' };
+  const par = { verdict: 'PARTIAL', sc: '2.4.7', level: 'AA', evidence: 'same defect' };
+  const A = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': par }), el('/b', { 'focus-visibility': rep })] });
+  const B = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': rep }), el('/b', { 'focus-visibility': par })] });
+  assert.equal(A.summary.normativeFailures, 1);
+  assert.equal(B.summary.normativeFailures, 1, 'order must not change the normative total (merge precedence)');
+  assert.equal(A.summary.issues.length, 1);
+  assert.equal(A.summary.issues[0].verdict, 'REPRODUCED', 'REPRODUCED wins the merge');
+  assert.deepEqual(A.summary.issues, B.summary.issues, 'identical canonical output regardless of input order');
+});
+test('R2.3-C determinism: a DUPLICATE summary.issues entry is REJECTED (exact array, not a Set)', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } })] });
+  R.summary.issues.push({ ...R.summary.issues[0] }); // inject a duplicate
+  assert.ok(validateResults(R).errors.some(e => /count 2 != derived 1/.test(e)));
+});
+test('R2.3-C determinism: a corrupted `rule` on an issue is DETECTED', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk({ 'page-structure': { verdict: 'REPRODUCED', sc: null, level: null, bucket: 'best-practice', rule: 'page-has-heading-one', evidence: 'no h1' } }), elements: [el('/a')] });
+  R.summary.issues[0].rule = 'tampered-rule';
+  assert.ok(validateResults(R).errors.some(e => /summary\.issues\[0\] mismatch/.test(e)));
+});
+test('R2.3-C schema: an UNEXPECTED extra summary field is REJECTED', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')] });
+  R.summary.injectedTotal = 999;
+  assert.ok(validateResults(R).errors.some(e => /unexpected key "injectedTotal"/.test(e)));
+});
+test('R2.3-C schema: an UNEXPECTED extra skill key is REJECTED', () => {
+  const e = el('/a'); e.skills['made-up-skill'] = { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'x' };
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [e] });
+  assert.ok(validateResults(R).errors.some(er => /unexpected skill key "made-up-skill"/.test(er)));
+});
+test('R2.3-C schema: an UNEXPECTED key inside a verdict record is REJECTED', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'x', smuggled: true } })] });
+  assert.ok(validateResults(R).errors.some(e => /unexpected key "smuggled"/.test(e)));
 });

@@ -57,10 +57,11 @@ test('regression sweep PASSES (exit 0) on a clean builder-produced corpus', () =
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sweepok_'));
   const slug = path.join(dir, 'goodpage'); fs.mkdirSync(slug);
   fs.writeFileSync(path.join(slug, 'drive.json'), JSON.stringify({ elements: [], forms: [] }));
-  const skills = {}; for (const k of S.SKILLS) skills[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'na' };
+  const skills = {}; for (const k of S.SKILLS) skills[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'not applicable to this element' };
   skills['focus-visibility'] = { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no visible focus ring' };
-  const pageOk = {}; for (const k of S.PAGE_SKILLS) pageOk[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'na' };
-  const built = buildResults({ file: 'x', slug: 'goodpage', elements: [{ xpath: '/a', axRole: 'link', axName: 'y', skills }], pageSkills: pageOk });
+  // R2.3-C: page skills are inherently applicable (no N/A); provenance ties to collect.
+  const pageOk = {}; for (const k of S.PAGE_SKILLS) pageOk[k] = { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'checked: no page-level issue' };
+  const built = buildResults({ file: 'x', slug: 'goodpage', elements: [{ xpath: '/a', axRole: 'link', axName: 'y', skills }], pageSkills: pageOk, provenance: { collect: { xpaths: ['/a'], count: 1, complete: true } } });
   fs.writeFileSync(path.join(slug, 'results.json'), JSON.stringify(built));
   let ok = true;
   try { run('node', ['scripts/tools/regression-sweep.js', dir], { cwd: ROOT, encoding: 'utf8' }); }
