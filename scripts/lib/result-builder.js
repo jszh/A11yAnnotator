@@ -134,6 +134,15 @@ function validateSkillVerdict(E, tag, k, sv, allowed) {
   // R2.3-C: EVERY verdict — including N/A and NOT REPRODUCED — must carry a reason.
   if (!String(sv.evidence || '').trim()) E(`${tag}/${k}: ${sv.verdict} with empty evidence/reason`);
   if (sv.bucket && !S.BUCKETS.includes(sv.bucket)) E(`${tag}/${k}: bucket not in enum: ${JSON.stringify(sv.bucket)}`);
+  // R2.3-D (R22-H3): a DEFINITE dynamic verdict may not rest on synthetic or
+  // non-isolated evidence. trust/isolation are stamped from the driver's behavioralTrust
+  // (trusted+isolated probe). Enforce enum + the mandatory downgrade to PARTIAL.
+  if (sv.trust != null && !['trusted', 'synthetic'].includes(sv.trust)) E(`${tag}/${k}: trust not in enum: ${JSON.stringify(sv.trust)}`);
+  if (sv.isolation != null && !['isolated', 'shared'].includes(sv.isolation)) E(`${tag}/${k}: isolation not in enum: ${JSON.stringify(sv.isolation)}`);
+  if (S.DYNAMIC_SKILLS.includes(k) && (sv.verdict === 'REPRODUCED' || sv.verdict === 'NOT REPRODUCED')) {
+    if (sv.trust === 'synthetic') E(`${tag}/${k}: definite ${sv.verdict} resting on SYNTHETIC input must be PARTIAL (R22-H3)`);
+    if (sv.isolation === 'shared') E(`${tag}/${k}: definite ${sv.verdict} resting on a NON-ISOLATED probe must be PARTIAL (R22-H3)`);
+  }
   if (!isIssue(sv.verdict)) return; // SC/level/rule only constrained for actual issues
   const bucket = effBucket(sv);
   const codes = S.scCodes(sv.sc);

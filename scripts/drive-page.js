@@ -532,7 +532,7 @@ function loadXpaths() {
           const persists = (await tipCount()) >= onHover && onHover > before;
           await page.keyboard.press('Escape'); await sleep(150);
           const afterEsc = await tipCount();
-          rec.hover = { tooltipAppearsOnHover: onHover > before, persistentWhileHovered: persists, dismissibleByEsc: onHover > before && afterEsc < onHover, method: 'trusted-pointer' };
+          rec.hover = { tooltipAppearsOnHover: onHover > before, persistentWhileHovered: persists, dismissibleByEsc: onHover > before && afterEsc < onHover, method: 'trusted-pointer', trusted: true, isolated: true };
           await page.mouse.move(2, 2); // move pointer away
         }
       }
@@ -549,7 +549,7 @@ function loadXpaths() {
       }, xp).catch(() => null);
       if (native) {
         const presumable = pre && !pre.disabled && !pre.obscured && (pre.tabindexEff === null || pre.tabindexEff >= 0) && !pre.roleOverride && !(rec.localTabWalk && rec.localTabWalk.reachedByTab === false);
-        rec.keyboard = { native: true, presumed: !!presumable, operable: presumable ? true : null, obscured: pre && pre.obscured, note: presumable ? 'native + preconditions hold → presumed keyboard operable' : 'native but a precondition is in question (tabindex<0 / disabled / obscured / role override / not Tab-reached) — exercise on live page' };
+        rec.keyboard = { native: true, presumed: !!presumable, operable: presumable ? true : null, obscured: pre && pre.obscured, note: presumable ? 'native + preconditions hold → presumed keyboard operable' : 'native but a precondition is in question (tabindex<0 / disabled / obscured / role override / not Tab-reached) — exercise on live page', trusted: null, exercised: false, isolated: !cue };
       } else {
         // focus then press real keys (trusted)
         await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el) try { el.focus(); } catch (e) {} }, xp).catch(() => {});
@@ -559,7 +559,7 @@ function loadXpaths() {
         const vEnter = await vsig(); const respEnter = vEnter !== vBefore;
         await page.keyboard.press('Space'); await sleep(220);
         const vSpace = await vsig(); const respSpace = vSpace !== vEnter;
-        rec.keyboard = { native: false, respondedToEnter: respEnter, respondedToSpace: respSpace, respondedToKeyboard: respEnter || respSpace, destructive: vSpace !== vBefore, method: 'trusted-keys' };
+        rec.keyboard = { native: false, respondedToEnter: respEnter, respondedToSpace: respSpace, respondedToKeyboard: respEnter || respSpace, destructive: vSpace !== vBefore, method: 'trusted-keys', trusted: true, exercised: true, isolated: !cue };
         if (rec.keyboard.destructive) { await reloadPage(); await locateHandle(xp); }
       }
 
@@ -571,7 +571,7 @@ function loadXpaths() {
           await page.keyboard.press('ArrowRight'); await sleep(140);
           await page.keyboard.press('ArrowDown'); await sleep(140);
           const after = await page.evaluate((sf) => eval(sf), SIGFN).catch(() => null);
-          rec.arrowKeys = { respondsToArrows: after !== null && after !== before, method: 'real-keys' };
+          rec.arrowKeys = { respondsToArrows: after !== null && after !== before, method: 'real-keys', trusted: true, isolated: false };
         } else rec.arrowKeys = { gone: true };
       }
 
@@ -589,9 +589,11 @@ function loadXpaths() {
 
       // ACTIVATION — TRUSTED click (ElementHandle.click); falls back to a flagged
       // synthetic click only if the real click can't be dispatched (covered/off-screen).
-      // R2-H1: isolate activation from the (mutating) keyboard/arrow probes above by
-      // reloading to a clean page and re-locating the element first.
-      if (!native || (rec.keyboard && rec.keyboard.destructive) || rec.arrowKeys) { await reloadPage(); }
+      // R22-H3: activation is a MUTATING probe — ALWAYS reload to a clean page and
+      // re-locate first, UNCONDITIONALLY (the old `if (!native || destructive ||
+      // arrowKeys)` gate left a NATIVE control's activation sharing state with the
+      // preceding hover/keyboard probes). Every mutating probe is isolated.
+      await reloadPage();
       const actHandle = await locateHandle(xp);
       const speechBefore = await speechNow();
       await page.evaluate((x) => {
@@ -629,7 +631,7 @@ function loadXpaths() {
         if (res.dialogOpened) res.modal = { focusMovedIntoDialog: !!([...document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]')].pop() || {}).contains && [...document.querySelectorAll('[role=dialog],[role=alertdialog],dialog[open]')].pop().contains(document.activeElement), afterDialogs: after.dialogs };
         return res;
       }).catch(e => ({ error: e.message }));
-      if (activate) { activate.clicked = clickMethod !== 'failed'; activate.clickMethod = clickMethod; activate.clickErr = clickErr; activate.synthetic = clickMethod !== 'trusted'; }
+      if (activate) { activate.clicked = clickMethod !== 'failed'; activate.clickMethod = clickMethod; activate.clickErr = clickErr; activate.synthetic = clickMethod !== 'trusted'; activate.trusted = clickMethod === 'trusted'; activate.isolated = true; }
       // FOCUS RETURN after modal — TRUSTED Escape, then a close control via handle.
       if (activate && activate.dialogOpened && activate.modal) {
         await page.keyboard.press('Escape'); await sleep(250);
@@ -640,6 +642,16 @@ function loadXpaths() {
       }
       if (out.vsr && activate && !activate.gone) { const sa = await speechNow(); activate.vsrAnnouncement = A.meaningfulAnnouncement(sa, speechBefore); activate.vsrRaw = sa; }
       rec.activate = activate;
+      // R22-H3: one place the agent maps to the per-skill PARTIAL rule. A DEFINITE
+      // dynamic verdict may only rest on a TRUSTED + ISOLATED probe; otherwise the
+      // agent must downgrade to PARTIAL (the result validator enforces this from the
+      // `trust`/`isolation` it stamps on each dynamic verdict).
+      rec.behavioralTrust = {
+        keyboard: rec.keyboard ? { trusted: rec.keyboard.trusted, isolated: rec.keyboard.isolated, exercised: rec.keyboard.exercised !== false } : null,
+        arrowKeys: rec.arrowKeys && !rec.arrowKeys.gone ? { trusted: !!rec.arrowKeys.trusted, isolated: !!rec.arrowKeys.isolated } : null,
+        activation: activate && !activate.gone ? { trusted: !!activate.trusted, isolated: activate.isolated !== false } : null,
+        hover: rec.hover ? { trusted: !!rec.hover.trusted, isolated: !!rec.hover.isolated } : null,
+      };
     }
 
     // ---------- FORM error-on-submit probe (3.3.1 / 3.3.3) ----------

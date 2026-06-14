@@ -244,3 +244,24 @@ test('R2.3-C schema: an UNEXPECTED key inside a verdict record is REJECTED', () 
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'x', smuggled: true } })] });
   assert.ok(validateResults(R).errors.some(e => /unexpected key "smuggled"/.test(e)));
 });
+
+// ---- R2.3-D: isolation/trust enforcement (R22-H3) ----
+test('R2.3-D reject: a definite DYNAMIC verdict resting on SYNTHETIC input must be PARTIAL', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'no kbd', trust: 'synthetic', isolation: 'isolated' } })] });
+  assert.ok(validateResults(R).errors.some(e => /SYNTHETIC input must be PARTIAL/.test(e)));
+});
+test('R2.3-D reject: a definite DYNAMIC verdict resting on a NON-ISOLATED probe must be PARTIAL', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-management': { verdict: 'NOT REPRODUCED', sc: '2.4.3', level: 'A', evidence: 'focus ok', trust: 'trusted', isolation: 'shared' } })] });
+  assert.ok(validateResults(R).errors.some(e => /NON-ISOLATED probe must be PARTIAL/.test(e)));
+});
+test('R2.3-D ALLOW: a definite dynamic verdict on a TRUSTED+ISOLATED probe; PARTIAL may rest on either', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [
+    el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'no kbd', trust: 'trusted', isolation: 'isolated' } }),
+    el('/b', { 'focus-management': { verdict: 'PARTIAL', sc: '2.4.3', level: 'A', evidence: 'indeterminate', trust: 'synthetic', isolation: 'shared' } }),
+  ] });
+  assert.equal(validateResults(R).ok, true);
+});
+test('R2.3-D: the trust/isolation rule does NOT constrain STATIC skills', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'reflow-and-pointer-affordances': { verdict: 'REPRODUCED', sc: '2.5.8', level: 'AA', evidence: 'too small', trust: 'synthetic', isolation: 'shared' } })] });
+  assert.equal(validateResults(R).ok, true, 'target size (2.5.8) is a static, geometry-only skill — not behavioral');
+});

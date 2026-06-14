@@ -143,6 +143,14 @@ test('R2-H6 forms: TRUSTED submit, OBSERVED invalid events, per-field validity; 
   assert.equal(f.noTextIdentificationAtAll, false, 'native validation provides text → NOT a 3.3.1 failure');
 });
 
+test('R2.3-D isolation: the activation probe is ALWAYS reloaded → behavioralTrust marks it trusted+isolated', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-states.html', ['/html/body/button[1]']);
+  const bt = o.elements[0].behavioralTrust;
+  assert.ok(bt, 'driver emits per-element behavioralTrust for the PARTIAL rule');
+  assert.equal(bt.activation.isolated, true, 'a native control’s activation is now isolated unconditionally (R22-H3 hole closed)');
+  assert.equal(bt.activation.trusted, true, 'activation used a trusted ElementHandle click');
+});
+
 test('H7 states: expanded/checked/disabled collected from DOM + AX', { skip: !serverUp }, () => {
   const o = runScript('eval-page.js', 'fx-states.html', STATE_XPS);
   const [expbtn, chk, disbtn] = o.elements;
