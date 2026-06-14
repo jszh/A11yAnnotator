@@ -151,3 +151,62 @@ target-size passes; Domino's "JOIN NOW" → threshold 4.5; Calendly "Read now" �
 node --test scripts/tests/                          # unit + integration
 node scripts/tests/regression-sweep.js <results-dir>  # cross-page invariants
 ```
+
+---
+
+# Round 2.1–2.3 — independent-audit remediation (2026-06-14)
+
+Three independent audit rounds (`ROUND2*-INDEPENDENT-VERIFICATION.md`) each found real
+residual gaps. **Round 2.3** was organised by ROOT CAUSE rather than by example, per the
+instruction "address the root cause … think about edge cases that reveal limitations,
+rather than just fixing the examples identified." Each fix below ships adversarial
+fixtures/tests that go beyond the auditor's single counterexample.
+
+### R2.3-A — 2.5.8 target size · root: *necessary ≠ sufficient → needs-judgment* (R22-H2)
+Every 2.5.8 false-pass came from treating a necessary condition as sufficient. Principle:
+when the harness cannot PROVE an exception/pass, it returns `needs-judgment`, never a
+definite verdict. · A 24×24 bbox is a definite pass ONLY for an axis-aligned rectangle —
+element/ancestor transforms (rotation/skew via matrix off-diagonals), clip-path, and
+corner radii too large for a page-aligned 24×24 square to fit (`_square24Fits`) →
+needs-judgment. · UA-control exception now requires NATIVE appearance (not
+`appearance:none`) AND no transform AND default size — matching size alone is not proof. ·
+Inline is NEVER an auto-pass (no heuristic can prove "in a sentence"); an inline target
+failing geometry → needs-judgment. · `eval-page.js`, `lib`, `fx-shape.html`.
+
+### R2.3-B — keyboard trap · root: *detect the actual property, not a proxy* (R22-H1)
+2.1.2 is "focus cannot move away from a component." The old detector gated on
+`totalFocusables > seenAll.size` — a proxy that silently disabled detection on a trap-ONLY
+page (the cycle covers every focusable). Now: trigger on the bounded cycle itself, then
+confirm by appending a focusable BOUNDARY SENTINEL at document end and testing whether
+Escape/Tab/Shift+Tab can reach it. A real trap never reaches the sentinel — true even when
+the whole page is the trap. · `drive-page.js`, `fx-trap-only.html`.
+
+### R2.3-C — result gate · root: *completeness + determinism* (R22-C1/C2)
+The gate proved SHAPE, not that evaluation happened, and dedup made the normative total
+order-dependent. · Every verdict (incl `N/A`, `NOT REPRODUCED`) now needs evidence; page
+skills may not be `N/A`; results carry PROVENANCE derived from `collect.json` (not the
+agent) so a fabricated element can't validate and a collected one can't be silently
+dropped. · Dedup uses FULL evidence + scope/skill/sc/bucket/rule and MERGES
+REPRODUCED>PARTIAL with a canonical representative xpath → order-independent tally; issues
+are sorted canonically; the validator compares rebuilt arrays EXACTLY (catching
+duplicates) and rejects unexpected schema keys. · `lib/result-builder.js`,
+`tools/build-results.js`.
+
+### R2.3-D — isolation/trust · root: *enforce, don't trust* (R22-H3)
+The "non-isolated probe ⇒ PARTIAL" rule was unenforceable and the activation reload was
+conditional (a native control was activated sharing state with the prior hover/keyboard). ·
+Activation is now reloaded + re-located UNCONDITIONALLY; every probe carries
+`trusted`/`isolated` flags surfaced in a per-element `behavioralTrust` summary. · The
+validator REJECTS a definite dynamic verdict stamped `trust:"synthetic"` or
+`isolation:"shared"` — it must be PARTIAL. · `drive-page.js`, `lib/result-builder.js`.
+
+### R2.3-E — consent inventory + doc/contract drift (R22-M1/M2)
+Consent overlay is analysed WHILE VISIBLE then neutralised; only visible+focusable
+controls counted (a hidden input no longer inflates 4.1.2); a multi-selector container is
+counted once; findings are PARTIAL until exercised live. · `AGENT-PLAN.md` 2.4.13 proxy
+field names corrected; "every issue needs an SC" relaxed to normative-only with `rule`
+support; provenance/trust/isolation/page-N/A rules documented; `RESULT-CONTRACT.md` hard
+invariants rewritten. · `eval-page.js`, `fx-consent.html`, docs.
+
+**Auditor files** (`ROUND2*-INDEPENDENT-VERIFICATION.md`) are the auditor's and are left
+untracked. Per-page eval data under `eval-results/<slug>/` remains FROZEN (pre-W7).
