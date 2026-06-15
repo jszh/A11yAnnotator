@@ -78,6 +78,18 @@ if (dupX.size) {
   process.exit(2);
 }
 const xpaths = rawXpaths;
+// R2.8-B (R27-H4): DRIVER inventory integrity. A duplicate driver xpath would make the
+// authoritative behavioral evidence order-dependent (later overwrites earlier in
+// driverEvidenceFrom); a driver element the collector never saw is a cross-artifact
+// mismatch. Reject both before the evidence is distilled.
+const driveXpaths = (drive.elements || []).map(e => e.xpath).filter(Boolean);
+const dDup = new Set(); { const seen = new Set(); for (const x of driveXpaths) { const n = norm(x); if (seen.has(n)) dDup.add(n); seen.add(n); } }
+if (dDup.size) {
+  console.error(`REFUSED: driver inventory has ${dDup.size} duplicate xpath(s) (e.g. ${String([...dDup][0]).slice(-40)}) — behavioral evidence would be order-dependent (R2.8-B).`);
+  process.exit(2);
+}
+const colSet = new Set(xpaths.map(norm));
+for (const x of driveXpaths) if (!colSet.has(norm(x))) { console.error(`REFUSED: driver probed ${String(x).slice(-40)} which is NOT in the collector inventory (cross-artifact mismatch, R2.8-B).`); process.exit(2); }
 input.provenance = { collect: { xpaths, count: xpaths.length, skipped: Array.isArray(input.skipped) ? input.skipped : [], collectedAt: collect.collectedAt || null, page: collect.file } };
 // R2.5-B/R2.7-B: the collector's OWN axe run is independent ground truth for the skip
 // floor. Count any violation carrying a real WCAG SC tag (not impact-gated — moderate-

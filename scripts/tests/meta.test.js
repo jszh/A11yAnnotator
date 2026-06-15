@@ -91,3 +91,19 @@ test('R2.6-C: build-results.js CLI rejects a run-id mismatch (stale drive) and a
   const dup = cli('collect_dup.json', 'drive_ok.json'); assert.equal(dup.ok, false); assert.match(dup.out, /duplicate xpath/);
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('R2.8-B: build-results.js CLI rejects a DUPLICATE or EXTRA driver xpath', () => {
+  const S = require('../lib/result-schema.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'drvinv_'));
+  const sk = {}; for (const k of S.SKILLS) sk[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'na' };
+  const ps = {}; for (const k of S.PAGE_SKILLS) ps[k] = { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'ok' };
+  const rec = { file: 'p.html', slug: 's', pageSkills: ps, elements: [{ xpath: '/a', axRole: 'x', axName: 'y', skills: sk }] };
+  const recP = path.join(dir, 'rec.json'); fs.writeFileSync(recP, JSON.stringify(rec));
+  fs.writeFileSync(path.join(dir, 'collect.json'), JSON.stringify({ file: 'p.html', runId: 'R', collectedAt: 1000, elements: [{ xpath: '/a' }], axe: [], axeRan: true }));
+  fs.writeFileSync(path.join(dir, 'drive_dup.json'), JSON.stringify({ file: 'p.html', runId: 'R', drivenAt: 2000, elements: [{ xpath: '/a', focusIndicator: { present: false } }, { xpath: '/a', focusIndicator: { present: true } }], forms: [] }));
+  fs.writeFileSync(path.join(dir, 'drive_extra.json'), JSON.stringify({ file: 'p.html', runId: 'R', drivenAt: 2000, elements: [{ xpath: '/a' }, { xpath: '/ghost' }], forms: [] }));
+  const cli = (drive) => { try { run('node', ['scripts/tools/build-results.js', recP, path.join(dir, 'out.json'), path.join(dir, 'collect.json'), path.join(dir, drive)], { cwd: ROOT, encoding: 'utf8' }); return { ok: true, out: '' }; } catch (e) { return { ok: false, out: (e.stdout || '') + (e.stderr || '') }; } };
+  const dup = cli('drive_dup.json'); assert.equal(dup.ok, false); assert.match(dup.out, /driver inventory has 1 duplicate/);
+  const extra = cli('drive_extra.json'); assert.equal(extra.ok, false); assert.match(extra.out, /NOT in the collector inventory/);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
