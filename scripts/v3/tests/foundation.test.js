@@ -118,6 +118,30 @@ test('dropping ANY required obligation rejects the 2.4.7 clear', () => {
   }
 });
 
+// body-mutation coverage for EVERY clearable SC (audit V3R4-M3): the 2.4.7 test alone is not enough —
+// each declared obligation set must reject the clear when any single obligation is dropped. (2.1.1 is
+// no longer here: its clearing authority was withdrawn, audit V3R4-H3.)
+test('completeness mutation: dropping ANY required obligation rejects the clear for every clearable SC', () => {
+  const SCS = { '1.4.3': 'text-contrast-pixel', '2.1.2': 'keyboard-trap-escape', '3.3.2': 'field-label-probe', '4.1.2': 'ax-state-diff' };
+  for (const [sc, expId] of Object.entries(SCS)) {
+    const exp = cat.CATALOG.experiments[expId];
+    const entry = reg.REGISTRY[`${sc}/NO_BARRIER_OBSERVED`];
+    assert.ok(entry && entry.completeness, `${sc} must declare completeness`);
+    const supReq = (exp.supports.NO_BARRIER_OBSERVED || {}).requires || [];
+    const all = new Set([...(exp.applicability.requires || []), ...supReq, ...entry.completeness.requiredObligations]);
+    const fullOutcome = {}; for (const f of all) fullOutcome[f] = true;
+    const appEv = {}; for (const f of exp.applicability.requires) appEv[f] = true;
+    const atDep = (exp.accessibilitySupportDependent && exp.accessibilitySupportDependent.NO_BARRIER_OBSERVED) || entry.accessibilitySupportDependent;
+    const ev = (over = {}) => ({ experimentOutcome: { ...fullOutcome }, applicabilityEvidence: { ...appEv }, ...(atDep ? { atBaseline: { at: 'NVDA', os: 'win', browser: 'chrome' } } : {}), ...over });
+    const prop = { claimId: 'm', sc, direction: 'NO_BARRIER_OBSERVED', experimentId: expId, claimFamily: exp.claimFamily, observationScope: SCOPE };
+    assert.equal(resolveClaim(prop, ev()).authoritative, true, `${sc}: a complete clear should be authoritative`);
+    for (const drop of entry.completeness.requiredObligations) {
+      const out = resolveClaim(prop, ev({ experimentOutcome: { ...fullOutcome, [drop]: false } }));
+      assert.equal(out.authoritative, false, `${sc}: dropping ${drop} must reject the clear`);
+    }
+  }
+});
+
 // ---- DIRECTIONAL / hydration / reachability ----
 test('a 2.4.7 clear without a focus-dependent indicator is refused', () => {
   const out = resolveClaim(proposal('NO_BARRIER_OBSERVED'), evidence({ experimentOutcome: { ...FULL_OUTCOME, focusDependentIndicator: false } }));

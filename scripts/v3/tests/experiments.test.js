@@ -207,6 +207,44 @@ test('R3-H2d: an axis-aligned overlay with a ROTATED ancestor is not a false bar
     'getBoundingClientRect reflects ancestor transforms, so the whole chain must be axis-aligned to trust the AABB');
 });
 
+// ---- Fourth-pass independent audit regressions (all reproduced + fixed) ----
+test('R4-H1: white text over a UNIFORM foreign (SVG) backdrop does NOT clear (pixel/CSS colour must agree)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-r4-h1-svg-uniform.html', ['/html/body/p']);
+  const r = byXp['/html/body/p'];
+  assert.notEqual(dir('text-contrast-pixel', r), 'NO_BARRIER_OBSERVED',
+    'the pixel backdrop (white SVG) disagrees with the CSS-resolved backdrop (black body) used in the ratio ⇒ PARTIAL');
+  assert.equal(r.measurement.pixelAgrees, false, 'colour-agreement gate caught the wrong-surface ratio');
+});
+
+test('R4-H2: an overlay clipped by an ancestor (overflow:hidden) is NOT entirely obscured', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-r4-h2-ancestor-clip.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), null,
+    'coverage uses the candidate’s clipped effective rect, so the visible right strip defeats the barrier');
+});
+
+test('R4-H3: a native button with a mouse-only secondary function (ondblclick) does NOT clear 2.1.1', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('keyboard-activation', 'fx-v3-r4-h3-dblclick.html', ['/html/body/button']);
+  const r = byXp['/html/body/button'];
+  assert.notEqual(dir('keyboard-activation', r), 'NO_BARRIER_OBSERVED', 'an observable pointer-only secondary handler breaks the closed mode inventory');
+  assert.equal(r.outcome.singleModeControl, false, 'singleModeControl is false when a secondary pointer handler is visible');
+});
+
+// 2.1.1 clearing authority is WITHDRAWN at the registry (audit V3R4-H3): even a clean honest button
+// that the proposer would mark NO_BARRIER cannot publish a 2.1.1 clear — it resolves to PARTIAL.
+test('R4-H3 build-through: a clean keyboard-activated button does NOT publish a 2.1.1 clear (barrier-only)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('keyboard-activation', 'fx-v3-c4-keyboard.html', ['/html/body/div[1]/button']);
+  const r = byXp['/html/body/div[1]/button'];
+  const SCOPE = r.observationScope;
+  const bundle = withPipeline({
+    collect: { file: 'f', runId: 'R', pageDigest: 'sha256:d', collectedAt: 100, elements: [{ xpath: r.targetXpath, focusable: true, role: 'button' }] },
+    experiments: { file: 'f', runId: 'R', pageDigest: 'sha256:d', catalogVersion: '3.0.0-phase0', startedAt: 200, results: [{ ...r, claimId: 'k1' }] },
+    claimProposals: { file: 'f', runId: 'R', pageDigest: 'sha256:d', proposals: [{ claimId: 'k1', sc: '2.1.1', direction: 'NO_BARRIER_OBSERVED', experimentId: 'keyboard-activation', claimFamily: 'keyboard-operable', observationScope: SCOPE }] },
+  });
+  const r2 = buildV3(bundle, { authority: promoted(['keyboard-activation/NO_BARRIER_OBSERVED']) });
+  assert.equal(r2.ok, true, JSON.stringify(r2.errors));
+  assert.equal(r2.results.summary.cleared, 0, '2.1.1 NO_BARRIER is open-scope-never-clearable ⇒ no authoritative clear');
+});
+
 // ---- build-through: shadow by default; AT-independent C3 clears authoritative when PROMOTED ----
 test('C3 build-through: default-shadow; PROMOTED ⇒ authoritative clear (AT-independent, no baseline needed)', { skip: !chromeOK, concurrency: false }, async () => {
   const { byXp } = await run('text-contrast-pixel', 'fx-v3-c3-contrast.html', ['/html/body/div[1]/span']);
