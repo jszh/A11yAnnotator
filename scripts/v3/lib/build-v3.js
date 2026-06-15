@@ -1,0 +1,169 @@
+// Harness 3.0 — the v3 publication gate (plan 3.0-E; audit remediation). Deterministic: given a
+// frozen evidence bundle it
+//   (1) validates registry / catalog / authority / consistency + strict per-stage schemas,
+//   (2) runs the ONE cross-artifact gate (identity / freshness / scope / reconciliation / legacy),
+//   (3) BINDS each proposal to evidence by (claimId, experimentId, SC, target, scope) — rejecting
+//       cross-target / cross-SC laundering and duplicate/conflicting evidence,
+//   (4) resolves every bound proposal to a disposition, then applies AUTHORITY promotion: a
+//       gate-passing claim publishes as authoritative ONLY if its mechanism/direction is promoted;
+//       otherwise it is demoted to a SHADOW observation (recorded, never authoritative),
+//   (5) reconciles obligations independently enumerated from the collector (atomic per claim-
+//       family; un-proposed ⇒ auto-PARTIAL), and
+//   (6) emits v3-only output — refusing to publish if any legacy label survived.
+'use strict';
+
+const V = require('./v3-schema.js');
+const reg = require('./registry.js');
+const cat = require('./catalog.js');
+const auth = require('./authority.js');
+const xa = require('./cross-artifact.js');
+const obl = require('./obligations.js');
+const oracle = require('./applicability-oracle.js');
+const schemas = require('./schemas.js');
+const { resolveClaim } = require('./claims.js');
+
+const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
+const sameScope = (a, b) => !!a && !!b && SCOPE_FIELDS.every((f) => a[f] === b[f]);
+
+function buildV3(bundle, opts = {}) {
+  const errors = [];
+  const E = (m) => errors.push(m);
+  const authorityReg = opts.authority || auth.AUTHORITY;
+
+  // (1) Phase-0 coverage: registry / catalog / authority well-formed; every completeness
+  //     obligation measured by its supporting experiment; strict per-stage artifact schemas.
+  for (const m of reg.validateRegistry()) E(`registry: ${m}`);
+  for (const m of reg.validateCoverage()) E(`registry: ${m}`);
+  for (const m of cat.validateCatalog()) E(`catalog: ${m}`);
+  for (const m of auth.validateAuthority(authorityReg)) E(`authority: ${m}`);
+  for (const m of reg.validateConsistency(reg.REGISTRY, cat.CATALOG)) E(`consistency: ${m}`);
+  for (const m of obl.coverageErrors()) E(`claim-family coverage: ${m}`);
+  for (const m of schemas.validateBundle(bundle)) E(`schema: ${m}`);
+  if (errors.length) return { ok: false, errors, results: null };
+
+  // (2) one cross-artifact gate (identity / freshness / scope / reconciliation / legacy-reject)
+  const xErrs = xa.crossArtifactErrors(bundle, opts.requiredStages);
+  if (xErrs.length) { for (const m of xErrs) E(`cross-artifact: ${m}`); return { ok: false, errors, results: null }; }
+
+  // (2b) INDEPENDENT enumeration fail-closed: a non-empty evaluable page that yields no obligations,
+  //      or any applicableScs that disagrees with the oracle, is a generation defect — refuse.
+  const enumErrs = oracle.enumerationErrors(bundle.collect);
+  if (enumErrs.length) { for (const m of enumErrs) E(`enumeration: ${m}`); return { ok: false, errors, results: null }; }
+
+  // (3) index evidence by claimId, recording DUPLICATES so conflicting evidence cannot be
+  //     resolved order-dependently (audit V3-H5). A claimId with >1 result is a conflict.
+  const evByClaim = {};
+  const evCount = {};
+  for (const r of (bundle.experiments && bundle.experiments.results) || []) {
+    if (!r || !r.claimId) continue;
+    evCount[r.claimId] = (evCount[r.claimId] || 0) + 1;
+    evByClaim[r.claimId] = {
+      experimentId: r.experimentId,
+      sc: r.sc,
+      targetXpath: r.targetXpath,
+      observationScope: r.observationScope,
+      experimentOutcome: r.outcome || {},
+      applicabilityEvidence: r.applicabilityEvidence || {},
+      atBaseline: r.atBaseline,
+    };
+  }
+
+  const proposals = (bundle.claimProposals && bundle.claimProposals.proposals) || [];
+  const seen = new Set();
+  const claims = [];        // authoritative, published
+  const shadowObs = [];     // gate-passing but NOT promoted — recorded, never authoritative
+  const partials = [];      // gate-failed / unsupported / unbound
+  for (const p of proposals) {
+    if (!p || !p.claimId) { E('claim proposal missing claimId'); continue; }
+    if (seen.has(p.claimId)) { E(`duplicate claimId ${p.claimId}`); continue; }
+    seen.add(p.claimId);
+
+    // bind family deterministically: prefer the proposal's, else the cited experiment's.
+    const family = p.claimFamily || (cat.getExperiment(p.experimentId) || {}).claimFamily || null;
+    const scope = p.observationScope || {};
+    const target = scope.actionTargetRef;
+
+    // EVIDENCE BINDING (audit V3-C1/H5): link evidence only when it is the SAME experiment AND it
+    // was measured on the SAME SC, target, and scope the proposal asserts. Any mismatch, or
+    // duplicate/conflicting evidence for this claimId, leaves the proposal UNSUPPORTED → PARTIAL.
+    const linked = evByClaim[p.claimId];
+    let ev = { experimentOutcome: {}, applicabilityEvidence: {} };
+    let bindReason = null;
+    if (!linked) bindReason = 'no evidence for this claimId';
+    else if (evCount[p.claimId] > 1) bindReason = `conflicting/duplicate evidence (${evCount[p.claimId]} results share claimId ${p.claimId})`;
+    else if (linked.experimentId !== p.experimentId) bindReason = `evidence experiment ${linked.experimentId} != proposal experiment ${p.experimentId}`;
+    else if (linked.sc != null && linked.sc !== p.sc) bindReason = `evidence SC ${linked.sc} != proposal SC ${p.sc}`;
+    else if (linked.targetXpath !== target) bindReason = `evidence target ${linked.targetXpath} != proposal scope target ${target} (cross-target)`;
+    else if (linked.observationScope && !sameScope(linked.observationScope, scope)) bindReason = 'evidence observationScope != proposal observationScope (state/action/env)';
+    else ev = linked;
+
+    const out = bindReason
+      ? V.partial(`evidence not bound: ${bindReason}`, { claimId: p.claimId, sc: p.sc, direction: p.direction })
+      : resolveClaim({ ...p, claimFamily: family }, ev);
+    out._target = target;
+    out._family = family;
+    out._sc = p.sc;
+
+    if (!out.authoritative) { partials.push(out); continue; }
+
+    // (4) AUTHORITY promotion (audit V3-C2): publish authoritative ONLY when promoted; else shadow.
+    const a = auth.authorityFor(p.experimentId, p.direction, authorityReg);
+    if (a.mayPublish) { out._authState = a.state; claims.push(out); continue; }
+    shadowObs.push({
+      claimId: p.claimId, sc: p.sc, claimFamily: family,
+      wouldBe: { observationOutcome: out.observationOutcome, wcagApplicability: out.wcagApplicability },
+      observationScope: out.observationScope,
+      authorityState: a.state, reason: a.reason,
+      recommendation: 'shadow-only: validate against gold + sealed set before promotion',
+    });
+  }
+
+  // (5) INDEPENDENT obligation reconciliation: enumerate from the COLLECTOR (atomic per family);
+  //     every obligation gets exactly one disposition. Authoritative CLAIMs clear; shadow
+  //     observations and unsupported proposals are PARTIAL (shadow flagged); un-proposed ⇒ auto.
+  const obligations = obl.enumerateObligations(bundle.collect);
+  const dispositions = [];
+  for (const c of claims) dispositions.push({
+    obligationId: oracle.oblId(c._target, c._sc, c._family), kind: 'CLAIM',
+    cleared: c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE',
+  });
+  for (const p of partials) dispositions.push({ obligationId: oracle.oblId(p._target, p._sc, p._family), kind: 'PARTIAL', cleared: false });
+  for (const s of shadowObs) dispositions.push({ obligationId: oracle.oblId(s.observationScope && s.observationScope.actionTargetRef, s.sc, s.claimFamily), kind: 'PARTIAL', cleared: false, shadow: true });
+
+  const { errors: recErrors, ledger } = obl.reconcile(obligations, dispositions);
+  for (const m of recErrors) E(`obligation: ${m}`);
+  if (errors.length) return { ok: false, errors, results: null };
+  const aggregates = obl.aggregateElementSkill(ledger);
+
+  // (6) emit v3-only results; refuse if a legacy label somehow survived
+  const stripClaim = (c) => { const { _target, _family, _sc, _authState, disposition, authoritative, ...rest } = c; return rest; };
+  const stripPartial = (p) => { const { _target, _family, _sc, authoritative, ...rest } = p; return rest; };
+  const results = {
+    file: bundle.collect && bundle.collect.file,
+    runId: bundle.collect && bundle.collect.runId,
+    pageDigest: bundle.collect && bundle.collect.pageDigest,
+    catalogVersion: cat.CATALOG.catalogVersion,
+    conformanceOutcome: V.CONFORMANCE,
+    claims: claims.map(stripClaim),
+    partials: partials.map(stripPartial),
+    shadowObservations: shadowObs,
+    obligationLedger: ledger,
+    elementSkillSummaries: aggregates,
+    summary: {
+      obligations: obligations.length,
+      proposals: proposals.length,
+      authoritative: claims.length,
+      shadow: shadowObs.length,
+      partial: ledger.filter((r) => r.disposition === 'PARTIAL').length,
+      autoPartial: ledger.filter((r) => r.autoPartial).length,
+      barriersObserved: claims.filter((c) => c.observationOutcome === 'BARRIER_OBSERVED').length,
+      cleared: claims.filter((c) => c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE').length,
+    },
+  };
+  const legacy = xa.findLegacyLabel(results, 'results');
+  if (legacy) { E(`refusing to publish: legacy label in v3 output: ${legacy}`); return { ok: false, errors, results: null }; }
+
+  return { ok: true, errors: [], results };
+}
+
+module.exports = { buildV3 };

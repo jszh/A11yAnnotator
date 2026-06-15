@@ -1,0 +1,108 @@
+// Harness 3.0 — strict per-stage artifact schemas (plan 3.0-E; audit V3-H2).
+//
+// v3-schema.js gives vocabulary and constructors; THIS gives validation. Every v3-authored
+// artifact in a bundle is checked for required fields, enums, non-empty constraints, and — for the
+// records the harness itself produces — UNKNOWN-KEY rejection, so a malformed or smuggled field
+// cannot ride through publication. Unknown bundle STAGES are rejected too. The same validators run
+// in the builder and (via build-v3) in orchestration, the CLI, replay, and tests.
+'use strict';
+
+const V = require('./v3-schema.js');
+const cat = require('./catalog.js');
+
+const KNOWN_STAGES = ['manifest', 'collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals'];
+const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
+const isStr = (v) => typeof v === 'string' && v.length > 0;
+const isObj = (v) => v != null && typeof v === 'object' && !Array.isArray(v);
+
+// Reject any key on `obj` not in `allowed` (strict shape for harness-authored records).
+function noUnknownKeys(obj, allowed, path, E) {
+  for (const k of Object.keys(obj)) if (!allowed.includes(k)) E.push(`${path}: unknown key ${JSON.stringify(k)}`);
+}
+
+function validIdentity(art, path, E) {
+  for (const f of ['file', 'runId', 'pageDigest']) if (!isStr(art[f])) E.push(`${path}: identity field ${f} must be a non-empty string`);
+}
+
+function validScope(scope, path, E) {
+  if (!isObj(scope)) { E.push(`${path}: observationScope must be an object`); return; }
+  for (const f of SCOPE_FIELDS) if (!isStr(scope[f])) E.push(`${path}.observationScope.${f} must be a non-empty string`);
+}
+
+// ---- per-stage ----
+function validateCollect(c, E) {
+  if (!isObj(c)) return E.push('collect: must be an object');
+  validIdentity(c, 'collect', E);
+  if (!Array.isArray(c.elements)) return E.push('collect.elements must be an array');
+  c.elements.forEach((el, i) => { if (!isObj(el) || !isStr(el.xpath)) E.push(`collect.elements[${i}]: requires a non-empty xpath`); });
+}
+
+function validateExperiments(x, E) {
+  if (!isObj(x)) return E.push('experiments: must be an object');
+  validIdentity(x, 'experiments', E);
+  if (!Number.isFinite(x.startedAt)) E.push('experiments.startedAt must be finite');
+  // catalogVersion drift: evidence must have been produced under the live catalog version.
+  if (x.catalogVersion != null && x.catalogVersion !== cat.CATALOG.catalogVersion)
+    E.push(`experiments.catalogVersion ${JSON.stringify(x.catalogVersion)} != live catalog ${JSON.stringify(cat.CATALOG.catalogVersion)} (stale evidence)`);
+  if (!Array.isArray(x.results)) return E.push('experiments.results must be an array');
+  const RESULT_KEYS = ['claimId', 'experimentId', 'targetXpath', 'sc', 'outcome', 'applicabilityEvidence', 'observationScope', 'atBaseline', 'trusted', 'isolated', 'completed', 'valid', 'measurement', 'status'];
+  x.results.forEach((r, i) => {
+    const p = `experiments.results[${i}]`;
+    if (!isObj(r)) return E.push(`${p}: must be an object`);
+    noUnknownKeys(r, RESULT_KEYS, p, E);
+    if (!isStr(r.claimId)) E.push(`${p}.claimId required`);
+    if (!isStr(r.experimentId)) E.push(`${p}.experimentId required`);
+    if (!isStr(r.targetXpath)) E.push(`${p}.targetXpath required`);
+    if (!isStr(r.sc)) E.push(`${p}.sc required`);
+    if (!isObj(r.outcome)) E.push(`${p}.outcome must be an object of typed flags`);
+  });
+}
+
+function validateProposals(cp, E) {
+  if (!isObj(cp)) return E.push('claimProposals: must be an object');
+  validIdentity(cp, 'claimProposals', E);
+  if (!Array.isArray(cp.proposals)) return E.push('claimProposals.proposals must be an array');
+  const PROP_KEYS = ['claimId', 'sc', 'direction', 'experimentId', 'claimFamily', 'candidateId', 'observationScope', 'supportRefs'];
+  cp.proposals.forEach((pr, i) => {
+    const p = `claimProposals.proposals[${i}]`;
+    if (!isObj(pr)) return E.push(`${p}: must be an object`);
+    noUnknownKeys(pr, PROP_KEYS, p, E);
+    if (!isStr(pr.claimId)) E.push(`${p}.claimId required`);
+    if (!V.ALL_SCS.includes(pr.sc)) E.push(`${p}.sc ${JSON.stringify(pr.sc)} is not a known SC`);
+    if (!V.DIRECTIONS.includes(pr.direction)) E.push(`${p}.direction ${JSON.stringify(pr.direction)} is not an assertable direction`);
+    if (!isStr(pr.experimentId)) E.push(`${p}.experimentId required`);
+    validScope(pr.observationScope, p, E);
+  });
+}
+
+function validatePlan(pl, E) {
+  if (!isObj(pl)) return E.push('plan: must be an object');
+  if (!Array.isArray(pl.requests)) E.push('plan.requests must be an array');
+  (pl.requests || []).forEach((r, i) => {
+    const p = `plan.requests[${i}]`;
+    if (!isStr(r.candidateId)) E.push(`${p}.candidateId required`);
+    if (!isStr(r.experimentId)) E.push(`${p}.experimentId required`);
+    if (!isStr(r.targetXpath)) E.push(`${p}.targetXpath required`);
+    if (!isStr(r.sc)) E.push(`${p}.sc required`);
+  });
+}
+
+function validateCandidates(ca, E) {
+  if (!isObj(ca)) return E.push('candidates: must be an object');
+  if (!Array.isArray(ca.candidates)) E.push('candidates.candidates must be an array');
+}
+
+// Validate the whole bundle: reject unknown stages, validate each present stage strictly.
+function validateBundle(bundle) {
+  const E = [];
+  if (!isObj(bundle)) return ['bundle: must be an object'];
+  for (const k of Object.keys(bundle)) if (!KNOWN_STAGES.includes(k)) E.push(`bundle: unknown stage ${JSON.stringify(k)}`);
+  if (bundle.collect != null) validateCollect(bundle.collect, E);
+  if (bundle.experiments != null) validateExperiments(bundle.experiments, E);
+  if (bundle.claimProposals != null) validateProposals(bundle.claimProposals, E);
+  if (bundle.plan != null) validatePlan(bundle.plan, E);
+  if (bundle.candidates != null) validateCandidates(bundle.candidates, E);
+  return E;
+}
+
+module.exports = { validateBundle, validateCollect, validateExperiments, validateProposals, validatePlan, validateCandidates, KNOWN_STAGES };
