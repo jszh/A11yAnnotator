@@ -358,10 +358,11 @@ test('R2.4-B native presumption supports NOT REPRODUCED but NOT a keyboard FAILU
   const pass = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'keyboard-operability': { verdict: 'NOT REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'native button operable' } })] });
   assert.equal(validateResults(pass, DE(nativeEv)).ok, true, 'native presumption supports "operable"');
   const fail = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'keys do nothing' } })] });
-  assert.ok(validateResults(fail, DE(nativeEv)).errors.some(e => /native presumption cannot support a keyboard FAILURE/.test(e)));
+  assert.ok(validateResults(fail, DE(nativeEv)).errors.some(e => /2\.1\.1\) not supported/.test(e)), 'a native control cannot support a keyboard FAILURE (2.1.1) without exercised evidence');
 });
-test('R2.4-B ALLOW: a definite verdict backed by a trusted+isolated probe validates', () => {
-  const ev = { '/a': { keyboard: { trusted: true, isolated: true, exercised: true }, activation: { trusted: true, isolated: true }, focusProbed: true } };
+test('R2.4-B ALLOW: a definite verdict POSITIVELY supported by the driver outcome validates', () => {
+  // 2.1.1 REPRODUCED needs an exercised non-response; 2.4.7 NR needs an observed present ring.
+  const ev = { '/a': { keyboard: { trusted: true, isolated: true, exercised: true }, kbdResponseKnown: true, kbdResponded: false, arrowsResponded: false, activation: { trusted: true, isolated: true }, focusProbed: true, ringPresent: true } };
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [
     el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'no kbd' }, 'focus-visibility': { verdict: 'NOT REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'ring ok' } }),
   ] });
@@ -397,17 +398,17 @@ function DEo(byXpath, extra) { return { driverEvidence: Object.assign({ byXpath:
 test('R2.5-A reject: focus-visibility REPRODUCED 2.4.7 but the driver saw a ring (present:true)', () => {
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } })] });
   const v = validateResults(R, DEo({ '/a': { focusProbed: true, ringPresent: true } }));
-  assert.ok(v.errors.some(e => /contradicts focusIndicator\.present:true/.test(e)), 'a "no ring" verdict cannot stand when the driver detected a ring');
+  assert.ok(v.errors.some(e => /2\.4\.7\) not supported/.test(e)), 'a "no ring" verdict cannot stand when the driver detected a ring');
 });
 test('R2.5-A reject: keyboard-operability REPRODUCED 2.1.1 but the driver saw a key response', () => {
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.1', level: 'A', evidence: 'does not operate' } })] });
   const v = validateResults(R, DEo({ '/a': { keyboard: { trusted: true, isolated: true, exercised: true }, kbdResponseKnown: true, kbdResponded: true } }));
-  assert.ok(v.errors.some(e => /contradicts an observed key response/.test(e)));
+  assert.ok(v.errors.some(e => /2\.1\.1\) not supported/.test(e)));
 });
 test('R2.5-A reject: dynamic-announcement REPRODUCED 4.1.3 but a meaningful announcement was captured', () => {
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'dynamic-announcement': { verdict: 'REPRODUCED', sc: '4.1.3', level: 'AA', evidence: 'not announced' } })] });
   const v = validateResults(R, DEo({ '/a': { activation: { trusted: true, isolated: true }, vsrAnnounced: true } }));
-  assert.ok(v.errors.some(e => /contradicts a meaningful vsrAnnouncement/.test(e)));
+  assert.ok(v.errors.some(e => /4\.1\.3\) not supported/.test(e)));
 });
 test('R2.5-A reject: forms REPRODUCED 3.3.1 but the field’s OWN form identified the error in text', () => {
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'forms-instructions-errors': { verdict: 'REPRODUCED', sc: '3.3.1', level: 'A', evidence: 'error not identified' } })] });
@@ -457,7 +458,7 @@ test('R2.5-F: a null/malformed summary.issues entry FAILS CLOSED (no throw)', ()
 test('R2.6-A #6: a 2.4.7 "no focus ring" REPRODUCED is ring-checked even when routed via focus-management', () => {
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-management': { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no ring' } })] });
   const v = validateResults(R, DEo({ '/a': { focusProbed: true, ringPresent: true, activation: { trusted: true, isolated: true } } }));
-  assert.ok(v.errors.some(e => /contradicts focusIndicator\.present:true/.test(e)), 'the SC check is keyed to 2.4.7, not the skill');
+  assert.ok(v.errors.some(e => /2\.4\.7\) not supported/.test(e)), 'the SC check is keyed to 2.4.7, not the skill');
 });
 test('R2.6-A #5: a NOT REPRODUCED 4.1.3 is rejected when the driver saw a SILENT status change', () => {
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'dynamic-announcement': { verdict: 'NOT REPRODUCED', sc: '4.1.3', level: 'AA', evidence: 'fine' } })] });
@@ -486,4 +487,34 @@ test('R2.6-B: skipping elements while axe found serious violations is REJECTED e
   assert.equal(R.summary.normativeFailures, 1);
   const v = validateResults(R, { collectorAxe: { ran: true, wcagViolations: 9 } });
   assert.ok(v.errors.some(e => /EVERY collected element must be evaluated/.test(e)), 'one fabricated failure no longer dodges the floor');
+});
+
+// ---- R2.8-A: SUPPORT-based binding (R27-C1) — a definite verdict needs a positive outcome ----
+test('R2.8-A: REPRODUCED 4.1.3 with NO observed status message is REJECTED (silence ≠ failure evidence)', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'dynamic-announcement': { verdict: 'REPRODUCED', sc: '4.1.3', level: 'AA', evidence: 'not announced' } })] });
+  // trusted+isolated activation but viewChanged:false → no status was observed at all.
+  const v = validateResults(R, DEo({ '/a': { activation: { trusted: true, isolated: true }, viewChanged: false, vsrAnnounced: false, liveRegionChanged: false } }));
+  assert.ok(v.errors.some(e => /4\.1\.3\) not supported/.test(e)));
+});
+test('R2.8-A: REPRODUCED 2.4.3 with NO observed focus-return failure is REJECTED', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.4.3', level: 'A', evidence: 'focus order' } })] });
+  const v = validateResults(R, DEo({ '/a': { keyboard: { trusted: true, isolated: true, exercised: true }, kbdResponseKnown: true, kbdResponded: true, activation: { trusted: true, isolated: true }, dialogOpened: false } }));
+  assert.ok(v.errors.some(e => /2\.4\.3\) not supported/.test(e)));
+});
+test('R2.8-A: 2.1.2 is bound to the page tab-walk — REPRODUCED needs trapDetected:true, NR needs a positive escapable walk', () => {
+  const mk = (verdict) => build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'keyboard-operability': { verdict, sc: '2.1.2', level: 'A', evidence: 'trap' } })] });
+  const ev = { '/a': { keyboard: { trusted: true, isolated: true, exercised: true }, kbdResponseKnown: true, kbdResponded: true } };
+  // REPRODUCED with trapDetected:false → unsupported
+  assert.ok(validateResults(mk('REPRODUCED'), DEo(ev, { tabWalk: { present: true, trapDetected: false } })).errors.some(e => /2\.1\.2\) not supported/.test(e)));
+  // REPRODUCED with trapDetected:true → supported
+  assert.equal(validateResults(mk('REPRODUCED'), DEo(ev, { tabWalk: { present: true, trapDetected: true } })).ok, true);
+  // NR with an INDETERMINATE walk → unsupported (can't claim "no trap" without proof)
+  assert.ok(validateResults(mk('NOT REPRODUCED'), DEo(ev, { tabWalk: { present: true, trapDetected: null, trapIndeterminate: true } })).errors.some(e => /2\.1\.2\) not supported/.test(e)));
+  // NR with a positively-escapable walk → supported
+  assert.equal(validateResults(mk('NOT REPRODUCED'), DEo(ev, { tabWalk: { present: true, trapDetected: false } })).ok, true);
+});
+test('R2.8-A: a 2.1.2 verdict with NO tab-walk evidence is REJECTED', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'keyboard-operability': { verdict: 'REPRODUCED', sc: '2.1.2', level: 'A', evidence: 'trap' } })] });
+  const v = validateResults(R, DEo({ '/a': { keyboard: { trusted: true, isolated: true, exercised: true }, kbdResponseKnown: true, kbdResponded: true } }, { tabWalk: { present: false } }));
+  assert.ok(v.errors.some(e => /no tab-walk evidence/.test(e)));
 });

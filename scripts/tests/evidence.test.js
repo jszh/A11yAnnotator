@@ -272,3 +272,9 @@ test('R2.7-A #1: a status change in an aria-live="off" region is NOT a live upda
   const polite = runScript('drive-page.js', 'fx-status-live-polite.html', ['/html/body/span[1]']);
   assert.equal(polite.elements[0].activate.liveRegionChanged, true, 'an aria-live="polite" update IS a live change');
 });
+
+test('R2.8-A: a display:none aria-live region is NOT a perceivable live update (liveRegionChanged:false)', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-status-displaynone.html', ['/html/body/main[1]/span[1]']);
+  const a = o.elements[0].activate;
+  assert.equal(a.liveRegionChanged, false, 'a display:none status region is excluded — not in the accessibility tree');
+});

@@ -266,7 +266,10 @@ function driverEvidenceFrom(drive) {
     const xps = Array.isArray(f.fieldXpaths) ? f.fieldXpaths : (f.perField || []).map(pf => pf && pf.xpath).filter(Boolean);
     for (const xp of xps) if (xp) formByField[xp] = outcome;
   }
-  return { byXpath, formsTrust, formByField };
+  // R2.8-A (R27-C1): the page-level tab-walk is the positive-support source for 2.1.2.
+  const tw = (drive && drive.tabWalk) || null;
+  const tabWalk = tw ? { trapDetected: tw.trapDetected, trapIndeterminate: tw.trapIndeterminate === true, present: true } : { present: false };
+  return { byXpath, formsTrust, formByField, tabWalk };
 }
 
 // R2.4-B/R2.5-A (R23-C2 / R24-C1): bind a DEFINITE behavioral verdict to the DRIVER's
@@ -274,7 +277,7 @@ function driverEvidenceFrom(drive) {
 // verdict that the driver's evidence directly CONTRADICTS is rejected (→ PARTIAL): e.g. a
 // "no focus ring" (2.4.7 REPRODUCED) when the driver saw present:true, or "not announced"
 // (4.1.3) when the driver captured a meaningful announcement. `codes` = the cited SC list.
-function behavioralSupport(skill, verdict, codes, ev, formsTrust, formOutcome) {
+function behavioralSupport(skill, verdict, codes, ev, formsTrust, formOutcome, tabWalk) {
   const REP = verdict === 'REPRODUCED', NR = verdict === 'NOT REPRODUCED';
   codes = codes || [];
   // ---- forms (page/field scoped) ----
@@ -297,33 +300,41 @@ function behavioralSupport(skill, verdict, codes, ev, formsTrust, formOutcome) {
   } else if (skill === 'keyboard-operability') {
     const k = ev.keyboard;
     if (k && k.exercised) { if (!(k.trusted === true && k.isolated === true)) return { ok: false, reason: 'keyboard probe was synthetic or non-isolated' }; }
-    else if (k && k.exercised === false && k.trusted === null) { if (REP) return { ok: false, reason: 'native presumption cannot support a keyboard FAILURE — must be exercised' }; }
+    else if (k && k.exercised === false && k.trusted === null) { /* native presumption — no exercised probe; the per-SC support predicate decides (2.1.1 needs exercising, 2.1.2 binds to tabWalk) */ }
     else { const a = ev.arrowKeys; if (!(a && a.trusted === true && a.isolated === true)) return { ok: false, reason: 'no trusted+isolated keyboard/arrow probe' }; }
   } else if (skill === 'focus-management' || skill === 'dynamic-announcement') {
     const a = ev.activation;
     if (!a || a.trusted !== true || a.isolated !== true) return { ok: false, reason: 'activation was synthetic, non-isolated, or absent' };
   }
-  // ---- SC-KEYED contradiction checks (R2.6-A #6: by the cited SC, NOT the skill, so a
-  //      2.4.7 claim on focus-management is ring-checked just like on focus-visibility) ----
-  if (codes.includes('2.4.7')) {
-    if (!ev.focusProbed) return { ok: false, reason: '2.4.7 verdict with no definite focus-indicator probe (element unreached/indeterminate)' };
-    if (REP && ev.ringPresent === true) return { ok: false, reason: 'REPRODUCED "no focus indicator" (2.4.7) contradicts focusIndicator.present:true' };
-    if (NR && ev.ringPresent === false) return { ok: false, reason: 'NOT REPRODUCED (2.4.7) contradicts focusIndicator.present:false' };
+  // ---- POSITIVE SUPPORT (R27-C1): a DEFINITE verdict must be DEMONSTRATED by an observed
+  //      driver outcome, not merely the ABSENCE of a known contradiction. Keyed by the cited
+  //      SC (not the skill). A cited SC with a support predicate that is NOT satisfied is
+  //      rejected → the agent must use PARTIAL. SCs with no predicate fall through (the
+  //      probe-trust gate above is their minimum).
+  for (const code of codes) {
+    if (code === '2.4.7') { // focus visible — the ring observation is authoritative
+      if (!ev.focusProbed) return { ok: false, reason: '2.4.7 verdict with no definite focus-indicator probe' };
+      if (REP && ev.ringPresent !== false) return { ok: false, reason: `REPRODUCED "no focus indicator" (2.4.7) not supported — driver did not observe an absent ring (present=${ev.ringPresent})` };
+      if (NR && ev.ringPresent !== true) return { ok: false, reason: 'NOT REPRODUCED (2.4.7) not supported — driver did not observe a present ring' };
+    } else if (code === '2.1.1') { // keyboard operable
+      const operated = ev.kbdResponded || ev.arrowsResponded;
+      const nativePresumed = ev.kbdNative === true || (ev.keyboard && ev.keyboard.trusted === null && ev.keyboard.exercised === false);
+      if (REP && !(ev.kbdResponseKnown && !operated && !nativePresumed)) return { ok: false, reason: 'REPRODUCED "keyboard inoperable" (2.1.1) not supported — driver observed no exercised non-response' };
+      if (NR && !(operated || nativePresumed)) return { ok: false, reason: 'NOT REPRODUCED (2.1.1) not supported — driver observed no key response and no native presumption' };
+    } else if (code === '4.1.3') { // status messages — a status must have been OBSERVED
+      const statusObserved = ev.viewChanged && !ev.focusMoved && !ev.dialogOpened;
+      const announced = ev.vsrAnnounced || ev.liveRegionChanged;
+      if (REP && !(statusObserved && !announced)) return { ok: false, reason: 'REPRODUCED (4.1.3) not supported — driver observed no unannounced status message (silence is not failure evidence)' };
+      if (NR && statusObserved && !announced) return { ok: false, reason: 'NOT REPRODUCED (4.1.3) but the driver observed a silent status change (view changed, no announcement)' };
+    } else if (code === '2.4.3') { // focus order — bind to an OBSERVED focus-order/return outcome
+      if (REP && !(ev.dialogOpened && ev.focusReturnedToTrigger === false)) return { ok: false, reason: 'REPRODUCED focus-order/return defect (2.4.3) not supported — driver observed no focus-return failure' };
+      if (NR && ev.dialogOpened && ev.focusReturnedToTrigger === false) return { ok: false, reason: 'NOT REPRODUCED (2.4.3) but the driver observed a focus-return failure' };
+    } else if (code === '2.1.2') { // keyboard trap — bind to the PAGE tab-walk outcome
+      if (!tabWalk || !tabWalk.present || tabWalk.trapDetected === undefined) return { ok: false, reason: '2.1.2 verdict with no tab-walk evidence' };
+      if (REP && tabWalk.trapDetected !== true) return { ok: false, reason: `REPRODUCED keyboard trap (2.1.2) not supported — tabWalk.trapDetected is not true (${tabWalk.trapDetected})` };
+      if (NR && !(tabWalk.trapDetected === false && !tabWalk.trapIndeterminate)) return { ok: false, reason: `NOT REPRODUCED (2.1.2) not supported — the walk did not positively show escapable (trapDetected=${tabWalk.trapDetected}, indeterminate=${tabWalk.trapIndeterminate})` };
+    }
   }
-  if (codes.includes('2.1.1') && ev.kbdResponseKnown) {
-    const operated = ev.kbdResponded || ev.arrowsResponded;
-    if (REP && operated) return { ok: false, reason: 'REPRODUCED "keyboard inoperable" (2.1.1) contradicts an observed key response' };
-    if (NR && !operated && !ev.kbdNative) return { ok: false, reason: 'NOT REPRODUCED (2.1.1) but the driver observed no key response (non-native)' };
-  }
-  if (codes.includes('4.1.3')) {
-    if (REP && ev.vsrAnnounced) return { ok: false, reason: 'REPRODUCED "status not announced" (4.1.3) contradicts a meaningful vsrAnnouncement' };
-    // R2.6-A #5: a SILENT status change — the view changed without moving focus or opening a
-    // dialog, and nothing was announced (no live region, no VSR) — contradicts NOT REPRODUCED.
-    if (NR && ev.viewChanged && !ev.focusMoved && !ev.dialogOpened && !ev.vsrAnnounced && !ev.liveRegionChanged)
-      return { ok: false, reason: 'NOT REPRODUCED (4.1.3) but the driver observed a silent status change (view changed, no announcement)' };
-  }
-  if (codes.includes('2.4.3') && REP && ev.dialogOpened && ev.focusReturnedToTrigger === true)
-    return { ok: false, reason: 'REPRODUCED focus-return defect (2.4.3) contradicts focusReturnedToTrigger:true' };
   return { ok: true };
 }
 
@@ -372,7 +383,7 @@ function validateResults(R, opts = {}) {
       // agent's self-report. Authoritative — even an agent-stamped trust:"trusted" fails
       // if the driver shows no trusted+isolated probe.
       if (DE && S.BEHAVIORAL_SKILLS.includes(k) && (sv.verdict === 'REPRODUCED' || sv.verdict === 'NOT REPRODUCED')) {
-        const sup = behavioralSupport(k, sv.verdict, S.scCodes(sv.sc), DE.byXpath && DE.byXpath[el.xpath], DE.formsTrust, DE.formByField && DE.formByField[el.xpath]);
+        const sup = behavioralSupport(k, sv.verdict, S.scCodes(sv.sc), DE.byXpath && DE.byXpath[el.xpath], DE.formsTrust, DE.formByField && DE.formByField[el.xpath], DE.tabWalk);
         if (!sup.ok) E(`${tag}/${k}: definite ${sv.verdict} not supported by driver evidence (${sup.reason}) — must be PARTIAL`);
       }
     }
