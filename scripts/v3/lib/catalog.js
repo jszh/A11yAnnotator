@@ -78,6 +78,18 @@ const CATALOG = {
       typedOutcomes: ['isUserInputField', 'fieldRendered', 'hydrationReady', 'programmaticNamePresent', 'visibleLabelText', 'fieldLabelBarrier'],
     },
 
+    // ---- C6b: form error identification → 3.3.1 (BARRIER-ONLY). ----
+    'form-error-probe': {
+      sc: '3.3.1', claimFamily: 'error-identification',
+      cost: { maxWallClockMs: 25000, retries: 1, mutationRisk: 'high' }, // sets invalid input + attempts submit
+      accessibilitySupportDependent: { BARRIER_OBSERVED: true }, // whether an error is "identified" is AT-relevant
+      applicability: { requires: ['isUserInputField', 'fieldRendered', 'fieldConstrained'] },
+      supports: {
+        BARRIER_OBSERVED: { requires: ['isUserInputField', 'fieldRendered', 'fieldConstrained', 'hydrationReady', 'errorNotIdentified'] },
+      },
+      typedOutcomes: ['isUserInputField', 'fieldRendered', 'fieldConstrained', 'hydrationReady', 'errorNotIdentified'],
+    },
+
     // ---- C4: keyboard activation → 2.1.1 (CLEAR only for finite-contract single-mode controls). ----
     'keyboard-activation': {
       sc: '2.1.1', claimFamily: 'keyboard-operable',

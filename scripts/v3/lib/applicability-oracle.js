@@ -28,6 +28,7 @@ const FAMILIES = Object.freeze({
   // ---- experiment families C1/C3 reuse the above; C4–C9 add these ----
   'no-keyboard-trap':        Object.freeze({ sc: '2.1.2', skills: ['keyboard-operability'] }),   // C5
   'field-label':             Object.freeze({ sc: '3.3.2', skills: ['forms-instructions-errors'] }), // C6
+  'error-identification':    Object.freeze({ sc: '3.3.1', skills: ['forms-instructions-errors'] }), // C6 (form-error-probe)
   'hover-content':           Object.freeze({ sc: '1.4.13', skills: ['color-and-visual-text'] }),  // C9
   'reflow-no-hscroll':       Object.freeze({ sc: '1.4.10', skills: ['reflow'] }),                 // C8 (page-level)
   'focus-not-obscured':      Object.freeze({ sc: '2.4.11', skills: ['focus-management'] }),       // C7
@@ -57,7 +58,7 @@ function familiesFor(el) {
   // could cover it — so plain controls don't accrue obligations for risks their page doesn't present.
   if (el.focusable === true && el.inModal === true) fams.push('no-keyboard-trap');                 // C5
   if (el.focusable === true && el.underOverlay === true) fams.push('focus-not-obscured');           // C7
-  if (el.isFormField === true || (typeof el.role === 'string' && FORMFIELD_ROLE.test(el.role))) fams.push('field-label'); // C6
+  if (el.isFormField === true || (typeof el.role === 'string' && FORMFIELD_ROLE.test(el.role))) { fams.push('field-label'); fams.push('error-identification'); } // C6: label (3.3.2) + error id (3.3.1)
   if (el.hasHoverContent === true) fams.push('hover-content');                                       // C9
   return [...new Set(fams)];
 }

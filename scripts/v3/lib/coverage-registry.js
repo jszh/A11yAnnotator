@@ -28,7 +28,7 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'widget-role', when: (el) => typeof el.role === 'string' && WIDGET_ROLE.test(el.role), families: ['name-role-value'] }),
   Object.freeze({ id: 'focusable-in-modal', when: (el) => el.focusable === true && el.inModal === true, families: ['no-keyboard-trap'] }),
   Object.freeze({ id: 'focusable-under-overlay', when: (el) => el.focusable === true && el.underOverlay === true, families: ['focus-not-obscured'] }),
-  Object.freeze({ id: 'form-field', when: (el) => el.isFormField === true || (typeof el.role === 'string' && FORMFIELD_ROLE.test(el.role)), families: ['field-label'] }),
+  Object.freeze({ id: 'form-field', when: (el) => el.isFormField === true || (typeof el.role === 'string' && FORMFIELD_ROLE.test(el.role)), families: ['field-label', 'error-identification'] }),
   Object.freeze({ id: 'hover-content', when: (el) => el.hasHoverContent === true, families: ['hover-content'] }),
 ]);
 

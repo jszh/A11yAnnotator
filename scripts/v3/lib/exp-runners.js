@@ -353,6 +353,70 @@ async function runFieldLabelProbe(page, request) {
 }
 
 // =====================================================================================
+// C6b — form-error-probe → 3.3.1 Error Identification (BARRIER-ONLY)
+// =====================================================================================
+// A BARRIER is a CONSTRAINED field (required/pattern/type) in a form that, when given invalid input
+// and submitted, identifies NO error — neither the native browser validation (which would block +
+// message) NOR a custom mechanism (aria-invalid + a referenced visible message, or a live alert).
+// Clearing 3.3.1 (proving EVERY error condition is identified) is out of scope ⇒ barrier-only.
+function probeFormError(marker) {
+  const el = document.querySelector(`[data-v3-target="${marker}"]`);
+  if (!el) return null;
+  const tag = el.tagName, role = el.getAttribute('role') || '', type = (el.getAttribute('type') || '').toLowerCase();
+  const isUserInputField = (tag === 'INPUT' && !/^(hidden|button|submit|reset|image)$/i.test(type || 'text')) || tag === 'SELECT' || tag === 'TEXTAREA' || /^(textbox|combobox|listbox|spinbutton|searchbox)$/.test(role);
+  const cs = getComputedStyle(el), rect = el.getBoundingClientRect();
+  const fieldRendered = cs.display !== 'none' && cs.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+  const form = el.closest('form');
+  const required = el.required === true || el.getAttribute('aria-required') === 'true';
+  const hasConstraint = required || el.hasAttribute('pattern') || /^(email|url|number|tel)$/.test(type) || el.hasAttribute('min') || el.hasAttribute('max') || el.hasAttribute('minlength');
+  const fieldConstrained = !!(form && hasConstraint);
+  if (!isUserInputField || !fieldRendered || !fieldConstrained) return { isUserInputField, fieldRendered, fieldConstrained, applicable: false, errorNotIdentified: false };
+
+  // make the field invalid (the error condition this constraint detects)
+  const orig = ('value' in el) ? el.value : null;
+  if ('value' in el) {
+    el.value = required ? '' : /^(email|url)$/.test(type) ? 'x' : /number/.test(type) ? 'abc' : '';
+    for (const ev of ['input', 'change', 'blur']) el.dispatchEvent(new Event(ev, { bubbles: true }));
+  }
+  // native: would the browser BLOCK submit and show a message? (off when the form is novalidate)
+  const willValidate = (typeof el.willValidate === 'boolean') ? el.willValidate : true;
+  const nativeWouldBlock = !form.noValidate && willValidate && typeof el.checkValidity === 'function' && !el.checkValidity() && !!(el.validationMessage && el.validationMessage.length);
+  // attempt submit WITHOUT navigating — the page's own submit handler may set aria-invalid / show errors
+  let prevented = false;
+  const onSubmit = (e) => { e.preventDefault(); prevented = true; };
+  form.addEventListener('submit', onSubmit, true);
+  try {
+    const btn = form.querySelector('button[type="submit"],input[type="submit"],button:not([type])');
+    if (btn) btn.click();
+    else if (form.requestSubmit) form.requestSubmit();
+    else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+  } catch (e) { /* ignore */ }
+  form.removeEventListener('submit', onSubmit, true);
+  // custom error identification: aria-invalid + a referenced VISIBLE message, or a live-region alert.
+  const ariaInvalid = el.getAttribute('aria-invalid') === 'true';
+  const refIds = (el.getAttribute('aria-errormessage') || el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+  let refText = '';
+  for (const id of refIds) { const n = document.getElementById(id); if (n) { const ncs = getComputedStyle(n); if (ncs.display !== 'none' && ncs.visibility !== 'hidden' && (n.textContent || '').trim()) refText += (n.textContent || '').trim() + ' '; } }
+  let alertText = '';
+  for (const a of document.querySelectorAll('[role="alert"],[aria-live="assertive"],[aria-live="polite"],output')) { const acs = getComputedStyle(a); if (acs.display !== 'none' && acs.visibility !== 'hidden' && (a.textContent || '').trim()) alertText += (a.textContent || '').trim() + ' '; }
+  const customIdentifies = (ariaInvalid && refText.length > 0) || alertText.length > 0;
+  if (orig != null) { el.value = orig; } // restore
+  return { isUserInputField, fieldRendered, fieldConstrained: true, applicable: true, errorNotIdentified: !(nativeWouldBlock || customIdentifies), nativeWouldBlock, customIdentifies };
+}
+
+async function runFormErrorProbe(page, request) {
+  const marker = String(request.candidateId || request.targetXpath);
+  const hydrationReady = await H.hydrate(page);
+  const o = { isUserInputField: false, fieldRendered: false, fieldConstrained: false, hydrationReady, errorNotIdentified: false };
+  const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
+  if (!tagged) return mk(request, 'form-error-probe', '3.3.1', o, {}, { action: 'submit-invalid' });
+  const m = await page.evaluate(probeFormError, marker).catch(() => null);
+  if (m) Object.assign(o, { isUserInputField: m.isUserInputField, fieldRendered: m.fieldRendered, fieldConstrained: m.fieldConstrained, errorNotIdentified: m.errorNotIdentified });
+  const valid = !!(m && m.applicable);
+  return mk(request, 'form-error-probe', '3.3.1', o, { isUserInputField: o.isUserInputField, fieldRendered: o.fieldRendered, fieldConstrained: o.fieldConstrained }, { action: 'submit-invalid', valid, measurement: m ? { nativeWouldBlock: m.nativeWouldBlock, customIdentifies: m.customIdentifies } : {} });
+}
+
+// =====================================================================================
 // C8 — reflow-overflow-probe → 1.4.10 (BARRIER-ONLY, page-level @ 320×256)
 // =====================================================================================
 function measureReflow() {
@@ -962,6 +1026,7 @@ async function runHoverContentTri(page, request) {
 const RUNNERS = {
   'text-contrast-pixel': runTextContrastPixel,
   'field-label-probe': runFieldLabelProbe,
+  'form-error-probe': runFormErrorProbe,
   'reflow-overflow-probe': runReflowOverflowProbe,
   'focus-obscured-barrier': runFocusObscuredBarrier,
   'keyboard-trap-escape': runKeyboardTrapEscape,

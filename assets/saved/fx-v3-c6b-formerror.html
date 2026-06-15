@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>C6b 3.3.1 error identification</title>
+<style>.err{color:#b00020}</style></head>
+<body>
+  <!-- div[1]: BARRIER — required field, novalidate form, no error shown on submit -->
+  <form novalidate action="javascript:void(0)"><div><label>Name <input id="n1" required></label><button type="submit">Go</button></div></form>
+  <!-- div[2]: NOT a barrier — native HTML5 validation blocks + identifies -->
+  <form action="javascript:void(0)"><div><label>Email <input id="n2" type="email" required></label><button type="submit">Go</button></div></form>
+  <!-- div[3]: NOT a barrier — custom JS validation sets aria-invalid + shows a referenced message -->
+  <form novalidate action="javascript:void(0)" onsubmit="var f=document.getElementById('n3');if(!f.value){f.setAttribute('aria-invalid','true');document.getElementById('e3').textContent='Name is required.';}return false;">
+    <div><label>Name <input id="n3" required aria-describedby="e3"></label><span id="e3" class="err"></span><button type="submit">Go</button></div>
+  </form>
+  <!-- div[4]: applicability FAILS — unconstrained field (no error condition) -->
+  <form action="javascript:void(0)"><div><label>Nickname <input id="n4"></label><button type="submit">Go</button></div></form>
+</body></html>

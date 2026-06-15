@@ -267,6 +267,17 @@ test('R4b-H2: an overlay clipping its OWN paint with clip:rect(...) is NOT entir
   assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), null, 'the deprecated clip:rect on the candidate clips its own box ⇒ the right strip stays visible');
 });
 
+// ---- #8 experiment fidelity: 3.3.1 Error Identification (form-error-probe), barrier-only ----
+test('C6b form-error-probe: a constrained field that identifies NO error is a 3.3.1 barrier; native/custom identification is not', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('form-error-probe', 'fx-v3-c6b-formerror.html', [
+    '/html/body/form[1]/div/label/input', '/html/body/form[2]/div/label/input', '/html/body/form[3]/div/label/input', '/html/body/form[4]/div/label/input',
+  ]);
+  assert.equal(dir('form-error-probe', byXp['/html/body/form[1]/div/label/input']), 'BARRIER_OBSERVED', 'required+novalidate, no error shown ⇒ error not identified (vision-confirmed: no message)');
+  assert.notEqual(dir('form-error-probe', byXp['/html/body/form[2]/div/label/input']), 'BARRIER_OBSERVED', 'native HTML5 validation identifies the error');
+  assert.notEqual(dir('form-error-probe', byXp['/html/body/form[3]/div/label/input']), 'BARRIER_OBSERVED', 'custom aria-invalid + a visible referenced message identifies it (vision-confirmed: "Name is required.")');
+  assert.equal(dir('form-error-probe', byXp['/html/body/form[4]/div/label/input']), null, 'an unconstrained field has no detectable error condition ⇒ applicability fails ⇒ PARTIAL');
+});
+
 // ---- build-through: shadow by default; AT-independent C3 clears authoritative when PROMOTED ----
 test('C3 build-through: default-shadow; PROMOTED ⇒ authoritative clear (AT-independent, no baseline needed)', { skip: !chromeOK, concurrency: false }, async () => {
   const { byXp } = await run('text-contrast-pixel', 'fx-v3-c3-contrast.html', ['/html/body/div[1]/span']);
