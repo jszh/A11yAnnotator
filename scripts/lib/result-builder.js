@@ -41,7 +41,7 @@ const fullIssue = i => (!i || typeof i !== 'object') ? '<<invalid-issue>>' : `${
 const ELEMENT_KEYS = new Set(['xpath', 'axRole', 'axName', 'appearanceShot', 'appearanceNote', 'notFound', 'skills', 'anyIssue']);
 const VERDICT_KEYS = new Set(['verdict', 'sc', 'level', 'evidence', 'bucket', 'rule', 'isolation', 'trust', 'basis']);
 const SUMMARY_KEYS = new Set(['elements', 'elementsWithIssue', 'pageHasIssue', 'bySkill', 'pageBySkill', 'normativeFailures', 'atCompatFindings', 'bestPracticeFindings', 'issues', 'countBasis']);
-const TOP_KEYS = new Set(['file', 'slug', 'noscript', 'pageSkills', 'elements', 'summary', 'provenance']);
+const TOP_KEYS = new Set(['file', 'slug', 'noscript', 'pageSkills', 'elements', 'summary', 'provenance', 'axeAdjudications']);
 // R2.4-F: nested structures are also strict — no smuggled keys inside derived objects.
 const ISSUE_KEYS = new Set(['scope', 'xpath', 'skill', 'verdict', 'sc', 'level', 'bucket', 'rule', 'evidence']);
 const COUNTBASIS_KEYS = new Set(['subVerdict', 'elementWithIssue', 'dedupedDefect', 'normativeFailures']);
@@ -126,6 +126,7 @@ function buildResults(input) {
     },
   };
   if (input.provenance) out.provenance = input.provenance;
+  if (Array.isArray(input.axeAdjudications)) out.axeAdjudications = input.axeAdjudications; // R2.8-C
   return out;
 }
 
@@ -366,6 +367,18 @@ function validateResults(R, opts = {}) {
       if (AX.wcagViolations > 0) E(`provenance/axe: the collector's axe run found ${AX.wcagViolations} WCAG violation(s), so EVERY collected element must be evaluated — the audit SKIPPED ${skippedN} (record unlocatable elements as notFound, do not skip)`);
       else if (AX.ran === false) E(`provenance/axe: the collector's axe run did NOT complete, so a skip cannot be verified safe — EVERY collected element must be evaluated (the audit SKIPPED ${skippedN}). Fail-closed.`);
     }
+    // R2.8-C (R27-H3 #2): RECONCILIATION — every WCAG SC the collector's axe flagged must be
+    // addressed: reported as a finding (some issue cites that SC) OR explicitly adjudicated
+    // in `axeAdjudications:[{sc, reason}]`. A clean result cannot silently ignore axe.
+    if (Array.isArray(AX.scs) && AX.scs.length) {
+      const citedScs = new Set((R.summary && Array.isArray(R.summary.issues) ? R.summary.issues : []).flatMap(i => S.scCodes(i.sc)));
+      const adj = Array.isArray(R.axeAdjudications) ? R.axeAdjudications : [];
+      for (const a of adj) if (!a || typeof a !== 'object' || !a.sc || !String(a.reason || '').trim()) E('axeAdjudications: each entry needs {sc, reason} with a non-empty reason');
+      const adjScs = new Set(adj.flatMap(a => (a && a.sc) ? S.scCodes(a.sc) : []));
+      for (const sc of AX.scs) if (!citedScs.has(sc) && !adjScs.has(sc)) E(`axe reconciliation: the collector's axe flagged SC ${sc} but the result neither reports it nor adjudicates it (add a finding or an axeAdjudications entry)`);
+    }
+  } else if (Array.isArray(R.axeAdjudications)) {
+    for (const a of R.axeAdjudications) if (!a || typeof a !== 'object' || !a.sc || !String(a.reason || '').trim()) E('axeAdjudications: each entry needs {sc, reason} with a non-empty reason');
   }
 
   for (const el of R.elements) {

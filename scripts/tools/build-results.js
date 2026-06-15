@@ -91,12 +91,16 @@ if (dDup.size) {
 const colSet = new Set(xpaths.map(norm));
 for (const x of driveXpaths) if (!colSet.has(norm(x))) { console.error(`REFUSED: driver probed ${String(x).slice(-40)} which is NOT in the collector inventory (cross-artifact mismatch, R2.8-B).`); process.exit(2); }
 input.provenance = { collect: { xpaths, count: xpaths.length, skipped: Array.isArray(input.skipped) ? input.skipped : [], collectedAt: collect.collectedAt || null, page: collect.file } };
-// R2.5-B/R2.7-B: the collector's OWN axe run is independent ground truth for the skip
-// floor. Count any violation carrying a real WCAG SC tag (not impact-gated — moderate-
-// impact rules can still be Level A failures; best-practice rules have an empty wcag[]).
-// `ran` distinguishes "axe ran clean" from "axe never ran" so the floor can FAIL CLOSED.
+// R2.5-B/R2.7-B/R2.8-C: the collector's OWN axe run is independent ground truth. Count any
+// violation carrying a real WCAG SC tag (not impact-gated). `ran` must be EXPLICITLY true
+// — a MISSING sentinel means "did not run" (fail-closed, R2.8-C #1; `!== false` treated a
+// missing field as ran). The implicated SC set drives RECONCILIATION (R2.8-C #2): each must
+// be reported as a finding or explicitly adjudicated.
 const axeArr = Array.isArray(collect.axe) ? collect.axe : (collect.axe && Array.isArray(collect.axe.violations) ? collect.axe.violations : []);
-const collectorAxe = { ran: collect.axeRan !== false, wcagViolations: axeArr.filter(v => v && Array.isArray(v.wcag) && v.wcag.length > 0).length };
+const wcagTagToSc = t => { const m = /^wcag(\d)(\d)(\d+)$/.exec(t); return m ? `${m[1]}.${m[2]}.${m[3]}` : null; };
+const axeScs = [...new Set(axeArr.flatMap(v => (v && Array.isArray(v.wcag) ? v.wcag : []).map(wcagTagToSc).filter(Boolean)))];
+const collectorAxe = { ran: collect.axeRan === true, wcagViolations: axeArr.filter(v => v && Array.isArray(v.wcag) && v.wcag.length > 0).length, scs: axeScs };
+if (Array.isArray(input.axeAdjudications)) input.axeAdjudications = input.axeAdjudications; // pass-through (validated)
 const driverEvidence = driverEvidenceFrom(drive);
 
 const built = buildResults(input);

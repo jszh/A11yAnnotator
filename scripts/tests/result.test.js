@@ -518,3 +518,19 @@ test('R2.8-A: a 2.1.2 verdict with NO tab-walk evidence is REJECTED', () => {
   const v = validateResults(R, DEo({ '/a': { keyboard: { trusted: true, isolated: true, exercised: true }, kbdResponseKnown: true, kbdResponded: true } }, { tabWalk: { present: false } }));
   assert.ok(v.errors.some(e => /no tab-walk evidence/.test(e)));
 });
+
+// ---- R2.8-C: axe reconciliation (R27-H3) ----
+test('R2.8-C reconciliation: a WCAG SC the collector axe flagged must be a finding OR adjudicated', () => {
+  const base = (extra) => buildResults(Object.assign({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')], provenance: { collect: { xpaths: ['/a'], count: 1 } } }, extra));
+  const axe = { collectorAxe: { ran: true, wcagViolations: 1, scs: ['2.4.4'] } };
+  // unaddressed → reject
+  assert.ok(validateResults(base({}), axe).errors.some(e => /axe flagged SC 2\.4\.4 but the result neither reports it nor adjudicates/.test(e)));
+  // adjudicated → ok
+  assert.equal(validateResults(base({ axeAdjudications: [{ sc: '2.4.4', reason: 'axe false positive — link has an accessible name' }] }), axe).ok, true);
+  // a no-reason adjudication → reject
+  assert.ok(validateResults(base({ axeAdjudications: [{ sc: '2.4.4' }] }), axe).errors.some(e => /axeAdjudications: each entry needs/.test(e)));
+});
+test('R2.8-C reconciliation: a matching FINDING that cites the SC satisfies it', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'reflow-and-pointer-affordances': { verdict: 'REPRODUCED', sc: '2.5.8', level: 'AA', evidence: 'too small', trust: 'trusted', isolation: 'isolated' } })] });
+  assert.equal(validateResults(R, { collectorAxe: { ran: true, wcagViolations: 1, scs: ['2.5.8'] } }).ok, true, 'the result reports 2.5.8 → reconciled');
+});
