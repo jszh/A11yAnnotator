@@ -22,6 +22,7 @@ const oracle = require('./applicability-oracle.js');
 const schemas = require('./schemas.js');
 const attest = require('./attestation.js');
 const manifest = require('./manifest.js');
+const coverage = require('./coverage-registry.js');
 const { resolveClaim } = require('./claims.js');
 
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
@@ -65,6 +66,12 @@ function buildV3(bundle, opts = {}) {
   const enumErrs = oracle.enumerationErrors(bundle.collect);
   if (enumErrs.length) { for (const m of enumErrs) E(`enumeration: ${m}`); return { ok: false, errors, results: null }; }
 
+  // (2c) INDEPENDENTLY-OWNED coverage registry (plan Rule 16; audit V3R4-H8): a SEPARATE declaration
+  //      of surface→family requirements must agree with the oracle's enumeration, so removing a family
+  //      branch from the oracle (which both candidate-gen and obligation-enumeration share) is caught.
+  const covErrs = coverage.coverageErrors(bundle.collect);
+  if (covErrs.length) { for (const m of covErrs) E(`coverage: ${m}`); return { ok: false, errors, results: null }; }
+
   // (3) index evidence by claimId, recording DUPLICATES so conflicting evidence cannot be
   //     resolved order-dependently (audit V3-H5). A claimId with >1 result is a conflict.
   const evByClaim = {};
@@ -103,6 +110,22 @@ function buildV3(bundle, opts = {}) {
   if (opts.requireManifest && !manifestRes.present) { E('manifest: a verified run-manifest is required for a production build (use --shadow-debug for an incomplete inspection build)'); return { ok: false, errors, results: null }; }
   const manifestVerified = manifestRes.present && manifestRes.valid;
 
+  // INDEPENDENT applicability corroboration (plan Rule 15; audit V3R4-H6): the claim's family must be
+  // derivable for its target element by the ORACLE from raw collector facts — a derivation that never
+  // saw the runner's measurement. The runner's own applicabilityEvidence flags remain (now attested),
+  // but the family-level applicability is independently corroborated here, so a runner cannot
+  // manufacture applicability the collector's structural facts do not support. (Honest bound: this
+  // corroborates the FAMILY; a fully independent re-observation of the fine flags is future work.)
+  const collectByXpath = {};
+  for (const el of (bundle.collect && bundle.collect.elements) || []) if (el && el.xpath) collectByXpath[el.xpath] = el;
+  const pageReflowApplicable = !!(bundle.collect && bundle.collect.page && bundle.collect.page.reflowApplicable === true);
+  const oracleCorroborates = (xpath, fam) => {
+    if (!fam) return false;
+    if (xpath === oracle.PAGE_REFLOW_XPATH) return fam === 'reflow-no-hscroll' && pageReflowApplicable;
+    const el = collectByXpath[xpath];
+    return !!el && oracle.familiesFor(el).includes(fam);
+  };
+
   const proposals = (bundle.claimProposals && bundle.claimProposals.proposals) || [];
   const seen = new Set();
   const claims = [];        // authoritative, published
@@ -137,6 +160,9 @@ function buildV3(bundle, opts = {}) {
     // result cannot support a definite direction (audit V3R2-C1).
     else if (linked.valid !== true) bindReason = 'evidence not valid (runner could not produce a usable measurement)';
     else if (linked.completed !== true) bindReason = 'evidence not completed';
+    // the claim's family must be INDEPENDENTLY corroborated by the oracle from raw collector facts —
+    // a runner cannot self-assert applicability the collector's structure does not support (Rule 15).
+    else if (!oracleCorroborates(target, family)) bindReason = `applicability not independently corroborated: the oracle does not derive family "${family}" for ${target} from raw collector facts (Rule 15)`;
     else ev = linked;
 
     const out = bindReason
