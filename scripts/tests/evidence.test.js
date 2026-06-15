@@ -176,15 +176,21 @@ test('R2.6-D trap (#7): an EVER-FRESH-focusable trap (never converges, interfere
   assert.equal(o.tabWalk.trapDetected, null);
   assert.equal(o.tabWalk.trapIndeterminate, true, 'a walk that never converges AND interferes cannot assess keyboard/focus');
 });
-test('R2.7-D trap (#7 false-positive): a CLEAN long nav (>MAXTAB links, no interference) is NOT a trap', { skip: !serverUp }, () => {
+test('R2.8-F trap (#7): a long nav truncated at MAXTAB is INDETERMINATE (escape not confirmed), never a definite verdict', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-longnav.html', ['/html/body/nav[1]/a[1]']);
-  assert.equal(o.tabWalk.trapDetected, false, 'a big page the walk truncated is not a keyboard trap');
-  assert.notEqual(o.tabWalk.trapIndeterminate, true, 'no interference ⇒ not falsely indeterminate');
+  assert.notEqual(o.tabWalk.trapDetected, true, 'a big page the walk truncated is not a DEFINITE trap');
+  assert.equal(o.tabWalk.trapIndeterminate, true, 'the walk did not converge → escape unconfirmed → indeterminate (2.1.2 PARTIAL)');
+  assert.match(o.tabWalk.trapReason || '', /did not converge within the budget/);
 });
-test('R2.5-D trap (my #3): a DISABLE-the-background trap (tabindex=-1 on outside controls) is caught', { skip: !serverUp }, () => {
+test('R2.8-F trap (R27-H5): unrelated mutations on never-focusable divs do NOT create a false trap', { skip: !serverUp }, () => {
+  const o = runScript('drive-page.js', 'fx-trap-defocus-fp.html', ['/html/body/button[1]']);
+  assert.equal(o.tabWalk.trapDetected, false, 'tabindex=-1 on empty <div>s removes no reachable route — normal wraparound');
+  assert.notEqual(o.tabWalk.trapIndeterminate, true);
+});
+test('R2.8-F trap (my #3): a DISABLE-the-background trap is a SUSPECT → indeterminate (not a definite trap)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap-disable.html', ['/html/body/div[1]/button[1]']);
-  assert.equal(o.tabWalk.trapDetected, true, 'the page removed the escape routes ⇒ background-defocus interference');
-  assert.equal(o.tabWalk.trapInterference, 'background-defocus');
+  assert.equal(o.tabWalk.trapDetected, null, 'disabling background routes does not PROVE inescapability');
+  assert.equal(o.tabWalk.trapIndeterminate, true, '→ indeterminate (agent verifies the modal’s own exit); 2.1.2 PARTIAL');
 });
 test('R2.3-B+ trap: a non-standard exit that is ADVISED emits advisedExitHint (agent → PARTIAL, not a definite trap)', { skip: !serverUp }, () => {
   const o = runScript('drive-page.js', 'fx-trap-advised.html', ['/html/body/div[1]/button[1]']);

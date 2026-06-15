@@ -313,12 +313,24 @@ function loadXpaths() {
       window.__a11yTrapFI = () => { window.__a11yTrap.focusins++; };
       window.addEventListener('keydown', window.__a11yTrapKD, false); // bubble + last ⇒ sees final defaultPrevented
       document.addEventListener('focusin', window.__a11yTrapFI, true);
-      // R2.5-D: OUTCOME-layer signal — a trap may DISABLE the escape routes (tabindex=-1 /
-      // disabled / inert / aria-hidden on the background) rather than preventDefault. That
-      // mutation is observable even when the page stopImmediatePropagation()s our listeners.
+      // R2.5-D/R2.8-F: OUTCOME-layer signal — a trap may DISABLE escape routes (tabindex=-1
+      // / disabled / inert / aria-hidden) rather than preventDefault. R2.8-F (R27-H5): count
+      // ONLY a mutation that removes a PREVIOUSLY-REACHABLE focusable route — an empty
+      // <div> getting tabindex="-1" was never focusable, so it is not an escape route and
+      // must not be counted (the auditor's false positive). attributeOldValue lets us know
+      // the element was focusable before.
       try {
-        const mo = new MutationObserver(ms => { for (const m of ms) { const el = m.target; if (!el || el.nodeType !== 1) continue; const a = m.attributeName; if ((a === 'tabindex' && el.getAttribute('tabindex') === '-1') || (a === 'disabled' && el.disabled) || (a === 'inert' && el.hasAttribute('inert')) || (a === 'aria-hidden' && el.getAttribute('aria-hidden') === 'true')) window.__a11yTrap.defocus++; } });
-        mo.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['tabindex', 'disabled', 'inert', 'aria-hidden'] });
+        const FOCUSEL = 'a[href],button,input:not([type=hidden]),select,textarea,summary,[contenteditable="true"]';
+        const mo = new MutationObserver(ms => { for (const m of ms) {
+          const el = m.target; if (!el || el.nodeType !== 1) continue; const a = m.attributeName;
+          // was this element a reachable focusable route BEFORE the mutation?
+          const nativelyFocusable = el.matches && el.matches(FOCUSEL);
+          const hadPosTabindex = a === 'tabindex' ? (m.oldValue !== null && +m.oldValue >= 0) : (el.getAttribute('tabindex') !== null && +el.getAttribute('tabindex') >= 0);
+          if (!nativelyFocusable && !hadPosTabindex) continue; // not previously focusable → not a route
+          const removed = (a === 'tabindex' && el.getAttribute('tabindex') === '-1') || (a === 'disabled' && el.disabled) || (a === 'inert' && el.hasAttribute('inert')) || (a === 'aria-hidden' && el.getAttribute('aria-hidden') === 'true');
+          if (removed) window.__a11yTrap.defocus++;
+        } });
+        mo.observe(document.documentElement, { subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ['tabindex', 'disabled', 'inert', 'aria-hidden'] });
         window.__a11yTrapMO = mo;
       } catch (e) {}
     }).catch(() => {});
@@ -379,12 +391,16 @@ function loadXpaths() {
         const tabs = Math.max(0, s1.tabs - s0.tabs);
         const prevented = Math.max(0, s1.prevented - s0.prevented);
         const redirects = Math.max(0, (s1.focusins - s0.focusins) - tabs); // focusins > tabs ⇒ programmatic refocus
-        const defocus = s1.defocus; // cumulative: did the page disable escape routes during the walk?
-        const interfered = prevented > 0 || redirects > 0 || frozen > 0 || defocus >= 2;
+        const defocus = s1.defocus; // cumulative removed-route mutations during the walk
+        // R2.8-F: HARD interference (the page directly prevents focus from moving) ⇒ a
+        // DEFINITE trap. background-DEFOCUS is only a SUSPECT signal — disabling background
+        // routes does not PROVE inescapability (a modal may still have its own exit) ⇒
+        // indeterminate, never a definite trap.
+        const hardInterference = prevented > 0 || redirects > 0 || frozen > 0;
         if (escaped) { out.tabWalk.escapableComponent = { via: escapeMethod }; stopsSinceNew = 0; continue; }
-        if (interfered) {
+        if (hardInterference) {
           out.tabWalk.trapDetected = true; out.tabWalk.trapCycle = [...new Set(recent)];
-          out.tabWalk.trapInterference = prevented > 0 ? 'preventDefault' : frozen > 0 ? 'focus-frozen' : redirects > 0 ? 'focus-redirect' : 'background-defocus';
+          out.tabWalk.trapInterference = prevented > 0 ? 'preventDefault' : frozen > 0 ? 'focus-frozen' : 'focus-redirect';
           // 2.1.2: a NON-STANDARD exit is conformant IF the user is ADVISED of it. The
           // harness can't prove an advisement is adequate/associated, so it emits a HINT
           // only (instructional text near the component naming an exit method); the agent
@@ -408,8 +424,12 @@ function loadXpaths() {
         // not be positively demonstrated ⇒ INDETERMINATE (agent treats keyboard/focus as
         // PARTIAL), never a silent "not a trap".
         const dlgNow = (await curState()).dialogs;
-        if (seenAll.size >= totalFocusables && dlgNow === 0) { if (!out.tabWalk.escapableComponent) out.tabWalk.escapableComponent = { via: 'wraparound' }; } // don't clobber an earlier real escape (e.g. Escape)
-        else { out.tabWalk.trapDetected = null; out.tabWalk.trapIndeterminate = true; out.tabWalk.trapReason = dlgNow > 0 ? 'focus confined within an open dialog and no escape could be positively demonstrated' : 'bounded cycle; unreached focusables remain and no escape could be positively demonstrated'; out.tabWalk.trapCycle = [...new Set(recent)]; }
+        // Wraparound (NOT a trap) only when the cycle is the WHOLE page, no modal confines
+        // focus, AND the page did not disable any reachable route during the walk. Otherwise
+        // — unreached focusables, an open dialog, or background-defocus — escape could not be
+        // positively demonstrated ⇒ INDETERMINATE (agent treats 2.1.2/keyboard as PARTIAL).
+        if (seenAll.size >= totalFocusables && dlgNow === 0 && defocus < 2) { if (!out.tabWalk.escapableComponent) out.tabWalk.escapableComponent = { via: 'wraparound' }; }
+        else { out.tabWalk.trapDetected = null; out.tabWalk.trapIndeterminate = true; out.tabWalk.trapReason = defocus >= 2 ? 'the page disabled reachable focus routes during the walk and no escape could be positively demonstrated (background-defocus suspect)' : dlgNow > 0 ? 'focus confined within an open dialog and no escape could be positively demonstrated' : 'bounded cycle; unreached focusables remain and no escape could be positively demonstrated'; out.tabWalk.trapCycle = [...new Set(recent)]; }
         break;
       }
     }
@@ -426,13 +446,17 @@ function loadXpaths() {
           if (fin.prevented > 0) { out.tabWalk.trapDetected = true; out.tabWalk.trapInterference = 'focus-frozen'; }
           else { out.tabWalk.trapDetected = null; out.tabWalk.trapIndeterminate = true; }
           out.tabWalk.trapReason = `no focusable was reached by Tab despite ${totalFocusables} focusable(s) — focus may be frozen/blocked`;
-        } else if ((out.tabWalk.budgetExceeded || reached >= MAXTAB) && (fin.prevented > 0 || fin.defocus >= 2 || (fin.focusins - fin.tabs) > Math.max(2, fin.tabs * 0.25))) {
-          // R2.7-D (#7): the walk never converged AND the page INTERFERED (preventDefault /
-          // background-defocus / excess refocus) — an ever-fresh-focusable trap ⇒ indeterminate.
-          // A clean LONG nav (>MAXTAB focusables, NO interference) is NOT flagged — it is just
-          // a big page the walk truncated, not a trap (avoids a false positive).
+        } else if (out.tabWalk.budgetExceeded || reached >= MAXTAB) {
+          // R2.8-F (#4/#7): a walk that hit MAXTAB WITHOUT converging is INHERENTLY incomplete
+          // — it cannot positively confirm "no trap" (NR 2.1.2 unsupported) NOR a trap (REP
+          // unsupported). So it is INDETERMINATE, whether the cause is an ever-fresh-focusable
+          // trap (interference) or simply a page longer than the budget. The reason
+          // distinguishes them; either way a definite 2.1.2 verdict is unsupported → PARTIAL.
           out.tabWalk.trapDetected = null; out.tabWalk.trapIndeterminate = true;
-          out.tabWalk.trapReason = 'tab-walk did not converge AND the page interfered with Tab (kept advancing under preventDefault/refocus) — keyboard/focus indeterminate';
+          const interfered = fin.prevented > 0 || fin.defocus >= 2 || (fin.focusins - fin.tabs) > Math.max(2, fin.tabs * 0.25);
+          out.tabWalk.trapReason = interfered
+            ? 'tab-walk did not converge AND the page interfered with Tab (ever-fresh focusables under preventDefault/refocus) — indeterminate'
+            : 'tab-walk did not converge within the budget (page longer than MAXTAB) — escape not confirmed, indeterminate';
         }
       }
     }
