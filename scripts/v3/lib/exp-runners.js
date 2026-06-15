@@ -35,6 +35,29 @@ function measureContrast(marker) {
   for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) ownsText = true;
   const rect = el.getBoundingClientRect();
   const visible = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && rect.width > 0 && rect.height > 0;
+  // the actual rendered text INK extent — the union of the text node's client rects, which (unlike the
+  // border-box) includes glyphs that OVERFLOW the element (audit V3R3 red-team: white-space:nowrap text
+  // spilling onto a different canvas). Uniformity must be proven over the whole rendered run.
+  let inkRect = rect;
+  try {
+    const range = document.createRange(); range.selectNodeContents(el);
+    const rs = range.getClientRects();
+    let l = Infinity, t = Infinity, rr = -Infinity, b = -Infinity, any = false;
+    for (const q of rs) { if (q.width <= 0 || q.height <= 0) continue; any = true; l = Math.min(l, q.left); t = Math.min(t, q.top); rr = Math.max(rr, q.right); b = Math.max(b, q.bottom); }
+    if (any && rr > l && b > t) inkRect = { left: l, top: t, right: rr, bottom: b, width: rr - l, height: b - t };
+  } catch (e) { /* keep the border-box */ }
+  // a PSEUDO-ELEMENT (::before/::after) background is invisible to BOTH document.elementsFromPoint and
+  // document.querySelectorAll('*'), so a pseudo painted behind the text can hide a non-uniform backdrop
+  // (audit V3R3 red-team). A generated pseudo with a visible background defeats the uniformity proof.
+  const pseudoPaints = (node) => {
+    for (const pe of ['::before', '::after']) {
+      const pcs = getComputedStyle(node, pe); if (!pcs) continue;
+      if (pcs.content === 'none' || pcs.content === 'normal' || pcs.content === '') continue; // not generated
+      const pc = rgba(pcs.backgroundColor);
+      if ((pc && pc.a > 0) || (pcs.backgroundImage && pcs.backgroundImage !== 'none')) return true;
+    }
+    return false;
+  };
 
   // MIXED RUNS: a descendant element that owns text in a DIFFERENT colour means the element is not a
   // single contrast run; we cannot soundly clear it on the element's own colour (audit C2).
@@ -47,31 +70,80 @@ function measureContrast(marker) {
   // ancestor opacity chain (an ancestor opacity<1 composites the group → rendered contrast differs)
   let opacityChain = 1; for (let p = el; p; p = p.parentElement) { const o = parseFloat(getComputedStyle(p).opacity); if (!isNaN(o)) opacityChain *= o; }
 
-  // backdrop: resolve through the ACTUAL paint stack at the glyph location (document.elementsFromPoint),
-  // not just the ancestor chain — this captures absolutely-positioned SIBLINGS / overlays painted
-  // behind the text that the ancestor walk misses (audit V3R2-C3). Composite every translucent layer
-  // down onto the first opaque one; any background-image / filter / blend / backdrop-filter in the
-  // relevant layers makes the rendered composition non-trivial ⇒ cannot soundly clear.
-  let bg = null, hasImage = false, hasFilterBlend = false;
-  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
-  let stack = (rect.width > 0 && rect.height > 0) ? document.elementsFromPoint(cx, cy) : [];
-  const idx = stack.indexOf(el);
-  // paint layers from the text element DOWN (itself + everything behind it at this point); if the
-  // element isn't in the hit stack, fall back to the ancestor chain (conservative).
-  const below = idx >= 0 ? stack.slice(idx) : (() => { const a = []; for (let p = el; p; p = p.parentElement) a.push(p); return a; })();
-  const layers = [];
-  for (const node of below) {
+  // backdrop: resolve the composited backdrop through the ACTUAL paint stack at a point
+  // (document.elementsFromPoint), compositing every translucent layer down onto the first opaque
+  // one and recording the OPAQUE BASE ELEMENT. A background-image / filter / blend / backdrop-filter
+  // in any relevant layer makes the composition non-trivial.
+  const colorEq = (x, y) => !!x && !!y && x.r === y.r && x.g === y.g && x.b === y.b;
+  const rectContains = (R, t, tol) => R.left <= t.left + tol && R.top <= t.top + tol && R.right >= t.right - tol && R.bottom >= t.bottom - tol;
+  function resolveAt(px, py) {
+    const stack = document.elementsFromPoint(px, py);
+    const idx = stack.indexOf(el);
+    // from the text element DOWN; if the element isn't in the hit stack, fall back to its ancestor chain.
+    const below = idx >= 0 ? stack.slice(idx) : (() => { const a = []; for (let p = el; p; p = p.parentElement) a.push(p); return a; })();
+    const layers = [], layerEls = [];
+    let baseEl = null, hasImage = false, hasFilterBlend = false;
+    for (const node of below) {
+      const ncs = getComputedStyle(node);
+      if (ncs.backgroundImage && ncs.backgroundImage !== 'none') hasImage = true;
+      if ((ncs.filter && ncs.filter !== 'none') || (ncs.backdropFilter && ncs.backdropFilter !== 'none') || (ncs.mixBlendMode && ncs.mixBlendMode !== 'normal')) hasFilterBlend = true;
+      const c = rgba(ncs.backgroundColor);
+      if (c && c.a > 0) { layers.push(c); layerEls.push(node); }
+      if (c && c.a === 1) { baseEl = node; break; }
+    }
+    if (!baseEl) return { baseEl: null, color: null, hasImage, hasFilterBlend, layerEls };
+    let composed = layers[layers.length - 1];
+    for (let i = layers.length - 2; i >= 0; i--) composed = over(layers[i], composed);
+    return { baseEl, color: composed, hasImage, hasFilterBlend, layerEls };
+  }
+
+  // WHOLE-TEXT-RECT uniformity (audit V3R3-H1): a single centre sample cannot prove the backdrop is
+  // uniform across the rendered run. Sample the centre + the four inset corners; the backdrop is
+  // uniform ONLY when every sample resolves the SAME opaque base element and the SAME composited
+  // colour, that base + every translucent layer fully CONTAINS the text rect, and — crucially — no
+  // NON-ANCESTOR element paints a background intersecting the text rect (a sibling/overlay backdrop
+  // a point sample can miss). A clearing verdict needs PROVEN uniformity; anything else ⇒ PARTIAL.
+  let bg = null, hasImage = false, hasFilterBlend = false, uniformSamples = true;
+  const samples = [];
+  if (inkRect.width > 0 && inkRect.height > 0) {
+    const ins = 1;
+    const pts = [
+      [inkRect.left + inkRect.width / 2, inkRect.top + inkRect.height / 2],
+      [inkRect.left + ins, inkRect.top + ins], [inkRect.right - ins, inkRect.top + ins],
+      [inkRect.left + ins, inkRect.bottom - ins], [inkRect.right - ins, inkRect.bottom - ins],
+    ];
+    for (const [px, py] of pts) { const s = resolveAt(px, py); samples.push(s); if (s.hasImage) hasImage = true; if (s.hasFilterBlend) hasFilterBlend = true; }
+  } else uniformSamples = false;
+  const center = samples[0] || null;
+  if (center && center.color) bg = center.color;
+  const base0 = center && center.baseEl;
+  for (const s of samples) {
+    if (!s || !s.baseEl || !s.color || s.baseEl !== base0 || !colorEq(s.color, bg)) { uniformSamples = false; break; }
+  }
+  let layersContainText = uniformSamples && !!base0;
+  if (layersContainText) {
+    for (const node of new Set([base0, ...((center && center.layerEls) || [])])) {
+      if (!rectContains(node.getBoundingClientRect(), inkRect, 1)) { layersContainText = false; break; }
+    }
+  }
+  // (B) GEOMETRIC enumeration — catches absolutely-positioned SIBLINGS / overlays (incl.
+  // pointer-events:none) and PSEUDO-ELEMENT backdrops that point-sampling and the ancestor walk miss
+  // (audit V3R3-H1 / R2-C3 + V3R3 red-team). el's and its ancestors' pseudos paint behind the text;
+  // a non-ancestor with a visible background OR pseudo-background intersecting the ink rect is foreign.
+  const isAncestorOfEl = (n) => { for (let p = el; p; p = p.parentElement) if (p === n) return true; return false; };
+  const intersectsText = (R) => !(R.right <= inkRect.left || R.left >= inkRect.right || R.bottom <= inkRect.top || R.top >= inkRect.bottom);
+  let pseudoPainter = false;
+  for (let p = el; p; p = p.parentElement) { if (pseudoPaints(p)) { pseudoPainter = true; break; } }
+  let foreignPainter = false;
+  for (const node of document.querySelectorAll('*')) {
+    if (node === el || el.contains(node) || isAncestorOfEl(node)) continue;
     const ncs = getComputedStyle(node);
-    if (ncs.backgroundImage && ncs.backgroundImage !== 'none') hasImage = true;
-    if ((ncs.filter && ncs.filter !== 'none') || (ncs.backdropFilter && ncs.backdropFilter !== 'none') || (ncs.mixBlendMode && ncs.mixBlendMode !== 'normal')) hasFilterBlend = true;
+    if (ncs.display === 'none' || ncs.visibility === 'hidden' || parseFloat(ncs.opacity) === 0) continue;
     const c = rgba(ncs.backgroundColor);
-    if (c && c.a > 0) layers.push(c);     // text-ward → behind order
-    if (c && c.a === 1) break;            // opaque base reached
+    const paints = (c && c.a > 0) || (ncs.backgroundImage && ncs.backgroundImage !== 'none') || pseudoPaints(node);
+    if (paints && intersectsText(node.getBoundingClientRect())) { foreignPainter = true; break; }
   }
-  if (layers.length && layers[layers.length - 1].a === 1) {
-    bg = layers[layers.length - 1];
-    for (let i = layers.length - 2; i >= 0; i--) bg = over(layers[i], bg); // paint translucent layers back over the base
-  }
+
   const fg = rgba(cs.color);
   const sizePx = parseFloat(cs.fontSize) || 0;
   let weight = parseInt(cs.fontWeight, 10); if (isNaN(weight)) weight = cs.fontWeight === 'bold' ? 700 : 400;
@@ -80,7 +152,7 @@ function measureContrast(marker) {
 
   const foregroundResolved = !!fg && !mixedRuns; // a mixed-colour element has no single foreground
   const backgroundResolved = !!bg;
-  const backdropIsSolidUniform = backgroundResolved && !hasImage && !hasFilterBlend && opacityChain === 1;
+  const backdropIsSolidUniform = backgroundResolved && uniformSamples && layersContainText && !foreignPainter && !pseudoPainter && !hasImage && !hasFilterBlend && opacityChain === 1;
   const contrastComputable = foregroundResolved && backgroundResolved && backdropIsSolidUniform && !mixedRuns;
   let ratio = null;
   if (contrastComputable) {
@@ -99,6 +171,59 @@ function measureContrast(marker) {
   };
 }
 
+// in-page: the text INK clip (Range rects union) in viewport CSS px, clamped to the viewport — the
+// region the backdrop must be uniform over (incl. overflow). null if not screenshot-capturable.
+function inkClip(marker) {
+  const el = document.querySelector(`[data-v3-target="${marker}"]`);
+  if (!el) return null;
+  let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity, any = false;
+  try { const range = document.createRange(); range.selectNodeContents(el); for (const q of range.getClientRects()) { if (q.width <= 0 || q.height <= 0) continue; any = true; l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom); } } catch (e) { /* fall back */ }
+  if (!any) { const rr = el.getBoundingClientRect(); l = rr.left; t = rr.top; r = rr.right; b = rr.bottom; }
+  const vw = window.innerWidth, vh = window.innerHeight;
+  if (r <= 0 || b <= 0 || l >= vw || t >= vh) return null;
+  const x = Math.max(0, Math.floor(l)), y = Math.max(0, Math.floor(t));
+  const w = Math.min(vw - x, Math.ceil(r - x)), h = Math.min(vh - y, Math.ceil(b - y));
+  if (w < 2 || h < 2) return null;
+  return { x, y, width: w, height: h };
+}
+// in-page: force ALL glyph fill in el's subtree to `color` (a sentinel, or 'transparent' to hide;
+// '' removes the override). Restores afterward. text-shadow/caret are neutralised so only glyph ink
+// is recoloured — the backdrop is unaffected.
+function setGlyphColor(marker, color) {
+  const id = 'v3-glyph-color';
+  const ex = document.getElementById(id); if (ex) ex.remove();
+  if (color) { const s = document.createElement('style'); s.id = id; s.textContent = `[data-v3-target="${marker}"], [data-v3-target="${marker}"] *{color:${color}!important;-webkit-text-fill-color:${color}!important;text-shadow:none!important;caret-color:transparent!important}`; document.head.appendChild(s); }
+  return true;
+}
+// in-page: is the backdrop BEHIND THE GLYPHS a single uniform colour? Takes three equal-size base64
+// PNGs of the same clip with the glyphs forced to two distinct SENTINEL colours and to transparent.
+// GLYPH GEOMETRY is where the two sentinel shots differ (so even ORIGINALLY-INVISIBLE text — e.g.
+// black-on-black — is located, which a shown-vs-hidden diff would miss); the backdrop is uniform iff
+// the text-hidden shot is one colour across those glyph pixels (inline line-box leading, which the
+// inline background does not paint, never pollutes the sample). The RENDERED backdrop is the only
+// COMPLETE uniformity oracle — it captures SVG / canvas / img / ::first-line / shadow-DOM painters
+// that CSS-property enumeration misses (audit V3R3 self-adversarial).
+function analyzeBackdrop(sentAB64, sentBB64, hiddenB64) {
+  const load = (s) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = 'data:image/png;base64,' + s; });
+  return Promise.all([load(sentAB64), load(sentBB64), load(hiddenB64)]).then(([a, b, hd]) => {
+    if (!a || !b || !hd || a.naturalWidth !== b.naturalWidth || a.naturalWidth !== hd.naturalWidth || a.naturalHeight !== hd.naturalHeight) return { uniform: false };
+    const w = a.naturalWidth, h = a.naturalHeight; if (!w || !h) return { uniform: false };
+    const px = (img) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.drawImage(img, 0, 0); return x.getImageData(0, 0, w, h).data; };
+    const da = px(a), db = px(b), dh = px(hd);
+    let minR = 255, minG = 255, minB = 255, maxR = 0, maxG = 0, maxB = 0, glyphPixels = 0;
+    for (let i = 0; i < da.length; i += 4) {
+      const sentDelta = Math.max(Math.abs(da[i] - db[i]), Math.abs(da[i + 1] - db[i + 1]), Math.abs(da[i + 2] - db[i + 2]));
+      if (sentDelta <= 40) continue;             // backdrop pixel (unchanged between the two sentinels)
+      glyphPixels++;
+      const r = dh[i], g = dh[i + 1], bl = dh[i + 2]; // the BACKDROP colour behind this glyph pixel
+      if (r < minR) minR = r; if (g < minG) minG = g; if (bl < minB) minB = bl;
+      if (r > maxR) maxR = r; if (g > maxG) maxG = g; if (bl > maxB) maxB = bl;
+    }
+    const range = Math.max(maxR - minR, maxG - minG, maxB - minB);
+    return { uniform: glyphPixels >= 8 && range <= 12, range, glyphPixels };
+  });
+}
+
 async function runTextContrastPixel(page, request) {
   const marker = String(request.candidateId || request.targetXpath);
   const o = { isTextNode: false, textRendersVisible: false, foregroundResolved: false, backgroundResolved: false, backdropIsSolidUniform: false, contrastComputable: false, sizeClassResolved: false, thresholdMet: false, thresholdFailed: false, notExemptText: false, measurementStable: false };
@@ -108,17 +233,40 @@ async function runTextContrastPixel(page, request) {
   const a = await page.evaluate(measureContrast, marker).catch(() => null);
   await H.settle(page);
   const b = await page.evaluate(measureContrast, marker).catch(() => null);
+
+  // RENDERED-PIXEL backdrop channel: screenshot the ink region with glyph fill hidden; the backdrop
+  // is genuinely uniform only if every captured pixel is one colour. A clear/barrier (anything that
+  // needs a single computable contrast) requires BOTH the geometric channel AND this pixel channel
+  // to agree the backdrop is uniform — closing SVG/canvas/pseudo painters enumeration cannot see.
+  let pixelUniform = false;
+  if (a && a.textRendersVisible && a.foregroundResolved) {
+    const clip = await page.evaluate(inkClip, marker).catch(() => null);
+    if (clip) {
+      const shot = async () => page.screenshot({ clip, encoding: 'base64' }).catch(() => null);
+      await page.evaluate(setGlyphColor, marker, '#ff00ff').catch(() => {});
+      const sentA = await shot();
+      await page.evaluate(setGlyphColor, marker, '#00ff00').catch(() => {});
+      const sentB = await shot();
+      await page.evaluate(setGlyphColor, marker, 'transparent').catch(() => {});
+      const hidden = await shot();
+      await page.evaluate(setGlyphColor, marker, '').catch(() => {});
+      if (sentA && sentB && hidden) { const px = await page.evaluate(analyzeBackdrop, sentA, sentB, hidden).catch(() => null); pixelUniform = !!(px && px.uniform); }
+    }
+  }
+
   if (a && b) {
-    Object.assign(o, { isTextNode: a.isTextNode, textRendersVisible: a.textRendersVisible, foregroundResolved: a.foregroundResolved, backgroundResolved: a.backgroundResolved, backdropIsSolidUniform: a.backdropIsSolidUniform, contrastComputable: a.contrastComputable, sizeClassResolved: a.sizeClassResolved, notExemptText: a.notExemptText });
+    const uniform = a.backdropIsSolidUniform && pixelUniform;            // both channels must agree
+    const contrastComputable = a.contrastComputable && pixelUniform;     // a.contrastComputable already ANDs the geometric channel
+    Object.assign(o, { isTextNode: a.isTextNode, textRendersVisible: a.textRendersVisible, foregroundResolved: a.foregroundResolved, backgroundResolved: a.backgroundResolved, backdropIsSolidUniform: uniform, contrastComputable, sizeClassResolved: a.sizeClassResolved, notExemptText: a.notExemptText });
     o.measurementStable = a.signature === b.signature; // no color animation between reads
-    if (a.contrastComputable && o.measurementStable && a.ratio != null) {
+    if (contrastComputable && o.measurementStable && a.ratio != null) {
       o.thresholdMet = a.ratio >= a.threshold;
       o.thresholdFailed = a.ratio < a.threshold;
     }
-    // non-uniform backdrop or instability ⇒ neither met nor failed ⇒ INCONCLUSIVE
+    // non-uniform backdrop (either channel) or instability ⇒ neither met nor failed ⇒ INCONCLUSIVE
   }
   const valid = !!(a && b && o.textRendersVisible && o.measurementStable);
-  return mk(request, 'text-contrast-pixel', '1.4.3', { ...o, hydrationReady }, { isTextNode: o.isTextNode, textRendersVisible: o.textRendersVisible, sizeClassResolved: o.sizeClassResolved }, { action: 'measure-contrast', valid, measurement: { ratio: a && a.ratio, threshold: a && a.threshold } });
+  return mk(request, 'text-contrast-pixel', '1.4.3', { ...o, hydrationReady }, { isTextNode: o.isTextNode, textRendersVisible: o.textRendersVisible, sizeClassResolved: o.sizeClassResolved }, { action: 'measure-contrast', valid, measurement: { ratio: a && a.ratio, threshold: a && a.threshold, pixelUniform } });
 }
 
 // =====================================================================================
@@ -192,14 +340,18 @@ function measureReflow() {
   const horizontalScrollPresent = se.scrollWidth > se.clientWidth + SLOP;
   // locate visible, non-exempt overflow sources
   const vw = window.innerWidth;
-  // a table is 2D-exempt only when it is a DATA table (has th/caption or an explicit grid/table role);
-  // a bare layout table (no th/caption/role) is NOT exempt — its overflow is a real reflow barrier
-  // rather than a blanket element-type exemption (audit V3R2-M1).
+  // The 1.4.10 "requires two-dimensional layout for usage or meaning" exception is a SEMANTIC
+  // adjudication, not a proven property: th/caption are good SIGNALS of a data table but not proof
+  // that 2D layout is required (audit V3R3-M2). This runner is BARRIER-ONLY, so a conservative
+  // exemption can only suppress a barrier (a false negative we surface), never manufacture a clear.
+  // `dataTableExemptionApplied` reports when this heuristic boundary was the reason an overflow
+  // source was not counted, so "0 barriers" is never mistaken for "proven no reflow barrier".
+  let dataTableExemptionApplied = false;
   const isExempt = (el) => {
     for (let p = el; p; p = p.parentElement) {
       const tag = p.tagName, role = p.getAttribute && p.getAttribute('role');
       if (tag === 'MAP' || tag === 'SVG' || (role && /^(table|grid|treegrid)$/.test(role))) return true;
-      if (tag === 'TABLE' && (p.querySelector('th, caption') || /^(table|grid|treegrid)$/.test(role || ''))) return true;
+      if (tag === 'TABLE' && (p.querySelector('th, caption') || /^(table|grid|treegrid)$/.test(role || ''))) { dataTableExemptionApplied = true; return true; }
       const ov = getComputedStyle(p).overflowX;
       if (ov === 'auto' || ov === 'scroll') return true; // author-provided 2D affordance
     }
@@ -220,7 +372,7 @@ function measureReflow() {
     if ((cs.overflowX === 'hidden' || cs.overflowX === 'clip') && el.scrollWidth > el.clientWidth + SLOP) clipHidingDetected = true;
   }
   return {
-    horizontalScrollPresent, overflowSourceLocated, clipHidingDetected,
+    horizontalScrollPresent, overflowSourceLocated, clipHidingDetected, dataTableExemptionApplied,
     allOverflowExemptOr2D: overflowSourceLocated && !anyNonExempt,
     overflowBarrierObserved: horizontalScrollPresent && overflowSourceLocated && anyNonExempt,
     scrollWidth: se.scrollWidth, clientWidth: se.clientWidth,
@@ -245,7 +397,7 @@ async function runReflowOverflowProbe(page, request) {
     }
   }
   const valid = !!(a && b && viewportSet320 && o.reflowSettled);
-  return mk(request, 'reflow-overflow-probe', '1.4.10', o, { pageRenders, viewportSet320 }, { action: 'reflow-320', state: 'viewport-320x256', valid, measurement: { scrollWidth: a && a.scrollWidth } });
+  return mk(request, 'reflow-overflow-probe', '1.4.10', o, { pageRenders, viewportSet320 }, { action: 'reflow-320', state: 'viewport-320x256', valid, measurement: { scrollWidth: a && a.scrollWidth, dataTableExemptionApplied: !!(a && a.dataTableExemptionApplied) } });
 }
 
 // =====================================================================================
@@ -260,50 +412,102 @@ function measureObscured(marker) {
   if (!focusedRectResolved) return { focusedRectResolved: false, overlayLayerPresent: false, entirelyObscuredByAuthorContent: false, obscuringLayerOpaqueAndBlocking: false, notObscuredAfterScroll: false };
   const alphaOf = (s) => { const m = String(s || '').match(/rgba?\(([^)]+)\)/i); if (!m) return 1; const p = m[1].split(',').map((x) => parseFloat(x)); return p.length >= 4 ? p[3] : 1; };
   const effOpacity = (node) => { let e = 1; for (let p = node; p; p = p.parentElement) { const oo = parseFloat(getComputedStyle(p).opacity); if (!isNaN(oo)) e *= oo; } return e; };
-  const zi = (node) => { const v = parseInt(getComputedStyle(node).zIndex, 10); return isNaN(v) ? 0 : v; };
 
-  // pre-collect OPAQUE author overlays painted ABOVE the target — including pointer-events:none ones,
-  // which elementsFromPoint silently skips even though they visually hide the control (audit V3R2-M2).
-  const overlays = [];
+  // "Entirely obscured" (2.4.11) is a UNIVERSAL claim over the whole component — a finite sample grid
+  // can always miss a visible strip (audit V3R3-H2), and numeric z-index compared across stacking
+  // contexts is not a valid paint order (audit V3R3-H3). So instead:
+  //   (1) determine TRUE paint order via document.elementsFromPoint — which honours the stacking
+  //       tree exactly. pointer-events:none overlays are skipped by hit-testing, so temporarily
+  //       NEUTRALISE pointer-events on intersecting elements (paint is unaffected), then restore.
+  //   (2) for each candidate that is PROVABLY OPAQUE (solid background-color α=1, full effective
+  //       opacity, no rounded corners/clip/transform that could leave gaps) AND paints ABOVE the
+  //       target (paint order between two elements is positionally invariant, so one hit-test point
+  //       in the overlap decides it), take its border-box ∩ target rect as a covered rectangle.
+  //   (3) the component is entirely obscured IFF the EXACT rectangle union of those covered rects
+  //       leaves no remainder of the target rect (rectangle subtraction — not sampling).
+  // Coverage tolerance is near-ZERO: any positive-area remainder is a visible strip of the focused
+  // control and must defeat "entirely obscured" — a 0.5px tolerance treats a real ~0.4px strip (≈1
+  // device px at Retina DPR) as covered, a false barrier (audit V3R3 red-team). EPS only absorbs
+  // floating-point noise from getBoundingClientRect; a genuine sub-pixel gap is far larger.
+  const EPS = 0.02;
+  const intersect = (a, b) => { const x1 = Math.max(a.left, b.left), y1 = Math.max(a.top, b.top), x2 = Math.min(a.right, b.right), y2 = Math.min(a.bottom, b.bottom); return (x2 - x1 > EPS && y2 - y1 > EPS) ? { left: x1, top: y1, right: x2, bottom: y2 } : null; };
+  // subtract rect c from rect base → up to 4 remaining rects (exact, no sampling).
+  const subtract = (base, c) => {
+    const i = intersect(base, c); if (!i) return [base];
+    const out = [];
+    if (i.top > base.top + EPS) out.push({ left: base.left, top: base.top, right: base.right, bottom: i.top });
+    if (i.bottom < base.bottom - EPS) out.push({ left: base.left, top: i.bottom, right: base.right, bottom: base.bottom });
+    if (i.left > base.left + EPS) out.push({ left: base.left, top: i.top, right: i.left, bottom: i.bottom });
+    if (i.right < base.right - EPS) out.push({ left: i.right, top: i.top, right: base.right, bottom: i.bottom });
+    return out;
+  };
+  // a 2D-identity or pure-translation transform keeps the painted area equal to the axis-aligned
+  // border-box (so coverage geometry stays exact); rotate/skew/scale make getBoundingClientRect
+  // over-claim and must stay excluded. This recovers genuine full covers using translateZ(0)/GPU
+  // compositing hacks without risking a false barrier (audit V3R3 red-team recall miss).
+  const axisAlignedTransform = (t) => {
+    if (!t || t === 'none') return true;
+    let m = t.match(/^matrix\(([^)]+)\)$/);
+    if (m) { const v = m[1].split(',').map(parseFloat); return v[0] === 1 && v[1] === 0 && v[2] === 0 && v[3] === 1; }
+    m = t.match(/^matrix3d\(([^)]+)\)$/);
+    if (m) { const v = m[1].split(',').map(parseFloat); return v[0] === 1 && v[1] === 0 && v[2] === 0 && v[4] === 0 && v[5] === 1 && v[6] === 0 && v[8] === 0 && v[9] === 0 && v[10] === 1 && v[3] === 0 && v[7] === 0 && v[11] === 0 && v[15] === 1; }
+    return false;
+  };
+  // getBoundingClientRect reflects ANCESTOR transforms too, so a rotate/skew on any ancestor makes a
+  // child overlay's axis-aligned AABB over-claim its painted area — a false barrier (audit V3R3
+  // self-adversarial). The WHOLE ancestor chain must be axis-aligned for the border-box to be exact.
+  const chainAxisAligned = (node) => { for (let p = node; p; p = p.parentElement) if (!axisAlignedTransform(getComputedStyle(p).transform)) return false; return true; };
+
+  // (1) neutralise pointer-events on intersecting elements so true paint order is observable.
+  const restore = [];
   for (const node of document.querySelectorAll('*')) {
-    if (node === el || el.contains(node) || node.contains(el)) continue;
-    const cs = getComputedStyle(node);
-    if (!/^(fixed|absolute|sticky|relative)$/.test(cs.position)) continue;
-    if (cs.visibility === 'hidden' || cs.display === 'none') continue;
-    if (!(alphaOf(cs.backgroundColor) > 0) && (!cs.backgroundImage || cs.backgroundImage === 'none')) continue;
-    if (effOpacity(node) <= 0.05) continue;                       // opacity:0 ⇒ invisible ⇒ not obscuring
-    const above = zi(node) > zi(el) || (zi(node) === zi(el) && (el.compareDocumentPosition(node) & 4)); // FOLLOWING
-    if (!above) continue;
+    if (getComputedStyle(node).pointerEvents !== 'none') continue;
     const nr = node.getBoundingClientRect();
-    overlays.push(nr);
-    if (cs.position === 'fixed' || cs.position === 'sticky' || node.closest('[id*="onetrust" i],[id*="cookie" i],[class*="consent" i],[aria-modal="true"]')) { /* mark below */ }
+    if (intersect(nr, r)) { restore.push([node, node.style.pointerEvents]); node.style.pointerEvents = 'auto'; }
   }
-  const overlayLayerPresent = overlays.length > 0;
-  const inOverlay = (x, y) => overlays.some((o) => x >= o.left && x <= o.right && y >= o.top && y <= o.bottom);
+  let coveredRects = [];
+  let candidatesConsidered = 0;
+  try {
+    // does `cand` (or a descendant) paint ABOVE the target at point (x,y)? Walk the true paint stack;
+    // the first of {cand-subtree, target-subtree} encountered (topmost-first) wins — invariant in space.
+    const aboveAt = (cand, x, y) => {
+      const stack = document.elementsFromPoint(x, y);
+      for (const n of stack) {
+        if (n === cand || cand.contains(n)) return true;     // candidate paints on top here
+        if (n === el || el.contains(n)) return false;        // target reached first ⇒ candidate is below
+      }
+      return false; // neither hit (clipped/covered by a third element) ⇒ cannot prove above ⇒ exclude
+    };
+    for (const node of document.querySelectorAll('*')) {
+      if (node === el || el.contains(node) || node.contains(el)) continue;
+      const cs = getComputedStyle(node);
+      if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+      const nr = node.getBoundingClientRect();
+      const ov = intersect(nr, r); if (!ov) continue;
+      // PROVABLY opaque rectangle: solid background-color (α=1), full effective opacity, and a plain
+      // axis-aligned box (no rounded corners / clip-path / transform / blend that could leave gaps).
+      const solid = alphaOf(cs.backgroundColor) === 1 && effOpacity(node) >= 0.999
+        && (cs.borderRadius === '0px' || cs.borderRadius === '') && (cs.clipPath === 'none' || cs.clipPath === '')
+        && chainAxisAligned(node) && (cs.mixBlendMode === 'normal' || cs.mixBlendMode === '') && (cs.filter === 'none' || cs.filter === '');
+      if (!solid) continue;
+      candidatesConsidered++;
+      if (aboveAt(node, ov.left + (ov.right - ov.left) / 2, ov.top + (ov.bottom - ov.top) / 2)) coveredRects.push(ov);
+    }
+  } finally {
+    for (const [node, prev] of restore) node.style.pointerEvents = prev;
+  }
 
-  // DENSE grid (~4px step, capped) — 9 points can miss a visible strip (audit V3R2-H3). EVERY point
-  // must be covered (entirely obscured) and EVERY covering must be opaque (no "any opaque ⇒ barrier").
-  const stepX = Math.max(3, Math.min(r.width / 40, 8)), stepY = Math.max(3, Math.min(r.height / 40, 8));
-  const pts = [];
-  for (let x = r.left + 1; x <= r.right - 1; x += stepX) for (let y = r.top + 1; y <= r.bottom - 1; y += stepY) pts.push([x, y]);
-  if (!pts.length) pts.push([r.left + r.width / 2, r.top + r.height / 2]);
-  let coveredAll = true, opaqueAtAll = true;
-  for (const [x, y] of pts) {
-    const stack = document.elementsFromPoint(x, y);
-    const idx = stack.indexOf(el);
-    const above = idx < 0 ? stack : stack.slice(0, idx);
-    const realAbove = above.filter((n) => n !== el && !el.contains(n));
-    let blocked = false;
-    if (realAbove.length) { const top = realAbove[0], tcs = getComputedStyle(top); blocked = alphaOf(tcs.backgroundColor) > 0 && tcs.visibility !== 'hidden' && effOpacity(top) > 0.05; }
-    if (!blocked && inOverlay(x, y)) blocked = true; // pointer-events:none opaque overlay
-    if (!realAbove.length && !inOverlay(x, y)) { coveredAll = false; opaqueAtAll = false; break; } // a visible point ⇒ not entirely obscured
-    if (!blocked) opaqueAtAll = false;
-  }
+  // (3) exact rectangle-union coverage: subtract every covered rect from the target; empty remainder
+  // ⇒ entirely obscured. A 1px gap between overlays leaves a remainder ⇒ NOT entirely obscured.
+  let remaining = [{ left: r.left, top: r.top, right: r.right, bottom: r.bottom }];
+  for (const c of coveredRects) { const next = []; for (const base of remaining) for (const piece of subtract(base, c)) next.push(piece); remaining = next; if (!remaining.length) break; }
+  const entirelyObscured = remaining.length === 0 && coveredRects.length > 0;
   return {
-    focusedRectResolved: true, overlayLayerPresent,
-    entirelyObscuredByAuthorContent: coveredAll,
-    obscuringLayerOpaqueAndBlocking: coveredAll && opaqueAtAll,
-    notObscuredAfterScroll: !coveredAll, // measured AFTER scrollIntoView; if still covered, the exception doesn't apply
+    focusedRectResolved: true,
+    overlayLayerPresent: candidatesConsidered > 0,
+    entirelyObscuredByAuthorContent: entirelyObscured,
+    obscuringLayerOpaqueAndBlocking: entirelyObscured, // every covered rect is provably opaque by construction
+    notObscuredAfterScroll: !entirelyObscured, // measured AFTER scrollIntoView; if still covered, the exception doesn't apply
   };
 }
 

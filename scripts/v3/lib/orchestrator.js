@@ -19,7 +19,11 @@ async function orchestrate(collect, drive, opts = {}) {
   const candidates = cg.generateCandidates(collect, drive);
   const plan = sch.schedulePlan(candidates, { maxAutomatic: opts.maxAutomatic });
   plan._startedAt = now;
-  const experiments = await run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath });
+  // ATTESTATION (audit V3R3-C1): a run that holds the trust-anchor key signs its evidence so the
+  // builder can verify lineage at the publish boundary. The key comes from opts or the trusted
+  // authority config (__trust) — never the bundle. Absent a key, evidence is unsigned ⇒ shadow-only.
+  const attestationKey = opts.attestationKey || (opts.authority && opts.authority.__trust && opts.authority.__trust.attestationKey) || null;
+  const experiments = await run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey });
   experiments.startedAt = now;
   const claimProposals = proposeClaims(plan, experiments);
   // The COMPLETE bundle travels through the one gate: collect + drive baseline, the candidate and
@@ -28,7 +32,7 @@ async function orchestrate(collect, drive, opts = {}) {
     ? drive : { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, ...(drive || {}) };
   const planArt = { file: plan.file, runId: plan.runId, pageDigest: plan.pageDigest, requests: plan.requests, escalations: plan.escalations };
   const bundle = { collect, drive: driveArt, candidates, plan: planArt, experiments, claimProposals };
-  const built = buildV3(bundle, { authority: opts.authority });
+  const built = buildV3(bundle, { authority: opts.authority, attestationKey: opts.attestationKey, artifactVerifier: opts.artifactVerifier });
   return { candidates, plan, experiments, claimProposals, bundle, built };
 }
 

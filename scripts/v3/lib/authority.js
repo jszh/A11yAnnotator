@@ -60,6 +60,20 @@ function authorityFor(experimentId, direction, reg = AUTHORITY) {
   return { state: 'authoritative', mayPublish: true, reason: entry.reason || 'promoted' };
 }
 
+// Are this promotion's NAMED provenance artifacts independently VERIFIED (audit V3R3-C1/M1)?
+// `verifier(name, ref, expectedHash) -> boolean` resolves a ref to bytes and checks its hash. When
+// no verifier is configured the named-ref floor (authorityFor, above) is all that applies; when one
+// IS configured (the production CLI's on-disk verifier), EVERY provenance ref must verify with its
+// declared hash, so a promotion cannot rest on a fictional reference. FAIL-CLOSED on a bad shape.
+function provenanceArtifactsVerified(experimentId, direction, reg = AUTHORITY, verifier = null) {
+  if (!verifier) return true; // named-ref floor only (no on-disk anchor supplied)
+  const entry = reg[key(experimentId, direction)];
+  if (!entry || entry.state !== 'authoritative') return false;
+  const prov = entry.provenance || {};
+  const hashes = entry.provenanceHashes || {};
+  return PROVENANCE_REFS.every((f) => { try { return verifier(f, prov[f], hashes[f]) === true; } catch (e) { return false; } });
+}
+
 // Validate the authority registry shape (states + readiness booleans). Returns errors[].
 function validateAuthority(reg = AUTHORITY) {
   const E = [];
@@ -77,4 +91,4 @@ function validateAuthority(reg = AUTHORITY) {
   return E;
 }
 
-module.exports = { AUTHORITY, STATES, authorityFor, validateAuthority };
+module.exports = { AUTHORITY, STATES, authorityFor, validateAuthority, provenanceArtifactsVerified, PROVENANCE_REFS };

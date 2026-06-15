@@ -50,7 +50,7 @@ function validateExperiments(x, E) {
   else if (x.catalogVersion !== cat.CATALOG.catalogVersion)
     E.push(`experiments.catalogVersion ${JSON.stringify(x.catalogVersion)} != live catalog ${JSON.stringify(cat.CATALOG.catalogVersion)} (stale evidence)`);
   if (!Array.isArray(x.results)) return E.push('experiments.results must be an array');
-  const RESULT_KEYS = ['claimId', 'experimentId', 'targetXpath', 'sc', 'outcome', 'applicabilityEvidence', 'observationScope', 'atBaseline', 'trusted', 'isolated', 'completed', 'valid', 'measurement', 'status'];
+  const RESULT_KEYS = ['claimId', 'experimentId', 'targetXpath', 'sc', 'outcome', 'applicabilityEvidence', 'observationScope', 'atBaseline', 'trusted', 'isolated', 'completed', 'valid', 'measurement', 'status', 'attestation'];
   x.results.forEach((r, i) => {
     const p = `experiments.results[${i}]`;
     if (!isObj(r)) return E.push(`${p}: must be an object`);
@@ -67,6 +67,17 @@ function validateExperiments(x, E) {
     if (r.completed != null && typeof r.completed !== 'boolean') E.push(`${p}.completed must be boolean`);
     if (r.applicabilityEvidence != null && !isObj(r.applicabilityEvidence)) E.push(`${p}.applicabilityEvidence must be an object`);
     if (r.measurement != null && !isObj(r.measurement)) E.push(`${p}.measurement must be an object`);
+    // attestation (audit V3R3-C1) is a CLOSED provenance shape: a runner identity/version plus the
+    // signed digest + MAC. Its presence is not trusted by itself — the builder re-verifies it — but
+    // a malformed/over-wide attestation must not ride through the schema.
+    if (r.attestation != null) {
+      if (!isObj(r.attestation)) E.push(`${p}.attestation must be an object`);
+      else {
+        noUnknownKeys(r.attestation, ['runner', 'runnerVersion', 'resultDigest', 'mac', 'runIdentity'], `${p}.attestation`, E);
+        for (const f of ['resultDigest', 'mac']) if (!isStr(r.attestation[f])) E.push(`${p}.attestation.${f} must be a non-empty string`);
+        if (r.attestation.runIdentity != null && !isObj(r.attestation.runIdentity)) E.push(`${p}.attestation.runIdentity must be an object`);
+      }
+    }
     // CLOSE the outcome shape: every flag must be a DECLARED typed outcome of the experiment runner
     // (audit V3R2-H6 — no smuggled flags) and every flag value must be boolean.
     const exp = cat.getExperiment(r.experimentId);

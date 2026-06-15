@@ -145,6 +145,68 @@ test('R2-M2: an opaque pointer-events:none overlay still obscures the focused co
   assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), 'BARRIER_OBSERVED', 'pointer-events:none is irrelevant to visual obscuration');
 });
 
+// ---- Third-pass independent audit regressions (all reproduced + fixed) ----
+test('R3-H1: white text over a non-uniform solid backdrop (black|white split) does NOT clear', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-r3-h1.html', ['/html/body/p']);
+  assert.notEqual(dir('text-contrast-pixel', byXp['/html/body/p']), 'NO_BARRIER_OBSERVED',
+    'a centre sample lands on black but the run is illegible over the white half ⇒ uniformity unproven ⇒ no clear');
+});
+
+test('R3-H2: opaque overlays leaving a 1px strip are NOT "entirely obscured" (exact rect-union)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-r3-h2.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), null,
+    'a 1px uncovered remainder ⇒ not entirely obscured (rectangle subtraction, not sampling)');
+});
+
+test('R3-H3: a cross-stacking-context overlay painting BELOW the target is not a barrier', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-r3-h3.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), null,
+    'z-index:999 inside a z-index:0 parent paints below a z-index:10 target ⇒ true paint order shows the button on top');
+});
+
+// ---- Third-pass self-adversarial red-team regressions (found + fixed beyond the audit) ----
+test('R3-H1b: a ::before pseudo-element backdrop behind half the text does NOT clear', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-r3-h1b-pseudo.html', ['/html/body/div/span']);
+  assert.notEqual(dir('text-contrast-pixel', byXp['/html/body/div/span']), 'NO_BARRIER_OBSERVED',
+    'a pseudo-element background (unseen by elementsFromPoint AND querySelectorAll) defeats the uniformity proof');
+});
+
+test('R3-H1c: text overflowing its solid backdrop onto the page canvas does NOT clear', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-r3-h1c-overflow.html', ['/html/body/div']);
+  assert.notEqual(dir('text-contrast-pixel', byXp['/html/body/div']), 'NO_BARRIER_OBSERVED',
+    'the ink rect (Range.getClientRects) covers the spilled run, so its backdrop is not the dark box');
+});
+
+test('R3-H2b: a sub-pixel (~0.49px) visible strip of the control is NOT entirely obscured', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-r3-h2b-subpixel.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), null,
+    'near-zero coverage tolerance keeps a real ~1-device-px hairline from reading as a full barrier');
+});
+
+test('R3-H2c: a genuinely-covering overlay with an identity transform IS a barrier (recall)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-r3-h2c-transform-cover.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), 'BARRIER_OBSERVED',
+    'translateZ(0)/identity transforms keep the painted box axis-aligned ⇒ a full cover still barriers');
+});
+
+test('R3-H1d: an SVG sibling painting behind the text (no CSS background) does NOT clear', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-r3-h1d-svg.html', ['/html/body/div/span']);
+  assert.notEqual(dir('text-contrast-pixel', byXp['/html/body/div/span']), 'NO_BARRIER_OBSERVED',
+    'the rendered-pixel backdrop oracle catches an SVG <rect> that CSS-property enumeration cannot');
+});
+
+test('R3-H1e: a ::first-line background making line 1 invisible does NOT clear', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-r3-h1e-firstline.html', ['/html/body/p']);
+  assert.notEqual(dir('text-contrast-pixel', byXp['/html/body/p']), 'NO_BARRIER_OBSERVED',
+    'sentinel glyph-geometry locates even invisible (black-on-black) first-line text; its backdrop differs ⇒ not uniform');
+});
+
+test('R3-H2d: an axis-aligned overlay with a ROTATED ancestor is not a false barrier', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-r3-h2d-rotated-ancestor.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), null,
+    'getBoundingClientRect reflects ancestor transforms, so the whole chain must be axis-aligned to trust the AABB');
+});
+
 // ---- build-through: shadow by default; AT-independent C3 clears authoritative when PROMOTED ----
 test('C3 build-through: default-shadow; PROMOTED ⇒ authoritative clear (AT-independent, no baseline needed)', { skip: !chromeOK, concurrency: false }, async () => {
   const { byXp } = await run('text-contrast-pixel', 'fx-v3-c3-contrast.html', ['/html/body/div[1]/span']);

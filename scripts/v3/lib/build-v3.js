@@ -20,10 +20,23 @@ const xa = require('./cross-artifact.js');
 const obl = require('./obligations.js');
 const oracle = require('./applicability-oracle.js');
 const schemas = require('./schemas.js');
+const attest = require('./attestation.js');
 const { resolveClaim } = require('./claims.js');
 
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
 const sameScope = (a, b) => !!a && !!b && SCOPE_FIELDS.every((f) => a[f] === b[f]);
+
+// The trust anchor (attestation key + on-disk artifact verifier) lives in builder OPTS or on the
+// trusted authority config — NEVER in the bundle. `__trust` is a non-enumerable companion the test
+// helpers / production CLI attach to the authority registry; it is invisible to validateAuthority
+// and authorityFor (which iterate string keys only). Absent a key, nothing publishes authoritative.
+function trustConfig(opts, authorityReg) {
+  const t = (authorityReg && authorityReg.__trust) || {};
+  return {
+    key: attest.loadKey(opts) || t.attestationKey || null,
+    artifactVerifier: opts.artifactVerifier || t.artifactVerifier || null,
+  };
+}
 
 function buildV3(bundle, opts = {}) {
   const errors = [];
@@ -53,10 +66,12 @@ function buildV3(bundle, opts = {}) {
   // (3) index evidence by claimId, recording DUPLICATES so conflicting evidence cannot be
   //     resolved order-dependently (audit V3-H5). A claimId with >1 result is a conflict.
   const evByClaim = {};
+  const rawByClaim = {};   // the FULL result, for attestation verification at the publish boundary
   const evCount = {};
   for (const r of (bundle.experiments && bundle.experiments.results) || []) {
     if (!r || !r.claimId) continue;
     evCount[r.claimId] = (evCount[r.claimId] || 0) + 1;
+    rawByClaim[r.claimId] = r;
     evByClaim[r.claimId] = {
       experimentId: r.experimentId,
       sc: r.sc,
@@ -75,6 +90,7 @@ function buildV3(bundle, opts = {}) {
   // publish). Authoritative publication additionally requires the COMPLETE reconciled bundle
   // (plan + candidates) — not the orchestrator's happy path only (audit V3R2-H6).
   const bundleComplete = !!(bundle.plan && bundle.candidates && bundle.drive);
+  const trust = trustConfig(opts, authorityReg);
 
   const proposals = (bundle.claimProposals && bundle.claimProposals.proposals) || [];
   const seen = new Set();
@@ -122,14 +138,28 @@ function buildV3(bundle, opts = {}) {
     if (!out.authoritative) { partials.push(out); continue; }
 
     // (4) AUTHORITY promotion (audit V3-C2): publish authoritative ONLY when promoted AND the
-    //     complete reconciled bundle is present (audit V3R2-C1/H6); else shadow.
+    //     complete reconciled bundle is present (audit V3R2-C1/H6) AND the evidence LINEAGE is
+    //     verified — the bound result must carry a valid attestation from a key-holding catalog
+    //     runner, and the promotion's provenance artifacts must verify (audit V3R3-C1). Each of
+    //     these is checked ONLY at the publish boundary, so default-shadow behaviour is unchanged:
+    //     a gate-passing-but-unattested observation is still RECORDED as shadow, never authoritative.
     const a = auth.authorityFor(p.experimentId, p.direction, authorityReg);
-    if (a.mayPublish && bundleComplete) { out._authState = a.state; claims.push(out); continue; }
+    // lineage: a valid MAC from a key-holder AND the signed run/page identity matches THIS bundle
+    // (so a genuinely-attested result cannot be replayed into a foreign bundle — audit V3R3 red-team).
+    const lineageVerified = trust.key
+      && attest.verifyResult(rawByClaim[p.claimId], trust.key)
+      && attest.boundToRun(rawByClaim[p.claimId], bundle.collect);
+    const provenanceVerified = auth.provenanceArtifactsVerified(p.experimentId, p.direction, authorityReg, trust.artifactVerifier);
+    if (a.mayPublish && bundleComplete && lineageVerified && provenanceVerified) { out._authState = a.state; claims.push(out); continue; }
+    const reason = !a.mayPublish ? a.reason
+      : !bundleComplete ? 'incomplete bundle (no plan/candidates/drive) — cannot publish authoritative'
+        : !lineageVerified ? 'evidence lineage unverified (no valid attestation from a key-holding catalog runner) — cannot publish authoritative (audit V3R3-C1)'
+          : 'promotion provenance artifacts did not verify on disk — cannot publish authoritative (audit V3R3-C1)';
     shadowObs.push({
       claimId: p.claimId, sc: p.sc, claimFamily: family,
       wouldBe: { observationOutcome: out.observationOutcome, wcagApplicability: out.wcagApplicability },
       observationScope: out.observationScope,
-      authorityState: a.state, reason: a.mayPublish ? 'incomplete bundle (no plan/candidates/drive) — cannot publish authoritative' : a.reason,
+      authorityState: a.state, reason,
       recommendation: 'shadow-only: validate against gold + sealed set before promotion',
     });
   }

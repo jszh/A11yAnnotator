@@ -1,31 +1,48 @@
 // Harness 3.0 — shared test helpers for the audit-hardened publication boundary.
-// Authoritative publication now requires (audit V3R2-C1/H6/H7): the COMPLETE reconciled bundle
-// (collect + drive + candidates + plan + experiments + proposals), VALID/COMPLETED evidence, and a
-// PROMOTED authority entry backed by NAMED provenance artifacts. These helpers build all of that
-// from a minimal 3-stage bundle so tests can exercise the publish path without re-stating it.
+// Authoritative publication now requires (audit V3R2-C1/H6/H7 + V3R3-C1): the COMPLETE reconciled
+// bundle (collect + drive + candidates + plan + experiments + proposals), VALID/COMPLETED evidence
+// that carries a VERIFIED ATTESTATION (a key-holding catalog runner signed its lineage), and a
+// PROMOTED authority entry backed by NAMED + VERIFIED provenance artifacts. These helpers build all
+// of that from a minimal 3-stage bundle so tests can exercise the publish path without re-stating it.
+//
+// TEST_KEY is the trust anchor a TRUSTED test plays the part of the protected runner key. A forged
+// bundle in a test does NOT have it, so it cannot publish — exactly the production guarantee.
 'use strict';
 
-// stamp valid/completed:true on evidence results and synthesise the candidate + plan + drive stages
-// that reconcile with them (request.candidateId === result.claimId, matching target/sc).
-function withPipeline(bundle) {
+const attest = require('../lib/attestation.js');
+
+const TEST_KEY = 'v3-test-attestation-key-do-not-ship';
+
+// stamp valid/completed:true on evidence results, SIGN them with the trust-anchor key (so the
+// builder's lineage check passes), and synthesise the candidate + plan + drive stages that
+// reconcile with them (request.candidateId === result.claimId, matching target/sc).
+function withPipeline(bundle, key = TEST_KEY) {
   const c = bundle.collect;
   const id = { file: c.file, runId: c.runId, pageDigest: c.pageDigest };
-  const results = (bundle.experiments.results || []).map((r) => ({ valid: true, completed: true, ...r }));
+  const results = (bundle.experiments.results || []).map((r) => attest.signResult(
+    { valid: true, completed: true, ...r },
+    key,
+    { runner: r.experimentId, runnerVersion: '3.0.0-phase0', runIdentity: id },
+  ));
   const candidates = { ...id, candidates: results.map((r) => ({ candidateId: r.claimId, xpath: r.targetXpath, sc: r.sc, experimentId: r.experimentId, selectionLevel: 1 })) };
   const plan = { ...id, requests: results.map((r) => ({ candidateId: r.claimId, experimentId: r.experimentId, targetXpath: r.targetXpath, sc: r.sc })), escalations: [] };
   const drive = { ...id, elements: [] };
   return { ...bundle, drive, candidates, plan, experiments: { ...bundle.experiments, results, unrun: [] } };
 }
 
-// a PROMOTED authority registry (all readiness + provenance satisfied) for the given experiment/dir pairs.
-function promoted(pairs) {
+// a PROMOTED authority registry (all readiness + provenance satisfied) for the given experiment/dir
+// pairs. The non-enumerable `__trust` companion carries the trust anchor (the same TEST_KEY the
+// evidence was signed with, plus a stub artifact verifier that accepts the test provenance refs).
+// `__trust` is invisible to validateAuthority / authorityFor, which iterate string keys only.
+function promoted(pairs, { key = TEST_KEY, artifactVerifier = () => true } = {}) {
   const reg = {};
-  for (const key of pairs) reg[key] = {
+  for (const k of pairs) reg[k] = {
     state: 'authoritative', reason: 'test-promoted',
     readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true },
     provenance: { goldRef: 'gold://test', sealedRef: 'sealed://test', raterRef: 'rater://test', measurementSuiteHash: 'sha256:test' },
   };
+  Object.defineProperty(reg, '__trust', { value: { attestationKey: key, artifactVerifier }, enumerable: false });
   return reg;
 }
 
-module.exports = { withPipeline, promoted };
+module.exports = { withPipeline, promoted, TEST_KEY };

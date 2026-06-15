@@ -12,6 +12,7 @@
 'use strict';
 
 const puppeteer = require('puppeteer');
+const attest = require('./attestation.js');
 
 // Chrome path: env override first (CI / non-mac), then the local macOS default.
 const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
@@ -276,13 +277,18 @@ function finalize(request, outcome, measurement, completed) {
 // Run a plan against a page-URL resolver. resolveUrl(request) -> a URL (file:// or http://).
 // Every request gets exactly ONE disposition: a typed result, or an explicit `unrun` record
 // (skipped/failed/deferred) — nothing disappears silently (audit V3-H6).
-async function runPlan(plan, { resolveUrl, executablePath = CHROME } = {}) {
+async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationKey = null } = {}) {
   // dispatch table: focus runner here + the C1/C3–C9 runners (lazy require breaks the module cycle).
   const RUNNERS = Object.assign({ 'focus-visual-retry': runFocusVisualRetry }, require('./exp-runners.js').RUNNERS);
   const browser = await puppeteer.launch({ executablePath, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const results = [];
   const unrun = [];
   let environment = 'headless-chromium';
+  // A real run that holds the trust-anchor key ATTESTS each result (audit V3R3-C1): the runner signs
+  // the lineage — including the RUN/PAGE identity it observed — so the builder can verify the evidence
+  // was produced HERE for THIS page, not hand-authored or replayed from another run.
+  const runIdentity = plan ? { file: plan.file, runId: plan.runId, pageDigest: plan.pageDigest } : null;
+  const sign = (r) => attestationKey ? attest.signResult(r, attestationKey, { runner: r.experimentId, runnerVersion: '3.0.0-phase0', runIdentity }) : r;
   try {
     try { const v = await browser.version(); environment = `headless-chromium/${v}/${process.platform}`; } catch (e) {}
     for (const request of (plan && plan.requests) || []) {
@@ -295,7 +301,7 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME } = {}) {
       const page = await browser.newPage();
       try {
         await page.goto(resolveUrl(request), { waitUntil: 'load', timeout: 15000 });
-        results.push(await runner(page, req));
+        results.push(sign(await runner(page, req)));
       } catch (e) {
         unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String(e && e.message || e).slice(0, 200) });
       } finally { await page.close().catch(() => {}); }

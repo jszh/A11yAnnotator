@@ -16,6 +16,14 @@ const STAGE_FILES = {
   claimProposals: 'claim-proposals.json',
 };
 
+// A PRODUCTION v3 build requires the COMPLETE lineage (audit V3R3-M3): collect baseline + drive +
+// the candidate/plan scheduling stages + experiments + proposals. The minimal triple is for an
+// explicit shadow/debug build only — it can never publish authoritative (the builder demotes an
+// incomplete bundle to shadow), but the meaning of "complete" must be enforced at the loader, not
+// left implicit. `manifest` stays optional (the orchestrator does not emit one).
+const PRODUCTION_REQUIRED = ['collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals'];
+const SHADOW_DEBUG_REQUIRED = ['collect', 'experiments', 'claimProposals'];
+
 // required stages must be present + parseable; optional stages may be absent (→ undefined).
 function loadBundle(dir, { required = ['collect', 'experiments', 'claimProposals'], optional = ['manifest', 'drive', 'candidates', 'plan'] } = {}) {
   const errors = [];
@@ -27,7 +35,9 @@ function loadBundle(dir, { required = ['collect', 'experiments', 'claimProposals
       if (r && (Array.isArray(r.elements) || r.pageSkills)) errors.push('legacy v2 results.json present — v3 run rejects v2 artifacts');
     } catch (e) { /* unparseable: ignore here, not part of the v3 bundle */ }
   }
-  for (const stage of [...required, ...optional]) {
+  // de-dup: a stage may appear in both `required` and the default `optional` list (e.g. drive under
+  // PRODUCTION_REQUIRED) — load it once so its absence is not reported twice.
+  for (const stage of [...new Set([...required, ...optional])]) {
     const f = path.join(dir, STAGE_FILES[stage]);
     if (!fs.existsSync(f)) {
       if (required.includes(stage)) errors.push(`required stage artifact missing: ${STAGE_FILES[stage]}`);
@@ -39,4 +49,4 @@ function loadBundle(dir, { required = ['collect', 'experiments', 'claimProposals
   return { bundle, errors };
 }
 
-module.exports = { loadBundle, STAGE_FILES };
+module.exports = { loadBundle, STAGE_FILES, PRODUCTION_REQUIRED, SHADOW_DEBUG_REQUIRED };
