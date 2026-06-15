@@ -65,8 +65,16 @@ function buildV3(bundle, opts = {}) {
       experimentOutcome: r.outcome || {},
       applicabilityEvidence: r.applicabilityEvidence || {},
       atBaseline: r.atBaseline,
+      valid: r.valid,
+      completed: r.completed,
     };
   }
+
+  // a definite direction may bind evidence only from a CATALOG runner that produced a VALID,
+  // COMPLETED measurement (audit V3R2-C1: a forged completed:false/valid:false result must not
+  // publish). Authoritative publication additionally requires the COMPLETE reconciled bundle
+  // (plan + candidates) — not the orchestrator's happy path only (audit V3R2-H6).
+  const bundleComplete = !!(bundle.plan && bundle.candidates && bundle.drive);
 
   const proposals = (bundle.claimProposals && bundle.claimProposals.proposals) || [];
   const seen = new Set();
@@ -92,11 +100,16 @@ function buildV3(bundle, opts = {}) {
     if (!linked) bindReason = 'no evidence for this claimId';
     else if (evCount[p.claimId] > 1) bindReason = `conflicting/duplicate evidence (${evCount[p.claimId]} results share claimId ${p.claimId})`;
     else if (linked.experimentId !== p.experimentId) bindReason = `evidence experiment ${linked.experimentId} != proposal experiment ${p.experimentId}`;
+    else if (!cat.getExperiment(linked.experimentId)) bindReason = `evidence experiment ${linked.experimentId} is not a catalog runner (no provenance)`;
     else if (linked.sc !== p.sc) bindReason = `evidence SC ${linked.sc} != proposal SC ${p.sc}`;
     else if (linked.targetXpath !== target) bindReason = `evidence target ${linked.targetXpath} != proposal scope target ${target} (cross-target)`;
     // evidence MUST carry a scope and it MUST match the proposal's — a MISSING evidence scope is a
     // bind FAILURE, never a skip (audit R1-F1): an unbound scope cannot be published.
     else if (!sameScope(linked.observationScope, scope)) bindReason = 'evidence observationScope missing or != proposal observationScope (target/state/action/env)';
+    // the runner must have produced a VALID, COMPLETED measurement — a self-marked invalid/incomplete
+    // result cannot support a definite direction (audit V3R2-C1).
+    else if (linked.valid !== true) bindReason = 'evidence not valid (runner could not produce a usable measurement)';
+    else if (linked.completed !== true) bindReason = 'evidence not completed';
     else ev = linked;
 
     const out = bindReason
@@ -108,14 +121,15 @@ function buildV3(bundle, opts = {}) {
 
     if (!out.authoritative) { partials.push(out); continue; }
 
-    // (4) AUTHORITY promotion (audit V3-C2): publish authoritative ONLY when promoted; else shadow.
+    // (4) AUTHORITY promotion (audit V3-C2): publish authoritative ONLY when promoted AND the
+    //     complete reconciled bundle is present (audit V3R2-C1/H6); else shadow.
     const a = auth.authorityFor(p.experimentId, p.direction, authorityReg);
-    if (a.mayPublish) { out._authState = a.state; claims.push(out); continue; }
+    if (a.mayPublish && bundleComplete) { out._authState = a.state; claims.push(out); continue; }
     shadowObs.push({
       claimId: p.claimId, sc: p.sc, claimFamily: family,
       wouldBe: { observationOutcome: out.observationOutcome, wcagApplicability: out.wcagApplicability },
       observationScope: out.observationScope,
-      authorityState: a.state, reason: a.reason,
+      authorityState: a.state, reason: a.mayPublish ? 'incomplete bundle (no plan/candidates/drive) — cannot publish authoritative' : a.reason,
       recommendation: 'shadow-only: validate against gold + sealed set before promotion',
     });
   }

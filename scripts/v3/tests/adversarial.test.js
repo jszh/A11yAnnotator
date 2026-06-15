@@ -18,12 +18,10 @@ const FULL = { targetIsFocusable: true, keyboardReachableInState: true, realKeyb
 const APP = { targetIsFocusable: true, keyboardReachableInState: true };
 const SCOPE = (t) => ({ actionTargetRef: t, state: 'fresh-load', action: 'tab-to', environment: 'headless-chromium' });
 const fam = 'focus-indicator-visible';
-const PROMOTED = {
-  'focus-visual-retry/NO_BARRIER_OBSERVED': { state: 'authoritative', reason: 't', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } },
-  'focus-visual-retry/BARRIER_OBSERVED': { state: 'authoritative', reason: 't', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } },
-};
+const { withPipeline, promoted } = require('./helpers.js');
+const PROMOTED = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED', 'focus-visual-retry/BARRIER_OBSERVED']);
 const id = { file: 'p', runId: 'R', pageDigest: 'sha256:d' };
-const result = (claimId, target, over = {}) => ({ claimId, experimentId: 'focus-visual-retry', targetXpath: target, sc: '2.4.7', observationScope: SCOPE(target), outcome: { ...FULL }, applicabilityEvidence: { ...APP }, ...over });
+const result = (claimId, target, over = {}) => ({ claimId, experimentId: 'focus-visual-retry', targetXpath: target, sc: '2.4.7', observationScope: SCOPE(target), outcome: { ...FULL }, applicabilityEvidence: { ...APP }, valid: true, completed: true, ...over });
 const proposal = (claimId, target, over = {}) => ({ claimId, sc: '2.4.7', direction: 'NO_BARRIER_OBSERVED', experimentId: 'focus-visual-retry', claimFamily: fam, observationScope: SCOPE(target), ...over });
 const bundle = (elements, results, proposals) => ({
   collect: { ...id, collectedAt: 1000, elements },
@@ -92,8 +90,8 @@ test('V3-C2: a gate-passing clear does NOT publish under default-shadow authorit
 });
 
 test('V3-C2: an authoritative entry with unmet readiness is fail-closed to shadow', () => {
-  const halfReady = { 'focus-visual-retry/NO_BARRIER_OBSERVED': { state: 'authoritative', reason: 'x', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: false } } };
-  const r = buildV3(bundle([{ xpath: 'A', focusable: true }], [result('c1', 'A')], [proposal('c1', 'A')]), { authority: halfReady });
+  const halfReady = { 'focus-visual-retry/NO_BARRIER_OBSERVED': { state: 'authoritative', reason: 'x', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: false }, provenance: { goldRef: 'g', sealedRef: 's', raterRef: 'r', measurementSuiteHash: 'h' } } };
+  const r = buildV3(withPipeline(bundle([{ xpath: 'A', focusable: true }], [result('c1', 'A')], [proposal('c1', 'A')])), { authority: halfReady });
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   assert.equal(r.results.summary.authoritative, 0, 'unmet readiness ⇒ shadow, never authoritative');
   assert.equal(r.results.summary.shadow, 1);

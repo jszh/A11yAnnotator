@@ -24,12 +24,9 @@ const CLEAR_OBLIGATIONS = reg.REGISTRY['2.4.7/NO_BARRIER_OBSERVED'].completeness
 const proposal = (direction, over = {}) => ({ claimId: 'c1', sc: '2.4.7', direction, experimentId: 'focus-visual-retry', claimFamily: 'focus-indicator-visible', observationScope: SCOPE, ...over });
 const evidence = (over = {}) => ({ experimentOutcome: { ...FULL_OUTCOME }, applicabilityEvidence: { ...FULL_APP }, ...over });
 
-// A test-only authority override that PROMOTES focus-visual-retry to authoritative (all readiness
-// met) — used to exercise the publish path; the default registry keeps everything shadow.
-const PROMOTED = {
-  'focus-visual-retry/NO_BARRIER_OBSERVED': { state: 'authoritative', reason: 'test-promoted', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } },
-  'focus-visual-retry/BARRIER_OBSERVED': { state: 'authoritative', reason: 'test-promoted', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } },
-};
+// PROMOTED authority (readiness + provenance) + complete-bundle helper for the publish path.
+const { withPipeline, promoted } = require('./helpers.js');
+const PROMOTED = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED', 'focus-visual-retry/BARRIER_OBSERVED']);
 
 // ---- registry / catalog / consistency are well-formed ----
 test('registry, catalog, consistency, and full SC coverage validate clean', () => {
@@ -169,7 +166,7 @@ test('an AT-dependent clear requires a declared AT baseline (Rule 12)', () => {
 // the experiment result carries the bound sc + scope; the proposal carries its claim-family.
 const goodBundle = () => ({
   collect: { file: 'p', runId: 'R', pageDigest: 'sha256:d', collectedAt: 1000, elements: [{ xpath: 'node:b1', focusable: true }] },
-  experiments: { file: 'p', runId: 'R', pageDigest: 'sha256:d', catalogVersion: '3.0.0-phase0', startedAt: 2000, results: [{ claimId: 'c1', experimentId: 'focus-visual-retry', targetXpath: 'node:b1', sc: '2.4.7', observationScope: SCOPE, outcome: { ...FULL_OUTCOME }, applicabilityEvidence: { ...FULL_APP } }] },
+  experiments: { file: 'p', runId: 'R', pageDigest: 'sha256:d', catalogVersion: '3.0.0-phase0', startedAt: 2000, results: [{ claimId: 'c1', experimentId: 'focus-visual-retry', targetXpath: 'node:b1', sc: '2.4.7', observationScope: SCOPE, outcome: { ...FULL_OUTCOME }, applicabilityEvidence: { ...FULL_APP }, valid: true, completed: true }] },
   claimProposals: { file: 'p', runId: 'R', pageDigest: 'sha256:d', proposals: [proposal('NO_BARRIER_OBSERVED')] },
 });
 
@@ -211,12 +208,27 @@ test('buildV3 default authority: a fully-supported clear is SHADOW, never author
   assert.equal(xa.findLegacyLabel(r.results), null);
 });
 
-test('buildV3 PROMOTED authority: the same bundle publishes one authoritative clear', () => {
-  const r = buildV3(goodBundle(), { authority: PROMOTED });
+test('buildV3 PROMOTED authority + complete bundle: publishes one authoritative clear', () => {
+  const r = buildV3(withPipeline(goodBundle()), { authority: PROMOTED });
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   assert.equal(r.results.summary.authoritative, 1);
   assert.equal(r.results.summary.cleared, 1);
   assert.equal(r.results.claims[0].claimFamily, 'focus-indicator-visible');
+});
+
+test('buildV3: a PROMOTED clear from an INCOMPLETE bundle (no plan/candidates) stays SHADOW (audit V3R2-C1/H6)', () => {
+  const r = buildV3(goodBundle(), { authority: PROMOTED }); // 3-stage bundle, not the complete pipeline
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  assert.equal(r.results.summary.authoritative, 0, 'incomplete bundle cannot publish authoritative');
+  assert.equal(r.results.summary.shadow, 1);
+});
+
+test('buildV3: a forged completed:false/valid:false result cannot publish even when promoted (audit V3R2-C1)', () => {
+  const b = withPipeline(goodBundle());
+  b.experiments.results[0].valid = false; b.experiments.results[0].completed = false;
+  const r = buildV3(b, { authority: PROMOTED });
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  assert.equal(r.results.summary.authoritative, 0, 'invalid/incomplete evidence ⇒ PARTIAL, never authoritative');
 });
 
 test('buildV3: an unsupported proposal becomes PARTIAL, not a clear or a shadow', () => {

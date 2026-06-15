@@ -55,11 +55,9 @@ test('focus-visual-retry measures focus-dependence: real ring clears; no-indicat
     { claimId: 'c-none', sc: '2.4.7', direction: 'BARRIER_OBSERVED', experimentId: 'focus-visual-retry', claimFamily: fam, observationScope: byId['c-none'].observationScope },
     { claimId: 'c-always', sc: '2.4.7', direction: 'BARRIER_OBSERVED', experimentId: 'focus-visual-retry', claimFamily: fam, observationScope: byId['c-always'].observationScope },
   ];
-  const PROMOTED = {
-    'focus-visual-retry/NO_BARRIER_OBSERVED': { state: 'authoritative', reason: 't', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } },
-    'focus-visual-retry/BARRIER_OBSERVED': { state: 'authoritative', reason: 't', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } },
-  };
-  const bundle = { collect, experiments: { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', catalogVersion: '3.0.0-phase0', startedAt: 1000, results: exp.results }, claimProposals: { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', proposals } };
+  const { withPipeline, promoted } = require('./helpers.js');
+  const PROMOTED = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED', 'focus-visual-retry/BARRIER_OBSERVED']);
+  const bundle = withPipeline({ collect, experiments: { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', catalogVersion: '3.0.0-phase0', startedAt: 1000, results: exp.results }, claimProposals: { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', proposals } });
   const r = buildV3(bundle, { authority: PROMOTED });
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   const claimBy = {}; for (const c of r.results.claims) claimBy[c.claimId] = c;

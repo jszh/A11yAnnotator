@@ -11,10 +11,8 @@ const { buildV3 } = require('../lib/build-v3.js');
 const FULL_OUTCOME = { targetIsFocusable: true, keyboardReachableInState: true, realKeyboardFocus: true, hydrationReady: true, focusDependentIndicator: true, obviouslyVisible: true, stableIndicatorAbsence: true, modeCompletenessProven: true };
 const FULL_APP = { targetIsFocusable: true, keyboardReachableInState: true };
 const SCOPE = (t) => ({ actionTargetRef: t, state: 'fresh-load', action: 'tab-to', environment: 'headless-chromium' });
-const PROMOTED = {
-  'focus-visual-retry/NO_BARRIER_OBSERVED': { state: 'authoritative', reason: 't', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } },
-  'focus-visual-retry/BARRIER_OBSERVED': { state: 'authoritative', reason: 't', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } },
-};
+const { withPipeline, promoted } = require('./helpers.js');
+const PROMOTED = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED', 'focus-visual-retry/BARRIER_OBSERVED']);
 
 test('enumeration is INDEPENDENT of proposals and applicableScs — it derives from raw facts', () => {
   // a focusable element with text yields three atomic obligations across distinct families.
@@ -82,7 +80,7 @@ test('buildV3: an inventory obligation with no proposal shows as auto-PARTIAL, n
   // focusable+text ⇒ obligations for 2.4.7, 2.1.1, 1.4.3. Only the 2.4.7 clear is proposed.
   const proposals = [{ claimId: 'c1', sc: '2.4.7', direction: 'NO_BARRIER_OBSERVED', experimentId: 'focus-visual-retry', claimFamily: 'focus-indicator-visible', observationScope: SCOPE('node:b1') }];
   const results = [{ claimId: 'c1', experimentId: 'focus-visual-retry', targetXpath: 'node:b1', sc: '2.4.7', observationScope: SCOPE('node:b1'), outcome: { ...FULL_OUTCOME }, applicabilityEvidence: { ...FULL_APP } }];
-  const r = buildV3(bundleWith(proposals, results, [{ xpath: 'node:b1', focusable: true, hasText: true }]), { authority: PROMOTED });
+  const r = buildV3(withPipeline(bundleWith(proposals, results, [{ xpath: 'node:b1', focusable: true, hasText: true }])), { authority: PROMOTED });
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   assert.equal(r.results.summary.obligations, 3);
   assert.equal(r.results.summary.cleared, 1);

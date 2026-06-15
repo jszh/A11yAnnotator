@@ -21,18 +21,23 @@ test('applicableScs derivation maps role/evidence to the obligation set', () => 
   assert.deepEqual(cg.applicableScsFor({ focusable: false, hasText: true }), ['1.4.3']);
 });
 
-test('candidate generation is deterministic: focusable + indeterminate baseline ⇒ Level-1 focus candidate', () => {
+test('candidate generation: one focus candidate only for the indeterminate focusable; all 8 experiments wired', () => {
   const out = cg.generateCandidates(collect(), drive());
-  assert.equal(out.candidates.length, 1);
-  assert.equal(out.candidates[0].xpath, 'a');
-  assert.equal(out.candidates[0].sc, '2.4.7');
-  assert.equal(out.candidates[0].selectionLevel, 1);
+  const focusCands = out.candidates.filter((c) => c.experimentId === 'focus-visual-retry');
+  assert.equal(focusCands.length, 1, 'only "a" (focusable + indeterminate) gets a focus candidate');
+  assert.equal(focusCands[0].xpath, 'a');
+  assert.ok(!out.candidates.some((c) => c.xpath === 'b' && c.experimentId === 'focus-visual-retry'), '"b" has a determinate baseline ⇒ no focus candidate');
+  // the other experiments are now integrated (audit V3R2-H1): a focusable widget with text yields
+  // keyboard-activation, text-contrast, ax-state-diff candidates too.
+  const exps = new Set(out.candidates.map((c) => c.experimentId));
+  for (const e of ['text-contrast-pixel', 'keyboard-activation', 'ax-state-diff']) assert.ok(exps.has(e), `expected a ${e} candidate`);
 });
 
-test('scheduler schedules Level-1/2 automatically with NO agent and a selection source', () => {
-  const plan = sch.schedulePlan(cg.generateCandidates(collect(), drive()));
-  assert.equal(plan.requests.length, 1);
-  assert.equal(plan.requests[0].selectionSource, 'mandatory-automatic');
+test('scheduler schedules every candidate automatically with NO agent and a selection source', () => {
+  const cands = cg.generateCandidates(collect(), drive());
+  const plan = sch.schedulePlan(cands);
+  assert.equal(plan.requests.length, cands.candidates.length, 'all candidates scheduled');
+  assert.ok(plan.requests.every((r) => r.selectionSource === 'mandatory-automatic'));
   assert.equal(plan.escalations.length, 0);
 });
 

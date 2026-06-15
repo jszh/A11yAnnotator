@@ -26,8 +26,8 @@ is false whenever the WCAG universal is open — so hard cases auto-PARTIAL inst
 - **C4:** real key vs synthetic (`realKeyDistinctFromSynthetic`); observed effect = AX delta OR pixel OR focus move; roving items reached via container; nav-away caps at activation evidence.
 - **C1:** DOM aria channel vs FRESH CDP AX snapshot (never echo DOM for both); pruned/ignored node ⇒ INCONCLUSIVE; nav-away ⇒ INCONCLUSIVE.
 - **C9:** whole-document appearance diff (portal-aware); path-move for Hoverable (bridge gaps); auto-hide timeout ⇒ Persistent barrier; native `title` exempt.
-- **C8:** `documentElement.scrollWidth>clientWidth` at 320×256; exempt tables/maps/own-scrollers; `overflow:hidden` clip-hiding ⇒ INCONCLUSIVE (can't clear).
-- **C7:** `elementsFromPoint` paint order (not z-index); 9-point grid for ENTIRELY-covered; re-test after `scrollIntoView` (revealed-on-focus exception); transparent/`pointer-events:none` overlay ⇒ no barrier.
+- **C8:** `documentElement.scrollWidth>clientWidth` at 320×256; exempt only DATA tables (th/caption/role)/maps/own-scrollers — a bare layout table is NOT exempt; `overflow:hidden` clip-hiding ⇒ INCONCLUSIVE (can't clear).
+- **C7:** `elementsFromPoint` paint order (not z-index); a DENSE grid (~4px) for ENTIRELY-covered with EVERY covering opaque; re-test after `scrollIntoView` (revealed-on-focus exception); an `opacity:0`/transparent overlay ⇒ no barrier, but an OPAQUE `pointer-events:none` overlay DOES obscure (geometric scan).
 
 ## New families (applicability-oracle FAMILIES)
 `no-keyboard-trap`→2.1.2/keyboard-operability · `field-label`→3.3.2/forms-instructions-errors ·
@@ -70,4 +70,3 @@ Soundness preserved: clearable SCs publish a clear ONLY when their universe-clos
 (`backdropIsSolidUniform` / `escapeProvenForWidget` / `programmaticNamePresent`+`visibleLabelText` /
 `singleModeControl` / `statesInventoryClosed`); 4.1.2 & 3.3.2 clears additionally require an AT
 baseline. All eight remain **shadow** by default — no authoritative publication until promotion.
-

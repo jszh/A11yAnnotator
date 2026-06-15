@@ -6,6 +6,11 @@
 'use strict';
 
 const oracle = require('./applicability-oracle.js');
+const cat = require('./catalog.js');
+
+// claim-family → experiment recipe, derived from the catalog (each experiment declares its family).
+const FAM_EXP = {};
+for (const [id, exp] of Object.entries(cat.CATALOG.experiments)) if (exp.claimFamily) FAM_EXP[exp.claimFamily] = id;
 
 // Re-exported for back-compat; the oracle is the single source of the role/fact → SC mapping.
 const applicableScsFor = oracle.applicableScsFor;
@@ -17,35 +22,35 @@ function annotateApplicableScs(collect) {
   return collect;
 }
 
-// Generate experiment candidates from baseline evidence. A candidate names the SC + claim-family it
-// would resolve, the experiment, its deterministic selection level, the allowed experiment recipes
-// (so a later agent plan cannot swap in a different experiment), and the missing evidence.
+// Generate experiment candidates from the INDEPENDENT oracle, one per enumerated (element, family)
+// obligation, each bound to that family's catalog recipe (audit V3R2-H1: every experiment runs
+// through the normal pipeline, not just focus). Level-1 mandatory-automatic. focus-visual-retry is
+// additionally gated on an indeterminate baseline focus indicator (a determinate baseline needs no
+// experiment); the others run whenever their obligation applies.
 function generateCandidates(collect, drive) {
   const driveByXpath = {};
   for (const e of (drive && drive.elements) || []) if (e && e.xpath) driveByXpath[e.xpath] = e;
   const candidates = [];
   let i = 0;
+  const add = (xpath, claimFamily, reason, missing = []) => {
+    const experimentId = FAM_EXP[claimFamily]; if (!experimentId) return;
+    candidates.push({ candidateId: `cand-${++i}`, xpath, sc: oracle.scForFamily(claimFamily), claimFamily, experimentId, allowedExperiments: [experimentId], selectionLevel: 1, selectionReason: reason, missingEvidence: missing });
+  };
   for (const el of (collect && collect.elements) || []) {
     if (!el || !el.xpath) continue;
     const d = driveByXpath[el.xpath] || {};
     const baselineFocus = d.focusIndicator;
     const indeterminate = !baselineFocus || baselineFocus.present == null || baselineFocus.cropInvalid === true;
-    // Level 1 mandatory-automatic: a focusable element whose baseline focus evidence is
-    // indeterminate → focus-visual-retry (2.4.7 / focus-indicator-visible).
-    if (el.focusable && indeterminate) {
-      candidates.push({
-        candidateId: `cand-${++i}`,
-        xpath: el.xpath,
-        sc: '2.4.7',
-        claimFamily: 'focus-indicator-visible',
-        experimentId: 'focus-visual-retry',
-        allowedExperiments: ['focus-visual-retry'],
-        selectionLevel: 1,
-        selectionReason: 'baseline focus indicator indeterminate or crop invalid',
-        missingEvidence: ['focusDependentIndicator', 'obviouslyVisible'],
-      });
+    for (const fam of oracle.familiesFor(el)) {
+      if (fam === 'focus-indicator-visible') {
+        if (el.focusable && indeterminate) add(el.xpath, fam, 'baseline focus indicator indeterminate or crop invalid', ['focusDependentIndicator', 'obviouslyVisible']);
+      } else {
+        add(el.xpath, fam, `${fam} obligation (oracle-enumerated)`);
+      }
     }
   }
+  // page-level reflow obligation (C8).
+  if (collect && collect.page && collect.page.reflowApplicable === true) add(oracle.PAGE_REFLOW_XPATH, 'reflow-no-hscroll', 'page-level reflow at 320px');
   return { file: collect && collect.file, runId: collect && collect.runId, pageDigest: collect && collect.pageDigest, candidates };
 }
 

@@ -1,10 +1,15 @@
 // Harness 3.0 — INDEPENDENT applicability / claim-family oracle (plan Rule 16; audit V3-C3, V3-C5).
 //
-// This module is the single AUTHORITY for "what atomic obligations does a collected page carry".
-// It derives obligations from RAW collector facts (role / focusable / hasText / …) — it does NOT
-// read any precomputed `applicableScs`, which the candidate-generator writes. Independence matters:
-// if a candidate-generation branch is forgotten, the obligation is STILL enumerated here, so it
-// surfaces as an honest auto-PARTIAL instead of silently disappearing.
+// This module derives obligations INDEPENDENTLY of any precomputed `applicableScs` (which the
+// candidate-generator writes), from RAW collector facts (role / focusable / hasText / …). Its
+// independence matters: if a candidate-generation branch is forgotten, the obligation is STILL
+// enumerated here, so it surfaces as an honest auto-PARTIAL instead of silently disappearing.
+//
+// SCOPE NOTE (audit V3R2-M3): this is an explicitly PARTIAL Phase-0 inventory, NOT complete
+// independent coverage of all WCAG SCs. `familiesFor` is a hand-authored seed; surfaces it does not
+// cover are reported via `outOfScopeElements` (never silently dropped), but absence of a family
+// branch is a coverage gap, not a proof of conformance. A separately-owned category/skill coverage
+// registry that fails closed on a missing family is future work.
 //
 // An atomic obligation is keyed by (xpath, sc, CLAIM-FAMILY), not (xpath, sc): a single SC can carry
 // materially different assertions in different skills (2.4.7 is both focus-management and focus-

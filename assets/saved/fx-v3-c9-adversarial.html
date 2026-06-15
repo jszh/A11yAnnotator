@@ -1,11 +1,20 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>C9 adversarial</title></head>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>C9 adversarial</title></head>
 <body style="padding:40px">
-  <div style="margin-bottom:240px"><button id="nd" aria-describedby="t1">Nondismissible</button><div id="t1" role="tooltip" style="display:none;position:absolute;background:#000;color:#fff;padding:6px">cannot be dismissed</div></div>
-  <div><button id="gd" aria-describedby="t2">Good tooltip</button><div id="t2" role="tooltip" style="display:none;position:absolute;background:#000;color:#fff;padding:6px">dismissible, hoverable, persistent</div></div>
+  <div style="margin-bottom:240px">
+    <button id="nd" aria-describedby="t1">Nondismissible</button>
+    <p id="under" style="position:absolute; top:120px; left:40px; margin:0">Important page content sitting underneath the tooltip region.</p>
+    <!-- a non-dismissible tooltip that OBSCURES other content ⇒ Dismissible is REQUIRED ⇒ barrier -->
+    <div id="t1" role="tooltip" style="display:none; position:absolute; top:120px; left:40px; background:#000; color:#fff; padding:6px">cannot be dismissed and covers the content beneath it</div>
+  </div>
+  <div>
+    <button id="gd" aria-describedby="t2">Good tooltip</button>
+    <div id="t2" role="tooltip" style="display:none; position:absolute; background:#000; color:#fff; padding:6px">dismissible, hoverable, persistent — obscures nothing</div>
+  </div>
   <script>
-    var nd=document.getElementById('nd'),t1=document.getElementById('t1'),gd=document.getElementById('gd'),t2=document.getElementById('t2');
-    nd.addEventListener('mouseenter',function(){t1.style.display='block';}); /* no Esc handler */
-    gd.addEventListener('mouseenter',function(){t2.style.display='block';});
-    document.addEventListener('keydown',function(e){if(e.key==='Escape')t2.style.display='none';});
+    var nd = document.getElementById('nd'), t1 = document.getElementById('t1'), gd = document.getElementById('gd'), t2 = document.getElementById('t2');
+    nd.addEventListener('mouseenter', function () { t1.style.display = 'block'; }); /* no Esc handler, and it covers #under */
+    gd.addEventListener('mouseenter', function () { t2.style.display = 'block'; });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') t2.style.display = 'none'; });
   </script>
 </body></html>

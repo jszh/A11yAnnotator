@@ -15,6 +15,10 @@
 
 const STATES = ['shadow', 'canary', 'authoritative'];
 const READINESS_FLAGS = ['goldSized', 'sealedEval', 'independentRaters', 'measurementValidated'];
+// A promoted mechanism must NAME the provenance-bearing artifacts its readiness rests on, so a
+// promotion cannot be a bare boolean assertion (audit V3R2-H7). Hash verification of these artifacts
+// against on-disk files is a further step (documented in the gold README); naming them is the floor.
+const PROVENANCE_REFS = ['goldRef', 'sealedRef', 'raterRef', 'measurementSuiteHash'];
 
 // Default-shadow registry. focus-visual-retry stays shadow in BOTH directions because (a) its gold
 // seed (3 cases) is far below the worksheet sizing target (149), and (b) its measurement is only
@@ -49,6 +53,10 @@ function authorityFor(experimentId, direction, reg = AUTHORITY) {
   const own = (f) => Object.prototype.hasOwnProperty.call(r, f) && r[f] === true;
   const unmet = READINESS_FLAGS.filter((f) => !own(f));
   if (unmet.length) return { state: 'shadow', mayPublish: false, reason: `marked authoritative but readiness unmet: ${unmet.join(', ')} — fail-closed to shadow` };
+  // readiness booleans must be backed by NAMED provenance artifacts (audit V3R2-H7).
+  const prov = entry.provenance || {};
+  const noProv = PROVENANCE_REFS.filter((f) => typeof prov[f] !== 'string' || !prov[f].trim());
+  if (noProv.length) return { state: 'shadow', mayPublish: false, reason: `marked authoritative but provenance refs missing: ${noProv.join(', ')} — fail-closed to shadow` };
   return { state: 'authoritative', mayPublish: true, reason: entry.reason || 'promoted' };
 }
 
@@ -61,6 +69,9 @@ function validateAuthority(reg = AUTHORITY) {
       const r = entry.readiness || {};
       for (const f of READINESS_FLAGS)
         if (!Object.prototype.hasOwnProperty.call(r, f) || typeof r[f] !== 'boolean') E.push(`authority ${k}: authoritative requires an OWN boolean readiness.${f}`);
+      const prov = entry.provenance || {};
+      for (const f of PROVENANCE_REFS)
+        if (typeof prov[f] !== 'string' || !prov[f].trim()) E.push(`authority ${k}: authoritative requires provenance.${f} (a named artifact reference)`);
     }
   }
   return E;

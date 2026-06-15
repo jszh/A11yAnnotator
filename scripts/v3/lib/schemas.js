@@ -63,6 +63,25 @@ function validateExperiments(x, E) {
     // every result MUST carry its measured scope, strictly shaped — so the builder can BIND it to
     // the proposal's scope rather than fail-open on absence (audit R1-F1).
     validScope(r.observationScope, p, E);
+    if (r.valid != null && typeof r.valid !== 'boolean') E.push(`${p}.valid must be boolean`);
+    if (r.completed != null && typeof r.completed !== 'boolean') E.push(`${p}.completed must be boolean`);
+    if (r.applicabilityEvidence != null && !isObj(r.applicabilityEvidence)) E.push(`${p}.applicabilityEvidence must be an object`);
+    if (r.measurement != null && !isObj(r.measurement)) E.push(`${p}.measurement must be an object`);
+    // CLOSE the outcome shape: every flag must be a DECLARED typed outcome of the experiment runner
+    // (audit V3R2-H6 — no smuggled flags) and every flag value must be boolean.
+    const exp = cat.getExperiment(r.experimentId);
+    if (exp && isObj(r.outcome)) for (const k of Object.keys(r.outcome)) {
+      if (!(exp.typedOutcomes || []).includes(k)) E.push(`${p}.outcome has undeclared flag ${JSON.stringify(k)} for ${r.experimentId}`);
+      else if (typeof r.outcome[k] !== 'boolean') E.push(`${p}.outcome.${k} must be boolean`);
+    }
+  });
+  // unrun records (skipped/failed/deferred) are a closed shape too.
+  if (Array.isArray(x.unrun)) x.unrun.forEach((u, i) => {
+    const p = `experiments.unrun[${i}]`;
+    if (!isObj(u)) return E.push(`${p}: must be an object`);
+    noUnknownKeys(u, ['candidateId', 'experimentId', 'status', 'reason'], p, E);
+    if (!isStr(u.candidateId)) E.push(`${p}.candidateId required`);
+    if (!['skipped', 'failed', 'deferred'].includes(u.status)) E.push(`${p}.status must be skipped|failed|deferred`);
   });
 }
 
@@ -97,7 +116,21 @@ function validatePlan(pl, E) {
 
 function validateCandidates(ca, E) {
   if (!isObj(ca)) return E.push('candidates: must be an object');
-  if (!Array.isArray(ca.candidates)) E.push('candidates.candidates must be an array');
+  if (!Array.isArray(ca.candidates)) return E.push('candidates.candidates must be an array');
+  ca.candidates.forEach((c, i) => {
+    const p = `candidates.candidates[${i}]`;
+    if (!isStr(c.candidateId)) E.push(`${p}.candidateId required`);
+    if (!isStr(c.xpath)) E.push(`${p}.xpath required`);
+    if (!isStr(c.sc)) E.push(`${p}.sc required`);
+    if (!isStr(c.experimentId)) E.push(`${p}.experimentId required`);
+  });
+}
+
+// drive/manifest are baseline/provenance: if present they must at least be objects and, when they
+// declare identity fields, those must be strings (the cross-artifact gate checks the values match).
+function validateBaseline(art, name, E) {
+  if (!isObj(art)) { E.push(`${name}: must be an object`); return; }
+  for (const f of ['file', 'runId', 'pageDigest']) if (art[f] != null && !isStr(art[f])) E.push(`${name}.${f} must be a string`);
 }
 
 // Validate the whole bundle: reject unknown stages, validate each present stage strictly.
@@ -110,6 +143,8 @@ function validateBundle(bundle) {
   if (bundle.claimProposals != null) validateProposals(bundle.claimProposals, E);
   if (bundle.plan != null) validatePlan(bundle.plan, E);
   if (bundle.candidates != null) validateCandidates(bundle.candidates, E);
+  if (bundle.drive != null) validateBaseline(bundle.drive, 'drive', E);
+  if (bundle.manifest != null) validateBaseline(bundle.manifest, 'manifest', E);
   return E;
 }
 

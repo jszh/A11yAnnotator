@@ -11,6 +11,7 @@ const path = require('node:path');
 const { runPlan, CHROME } = require('../lib/run-experiments.js');
 const { directionFor } = require('../lib/proposer.js');
 const { buildV3 } = require('../lib/build-v3.js');
+const { withPipeline, promoted } = require('./helpers.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — v3 experiments suite SKIPPED');
@@ -40,7 +41,7 @@ test('C6 field-label-probe: clear / placeholder-barrier / sr-only / title / unas
   assert.equal(dir('field-label-probe', byXp['/html/body/div[1]/input']), 'NO_BARRIER_OBSERVED', 'associated visible label clears');
   assert.equal(dir('field-label-probe', byXp['/html/body/div[2]/input']), 'BARRIER_OBSERVED', 'placeholder-only is a barrier');
   assert.equal(dir('field-label-probe', byXp['/html/body/div[3]/input']), null, 'sr-only label ⇒ inconclusive (no visible label)');
-  assert.equal(dir('field-label-probe', byXp['/html/body/div[4]/input']), 'BARRIER_OBSERVED', 'unassociated visible text is a barrier');
+  assert.equal(dir('field-label-probe', byXp['/html/body/div[4]/input']), null, 'unassociated VISIBLE label ⇒ inconclusive, NOT a barrier (3.3.2 ≠ 1.3.1, audit V3R2-H2)');
   assert.equal(dir('field-label-probe', byXp['/html/body/div[5]/input']), null, 'title-only ⇒ inconclusive (not visible)');
   assert.equal(dir('field-label-probe', byXp['/html/body/div[6]/input']), 'BARRIER_OBSERVED', 'dangling aria-labelledby is a barrier');
 });
@@ -112,19 +113,51 @@ test('ADV C9: a compliant tooltip is not a barrier (test ordering no longer pois
   assert.equal(dir('hover-content-tri', byXp['/html/body/div[2]/button']), null, 'a dismissible+hoverable+persistent tooltip is NOT a barrier (was a false barrier)');
 });
 
+// ---- Second-pass independent audit regressions (all reproduced + fixed) ----
+test('R2-C2: a text input and an arrow-operable role=tab are PARTIAL, not a false clear/barrier', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('keyboard-activation', 'fx-v3-r2-c2.html', ['/html/body/div[1]/input', '/html/body/div[2]/div/button']);
+  assert.equal(dir('keyboard-activation', byXp['/html/body/div[1]/input']), null, 'a text input is not an activation control (Space types, not activates)');
+  assert.equal(dir('keyboard-activation', byXp['/html/body/div[2]/div/button']), null, 'an arrow-operable role=tab is out of the Enter/Space recipe ⇒ PARTIAL, not a barrier');
+});
+
+test('R2-C3: white text over a white sibling backdrop does NOT clear (real paint order)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-r2-c3.html', ['/html/body/p']);
+  assert.notEqual(dir('text-contrast-pixel', byXp['/html/body/p']), 'NO_BARRIER_OBSERVED', 'a sibling-painted backdrop is resolved via elementsFromPoint, not the ancestor chain');
+});
+
+test('R2-H3: an overlay leaving a visible strip is NOT "entirely obscured"', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-r2-h3.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), null, 'a ~12px visible strip ⇒ not entirely obscured (dense grid)');
+});
+
+test('R2-H4: an advised alternative keyboard exit (press Z) is honored', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('keyboard-trap-escape', 'fx-v3-r2-h4.html', ['/html/body/div/input[1]']);
+  assert.notEqual(dir('keyboard-trap-escape', byXp['/html/body/div/input[1]']), 'BARRIER_OBSERVED', 'an advised "press Z to leave" exit is not a trap');
+});
+
+test('R2-M1: a bare LAYOUT table that overflows at 320px is a barrier; a data table (th) is exempt', { skip: !chromeOK, concurrency: false }, async () => {
+  const layout = await run('reflow-overflow-probe', 'fx-v3-r2-m1.html', ['/page-level::reflow']);
+  assert.equal(dir('reflow-overflow-probe', layout.byXp['/page-level::reflow']), 'BARRIER_OBSERVED', 'a layout table (no th/caption) is not blanket-exempt');
+});
+
+test('R2-M2: an opaque pointer-events:none overlay still obscures the focused control', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-r2-m2.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), 'BARRIER_OBSERVED', 'pointer-events:none is irrelevant to visual obscuration');
+});
+
 // ---- build-through: shadow by default; AT-independent C3 clears authoritative when PROMOTED ----
 test('C3 build-through: default-shadow; PROMOTED ⇒ authoritative clear (AT-independent, no baseline needed)', { skip: !chromeOK, concurrency: false }, async () => {
   const { byXp } = await run('text-contrast-pixel', 'fx-v3-c3-contrast.html', ['/html/body/div[1]/span']);
   const r = byXp['/html/body/div[1]/span'];
   const SCOPE = r.observationScope;
-  const bundle = {
+  const bundle = withPipeline({
     collect: { file: 'f', runId: 'R', pageDigest: 'sha256:d', collectedAt: 100, elements: [{ xpath: r.targetXpath, hasText: true }] },
     experiments: { file: 'f', runId: 'R', pageDigest: 'sha256:d', catalogVersion: '3.0.0-phase0', startedAt: 200, results: [{ ...r, claimId: 'tc' }] },
     claimProposals: { file: 'f', runId: 'R', pageDigest: 'sha256:d', proposals: [{ claimId: 'tc', sc: '1.4.3', direction: 'NO_BARRIER_OBSERVED', experimentId: 'text-contrast-pixel', claimFamily: 'text-contrast', observationScope: SCOPE }] },
-  };
+  });
   assert.equal(buildV3(bundle).results.summary.authoritative, 0, 'shadow by default');
-  const PROMOTED = { 'text-contrast-pixel/NO_BARRIER_OBSERVED': { state: 'authoritative', reason: 't', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } } };
+  const PROMOTED = promoted(['text-contrast-pixel/NO_BARRIER_OBSERVED']);
   const r2 = buildV3(bundle, { authority: PROMOTED });
   assert.equal(r2.ok, true, JSON.stringify(r2.errors));
-  assert.equal(r2.results.summary.cleared, 1, 'a flat-backdrop contrast clear publishes when promoted');
+  assert.equal(r2.results.summary.cleared, 1, 'a flat-backdrop contrast clear publishes when promoted (complete bundle + provenance)');
 });

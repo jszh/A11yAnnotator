@@ -47,16 +47,25 @@ function measureContrast(marker) {
   // ancestor opacity chain (an ancestor opacity<1 composites the group → rendered contrast differs)
   let opacityChain = 1; for (let p = el; p; p = p.parentElement) { const o = parseFloat(getComputedStyle(p).opacity); if (!isNaN(o)) opacityChain *= o; }
 
-  // backdrop: composite EVERY background layer from the element outward, including SEMI-TRANSPARENT
-  // ones, down onto the first opaque ancestor — a translucent overlay (rgba bg) materially changes
-  // the rendered backdrop and must not be skipped to the opaque base (audit C1/C3).
-  let bg = null, hasImage = false;
+  // backdrop: resolve through the ACTUAL paint stack at the glyph location (document.elementsFromPoint),
+  // not just the ancestor chain — this captures absolutely-positioned SIBLINGS / overlays painted
+  // behind the text that the ancestor walk misses (audit V3R2-C3). Composite every translucent layer
+  // down onto the first opaque one; any background-image / filter / blend / backdrop-filter in the
+  // relevant layers makes the rendered composition non-trivial ⇒ cannot soundly clear.
+  let bg = null, hasImage = false, hasFilterBlend = false;
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  let stack = (rect.width > 0 && rect.height > 0) ? document.elementsFromPoint(cx, cy) : [];
+  const idx = stack.indexOf(el);
+  // paint layers from the text element DOWN (itself + everything behind it at this point); if the
+  // element isn't in the hit stack, fall back to the ancestor chain (conservative).
+  const below = idx >= 0 ? stack.slice(idx) : (() => { const a = []; for (let p = el; p; p = p.parentElement) a.push(p); return a; })();
   const layers = [];
-  for (let p = el; p; p = p.parentElement) {
-    const pcs = getComputedStyle(p);
-    if (pcs.backgroundImage && pcs.backgroundImage !== 'none') hasImage = true;
-    const c = rgba(pcs.backgroundColor);
-    if (c && c.a > 0) layers.push(c);     // element-ward → outward order
+  for (const node of below) {
+    const ncs = getComputedStyle(node);
+    if (ncs.backgroundImage && ncs.backgroundImage !== 'none') hasImage = true;
+    if ((ncs.filter && ncs.filter !== 'none') || (ncs.backdropFilter && ncs.backdropFilter !== 'none') || (ncs.mixBlendMode && ncs.mixBlendMode !== 'normal')) hasFilterBlend = true;
+    const c = rgba(ncs.backgroundColor);
+    if (c && c.a > 0) layers.push(c);     // text-ward → behind order
     if (c && c.a === 1) break;            // opaque base reached
   }
   if (layers.length && layers[layers.length - 1].a === 1) {
@@ -71,7 +80,7 @@ function measureContrast(marker) {
 
   const foregroundResolved = !!fg && !mixedRuns; // a mixed-colour element has no single foreground
   const backgroundResolved = !!bg;
-  const backdropIsSolidUniform = backgroundResolved && !hasImage && opacityChain === 1;
+  const backdropIsSolidUniform = backgroundResolved && !hasImage && !hasFilterBlend && opacityChain === 1;
   const contrastComputable = foregroundResolved && backgroundResolved && backdropIsSolidUniform && !mixedRuns;
   let ratio = null;
   if (contrastComputable) {
@@ -141,10 +150,24 @@ function measureFieldLabel(marker) {
   const programmaticNamePresent = name.length > 0;
   const nameOnlyFromPlaceholder = !programmaticNamePresent && placeholder.length > 0;
   const visibleLabelText = !!labelNode && !srOnly(labelNode) && !fromTitleOnly;
+
+  // 3.3.2 does NOT require a PROGRAMMATIC association (that is 1.3.1) or an accessible name (4.1.2):
+  // a sufficiently clear VISIBLE label/instruction can pass even if unassociated. So we also look for
+  // visible labeling text near the field (a sibling/parent text node), and a barrier is asserted ONLY
+  // when there is NO visible label or instruction anywhere (audit V3R2-H2).
+  let nearbyVisibleText = false;
+  const parent = el.parentElement;
+  if (parent) for (const node of parent.childNodes) {
+    if (node === el || (node.nodeType === 1 && node.contains && node.contains(el))) continue;
+    if (node.nodeType === 3 && node.textContent.trim()) nearbyVisibleText = true;
+    else if (node.nodeType === 1) { const ncs = getComputedStyle(node); if (ncs.display !== 'none' && ncs.visibility !== 'hidden' && (node.textContent || '').trim() && !srOnly(node)) nearbyVisibleText = true; }
+  }
+
   return {
-    isUserInputField, fieldRendered, programmaticNamePresent, visibleLabelText,
-    nameOnlyFromPlaceholder,
-    fieldLabelBarrier: isUserInputField && fieldRendered && (!programmaticNamePresent || nameOnlyFromPlaceholder),
+    isUserInputField, fieldRendered, programmaticNamePresent, visibleLabelText, nameOnlyFromPlaceholder, nearbyVisibleText,
+    // barrier ⇔ no label or instruction at all (no name, no visible associated label, no nearby
+    // visible labeling text). An unassociated-but-visible label ⇒ inconclusive, not a barrier.
+    fieldLabelBarrier: isUserInputField && fieldRendered && !programmaticNamePresent && !visibleLabelText && !nearbyVisibleText,
   };
 }
 
@@ -169,10 +192,14 @@ function measureReflow() {
   const horizontalScrollPresent = se.scrollWidth > se.clientWidth + SLOP;
   // locate visible, non-exempt overflow sources
   const vw = window.innerWidth;
+  // a table is 2D-exempt only when it is a DATA table (has th/caption or an explicit grid/table role);
+  // a bare layout table (no th/caption/role) is NOT exempt — its overflow is a real reflow barrier
+  // rather than a blanket element-type exemption (audit V3R2-M1).
   const isExempt = (el) => {
     for (let p = el; p; p = p.parentElement) {
       const tag = p.tagName, role = p.getAttribute && p.getAttribute('role');
-      if (tag === 'TABLE' || tag === 'MAP' || tag === 'SVG' || (role && /^(table|grid|treegrid)$/.test(role))) return true;
+      if (tag === 'MAP' || tag === 'SVG' || (role && /^(table|grid|treegrid)$/.test(role))) return true;
+      if (tag === 'TABLE' && (p.querySelector('th, caption') || /^(table|grid|treegrid)$/.test(role || ''))) return true;
       const ov = getComputedStyle(p).overflowX;
       if (ov === 'auto' || ov === 'scroll') return true; // author-provided 2D affordance
     }
@@ -231,31 +258,52 @@ function measureObscured(marker) {
   const r = el.getBoundingClientRect();
   const focusedRectResolved = r.width > 1 && r.height > 1 && r.top >= 0 && r.left >= 0 && r.bottom <= window.innerHeight && r.right <= window.innerWidth;
   if (!focusedRectResolved) return { focusedRectResolved: false, overlayLayerPresent: false, entirelyObscuredByAuthorContent: false, obscuringLayerOpaqueAndBlocking: false, notObscuredAfterScroll: false };
-  // 9-point grid: EVERY point must hit-test to an author overlay above the element
-  const pts = [];
-  for (const fx of [0.1, 0.5, 0.9]) for (const fy of [0.1, 0.5, 0.9]) pts.push([r.left + r.width * fx, r.top + r.height * fy]);
-  let coveredAll = true, opaqueBlocking = false, overlayLayerPresent = false;
   const alphaOf = (s) => { const m = String(s || '').match(/rgba?\(([^)]+)\)/i); if (!m) return 1; const p = m[1].split(',').map((x) => parseFloat(x)); return p.length >= 4 ? p[3] : 1; };
+  const effOpacity = (node) => { let e = 1; for (let p = node; p; p = p.parentElement) { const oo = parseFloat(getComputedStyle(p).opacity); if (!isNaN(oo)) e *= oo; } return e; };
+  const zi = (node) => { const v = parseInt(getComputedStyle(node).zIndex, 10); return isNaN(v) ? 0 : v; };
+
+  // pre-collect OPAQUE author overlays painted ABOVE the target — including pointer-events:none ones,
+  // which elementsFromPoint silently skips even though they visually hide the control (audit V3R2-M2).
+  const overlays = [];
+  for (const node of document.querySelectorAll('*')) {
+    if (node === el || el.contains(node) || node.contains(el)) continue;
+    const cs = getComputedStyle(node);
+    if (!/^(fixed|absolute|sticky|relative)$/.test(cs.position)) continue;
+    if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+    if (!(alphaOf(cs.backgroundColor) > 0) && (!cs.backgroundImage || cs.backgroundImage === 'none')) continue;
+    if (effOpacity(node) <= 0.05) continue;                       // opacity:0 ⇒ invisible ⇒ not obscuring
+    const above = zi(node) > zi(el) || (zi(node) === zi(el) && (el.compareDocumentPosition(node) & 4)); // FOLLOWING
+    if (!above) continue;
+    const nr = node.getBoundingClientRect();
+    overlays.push(nr);
+    if (cs.position === 'fixed' || cs.position === 'sticky' || node.closest('[id*="onetrust" i],[id*="cookie" i],[class*="consent" i],[aria-modal="true"]')) { /* mark below */ }
+  }
+  const overlayLayerPresent = overlays.length > 0;
+  const inOverlay = (x, y) => overlays.some((o) => x >= o.left && x <= o.right && y >= o.top && y <= o.bottom);
+
+  // DENSE grid (~4px step, capped) — 9 points can miss a visible strip (audit V3R2-H3). EVERY point
+  // must be covered (entirely obscured) and EVERY covering must be opaque (no "any opaque ⇒ barrier").
+  const stepX = Math.max(3, Math.min(r.width / 40, 8)), stepY = Math.max(3, Math.min(r.height / 40, 8));
+  const pts = [];
+  for (let x = r.left + 1; x <= r.right - 1; x += stepX) for (let y = r.top + 1; y <= r.bottom - 1; y += stepY) pts.push([x, y]);
+  if (!pts.length) pts.push([r.left + r.width / 2, r.top + r.height / 2]);
+  let coveredAll = true, opaqueAtAll = true;
   for (const [x, y] of pts) {
     const stack = document.elementsFromPoint(x, y);
     const idx = stack.indexOf(el);
-    const above = idx < 0 ? stack : stack.slice(0, idx); // elements painted above el at this point
+    const above = idx < 0 ? stack : stack.slice(0, idx);
     const realAbove = above.filter((n) => n !== el && !el.contains(n));
-    if (!realAbove.length) { coveredAll = false; continue; }
-    // is the topmost covering layer opaque/visible/blocking?
-    const top = realAbove[0]; const tcs = getComputedStyle(top);
-    const pos = tcs.position;
-    if (pos === 'fixed' || pos === 'sticky' || top.closest('[id*="onetrust" i],[id*="cookie" i],[class*="consent" i],[aria-modal="true"]')) overlayLayerPresent = true;
-    // EFFECTIVE opacity along the overlay's ancestor chain — an opacity:0 (or near-0) overlay is
-    // visually invisible and does NOT obscure a sighted keyboard user, even if it hit-tests (audit C7).
-    let eff = 1; for (let p = top; p; p = p.parentElement) { const oo = parseFloat(getComputedStyle(p).opacity); if (!isNaN(oo)) eff *= oo; }
-    if (alphaOf(tcs.backgroundColor) > 0 && tcs.visibility !== 'hidden' && tcs.pointerEvents !== 'none' && eff > 0.05) opaqueBlocking = true;
+    let blocked = false;
+    if (realAbove.length) { const top = realAbove[0], tcs = getComputedStyle(top); blocked = alphaOf(tcs.backgroundColor) > 0 && tcs.visibility !== 'hidden' && effOpacity(top) > 0.05; }
+    if (!blocked && inOverlay(x, y)) blocked = true; // pointer-events:none opaque overlay
+    if (!realAbove.length && !inOverlay(x, y)) { coveredAll = false; opaqueAtAll = false; break; } // a visible point ⇒ not entirely obscured
+    if (!blocked) opaqueAtAll = false;
   }
   return {
     focusedRectResolved: true, overlayLayerPresent,
     entirelyObscuredByAuthorContent: coveredAll,
-    obscuringLayerOpaqueAndBlocking: opaqueBlocking,
-    notObscuredAfterScroll: !coveredAll, // we measured AFTER scrollIntoView; if still covered, the exception doesn't apply
+    obscuringLayerOpaqueAndBlocking: coveredAll && opaqueAtAll,
+    notObscuredAfterScroll: !coveredAll, // measured AFTER scrollIntoView; if still covered, the exception doesn't apply
   };
 }
 
@@ -338,15 +386,34 @@ async function runKeyboardTrapEscape(page, request) {
     return { escClosesOrEscapes: (removed || movedOut), inDoc };
   }, marker).catch(() => ({ escClosesOrEscapes: false, inDoc: true }));
   if (!escResult.inDoc) lost = true;
+  const escClosesOrEscapes = escResult.escClosesOrEscapes;
+
+  // WCAG 2.1.2 permits ANOTHER keyboard exit method WHEN the user is advised of it. Detect advisory
+  // text in the region ("press Z to leave"), try the advised key, and never assert a trap when an
+  // advised exit exists but we couldn't confirm it (audit V3R2-H4).
+  const advice = await page.evaluate((m) => {
+    const region = document.querySelector(`[data-v3-region="${m}"]`);
+    const t = region ? region.textContent || '' : '';
+    const mm = t.match(/press\s+(?:the\s+)?["']?([A-Za-z])["']?\s+(?:key\s+)?to\s+(?:leave|exit|close|escape|dismiss|continue)/i);
+    return { advised: /\bto\s+(leave|exit|close|escape|dismiss)\b/i.test(t), key: mm ? mm[1].toLowerCase() : null };
+  }, marker).catch(() => ({ advised: false, key: null }));
+  let advisedKeyEscapes = false;
+  if (!escClosesOrEscapes && advice.key) {
+    await H.realKeyboardReach(page, marker);
+    await page.keyboard.press(advice.key); await H.settle(page, 60);
+    const a = await page.evaluate((m) => { const region = document.querySelector(`[data-v3-region="${m}"]`); const el = document.activeElement; const inDoc = !!(el && el !== document.body && document.hasFocus()); const removed = !region || !region.isConnected || region.hidden; const movedOut = !(el && region && region.contains(el)); return { ok: (removed || movedOut), inDoc }; }, marker).catch(() => ({ ok: false, inDoc: true }));
+    advisedKeyEscapes = a.ok; if (!a.inDoc) lost = true;
+  }
 
   o.focusStaysInDocument = !lost;
-  const escClosesOrEscapes = escResult.escClosesOrEscapes;
+  const anyEscapes = tabEscapes || shiftEscapes || escClosesOrEscapes || advisedKeyEscapes;
   // one-way / disagreement ⇒ INCONCLUSIVE (neither set)
-  const oneWayConflict = (tabEscapes !== shiftEscapes) && !escClosesOrEscapes;
-  o.escapeProvenForWidget = (tabEscapes || shiftEscapes || escClosesOrEscapes) && o.focusStaysInDocument && !oneWayConflict;
-  o.trapProven = !tabEscapes && !shiftEscapes && !escClosesOrEscapes && o.focusStaysInDocument && cycledBackToStart;
+  const oneWayConflict = (tabEscapes !== shiftEscapes) && !escClosesOrEscapes && !advisedKeyEscapes;
+  o.escapeProvenForWidget = anyEscapes && o.focusStaysInDocument && !oneWayConflict;
+  // a trap is asserted ONLY when no mechanism escaped AND there is no advised alternative exit.
+  o.trapProven = !anyEscapes && !advice.advised && o.focusStaysInDocument && cycledBackToStart;
   const valid = o.focusStaysInDocument && reached;
-  return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: o.keyboardReachableInState }, { action: 'tab-into-then-escape', valid, measurement: { tabEscapes, shiftEscapes, escClosesOrEscapes, cycledBackToStart, oneWayConflict } });
+  return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: o.keyboardReachableInState }, { action: 'tab-into-then-escape', valid, measurement: { tabEscapes, shiftEscapes, escClosesOrEscapes, advisedKeyEscapes, advised: advice.advised, cycledBackToStart, oneWayConflict } });
 }
 
 // =====================================================================================
@@ -387,15 +454,26 @@ async function runKeyboardActivation(page, request) {
     const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return null;
     const role = el.getAttribute('role') || ''; const tag = el.tagName;
     const type = (el.getAttribute('type') || '').toLowerCase();
-    const interactive = /^(button|link|checkbox|radio|switch|menuitem|tab|option|combobox|slider|textbox|spinbutton)$/.test(role) || /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(tag);
-    const composite = /^(combobox|slider|grid|listbox|menu|tablist|tree|application)$/.test(role) || el.hasAttribute('aria-haspopup') || el.hasAttribute('aria-controls');
+    // a REGISTERED Enter/Space ACTIVATION control only — NOT text-entry fields (which "activate" by
+    // typing a space) and NOT roving/composite widgets (tab/option/slider/combobox, operated by
+    // arrows). Those are out of this experiment's recipe ⇒ applicability fails ⇒ PARTIAL, never a
+    // clear or barrier (audit V3R2-C2).
+    const enterSpaceRole = /^(button|checkbox|radio|switch|menuitem|menuitemcheckbox|menuitemradio)$/.test(role);
+    // a composite/roving role (tab/option/slider/…) is operated by ARROWS, not Enter/Space — even on
+    // a native <button> tag — so it is OUT of this experiment's recipe (audit V3R2-C2).
+    const composite = /^(combobox|slider|grid|listbox|menu|tablist|tree|application|tab|option|textbox|searchbox|spinbutton)$/.test(role) || el.hasAttribute('aria-haspopup') || el.hasAttribute('aria-controls');
+    const isActivationControl = !composite && (enterSpaceRole || tag === 'BUTTON'
+      || (tag === 'A' && el.hasAttribute('href'))
+      || (tag === 'INPUT' && /^(button|submit|reset|checkbox|radio)$/.test(type)));
     el.focus(); const focusable = document.activeElement === el; el.blur();
-    return { role, tag, type, interactive, composite, focusable };
+    return { role, tag, type, isActivationControl, composite, focusable };
   }, marker).catch(() => null);
   if (!info) return mk(request, 'keyboard-activation', '2.1.1', o, {}, { action: 'real-key-activate' });
-  o.targetIsInteractive = info.interactive; o.targetIsFocusable = info.focusable;
-  o.singleModeControl = (C4_SIMPLE.test(info.role) || C4_SIMPLE_TAG.test(info.tag)) && !info.composite;
+  o.targetIsInteractive = info.isActivationControl; o.targetIsFocusable = info.focusable;
+  o.singleModeControl = info.isActivationControl && !info.composite;
   o.modeInventoryClosed = !info.composite;
+  // out of recipe ⇒ don't even attempt activation; applicability will PARTIAL it.
+  if (!info.isActivationControl) return mk(request, 'keyboard-activation', '2.1.1', o, { targetIsInteractive: false, targetIsFocusable: o.targetIsFocusable, hydrationReady }, { action: 'real-key-activate', valid: false });
 
   // synthetic-first probe (must NOT already produce the effect)
   const s0 = await observeC4(page, marker);
@@ -567,21 +645,39 @@ async function runHoverContentTri(page, request) {
   o.measurementDeterministic = true;
 
   if (o.contentAppeared && o.contentIsAdditional) {
-    // re-establish the hover (move away then back) so each sub-test starts from a shown tooltip —
-    // critically, Dismissible (which hides it) must run LAST, or it poisons Hoverable (audit C8).
+    // bind the ACTUAL appearing content region (not a guessed path), and decide whether it
+    // OBSCURES/REPLACES other content — 1.4.13 EXEMPTS Dismissible when it does not (audit V3R2-H5).
+    const tip = await page.evaluate(() => {
+      const tips = [...document.querySelectorAll('[role="tooltip"],[role="status"],[popover],[data-tooltip],.tooltip,.tip')].filter((t) => { const cs = getComputedStyle(t); const r = t.getBoundingClientRect(); return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1; });
+      if (!tips.length) return null;
+      const tipEl = tips[0], tr = tipEl.getBoundingClientRect();
+      let obscures = false;
+      for (const el of document.body.querySelectorAll('*')) {
+        if (el === tipEl || tipEl.contains(el) || el.contains(tipEl)) continue;
+        const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+        let ownText = false; for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) ownText = true;
+        if (!ownText) continue;
+        const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+        if (!(tr.right <= r.left || tr.left >= r.right || tr.bottom <= r.top || tr.top >= r.bottom)) { obscures = true; break; }
+      }
+      return { cx: tr.left + tr.width / 2, cy: tr.top + tr.height / 2, obscures };
+    }).catch(() => null);
+    const dismissExempt = !!tip && !tip.obscures; // exempt when the content obscures/replaces nothing
+
     const rehover = async () => { await page.mouse.move(2, 2); await H.settle(page, 90); await page.mouse.move(box.x, box.y); await H.settle(page, 220); return page.evaluate(docSig); };
     // Persistent: still present after a dwell while still hovered?
     await H.settle(page, 1600);
     o.persistent = (await page.evaluate(docSig)) >= hovered;
-    // Hoverable: re-show, then move the pointer along a path toward the content; it must survive.
+    // Hoverable: re-show, then move the pointer to the ACTUAL content region; it must survive.
     const shown1 = await rehover();
-    await page.mouse.move(box.x, box.y + 4); await page.mouse.move(box.x, box.y + 12); await H.settle(page, 150);
+    if (tip) { await page.mouse.move((box.x + tip.cx) / 2, (box.y + tip.cy) / 2); await page.mouse.move(tip.cx, tip.cy); } else { await page.mouse.move(box.x, box.y + 8); }
+    await H.settle(page, 150);
     o.hoverable = shown1 > rest && (await page.evaluate(docSig)) >= shown1;
-    // Dismissible LAST: re-show, then Escape must hide it without moving the pointer.
+    // Dismissible LAST (it hides the content). Exempt when the content obscures nothing.
     const shown2 = await rehover();
     await page.keyboard.press('Escape'); await H.settle(page, 100);
-    o.dismissible = (await page.evaluate(docSig)) < shown2;
-    o.anyPropertyFails = (o.persistent === false) || (o.dismissible === false) || (o.hoverable === false);
+    o.dismissible = dismissExempt || (await page.evaluate(docSig)) < shown2;
+    o.anyPropertyFails = (o.persistent === false) || (o.hoverable === false) || (o.dismissible === false);
   }
   const valid = o.contentAppeared && o.contentIsAdditional && o.measurementDeterministic;
   return mk(request, 'hover-content-tri', '1.4.13', o, { hasHoverFocusTrigger: o.hasHoverFocusTrigger, triggerReachable: o.triggerReachable }, { action: 'hover-focus-tri', valid, measurement: { rest, hovered, nativeTitleOnly } });

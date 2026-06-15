@@ -38,10 +38,8 @@ test('replay determinism: building twice over a frozen bundle yields identical r
 
 const FIXTURE = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-focus.html');
 
-const PROMOTED = {
-  'focus-visual-retry/NO_BARRIER_OBSERVED': { state: 'authoritative', reason: 't', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } },
-  'focus-visual-retry/BARRIER_OBSERVED': { state: 'authoritative', reason: 't', readiness: { goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true } },
-};
+const { promoted } = require('./helpers.js');
+const PROMOTED = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED', 'focus-visual-retry/BARRIER_OBSERVED']);
 
 test('orchestrate is SHADOW by default: gate-passing focus observations do not publish (audit V3-C2)', { skip: !chromeOK, concurrency: false }, async () => {
   const collect = { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', collectedAt: 1000, elements: [
@@ -53,19 +51,21 @@ test('orchestrate is SHADOW by default: gate-passing focus observations do not p
   assert.ok(built.results.summary.shadow >= 1, 'the would-be clear is recorded as a shadow observation');
 });
 
-test('orchestrate (PROMOTED): real ring clears; no-indicator & always-on reproduce barriers; other SCs auto-PARTIAL', { skip: !chromeOK, concurrency: false }, async () => {
+test('orchestrate (focus PROMOTED): real ring clears, no-indicator barriers; ONLY promoted focus publishes', { skip: !chromeOK, concurrency: false }, async () => {
   const collect = { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', collectedAt: 1000, elements: [
     { xpath: '/html/body/button[1]', focusable: true, role: 'button', hasText: true },
     { xpath: '/html/body/button[2]', focusable: true, role: 'button', hasText: true },
     { xpath: '/html/body/button[3]', focusable: true, role: 'button', hasText: true },
   ] };
   const drive = { elements: [] }; // no baseline focus evidence ⇒ all indeterminate ⇒ all get focus candidates
+  // all 8 experiments now run via the normal pipeline (audit V3R2-H1): focusable+button+text ⇒
+  // focus + keyboard-activation + text-contrast + ax-state-diff candidates per button.
   const { plan, built } = await orchestrate(collect, drive, { resolveUrl: () => FIXTURE, now: 2000, authority: PROMOTED });
-  assert.equal(plan.requests.length, 3, 'three Level-1 focus candidates scheduled with no agent');
+  assert.ok(plan.requests.length >= 3, `every enumerated obligation is scheduled (got ${plan.requests.length})`);
   assert.equal(built.ok, true, JSON.stringify(built.errors));
-  const claimBy = {}; for (const c of built.results.claims) claimBy[c.claimId] = c;
-  assert.ok(Object.values(claimBy).some((c) => c.observationOutcome === 'NO_BARRIER_OBSERVED'), 'the real-ring button cleared');
-  assert.ok(Object.values(claimBy).some((c) => c.observationOutcome === 'BARRIER_OBSERVED'), 'a no-indicator button reproduced a barrier');
-  // each button also carries obligations for 2.1.1/1.4.3/4.1.2 that no experiment addressed ⇒ auto-PARTIAL
-  assert.ok(built.results.summary.autoPartial >= 6, `non-2.4.7 obligations are honest auto-PARTIALs (got ${built.results.summary.autoPartial})`);
+  // ONLY focus-visual-retry is promoted ⇒ all authoritative claims are 2.4.7 focus claims.
+  assert.ok(built.results.claims.every((c) => c.sc === '2.4.7'), 'only the promoted focus mechanism publishes');
+  assert.ok(built.results.claims.some((c) => c.observationOutcome === 'NO_BARRIER_OBSERVED'), 'the real-ring button cleared');
+  assert.ok(built.results.claims.some((c) => c.observationOutcome === 'BARRIER_OBSERVED'), 'a no-indicator button reproduced a barrier');
+  assert.ok(built.results.summary.shadow >= 1, 'non-promoted experiments are recorded as shadow, not published');
 });
