@@ -54,6 +54,9 @@ const CATALOG = {
     // ---- C5: keyboard trap escape → 2.1.2 (CLEAR per-component; finite mechanism set). ----
     'keyboard-trap-escape': {
       sc: '2.1.2', claimFamily: 'no-keyboard-trap',
+      // cost (plan Rule 8): many Tab/Shift+Tab/Esc presses + an advised-key probe ⇒ longer wall-clock;
+      // it activates keys on a focus-trapping region ⇒ HIGH mutation risk ⇒ always a fresh isolated page.
+      cost: { maxWallClockMs: 30000, retries: 1, mutationRisk: 'high' },
       accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
       applicability: { requires: ['targetIsFocusable', 'keyboardReachableInState'] },
       supports: {
@@ -78,6 +81,7 @@ const CATALOG = {
     // ---- C4: keyboard activation → 2.1.1 (CLEAR only for finite-contract single-mode controls). ----
     'keyboard-activation': {
       sc: '2.1.1', claimFamily: 'keyboard-operable',
+      cost: { maxWallClockMs: 25000, retries: 1, mutationRisk: 'high' }, // real Enter/Space activation mutates state (Rule 8)
       accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
       applicability: { requires: ['targetIsInteractive', 'targetIsFocusable', 'hydrationReady'] },
       supports: {
@@ -90,6 +94,7 @@ const CATALOG = {
     // ---- C1: activation AX-tree diff → 4.1.2 (CLEAR for closed ARIA state set; AT-dependent). ----
     'ax-state-diff': {
       sc: '4.1.2', claimFamily: 'name-role-value',
+      cost: { maxWallClockMs: 25000, retries: 1, mutationRisk: 'high' }, // activates the control to diff AX state (Rule 8)
       accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: true },
       applicability: { requires: ['targetHasWidgetRole', 'hydrationReady', 'axNodeResolved'] },
       supports: {
@@ -102,6 +107,7 @@ const CATALOG = {
     // ---- C9: content on hover/focus → 1.4.13 (BARRIER-ONLY). ----
     'hover-content-tri': {
       sc: '1.4.13', claimFamily: 'hover-content',
+      cost: { maxWallClockMs: 30000, retries: 1, mutationRisk: 'low' }, // ~1.6s persistent dwell + rehover (Rule 8)
       accessibilitySupportDependent: { BARRIER_OBSERVED: false },
       applicability: { requires: ['hasHoverFocusTrigger', 'triggerReachable'] },
       supports: {

@@ -13,6 +13,8 @@
 
 const puppeteer = require('puppeteer');
 const attest = require('./attestation.js');
+const budget = require('./budget.js');
+const cat = require('./catalog.js');
 
 // Chrome path: env override first (CI / non-mac), then the local macOS default.
 const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
@@ -277,12 +279,13 @@ function finalize(request, outcome, measurement, completed) {
 // Run a plan against a page-URL resolver. resolveUrl(request) -> a URL (file:// or http://).
 // Every request gets exactly ONE disposition: a typed result, or an explicit `unrun` record
 // (skipped/failed/deferred) — nothing disappears silently (audit V3-H6).
-async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationKey = null } = {}) {
+async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationKey = null, budgetOpts = {} } = {}) {
   // dispatch table: focus runner here + the C1/C3–C9 runners (lazy require breaks the module cycle).
   const RUNNERS = Object.assign({ 'focus-visual-retry': runFocusVisualRetry }, require('./exp-runners.js').RUNNERS);
   // the production runner reads the trust-anchor key from the environment too (audit V3R4-H5) — so a
   // real `V3_ATTEST_KEY` run signs its evidence, not only the injected-key test path.
   const key = attestationKey || attest.loadKey({});
+  const runBudget = budget.makeRunBudget(budgetOpts); // run-level wall-clock cap (plan Rule 8)
   const browser = await puppeteer.launch({ executablePath, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const results = [];
   const unrun = [];
@@ -302,20 +305,30 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
         unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: 'experiment has no registered runner' });
         continue;
       }
-      const page = await browser.newPage();
-      try {
-        // independently digest the resource the browser ACTUALLY loaded — the navigation response
-        // body RAW BYTES (Node-side, immune to file:// fetch restrictions, and the SAME byte domain
-        // the collector hashes so the comparison is sound for any charset/BOM, audit V3R4 red-team).
-        // The attestation binds THIS, so a wrong/stale/swapped page cannot be signed as the
-        // collector's page (audit V3R4-C1).
-        const response = await page.goto(resolveUrl(request), { waitUntil: 'load', timeout: 15000 });
-        const body = response ? await response.buffer().catch(() => null) : null;
-        const observedPageDigest = body != null ? attest.pageDigestOf(body) : null;
-        results.push(sign(await runner(page, req), observedPageDigest));
-      } catch (e) {
-        unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String(e && e.message || e).slice(0, 200) });
-      } finally { await page.close().catch(() => {}); }
+      // BUDGET (plan Rule 8): once the run-level wall-clock cap is hit, defer the rest — never run
+      // unbounded. Each experiment carries a cost class (wall-clock deadline + retries) enforced below.
+      if (runBudget.exceeded()) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock budget (${runBudget.max}ms) exhausted` }); continue; }
+      const cost = budget.costFor(RUNNERS[request.experimentId] && cat.getExperiment(request.experimentId));
+      const wall = Math.min(cost.maxWallClockMs, runBudget.remaining());
+      const t0 = Date.now();
+      let produced = false;
+      for (let attempt = 0; attempt <= cost.retries && !produced; attempt++) {
+        const page = await browser.newPage();                 // FRESH isolated page per attempt (Rule 3)
+        const outcome = await budget.withDeadline(async () => {
+          // independently digest the resource the browser ACTUALLY loaded — the navigation response
+          // body RAW BYTES (the SAME byte domain the collector hashes, audit V3R4). The attestation
+          // binds THIS, so a wrong/stale/swapped page cannot be signed as the collector's page.
+          const response = await page.goto(resolveUrl(request), { waitUntil: 'load', timeout: Math.max(1, wall) });
+          const body = response ? await response.buffer().catch(() => null) : null;
+          const observedPageDigest = body != null ? attest.pageDigestOf(body) : null;
+          return sign(await runner(page, req), observedPageDigest);
+        }, Math.max(1, wall)).catch((e) => ({ ok: false, error: e }));
+        await page.close().catch(() => {});                   // abort any work still pending past the deadline
+        if (outcome.ok) { results.push(outcome.value); produced = true; }
+        else if (outcome.timeout) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `wall-clock budget ${wall}ms exceeded (mutationRisk:${cost.mutationRisk})` }); break; }
+        else if (attempt >= cost.retries) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String((outcome.error && outcome.error.message) || outcome.error || 'unknown').slice(0, 200) }); }
+      }
+      runBudget.add(Date.now() - t0);
     }
   } finally { await browser.close().catch(() => {}); }
   return {
