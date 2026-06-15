@@ -108,7 +108,11 @@ function buildV3(bundle, opts = {}) {
   const manifestRes = manifest.verifyManifest(bundle, trust.key);
   if (manifestRes.present && manifestRes.integrityBroken) { for (const m of manifestRes.errors) E(`manifest: ${m}`); return { ok: false, errors, results: null }; }
   if (opts.requireManifest && !manifestRes.present) { E('manifest: a verified run-manifest is required for a production build (use --shadow-debug for an incomplete inspection build)'); return { ok: false, errors, results: null }; }
-  const manifestVerified = manifestRes.present && manifestRes.valid;
+  // the manifest's (signed) catalog + runner build must match the LIVE build before publication (plan
+  // G1(d); audit V3R4 red-team) — a manifest attesting a stale catalog/runner build cannot publish.
+  const liveBuild = cat.CATALOG.catalogVersion;
+  const manifestBuildOk = manifestRes.present && bundle.manifest.catalogVersion === liveBuild && bundle.manifest.runnerVersion === liveBuild;
+  const manifestVerified = manifestRes.present && manifestRes.valid && manifestBuildOk;
 
   // INDEPENDENT applicability corroboration (plan Rule 15; audit V3R4-H6): the claim's family must be
   // derivable for its target element by the ORACLE from raw collector facts — a derivation that never

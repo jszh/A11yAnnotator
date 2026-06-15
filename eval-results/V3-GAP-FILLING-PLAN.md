@@ -10,8 +10,25 @@ no mechanism publishes authoritative until its trust + soundness gates pass.
 
 Closed (sound + tested): the publication boundary (attestation lineage, observed-page binding,
 fail-closed provenance, runner-identity), the contrast/obscuration/keyboard wrong-verdict paths, and
-strict per-stage schemas. Open: the **Phase-0 trust/contract foundation** (Rules 15/16/17) and the
-**higher phases** (agent planner, semantic skills, benchmark, budgets).
+strict per-stage schemas. **Phase-0 trust/contract foundation now also closed this pass: G1 attested
+run-manifest (Rule 17), G2 independent coverage registry (Rule 16), G3 independent applicability
+corroboration (Rule 15) — implemented + tested (commits e6536a6, 7324423).** Open: the **higher
+phases** (agent planner, semantic skills, benchmark, budgets) — designed below, not yet built.
+
+## Status of each item
+
+| Item | Rule / audit | Status |
+|---|---|---|
+| G1 attested run-manifest | 17 / H7 | **Implemented** (`manifest.js`; builder verifies; production requires) |
+| G2 independent coverage registry | 16 / H8 | **Implemented** (`coverage-registry.js`; mutation-backstop test) |
+| G3 independent applicability | 15 / H6 | **Bounded** — explicit family-level gate, but overlaps obligation reconciliation (red-team); fine-flag observer is the faithful endpoint, future |
+| G4 authority benchmark | 9 | Designed; not built (gold sizing + sealed eval) |
+| G5 budgets + risk classes | 8 | Designed; not built |
+| G6 dynamic subjects | 13 | Designed; not built |
+| G7 AT capability | 12 | Designed; not built |
+| G8 agent planner | Phase 2 | Designed; not built (bounded, untrusted) |
+| G9 semantic skills | Phase 3 | Designed; not built |
+| G10 broader states | Phase 4 | Designed; not built |
 
 ## Threat model (what every gap-fill must resist)
 

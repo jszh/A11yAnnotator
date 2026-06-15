@@ -152,6 +152,15 @@ test('V3R4-H7: a legitimately attested manifest + signed evidence publishes (mec
   assert.equal(r.results.summary.authoritative, 1);
 });
 
+test('V3R4-H7 (red-team): a manifest attesting a STALE catalog/runner build cannot publish (plan G1d)', () => {
+  const b = withPipeline(threeStage());
+  b.manifest = mani.buildManifest(b, { key: TEST_KEY, observedPageDigest: b.collect.pageDigest, catalogVersion: 'stale-0.0', runnerVersion: '3.0.0-phase0' });
+  assert.equal(buildV3(b, { authority: PROMOTED }).results.summary.authoritative, 0, 'manifest catalogVersion != live build ⇒ shadow');
+  const b2 = withPipeline(threeStage());
+  b2.manifest = mani.buildManifest(b2, { key: TEST_KEY, observedPageDigest: b2.collect.pageDigest, catalogVersion: '3.0.0-phase0', runnerVersion: 'rogue-9.9' });
+  assert.equal(buildV3(b2, { authority: PROMOTED }).results.summary.authoritative, 0, 'manifest runnerVersion != approved build ⇒ shadow');
+});
+
 test('V3R4-H4: a promoted bundle with NO artifact verifier configured stays shadow (fail-closed)', () => {
   // promoted WITHOUT a verifier: even valid signed evidence cannot publish — provenance is unverifiable.
   const noVerifier = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED'], { artifactVerifier: null });
