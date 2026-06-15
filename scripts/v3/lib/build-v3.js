@@ -92,9 +92,11 @@ function buildV3(bundle, opts = {}) {
     if (!linked) bindReason = 'no evidence for this claimId';
     else if (evCount[p.claimId] > 1) bindReason = `conflicting/duplicate evidence (${evCount[p.claimId]} results share claimId ${p.claimId})`;
     else if (linked.experimentId !== p.experimentId) bindReason = `evidence experiment ${linked.experimentId} != proposal experiment ${p.experimentId}`;
-    else if (linked.sc != null && linked.sc !== p.sc) bindReason = `evidence SC ${linked.sc} != proposal SC ${p.sc}`;
+    else if (linked.sc !== p.sc) bindReason = `evidence SC ${linked.sc} != proposal SC ${p.sc}`;
     else if (linked.targetXpath !== target) bindReason = `evidence target ${linked.targetXpath} != proposal scope target ${target} (cross-target)`;
-    else if (linked.observationScope && !sameScope(linked.observationScope, scope)) bindReason = 'evidence observationScope != proposal observationScope (state/action/env)';
+    // evidence MUST carry a scope and it MUST match the proposal's — a MISSING evidence scope is a
+    // bind FAILURE, never a skip (audit R1-F1): an unbound scope cannot be published.
+    else if (!sameScope(linked.observationScope, scope)) bindReason = 'evidence observationScope missing or != proposal observationScope (target/state/action/env)';
     else ev = linked;
 
     const out = bindReason
@@ -134,6 +136,8 @@ function buildV3(bundle, opts = {}) {
   for (const m of recErrors) E(`obligation: ${m}`);
   if (errors.length) return { ok: false, errors, results: null };
   const aggregates = obl.aggregateElementSkill(ledger);
+  // explicit coverage boundary: elements with a surface no Phase-0 family covers (audit R1-F5).
+  const outOfScope = oracle.outOfScopeElements(bundle.collect);
 
   // (6) emit v3-only results; refuse if a legacy label somehow survived
   const stripClaim = (c) => { const { _target, _family, _sc, _authState, disposition, authoritative, ...rest } = c; return rest; };
@@ -149,6 +153,7 @@ function buildV3(bundle, opts = {}) {
     shadowObservations: shadowObs,
     obligationLedger: ledger,
     elementSkillSummaries: aggregates,
+    outOfScope,
     summary: {
       obligations: obligations.length,
       proposals: proposals.length,
@@ -158,9 +163,13 @@ function buildV3(bundle, opts = {}) {
       autoPartial: ledger.filter((r) => r.autoPartial).length,
       barriersObserved: claims.filter((c) => c.observationOutcome === 'BARRIER_OBSERVED').length,
       cleared: claims.filter((c) => c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE').length,
+      outOfScopeElements: outOfScope.length,
     },
   };
-  const legacy = xa.findLegacyLabel(results, 'results');
+  // The v3 OUTPUT is entirely harness-authored (no page content), so scan it STRICTLY: any legacy
+  // token anywhere — any key OR any value — refuses publication (audit R1-F2). This is stricter
+  // than the bundle scan (which must tolerate page content) precisely because the output may not.
+  const legacy = xa.findLegacyLabelStrict(results, 'results');
   if (legacy) { E(`refusing to publish: legacy label in v3 output: ${legacy}`); return { ok: false, errors, results: null }; }
 
   return { ok: true, errors: [], results };

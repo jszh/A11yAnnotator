@@ -27,7 +27,7 @@ const result = (claimId, target, over = {}) => ({ claimId, experimentId: 'focus-
 const proposal = (claimId, target, over = {}) => ({ claimId, sc: '2.4.7', direction: 'NO_BARRIER_OBSERVED', experimentId: 'focus-visual-retry', claimFamily: fam, observationScope: SCOPE(target), ...over });
 const bundle = (elements, results, proposals) => ({
   collect: { ...id, collectedAt: 1000, elements },
-  experiments: { ...id, startedAt: 2000, results },
+  experiments: { ...id, catalogVersion: '3.0.0-phase0', startedAt: 2000, results },
   claimProposals: { ...id, proposals },
 });
 
@@ -125,6 +125,69 @@ test('V3-H7: a collected accessible name "N/A" does NOT trip the legacy gate; a 
   const r2 = buildV3(bad, { authority: PROMOTED });
   assert.equal(r2.ok, false);
   assert.ok(r2.errors.some((m) => /legacy verdict label/.test(m)));
+});
+
+// ======================= Round-1 self-adversarial regressions =======================
+const cross = require('../lib/cross-artifact.js');
+
+test('R1-F1: evidence whose observationScope differs from the proposal cannot clear (no fictional scope)', () => {
+  const ev = result('c1', 'A'); ev.observationScope = { actionTargetRef: 'A', state: 'OTHER-STATE', action: 'tab-to-focus', environment: 'headless-chromium' };
+  const r = buildV3(bundle([{ xpath: 'A', focusable: true }], [ev], [proposal('c1', 'A')]), { authority: PROMOTED });
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  assert.equal(r.results.summary.authoritative, 0, 'a scope mismatch is a bind failure');
+});
+
+test('R1-F1: a result with NO observationScope is rejected by schema (cannot fail-open the bind)', () => {
+  const ev = result('c1', 'A'); delete ev.observationScope;
+  const r = buildV3(bundle([{ xpath: 'A', focusable: true }], [ev], [proposal('c1', 'A')]), { authority: PROMOTED });
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((m) => /observationScope/.test(m)));
+});
+
+test('R1-F2: a legacy token smuggled in a nested observationScope key is rejected (schema) and never reaches output', () => {
+  const p = proposal('c1', 'A'); p.observationScope = { ...SCOPE('A'), priorNote: 'NOT REPRODUCED' };
+  const r = buildV3(bundle([{ xpath: 'A', focusable: true }], [result('c1', 'A')], [p]), { authority: PROMOTED });
+  assert.equal(r.ok, false, 'nested unknown key in observationScope is rejected');
+  assert.ok(r.errors.some((m) => /unknown key "priorNote"/.test(m)));
+});
+
+test('R1-F3: experiments with NO catalogVersion is rejected (stale-evidence fail-closed)', () => {
+  const b = bundle([{ xpath: 'A', focusable: true }], [result('c1', 'A')], [proposal('c1', 'A')]);
+  delete b.experiments.catalogVersion;
+  const r = buildV3(b, { authority: PROMOTED });
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((m) => /catalogVersion is required/.test(m)));
+});
+
+test('R1-F4: a manifest naming a different page/run/digest is caught by the identity gate', () => {
+  const b = bundle([{ xpath: 'A', focusable: true }], [result('c1', 'A')], [proposal('c1', 'A')]);
+  b.manifest = { file: 'WRONG-PAGE', runId: 'OTHER', pageDigest: 'sha256:WRONG' };
+  const errs = cross.crossArtifactErrors(b);
+  assert.ok(errs.some((m) => /mismatch: manifest/.test(m)), JSON.stringify(errs));
+});
+
+test('R1-F5: an evaluable role-only element is surfaced as out-of-scope, never silently dropped', () => {
+  const r = buildV3(bundle([{ xpath: 'btn', focusable: true }, { xpath: 'img', role: 'img' }], [], []), { authority: PROMOTED });
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  assert.equal(r.results.summary.outOfScopeElements, 1, 'the img is explicitly counted, not vanished');
+  assert.ok(r.results.outOfScope.some((o) => o.xpath === 'img'));
+  assert.ok(!r.results.obligationLedger.some((l) => l.xpath === 'img'), 'and it produced no phantom obligation');
+});
+
+test('R1-F6: a result that answers a different target/SC than its request is rejected by reconciliation', () => {
+  const collect = { ...id, collectedAt: 1000, elements: [{ xpath: 'A', focusable: true }, { xpath: 'B', focusable: true }] };
+  const plan = { ...id, requests: [{ candidateId: 'c1', experimentId: 'focus-visual-retry', targetXpath: 'A', sc: '2.4.7' }], escalations: [] };
+  const candidates = { ...id, candidates: [{ candidateId: 'c1', xpath: 'A', sc: '2.4.7', experimentId: 'focus-visual-retry', selectionLevel: 1 }] };
+  const experiments = { ...id, catalogVersion: '3.0.0-phase0', startedAt: 2000, results: [result('c1', 'B')], unrun: [] }; // answers B, requested A
+  const errs = cross.crossArtifactErrors({ collect, candidates, plan, experiments, claimProposals: { ...id, proposals: [] } }, ['collect', 'experiments', 'claimProposals']);
+  assert.ok(errs.some((m) => /answered the wrong element/.test(m)), JSON.stringify(errs));
+});
+
+test('R1-F7: elementSkillSummaries are byte-deterministic under element reorder', () => {
+  const mk = (els) => buildV3(bundle(els, [], []), { authority: PROMOTED }).results.elementSkillSummaries;
+  const a = mk([{ xpath: 'x1', focusable: true }, { xpath: 'x2', focusable: true, hasText: true }]);
+  const b = mk([{ xpath: 'x2', focusable: true, hasText: true }, { xpath: 'x1', focusable: true }]);
+  assert.equal(JSON.stringify(a), JSON.stringify(b));
 });
 
 // ============================ measurement probes (real Chrome) ============================

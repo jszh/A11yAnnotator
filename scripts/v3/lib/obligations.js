@@ -69,7 +69,8 @@ function aggregateElementSkill(ledger) {
       });
     }
   }
-  return summaries;
+  // deterministic order regardless of ledger order (audit R1-F7): byte-stable output.
+  return summaries.sort((a, b) => (a.xpath !== b.xpath ? (a.xpath < b.xpath ? -1 : 1) : (a.skill < b.skill ? -1 : a.skill > b.skill ? 1 : 0)));
 }
 
 // Coverage: every declared family must be realizable by the oracle for its SC (mutation backstop).

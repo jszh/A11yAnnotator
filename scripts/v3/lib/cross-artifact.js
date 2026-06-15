@@ -36,6 +36,22 @@ function findLegacyLabel(node, path = '$', inVerdictField = false) {
   return null;
 }
 
+// STRICT scan for harness-authored output (no page content to protect): any legacy token in ANY
+// key OR ANY string value refuses. Used by build-v3 on the v3 results only.
+function findLegacyLabelStrict(node, path = '$') {
+  if (node == null) return null;
+  if (typeof node === 'string') return isLegacyToken(node) ? `${path}=${JSON.stringify(node)}` : null;
+  if (Array.isArray(node)) { for (let i = 0; i < node.length; i++) { const h = findLegacyLabelStrict(node[i], `${path}[${i}]`); if (h) return h; } return null; }
+  if (typeof node === 'object') {
+    for (const k of Object.keys(node)) {
+      if (isLegacyToken(k)) return `${path} key ${JSON.stringify(k)}`;
+      const h = findLegacyLabelStrict(node[k], `${path}.${k}`); if (h) return h;
+    }
+    return null;
+  }
+  return null;
+}
+
 const ID_FIELDS = ['file', 'runId', 'pageDigest'];
 
 // bundle = { manifest?, collect, drive?, candidates?, plan?, experiments?, claimProposals? }
@@ -59,8 +75,11 @@ function crossArtifactErrors(bundle, requiredStages = ['collect', 'experiments',
   if (ref) {
     for (const f of ID_FIELDS) if (ref[f] == null) push(`collect must declare ${f} (v3 identity binding)`);
     for (const [name, art] of arts) {
-      if (name === 'collect' || name === 'manifest') continue;
-      const lenient = name === 'drive'; // baseline artifact: match only the identity fields it declares
+      if (name === 'collect') continue;
+      // drive and manifest are baseline/provenance: match only the identity fields they DECLARE
+      // (so a minimal artifact is allowed) — but a DECLARED-yet-wrong identity is still caught
+      // (audit R1-F4: a manifest naming a different page must not pass).
+      const lenient = name === 'drive' || name === 'manifest';
       for (const f of ID_FIELDS) {
         if (lenient && art[f] == null) continue;
         if (art[f] !== ref[f]) push(`${f} mismatch: ${name}.${f}=${JSON.stringify(art[f])} != collect.${f}=${JSON.stringify(ref[f])}`);
@@ -98,8 +117,9 @@ function reconcileErrors(bundle) {
   const plan = bundle.plan, exp = bundle.experiments, cands = bundle.candidates;
   if (plan && exp) {
     const requests = plan.requests || [];
-    const reqIds = new Set(requests.map((r) => r.candidateId));
-    const resultIds = (exp.results || []).map((r) => r.claimId);
+    const reqById = new Map(requests.map((r) => [r.candidateId, r]));
+    const results = exp.results || [];
+    const resultIds = results.map((r) => r.claimId);
     const unrun = exp.unrun || []; // [{candidateId, status:'skipped'|'failed'|'deferred', reason}]
     const unrunIds = unrun.map((u) => u.candidateId);
     // each request gets exactly one disposition (result XOR unrun)
@@ -110,9 +130,14 @@ function reconcileErrors(bundle) {
       if (total === 0) E.push(`unreconciled plan request ${req.candidateId}: no result, failure, or deferral (experiment disappeared)`);
       else if (total > 1) E.push(`plan request ${req.candidateId} has ${total} dispositions (must be exactly one)`);
     }
-    // no result/unrun without a matching request
-    for (const id of resultIds) if (!reqIds.has(id)) E.push(`experiment result ${id} has no matching plan request (unrequested experiment)`);
-    for (const id of unrunIds) if (!reqIds.has(id)) E.push(`unrun record ${id} has no matching plan request`);
+    // a result must answer the SAME question its request asked: target + SC must match (audit R1-F6).
+    for (const r of results) {
+      const req = reqById.get(r.claimId);
+      if (!req) { E.push(`experiment result ${r.claimId} has no matching plan request (unrequested experiment)`); continue; }
+      if (norm(r.targetXpath) !== norm(req.targetXpath)) E.push(`result ${r.claimId} target ${r.targetXpath} != request target ${req.targetXpath} (answered the wrong element)`);
+      if (r.sc != null && req.sc != null && r.sc !== req.sc) E.push(`result ${r.claimId} sc ${r.sc} != request sc ${req.sc} (answered the wrong SC)`);
+    }
+    for (const id of unrunIds) if (!reqById.has(id)) E.push(`unrun record ${id} has no matching plan request`);
   }
   if (plan && cands) {
     const requested = new Set((plan.requests || []).map((r) => r.candidateId));
@@ -126,4 +151,4 @@ function reconcileErrors(bundle) {
   return E;
 }
 
-module.exports = { crossArtifactErrors, findLegacyLabel, reconcileErrors, VERDICT_FIELDS };
+module.exports = { crossArtifactErrors, findLegacyLabel, findLegacyLabelStrict, reconcileErrors, VERDICT_FIELDS };

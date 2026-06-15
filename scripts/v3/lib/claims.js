@@ -73,10 +73,13 @@ function resolveClaim(proposal, evidence, deps = {}) {
   if (atDep && !(evidence && evidence.atBaseline))
     return P(`accessibility-support-dependent clear requires a declared AT baseline (Rule 12)`);
 
-  // (7) observation scope must travel with every authoritative claim, with real values (Rule 18)
-  const scope = proposal.observationScope;
-  if (!scope || SCOPE_FIELDS.some((f) => !presentStr(scope[f])))
+  // (7) observation scope must travel with every authoritative claim, with real values (Rule 18).
+  //     Reconstruct it from ONLY the known fields so nothing extra (e.g. a smuggled legacy token
+  //     under a stray key) can ride into the published claim (audit R1-F2).
+  const rawScope = proposal.observationScope;
+  if (!rawScope || SCOPE_FIELDS.some((f) => !presentStr(rawScope[f])))
     return P(`authoritative claim requires a complete observationScope (non-empty strings) {${SCOPE_FIELDS.join(', ')}}`);
+  const scope = {}; for (const f of SCOPE_FIELDS) scope[f] = rawScope[f];
 
   const observationOutcome = direction === 'INAPPLICABLE' ? 'INCONCLUSIVE' : direction;
   const wcagApplicability = direction === 'INAPPLICABLE' ? 'INAPPLICABLE' : 'APPLICABLE';

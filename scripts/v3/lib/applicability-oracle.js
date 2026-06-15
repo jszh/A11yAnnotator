@@ -82,11 +82,27 @@ function enumerationErrors(collect) {
   return E;
 }
 
+// OUT-OF-SCOPE accounting (audit R1-F5): an element with an accessibility surface the Phase-0
+// family seed does not yet cover (e.g. a non-widget role: img/heading/region) yields zero
+// obligations. That is NOT a silent drop — it is an explicit coverage boundary the builder must
+// surface, so a consumer can never mistake "0 obligations" for "fully evaluated".
+function outOfScopeElements(collect) {
+  const out = [];
+  for (const el of (collect && collect.elements) || []) {
+    if (!el || !el.xpath) continue;
+    if (isEvaluable(el) && familiesFor(el).length === 0) {
+      const surface = el.focusable === true ? 'focusable' : el.hasText === true ? 'text' : (el.role ? `role:${el.role}` : 'unknown');
+      out.push({ xpath: el.xpath, surface, reason: 'no Phase-0 claim-family covers this surface' });
+    }
+  }
+  return out.sort((a, b) => (a.xpath < b.xpath ? -1 : a.xpath > b.xpath ? 1 : 0));
+}
+
 // Map a claim family to the skills it participates in (for family-aware skill aggregation).
 function skillsForFamily(claimFamily) { return (FAMILIES[claimFamily] && FAMILIES[claimFamily].skills) || []; }
 function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[claimFamily].sc; }
 
 module.exports = {
   FAMILIES, WIDGET_ROLE, isEvaluable, familiesFor, deriveObligations, oblId,
-  applicableScsFor, enumerationErrors, skillsForFamily, scForFamily,
+  applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily,
 };

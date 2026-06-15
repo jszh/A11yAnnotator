@@ -27,6 +27,9 @@ function validIdentity(art, path, E) {
 function validScope(scope, path, E) {
   if (!isObj(scope)) { E.push(`${path}: observationScope must be an object`); return; }
   for (const f of SCOPE_FIELDS) if (!isStr(scope[f])) E.push(`${path}.observationScope.${f} must be a non-empty string`);
+  // NESTED unknown-key rejection (audit R1-F2): observationScope is a closed shape — nothing may
+  // ride inside it into the published claim (e.g. a smuggled legacy token under a stray key).
+  noUnknownKeys(scope, SCOPE_FIELDS, `${path}.observationScope`, E);
 }
 
 // ---- per-stage ----
@@ -41,8 +44,10 @@ function validateExperiments(x, E) {
   if (!isObj(x)) return E.push('experiments: must be an object');
   validIdentity(x, 'experiments', E);
   if (!Number.isFinite(x.startedAt)) E.push('experiments.startedAt must be finite');
-  // catalogVersion drift: evidence must have been produced under the live catalog version.
-  if (x.catalogVersion != null && x.catalogVersion !== cat.CATALOG.catalogVersion)
+  // catalogVersion drift: evidence must have been produced under the live catalog version, and it
+  // must DECLARE its version — absence is fail-closed, not a silent pass (audit R1-F3).
+  if (x.catalogVersion == null) E.push('experiments.catalogVersion is required (no version ⇒ cannot verify evidence is not stale)');
+  else if (x.catalogVersion !== cat.CATALOG.catalogVersion)
     E.push(`experiments.catalogVersion ${JSON.stringify(x.catalogVersion)} != live catalog ${JSON.stringify(cat.CATALOG.catalogVersion)} (stale evidence)`);
   if (!Array.isArray(x.results)) return E.push('experiments.results must be an array');
   const RESULT_KEYS = ['claimId', 'experimentId', 'targetXpath', 'sc', 'outcome', 'applicabilityEvidence', 'observationScope', 'atBaseline', 'trusted', 'isolated', 'completed', 'valid', 'measurement', 'status'];
@@ -55,6 +60,9 @@ function validateExperiments(x, E) {
     if (!isStr(r.targetXpath)) E.push(`${p}.targetXpath required`);
     if (!isStr(r.sc)) E.push(`${p}.sc required`);
     if (!isObj(r.outcome)) E.push(`${p}.outcome must be an object of typed flags`);
+    // every result MUST carry its measured scope, strictly shaped — so the builder can BIND it to
+    // the proposal's scope rather than fail-open on absence (audit R1-F1).
+    validScope(r.observationScope, p, E);
   });
 }
 

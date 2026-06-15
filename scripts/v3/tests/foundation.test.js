@@ -168,7 +168,7 @@ test('an AT-dependent clear requires a declared AT baseline (Rule 12)', () => {
 // the experiment result carries the bound sc + scope; the proposal carries its claim-family.
 const goodBundle = () => ({
   collect: { file: 'p', runId: 'R', pageDigest: 'sha256:d', collectedAt: 1000, elements: [{ xpath: 'node:b1', focusable: true }] },
-  experiments: { file: 'p', runId: 'R', pageDigest: 'sha256:d', startedAt: 2000, results: [{ claimId: 'c1', experimentId: 'focus-visual-retry', targetXpath: 'node:b1', sc: '2.4.7', observationScope: SCOPE, outcome: { ...FULL_OUTCOME }, applicabilityEvidence: { ...FULL_APP } }] },
+  experiments: { file: 'p', runId: 'R', pageDigest: 'sha256:d', catalogVersion: '3.0.0-phase0', startedAt: 2000, results: [{ claimId: 'c1', experimentId: 'focus-visual-retry', targetXpath: 'node:b1', sc: '2.4.7', observationScope: SCOPE, outcome: { ...FULL_OUTCOME }, applicabilityEvidence: { ...FULL_APP } }] },
   claimProposals: { file: 'p', runId: 'R', pageDigest: 'sha256:d', proposals: [proposal('NO_BARRIER_OBSERVED')] },
 });
 

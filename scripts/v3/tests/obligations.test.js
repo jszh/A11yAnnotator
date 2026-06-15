@@ -74,7 +74,7 @@ test('coverage: every declared claim-family is realizable (mutation backstop)', 
 // ---- end-to-end through buildV3 (PROMOTED so the publish path is exercised) ----
 const bundleWith = (proposals, results, elements) => ({
   collect: { file: 'p', runId: 'R', pageDigest: 'sha256:d', collectedAt: 1000, elements },
-  experiments: { file: 'p', runId: 'R', pageDigest: 'sha256:d', startedAt: 2000, results },
+  experiments: { file: 'p', runId: 'R', pageDigest: 'sha256:d', catalogVersion: '3.0.0-phase0', startedAt: 2000, results },
   claimProposals: { file: 'p', runId: 'R', pageDigest: 'sha256:d', proposals },
 });
 
