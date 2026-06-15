@@ -190,7 +190,76 @@ test('R1-F7: elementSkillSummaries are byte-deterministic under element reorder'
   assert.equal(JSON.stringify(a), JSON.stringify(b));
 });
 
+// ======================= Round-2 self-adversarial regressions (pure) =======================
+const { scoreClears } = require('../lib/metrics.js');
+const { reconcile } = require('../lib/obligations.js');
+const { authorityFor, validateAuthority } = require('../lib/authority.js');
+
+test('R2-M1: scoreClears reports unlabelled clears (gold-key drift cannot hide a false clear)', () => {
+  const results = { claims: [
+    { claimId: 'a', sc: '2.4.7', observationOutcome: 'NO_BARRIER_OBSERVED', observationScope: { actionTargetRef: 'good' } },
+    { claimId: 'b', sc: '2.4.7', observationOutcome: 'NO_BARRIER_OBSERVED', observationScope: { actionTargetRef: 'mismatch' } },
+  ] };
+  const s = scoreClears(results, [{ xpath: 'good', sc: '2.4.7', goldOutcome: 'NO_BARRIER_OBSERVED' }]); // 'mismatch' not labelled
+  assert.equal(s.unlabelledClears, 1);
+  assert.equal(s.upperBound95, null, 'an unlabelled clear voids the zero-event bound');
+  assert.equal(s.promotionEligible, false, 'cannot promote while a clear is unlabelled');
+});
+
+test('R2-L1: reconcile treats a prototype-key obligationId as data, not a method', () => {
+  const obs = [{ obligationId: 'toString', xpath: 'x', sc: '2.4.7', claimFamily: 'focus-indicator-visible' }];
+  const { errors, ledger } = reconcile(obs, []); // no disposition ⇒ auto-PARTIAL, no spurious "duplicate"
+  assert.deepEqual(errors, []);
+  assert.equal(ledger[0].disposition, 'PARTIAL');
+  assert.equal(ledger[0].autoPartial, true);
+});
+
+test('R2-L2: authority readiness inherited via the prototype chain does not promote', () => {
+  const readiness = Object.create({ goldSized: true, sealedEval: true, independentRaters: true, measurementValidated: true });
+  const reg = { 'focus-visual-retry/NO_BARRIER_OBSERVED': { state: 'authoritative', reason: 'x', readiness } };
+  assert.equal(authorityFor('focus-visual-retry', 'NO_BARRIER_OBSERVED', reg).mayPublish, false);
+  assert.ok(validateAuthority(reg).some((m) => /OWN boolean readiness/.test(m)));
+});
+
 // ============================ measurement probes (real Chrome) ============================
+const R2 = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-focus-r2.html');
+const r2Plan = {
+  ...id, _startedAt: 1000,
+  requests: [
+    { candidateId: 'anim', experimentId: 'focus-visual-retry', targetXpath: '/html/body/button[1]', sc: '2.4.7' },
+    { candidateId: 'move', experimentId: 'focus-visual-retry', targetXpath: '/html/body/button[2]', sc: '2.4.7' },
+    { candidateId: 'pseudo', experimentId: 'focus-visual-retry', targetXpath: '/html/body/button[3]', sc: '2.4.7' },
+    { candidateId: 'offset12', experimentId: 'focus-visual-retry', targetXpath: '/html/body/button[4]', sc: '2.4.7' },
+  ],
+};
+
+test('R2-F1: a CSS animation (no :focus rule) is INCONCLUSIVE, not a false clear', { skip: !chromeOK, concurrency: false }, async () => {
+  const o = (await runPlan(r2Plan, { resolveUrl: () => R2 })).results;
+  const anim = o.find((r) => r.claimId === 'anim');
+  assert.equal(anim.measurement.stableUnfocused, false, 'two unfocused frames disagree ⇒ animating');
+  assert.equal(anim.outcome.focusDependentIndicator, false);
+  assert.equal(anim.outcome.obviouslyVisible, false);
+  assert.equal(anim.outcome.stableIndicatorAbsence, false);
+  assert.equal(directionForFocusVisible(anim.outcome), null, 'no clear AND no barrier ⇒ no proposal');
+});
+
+test('R2-F2: an element that MOVES on focus is INCONCLUSIVE, not a false clear', { skip: !chromeOK, concurrency: false }, async () => {
+  const o = (await runPlan(r2Plan, { resolveUrl: () => R2 })).results;
+  const move = o.find((r) => r.claimId === 'move');
+  assert.equal(move.measurement.movedOnFocus, true);
+  assert.equal(move.outcome.focusDependentIndicator, false, 'a stale-clip pixel diff must not clear');
+  assert.notEqual(directionForFocusVisible(move.outcome), 'NO_BARRIER_OBSERVED');
+});
+
+test('R2-F3/F4: a ::after ring with large inset and a 12px-offset outline are CORRECTLY cleared (not false barriers/partials)', { skip: !chromeOK, concurrency: false }, async () => {
+  const o = (await runPlan(r2Plan, { resolveUrl: () => R2 })).results;
+  const pseudo = o.find((r) => r.claimId === 'pseudo').outcome;
+  assert.equal(pseudo.stableIndicatorAbsence, false, 'a real ::after ring is NOT a stable absence');
+  assert.equal(pseudo.focusDependentIndicator, true, 'the dynamic clip + pseudo read credits it as a real indicator');
+  const off = o.find((r) => r.claimId === 'offset12').outcome;
+  assert.equal(off.focusDependentIndicator, true, 'a 12px-offset ring is captured by the dynamic clip');
+});
+
 const ADV = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-focus-adversarial.html');
 const advPlan = {
   ...id, _startedAt: 1000,

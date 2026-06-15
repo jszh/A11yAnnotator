@@ -25,9 +25,9 @@ function enumerationErrors(collect) { return oracle.enumerationErrors(collect); 
 // Returns { errors[], ledger: [{obligationId, xpath, sc, claimFamily, disposition, cleared, autoPartial, shadow}] }.
 function reconcile(obligations, dispositions) {
   const errors = [];
-  const byId = {};
+  const byId = Object.create(null); // null-proto: an obligationId like "toString"/"__proto__" is data, not a method (audit R2-L1)
   for (const d of dispositions || []) {
-    if (byId[d.obligationId]) errors.push(`duplicate disposition for obligation ${d.obligationId}`);
+    if (Object.prototype.hasOwnProperty.call(byId, d.obligationId)) errors.push(`duplicate disposition for obligation ${d.obligationId}`);
     byId[d.obligationId] = d;
   }
   const oblSet = new Set(obligations.map((o) => o.obligationId));
@@ -35,7 +35,7 @@ function reconcile(obligations, dispositions) {
     if (!oblSet.has(d.obligationId)) errors.push(`disposition for ${d.obligationId} is not an enumerated obligation (out-of-inventory)`);
   }
   const ledger = obligations.map((o) => {
-    const d = byId[o.obligationId];
+    const d = Object.prototype.hasOwnProperty.call(byId, o.obligationId) ? byId[o.obligationId] : undefined;
     return {
       obligationId: o.obligationId, xpath: o.xpath, sc: o.sc, claimFamily: o.claimFamily,
       disposition: d ? d.kind : 'PARTIAL',

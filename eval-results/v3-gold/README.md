@@ -42,3 +42,12 @@ authoritative claims **only** when its entry is `authoritative` AND all readines
 flag fails closed to shadow. `focus-visual-retry` has all four false today, so both its directions are
 shadow: gate-passing observations are recorded as `shadowObservations` and scored against this gold
 (`scoreClears` includes shadow would-be clears) — but they never enter the authoritative corpus.
+
+### `measurementValidated` requires the adversarial measurement suite
+Setting `measurementValidated:true` for a focus mechanism requires the measurement fixtures to pass —
+and the suite must include the vectors that fooled earlier versions:
+`assets/saved/fx-v3-focus-adversarial.html` (transparent shadow, focus-dependent border) and
+`assets/saved/fx-v3-focus-r2.html` (CSS animation with no focus rule, on-focus motion, `::after`
+ring with large inset, `outline-offset:12px`). `scoreClears` additionally reports `unlabelledClears`;
+`promotionEligible` is false unless **every** emitted clear is gold-labelled (so gold-key drift can
+never hide a false clear).

@@ -14,6 +14,7 @@
 'use strict';
 
 const STATES = ['shadow', 'canary', 'authoritative'];
+const READINESS_FLAGS = ['goldSized', 'sealedEval', 'independentRaters', 'measurementValidated'];
 
 // Default-shadow registry. focus-visual-retry stays shadow in BOTH directions because (a) its gold
 // seed (3 cases) is far below the worksheet sizing target (149), and (b) its measurement is only
@@ -42,9 +43,11 @@ function authorityFor(experimentId, direction, reg = AUTHORITY) {
   if (!entry) return { state: 'shadow', mayPublish: false, reason: `no promotion entry for ${experimentId}/${direction} — default-shadow` };
   if (!STATES.includes(entry.state)) return { state: 'shadow', mayPublish: false, reason: `invalid promotion state ${JSON.stringify(entry.state)} — fail-closed to shadow` };
   if (entry.state !== 'authoritative') return { state: entry.state, mayPublish: false, reason: entry.reason || `${entry.state}: not authoritative` };
-  // 'authoritative' must be backed by ALL readiness flags — registration is not promotion.
+  // 'authoritative' must be backed by ALL readiness flags as OWN booleans — registration is not
+  // promotion, and an inherited (prototype-chain) flag does not count (audit R2-L2).
   const r = entry.readiness || {};
-  const unmet = ['goldSized', 'sealedEval', 'independentRaters', 'measurementValidated'].filter((f) => r[f] !== true);
+  const own = (f) => Object.prototype.hasOwnProperty.call(r, f) && r[f] === true;
+  const unmet = READINESS_FLAGS.filter((f) => !own(f));
   if (unmet.length) return { state: 'shadow', mayPublish: false, reason: `marked authoritative but readiness unmet: ${unmet.join(', ')} — fail-closed to shadow` };
   return { state: 'authoritative', mayPublish: true, reason: entry.reason || 'promoted' };
 }
@@ -56,8 +59,8 @@ function validateAuthority(reg = AUTHORITY) {
     if (!STATES.includes(entry.state)) E.push(`authority ${k}: invalid state ${JSON.stringify(entry.state)}`);
     if (entry.state === 'authoritative') {
       const r = entry.readiness || {};
-      for (const f of ['goldSized', 'sealedEval', 'independentRaters', 'measurementValidated'])
-        if (typeof r[f] !== 'boolean') E.push(`authority ${k}: authoritative requires boolean readiness.${f}`);
+      for (const f of READINESS_FLAGS)
+        if (!Object.prototype.hasOwnProperty.call(r, f) || typeof r[f] !== 'boolean') E.push(`authority ${k}: authoritative requires an OWN boolean readiness.${f}`);
     }
   }
   return E;

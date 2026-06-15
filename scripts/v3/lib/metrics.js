@@ -62,17 +62,27 @@ function scoreClears(results, gold, { conf = 0.95, includeShadow = true } = {}) 
   if (includeShadow) for (const s of results.shadowObservations || []) {
     const wb = s.wouldBe || {}; if (isClear(wb.observationOutcome, wb.wcagApplicability)) clears.push({ scope: s.observationScope, sc: s.sc, source: 'shadow' });
   }
-  let labelledClears = 0, falseClears = 0, shadowClears = 0;
+  let labelledClears = 0, falseClears = 0, shadowClears = 0, unlabelledClears = 0;
   for (const c of clears) {
     if (c.source === 'shadow') shadowClears++;
     const key = `${c.scope && c.scope.actionTargetRef}::${c.sc}`;
-    const g = goldBy[key]; if (!g) continue;
+    const g = goldBy[key];
+    if (!g) { unlabelledClears++; continue; } // a clear with NO gold label — must NOT be silently dropped (audit R2-M1)
     labelledClears++;
     if (g === 'BARRIER_OBSERVED') falseClears++;
   }
   const rate = labelledClears ? falseClears / labelledClears : null;
-  const upperBound = falseClears === 0 ? zeroEventUpperBound(labelledClears, conf) : null;
-  return { labelledClears, falseClears, shadowClears, falseClearanceRate: rate, upperBound95: upperBound, note: 'a small sample bounds regressions, not a low FN rate (Gold Benchmark Requirements)' };
+  // a zero-event upper bound is only meaningful when EVERY emitted clear is gold-labelled — an
+  // unlabelled clear could be a hidden false clear, so promotion must require unlabelledClears===0.
+  const upperBound = (falseClears === 0 && unlabelledClears === 0) ? zeroEventUpperBound(labelledClears, conf) : null;
+  return {
+    labelledClears, falseClears, shadowClears, unlabelledClears,
+    falseClearanceRate: rate, upperBound95: upperBound,
+    promotionEligible: unlabelledClears === 0 && labelledClears > 0 && falseClears === 0,
+    note: unlabelledClears > 0
+      ? `${unlabelledClears} emitted clear(s) have NO gold label — cannot bound the false-clear rate (audit R2-M1)`
+      : 'a small sample bounds regressions, not a low FN rate (Gold Benchmark Requirements)',
+  };
 }
 
 module.exports = { computeMetrics, zeroEventUpperBound, ruleOfThree, requiredZeroEventN, scoreClears };

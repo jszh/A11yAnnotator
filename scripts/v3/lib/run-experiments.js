@@ -28,13 +28,13 @@ function tagByXpath(xpath, marker) {
   return true;
 }
 
-// In-page: ALPHA-AWARE focus-indicator read (outline + box-shadow + border). A fully-transparent
-// colour (alpha 0 / `transparent`) is NOT a visible indicator. Returns enough to compare unfocused
-// vs focused and to detect focus-dependence, plus the role/tag for mode-completeness.
+// In-page: ALPHA-AWARE focus-indicator read of the element AND its ::before/::after pseudo-elements
+// (audit R2-F3/F5). A fully-transparent colour (alpha 0 / `transparent`) is NOT a visible indicator.
+// Also returns the maximum outward RING EXTENT (px) so the caller can size a clip large enough to
+// capture an offset/pseudo ring (audit R2-F4), and the element rect + role/tag.
 function readIndicator(marker) {
   const el = document.querySelector(`[data-v3-target="${marker}"]`);
   if (!el) return null;
-  const cs = getComputedStyle(el);
   const alphaOf = (c) => {
     if (!c) return 0;
     const s = String(c).trim();
@@ -43,27 +43,45 @@ function readIndicator(marker) {
     if (m) { const parts = m[1].split(',').map((x) => x.trim()); return parts.length >= 4 ? parseFloat(parts[3]) : 1; }
     return 1; // named/hex colour with no alpha channel ⇒ opaque
   };
-  const outlineW = parseFloat(cs.outlineWidth) || 0;
-  const outlineVisible = outlineW > 0 && cs.outlineStyle !== 'none' && cs.outlineStyle !== 'hidden' && alphaOf(cs.outlineColor) > 0;
-  // box-shadow: visible only if present AND not entirely transparent
-  const shadowRaw = cs.boxShadow && cs.boxShadow !== 'none' ? cs.boxShadow : 'none';
-  const shadowVisible = shadowRaw !== 'none' && alphaOf(shadowRaw) > 0 && !/^(rgba?\([^)]*,\s*0\s*\))/i.test(shadowRaw.trim());
-  // border: max visible side
-  const sides = ['Top', 'Right', 'Bottom', 'Left'];
-  let borderVisible = false; let borderSig = '';
-  for (const s of sides) {
-    const w = parseFloat(cs[`border${s}Width`]) || 0;
-    const st = cs[`border${s}Style`];
-    const col = cs[`border${s}Color`];
-    if (w > 0 && st !== 'none' && st !== 'hidden' && alphaOf(col) > 0) borderVisible = true;
-    borderSig += `${w}|${st}|${col};`;
+  const pxNums = (s) => (String(s || '').match(/-?\d+(\.\d+)?px/g) || []).map((x) => Math.abs(parseFloat(x)));
+  const maxPx = (s) => pxNums(s).reduce((a, b) => Math.max(a, b), 0);
+
+  function readOn(pseudo) {
+    const cs = getComputedStyle(el, pseudo || null);
+    // a pseudo-element only renders when it has a `content` value
+    if (pseudo && (cs.content === 'none' || cs.content === 'normal' || cs.content === '')) return { visible: false, sig: '', extent: 0 };
+    const outlineW = parseFloat(cs.outlineWidth) || 0;
+    const outlineOffset = parseFloat(cs.outlineOffset) || 0;
+    const outlineVisible = outlineW > 0 && cs.outlineStyle !== 'none' && cs.outlineStyle !== 'hidden' && alphaOf(cs.outlineColor) > 0;
+    const shadowRaw = cs.boxShadow && cs.boxShadow !== 'none' ? cs.boxShadow : 'none';
+    const shadowVisible = shadowRaw !== 'none' && alphaOf(shadowRaw) > 0 && !/^(rgba?\([^)]*,\s*0\s*\))/i.test(shadowRaw.trim());
+    let borderVisible = false, borderSig = '';
+    for (const s of ['Top', 'Right', 'Bottom', 'Left']) {
+      const w = parseFloat(cs[`border${s}Width`]) || 0, st = cs[`border${s}Style`], col = cs[`border${s}Color`];
+      if (w > 0 && st !== 'none' && st !== 'hidden' && alphaOf(col) > 0) borderVisible = true;
+      borderSig += `${w}|${st}|${col};`;
+    }
+    // a pseudo with a visible background also paints (rings are often a bg box)
+    const bgVisible = !!pseudo && alphaOf(cs.backgroundColor) > 0 && cs.backgroundColor !== 'rgba(0, 0, 0, 0)';
+    const visible = outlineVisible || shadowVisible || borderVisible || bgVisible;
+    // outward extent this layer can paint beyond the element box
+    const extent = Math.max(
+      outlineVisible ? outlineW + outlineOffset : 0,
+      shadowVisible ? maxPx(shadowRaw) : 0,
+      pseudo && visible ? Math.max(maxPx(cs.inset), maxPx(cs.top), maxPx(cs.left), maxPx(cs.right), maxPx(cs.bottom), 8) : 0,
+    );
+    return { visible, sig: `${cs.outlineStyle}|${cs.outlineWidth}|${cs.outlineOffset}|${cs.outlineColor}|${shadowRaw}|${borderSig}|${pseudo ? cs.content + cs.backgroundColor : ''}`, extent };
   }
-  const role = el.getAttribute('role') || '';
+
+  const base = readOn(null), before = readOn('::before'), after = readOn('::after');
+  const cs = getComputedStyle(el);
+  const r = el.getBoundingClientRect();
   return {
-    outlineVisible, shadowVisible, borderVisible,
-    anyVisible: outlineVisible || shadowVisible || borderVisible,
-    signature: `${cs.outlineStyle}|${cs.outlineWidth}|${cs.outlineColor}|${shadowRaw}|${borderSig}`,
-    role, tag: el.tagName,
+    anyVisible: base.visible || before.visible || after.visible,
+    signature: `${base.sig}||${before.sig}||${after.sig}`,
+    ringExtent: Math.max(base.extent, before.extent, after.extent),
+    rect: { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) },
+    role: el.getAttribute('role') || '', tag: el.tagName,
   };
 }
 
@@ -91,8 +109,12 @@ function spatialStatsInPage(a, b) {
   })();
 }
 
-// Element clip in CSS pixels (or null if not in the viewport / zero-size), padded for the ring.
+const MAX_PAD = 80; // cap the dynamic clip pad so a pathological ring extent can't blow up the clip
+
+// Element clip in CSS pixels (or null if not in the viewport / zero-size), padded by `pad` so an
+// outline-offset / pseudo-element ring is captured (audit R2-F4). `pad` is the dynamic ring extent.
 async function clipFor(page, marker, pad = CLIP_PAD) {
+  const p = Math.min(MAX_PAD, Math.max(CLIP_PAD, Math.ceil(pad) + 6));
   return page.evaluate((m, p) => {
     const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return null;
     el.scrollIntoView({ block: 'center', inline: 'center' });
@@ -103,8 +125,20 @@ async function clipFor(page, marker, pad = CLIP_PAD) {
     const width = Math.min(vw - x, Math.ceil(r.width + p * 2)), height = Math.min(vh - y, Math.ceil(r.height + p * 2));
     if (width < 1 || height < 1 || r.left > vw || r.top > vh || r.bottom < 0 || r.right < 0) return null;
     return { x, y, width, height };
-  }, marker, pad).catch(() => null);
+  }, marker, p).catch(() => null);
 }
+
+// Programmatically focus, read the focused ring extent (for clip sizing), then blur. The extent is
+// only used to SIZE the clip — never as verdict evidence (which comes from real keyboard focus).
+async function focusedRingExtent(page, marker) {
+  await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); if (el) el.focus(); }, marker).catch(() => {});
+  const ind = await page.evaluate(readIndicator, marker).catch(() => null);
+  await page.evaluate(() => document.activeElement && document.activeElement.blur()).catch(() => {});
+  return (ind && ind.ringExtent) || 0;
+}
+
+const PIXEL_MIN = 24; // ignore caret/antialias specks (matches the R2 spatial threshold)
+const rectMoved = (a, b) => !a || !b || Math.abs(a.x - b.x) > 1 || Math.abs(a.y - b.y) > 1 || Math.abs(a.w - b.w) > 2 || Math.abs(a.h - b.h) > 2;
 
 // A simple, single-mode control: its only operable mode is keyboard focus + activate. A composite/
 // application widget is NOT mode-complete from a focus probe alone (audit H4: don't self-certify).
@@ -119,7 +153,7 @@ async function runFocusVisualRetry(page, request) {
     hydrationReady: false, focusDependentIndicator: false, obviouslyVisible: false,
     stableIndicatorAbsence: false, modeCompletenessProven: false,
   };
-  const measurement = { cropValid: false, pixelChanged: null, computedFocusDependent: null };
+  const measurement = { cropValid: false, stableUnfocused: null, movedOnFocus: null, pixelChanged: null, computedFocusDependent: null, conflict: null, dynamicPad: null };
 
   // hydration: fully loaded + fonts ready + a paint settle (so late styling isn't mistaken for absence)
   outcome.hydrationReady = await page.evaluate(async () => {
@@ -138,11 +172,18 @@ async function runFocusVisualRetry(page, request) {
     el.focus(); const ok = document.activeElement === el; el.blur(); return ok;
   }, marker).catch(() => false);
 
-  // unfocused baseline: blur all, settle the clip, capture indicator + crop
+  // size the clip to the ACTUAL focus-ring extent (offset/pseudo rings), not a fixed pad (R2-F4).
+  const padExtent = await focusedRingExtent(page, marker);
+  measurement.dynamicPad = padExtent;
+
+  // unfocused baseline: blur all, capture indicator + rect + TWO crops (a few frames apart) so we
+  // can tell a focus change from a time-varying animation (audit R2-F1).
   await page.evaluate(() => document.activeElement && document.activeElement.blur());
-  const clip = await clipFor(page, marker);
+  const clip = await clipFor(page, marker, padExtent);
   const unfocused = await page.evaluate(readIndicator, marker).catch(() => null);
-  const beforeShot = clip ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
+  const beforeShotA = clip ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 120)))));
+  const beforeShotB = clip ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
 
   // REAL keyboard reach: Tab from the top until the target is the active element
   await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
@@ -160,30 +201,43 @@ async function runFocusVisualRetry(page, request) {
   // mode completeness: a simple single-mode control reached by keyboard — NOT a bare `reached`.
   outcome.modeCompletenessProven = reached && isSimpleControl(focused || unfocused);
 
-  // real-pixel spatial verdict (area-independent). cropValid only when both crops exist + same size.
+  // (a) STABILITY: two unfocused crops must agree — else the element animates and a focus diff is
+  //     unattributable (audit R2-F1).
+  let stableUnfocused = null;
+  if (beforeShotA && beforeShotB) {
+    const s = await page.evaluate(spatialStatsInPage, beforeShotA, beforeShotB).catch(() => null);
+    stableUnfocused = !!s && s.totalPixels > 0 && s.changedPixels < PIXEL_MIN;
+  }
+  measurement.stableUnfocused = stableUnfocused;
+
+  // (b) MOTION: the element must not move/resize on focus, or the before/after clips capture
+  //     different regions (audit R2-F2).
+  const movedOnFocus = (focused && unfocused) ? rectMoved(unfocused.rect, focused.rect) : null;
+  measurement.movedOnFocus = movedOnFocus;
+
+  // (c) PIXELS: unfocused-B vs focused (same clip).
   let spatial = null;
-  if (beforeShot && afterShot) spatial = await page.evaluate(spatialStatsInPage, beforeShot, afterShot).catch(() => null);
+  if (beforeShotB && afterShot) spatial = await page.evaluate(spatialStatsInPage, beforeShotB, afterShot).catch(() => null);
   const cropValid = !!spatial && spatial.totalPixels > 0;
   measurement.cropValid = cropValid;
 
-  if (focused && unfocused) {
+  if (focused && unfocused && cropValid) {
     const changedOnFocus = focused.signature !== unfocused.signature;
-    // a VISIBLE indicator that appears on focus or changes on focus (alpha-aware via readIndicator)
     const computedFocusDependent = focused.anyVisible && (!unfocused.anyVisible || changedOnFocus);
+    const pixelChanged = spatial.changedPixels >= PIXEL_MIN;
     measurement.computedFocusDependent = computedFocusDependent;
-
-    if (cropValid) {
-      const FOCUS_MIN_CHANGED = 24;
-      const pixelChanged = spatial.changedPixels >= FOCUS_MIN_CHANGED;
-      measurement.pixelChanged = pixelChanged;
-      // CLEAR evidence: BOTH real pixels changed AND the change is computed-focus-dependent.
+    measurement.pixelChanged = pixelChanged;
+    // CHANNEL AGREEMENT: the two independent channels must agree, the element must be stable, and it
+    // must not have moved. Any disagreement/instability ⇒ INCONCLUSIVE ⇒ PARTIAL (never a confident
+    // false clear/barrier). This is the core fix for R2-F1/F2/F3.
+    const conflict = pixelChanged !== computedFocusDependent;
+    const usable = stableUnfocused === true && movedOnFocus === false && !conflict;
+    measurement.conflict = conflict;
+    if (usable) {
       outcome.focusDependentIndicator = pixelChanged && computedFocusDependent;
-      // obviously visible = a real, perceivable pixel change (transparent styling → no pixels → false).
       outcome.obviouslyVisible = pixelChanged;
-      // BARRIER evidence: reached + hydrated + valid crop + NO pixel change + no focus-dependent style.
       outcome.stableIndicatorAbsence = reached && outcome.hydrationReady && !pixelChanged && !computedFocusDependent;
     }
-    // crop invalid ⇒ leave both clear and barrier flags false ⇒ INCONCLUSIVE ⇒ PARTIAL (safe).
   }
   return finalize(request, outcome, measurement, true);
 }
