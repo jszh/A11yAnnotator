@@ -22,7 +22,7 @@ function withPipeline(bundle, key = TEST_KEY) {
   const results = (bundle.experiments.results || []).map((r) => attest.signResult(
     { valid: true, completed: true, ...r },
     key,
-    { runner: r.experimentId, runnerVersion: '3.0.0-phase0', runIdentity: id },
+    { runner: r.experimentId, runnerVersion: '3.0.0-phase0', runIdentity: { file: c.file, runId: c.runId, observedPageDigest: c.pageDigest } },
   ));
   const candidates = { ...id, candidates: results.map((r) => ({ candidateId: r.claimId, xpath: r.targetXpath, sc: r.sc, experimentId: r.experimentId, selectionLevel: 1 })) };
   const plan = { ...id, requests: results.map((r) => ({ candidateId: r.claimId, experimentId: r.experimentId, targetXpath: r.targetXpath, sc: r.sc })), escalations: [] };

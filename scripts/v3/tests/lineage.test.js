@@ -63,7 +63,12 @@ test('attestation: on-disk artifact verifier checks sha256, rejects tamper / mis
   assert.equal(verify('goldRef', 'gold://missing.json', hash), false, 'missing file ⇒ false');
   assert.equal(verify('goldRef', 'gold://gold.json', 'not-a-hash'), false, 'malformed hash ⇒ false');
   assert.equal(verify('goldRef', 'gold://../escape.json', hash), false, 'path escape ⇒ false');
-  fs.rmSync(dir, { recursive: true, force: true });
+  // sibling-prefix escape (audit V3R4-M2): a sibling dir whose path STARTS WITH the root string must
+  // be rejected — `path.relative`, not `startsWith`.
+  const evil = dir + '-evil'; fs.mkdirSync(evil, { recursive: true });
+  const evilFile = path.join(evil, 'gold.json'); fs.writeFileSync(evilFile, '{"cases":3}');
+  assert.equal(verify('goldRef', `gold://../${path.basename(evil)}/gold.json`, hash), false, 'sibling-prefix path ⇒ false');
+  fs.rmSync(dir, { recursive: true, force: true }); fs.rmSync(evil, { recursive: true, force: true });
 });
 
 // ============================ publication boundary (V3R3-C1) ============================
@@ -79,7 +84,7 @@ test('V3R3-C1: a forged COMPLETE+promoted bundle with no attestation cannot publ
 
 test('V3R3-C1: a fabricated attestation (invented mac) cannot publish', () => {
   const forged = withPipeline(threeStage());
-  forged.experiments.results.forEach((r) => { r.attestation = { runner: 'focus-visual-retry', runnerVersion: '3.0.0-phase0', resultDigest: 'sha256:' + '0'.repeat(64), mac: 'deadbeef' }; });
+  forged.experiments.results.forEach((r) => { r.attestation = { runner: 'focus-visual-retry', runnerVersion: '3.0.0-phase0', runIdentity: { file: 'p', runId: 'R', observedPageDigest: 'sha256:d' }, resultDigest: 'sha256:' + '0'.repeat(64), mac: 'deadbeef' }; });
   const r = buildV3(forged, { authority: PROMOTED });
   assert.equal(r.results.summary.authoritative, 0, 'a forged mac does not verify against the trust-anchor key');
 });
@@ -104,7 +109,35 @@ test('V3R3-C1: promotion whose provenance artifacts do NOT verify on disk stays 
   const failingProv = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED'], { artifactVerifier: () => false });
   const r = buildV3(withPipeline(threeStage()), { authority: failingProv });
   assert.equal(r.results.summary.authoritative, 0, 'unverified provenance ⇒ shadow');
-  assert.match(r.results.shadowObservations[0].reason, /provenance artifacts did not verify/);
+  assert.match(r.results.shadowObservations[0].reason, /provenance artifacts unverified/);
+});
+
+test('V3R4-H4: a promoted bundle with NO artifact verifier configured stays shadow (fail-closed)', () => {
+  // promoted WITHOUT a verifier: even valid signed evidence cannot publish — provenance is unverifiable.
+  const noVerifier = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED'], { artifactVerifier: null });
+  const r = buildV3(withPipeline(threeStage()), { authority: noVerifier });
+  assert.equal(r.results.summary.authoritative, 0, 'no verifier ⇒ provenance unverifiable ⇒ shadow');
+  assert.match(r.results.shadowObservations[0].reason, /provenance artifacts unverified/);
+});
+
+test('V3R4-M1: an attestation missing runner/runnerVersion is rejected by the schema', () => {
+  const b = withPipeline(threeStage());
+  delete b.experiments.results[0].attestation.runnerVersion;
+  const r = buildV3(b, { authority: PROMOTED });
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((m) => /attestation\.runnerVersion/.test(m)), JSON.stringify(r.errors));
+});
+
+test('V3R4-M1: a signed result whose runner/version mismatches the cited catalog runner stays shadow', () => {
+  const b = withPipeline(threeStage());
+  // re-sign with a mismatched runnerVersion (still a valid MAC, but not the approved build).
+  b.experiments.results[0] = attest.signResult(
+    { ...b.experiments.results[0], attestation: undefined },
+    TEST_KEY,
+    { runner: 'focus-visual-retry', runnerVersion: 'rogue-9.9', runIdentity: { file: 'p', runId: 'R', observedPageDigest: 'sha256:d' } },
+  );
+  const r = buildV3(b, { authority: PROMOTED });
+  assert.equal(r.results.summary.authoritative, 0, 'runnerVersion != approved catalog build ⇒ shadow');
 });
 
 test('V3R3-C1: no trust-anchor key configured ⇒ nothing publishes (default-shadow safety preserved)', () => {
@@ -143,11 +176,13 @@ test('V3R3-C1 (red-team): a genuinely-signed result cannot be REPLAYED into a fo
 
 test('V3R3-C1 (red-team): boundToRun fails closed on a missing/partial run identity', () => {
   const collect = { file: 'p', runId: 'R', pageDigest: 'sha256:d' };
+  const full = { file: 'p', runId: 'R', observedPageDigest: 'sha256:d' };
   const sign = (ri) => attest.signResult({ experimentId: 'e', claimId: 'c', targetXpath: 't', sc: 's', observationScope: SCOPE, outcome: {}, applicabilityEvidence: {}, valid: true, completed: true }, 'k', { runIdentity: ri });
-  assert.equal(attest.boundToRun(sign(collect), collect), true, 'full match binds');
-  assert.equal(attest.boundToRun(sign({ file: 'p' }), collect), false, 'partial identity (missing runId/pageDigest) ⇒ false');
+  assert.equal(attest.boundToRun(sign(full), collect), true, 'full match (observed === collect.pageDigest) binds');
+  assert.equal(attest.boundToRun(sign({ file: 'p' }), collect), false, 'partial identity (missing runId/observedPageDigest) ⇒ false');
+  assert.equal(attest.boundToRun(sign({ file: 'p', runId: 'R', observedPageDigest: 'sha256:WRONG' }), collect), false, 'observed digest != collect.pageDigest ⇒ false (loaded a different page)');
   assert.equal(attest.boundToRun(sign(null), collect), false, 'absent run identity ⇒ false');
-  assert.equal(attest.boundToRun(sign(collect), {}), false, 'empty collect identity ⇒ false (no undefined===undefined)');
+  assert.equal(attest.boundToRun(sign(full), {}), false, 'empty collect identity ⇒ false (no undefined===undefined)');
 });
 
 test('V3R3-C1 (red-team): atBaseline cannot be injected after signing (AT-baseline gate is bound)', () => {

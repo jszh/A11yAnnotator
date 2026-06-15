@@ -167,6 +167,7 @@ function measureContrast(marker) {
     foregroundResolved, backgroundResolved, backdropIsSolidUniform, contrastComputable,
     sizeClassResolved: sizePx > 0, notExemptText: !disabled && !ariaHidden,
     ratio, threshold,
+    bgColor: bg ? { r: Math.round(bg.r), g: Math.round(bg.g), b: Math.round(bg.b) } : null, // the backdrop the RATIO used
     signature: `${cs.color}|${bg ? bg.r + ',' + bg.g + ',' + bg.b : 'na'}|${sizePx}|${weight}`,
   };
 }
@@ -210,7 +211,7 @@ function analyzeBackdrop(sentAB64, sentBB64, hiddenB64) {
     const w = a.naturalWidth, h = a.naturalHeight; if (!w || !h) return { uniform: false };
     const px = (img) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.drawImage(img, 0, 0); return x.getImageData(0, 0, w, h).data; };
     const da = px(a), db = px(b), dh = px(hd);
-    let minR = 255, minG = 255, minB = 255, maxR = 0, maxG = 0, maxB = 0, glyphPixels = 0;
+    let minR = 255, minG = 255, minB = 255, maxR = 0, maxG = 0, maxB = 0, glyphPixels = 0, sumR = 0, sumG = 0, sumB = 0;
     for (let i = 0; i < da.length; i += 4) {
       const sentDelta = Math.max(Math.abs(da[i] - db[i]), Math.abs(da[i + 1] - db[i + 1]), Math.abs(da[i + 2] - db[i + 2]));
       if (sentDelta <= 40) continue;             // backdrop pixel (unchanged between the two sentinels)
@@ -218,9 +219,13 @@ function analyzeBackdrop(sentAB64, sentBB64, hiddenB64) {
       const r = dh[i], g = dh[i + 1], bl = dh[i + 2]; // the BACKDROP colour behind this glyph pixel
       if (r < minR) minR = r; if (g < minG) minG = g; if (bl < minB) minB = bl;
       if (r > maxR) maxR = r; if (g > maxG) maxG = g; if (bl > maxB) maxB = bl;
+      sumR += r; sumG += g; sumB += bl;
     }
     const range = Math.max(maxR - minR, maxG - minG, maxB - minB);
-    return { uniform: glyphPixels >= 8 && range <= 12, range, glyphPixels };
+    const n = glyphPixels || 1;
+    // the REPRESENTATIVE backdrop colour actually behind the glyphs — the ratio MUST be computed
+    // against this, not an unrelated CSS-resolved surface (audit V3R4-H1).
+    return { uniform: glyphPixels >= 8 && range <= 12, range, glyphPixels, r: Math.round(sumR / n), g: Math.round(sumG / n), b: Math.round(sumB / n) };
   });
 }
 
@@ -238,7 +243,7 @@ async function runTextContrastPixel(page, request) {
   // is genuinely uniform only if every captured pixel is one colour. A clear/barrier (anything that
   // needs a single computable contrast) requires BOTH the geometric channel AND this pixel channel
   // to agree the backdrop is uniform — closing SVG/canvas/pseudo painters enumeration cannot see.
-  let pixelUniform = false;
+  let pixelUniform = false, pixelAgrees = false;
   if (a && a.textRendersVisible && a.foregroundResolved) {
     const clip = await page.evaluate(inkClip, marker).catch(() => null);
     if (clip) {
@@ -250,13 +255,22 @@ async function runTextContrastPixel(page, request) {
       await page.evaluate(setGlyphColor, marker, 'transparent').catch(() => {});
       const hidden = await shot();
       await page.evaluate(setGlyphColor, marker, '').catch(() => {});
-      if (sentA && sentB && hidden) { const px = await page.evaluate(analyzeBackdrop, sentA, sentB, hidden).catch(() => null); pixelUniform = !!(px && px.uniform); }
+      if (sentA && sentB && hidden) {
+        const px = await page.evaluate(analyzeBackdrop, sentA, sentB, hidden).catch(() => null);
+        pixelUniform = !!(px && px.uniform);
+        // the RATIO's backdrop colour (CSS paint stack) must AGREE with the rendered backdrop behind
+        // the glyphs, or the ratio is computed against the wrong surface (audit V3R4-H1: white text
+        // over a uniform white SVG resolves the black body for the ratio ⇒ false 21:1 clear).
+        const bgc = a.bgColor;
+        pixelAgrees = !!(px && bgc && Math.abs(px.r - bgc.r) <= 16 && Math.abs(px.g - bgc.g) <= 16 && Math.abs(px.b - bgc.b) <= 16);
+      }
     }
   }
 
   if (a && b) {
-    const uniform = a.backdropIsSolidUniform && pixelUniform;            // both channels must agree
-    const contrastComputable = a.contrastComputable && pixelUniform;     // a.contrastComputable already ANDs the geometric channel
+    const pixelOk = pixelUniform && pixelAgrees;
+    const uniform = a.backdropIsSolidUniform && pixelOk;                 // both channels + colour agree
+    const contrastComputable = a.contrastComputable && pixelOk;         // a.contrastComputable already ANDs the geometric channel
     Object.assign(o, { isTextNode: a.isTextNode, textRendersVisible: a.textRendersVisible, foregroundResolved: a.foregroundResolved, backgroundResolved: a.backgroundResolved, backdropIsSolidUniform: uniform, contrastComputable, sizeClassResolved: a.sizeClassResolved, notExemptText: a.notExemptText });
     o.measurementStable = a.signature === b.signature; // no color animation between reads
     if (contrastComputable && o.measurementStable && a.ratio != null) {
@@ -266,7 +280,7 @@ async function runTextContrastPixel(page, request) {
     // non-uniform backdrop (either channel) or instability ⇒ neither met nor failed ⇒ INCONCLUSIVE
   }
   const valid = !!(a && b && o.textRendersVisible && o.measurementStable);
-  return mk(request, 'text-contrast-pixel', '1.4.3', { ...o, hydrationReady }, { isTextNode: o.isTextNode, textRendersVisible: o.textRendersVisible, sizeClassResolved: o.sizeClassResolved }, { action: 'measure-contrast', valid, measurement: { ratio: a && a.ratio, threshold: a && a.threshold, pixelUniform } });
+  return mk(request, 'text-contrast-pixel', '1.4.3', { ...o, hydrationReady }, { isTextNode: o.isTextNode, textRendersVisible: o.textRendersVisible, sizeClassResolved: o.sizeClassResolved }, { action: 'measure-contrast', valid, measurement: { ratio: a && a.ratio, threshold: a && a.threshold, pixelUniform, pixelAgrees } });
 }
 
 // =====================================================================================
@@ -457,6 +471,28 @@ function measureObscured(marker) {
   // child overlay's axis-aligned AABB over-claim its painted area — a false barrier (audit V3R3
   // self-adversarial). The WHOLE ancestor chain must be axis-aligned for the border-box to be exact.
   const chainAxisAligned = (node) => { for (let p = node; p; p = p.parentElement) if (!axisAlignedTransform(getComputedStyle(p).transform)) return false; return true; };
+  // The candidate's EFFECTIVE painted rect = its border box intersected with every clipping ANCESTOR's
+  // padding box (overflow:hidden/clip/scroll/auto). getBoundingClientRect is the UNCLIPPED box, so an
+  // overlay clipped to part of its width still over-claims coverage (audit V3R4-H2). A non-rectangular
+  // clip (clip-path / mask / rounded overflow) cannot be reduced to a rect ⇒ return null ⇒ exclude.
+  const clippedRect = (node) => {
+    const r0 = node.getBoundingClientRect();
+    let acc = { left: r0.left, top: r0.top, right: r0.right, bottom: r0.bottom };
+    for (let p = node.parentElement; p; p = p.parentElement) {
+      const pcs = getComputedStyle(p);
+      const clipsOverflow = /(hidden|clip|scroll|auto)/.test(pcs.overflowX) || /(hidden|clip|scroll|auto)/.test(pcs.overflowY);
+      const hasClipPath = (pcs.clipPath && pcs.clipPath !== 'none') || (pcs.webkitClipPath && pcs.webkitClipPath !== 'none');
+      const hasMask = pcs.maskImage && pcs.maskImage !== 'none';
+      if (hasClipPath || hasMask) return null;                              // non-rectangular clip ⇒ can't prove
+      if (!clipsOverflow) continue;
+      if (pcs.borderRadius && pcs.borderRadius !== '0px') return null;       // rounded overflow clip ⇒ can't prove
+      const pr = p.getBoundingClientRect();
+      const bl = parseFloat(pcs.borderLeftWidth) || 0, bt = parseFloat(pcs.borderTopWidth) || 0, brr = parseFloat(pcs.borderRightWidth) || 0, bb = parseFloat(pcs.borderBottomWidth) || 0;
+      acc = { left: Math.max(acc.left, pr.left + bl), top: Math.max(acc.top, pr.top + bt), right: Math.min(acc.right, pr.right - brr), bottom: Math.min(acc.bottom, pr.bottom - bb) };
+      if (acc.right <= acc.left || acc.bottom <= acc.top) return { left: 0, top: 0, right: 0, bottom: 0 }; // clipped away
+    }
+    return acc;
+  };
 
   // (1) neutralise pointer-events on intersecting elements so true paint order is observable.
   const restore = [];
@@ -482,7 +518,7 @@ function measureObscured(marker) {
       if (node === el || el.contains(node) || node.contains(el)) continue;
       const cs = getComputedStyle(node);
       if (cs.display === 'none' || cs.visibility === 'hidden') continue;
-      const nr = node.getBoundingClientRect();
+      const nr = clippedRect(node); if (!nr) continue;       // non-rectangular ancestor clip ⇒ exclude
       const ov = intersect(nr, r); if (!ov) continue;
       // PROVABLY opaque rectangle: solid background-color (α=1), full effective opacity, and a plain
       // axis-aligned box (no rounded corners / clip-path / transform / blend that could leave gaps).
@@ -669,13 +705,20 @@ async function runKeyboardActivation(page, request) {
     const isActivationControl = !composite && (enterSpaceRole || tag === 'BUTTON'
       || (tag === 'A' && el.hasAttribute('href'))
       || (tag === 'INPUT' && /^(button|submit|reset|checkbox|radio)$/.test(type)));
+    // OBSERVABLE pointer-only secondary functionality (ondblclick / oncontextmenu / mouse-specific)
+    // means the mode inventory is NOT closed — even on a native control (audit V3R4-H3). This only
+    // catches inline on* handlers (addEventListener is invisible), which is why 2.1.1 stays
+    // barrier-only in the registry; this flag makes the OBSERVATION honest when a handler IS visible.
+    const secondaryPointerHandler = ['ondblclick', 'oncontextmenu', 'onmousedown', 'onmouseup', 'onmousemove', 'onwheel'].some((h) => el.getAttribute(h) != null || typeof el[h] === 'function');
     el.focus(); const focusable = document.activeElement === el; el.blur();
-    return { role, tag, type, isActivationControl, composite, focusable };
+    return { role, tag, type, isActivationControl, composite, focusable, secondaryPointerHandler };
   }, marker).catch(() => null);
   if (!info) return mk(request, 'keyboard-activation', '2.1.1', o, {}, { action: 'real-key-activate' });
   o.targetIsInteractive = info.isActivationControl; o.targetIsFocusable = info.focusable;
-  o.singleModeControl = info.isActivationControl && !info.composite;
-  o.modeInventoryClosed = !info.composite;
+  // 2.1.1 clearing is WITHDRAWN at the registry (open-scope-never-clearable); these flags remain so a
+  // proposer/observer never even infers a single-mode inventory when a pointer-only handler is visible.
+  o.singleModeControl = info.isActivationControl && !info.composite && !info.secondaryPointerHandler;
+  o.modeInventoryClosed = !info.composite && !info.secondaryPointerHandler;
   // out of recipe ⇒ don't even attempt activation; applicability will PARTIAL it.
   if (!info.isActivationControl) return mk(request, 'keyboard-activation', '2.1.1', o, { targetIsInteractive: false, targetIsFocusable: o.targetIsFocusable, hydrationReady }, { action: 'real-key-activate', valid: false });
 

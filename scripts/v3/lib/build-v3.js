@@ -144,17 +144,27 @@ function buildV3(bundle, opts = {}) {
     //     these is checked ONLY at the publish boundary, so default-shadow behaviour is unchanged:
     //     a gate-passing-but-unattested observation is still RECORDED as shadow, never authoritative.
     const a = auth.authorityFor(p.experimentId, p.direction, authorityReg);
-    // lineage: a valid MAC from a key-holder AND the signed run/page identity matches THIS bundle
-    // (so a genuinely-attested result cannot be replayed into a foreign bundle — audit V3R3 red-team).
-    const lineageVerified = trust.key
-      && attest.verifyResult(rawByClaim[p.claimId], trust.key)
-      && attest.boundToRun(rawByClaim[p.claimId], bundle.collect);
-    const provenanceVerified = auth.provenanceArtifactsVerified(p.experimentId, p.direction, authorityReg, trust.artifactVerifier);
+    const raw = rawByClaim[p.claimId];
+    // lineage: a valid MAC from a key-holder, the signed identity matches THIS bundle (replay defence),
+    // AND the attestation names the cited catalog runner at the approved build (audit V3R4-M1). The
+    // page identity is the runner's INDEPENDENT observation, checked against collect (audit V3R4-C1).
+    const runnerIdentityOk = !!raw && !!raw.attestation
+      && raw.attestation.runner === p.experimentId
+      && raw.attestation.runnerVersion === cat.CATALOG.catalogVersion;
+    const lineageVerified = !!trust.key
+      && attest.verifyResult(raw, trust.key)
+      && attest.boundToRun(raw, bundle.collect)
+      && runnerIdentityOk;
+    // FAIL-CLOSED: a promoted direction needs a configured artifact verifier AND every provenance ref
+    // must verify — the programmatic builder boundary cannot default-true when no verifier is supplied
+    // (audit V3R4-H4).
+    const provenanceVerified = !!trust.artifactVerifier
+      && auth.provenanceArtifactsVerified(p.experimentId, p.direction, authorityReg, trust.artifactVerifier);
     if (a.mayPublish && bundleComplete && lineageVerified && provenanceVerified) { out._authState = a.state; claims.push(out); continue; }
     const reason = !a.mayPublish ? a.reason
       : !bundleComplete ? 'incomplete bundle (no plan/candidates/drive) — cannot publish authoritative'
-        : !lineageVerified ? 'evidence lineage unverified (no valid attestation from a key-holding catalog runner) — cannot publish authoritative (audit V3R3-C1)'
-          : 'promotion provenance artifacts did not verify on disk — cannot publish authoritative (audit V3R3-C1)';
+        : !lineageVerified ? 'evidence lineage unverified (no valid attestation binding the cited runner + observed page identity) — cannot publish authoritative (audit V3R3-C1/V3R4-C1/M1)'
+          : 'promotion provenance artifacts unverified (no verifier configured, or a ref failed on disk) — cannot publish authoritative (audit V3R4-H4)';
     shadowObs.push({
       claimId: p.claimId, sc: p.sc, claimFamily: family,
       wouldBe: { observationOutcome: out.observationOutcome, wcagApplicability: out.wcagApplicability },

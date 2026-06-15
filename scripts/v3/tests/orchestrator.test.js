@@ -36,7 +36,12 @@ test('replay determinism: building twice over a frozen bundle yields identical r
   assert.deepEqual(buildV3(bundle).results, buildV3(bundle).results);
 });
 
-const FIXTURE = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-focus.html');
+const FIXTURE_PATH = path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-focus.html');
+const FIXTURE = 'file://' + FIXTURE_PATH;
+// the runner binds the digest of the resource it ACTUALLY loaded (audit V3R4-C1); the collector's
+// declared pageDigest must equal that for a promoted clear to publish — so compute the real digest.
+const attest = require('../lib/attestation.js');
+const FIXTURE_DIGEST = attest.pageDigestOf(fs.readFileSync(FIXTURE_PATH, 'utf8'));
 
 const { promoted } = require('./helpers.js');
 const PROMOTED = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED', 'focus-visual-retry/BARRIER_OBSERVED']);
@@ -52,7 +57,7 @@ test('orchestrate is SHADOW by default: gate-passing focus observations do not p
 });
 
 test('orchestrate (focus PROMOTED): real ring clears, no-indicator barriers; ONLY promoted focus publishes', { skip: !chromeOK, concurrency: false }, async () => {
-  const collect = { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', collectedAt: 1000, elements: [
+  const collect = { file: 'fx-v3-focus.html', runId: 'R', pageDigest: FIXTURE_DIGEST, collectedAt: 1000, elements: [
     { xpath: '/html/body/button[1]', focusable: true, role: 'button', hasText: true },
     { xpath: '/html/body/button[2]', focusable: true, role: 'button', hasText: true },
     { xpath: '/html/body/button[3]', focusable: true, role: 'button', hasText: true },

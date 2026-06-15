@@ -73,9 +73,16 @@ function validateExperiments(x, E) {
     if (r.attestation != null) {
       if (!isObj(r.attestation)) E.push(`${p}.attestation must be an object`);
       else {
-        noUnknownKeys(r.attestation, ['runner', 'runnerVersion', 'resultDigest', 'mac', 'runIdentity'], `${p}.attestation`, E);
-        for (const f of ['resultDigest', 'mac']) if (!isStr(r.attestation[f])) E.push(`${p}.attestation.${f} must be a non-empty string`);
-        if (r.attestation.runIdentity != null && !isObj(r.attestation.runIdentity)) E.push(`${p}.attestation.runIdentity must be an object`);
+        const at = r.attestation;
+        noUnknownKeys(at, ['runner', 'runnerVersion', 'resultDigest', 'mac', 'runIdentity'], `${p}.attestation`, E);
+        // runner identity/version are REQUIRED non-empty (audit V3R4-M1) — publication must prove the
+        // evidence came from the cited catalog runner at a known build; the builder also checks them.
+        for (const f of ['resultDigest', 'mac', 'runner', 'runnerVersion']) if (!isStr(at[f])) E.push(`${p}.attestation.${f} must be a non-empty string`);
+        if (!isObj(at.runIdentity)) E.push(`${p}.attestation.runIdentity must be an object`);
+        else {
+          noUnknownKeys(at.runIdentity, ['file', 'runId', 'observedPageDigest'], `${p}.attestation.runIdentity`, E);
+          for (const f of ['file', 'runId', 'observedPageDigest']) if (!isStr(at.runIdentity[f])) E.push(`${p}.attestation.runIdentity.${f} must be a non-empty string`);
+        }
       }
     }
     // CLOSE the outcome shape: every flag must be a DECLARED typed outcome of the experiment runner

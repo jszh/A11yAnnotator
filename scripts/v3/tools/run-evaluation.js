@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { orchestrate } = require('../lib/orchestrator.js');
+const attest = require('../lib/attestation.js');
 
 const [collectPath, drivePath, outDir, baseUrl] = process.argv.slice(2);
 if (!collectPath || !drivePath || !outDir) { console.error('usage: run-evaluation.js <collect.json> <drive.json> <out-dir> [pageBaseUrl]'); process.exit(2); }
@@ -21,7 +22,14 @@ const ROOT = path.join(__dirname, '..', '..', '..');
 const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponent(collect.file)}` : 'file://' + path.join(ROOT, 'assets', 'saved', collect.file));
 
 (async () => {
-  const { candidates, plan, experiments, claimProposals, bundle, built } = await orchestrate(collect, drive, { resolveUrl, now: Date.now() });
+  // exercise the REAL trust path (audit V3R4-H5): the runner signs evidence with V3_ATTEST_KEY from
+  // the environment, and the builder verifies promotion provenance against on-disk artifacts. With no
+  // key / no promotion configured this run is simply all-shadow, as before.
+  const { candidates, plan, experiments, claimProposals, bundle, built } = await orchestrate(collect, drive, {
+    resolveUrl, now: Date.now(),
+    attestationKey: attest.loadKey({}),
+    artifactVerifier: attest.makeDiskArtifactVerifier(ROOT),
+  });
   const w = (name, obj) => fs.writeFileSync(path.join(outDir, name), JSON.stringify(obj, null, 2));
   w('collect.json', collect);            // annotated with applicableScs (oracle-derived)
   w('drive.json', bundle.drive);         // baseline (identity-stamped) — for full-fidelity replay

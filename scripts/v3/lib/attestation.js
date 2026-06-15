@@ -65,13 +65,24 @@ function lineageOf(result) {
 }
 
 // Does an attested result's SIGNED run identity match the bundle this build is over? Replay defence:
-// even a genuinely-signed result only counts inside the exact run/page it was produced for.
+// even a genuinely-signed result only counts inside the exact run/page it was produced for. The page
+// identity is the runner's INDEPENDENTLY-OBSERVED digest of the loaded resource (audit V3R4-C1), NOT
+// a value copied from the plan — and it must equal the COLLECTOR's declared page digest, so a run
+// that loaded a different/stale/wrong page than the collector measured fails closed.
 function boundToRun(result, collect) {
   const ri = result && result.attestation && result.attestation.runIdentity;
   if (!ri || !collect) return false;
-  // FAIL-CLOSED: every identity field must be present AND equal (no undefined===undefined binding).
-  for (const f of ['file', 'runId', 'pageDigest']) { if (!ri[f] || !collect[f] || ri[f] !== collect[f]) return false; }
+  if (!ri.file || !collect.file || ri.file !== collect.file) return false;
+  if (!ri.runId || !collect.runId || ri.runId !== collect.runId) return false;
+  if (!ri.observedPageDigest || !collect.pageDigest || ri.observedPageDigest !== collect.pageDigest) return false;
   return true;
+}
+
+// sha256 over a string (the loaded resource bytes), in the canonical `sha256:<hex>` shape the
+// collector uses for collect.pageDigest — so the runner's observation and the collector's identity
+// are directly comparable.
+function pageDigestOf(text) {
+  return 'sha256:' + crypto.createHash('sha256').update(String(text)).digest('hex');
 }
 
 function digestResult(result) {
@@ -86,7 +97,7 @@ function hmac(key, message) {
 // the builder can also confirm the evidence was produced by the cited catalog runner at a version.
 function signResult(result, key, { runner, runnerVersion, runIdentity } = {}) {
   if (!key) return result; // no key ⇒ unsigned ⇒ the builder will keep it shadow-only
-  const ri = runIdentity ? { file: runIdentity.file, runId: runIdentity.runId, pageDigest: runIdentity.pageDigest } : null;
+  const ri = runIdentity ? { file: runIdentity.file, runId: runIdentity.runId, observedPageDigest: runIdentity.observedPageDigest } : null;
   const withRunner = {
     ...result,
     attestation: { runner: runner || result.experimentId || null, runnerVersion: runnerVersion || null, runIdentity: ri },
@@ -123,8 +134,12 @@ function makeDiskArtifactVerifier(rootDir, { fs = require('fs'), path = require(
     if (typeof ref !== 'string' || !ref.trim()) return false;
     if (typeof expectedHash !== 'string' || !/^sha256:[0-9a-f]{64}$/i.test(expectedHash)) return false;
     const rel = ref.replace(/^[a-z0-9.+-]+:\/\//i, '');
-    const file = path.resolve(rootDir, rel);
-    if (!path.resolve(file).startsWith(path.resolve(rootDir))) return false; // no path escape
+    const root = path.resolve(rootDir);
+    const file = path.resolve(root, rel);
+    // path-confinement via path.relative (not startsWith, which a sibling prefix like `/tmp/repo-evil`
+    // escapes for root `/tmp/repo`) — reject `..` segments and absolute results (audit V3R4-M2).
+    const relToRoot = path.relative(root, file);
+    if (relToRoot === '' || relToRoot.startsWith('..') || path.isAbsolute(relToRoot)) return false;
     let bytes;
     try { bytes = fs.readFileSync(file); } catch (e) { return false; }
     const got = 'sha256:' + crypto.createHash('sha256').update(bytes).digest('hex');
@@ -141,6 +156,6 @@ function loadKey(opts = {}) {
 }
 
 module.exports = {
-  DIGEST_VERSION, stableStringify, lineageOf, digestResult, boundToRun,
+  DIGEST_VERSION, stableStringify, lineageOf, digestResult, boundToRun, pageDigestOf,
   signResult, verifyResult, makeDiskArtifactVerifier, loadKey,
 };

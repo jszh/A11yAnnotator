@@ -280,15 +280,19 @@ function finalize(request, outcome, measurement, completed) {
 async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationKey = null } = {}) {
   // dispatch table: focus runner here + the C1/C3–C9 runners (lazy require breaks the module cycle).
   const RUNNERS = Object.assign({ 'focus-visual-retry': runFocusVisualRetry }, require('./exp-runners.js').RUNNERS);
+  // the production runner reads the trust-anchor key from the environment too (audit V3R4-H5) — so a
+  // real `V3_ATTEST_KEY` run signs its evidence, not only the injected-key test path.
+  const key = attestationKey || attest.loadKey({});
   const browser = await puppeteer.launch({ executablePath, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const results = [];
   const unrun = [];
   let environment = 'headless-chromium';
-  // A real run that holds the trust-anchor key ATTESTS each result (audit V3R3-C1): the runner signs
-  // the lineage — including the RUN/PAGE identity it observed — so the builder can verify the evidence
-  // was produced HERE for THIS page, not hand-authored or replayed from another run.
-  const runIdentity = plan ? { file: plan.file, runId: plan.runId, pageDigest: plan.pageDigest } : null;
-  const sign = (r) => attestationKey ? attest.signResult(r, attestationKey, { runner: r.experimentId, runnerVersion: '3.0.0-phase0', runIdentity }) : r;
+  // A real run that holds the trust-anchor key ATTESTS each result: the runner signs the lineage —
+  // including the page identity it INDEPENDENTLY OBSERVED (a sha256 of the actually-loaded resource,
+  // NOT a value copied from the plan, audit V3R4-C1) — so the builder can verify the evidence was
+  // produced HERE for THIS page, not hand-authored, replayed, or measured on a different page. Sign
+  // ONLY when we hold a key AND observed the page digest — a failed observation stays UNSIGNED ⇒ shadow.
+  const sign = (r, observedPageDigest) => (key && observedPageDigest) ? attest.signResult(r, key, { runner: r.experimentId, runnerVersion: '3.0.0-phase0', runIdentity: { file: plan && plan.file, runId: plan && plan.runId, observedPageDigest } }) : r;
   try {
     try { const v = await browser.version(); environment = `headless-chromium/${v}/${process.platform}`; } catch (e) {}
     for (const request of (plan && plan.requests) || []) {
@@ -300,8 +304,13 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
       }
       const page = await browser.newPage();
       try {
-        await page.goto(resolveUrl(request), { waitUntil: 'load', timeout: 15000 });
-        results.push(sign(await runner(page, req)));
+        // independently digest the resource the browser ACTUALLY loaded — the navigation response
+        // body (raw bytes, Node-side, immune to file:// fetch restrictions). The attestation binds
+        // THIS, so a wrong/stale/swapped page cannot be signed as the collector's page (audit V3R4-C1).
+        const response = await page.goto(resolveUrl(request), { waitUntil: 'load', timeout: 15000 });
+        const html = response ? await response.text().catch(() => null) : null;
+        const observedPageDigest = html != null ? attest.pageDigestOf(html) : null;
+        results.push(sign(await runner(page, req), observedPageDigest));
       } catch (e) {
         unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String(e && e.message || e).slice(0, 200) });
       } finally { await page.close().catch(() => {}); }

@@ -43,10 +43,11 @@ test('default-closed coverage: every clearing direction is classified, and only 
     assert.ok(entry, `${sc}/${dir} must be explicitly classified`);
     if (entry.clearability === 'open-scope-never-clearable') assert.equal(cl.allowed, false);
   }
-  // clearable SCs (experiments built): 2.4.7, 1.4.3, 2.1.2, 3.3.2, 2.1.1, 4.1.2.
-  for (const sc of ['2.4.7', '1.4.3', '2.1.2', '3.3.2', '2.1.1', '4.1.2']) assert.equal(reg.clearabilityFor(sc, 'NO_BARRIER_OBSERVED').allowed, true, `${sc} should be clearable`);
-  // barrier-only / not-yet-built SCs stay default-closed.
-  for (const sc of ['1.4.13', '1.4.10', '2.4.11', '1.4.5', '2.4.4']) assert.equal(reg.clearabilityFor(sc, 'NO_BARRIER_OBSERVED').allowed, false, `${sc} should NOT be clearable`);
+  // clearable SCs (experiments built): 2.4.7, 1.4.3, 2.1.2, 3.3.2, 4.1.2. 2.1.1 clearing is WITHDRAWN
+  // (audit V3R4-H3): markup cannot prove the absence of pointer-only secondary functionality.
+  for (const sc of ['2.4.7', '1.4.3', '2.1.2', '3.3.2', '4.1.2']) assert.equal(reg.clearabilityFor(sc, 'NO_BARRIER_OBSERVED').allowed, true, `${sc} should be clearable`);
+  // barrier-only / withdrawn / not-yet-built SCs stay default-closed.
+  for (const sc of ['2.1.1', '1.4.13', '1.4.10', '2.4.11', '1.4.5', '2.4.4']) assert.equal(reg.clearabilityFor(sc, 'NO_BARRIER_OBSERVED').allowed, false, `${sc} should NOT be clearable`);
 });
 
 test('a clearing entry (closed OR exception) without a completeness predicate is rejected', () => {

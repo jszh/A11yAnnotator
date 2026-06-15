@@ -73,16 +73,14 @@ const EXPLICIT = {
   },
   '3.3.2/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: true, rationale: 'A rendered field with no programmatic name, or a placeholder masquerading as a label, is a positive observation; no completeness needed.' },
 
-  // ---- C4: 2.1.1 Keyboard (A) — CLEARABLE only for finite-contract single-mode controls. ----
-  '2.1.1/NO_BARRIER_OBSERVED': {
-    clearability: 'closed-scope-clearable', accessibilitySupportDependent: false,
-    completeness: {
-      resolver: 'all-true-completeness-v1',
-      requiredObligations: ['hydrationReady', 'reachedForActivation', 'contractKeysAllOperated', 'observableEffectStable', 'realKeyDistinctFromSynthetic', 'singleModeControl', 'modeInventoryClosed'],
-      derivation: 'docs/completeness/2.1.1.md',
-    },
-    rationale: '"All functionality" collapses to {focus, activate} ONLY for a single-mode control with a closed mode inventory (button/link/checkbox/…); composites/sliders fail singleModeControl ⇒ auto-PARTIAL, never clear. Synthetic-only handlers ⇒ no clear.',
-  },
+  // ---- C4: 2.1.1 Keyboard (A) — BARRIER-ONLY. Clearing authority WITHDRAWN (audit V3R4-H3). ----
+  // "All functionality" (SC 2.1.1) cannot be proven keyboard-operable from markup: a native control
+  // may carry pointer-only secondary functionality (ondblclick / oncontextmenu / addEventListener)
+  // the runner cannot observe, so `singleModeControl`/`modeInventoryClosed` inferred from tag/role is
+  // not a sound closed mode inventory. 2.1.1 stays barrier-only until a genuinely closed functionality
+  // contract can be independently established (or the claim is narrowed to a positively-observed
+  // activation function). A reached control where NO real key produced any effect is still a barrier.
+  '2.1.1/NO_BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'WITHDRAWN (audit V3R4-H3): markup cannot prove the absence of pointer-only secondary functionality, so "all functionality is keyboard operable" is not soundly clearable.' },
   '2.1.1/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A reached interactive control where no real key produced any observable effect (stably, hydrated) is a positive observation; no completeness needed.' },
 
   // ---- C1: 4.1.2 Name/Role/Value (A) — CLEARABLE only for a role's closed ARIA state set. AT-dep. ----
