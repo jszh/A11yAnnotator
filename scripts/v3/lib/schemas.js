@@ -50,7 +50,7 @@ function validateExperiments(x, E) {
   else if (x.catalogVersion !== cat.CATALOG.catalogVersion)
     E.push(`experiments.catalogVersion ${JSON.stringify(x.catalogVersion)} != live catalog ${JSON.stringify(cat.CATALOG.catalogVersion)} (stale evidence)`);
   if (!Array.isArray(x.results)) return E.push('experiments.results must be an array');
-  const RESULT_KEYS = ['claimId', 'experimentId', 'targetXpath', 'sc', 'outcome', 'applicabilityEvidence', 'observationScope', 'atBaseline', 'trusted', 'isolated', 'completed', 'valid', 'measurement', 'status', 'attestation'];
+  const RESULT_KEYS = ['claimId', 'experimentId', 'targetXpath', 'sc', 'outcome', 'applicabilityEvidence', 'observationScope', 'atBaseline', 'trusted', 'isolated', 'completed', 'valid', 'measurement', 'status', 'attestation', 'discoveredSubjects'];
   x.results.forEach((r, i) => {
     const p = `experiments.results[${i}]`;
     if (!isObj(r)) return E.push(`${p}: must be an object`);
@@ -67,6 +67,18 @@ function validateExperiments(x, E) {
     if (r.completed != null && typeof r.completed !== 'boolean') E.push(`${p}.completed must be boolean`);
     if (r.applicabilityEvidence != null && !isObj(r.applicabilityEvidence)) E.push(`${p}.applicabilityEvidence must be an object`);
     if (r.measurement != null && !isObj(r.measurement)) E.push(`${p}.measurement must be an object`);
+    // dynamic post-action subjects (Rule 13): a closed shape — xpath + typed provenance + a canonical
+    // fingerprint + the surface facts; the builder content-address-verifies the fingerprint.
+    if (r.discoveredSubjects != null) {
+      if (!Array.isArray(r.discoveredSubjects)) E.push(`${p}.discoveredSubjects must be an array`);
+      else r.discoveredSubjects.forEach((s, j) => {
+        const sp = `${p}.discoveredSubjects[${j}]`;
+        if (!isObj(s)) return E.push(`${sp}: must be an object`);
+        noUnknownKeys(s, ['xpath', 'viaAction', 'fingerprint', 'surfaceFacts'], sp, E);
+        for (const f of ['xpath', 'viaAction', 'fingerprint']) if (!isStr(s[f])) E.push(`${sp}.${f} must be a non-empty string`);
+        if (s.surfaceFacts != null && !isObj(s.surfaceFacts)) E.push(`${sp}.surfaceFacts must be an object`);
+      });
+    }
     // attestation (audit V3R3-C1) is a CLOSED provenance shape: a runner identity/version plus the
     // signed digest + MAC. Its presence is not trusted by itself — the builder re-verifies it — but
     // a malformed/over-wide attestation must not ride through the schema.

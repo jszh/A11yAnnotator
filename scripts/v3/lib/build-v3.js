@@ -23,6 +23,7 @@ const schemas = require('./schemas.js');
 const attest = require('./attestation.js');
 const manifest = require('./manifest.js');
 const coverage = require('./coverage-registry.js');
+const dynamic = require('./dynamic-subjects.js');
 const { resolveClaim } = require('./claims.js');
 
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
@@ -219,7 +220,15 @@ function buildV3(bundle, opts = {}) {
   // (5) INDEPENDENT obligation reconciliation: enumerate from the COLLECTOR (atomic per family);
   //     every obligation gets exactly one disposition. Authoritative CLAIMs clear; shadow
   //     observations and unsupported proposals are PARTIAL (shadow flagged); un-proposed ⇒ auto.
-  const obligations = obl.enumerateObligations(bundle.collect);
+  //     DYNAMIC subjects discovered by an experiment's action are expanded into provisional
+  //     obligations with the SAME family/oracle derivation and reconciled too (plan Rule 13) — a
+  //     malformed/forged-fingerprint discovery fails closed.
+  const staticObligations = obl.enumerateObligations(bundle.collect);
+  const dyn = dynamic.expandDiscovered(bundle.experiments);
+  if (dyn.errors.length) { for (const m of dyn.errors) E(`dynamic-subject: ${m}`); return { ok: false, errors, results: null }; }
+  const dynById = new Set(staticObligations.map((o) => o.obligationId));
+  const dynamicObligations = dyn.obligations.filter((o) => !dynById.has(o.obligationId)); // a discovered subject that is already a static obligation isn't double-counted
+  const obligations = [...staticObligations, ...dynamicObligations];
   const dispositions = [];
   for (const c of claims) dispositions.push({
     obligationId: oracle.oblId(c._target, c._sc, c._family), kind: 'CLAIM',
@@ -250,6 +259,7 @@ function buildV3(bundle, opts = {}) {
     obligationLedger: ledger,
     elementSkillSummaries: aggregates,
     outOfScope,
+    dynamicSubjects: dyn.subjects, // post-action discoveries, expanded + reconciled (Rule 13)
     summary: {
       obligations: obligations.length,
       proposals: proposals.length,
@@ -260,6 +270,7 @@ function buildV3(bundle, opts = {}) {
       barriersObserved: claims.filter((c) => c.observationOutcome === 'BARRIER_OBSERVED').length,
       cleared: claims.filter((c) => c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE').length,
       outOfScopeElements: outOfScope.length,
+      dynamicSubjects: dyn.subjects.length,
     },
   };
   // The v3 OUTPUT is entirely harness-authored (no page content), so scan it STRICTLY: any legacy
