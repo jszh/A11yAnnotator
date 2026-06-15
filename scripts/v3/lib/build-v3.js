@@ -24,6 +24,7 @@ const attest = require('./attestation.js');
 const manifest = require('./manifest.js');
 const coverage = require('./coverage-registry.js');
 const dynamic = require('./dynamic-subjects.js');
+const observer = require('./applicability-observer.js');
 const { resolveClaim } = require('./claims.js');
 
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
@@ -168,6 +169,11 @@ function buildV3(bundle, opts = {}) {
     // the claim's family must be INDEPENDENTLY corroborated by the oracle from raw collector facts —
     // a runner cannot self-assert applicability the collector's structure does not support (Rule 15).
     else if (!oracleCorroborates(target, family)) bindReason = `applicability not independently corroborated: the oracle does not derive family "${family}" for ${target} from raw collector facts (Rule 15)`;
+    // CHANNEL AGREEMENT (Rule 15 faithful): when an independent applicability OBSERVATION is present,
+    // the runner's applicability flags must agree with it — a separate observer re-derived the
+    // structural preconditions; disagreement ⇒ INCONCLUSIVE (the runner's self-asserted applicability
+    // is not corroborated by an independent measurement).
+    else if (bundle.applicability != null && !observer.agreesWith(bundle.applicability, target, linked.applicabilityEvidence).ok) bindReason = `independent applicability observer disagrees on ${target}: ${observer.agreesWith(bundle.applicability, target, linked.applicabilityEvidence).disagreements.join('; ')} (Rule 15)`;
     else ev = linked;
 
     const out = bindReason

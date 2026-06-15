@@ -16,7 +16,7 @@ const crypto = require('crypto');
 const attest = require('./attestation.js');
 
 // stages the manifest hashes — the complete lineage. The manifest never hashes ITSELF.
-const HASHED_STAGES = ['collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals'];
+const HASHED_STAGES = ['collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals', 'applicability'];
 
 const sha256 = (s) => 'sha256:' + crypto.createHash('sha256').update(s).digest('hex');
 const hmac = (key, msg) => crypto.createHmac('sha256', String(key)).update(msg).digest('hex');

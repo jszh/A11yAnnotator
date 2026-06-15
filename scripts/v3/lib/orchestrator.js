@@ -24,15 +24,21 @@ async function orchestrate(collect, drive, opts = {}) {
   // builder can verify lineage at the publish boundary. The key comes from opts or the trusted
   // authority config (__trust) — never the bundle. Absent a key, evidence is unsigned ⇒ shadow-only.
   const attestationKey = opts.attestationKey || (opts.authority && opts.authority.__trust && opts.authority.__trust.attestationKey) || null;
-  const experiments = await run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey });
+  const experiments = await run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey, budgetOpts: opts.budgetOpts });
   experiments.startedAt = now;
+  // the INDEPENDENT applicability observation (Rule 15) is produced by the runner pass but lives in
+  // its OWN stage artifact (a different producer than the experiment outcome) — pull it out so the
+  // experiments stage stays the outcome record and the manifest hashes applicability separately.
+  const observations = experiments.applicabilityObservations || [];
+  delete experiments.applicabilityObservations;
   const claimProposals = proposeClaims(plan, experiments);
   // The COMPLETE bundle travels through the one gate: collect + drive baseline, the candidate and
   // plan stages (so requests/results reconcile), the experiments, and the proposals (audit V3-H1).
   const driveArt = drive && (drive.file || drive.runId || drive.pageDigest)
     ? drive : { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, ...(drive || {}) };
   const planArt = { file: plan.file, runId: plan.runId, pageDigest: plan.pageDigest, requests: plan.requests, escalations: plan.escalations };
-  const bundle = { collect, drive: driveArt, candidates, plan: planArt, experiments, claimProposals };
+  const applicability = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, observations };
+  const bundle = { collect, drive: driveArt, candidates, plan: planArt, experiments, claimProposals, applicability };
   // the trusted orchestrator finalizes + attests the run-manifest binding every artifact hash and the
   // observed page identity (plan Rule 17; audit V3R4-H7). Absent a key, the manifest is unsigned ⇒
   // shadow-only, like the rest of the trust chain.

@@ -15,6 +15,7 @@ const puppeteer = require('puppeteer');
 const attest = require('./attestation.js');
 const budget = require('./budget.js');
 const cat = require('./catalog.js');
+const observer = require('./applicability-observer.js');
 
 // Chrome path: env override first (CI / non-mac), then the local macOS default.
 const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
@@ -296,8 +297,21 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
   // produced HERE for THIS page, not hand-authored, replayed, or measured on a different page. Sign
   // ONLY when we hold a key AND observed the page digest — a failed observation stays UNSIGNED ⇒ shadow.
   const sign = (r, observedPageDigest) => (key && observedPageDigest) ? attest.signResult(r, key, { runner: r.experimentId, runnerVersion: '3.0.0-phase0', runIdentity: { file: plan && plan.file, runId: plan && plan.runId, observedPageDigest } }) : r;
+  let applicabilityObservations = [];
   try {
     try { const v = await browser.version(); environment = `headless-chromium/${v}/${process.platform}`; } catch (e) {}
+    // INDEPENDENT applicability observation (plan Rule 15): a clean, separate-code structural pass over
+    // every target BEFORE any experiment mutates state — the builder cross-checks the runner's
+    // applicability flags against this. Distinct code path from the experiment runners ⇒ independent.
+    try {
+      const reqs = (plan && plan.requests) || [];
+      const targets = [...new Set(reqs.map((r) => r.targetXpath).filter((x) => x && x !== '/page-level::reflow'))];
+      if (targets.length && reqs[0]) {
+        const op = await browser.newPage();
+        try { await op.goto(resolveUrl(reqs[0]), { waitUntil: 'load', timeout: 15000 }); applicabilityObservations = await observer.observeApplicability(op, targets); }
+        finally { await op.close().catch(() => {}); }
+      }
+    } catch (e) { /* best-effort; absence ⇒ the builder falls back to family-level corroboration */ }
     for (const request of (plan && plan.requests) || []) {
       const req = { ...request, environment };
       const runner = RUNNERS[request.experimentId];
@@ -338,6 +352,7 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
     startedAt: plan._startedAt || 0,
     results,
     unrun,
+    applicabilityObservations, // pulled into a separate `applicability` artifact by the orchestrator
   };
 }
 

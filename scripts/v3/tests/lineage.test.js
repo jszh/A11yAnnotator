@@ -113,6 +113,18 @@ test('V3R3-C1: promotion whose provenance artifacts do NOT verify on disk stays 
   assert.match(r.results.shadowObservations[0].reason, /provenance artifacts unverified/);
 });
 
+// ============================ independent applicability observer (Rule 15) ============================
+test('Rule 15 faithful: the runner appEv must AGREE with the independent observation, else PARTIAL', () => {
+  const withObs = (facts) => { const b = withPipeline(threeStage()); b.applicability = { file: 'p', runId: 'R', pageDigest: 'sha256:d', observations: [{ xpath: 'node:b1', facts }] }; return reseal(b); };
+  // the focus result's appEv asserts targetIsFocusable:true.
+  assert.equal(buildV3(withObs({ targetIsFocusable: true }), { authority: PROMOTED }).results.summary.authoritative, 1, 'agreement ⇒ publishes');
+  const disagree = buildV3(withObs({ targetIsFocusable: false }), { authority: PROMOTED });
+  assert.equal(disagree.results.summary.authoritative, 0, 'observer says NOT focusable ⇒ runner appEv uncorroborated ⇒ PARTIAL');
+  // an ABSENT observation for the target fails closed too (cannot corroborate).
+  const noObs = withPipeline(threeStage()); noObs.applicability = { file: 'p', runId: 'R', pageDigest: 'sha256:d', observations: [] };
+  assert.equal(buildV3(reseal(noObs), { authority: PROMOTED }).results.summary.authoritative, 0, 'no independent observation for the target ⇒ cannot corroborate ⇒ PARTIAL');
+});
+
 // ============================ run-manifest (V3R4-H7 / Rule 17) ============================
 test('V3R4-H7: tampering ANY stage after the manifest is sealed REFUSES the build (artifact-hash mismatch)', () => {
   const b = withPipeline(threeStage());            // manifest seals the artifact hashes
