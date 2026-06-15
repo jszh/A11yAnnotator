@@ -10,6 +10,7 @@ const sch = require('./scheduler.js');
 const run = require('./run-experiments.js');
 const { proposeClaims } = require('./proposer.js');
 const { buildV3 } = require('./build-v3.js');
+const manifest = require('./manifest.js');
 
 // collect, drive: baseline artifacts. opts.resolveUrl(request)->url; opts.now is a caller-supplied
 // timestamp (the runner stamps freshness). Returns every stage artifact + the gated result.
@@ -32,6 +33,13 @@ async function orchestrate(collect, drive, opts = {}) {
     ? drive : { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, ...(drive || {}) };
   const planArt = { file: plan.file, runId: plan.runId, pageDigest: plan.pageDigest, requests: plan.requests, escalations: plan.escalations };
   const bundle = { collect, drive: driveArt, candidates, plan: planArt, experiments, claimProposals };
+  // the trusted orchestrator finalizes + attests the run-manifest binding every artifact hash and the
+  // observed page identity (plan Rule 17; audit V3R4-H7). Absent a key, the manifest is unsigned ⇒
+  // shadow-only, like the rest of the trust chain.
+  bundle.manifest = manifest.buildManifest(bundle, {
+    key: attestationKey, environment: experiments.environment,
+    observedPageDigest: collect.pageDigest, runnerVersion: '3.0.0-phase0', catalogVersion: experiments.catalogVersion,
+  });
   const built = buildV3(bundle, { authority: opts.authority, attestationKey: opts.attestationKey, artifactVerifier: opts.artifactVerifier });
   return { candidates, plan, experiments, claimProposals, bundle, built };
 }

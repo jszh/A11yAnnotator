@@ -21,6 +21,7 @@ const obl = require('./obligations.js');
 const oracle = require('./applicability-oracle.js');
 const schemas = require('./schemas.js');
 const attest = require('./attestation.js');
+const manifest = require('./manifest.js');
 const { resolveClaim } = require('./claims.js');
 
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
@@ -52,6 +53,7 @@ function buildV3(bundle, opts = {}) {
   for (const m of reg.validateConsistency(reg.REGISTRY, cat.CATALOG)) E(`consistency: ${m}`);
   for (const m of obl.coverageErrors()) E(`claim-family coverage: ${m}`);
   for (const m of schemas.validateBundle(bundle)) E(`schema: ${m}`);
+  if (bundle && bundle.manifest != null) for (const m of manifest.validateManifestShape(bundle.manifest)) E(`schema: ${m}`);
   if (errors.length) return { ok: false, errors, results: null };
 
   // (2) one cross-artifact gate (identity / freshness / scope / reconciliation / legacy-reject)
@@ -91,6 +93,15 @@ function buildV3(bundle, opts = {}) {
   // (plan + candidates) — not the orchestrator's happy path only (audit V3R2-H6).
   const bundleComplete = !!(bundle.plan && bundle.candidates && bundle.drive);
   const trust = trustConfig(opts, authorityReg);
+
+  // ATTESTED RUN-MANIFEST (plan Rule 17; audit V3R4-H7). When present, verify it: a CONTENT mismatch
+  // (artifact hash / identity / signedDigest) means the bundle is corrupt or not the one the
+  // orchestrator produced ⇒ REFUSE the build. A manifest that merely cannot be verified (unsigned /
+  // wrong key) just cannot publish authoritative. Production requires the manifest (opts.requireManifest).
+  const manifestRes = manifest.verifyManifest(bundle, trust.key);
+  if (manifestRes.present && manifestRes.integrityBroken) { for (const m of manifestRes.errors) E(`manifest: ${m}`); return { ok: false, errors, results: null }; }
+  if (opts.requireManifest && !manifestRes.present) { E('manifest: a verified run-manifest is required for a production build (use --shadow-debug for an incomplete inspection build)'); return { ok: false, errors, results: null }; }
+  const manifestVerified = manifestRes.present && manifestRes.valid;
 
   const proposals = (bundle.claimProposals && bundle.claimProposals.proposals) || [];
   const seen = new Set();
@@ -160,11 +171,12 @@ function buildV3(bundle, opts = {}) {
     // (audit V3R4-H4).
     const provenanceVerified = !!trust.artifactVerifier
       && auth.provenanceArtifactsVerified(p.experimentId, p.direction, authorityReg, trust.artifactVerifier);
-    if (a.mayPublish && bundleComplete && lineageVerified && provenanceVerified) { out._authState = a.state; claims.push(out); continue; }
+    if (a.mayPublish && bundleComplete && manifestVerified && lineageVerified && provenanceVerified) { out._authState = a.state; claims.push(out); continue; }
     const reason = !a.mayPublish ? a.reason
       : !bundleComplete ? 'incomplete bundle (no plan/candidates/drive) — cannot publish authoritative'
-        : !lineageVerified ? 'evidence lineage unverified (no valid attestation binding the cited runner + observed page identity) — cannot publish authoritative (audit V3R3-C1/V3R4-C1/M1)'
-          : 'promotion provenance artifacts unverified (no verifier configured, or a ref failed on disk) — cannot publish authoritative (audit V3R4-H4)';
+        : !manifestVerified ? 'run-manifest absent or unverified (no attested manifest binding the artifact hashes + page identity) — cannot publish authoritative (audit V3R4-H7)'
+          : !lineageVerified ? 'evidence lineage unverified (no valid attestation binding the cited runner + observed page identity) — cannot publish authoritative (audit V3R3-C1/V3R4-C1/M1)'
+            : 'promotion provenance artifacts unverified (no verifier configured, or a ref failed on disk) — cannot publish authoritative (audit V3R4-H4)';
     shadowObs.push({
       claimId: p.claimId, sc: p.sc, claimFamily: family,
       wouldBe: { observationOutcome: out.observationOutcome, wcagApplicability: out.wcagApplicability },

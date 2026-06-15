@@ -31,6 +31,7 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
     artifactVerifier: attest.makeDiskArtifactVerifier(ROOT),
   });
   const w = (name, obj) => fs.writeFileSync(path.join(outDir, name), JSON.stringify(obj, null, 2));
+  w('manifest.json', bundle.manifest);   // attested run-manifest (artifact hashes + page identity)
   w('collect.json', collect);            // annotated with applicableScs (oracle-derived)
   w('drive.json', bundle.drive);         // baseline (identity-stamped) — for full-fidelity replay
   w('experiment-candidates.json', candidates);

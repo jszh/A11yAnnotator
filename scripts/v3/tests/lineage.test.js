@@ -15,7 +15,8 @@ const crypto = require('node:crypto');
 const attest = require('../lib/attestation.js');
 const { buildV3 } = require('../lib/build-v3.js');
 const { loadBundle, STAGE_FILES, PRODUCTION_REQUIRED, SHADOW_DEBUG_REQUIRED } = require('../lib/bundle-loader.js');
-const { withPipeline, promoted, TEST_KEY } = require('./helpers.js');
+const { withPipeline, reseal, promoted, TEST_KEY } = require('./helpers.js');
+const mani = require('../lib/manifest.js');
 
 // ---- a complete, internally-consistent 2.4.7 clear bundle (pre-attestation) ----
 const SCOPE = { actionTargetRef: 'node:b1', state: 'fresh-load', action: 'tab-to', environment: 'headless-chromium' };
@@ -75,7 +76,7 @@ test('attestation: on-disk artifact verifier checks sha256, rejects tamper / mis
 test('V3R3-C1: a forged COMPLETE+promoted bundle with no attestation cannot publish (stays shadow)', () => {
   const forged = withPipeline(threeStage());
   forged.experiments.results.forEach((r) => { delete r.attestation; }); // attacker lacks the runner key
-  const r = buildV3(forged, { authority: PROMOTED });
+  const r = buildV3(reseal(forged), { authority: PROMOTED }); // reseal isolates the evidence-lineage gate
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   assert.equal(r.results.summary.authoritative, 0, 'unattested evidence ⇒ never authoritative');
   assert.equal(r.results.summary.shadow, 1);
@@ -85,7 +86,7 @@ test('V3R3-C1: a forged COMPLETE+promoted bundle with no attestation cannot publ
 test('V3R3-C1: a fabricated attestation (invented mac) cannot publish', () => {
   const forged = withPipeline(threeStage());
   forged.experiments.results.forEach((r) => { r.attestation = { runner: 'focus-visual-retry', runnerVersion: '3.0.0-phase0', runIdentity: { file: 'p', runId: 'R', observedPageDigest: 'sha256:d' }, resultDigest: 'sha256:' + '0'.repeat(64), mac: 'deadbeef' }; });
-  const r = buildV3(forged, { authority: PROMOTED });
+  const r = buildV3(reseal(forged), { authority: PROMOTED });
   assert.equal(r.results.summary.authoritative, 0, 'a forged mac does not verify against the trust-anchor key');
 });
 
@@ -94,7 +95,7 @@ test('V3R3-C1: tampering a signed result (any covered field) drops it to shadow'
   // flip a NON-required typed outcome flag: the clear still RESOLVES authoritative, so the ONLY
   // reason it must not publish is the broken attestation digest — isolating tamper-evidence.
   signed.experiments.results[0].outcome.stableIndicatorAbsence = false;
-  const r = buildV3(signed, { authority: PROMOTED });
+  const r = buildV3(reseal(signed), { authority: PROMOTED }); // reseal: the per-result MAC (not the manifest) must catch this
   assert.equal(r.results.summary.authoritative, 0, 'tampered lineage ⇒ shadow');
   assert.match(r.results.shadowObservations[0].reason, /lineage unverified/);
 });
@@ -110,6 +111,45 @@ test('V3R3-C1: promotion whose provenance artifacts do NOT verify on disk stays 
   const r = buildV3(withPipeline(threeStage()), { authority: failingProv });
   assert.equal(r.results.summary.authoritative, 0, 'unverified provenance ⇒ shadow');
   assert.match(r.results.shadowObservations[0].reason, /provenance artifacts unverified/);
+});
+
+// ============================ run-manifest (V3R4-H7 / Rule 17) ============================
+test('V3R4-H7: tampering ANY stage after the manifest is sealed REFUSES the build (artifact-hash mismatch)', () => {
+  const b = withPipeline(threeStage());            // manifest seals the artifact hashes
+  b.experiments.results[0].outcome.obviouslyVisible = false; // tamper a stage WITHOUT resealing
+  const r = buildV3(b, { authority: PROMOTED });
+  assert.equal(r.ok, false, 'a content/hash mismatch ⇒ corrupt bundle ⇒ refuse');
+  assert.ok(r.errors.some((m) => /manifest artifact hash mismatch/.test(m)), JSON.stringify(r.errors));
+});
+
+test('V3R4-H7: an UNSIGNED manifest (attacker lacks the key) cannot publish authoritative', () => {
+  const b = withPipeline(threeStage());
+  b.manifest = mani.buildManifest(b, { observedPageDigest: b.collect.pageDigest }); // no key ⇒ unsigned
+  const r = buildV3(b, { authority: PROMOTED });
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  assert.equal(r.results.summary.authoritative, 0, 'unsigned manifest ⇒ shadow');
+  assert.match(r.results.shadowObservations[0].reason, /run-manifest absent or unverified/);
+});
+
+test('V3R4-H7: a manifest signed with a DIFFERENT key cannot publish authoritative', () => {
+  const b = withPipeline(threeStage());
+  b.manifest = mani.buildManifest(b, { key: 'attacker-key', observedPageDigest: b.collect.pageDigest });
+  const r = buildV3(b, { authority: PROMOTED });
+  assert.equal(r.results.summary.authoritative, 0, 'manifest MAC by a non-trust-anchor key ⇒ shadow');
+});
+
+test('V3R4-H7: an ABSENT manifest cannot publish authoritative (and production requires one)', () => {
+  const b = withPipeline(threeStage()); delete b.manifest;
+  assert.equal(buildV3(b, { authority: PROMOTED }).results.summary.authoritative, 0, 'no manifest ⇒ shadow');
+  const prod = buildV3(b, { authority: PROMOTED, requireManifest: true });
+  assert.equal(prod.ok, false, 'production refuses a bundle with no run-manifest');
+  assert.ok(prod.errors.some((m) => /run-manifest is required/.test(m)));
+});
+
+test('V3R4-H7: a legitimately attested manifest + signed evidence publishes (mechanism works)', () => {
+  const r = buildV3(withPipeline(threeStage()), { authority: PROMOTED, requireManifest: true });
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  assert.equal(r.results.summary.authoritative, 1);
 });
 
 test('V3R4-H4: a promoted bundle with NO artifact verifier configured stays shadow (fail-closed)', () => {
@@ -136,7 +176,7 @@ test('V3R4-M1: a signed result whose runner/version mismatches the cited catalog
     TEST_KEY,
     { runner: 'focus-visual-retry', runnerVersion: 'rogue-9.9', runIdentity: { file: 'p', runId: 'R', observedPageDigest: 'sha256:d' } },
   );
-  const r = buildV3(b, { authority: PROMOTED });
+  const r = buildV3(reseal(b), { authority: PROMOTED });
   assert.equal(r.results.summary.authoritative, 0, 'runnerVersion != approved catalog build ⇒ shadow');
 });
 
@@ -169,7 +209,7 @@ test('V3R3-C1 (red-team): a genuinely-signed result cannot be REPLAYED into a fo
     experiments: { ...foreignId, catalogVersion: '3.0.0-phase0', startedAt: 2000, results: [signedResult], unrun: [] },
     claimProposals: { ...foreignId, proposals: [{ claimId: 'c1', sc: '2.4.7', direction: 'NO_BARRIER_OBSERVED', experimentId: 'focus-visual-retry', claimFamily: 'focus-indicator-visible', observationScope: SCOPE }] },
   };
-  const r = buildV3(foreign, { authority: PROMOTED });
+  const r = buildV3(reseal(foreign), { authority: PROMOTED }); // a valid manifest for the foreign run isolates the boundToRun gate
   assert.equal(r.results.summary.authoritative, 0, 'a result signed for another run cannot publish here');
   assert.match(r.results.shadowObservations[0].reason, /lineage unverified/);
 });

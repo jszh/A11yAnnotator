@@ -25,7 +25,7 @@ const proposal = (direction, over = {}) => ({ claimId: 'c1', sc: '2.4.7', direct
 const evidence = (over = {}) => ({ experimentOutcome: { ...FULL_OUTCOME }, applicabilityEvidence: { ...FULL_APP }, ...over });
 
 // PROMOTED authority (readiness + provenance) + complete-bundle helper for the publish path.
-const { withPipeline, promoted } = require('./helpers.js');
+const { withPipeline, reseal, promoted } = require('./helpers.js');
 const PROMOTED = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED', 'focus-visual-retry/BARRIER_OBSERVED']);
 
 // ---- registry / catalog / consistency are well-formed ----
@@ -251,7 +251,7 @@ test('buildV3: a PROMOTED clear from an INCOMPLETE bundle (no plan/candidates) s
 test('buildV3: a forged completed:false/valid:false result cannot publish even when promoted (audit V3R2-C1)', () => {
   const b = withPipeline(goodBundle());
   b.experiments.results[0].valid = false; b.experiments.results[0].completed = false;
-  const r = buildV3(b, { authority: PROMOTED });
+  const r = buildV3(reseal(b), { authority: PROMOTED }); // reseal isolates the valid/completed gate from the manifest gate
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   assert.equal(r.results.summary.authoritative, 0, 'invalid/incomplete evidence ⇒ PARTIAL, never authoritative');
 });

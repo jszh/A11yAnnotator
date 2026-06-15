@@ -10,6 +10,7 @@
 'use strict';
 
 const attest = require('../lib/attestation.js');
+const manifest = require('../lib/manifest.js');
 
 const TEST_KEY = 'v3-test-attestation-key-do-not-ship';
 
@@ -27,7 +28,18 @@ function withPipeline(bundle, key = TEST_KEY) {
   const candidates = { ...id, candidates: results.map((r) => ({ candidateId: r.claimId, xpath: r.targetXpath, sc: r.sc, experimentId: r.experimentId, selectionLevel: 1 })) };
   const plan = { ...id, requests: results.map((r) => ({ candidateId: r.claimId, experimentId: r.experimentId, targetXpath: r.targetXpath, sc: r.sc })), escalations: [] };
   const drive = { ...id, elements: [] };
-  return { ...bundle, drive, candidates, plan, experiments: { ...bundle.experiments, results, unrun: [] } };
+  const built = { ...bundle, drive, candidates, plan, experiments: { ...bundle.experiments, results, unrun: [] } };
+  // a trusted orchestrator finalizes + signs the run-manifest binding the artifact hashes + page id.
+  built.manifest = manifest.buildManifest(built, { key, environment: 'test', observedPageDigest: c.pageDigest, runnerVersion: '3.0.0-phase0', catalogVersion: '3.0.0-phase0' });
+  return built;
+}
+
+// RE-SEAL a (possibly mutated) bundle's run-manifest so its artifact hashes match the current
+// content — used by tests that mutate a bundle to isolate a DOWNSTREAM gate (lineage/provenance/
+// boundToRun) rather than the manifest-integrity gate. A real keyless attacker cannot do this (no
+// key), which is why bundle tampering without a reseal is REFUSED by the builder.
+function reseal(bundle, key = TEST_KEY) {
+  return { ...bundle, manifest: manifest.buildManifest(bundle, { key, environment: 'test', observedPageDigest: bundle.collect.pageDigest, runnerVersion: '3.0.0-phase0', catalogVersion: '3.0.0-phase0' }) };
 }
 
 // a PROMOTED authority registry (all readiness + provenance satisfied) for the given experiment/dir
@@ -45,4 +57,4 @@ function promoted(pairs, { key = TEST_KEY, artifactVerifier = () => true } = {})
   return reg;
 }
 
-module.exports = { withPipeline, promoted, TEST_KEY };
+module.exports = { withPipeline, reseal, promoted, TEST_KEY };

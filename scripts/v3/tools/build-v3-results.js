@@ -36,6 +36,7 @@ if (loadErrors.length) {
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const opts = {
   requiredStages: required,
+  requireManifest: !shadowDebug, // production requires an attested run-manifest (audit V3R4-H7)
   attestationKey: attest.loadKey({}), // env V3_ATTEST_KEY
   artifactVerifier: attest.makeDiskArtifactVerifier(repoRoot),
 };

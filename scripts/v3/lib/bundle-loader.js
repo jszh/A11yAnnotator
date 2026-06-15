@@ -21,7 +21,7 @@ const STAGE_FILES = {
 // explicit shadow/debug build only — it can never publish authoritative (the builder demotes an
 // incomplete bundle to shadow), but the meaning of "complete" must be enforced at the loader, not
 // left implicit. `manifest` stays optional (the orchestrator does not emit one).
-const PRODUCTION_REQUIRED = ['collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals'];
+const PRODUCTION_REQUIRED = ['manifest', 'collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals'];
 const SHADOW_DEBUG_REQUIRED = ['collect', 'experiments', 'claimProposals'];
 
 // required stages must be present + parseable; optional stages may be absent (→ undefined).
