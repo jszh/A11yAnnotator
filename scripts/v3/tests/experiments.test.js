@@ -86,6 +86,32 @@ test('C9 hover-content-tri: a tooltip that auto-hides while hovered is a Persist
   assert.equal(r.outcome.persistent, false);
 });
 
+// ---- adversarial regressions (red-team round over the 8 runners; all reproduced + fixed) ----
+test('ADV C3: semi-transparent ancestor composited (no false clear/barrier); mixed-colour child ⇒ inconclusive', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-c3-adversarial.html', ['/html/body/div[1]/p/span', '/html/body/div[2]/p', '/html/body/div[3]/p/span']);
+  assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[1]/p/span']), 'BARRIER_OBSERVED', 'white on a translucent scrim over black is illegible (was a false clear)');
+  assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[2]/p']), null, 'a differently-coloured child run ⇒ inconclusive (was a false clear)');
+  assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[3]/p/span']), 'NO_BARRIER_OBSERVED', 'black on near-opaque white over black is readable (was a false barrier)');
+});
+
+test('ADV C4: native checkbox, native submit, and off-board-effect button all clear (were false barriers)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('keyboard-activation', 'fx-v3-c4-adversarial.html', ['/html/body/div[1]/input', '/html/body/div[2]/form/button', '/html/body/div[3]/button']);
+  assert.equal(dir('keyboard-activation', byXp['/html/body/div[1]/input']), 'NO_BARRIER_OBSERVED', 'native checkbox operable by Space');
+  assert.equal(dir('keyboard-activation', byXp['/html/body/div[2]/form/button']), 'NO_BARRIER_OBSERVED', 'native submit (idempotent off-board effect)');
+  assert.equal(dir('keyboard-activation', byXp['/html/body/div[3]/button']), 'NO_BARRIER_OBSERVED', 'a same-length off-board counter change is detected');
+});
+
+test('ADV C7: an opacity:0 overlay does not obscure (was a false barrier)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-c7-adversarial.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), null, 'an invisible (opacity:0) overlay does not obscure a sighted keyboard user');
+});
+
+test('ADV C9: a compliant tooltip is not a barrier (test ordering no longer poisons Hoverable)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('hover-content-tri', 'fx-v3-c9-adversarial.html', ['/html/body/div[1]/button', '/html/body/div[2]/button']);
+  assert.equal(dir('hover-content-tri', byXp['/html/body/div[1]/button']), 'BARRIER_OBSERVED', 'a non-dismissible tooltip is a barrier');
+  assert.equal(dir('hover-content-tri', byXp['/html/body/div[2]/button']), null, 'a dismissible+hoverable+persistent tooltip is NOT a barrier (was a false barrier)');
+});
+
 // ---- build-through: shadow by default; AT-independent C3 clears authoritative when PROMOTED ----
 test('C3 build-through: default-shadow; PROMOTED ⇒ authoritative clear (AT-independent, no baseline needed)', { skip: !chromeOK, concurrency: false }, async () => {
   const { byXp } = await run('text-contrast-pixel', 'fx-v3-c3-contrast.html', ['/html/body/div[1]/span']);

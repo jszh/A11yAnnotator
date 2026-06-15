@@ -36,16 +36,32 @@ function measureContrast(marker) {
   const rect = el.getBoundingClientRect();
   const visible = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && rect.width > 0 && rect.height > 0;
 
+  // MIXED RUNS: a descendant element that owns text in a DIFFERENT colour means the element is not a
+  // single contrast run; we cannot soundly clear it on the element's own colour (audit C2).
+  let mixedRuns = false;
+  for (const child of el.querySelectorAll('*')) {
+    let childOwnsText = false; for (const n of child.childNodes) if (n.nodeType === 3 && n.textContent.trim()) childOwnsText = true;
+    if (childOwnsText && getComputedStyle(child).color !== cs.color) { mixedRuns = true; break; }
+  }
+
   // ancestor opacity chain (an ancestor opacity<1 composites the group → rendered contrast differs)
   let opacityChain = 1; for (let p = el; p; p = p.parentElement) { const o = parseFloat(getComputedStyle(p).opacity); if (!isNaN(o)) opacityChain *= o; }
 
-  // backdrop: first ancestor with an opaque background-color; flag any background-image/gradient on the way
+  // backdrop: composite EVERY background layer from the element outward, including SEMI-TRANSPARENT
+  // ones, down onto the first opaque ancestor — a translucent overlay (rgba bg) materially changes
+  // the rendered backdrop and must not be skipped to the opaque base (audit C1/C3).
   let bg = null, hasImage = false;
+  const layers = [];
   for (let p = el; p; p = p.parentElement) {
     const pcs = getComputedStyle(p);
     if (pcs.backgroundImage && pcs.backgroundImage !== 'none') hasImage = true;
     const c = rgba(pcs.backgroundColor);
-    if (c && c.a === 1) { bg = c; break; }
+    if (c && c.a > 0) layers.push(c);     // element-ward → outward order
+    if (c && c.a === 1) break;            // opaque base reached
+  }
+  if (layers.length && layers[layers.length - 1].a === 1) {
+    bg = layers[layers.length - 1];
+    for (let i = layers.length - 2; i >= 0; i--) bg = over(layers[i], bg); // paint translucent layers back over the base
   }
   const fg = rgba(cs.color);
   const sizePx = parseFloat(cs.fontSize) || 0;
@@ -53,10 +69,10 @@ function measureContrast(marker) {
   const isLarge = sizePx >= 24 || (sizePx >= 18.66 && weight >= 700);
   const threshold = isLarge ? 3.0 : 4.5;
 
-  const foregroundResolved = !!fg;
+  const foregroundResolved = !!fg && !mixedRuns; // a mixed-colour element has no single foreground
   const backgroundResolved = !!bg;
   const backdropIsSolidUniform = backgroundResolved && !hasImage && opacityChain === 1;
-  const contrastComputable = foregroundResolved && backgroundResolved && backdropIsSolidUniform;
+  const contrastComputable = foregroundResolved && backgroundResolved && backdropIsSolidUniform && !mixedRuns;
   let ratio = null;
   if (contrastComputable) {
     const effFg = over(fg, bg);
@@ -230,7 +246,10 @@ function measureObscured(marker) {
     const top = realAbove[0]; const tcs = getComputedStyle(top);
     const pos = tcs.position;
     if (pos === 'fixed' || pos === 'sticky' || top.closest('[id*="onetrust" i],[id*="cookie" i],[class*="consent" i],[aria-modal="true"]')) overlayLayerPresent = true;
-    if (alphaOf(tcs.backgroundColor) > 0 && tcs.visibility !== 'hidden' && tcs.pointerEvents !== 'none') opaqueBlocking = true;
+    // EFFECTIVE opacity along the overlay's ancestor chain — an opacity:0 (or near-0) overlay is
+    // visually invisible and does NOT obscure a sighted keyboard user, even if it hit-tests (audit C7).
+    let eff = 1; for (let p = top; p; p = p.parentElement) { const oo = parseFloat(getComputedStyle(p).opacity); if (!isNaN(oo)) eff *= oo; }
+    if (alphaOf(tcs.backgroundColor) > 0 && tcs.visibility !== 'hidden' && tcs.pointerEvents !== 'none' && eff > 0.05) opaqueBlocking = true;
   }
   return {
     focusedRectResolved: true, overlayLayerPresent,
@@ -336,13 +355,26 @@ async function runKeyboardTrapEscape(page, request) {
 const C4_SIMPLE = /^(button|link|checkbox|radio|switch|menuitem|menuitemcheckbox|menuitemradio|tab|option)$/;
 const C4_SIMPLE_TAG = /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/;
 
-async function snapshotState(page, marker) {
+// BROAD observation: an activation's observable effect may land on the control's NATIVE state
+// (.checked/.value), its ARIA state, the focus location, OR anywhere in the document (off-board
+// effect, e.g. a form submit message or a counter). Watching only the control's own ARIA/outerHTML
+// produces false barriers on native checkboxes, submit buttons, and off-board-effect controls.
+async function observeC4(page, marker) {
   return page.evaluate((m) => {
     const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return null;
-    const a = ['aria-pressed', 'aria-checked', 'aria-expanded', 'aria-selected'].map((k) => k + '=' + el.getAttribute(k)).join(';');
-    return { aria: a, active: document.activeElement === el, html: el.outerHTML.length };
+    const aria = ['aria-pressed', 'aria-checked', 'aria-expanded', 'aria-selected'].map((k) => k + '=' + el.getAttribute(k)).join(';');
+    const a = document.activeElement;
+    // a content HASH (not just length) so a same-length change ("Count: 0"→"Count: 1") is detected.
+    const txt = document.body ? document.body.innerText : '';
+    let h = 0; for (let i = 0; i < txt.length; i++) h = (h * 31 + txt.charCodeAt(i)) | 0;
+    return {
+      aria, checked: el.checked === undefined ? null : el.checked, value: el.value === undefined ? null : el.value,
+      active: a ? a.tagName + '#' + (a.id || '') + '.' + (a.className || '') : '',
+      docNodes: document.getElementsByTagName('*').length, docText: h,
+    };
   }, marker).catch(() => null);
 }
+const c4changed = (a, b) => !a || !b || a.aria !== b.aria || a.checked !== b.checked || a.value !== b.value || a.active !== b.active || a.docNodes !== b.docNodes || a.docText !== b.docText;
 
 async function runKeyboardActivation(page, request) {
   const marker = String(request.candidateId || request.targetXpath);
@@ -354,10 +386,11 @@ async function runKeyboardActivation(page, request) {
   const info = await page.evaluate((m) => {
     const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return null;
     const role = el.getAttribute('role') || ''; const tag = el.tagName;
+    const type = (el.getAttribute('type') || '').toLowerCase();
     const interactive = /^(button|link|checkbox|radio|switch|menuitem|tab|option|combobox|slider|textbox|spinbutton)$/.test(role) || /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(tag);
     const composite = /^(combobox|slider|grid|listbox|menu|tablist|tree|application)$/.test(role) || el.hasAttribute('aria-haspopup') || el.hasAttribute('aria-controls');
     el.focus(); const focusable = document.activeElement === el; el.blur();
-    return { role, tag, interactive, composite, focusable };
+    return { role, tag, type, interactive, composite, focusable };
   }, marker).catch(() => null);
   if (!info) return mk(request, 'keyboard-activation', '2.1.1', o, {}, { action: 'real-key-activate' });
   o.targetIsInteractive = info.interactive; o.targetIsFocusable = info.focusable;
@@ -365,40 +398,47 @@ async function runKeyboardActivation(page, request) {
   o.modeInventoryClosed = !info.composite;
 
   // synthetic-first probe (must NOT already produce the effect)
-  const s0 = await snapshotState(page, marker);
+  const s0 = await observeC4(page, marker);
   await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); el && el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); }, marker).catch(() => {});
-  const s1 = await snapshotState(page, marker);
-  const syntheticEffect = !!(s0 && s1 && s0.aria !== s1.aria);
+  const s1 = await observeC4(page, marker);
+  const syntheticEffect = c4changed(s0, s1);
 
-  // real activation
+  // real activation (Enter then Space, each from a fresh real-keyboard focus)
   const reached = await H.realKeyboardReach(page, marker);
   o.keyboardReachableInState = reached; o.reachedForActivation = reached;
   let activatedByEnter = false, activatedBySpace = false, navigated = false;
   page.once('framenavigated', () => { navigated = true; });
   if (reached) {
-    const before = await snapshotState(page, marker);
+    const before = await observeC4(page, marker);
     await page.keyboard.press('Enter'); await H.settle(page, 60);
-    const afterEnter = await snapshotState(page, marker);
-    activatedByEnter = navigated || !!(before && afterEnter && before.aria !== afterEnter.aria);
+    const afterEnter = await observeC4(page, marker);
+    activatedByEnter = navigated || c4changed(before, afterEnter);
     if (!navigated) {
       await H.realKeyboardReach(page, marker);
-      const b2 = await snapshotState(page, marker);
+      const b2 = await observeC4(page, marker);
       await page.keyboard.press('Space'); await H.settle(page, 60);
-      const afterSpace = await snapshotState(page, marker);
-      activatedBySpace = !!(b2 && afterSpace && b2.aria !== afterSpace.aria);
+      const afterSpace = await observeC4(page, marker);
+      activatedBySpace = c4changed(b2, afterSpace);
     }
   }
-  // contract per role
-  const role = info.role, tag = info.tag;
-  const needsSpaceOnly = /^(checkbox|radio|switch)$/.test(role);
-  const isLink = role === 'link' || tag === 'A';
-  const contractKeysAllOperated = navigated ? true : (needsSpaceOnly ? activatedBySpace : isLink ? activatedByEnter : (activatedByEnter && activatedBySpace));
+  // contract per control: checkbox/radio/switch ⇒ Space; link ⇒ Enter; a NATIVE button/input ⇒
+  // either key (browser-guaranteed operability; one observed activation suffices, and off-board
+  // effects are often idempotent so the 2nd key shows no change); a CUSTOM role=button ⇒ Enter AND
+  // Space, so a custom control that forgot Space-handling is caught (a real 2.1.1 gap).
+  const isCheckRadio = /^(checkbox|radio|switch)$/.test(info.role) || (info.tag === 'INPUT' && /^(checkbox|radio)$/.test(info.type));
+  const isLink = info.role === 'link' || info.tag === 'A';
+  const isNative = /^(BUTTON|INPUT|SELECT|TEXTAREA)$/.test(info.tag);
+  const contractKeysAllOperated = navigated ? true
+    : isCheckRadio ? activatedBySpace
+      : isLink ? activatedByEnter
+        : isNative ? (activatedByEnter || activatedBySpace)
+          : (activatedByEnter && activatedBySpace);
   o.contractKeysAllOperated = contractKeysAllOperated;
-  o.observableEffectStable = contractKeysAllOperated; // a second identical activation was performed (Space re-reach) for buttons
+  o.observableEffectStable = contractKeysAllOperated;
   o.realKeyDistinctFromSynthetic = !syntheticEffect;
   o.noKeyEffectStable = reached && hydrationReady && !activatedByEnter && !activatedBySpace && !navigated && o.targetIsInteractive;
   const valid = reached && o.targetIsInteractive;
-  return mk(request, 'keyboard-activation', '2.1.1', o, { targetIsInteractive: o.targetIsInteractive, targetIsFocusable: o.targetIsFocusable, hydrationReady }, { action: 'real-key-activate', valid, measurement: { syntheticEffect, activatedByEnter, activatedBySpace, navigated } });
+  return mk(request, 'keyboard-activation', '2.1.1', o, { targetIsInteractive: o.targetIsInteractive, targetIsFocusable: o.targetIsFocusable, hydrationReady }, { action: 'real-key-activate', valid, measurement: { syntheticEffect, activatedByEnter, activatedBySpace, navigated, isCheckRadio } });
 }
 
 // =====================================================================================
@@ -498,15 +538,17 @@ async function runHoverContentTri(page, request) {
   const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
   if (!tagged) return mk(request, 'hover-content-tri', '1.4.13', o, {}, { action: 'hover-focus-tri' });
 
+  // STATIC focusability check — never call el.focus() here: a focus listener that reveals content
+  // would pollute the pristine "rest" baseline we capture next (audit follow-up).
   const trig = await page.evaluate((m) => {
     const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return null;
     const hasTitle = el.hasAttribute('title');
     const hasDesc = el.hasAttribute('aria-describedby');
     const r = el.getBoundingClientRect();
-    return { hasNativeTitleOnly: hasTitle && !hasDesc, hasTrigger: hasTitle || hasDesc || true, inView: r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth, focusable: (el.focus(), document.activeElement === el) };
+    const focusable = el.tabIndex >= 0 || /^(A|BUTTON|INPUT|SELECT|TEXTAREA)$/.test(el.tagName);
+    return { hasNativeTitleOnly: hasTitle && !hasDesc, hasTrigger: hasTitle || hasDesc || true, inView: r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight && r.right <= innerWidth, focusable };
   }, marker).catch(() => null);
   if (!trig) return mk(request, 'hover-content-tri', '1.4.13', o, {}, { action: 'hover-focus-tri' });
-  await page.evaluate(() => document.activeElement && document.activeElement.blur());
   o.hasHoverFocusTrigger = trig.hasTrigger;
   o.triggerReachable = trig.inView;
   // native title= is UA-exempt
@@ -514,7 +556,7 @@ async function runHoverContentTri(page, request) {
 
   // whole-document visible-text signature (portal-aware), at rest vs hovered
   const docSig = () => { let s = 0, t = 0; for (const el of document.querySelectorAll('[role="tooltip"],[role="status"],[popover],[data-tooltip],.tooltip,.tip')) { const cs = getComputedStyle(el); const r = el.getBoundingClientRect(); if (cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0 && r.width > 1 && r.height > 1) { s++; t += (el.textContent || '').length; } } return s * 1e6 + t; };
-  const rest = await page.evaluate(docSig);
+  const rest = await page.evaluate(docSig); // pristine — captured before any hover/focus
   // hover
   const box = await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, marker);
   await page.mouse.move(box.x, box.y); await H.settle(page, 200);
@@ -525,18 +567,20 @@ async function runHoverContentTri(page, request) {
   o.measurementDeterministic = true;
 
   if (o.contentAppeared && o.contentIsAdditional) {
-    // Persistent: still present after a dwell while hovered?
+    // re-establish the hover (move away then back) so each sub-test starts from a shown tooltip —
+    // critically, Dismissible (which hides it) must run LAST, or it poisons Hoverable (audit C8).
+    const rehover = async () => { await page.mouse.move(2, 2); await H.settle(page, 90); await page.mouse.move(box.x, box.y); await H.settle(page, 220); return page.evaluate(docSig); };
+    // Persistent: still present after a dwell while still hovered?
     await H.settle(page, 1600);
-    const stillThere = await page.evaluate(docSig);
-    o.persistent = stillThere >= hovered;
-    // Dismissible: Escape hides it without moving the pointer
-    await page.keyboard.press('Escape'); await H.settle(page, 80);
-    const afterEsc = await page.evaluate(docSig);
-    o.dismissible = afterEsc < hovered;
-    // Hoverable: move pointer a few px toward where content likely is; does it survive the traverse?
-    await page.mouse.move(box.x, box.y + 4); await page.mouse.move(box.x, box.y + 12); await H.settle(page, 120);
-    const onPath = await page.evaluate(docSig);
-    o.hoverable = onPath >= hovered;
+    o.persistent = (await page.evaluate(docSig)) >= hovered;
+    // Hoverable: re-show, then move the pointer along a path toward the content; it must survive.
+    const shown1 = await rehover();
+    await page.mouse.move(box.x, box.y + 4); await page.mouse.move(box.x, box.y + 12); await H.settle(page, 150);
+    o.hoverable = shown1 > rest && (await page.evaluate(docSig)) >= shown1;
+    // Dismissible LAST: re-show, then Escape must hide it without moving the pointer.
+    const shown2 = await rehover();
+    await page.keyboard.press('Escape'); await H.settle(page, 100);
+    o.dismissible = (await page.evaluate(docSig)) < shown2;
     o.anyPropertyFails = (o.persistent === false) || (o.dismissible === false) || (o.hoverable === false);
   }
   const valid = o.contentAppeared && o.contentIsAdditional && o.measurementDeterministic;
