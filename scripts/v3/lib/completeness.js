@@ -14,11 +14,18 @@
 
 // Each resolver returns { complete, missing[] } given the typed experiment `outcome` and the
 // registry's requiredObligations. A flag counts only when STRICTLY true.
+const allTrue = (outcome, required) => {
+  const missing = required.filter((o) => outcome[o] !== true);
+  return { complete: missing.length === 0, missing };
+};
+
 const RESOLVERS = {
-  'focus-visible-completeness-v1': (outcome, required) => {
-    const missing = required.filter((o) => outcome[o] !== true);
-    return { complete: missing.length === 0, missing };
-  },
+  // The soundness lives in WHICH obligations the registry names (the worst-case-complete set, with a
+  // "universe-closing" obligation where the WCAG criterion is a universal) — not in resolver logic.
+  // Every resolver is the same strict-all-true filter; registry.validateConsistency proves each named
+  // obligation is actually measured by the supporting experiment.
+  'focus-visible-completeness-v1': allTrue,
+  'all-true-completeness-v1': allTrue,
 };
 
 // Resolve completeness for a registry completeness spec against the typed experiment outcome.

@@ -46,9 +46,10 @@ test('default-closed coverage: every clearing direction is classified, and only 
     assert.ok(entry, `${sc}/${dir} must be explicitly classified`);
     if (entry.clearability === 'open-scope-never-clearable') assert.equal(cl.allowed, false);
   }
-  // 2.4.7 is the only clearable SC in Phase 0; e.g. 1.4.3 clears are still default-closed.
-  assert.equal(reg.clearabilityFor('2.4.7', 'NO_BARRIER_OBSERVED').allowed, true);
-  assert.equal(reg.clearabilityFor('1.4.3', 'NO_BARRIER_OBSERVED').allowed, false);
+  // clearable SCs (experiments built): 2.4.7, 1.4.3, 2.1.2, 3.3.2, 2.1.1, 4.1.2.
+  for (const sc of ['2.4.7', '1.4.3', '2.1.2', '3.3.2', '2.1.1', '4.1.2']) assert.equal(reg.clearabilityFor(sc, 'NO_BARRIER_OBSERVED').allowed, true, `${sc} should be clearable`);
+  // barrier-only / not-yet-built SCs stay default-closed.
+  for (const sc of ['1.4.13', '1.4.10', '2.4.11', '1.4.5', '2.4.4']) assert.equal(reg.clearabilityFor(sc, 'NO_BARRIER_OBSERVED').allowed, false, `${sc} should NOT be clearable`);
 });
 
 test('a clearing entry (closed OR exception) without a completeness predicate is rejected', () => {

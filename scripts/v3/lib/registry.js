@@ -37,6 +37,73 @@ const EXPLICIT = {
     },
     rationale: 'Cleared only with a focus-DEPENDENT, obviously-visible indicator reached by real keyboard nav on a hydrated page; forced/always-on styling and under-hydration do not clear.',
   },
+  // ---- C3: 1.4.3 Text Contrast (AA) — CLEARABLE over a flat opaque backdrop. AT-independent. ----
+  '1.4.3/NO_BARRIER_OBSERVED': {
+    clearability: 'closed-scope-clearable', accessibilitySupportDependent: false,
+    completeness: {
+      resolver: 'all-true-completeness-v1',
+      requiredObligations: ['textRendersVisible', 'foregroundResolved', 'backgroundResolved', 'backdropIsSolidUniform', 'contrastComputable', 'sizeClassResolved', 'thresholdMet', 'notExemptText', 'measurementStable'],
+      derivation: 'docs/completeness/1.4.3.md',
+    },
+    rationale: 'Cleared only for opaque flat foreground over a single opaque flat backdrop (contrast is then a finite decidable ratio ≥ threshold). Image/gradient backdrops cannot clear; channel disagreement or animation ⇒ INCONCLUSIVE.',
+  },
+  '1.4.3/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A text run whose worst-case sampled contrast is below threshold is a positive observation; no completeness needed.' },
+
+  // ---- C5: 2.1.2 No Keyboard Trap (A) — CLEARABLE per-component (finite escape-mechanism set). ----
+  '2.1.2/NO_BARRIER_OBSERVED': {
+    clearability: 'closed-scope-clearable', accessibilitySupportDependent: false,
+    completeness: {
+      resolver: 'all-true-completeness-v1',
+      requiredObligations: ['keyboardReachableInState', 'focusEnteredRegion', 'escapeProvenForWidget', 'focusStaysInDocument', 'hydrationReady'],
+      derivation: 'docs/completeness/2.1.2.md',
+    },
+    rationale: 'Per-component: focus entered the region by real keyboard and left via a real mechanism (Tab/Shift+Tab/Esc) without escaping to browser chrome. The mechanism set is finite ⇒ decidable. One-way traps / focus loss ⇒ INCONCLUSIVE.',
+  },
+  '2.1.2/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A reproduced trap (focus cycles, no mechanism escapes) is a positive observation; no completeness needed.' },
+
+  // ---- C6: 3.3.2 Labels or Instructions (A) — CLEARABLE for the label sub-claim. AT-dependent. ----
+  '3.3.2/NO_BARRIER_OBSERVED': {
+    clearability: 'closed-scope-clearable', accessibilitySupportDependent: true,
+    completeness: {
+      resolver: 'all-true-completeness-v1',
+      requiredObligations: ['isUserInputField', 'fieldRendered', 'hydrationReady', 'programmaticNamePresent', 'visibleLabelText'],
+      derivation: 'docs/completeness/3.3.2.md',
+    },
+    rationale: 'Cleared only for the LABEL sub-claim: a rendered field with a non-placeholder programmatic name AND a co-located visible label. Format-instruction sufficiency is OUT OF SCOPE and never cleared here.',
+  },
+  '3.3.2/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: true, rationale: 'A rendered field with no programmatic name, or a placeholder masquerading as a label, is a positive observation; no completeness needed.' },
+
+  // ---- C4: 2.1.1 Keyboard (A) — CLEARABLE only for finite-contract single-mode controls. ----
+  '2.1.1/NO_BARRIER_OBSERVED': {
+    clearability: 'closed-scope-clearable', accessibilitySupportDependent: false,
+    completeness: {
+      resolver: 'all-true-completeness-v1',
+      requiredObligations: ['hydrationReady', 'reachedForActivation', 'contractKeysAllOperated', 'observableEffectStable', 'realKeyDistinctFromSynthetic', 'singleModeControl', 'modeInventoryClosed'],
+      derivation: 'docs/completeness/2.1.1.md',
+    },
+    rationale: '"All functionality" collapses to {focus, activate} ONLY for a single-mode control with a closed mode inventory (button/link/checkbox/…); composites/sliders fail singleModeControl ⇒ auto-PARTIAL, never clear. Synthetic-only handlers ⇒ no clear.',
+  },
+  '2.1.1/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A reached interactive control where no real key produced any observable effect (stably, hydrated) is a positive observation; no completeness needed.' },
+
+  // ---- C1: 4.1.2 Name/Role/Value (A) — CLEARABLE only for a role's closed ARIA state set. AT-dep. ----
+  '4.1.2/NO_BARRIER_OBSERVED': {
+    clearability: 'closed-scope-clearable', accessibilitySupportDependent: true,
+    completeness: {
+      resolver: 'all-true-completeness-v1',
+      requiredObligations: ['hydrationReady', 'axNodeResolved', 'axRolePresentAndExpected', 'axNamePresent', 'axNameNotFromError', 'axStatePropertyExposed', 'axStateChanged', 'axDomAgree', 'axDiffStable', 'activationWasReal', 'noNavigation', 'statesInventoryClosed'],
+      derivation: 'docs/completeness/4.1.2.md',
+    },
+    rationale: '"All states" is finite per ARIA role; clearable only when statesInventoryClosed (the role state set is the closed ARIA set) and a fresh CDP AX snapshot agrees with the DOM on the state change. Notifications are out of scope. Baseline-relative (CDP/Chrome AX).',
+  },
+  '4.1.2/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: true, rationale: 'A widget whose DOM state changed but the AX tree did not reflect it (or which exposes no role-prescribed state) is a positive observation; no completeness needed.' },
+
+  // ---- C9/C8/C7: BARRIER-ONLY SCs — explicitly NEVER-CLEARABLE in the clearing direction. ----
+  '1.4.13/NO_BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'Content-on-hover/focus triggers are an open set (JS/portal tooltips) and Persistence needs an unbounded dwell; a universal CLEAR is undecidable. Property failures publish as barriers.' },
+  '1.4.13/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A proven Dismissible/Hoverable/Persistent failure on a detected hover/focus mechanism is a positive observation; no completeness needed.' },
+  '1.4.10/NO_BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'No-horizontal-scroll at 320px is necessary but not sufficient: "no loss of info/function" (truncation, display:none, clip) is an open-world comparison no probe bounds.' },
+  '1.4.10/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A reproduced non-exempt horizontal scroll at 320 CSS px is a positive observation; no completeness needed.' },
+  '2.4.11/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A focused element observed ENTIRELY obscured by an opaque author overlay/consent/sticky layer (after scroll settle) is a positive observation; no completeness needed.' },
+
   // ---- explicitly NEVER-CLEARABLE (open state space). ----
   '2.4.11/NO_BARRIER_OBSERVED': {
     clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false,

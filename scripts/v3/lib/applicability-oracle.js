@@ -20,9 +20,18 @@ const FAMILIES = Object.freeze({
   'keyboard-operable':       Object.freeze({ sc: '2.1.1', skills: ['keyboard-operability'] }),
   'text-contrast':           Object.freeze({ sc: '1.4.3', skills: ['color-and-visual-text'] }),
   'name-role-value':         Object.freeze({ sc: '4.1.2', skills: ['name-role-state'] }),
+  // ---- experiment families C1/C3 reuse the above; C4–C9 add these ----
+  'no-keyboard-trap':        Object.freeze({ sc: '2.1.2', skills: ['keyboard-operability'] }),   // C5
+  'field-label':             Object.freeze({ sc: '3.3.2', skills: ['forms-instructions-errors'] }), // C6
+  'hover-content':           Object.freeze({ sc: '1.4.13', skills: ['color-and-visual-text'] }),  // C9
+  'reflow-no-hscroll':       Object.freeze({ sc: '1.4.10', skills: ['reflow'] }),                 // C8 (page-level)
+  'focus-not-obscured':      Object.freeze({ sc: '2.4.11', skills: ['focus-management'] }),       // C7
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
+const FORMFIELD_ROLE = /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$/;
+// page-level pseudo-element for the page-scoped reflow obligation (C8).
+const PAGE_REFLOW_XPATH = '/page-level::reflow';
 
 // Is this a collected element with any evaluable accessibility surface at all? Used to fail closed:
 // a non-empty page of evaluable elements that yields ZERO obligations is a generation defect.
@@ -38,11 +47,19 @@ function familiesFor(el) {
   if (el.focusable === true) { fams.push('focus-indicator-visible'); fams.push('keyboard-operable'); }
   if (el.hasText === true) fams.push('text-contrast');
   if (typeof el.role === 'string' && WIDGET_ROLE.test(el.role)) fams.push('name-role-value');
+  // RISK-GATED families: a focusable element carries a trap obligation only inside a focus-trapping
+  // region, and an obscuration obligation only when the page has an overlay/sticky/consent layer that
+  // could cover it — so plain controls don't accrue obligations for risks their page doesn't present.
+  if (el.focusable === true && el.inModal === true) fams.push('no-keyboard-trap');                 // C5
+  if (el.focusable === true && el.underOverlay === true) fams.push('focus-not-obscured');           // C7
+  if (el.isFormField === true || (typeof el.role === 'string' && FORMFIELD_ROLE.test(el.role))) fams.push('field-label'); // C6
+  if (el.hasHoverContent === true) fams.push('hover-content');                                       // C9
   return [...new Set(fams)];
 }
 
 // The atomic obligation list for a collect artifact, derived independently of any applicableScs.
-// Each obligation: { obligationId, xpath, sc, claimFamily }.
+// Each obligation: { obligationId, xpath, sc, claimFamily }. Includes the page-level reflow
+// obligation (C8) when the page declares it — enumerated outside the per-element loop.
 function deriveObligations(collect) {
   const out = [];
   for (const el of (collect && collect.elements) || []) {
@@ -51,6 +68,10 @@ function deriveObligations(collect) {
       const f = FAMILIES[fam];
       out.push({ obligationId: oblId(el.xpath, f.sc, fam), xpath: el.xpath, sc: f.sc, claimFamily: fam });
     }
+  }
+  if (collect && collect.page && collect.page.reflowApplicable === true) {
+    const f = FAMILIES['reflow-no-hscroll'];
+    out.push({ obligationId: oblId(PAGE_REFLOW_XPATH, f.sc, 'reflow-no-hscroll'), xpath: PAGE_REFLOW_XPATH, sc: f.sc, claimFamily: 'reflow-no-hscroll' });
   }
   return out;
 }
@@ -103,6 +124,6 @@ function skillsForFamily(claimFamily) { return (FAMILIES[claimFamily] && FAMILIE
 function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[claimFamily].sc; }
 
 module.exports = {
-  FAMILIES, WIDGET_ROLE, isEvaluable, familiesFor, deriveObligations, oblId,
+  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, PAGE_REFLOW_XPATH, isEvaluable, familiesFor, deriveObligations, oblId,
   applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily,
 };

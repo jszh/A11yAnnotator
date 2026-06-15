@@ -140,6 +140,31 @@ async function focusedRingExtent(page, marker) {
 const PIXEL_MIN = 24; // ignore caret/antialias specks (matches the R2 spatial threshold)
 const rectMoved = (a, b) => !a || !b || Math.abs(a.x - b.x) > 1 || Math.abs(a.y - b.y) > 1 || Math.abs(a.w - b.w) > 2 || Math.abs(a.h - b.h) > 2;
 
+// ---- shared, reused by every experiment runner (exp-runners.js) ----
+// hydration: fully loaded + fonts ready + a paint settle (so late styling isn't mistaken for absence)
+async function hydrate(page) {
+  return page.evaluate(async () => {
+    if (document.readyState !== 'complete') return false;
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return true;
+  }).catch(() => false);
+}
+// REAL keyboard reach: Tab from the top of the document until the tagged target is active.
+async function realKeyboardReach(page, marker, max = MAX_TAB) {
+  await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
+  let reached = false;
+  for (let i = 0; i < max && !reached; i++) {
+    await page.keyboard.press('Tab');
+    reached = await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); return !!el && document.activeElement === el; }, marker).catch(() => false);
+  }
+  return reached;
+}
+// a paint/idle settle (double-rAF + a short timeout) for time-varying effects.
+async function settle(page, ms = 120) {
+  await page.evaluate((m) => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, m)))), ms).catch(() => {});
+}
+
 // A simple, single-mode control: its only operable mode is keyboard focus + activate. A composite/
 // application widget is NOT mode-complete from a focus probe alone (audit H4: don't self-certify).
 const SIMPLE_ROLES = new Set(['button', 'link', 'checkbox', 'radio', 'switch', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'option']);
@@ -155,13 +180,7 @@ async function runFocusVisualRetry(page, request) {
   };
   const measurement = { cropValid: false, stableUnfocused: null, movedOnFocus: null, pixelChanged: null, computedFocusDependent: null, conflict: null, dynamicPad: null };
 
-  // hydration: fully loaded + fonts ready + a paint settle (so late styling isn't mistaken for absence)
-  outcome.hydrationReady = await page.evaluate(async () => {
-    if (document.readyState !== 'complete') return false;
-    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    return true;
-  }).catch(() => false);
+  outcome.hydrationReady = await hydrate(page);
 
   const tagged = await page.evaluate(tagByXpath, request.targetXpath, marker).catch(() => false);
   if (!tagged) return finalize(request, outcome, measurement, false);
@@ -182,16 +201,11 @@ async function runFocusVisualRetry(page, request) {
   const clip = await clipFor(page, marker, padExtent);
   const unfocused = await page.evaluate(readIndicator, marker).catch(() => null);
   const beforeShotA = clip ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 120)))));
+  await settle(page);
   const beforeShotB = clip ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
 
   // REAL keyboard reach: Tab from the top until the target is the active element
-  await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
-  let reached = false;
-  for (let i = 0; i < MAX_TAB && !reached; i++) {
-    await page.keyboard.press('Tab');
-    reached = await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); return !!el && document.activeElement === el; }, marker).catch(() => false);
-  }
+  const reached = await realKeyboardReach(page, marker);
   outcome.keyboardReachableInState = reached;
   outcome.realKeyboardFocus = reached;
 
@@ -263,6 +277,8 @@ function finalize(request, outcome, measurement, completed) {
 // Every request gets exactly ONE disposition: a typed result, or an explicit `unrun` record
 // (skipped/failed/deferred) — nothing disappears silently (audit V3-H6).
 async function runPlan(plan, { resolveUrl, executablePath = CHROME } = {}) {
+  // dispatch table: focus runner here + the C1/C3–C9 runners (lazy require breaks the module cycle).
+  const RUNNERS = Object.assign({ 'focus-visual-retry': runFocusVisualRetry }, require('./exp-runners.js').RUNNERS);
   const browser = await puppeteer.launch({ executablePath, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const results = [];
   const unrun = [];
@@ -271,14 +287,15 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME } = {}) {
     try { const v = await browser.version(); environment = `headless-chromium/${v}/${process.platform}`; } catch (e) {}
     for (const request of (plan && plan.requests) || []) {
       const req = { ...request, environment };
-      if (request.experimentId !== 'focus-visual-retry') { // skeleton scope: not yet implemented
-        unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: 'experiment not implemented in Phase-1 runner' });
+      const runner = RUNNERS[request.experimentId];
+      if (!runner) { // nothing disappears silently (audit V3-H6)
+        unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: 'experiment has no registered runner' });
         continue;
       }
       const page = await browser.newPage();
       try {
         await page.goto(resolveUrl(request), { waitUntil: 'load', timeout: 15000 });
-        results.push(await runFocusVisualRetry(page, req));
+        results.push(await runner(page, req));
       } catch (e) {
         unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String(e && e.message || e).slice(0, 200) });
       } finally { await page.close().catch(() => {}); }
@@ -294,4 +311,9 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME } = {}) {
   };
 }
 
-module.exports = { runPlan, runFocusVisualRetry, CHROME };
+module.exports = {
+  runPlan, runFocusVisualRetry, CHROME,
+  // shared helpers for exp-runners.js
+  tagByXpath, spatialStatsInPage, clipFor, hydrate, realKeyboardReach, settle,
+  PIXEL_MIN, MAX_TAB, MAX_PAD,
+};

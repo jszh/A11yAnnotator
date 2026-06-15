@@ -14,11 +14,11 @@ const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — v3 orchestrate suite SKIPPED');
 
 test('deterministic proposer picks direction only for unambiguous outcomes', () => {
-  assert.equal(directionForFocusVisible({ focusDependentIndicator: true, obviouslyVisible: true, keyboardReachableInState: true, hydrationReady: true }), 'NO_BARRIER_OBSERVED');
-  assert.equal(directionForFocusVisible({ stableIndicatorAbsence: true, keyboardReachableInState: true, hydrationReady: true }), 'BARRIER_OBSERVED');
-  assert.equal(directionForFocusVisible({ focusDependentIndicator: true, obviouslyVisible: false, keyboardReachableInState: true, hydrationReady: true }), null, 'not obviously visible ⇒ ambiguous ⇒ no proposal');
+  assert.equal(directionForFocusVisible({ focusDependentIndicator: true, obviouslyVisible: true, keyboardReachableInState: true, realKeyboardFocus: true, hydrationReady: true }), 'NO_BARRIER_OBSERVED');
+  assert.equal(directionForFocusVisible({ stableIndicatorAbsence: true, keyboardReachableInState: true, realKeyboardFocus: true, hydrationReady: true }), 'BARRIER_OBSERVED');
+  assert.equal(directionForFocusVisible({ focusDependentIndicator: true, obviouslyVisible: false, keyboardReachableInState: true, realKeyboardFocus: true, hydrationReady: true }), null, 'not obviously visible ⇒ ambiguous ⇒ no proposal');
   const out = proposeClaims({ file: 'p', runId: 'R', pageDigest: 'd' }, { results: [
-    { claimId: 'x', sc: '2.4.7', experimentId: 'focus-visual-retry', observationScope: {}, outcome: { focusDependentIndicator: true, obviouslyVisible: true, keyboardReachableInState: true, hydrationReady: true } },
+    { claimId: 'x', sc: '2.4.7', experimentId: 'focus-visual-retry', observationScope: {}, outcome: { focusDependentIndicator: true, obviouslyVisible: true, keyboardReachableInState: true, realKeyboardFocus: true, hydrationReady: true } },
     { claimId: 'y', sc: '2.4.7', experimentId: 'focus-visual-retry', observationScope: {}, outcome: { hydrationReady: false } },
   ] });
   assert.equal(out.proposals.length, 1);

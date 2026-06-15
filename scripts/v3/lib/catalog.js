@@ -38,6 +38,99 @@ const CATALOG = {
         'focusDependentIndicator', 'obviouslyVisible', 'stableIndicatorAbsence', 'modeCompletenessProven',
       ],
     },
+
+    // ---- C3: text contrast → 1.4.3 (AT-independent; CLEAR over a flat opaque backdrop). ----
+    'text-contrast-pixel': {
+      sc: '1.4.3', claimFamily: 'text-contrast',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['isTextNode', 'textRendersVisible', 'sizeClassResolved'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['textRendersVisible', 'foregroundResolved', 'backgroundResolved', 'backdropIsSolidUniform', 'contrastComputable', 'sizeClassResolved', 'thresholdMet', 'notExemptText', 'measurementStable'] },
+        BARRIER_OBSERVED: { requires: ['isTextNode', 'textRendersVisible', 'foregroundResolved', 'backgroundResolved', 'contrastComputable', 'sizeClassResolved', 'thresholdFailed', 'notExemptText', 'measurementStable'] },
+      },
+      typedOutcomes: ['isTextNode', 'textRendersVisible', 'foregroundResolved', 'backgroundResolved', 'backdropIsSolidUniform', 'contrastComputable', 'sizeClassResolved', 'thresholdMet', 'thresholdFailed', 'notExemptText', 'measurementStable'],
+    },
+
+    // ---- C5: keyboard trap escape → 2.1.2 (CLEAR per-component; finite mechanism set). ----
+    'keyboard-trap-escape': {
+      sc: '2.1.2', claimFamily: 'no-keyboard-trap',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['targetIsFocusable', 'keyboardReachableInState'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['keyboardReachableInState', 'focusEnteredRegion', 'escapeProvenForWidget', 'focusStaysInDocument', 'hydrationReady'] },
+        BARRIER_OBSERVED: { requires: ['keyboardReachableInState', 'focusEnteredRegion', 'trapProven', 'focusStaysInDocument', 'hydrationReady'] },
+      },
+      typedOutcomes: ['targetIsFocusable', 'keyboardReachableInState', 'focusEnteredRegion', 'escapeProvenForWidget', 'trapProven', 'focusStaysInDocument', 'hydrationReady'],
+    },
+
+    // ---- C6: field label → 3.3.2 (CLEAR for the label sub-claim; AT-dependent). ----
+    'field-label-probe': {
+      sc: '3.3.2', claimFamily: 'field-label',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: true },
+      applicability: { requires: ['isUserInputField', 'fieldRendered'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['isUserInputField', 'fieldRendered', 'hydrationReady', 'programmaticNamePresent', 'visibleLabelText'] },
+        BARRIER_OBSERVED: { requires: ['isUserInputField', 'fieldRendered', 'hydrationReady', 'fieldLabelBarrier'] },
+      },
+      typedOutcomes: ['isUserInputField', 'fieldRendered', 'hydrationReady', 'programmaticNamePresent', 'visibleLabelText', 'fieldLabelBarrier'],
+    },
+
+    // ---- C4: keyboard activation → 2.1.1 (CLEAR only for finite-contract single-mode controls). ----
+    'keyboard-activation': {
+      sc: '2.1.1', claimFamily: 'keyboard-operable',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['targetIsInteractive', 'targetIsFocusable', 'hydrationReady'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['hydrationReady', 'keyboardReachableInState', 'reachedForActivation', 'contractKeysAllOperated', 'observableEffectStable', 'realKeyDistinctFromSynthetic', 'singleModeControl', 'modeInventoryClosed'] },
+        BARRIER_OBSERVED: { requires: ['hydrationReady', 'targetIsInteractive', 'reachedForActivation', 'noKeyEffectStable'] },
+      },
+      typedOutcomes: ['targetIsInteractive', 'targetIsFocusable', 'hydrationReady', 'keyboardReachableInState', 'reachedForActivation', 'contractKeysAllOperated', 'observableEffectStable', 'realKeyDistinctFromSynthetic', 'singleModeControl', 'modeInventoryClosed', 'noKeyEffectStable'],
+    },
+
+    // ---- C1: activation AX-tree diff → 4.1.2 (CLEAR for closed ARIA state set; AT-dependent). ----
+    'ax-state-diff': {
+      sc: '4.1.2', claimFamily: 'name-role-value',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: true },
+      applicability: { requires: ['targetHasWidgetRole', 'hydrationReady', 'axNodeResolved'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['hydrationReady', 'axNodeResolved', 'axRolePresentAndExpected', 'axNamePresent', 'axNameNotFromError', 'axStatePropertyExposed', 'axStateChanged', 'axDomAgree', 'axDiffStable', 'activationWasReal', 'noNavigation', 'statesInventoryClosed'] },
+        BARRIER_OBSERVED: { requires: ['hydrationReady', 'axNodeResolved', 'activationWasReal', 'noNavigation', 'nrvDefectStable'] },
+      },
+      typedOutcomes: ['targetHasWidgetRole', 'hydrationReady', 'axNodeResolved', 'axRolePresentAndExpected', 'axNamePresent', 'axNameNotFromError', 'axStatePropertyExposed', 'axStateChanged', 'axDomAgree', 'axDiffStable', 'activationWasReal', 'noNavigation', 'statesInventoryClosed', 'nrvDefectStable'],
+    },
+
+    // ---- C9: content on hover/focus → 1.4.13 (BARRIER-ONLY). ----
+    'hover-content-tri': {
+      sc: '1.4.13', claimFamily: 'hover-content',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false },
+      applicability: { requires: ['hasHoverFocusTrigger', 'triggerReachable'] },
+      supports: {
+        BARRIER_OBSERVED: { requires: ['hasHoverFocusTrigger', 'triggerReachable', 'appearingContentDetected', 'contentIsAdditional', 'contentAppeared', 'anyPropertyFails', 'measurementDeterministic'] },
+      },
+      typedOutcomes: ['hasHoverFocusTrigger', 'triggerReachable', 'appearingContentDetected', 'contentIsAdditional', 'contentAppeared', 'anyPropertyFails', 'measurementDeterministic', 'dismissible', 'hoverable', 'persistent'],
+    },
+
+    // ---- C8: reflow at 320px → 1.4.10 (BARRIER-ONLY, page-level). ----
+    'reflow-overflow-probe': {
+      sc: '1.4.10', claimFamily: 'reflow-no-hscroll',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false },
+      applicability: { requires: ['pageRenders', 'viewportSet320'] },
+      supports: {
+        BARRIER_OBSERVED: { requires: ['viewportSet320', 'hydrationReady', 'reflowSettled', 'horizontalScrollPresent', 'overflowSourceLocated', 'overflowBarrierObserved'] },
+      },
+      typedOutcomes: ['pageRenders', 'viewportSet320', 'hydrationReady', 'reflowSettled', 'horizontalScrollPresent', 'overflowSourceLocated', 'allOverflowExemptOr2D', 'clipHidingDetected', 'overflowBarrierObserved', 'noHorizontalScrollClear'],
+    },
+
+    // ---- C7: focus not obscured → 2.4.11 (BARRIER-ONLY). ----
+    'focus-obscured-barrier': {
+      sc: '2.4.11', claimFamily: 'focus-not-obscured',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false },
+      applicability: { requires: ['targetIsFocusable', 'keyboardReachableInState'] },
+      supports: {
+        BARRIER_OBSERVED: { requires: ['keyboardReachableInState', 'realKeyboardFocus', 'focusedRectResolved', 'entirelyObscuredByAuthorContent', 'obscuringLayerOpaqueAndBlocking', 'hydrationReady'] },
+      },
+      typedOutcomes: ['targetIsFocusable', 'keyboardReachableInState', 'realKeyboardFocus', 'focusedRectResolved', 'overlayLayerPresent', 'entirelyObscuredByAuthorContent', 'obscuringLayerOpaqueAndBlocking', 'notObscuredAfterScroll', 'hydrationReady'],
+    },
   },
 };
 
