@@ -250,6 +250,9 @@ function driverEvidenceFrom(drive) {
       viewChanged: a.viewChanged === true,
       focusMoved: a.focusMoved === true,
       focusReturnedToTrigger: a.modal ? a.modal.focusReturnedToTrigger : undefined,
+      // R2.9-A: the driver's focus-obscured observation (2.4.11 ground truth), measured at
+      // the keyboard probe. undefined when not measured ⇒ a definite 2.4.11 verdict → PARTIAL.
+      obscured: (kb && typeof kb.obscured === 'boolean') ? kb.obscured : undefined,
     };
   }
   const forms = (drive && drive.forms) || [];
@@ -337,6 +340,16 @@ function behavioralSupport(skill, verdict, codes, ev, formsTrust, formOutcome, t
       if (!tabWalk || !tabWalk.present || tabWalk.trapDetected === undefined) return { ok: false, reason: '2.1.2 verdict with no tab-walk evidence' };
       if (REP && tabWalk.trapDetected !== true) return { ok: false, reason: `REPRODUCED keyboard trap (2.1.2) not supported — tabWalk.trapDetected is not true (${tabWalk.trapDetected})` };
       if (NR && !(tabWalk.trapDetected === false && !tabWalk.trapIndeterminate)) return { ok: false, reason: `NOT REPRODUCED (2.1.2) not supported — the walk did not positively show escapable (trapDetected=${tabWalk.trapDetected}, indeterminate=${tabWalk.trapIndeterminate})` };
+    } else if (code === '2.4.11') { // focus not obscured — bind to the driver's `obscured`
+      if (typeof ev.obscured !== 'boolean') return { ok: false, reason: '2.4.11 verdict not supported — the driver did not measure focus-obscured for this element (must be PARTIAL)' };
+      if (REP && ev.obscured !== true) return { ok: false, reason: 'REPRODUCED "focus obscured" (2.4.11) not supported — the driver observed the focused element was NOT obscured' };
+      if (NR && ev.obscured !== false) return { ok: false, reason: 'NOT REPRODUCED (2.4.11) not supported — the driver did not observe an un-obscured focus' };
+    } else if (code === '2.4.13') { // focus appearance (AAA) — CAPTURED, NOT enforced
+      return { ok: false, reason: '2.4.13 (Focus Appearance, AAA) is captured as proxies only, NOT enforced — a definite verdict is unsupported, use PARTIAL' };
+    } else if (S.DYNAMIC_SKILLS.includes(skill)) {
+      // R2.9-A: a DYNAMIC-skill definite verdict citing a behavioral SC with NO support
+      // predicate cannot be positively demonstrated by the driver → PARTIAL (no silent pass).
+      return { ok: false, reason: `${code} on ${skill} has no driver support predicate — a definite verdict is unsupported, use PARTIAL` };
     }
   }
   return { ok: true };

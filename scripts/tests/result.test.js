@@ -551,3 +551,23 @@ test('R2.8-G: the skip cap is a strict floor(25%) with NO min-2 exception', () =
   // exactly 25% is allowed
   assert.equal(validateResults(mk(8, 2)).ok, true, '2 of 8 (25%) allowed');
 });
+
+// ---- R2.9-A: support-predicate coverage (R2.8 self-audit #1/#4) ----
+test('R2.9-A: 2.4.11 (Focus Not Obscured) is bound to the driver `obscured` outcome', () => {
+  const mk = () => build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-management': { verdict: 'REPRODUCED', sc: '2.4.11', level: 'AA', evidence: 'hidden behind sticky header' } })] });
+  // fabricated REPRODUCED while the driver saw obscured:false → reject
+  assert.ok(validateResults(mk(), DEo({ '/a': { activation: { trusted: true, isolated: true }, obscured: false } })).errors.some(e => /2\.4\.11/.test(e)));
+  // obscured:true → supported
+  assert.equal(validateResults(mk(), DEo({ '/a': { activation: { trusted: true, isolated: true }, obscured: true } })).ok, true);
+  // obscured not measured (undefined) → unsupported (PARTIAL)
+  assert.ok(validateResults(mk(), DEo({ '/a': { activation: { trusted: true, isolated: true } } })).errors.some(e => /did not measure focus-obscured/.test(e)));
+});
+test('R2.9-A: 2.4.13 (Focus Appearance, AAA) is captured-not-enforced → a definite verdict is rejected (PARTIAL)', () => {
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-visibility': { verdict: 'REPRODUCED', sc: '2.4.13', level: 'AAA', evidence: 'hairline ring' } })] });
+  assert.ok(validateResults(R, DEo({ '/a': { focusProbed: true, ringPresent: false } })).errors.some(e => /2\.4\.13.*NOT enforced/.test(e)));
+});
+test('R2.9-A: a dynamic-skill definite verdict citing an SC with NO support predicate is REJECTED (default-closed)', () => {
+  // 2.4.11 verdict where the driver has no obscured AND no activation — falls to default-reject path
+  const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'focus-management': { verdict: 'REPRODUCED', sc: '2.4.11', level: 'AA', evidence: 'x' } })] });
+  assert.equal(validateResults(R, DEo({ '/a': { activation: { trusted: true, isolated: true } } })).ok, false, 'no positive support ⇒ rejected, not a silent pass');
+});
