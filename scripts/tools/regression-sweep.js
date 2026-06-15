@@ -18,14 +18,26 @@ try { builder = require('../lib/result-builder.js'); } catch (e) { /* W2 not pre
 
 const dir = process.argv[2];
 if (!dir) { console.error('usage: regression-sweep.js <dir>'); process.exit(2); }
-const slugs = fs.readdirSync(dir).filter(d => fs.existsSync(path.join(dir, d, 'drive.json')));
-const load = (s, f) => { try { return JSON.parse(fs.readFileSync(path.join(dir, s, f), 'utf8')); } catch (e) { return null; } };
+// R2.8-E (R27-H1): discover the page set from ANY artifact, and require ALL THREE
+// (collect/drive/results) to be present AND parseable for every page — a page missing or
+// with an unparseable artifact is a FAILURE, not a silently-skipped page.
+const slugs = fs.readdirSync(dir).filter(d => { try { return fs.statSync(path.join(dir, d)).isDirectory() && ['collect.json', 'drive.json', 'results.json'].some(f => fs.existsSync(path.join(dir, d, f))); } catch (e) { return false; } });
+const load = (s, f) => { try { return JSON.parse(fs.readFileSync(path.join(dir, s, f), 'utf8')); } catch (e) { return undefined; } };
 
 const fails = [];
 let checked = 0;
 for (const s of slugs) {
   const D = load(s, 'drive.json'), C = load(s, 'collect.json'), R = load(s, 'results.json');
   checked++;
+  // R2.8-E: every page must carry all three parseable artifacts + pass the cross-artifact
+  // identity/freshness gate (the same the mandatory CLI enforces), so the sweep cannot
+  // approve an incomplete page.
+  for (const [name, art] of [['collect.json', C], ['drive.json', D], ['results.json', R]]) if (art === undefined) fails.push(`[H1] ${s}: ${name} is missing or unparseable`);
+  if (C && D && R) {
+    if (!(C.file && C.file === D.file && C.file === R.file)) fails.push(`[H1] ${s}: page identity mismatch (collect=${JSON.stringify(C.file)} drive=${JSON.stringify(D.file)} results=${JSON.stringify(R.file)})`);
+    if (!(C.runId && D.runId && C.runId === D.runId)) fails.push(`[H1] ${s}: collect.runId !== drive.runId (stale/mismatched drive)`);
+    if (!Number.isFinite(C.collectedAt) || !Number.isFinite(D.drivenAt) || D.drivenAt < C.collectedAt) fails.push(`[H1] ${s}: freshness — drive.drivenAt must be a finite value >= collect.collectedAt`);
+  }
   const cByXp = {}; for (const e of (C && C.elements) || []) cByXp[e.xpath] = e;
 
   // T9 / H3: no element reports a noise/root phrase as an announcement (activation OR walk)

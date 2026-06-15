@@ -56,13 +56,15 @@ test('regression sweep PASSES (exit 0) on a clean builder-produced corpus', () =
   const S = require('../lib/result-schema.js');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sweepok_'));
   const slug = path.join(dir, 'goodpage'); fs.mkdirSync(slug);
+  // R2.8-E: the sweep now requires all three artifacts + identity/freshness per page.
   // R2.4-B: the definite focus-visibility verdict below must be backed by a driver focus probe.
-  fs.writeFileSync(path.join(slug, 'drive.json'), JSON.stringify({ elements: [{ xpath: '/a', focusIndicator: { present: false }, behavioralTrust: { activation: { trusted: true, isolated: true } } }], forms: [] }));
+  fs.writeFileSync(path.join(slug, 'collect.json'), JSON.stringify({ file: 'x', runId: 'R', collectedAt: 1000, axeRan: true, axe: [], elements: [{ xpath: '/a' }] }));
+  fs.writeFileSync(path.join(slug, 'drive.json'), JSON.stringify({ file: 'x', runId: 'R', drivenAt: 2000, elements: [{ xpath: '/a', focusIndicator: { present: false }, behavioralTrust: { activation: { trusted: true, isolated: true } } }], forms: [] }));
   const skills = {}; for (const k of S.SKILLS) skills[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'not applicable to this element' };
   skills['focus-visibility'] = { verdict: 'REPRODUCED', sc: '2.4.7', level: 'AA', evidence: 'no visible focus ring' };
   // R2.3-C: page skills are inherently applicable (no N/A); provenance ties to collect.
   const pageOk = {}; for (const k of S.PAGE_SKILLS) pageOk[k] = { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'checked: no page-level issue' };
-  const built = buildResults({ file: 'x', slug: 'goodpage', elements: [{ xpath: '/a', axRole: 'link', axName: 'y', skills }], pageSkills: pageOk, provenance: { collect: { xpaths: ['/a'], count: 1 } } });
+  const built = buildResults({ file: 'x', slug: 'goodpage', elements: [{ xpath: '/a', axRole: 'link', axName: 'y', skills }], pageSkills: pageOk, provenance: { collect: { xpaths: ['/a'], count: 1, page: 'x' } } });
   fs.writeFileSync(path.join(slug, 'results.json'), JSON.stringify(built));
   let ok = true;
   try { run('node', ['scripts/tools/regression-sweep.js', dir], { cwd: ROOT, encoding: 'utf8' }); }
@@ -122,4 +124,16 @@ test('R2.8-D: build-results.js CLI rejects MISSING freshness timestamps (no long
   catch (e) { out = (e.stdout || '') + (e.stderr || ''); }
   assert.match(out, /missing freshness timestamps/);
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('R2.8-E: the sweep FAILS on an incomplete page (missing collect/results — auditor R27-H1)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sweepinc_'));
+  const slug = path.join(dir, 'incpage'); fs.mkdirSync(slug);
+  fs.writeFileSync(path.join(slug, 'drive.json'), JSON.stringify({})); // only an empty drive.json
+  let failed = false, out = '';
+  try { run('node', ['scripts/tools/regression-sweep.js', dir], { cwd: ROOT, encoding: 'utf8' }); }
+  catch (e) { failed = true; out = (e.stdout || '') + (e.stderr || ''); }
+  fs.rmSync(dir, { recursive: true, force: true });
+  assert.ok(failed, 'a page with only {} drive.json must NOT pass the sweep');
+  assert.match(out, /collect\.json is missing|results\.json is missing/);
 });
