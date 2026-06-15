@@ -305,11 +305,13 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
       const page = await browser.newPage();
       try {
         // independently digest the resource the browser ACTUALLY loaded — the navigation response
-        // body (raw bytes, Node-side, immune to file:// fetch restrictions). The attestation binds
-        // THIS, so a wrong/stale/swapped page cannot be signed as the collector's page (audit V3R4-C1).
+        // body RAW BYTES (Node-side, immune to file:// fetch restrictions, and the SAME byte domain
+        // the collector hashes so the comparison is sound for any charset/BOM, audit V3R4 red-team).
+        // The attestation binds THIS, so a wrong/stale/swapped page cannot be signed as the
+        // collector's page (audit V3R4-C1).
         const response = await page.goto(resolveUrl(request), { waitUntil: 'load', timeout: 15000 });
-        const html = response ? await response.text().catch(() => null) : null;
-        const observedPageDigest = html != null ? attest.pageDigestOf(html) : null;
+        const body = response ? await response.buffer().catch(() => null) : null;
+        const observedPageDigest = body != null ? attest.pageDigestOf(body) : null;
         results.push(sign(await runner(page, req), observedPageDigest));
       } catch (e) {
         unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String(e && e.message || e).slice(0, 200) });

@@ -41,7 +41,7 @@ const FIXTURE = 'file://' + FIXTURE_PATH;
 // the runner binds the digest of the resource it ACTUALLY loaded (audit V3R4-C1); the collector's
 // declared pageDigest must equal that for a promoted clear to publish — so compute the real digest.
 const attest = require('../lib/attestation.js');
-const FIXTURE_DIGEST = attest.pageDigestOf(fs.readFileSync(FIXTURE_PATH, 'utf8'));
+const FIXTURE_DIGEST = attest.pageDigestOf(fs.readFileSync(FIXTURE_PATH)); // RAW BYTES (same domain as the runner)
 
 const { promoted } = require('./helpers.js');
 const PROMOTED = promoted(['focus-visual-retry/NO_BARRIER_OBSERVED', 'focus-visual-retry/BARRIER_OBSERVED']);

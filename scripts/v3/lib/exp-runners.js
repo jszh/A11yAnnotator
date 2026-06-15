@@ -144,7 +144,11 @@ function measureContrast(marker) {
     if (paints && intersectsText(node.getBoundingClientRect())) { foreignPainter = true; break; }
   }
 
-  const fg = rgba(cs.color);
+  // the RENDERED glyph fill — `-webkit-text-fill-color` overrides the painted ink while leaving
+  // `color` unchanged (audit V3R4 red-team), so read the fill colour, not just `color`. (A pixel
+  // foreground-agreement channel below additionally catches filter/blend ink overrides.)
+  const fillRaw = cs.webkitTextFillColor && cs.webkitTextFillColor !== 'currentcolor' ? cs.webkitTextFillColor : cs.color;
+  const fg = rgba(fillRaw);
   const sizePx = parseFloat(cs.fontSize) || 0;
   let weight = parseInt(cs.fontWeight, 10); if (isNaN(weight)) weight = cs.fontWeight === 'bold' ? 700 : 400;
   const isLarge = sizePx >= 24 || (sizePx >= 18.66 && weight >= 700);
@@ -154,11 +158,11 @@ function measureContrast(marker) {
   const backgroundResolved = !!bg;
   const backdropIsSolidUniform = backgroundResolved && uniformSamples && layersContainText && !foreignPainter && !pseudoPainter && !hasImage && !hasFilterBlend && opacityChain === 1;
   const contrastComputable = foregroundResolved && backgroundResolved && backdropIsSolidUniform && !mixedRuns;
-  let ratio = null;
-  if (contrastComputable) {
+  let ratio = null, effFgColor = null;
+  if (foregroundResolved && backgroundResolved) {
     const effFg = over(fg, bg);
-    const l1 = lum(effFg), l2 = lum(bg);
-    ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    effFgColor = { r: Math.round(effFg.r), g: Math.round(effFg.g), b: Math.round(effFg.b) }; // the FG the ratio used
+    if (contrastComputable) { const l1 = lum(effFg), l2 = lum(bg); ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); }
   }
   const disabled = el.disabled === true || el.getAttribute('aria-disabled') === 'true';
   const ariaHidden = el.closest('[aria-hidden="true"]') != null;
@@ -168,7 +172,8 @@ function measureContrast(marker) {
     sizeClassResolved: sizePx > 0, notExemptText: !disabled && !ariaHidden,
     ratio, threshold,
     bgColor: bg ? { r: Math.round(bg.r), g: Math.round(bg.g), b: Math.round(bg.b) } : null, // the backdrop the RATIO used
-    signature: `${cs.color}|${bg ? bg.r + ',' + bg.g + ',' + bg.b : 'na'}|${sizePx}|${weight}`,
+    fgColor: effFgColor, // the composited FOREGROUND the ratio used (vs rendered glyph ink)
+    signature: `${fillRaw}|${bg ? bg.r + ',' + bg.g + ',' + bg.b : 'na'}|${sizePx}|${weight}`,
   };
 }
 
@@ -205,7 +210,7 @@ function setGlyphColor(marker, color) {
 // COMPLETE uniformity oracle — it captures SVG / canvas / img / ::first-line / shadow-DOM painters
 // that CSS-property enumeration misses (audit V3R3 self-adversarial).
 function analyzeBackdrop(sentAB64, sentBB64, hiddenB64) {
-  const load = (s) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = 'data:image/png;base64,' + s; });
+  const load = (s) => new Promise((res) => { if (!s) return res(null); const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = 'data:image/png;base64,' + s; });
   return Promise.all([load(sentAB64), load(sentBB64), load(hiddenB64)]).then(([a, b, hd]) => {
     if (!a || !b || !hd || a.naturalWidth !== b.naturalWidth || a.naturalWidth !== hd.naturalWidth || a.naturalHeight !== hd.naturalHeight) return { uniform: false };
     const w = a.naturalWidth, h = a.naturalHeight; if (!w || !h) return { uniform: false };
@@ -260,7 +265,9 @@ async function runTextContrastPixel(page, request) {
         pixelUniform = !!(px && px.uniform);
         // the RATIO's backdrop colour (CSS paint stack) must AGREE with the rendered backdrop behind
         // the glyphs, or the ratio is computed against the wrong surface (audit V3R4-H1: white text
-        // over a uniform white SVG resolves the black body for the ratio ⇒ false 21:1 clear).
+        // over a uniform white SVG resolves the black body for the ratio ⇒ false 21:1 clear). The
+        // FOREGROUND override case (-webkit-text-fill-color) is handled in measureContrast (the ratio
+        // reads the fill colour) and filter/blend by hasFilterBlend, so no pixel-fg channel is needed.
         const bgc = a.bgColor;
         pixelAgrees = !!(px && bgc && Math.abs(px.r - bgc.r) <= 16 && Math.abs(px.g - bgc.g) <= 16 && Math.abs(px.b - bgc.b) <= 16);
       }
@@ -471,19 +478,40 @@ function measureObscured(marker) {
   // child overlay's axis-aligned AABB over-claim its painted area — a false barrier (audit V3R3
   // self-adversarial). The WHOLE ancestor chain must be axis-aligned for the border-box to be exact.
   const chainAxisAligned = (node) => { for (let p = node; p; p = p.parentElement) if (!axisAlignedTransform(getComputedStyle(p).transform)) return false; return true; };
-  // The candidate's EFFECTIVE painted rect = its border box intersected with every clipping ANCESTOR's
-  // padding box (overflow:hidden/clip/scroll/auto). getBoundingClientRect is the UNCLIPPED box, so an
-  // overlay clipped to part of its width still over-claims coverage (audit V3R4-H2). A non-rectangular
-  // clip (clip-path / mask / rounded overflow) cannot be reduced to a rect ⇒ return null ⇒ exclude.
+  // The candidate's EFFECTIVE painted rect = its border box, clipped by its OWN deprecated
+  // `clip: rect(...)` (audit V3R4 red-team) and intersected with every clipping ANCESTOR's padding
+  // box (overflow:hidden/clip/scroll/auto OR `contain` paint/strict/content — also a paint clip,
+  // audit V3R4 red-team). getBoundingClientRect is the UNCLIPPED box, so an overlay clipped to part of
+  // its width still over-claims coverage (audit V3R4-H2). A non-rectangular clip (clip-path / mask /
+  // rounded overflow) cannot be reduced to a rect ⇒ return null ⇒ exclude.
+  const containsPaint = (s) => /\b(paint|strict|content)\b/.test(s || '');
+  const clipRectOf = (node, cs) => { // the element's own `clip: rect(t,r,b,l)` (positioned only) → absolute rect, or null
+    if (!/^(absolute|fixed)$/.test(cs.position)) return null;
+    const c = cs.clip; if (!c || c === 'auto' || c === 'none') return null;
+    const m = c.match(/^rect\(([^)]+)\)$/i); if (!m) return null;            // unparseable ⇒ caller treats as can't-prove
+    const parts = m[1].split(/[,\s]+/).filter(Boolean).map((v) => (v === 'auto' ? null : parseFloat(v)));
+    if (parts.length !== 4) return null;
+    const r0 = node.getBoundingClientRect();
+    const [t, rt, b, l] = parts; // top,right,bottom,left offsets from the border-box origin (auto ⇒ edge)
+    return { left: r0.left + (l == null ? 0 : l), top: r0.top + (t == null ? 0 : t), right: r0.left + (rt == null ? r0.width : rt), bottom: r0.top + (b == null ? r0.height : b) };
+  };
   const clippedRect = (node) => {
+    const cs0 = getComputedStyle(node);
     const r0 = node.getBoundingClientRect();
     let acc = { left: r0.left, top: r0.top, right: r0.right, bottom: r0.bottom };
+    // the candidate's OWN `clip: rect(...)` (deprecated but still painted) clips its own box.
+    if (cs0.clip && cs0.clip !== 'auto' && cs0.clip !== 'none') {
+      const cr = clipRectOf(node, cs0); if (!cr) return null;                // a clip we can't reduce to a rect ⇒ exclude
+      acc = { left: Math.max(acc.left, cr.left), top: Math.max(acc.top, cr.top), right: Math.min(acc.right, cr.right), bottom: Math.min(acc.bottom, cr.bottom) };
+    }
     for (let p = node.parentElement; p; p = p.parentElement) {
       const pcs = getComputedStyle(p);
-      const clipsOverflow = /(hidden|clip|scroll|auto)/.test(pcs.overflowX) || /(hidden|clip|scroll|auto)/.test(pcs.overflowY);
+      const clipsOverflow = /(hidden|clip|scroll|auto)/.test(pcs.overflowX) || /(hidden|clip|scroll|auto)/.test(pcs.overflowY) || containsPaint(pcs.contain);
       const hasClipPath = (pcs.clipPath && pcs.clipPath !== 'none') || (pcs.webkitClipPath && pcs.webkitClipPath !== 'none');
       const hasMask = pcs.maskImage && pcs.maskImage !== 'none';
       if (hasClipPath || hasMask) return null;                              // non-rectangular clip ⇒ can't prove
+      // an ancestor's OWN clip:rect also clips descendants — fold it in conservatively.
+      if (pcs.clip && pcs.clip !== 'auto' && pcs.clip !== 'none') { const cr = clipRectOf(p, pcs); if (!cr) return null; acc = { left: Math.max(acc.left, cr.left), top: Math.max(acc.top, cr.top), right: Math.min(acc.right, cr.right), bottom: Math.min(acc.bottom, cr.bottom) }; }
       if (!clipsOverflow) continue;
       if (pcs.borderRadius && pcs.borderRadius !== '0px') return null;       // rounded overflow clip ⇒ can't prove
       const pr = p.getBoundingClientRect();
@@ -491,6 +519,7 @@ function measureObscured(marker) {
       acc = { left: Math.max(acc.left, pr.left + bl), top: Math.max(acc.top, pr.top + bt), right: Math.min(acc.right, pr.right - brr), bottom: Math.min(acc.bottom, pr.bottom - bb) };
       if (acc.right <= acc.left || acc.bottom <= acc.top) return { left: 0, top: 0, right: 0, bottom: 0 }; // clipped away
     }
+    if (acc.right <= acc.left || acc.bottom <= acc.top) return { left: 0, top: 0, right: 0, bottom: 0 };
     return acc;
   };
 

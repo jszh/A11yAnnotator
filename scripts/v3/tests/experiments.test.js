@@ -245,6 +245,28 @@ test('R4-H3 build-through: a clean keyboard-activated button does NOT publish a 
   assert.equal(r2.results.summary.cleared, 0, '2.1.1 NO_BARRIER is open-scope-never-clearable ⇒ no authoritative clear');
 });
 
+// ---- Fourth-pass self-adversarial red-team regressions (found + fixed beyond the audit) ----
+test('R4b-H1: -webkit-text-fill-color override does NOT clear (the ratio reads the rendered fill colour)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-r4b-h1-textfill.html', ['/html/body/p']);
+  assert.notEqual(dir('text-contrast-pixel', byXp['/html/body/p']), 'NO_BARRIER_OBSERVED',
+    'near-white -webkit-text-fill-color on white is illegible — the fill colour, not cs.color, drives the ratio');
+});
+
+test('R4b-H1: a filter:invert ink override does NOT clear (caught as a non-trivial composition)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-r4b-h1-filter.html', ['/html/body/p']);
+  assert.notEqual(dir('text-contrast-pixel', byXp['/html/body/p']), 'NO_BARRIER_OBSERVED', 'a filter on the text element ⇒ non-trivial composition ⇒ PARTIAL');
+});
+
+test('R4b-H2: an overlay clipped by a contain:paint ancestor is NOT entirely obscured', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-r4b-h2-contain.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), null, 'contain:paint clips like overflow:hidden ⇒ the right strip stays visible');
+});
+
+test('R4b-H2: an overlay clipping its OWN paint with clip:rect(...) is NOT entirely obscured', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-obscured-barrier', 'fx-v3-r4b-h2-cliprect.html', ['/html/body/button']);
+  assert.equal(dir('focus-obscured-barrier', byXp['/html/body/button']), null, 'the deprecated clip:rect on the candidate clips its own box ⇒ the right strip stays visible');
+});
+
 // ---- build-through: shadow by default; AT-independent C3 clears authoritative when PROMOTED ----
 test('C3 build-through: default-shadow; PROMOTED ⇒ authoritative clear (AT-independent, no baseline needed)', { skip: !chromeOK, concurrency: false }, async () => {
   const { byXp } = await run('text-contrast-pixel', 'fx-v3-c3-contrast.html', ['/html/body/div[1]/span']);

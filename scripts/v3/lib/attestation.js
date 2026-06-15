@@ -78,11 +78,14 @@ function boundToRun(result, collect) {
   return true;
 }
 
-// sha256 over a string (the loaded resource bytes), in the canonical `sha256:<hex>` shape the
-// collector uses for collect.pageDigest — so the runner's observation and the collector's identity
-// are directly comparable.
-function pageDigestOf(text) {
-  return 'sha256:' + crypto.createHash('sha256').update(String(text)).digest('hex');
+// sha256 over the RAW BYTES of the loaded resource, in the canonical `sha256:<hex>` shape the
+// collector uses for collect.pageDigest. Both sides MUST hash the identical byte sequence (the
+// runner passes the navigation response Buffer; the collector hashes the on-disk file bytes) — a
+// charset-decoded string would diverge for BOM / non-UTF-8 pages (audit V3R4 red-team). A string is
+// normalised to its UTF-8 bytes so test/synthetic callers stay consistent.
+function pageDigestOf(bytes) {
+  const buf = Buffer.isBuffer(bytes) ? bytes : Buffer.from(String(bytes), 'utf8');
+  return 'sha256:' + crypto.createHash('sha256').update(buf).digest('hex');
 }
 
 function digestResult(result) {
