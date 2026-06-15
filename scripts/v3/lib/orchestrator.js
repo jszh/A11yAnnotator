@@ -11,6 +11,7 @@ const run = require('./run-experiments.js');
 const { proposeClaims } = require('./proposer.js');
 const { buildV3 } = require('./build-v3.js');
 const manifest = require('./manifest.js');
+const agentPlanner = require('./agent-planner.js');
 
 // collect, drive: baseline artifacts. opts.resolveUrl(request)->url; opts.now is a caller-supplied
 // timestamp (the runner stamps freshness). Returns every stage artifact + the gated result.
@@ -18,7 +19,11 @@ async function orchestrate(collect, drive, opts = {}) {
   const now = Number.isFinite(opts.now) ? opts.now : (Number.isFinite(collect.collectedAt) ? collect.collectedAt + 1 : 1);
   cg.annotateApplicableScs(collect);
   const candidates = cg.generateCandidates(collect, drive);
-  const plan = sch.schedulePlan(candidates, { maxAutomatic: opts.maxAutomatic });
+  const autoPlan = sch.schedulePlan(candidates, { maxAutomatic: opts.maxAutomatic });
+  // Level-3 contextual escalations (if any) go through the UNTRUSTED planner → validating merger.
+  // The planner cannot widen the plan or escape the catalog allowlist (plan Phase 2); with no Level-3
+  // candidate this is a no-op and scheduling stays fully deterministic.
+  const { plan, errors: planErrors } = agentPlanner.planLevel3(autoPlan, candidates, opts.level3Planner);
   plan._startedAt = now;
   // ATTESTATION (audit V3R3-C1): a run that holds the trust-anchor key signs its evidence so the
   // builder can verify lineage at the publish boundary. The key comes from opts or the trusted
@@ -47,7 +52,7 @@ async function orchestrate(collect, drive, opts = {}) {
     observedPageDigest: collect.pageDigest, runnerVersion: '3.0.0-phase0', catalogVersion: experiments.catalogVersion,
   });
   const built = buildV3(bundle, { authority: opts.authority, attestationKey: opts.attestationKey, artifactVerifier: opts.artifactVerifier });
-  return { candidates, plan, experiments, claimProposals, bundle, built };
+  return { candidates, plan, experiments, claimProposals, bundle, built, planErrors };
 }
 
 module.exports = { orchestrate };
