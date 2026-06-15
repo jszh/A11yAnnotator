@@ -25,6 +25,7 @@ const manifest = require('./manifest.js');
 const coverage = require('./coverage-registry.js');
 const dynamic = require('./dynamic-subjects.js');
 const observer = require('./applicability-observer.js');
+const judgments = require('./judgments.js');
 const { resolveClaim } = require('./claims.js');
 
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
@@ -250,6 +251,12 @@ function buildV3(bundle, opts = {}) {
   // explicit coverage boundary: elements with a surface no Phase-0 family covers (audit R1-F5).
   const outOfScope = oracle.outOfScopeElements(bundle.collect);
 
+  // SEMANTIC JUDGMENTS (plan Phase 3 / Rule 6): bind + classify any judgments. They are NON-DEFINITE
+  // adjudication recommendations — NEVER authoritative until a rubric is calibrated (none ship), so
+  // they cannot clear/barrier an obligation; they enter the output as an adjudication queue only.
+  const jres = judgments.processJudgments(bundle.judgments, opts.rubrics);
+  if (jres.errors.length) { for (const m of jres.errors) E(`judgments: ${m}`); return { ok: false, errors, results: null }; }
+
   // (6) emit v3-only results; refuse if a legacy label somehow survived
   const stripClaim = (c) => { const { _target, _family, _sc, _authState, disposition, authoritative, ...rest } = c; return rest; };
   const stripPartial = (p) => { const { _target, _family, _sc, authoritative, ...rest } = p; return rest; };
@@ -266,6 +273,7 @@ function buildV3(bundle, opts = {}) {
     elementSkillSummaries: aggregates,
     outOfScope,
     dynamicSubjects: dyn.subjects, // post-action discoveries, expanded + reconciled (Rule 13)
+    adjudicationRecommendations: jres.recommendations, // non-definite semantic judgments (Phase 3)
     summary: {
       obligations: obligations.length,
       proposals: proposals.length,
@@ -277,6 +285,7 @@ function buildV3(bundle, opts = {}) {
       cleared: claims.filter((c) => c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE').length,
       outOfScopeElements: outOfScope.length,
       dynamicSubjects: dyn.subjects.length,
+      adjudicationRecommendations: jres.recommendations.length,
     },
   };
   // The v3 OUTPUT is entirely harness-authored (no page content), so scan it STRICTLY: any legacy
