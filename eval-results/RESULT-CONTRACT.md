@@ -56,7 +56,7 @@ Every reportable observation is one of:
 - `page` — a page with ≥1 elementWithIssue.
 `summary.countBasis` records which denominator a published number uses.
 
-## Hard invariants (schema rejects on violation — see W2 / R2.3-C / R2.3-D / R2.4 / R2.5)
+## Hard invariants (schema rejects on violation — see W2 / R2.3 / R2.4 / R2.5 / R2.6 / R2.7 / R2.8)
 1. `verdict ∈ enum`; **EVERY** verdict — incl `N/A` and `NOT REPRODUCED` — carries a
    one-line `evidence`/reason (not just issues).
 2. `sc` ∈ the skill's allowed list above; `level` matches the SC. A **normative** issue
@@ -71,21 +71,33 @@ Every reportable observation is one of:
    (issue/countBasis/bySkill cell).
 5. No definite **dynamic** verdict (keyboard/focus/announcement) on a `notFound` element;
    nor on a probe stamped `trust:"synthetic"`/`isolation:"shared"`.
-6. **Outcome-aware behavioral binding (R2.4-B/R2.5-A):** a DEFINITE behavioral verdict
+6. **SUPPORT-based behavioral binding (R2.4-B/R2.5-A/R2.8-A):** a DEFINITE behavioral verdict
    (keyboard-operability / focus-management / focus-visibility / dynamic-announcement /
-   forms-instructions-errors) is bound to the DRIVER's `drive.json`, not the agent's stamp.
-   It is rejected when the driver did not probe it trusted+isolated, OR when the OBSERVED
-   OUTCOME contradicts the verdict: 2.4.7↔`focusIndicator.present`, 2.1.1↔observed key
-   response, 4.1.3↔a captured announcement, 3.3.1↔the FIELD'S OWN form
-   `nativeTextIdentification`/`noTextIdentificationAtAll`, 2.4.3↔`focusReturnedToTrigger`.
-   Native-keyboard presumption supports only `NOT REPRODUCED`, never a failure.
+   forms-instructions-errors) must be POSITIVELY DEMONSTRATED by an observed `drive.json`
+   outcome — not merely the absence of a contradiction (silence is not failure evidence).
+   Per cited SC: 2.4.7↔`focusIndicator.present`; 2.1.1↔an exercised key response (or native
+   presumption, which supports only `NOT REPRODUCED`); 4.1.3↔an OBSERVED status message that
+   was/wasn't announced (`liveRegionChanged` excludes display:none/`aria-live="off"`);
+   2.4.3↔an observed focus-return outcome; **2.1.2↔the page `tabWalk`** (`trapDetected:true`
+   for REPRODUCED; a positively-escapable walk — not indeterminate — for `NOT REPRODUCED`);
+   3.3.1↔the FIELD'S OWN probed form (an unmapped field → PARTIAL). The DRIVER inventory is
+   integrity-checked (no duplicate/extra driver xpaths) so evidence is not order-dependent.
 7. `bucket ∈ {normative, at-compat, best-practice}`; only `normative` REPRODUCED counts toward
    an SC tally.
 8. **Completeness:** all 3 page skills present and NOT `N/A`; no unexpected top-level/
    element/skill/verdict keys.
-9. **Provenance + identity (R2.4-A/R2.5-B/R2.5-C):** `provenance.collect.xpaths` is derived
-   from the MANDATORY `collect.json` (not the agent); `records.file === collect.file ===
-   drive.file` (no cross-page substitution); raw collector xpaths must be unique. Completeness
-   is **default-closed**: every collected element is evaluated OR in `skipped:[{xpath,reason}]`
-   with a SUBSTANTIVE reason, skips ≤ 25% of the inventory, and if the collector's axe run
-   found critical/serious violations an audit that SKIPPED elements may not report 0 failures.
+9. **Provenance + identity + freshness (R2.4-A/R2.5-C/R2.6-C/R2.7-C/R2.8-D):**
+   `provenance.collect.xpaths` is derived from the MANDATORY `collect.json` (not the agent);
+   `records.file === collect.file === drive.file`; collect and drive must share a `runId` AND
+   `drive.drivenAt` (driver start) ≥ `collect.collectedAt` (collector COMPLETION) — both
+   REQUIRED finite (a stale/reused drive is rejected). Raw collector xpaths must be unique
+   (whitespace-normalized). Completeness is **default-closed**: every collected element is
+   evaluated OR in `skipped:[{xpath,reason}]` with a SUBSTANTIVE reason; skips are capped at a
+   **strict floor(25%)** of the inventory (no min-2 — a <4-element page permits none; record an
+   unlocatable element as `notFound`).
+10. **Axe ground truth (R2.5-B/R2.7-B/R2.8-C):** the collector stamps `axeRan`; the floor
+    FAILS CLOSED — `axeRan === true` is required (missing ⇒ not-run), and a skip is rejected
+    when axe didn't run OR found any WCAG-SC-tagged violation. RECONCILIATION: every WCAG SC
+    the collector's axe flagged must be reported as a finding OR explicitly adjudicated in
+    `axeAdjudications:[{sc,reason}]`. The `regression-sweep` re-runs the identity/freshness/axe
+    gate and requires all three parseable artifacts per page (an incomplete page fails).

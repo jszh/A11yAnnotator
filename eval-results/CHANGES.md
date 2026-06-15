@@ -373,3 +373,31 @@ verifier itself).
 
 E (target) and F (recursive) surfaces stayed exhausted. Severity trend: R24 1-crit/3-high
 → R2.5 0-crit/4-high → R2.6 0-crit/2-high. Auditor files untracked; per-page data frozen.
+
+---
+
+# Round 2.8 — external R27 audit remediation (2026-06-15)
+
+The external `ROUND27-INDEPENDENT-VERIFICATION.md` (1 Critical, 5 High, 2 Medium) found the
+binding was *contradiction-based* (a failure validated when the driver merely didn't observe
+a contradiction) and several gates fail-OPEN on missing fields. All fixed.
+
+- **A (C1)** SUPPORT-based binding: a definite behavioral verdict must be POSITIVELY
+  demonstrated by an observed outcome (silence ≠ failure). 2.1.2 is bound to the page
+  `tabWalk`; 4.1.3 needs an OBSERVED status message; `liveRegionChanged` excludes
+  display:none/`aria-live="off"` regions. · `lib/result-builder.js`, `drive-page.js`.
+- **B (H4)** driver inventory integrity: duplicate/extra driver xpaths rejected (evidence was
+  order-dependent). · `tools/build-results.js`.
+- **C (H3)** axe fails CLOSED (`axeRan === true`); RECONCILIATION — every WCAG-tagged axe SC
+  must be a finding or an `axeAdjudications` entry. · build-results, builder, sweep.
+- **D (H2)** freshness: timestamps REQUIRED finite; `collectedAt` stamped at collector
+  COMPLETION so `drivenAt >= collectedAt` proves the driver used a completed collection.
+- **E (H1)** `regression-sweep` requires all three parseable artifacts per page + re-runs the
+  identity/freshness gate (an incomplete page now fails, not silently passes).
+- **F (H5 + my #4/#5)** trap: `defocus` counts only a REMOVED reachable route (empty divs no
+  longer false-trap); background-defocus DEMOTED to indeterminate-suspect; a MAXTAB-unconverged
+  walk is honestly indeterminate.
+- **G (M1)** strict `floor(25%)` skip cap (no min-2).
+- **H (M2)** RESULT-CONTRACT synced + docs tests for the sentinel/freshness/skip-cap/sweep.
+
+Auditor files remain untracked; per-page `eval-results/<slug>/` data stays frozen.

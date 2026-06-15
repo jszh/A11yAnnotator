@@ -72,3 +72,20 @@ test('contract SC lists are self-consistent with the schema and SC_LEVEL', () =>
   assert.deepEqual(S.SKILL_SCS['dynamic-announcement'], ['4.1.3']);
   assert.ok(S.SKILL_SCS['name-role-state'].includes('4.1.2'));
 });
+
+test('R2.8-H (R27-M2): RESULT-CONTRACT documents the R2.6/R2.7/R2.8 gate exactly', () => {
+  const c = read('eval-results/RESULT-CONTRACT.md');
+  // support-based binding + 2.1.2↔tabWalk
+  assert.ok(/SUPPORT-based|positively demonstrated/i.test(c), 'contract must state support-based binding');
+  assert.ok(/2\.1\.2.{0,40}tabWalk/i.test(c), 'contract must bind 2.1.2 to the tab-walk');
+  // axe sentinel + reconciliation
+  assert.ok(/axeRan\s*===\s*true/.test(c), 'contract must require axeRan === true (fail-closed)');
+  assert.ok(/reconciliation|axeAdjudications/i.test(c), 'contract must document axe reconciliation');
+  // freshness: runId + drivenAt >= collectedAt completion, required finite
+  assert.ok(/runId/.test(c) && /drivenAt/.test(c) && /collectedAt/.test(c), 'contract must document run-id + freshness timestamps');
+  assert.ok(/completion/i.test(c) && /finite/i.test(c), 'freshness must be completion-based and required finite');
+  // strict 25% skip cap, no min-2
+  assert.ok(/strict\s*floor\(25%\)|strict.{0,12}25%/i.test(c) && /no min-2|permits none/i.test(c), 'contract must state the strict 25% cap with no min-2');
+  // sweep requires all artifacts
+  assert.ok(/regression-sweep/.test(c) && /all three parseable artifacts/i.test(c), 'contract must document the sweep completeness requirement');
+});
