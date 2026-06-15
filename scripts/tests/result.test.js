@@ -209,12 +209,14 @@ test('R2.4-A provenance: a collected element DROPPED is REJECTED by default (no 
     provenance: { collect: { xpaths: ['/a', '/b'], count: 2 } } });
   assert.ok(validateResults(R).errors.some(e => /was dropped/.test(e)), 'completeness is default-closed');
 });
-test('R2.4-A provenance: a dropped element is ACCEPTED only via skipped[{xpath,reason}]', () => {
-  const ok = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
-    provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b', reason: 'off-screen duplicate' }] } } });
-  assert.equal(validateResults(ok).ok, true, 'a structured skip with a reason closes completeness');
-  const noReason = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
-    provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b' }] } } });
+test('R2.4-A provenance: a dropped element is ACCEPTED only via skipped[{xpath,reason}] (within the 25% cap)', () => {
+  const inv = ['/a', '/b', '/c', '/d', '/e', '/f', '/g', '/h']; // 8 → cap 2
+  const evald = inv.slice(1).map(el); // evaluate 7, skip /a
+  const ok = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: evald,
+    provenance: { collect: { xpaths: inv, count: 8, skipped: [{ xpath: '/a', reason: 'off-screen duplicate' }] } } });
+  assert.equal(validateResults(ok).ok, true, 'a structured skip with a reason (within cap) closes completeness');
+  const noReason = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: evald,
+    provenance: { collect: { xpaths: inv, count: 8, skipped: [{ xpath: '/a' }] } } });
   assert.ok(validateResults(noReason).errors.some(e => /SUBSTANTIVE reason/.test(e)), 'a skip without a reason is rejected');
 });
 test('R2.5-B skip integrity: mass-skip (>25% cap), filler reasons, and extra skip keys are REJECTED', () => {
@@ -222,7 +224,7 @@ test('R2.5-B skip integrity: mass-skip (>25% cap), filler reasons, and extra ski
   // mass-skip 11/12 with a substantive reason → cap fires
   const massSkip = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/e0')],
     provenance: { collect: { xpaths: inv, count: 12, skipped: inv.slice(1).map(x => ({ xpath: x, reason: 'not locatable in dynamic dom' })) } } });
-  assert.ok(validateResults(massSkip).errors.some(e => /exceeds the cap/.test(e)), 'cannot declare most of the sample un-evaluated');
+  assert.ok(validateResults(massSkip).errors.some(e => /exceeds the strict cap/.test(e)), 'cannot declare most of the sample un-evaluated');
   // filler reason "........"
   const filler = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/e0')],
     provenance: { collect: { xpaths: ['/e0', '/e1'], count: 2, skipped: [{ xpath: '/e1', reason: '........' }] } } });
@@ -243,11 +245,12 @@ test('R2.5-B axe floor: skipping elements + 0 failures while the collector axe f
   assert.equal(validateResults(noSkip, { collectorAxe: { ran: true, wcagViolations: 4 } }).ok, true, 'no skips → floor does not fire');
 });
 test('R2.7-B axe floor FAILS CLOSED when axe did not run + an element was skipped', () => {
-  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')],
-    provenance: { collect: { xpaths: ['/a', '/b'], count: 2, skipped: [{ xpath: '/b', reason: 'off-screen duplicate' }] } } });
+  const inv = ['/a', '/b', '/c', '/d', '/e', '/f', '/g', '/h']; // 8 → cap 2, so 1 skip is within cap
+  const R = buildResults({ file: 'f', slug: 's', pageSkills: pageOk(), elements: inv.slice(1).map(el),
+    provenance: { collect: { xpaths: inv, count: 8, skipped: [{ xpath: '/a', reason: 'off-screen duplicate' }] } } });
   // axe did NOT run (ran:false) and 0 violations — a skip can't be verified safe → reject.
   assert.ok(validateResults(R, { collectorAxe: { ran: false, wcagViolations: 0 } }).errors.some(e => /axe run did NOT complete/.test(e)));
-  // a clean page where axe RAN clean + a legit skip → allowed.
+  // a clean page where axe RAN clean + a legit (within-cap) skip → allowed.
   assert.equal(validateResults(R, { collectorAxe: { ran: true, wcagViolations: 0 } }).ok, true, 'axe ran clean → a legit skip is fine');
 });
 test('R2.4-A provenance: count mismatch and an unexpected collect key are REJECTED', () => {
@@ -533,4 +536,18 @@ test('R2.8-C reconciliation: a WCAG SC the collector axe flagged must be a findi
 test('R2.8-C reconciliation: a matching FINDING that cites the SC satisfies it', () => {
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'reflow-and-pointer-affordances': { verdict: 'REPRODUCED', sc: '2.5.8', level: 'AA', evidence: 'too small', trust: 'trusted', isolation: 'isolated' } })] });
   assert.equal(validateResults(R, { collectorAxe: { ran: true, wcagViolations: 1, scs: ['2.5.8'] } }).ok, true, 'the result reports 2.5.8 → reconciled');
+});
+
+// ---- R2.8-G: strict 25% skip cap (R27-M1) ----
+test('R2.8-G: the skip cap is a strict floor(25%) with NO min-2 exception', () => {
+  const mk = (n, skips) => buildResults({ file: 'f', slug: 's', pageSkills: pageOk(),
+    elements: Array.from({ length: n - skips }, (_, i) => el('/keep' + i)),
+    provenance: { collect: { xpaths: [...Array.from({ length: n - skips }, (_, i) => '/keep' + i), ...Array.from({ length: skips }, (_, i) => '/skip' + i)], count: n, skipped: Array.from({ length: skips }, (_, i) => ({ xpath: '/skip' + i, reason: 'off-screen duplicate node' })) } } });
+  // the auditor's small-inventory cases (2/3, 2/4) must now be REJECTED
+  assert.ok(validateResults(mk(3, 2)).errors.some(e => /exceeds the strict cap of 0/.test(e)), '2 of 3 (67%) rejected');
+  assert.ok(validateResults(mk(4, 2)).errors.some(e => /exceeds the strict cap of 1/.test(e)), '2 of 4 (50%) rejected');
+  // a 3-element page may skip NONE
+  assert.ok(validateResults(mk(3, 1)).errors.some(e => /exceeds the strict cap of 0/.test(e)), '1 of 3 (33%) rejected — record as notFound instead');
+  // exactly 25% is allowed
+  assert.equal(validateResults(mk(8, 2)).ok, true, '2 of 8 (25%) allowed');
 });

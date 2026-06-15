@@ -203,8 +203,11 @@ function validateProvenance(E, R) {
   }
   // R2.5-B: an audit cannot declare MOST of its collected sample un-evaluated. Cap skips
   // at 25% of the inventory (min 2) — completeness must be substantive, not nominal.
-  const skipCap = Math.max(2, Math.ceil(0.25 * inv.length));
-  if (skippedSet.size > skipCap) E(`provenance: ${skippedSet.size} skipped exceeds the cap of ${skipCap} (>25% of the ${inv.length}-element inventory) — an audit cannot declare most of its sample un-evaluated`);
+  // R2.8-G (R27-M1): STRICT ≤25% — no minimum-of-two exception (which let 2/3=67%, 2/4=50%
+  // skip). An inventory of <4 elements permits NO skips (floor(0.25·N)=0) — record any
+  // unlocatable element as notFound (evaluated), not skipped.
+  const skipCap = Math.floor(0.25 * inv.length);
+  if (skippedSet.size > skipCap) E(`provenance: ${skippedSet.size} skipped exceeds the strict cap of ${skipCap} (25% of the ${inv.length}-element inventory) — record unlocatable elements as notFound, not skipped`);
   const elXpaths = (R.elements || []).map(e => e.xpath);
   const seen = new Set();
   for (const xp of elXpaths) {
