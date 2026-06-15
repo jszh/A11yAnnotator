@@ -93,7 +93,7 @@ function parseRGB(s) {
 
 (async () => {
   const elements = loadXpaths();
-  const out = { file: FILE, runId: RUN_ID, noscript: NOSCRIPT, collectedAt: Date.now(), elementCount: elements.length, problems: [] };
+  const out = { file: FILE, runId: RUN_ID, noscript: NOSCRIPT, collectedAt: null, elementCount: elements.length, problems: [] };
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   try { const _bc = await browser.target().createCDPSession(); await _bc.send('Browser.setDownloadBehavior', { behavior: 'deny' }); } catch (e) {}
   try {
@@ -469,5 +469,9 @@ function parseRGB(s) {
   } finally {
     await browser.close();
   }
+  // R2.8-D (R27-H2): stamp collectedAt at COMPLETION (not start) so the driver's start
+  // (drivenAt) being >= collectedAt proves it ran after the collector FINISHED — i.e. it
+  // could have used a completed collection, not merely started after the collector started.
+  out.collectedAt = Date.now();
   console.log(JSON.stringify(out));
 })().catch(e => { console.error('FATAL', e.message); process.exit(1); });

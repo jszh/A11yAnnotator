@@ -107,3 +107,19 @@ test('R2.8-B: build-results.js CLI rejects a DUPLICATE or EXTRA driver xpath', (
   const extra = cli('drive_extra.json'); assert.equal(extra.ok, false); assert.match(extra.out, /NOT in the collector inventory/);
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('R2.8-D: build-results.js CLI rejects MISSING freshness timestamps (no longer fail-open)', () => {
+  const S = require('../lib/result-schema.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fresh_'));
+  const sk = {}; for (const k of S.SKILLS) sk[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'na' };
+  const ps = {}; for (const k of S.PAGE_SKILLS) ps[k] = { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'ok' };
+  const recP = path.join(dir, 'rec.json'); fs.writeFileSync(recP, JSON.stringify({ file: 'p.html', slug: 's', pageSkills: ps, elements: [{ xpath: '/a', axRole: 'x', axName: 'y', skills: sk }] }));
+  // collect WITHOUT collectedAt, drive WITHOUT drivenAt — was fail-open, now rejected.
+  fs.writeFileSync(path.join(dir, 'collect.json'), JSON.stringify({ file: 'p.html', runId: 'R', axeRan: true, axe: [], elements: [{ xpath: '/a' }] }));
+  fs.writeFileSync(path.join(dir, 'drive.json'), JSON.stringify({ file: 'p.html', runId: 'R', elements: [{ xpath: '/a' }], forms: [] }));
+  let out = '';
+  try { run('node', ['scripts/tools/build-results.js', recP, path.join(dir, 'out.json'), path.join(dir, 'collect.json'), path.join(dir, 'drive.json')], { cwd: ROOT, encoding: 'utf8' }); }
+  catch (e) { out = (e.stdout || '') + (e.stderr || ''); }
+  assert.match(out, /missing freshness timestamps/);
+  fs.rmSync(dir, { recursive: true, force: true });
+});

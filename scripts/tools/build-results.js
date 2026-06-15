@@ -57,14 +57,18 @@ if (!collect.runId || !drive.runId || collect.runId !== drive.runId) {
   console.error(`REFUSED: run-identity mismatch — collect.runId=${JSON.stringify(collect.runId)} != drive.runId=${JSON.stringify(drive.runId)}. Pass the SAME --run-id to eval-page and drive-page in one run (stale drive rejected, R2.6-C).`);
   process.exit(2);
 }
-// R2.7-C (#5): the run-id proves COORDINATION; this proves FRESHNESS. The driver must have
-// run AFTER this collect — a stale drive reused with the same --run-id carries an OLD
-// drivenAt < the fresh collect's collectedAt and is rejected. (Both timestamps required.)
-if (typeof collect.collectedAt === 'number' && typeof drive.drivenAt === 'number') {
-  if (drive.drivenAt < collect.collectedAt) {
-    console.error(`REFUSED: stale drive — drive.drivenAt (${drive.drivenAt}) is BEFORE collect.collectedAt (${collect.collectedAt}); the driver did not run after this collect (R2.7-C).`);
-    process.exit(2);
-  }
+// R2.7-C/R2.8-D (#5/H2): the run-id proves COORDINATION; the timestamps prove FRESHNESS +
+// SEQUENCING. collectedAt is stamped at collector COMPLETION; drivenAt at driver start. Both
+// are now REQUIRED finite numbers (a missing timestamp no longer skips the check, fail-open),
+// and the driver must have started after the collector FINISHED (drivenAt >= collectedAt) —
+// so a stale drive (older drivenAt) is rejected and the driver used a completed collection.
+if (!Number.isFinite(collect.collectedAt) || !Number.isFinite(drive.drivenAt)) {
+  console.error(`REFUSED: missing freshness timestamps — collect.collectedAt=${JSON.stringify(collect.collectedAt)}, drive.drivenAt=${JSON.stringify(drive.drivenAt)} must both be finite (R2.8-D).`);
+  process.exit(2);
+}
+if (drive.drivenAt < collect.collectedAt) {
+  console.error(`REFUSED: stale drive — drive.drivenAt (${drive.drivenAt}) is BEFORE collect.collectedAt completion (${collect.collectedAt}); the driver did not run after this collect (R2.7-C/R2.8-D).`);
+  process.exit(2);
 }
 // R2.5-C/R2.6-C/R2.7-C: raw collector xpaths must be UNIQUE before normalization — reject
 // (don't silently dedup) so a duplicate-laden inventory can't mask a fabricated count.
