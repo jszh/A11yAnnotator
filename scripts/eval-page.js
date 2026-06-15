@@ -32,9 +32,21 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const A = require('./lib/a11y-eval.js'); // shared pure helpers (see HARNESS-ISSUES.md)
 
 const ROOT = path.join(__dirname, '..');
+// R2.9-D (R2.8 self-audit #2): a sha256 of the served page SOURCE. The collector and the
+// driver each compute it from the same on-disk file; build-results requires the two to
+// MATCH, so a stale drive from a CHANGED page version (same file name, edited content) is
+// rejected — run-id + freshness alone can't catch an in-place edit. Returns null if
+// unreadable (then the digest gate is inert; identity/run/freshness still apply). NOTE: a
+// fully-fabricating agent that writes BOTH artifacts can echo any digest — this binds the
+// REAL collector↔driver pair, not a forged one (documented limit, RESULT-CONTRACT.md).
+function pageDigest(file) {
+  try { return 'sha256:' + crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'assets/saved', file))).digest('hex'); }
+  catch (e) { return null; }
+}
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = process.env.PORT ? +process.env.PORT : 3001;
 const BASE = process.env.A11Y_BASE || `http://127.0.0.1:${PORT}`;
@@ -93,7 +105,7 @@ function parseRGB(s) {
 
 (async () => {
   const elements = loadXpaths();
-  const out = { file: FILE, runId: RUN_ID, noscript: NOSCRIPT, collectedAt: null, elementCount: elements.length, problems: [] };
+  const out = { file: FILE, runId: RUN_ID, pageDigest: pageDigest(FILE), noscript: NOSCRIPT, collectedAt: null, elementCount: elements.length, problems: [] };
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   try { const _bc = await browser.target().createCDPSession(); await _bc.send('Browser.setDownloadBehavior', { behavior: 'deny' }); } catch (e) {}
   try {

@@ -14,7 +14,7 @@
 // Exits non-zero (writing nothing) if the built result fails validation.
 'use strict';
 const fs = require('fs');
-const { buildResults, validateResults, driverEvidenceFrom } = require('../lib/result-builder.js');
+const { buildResults, validateResults, driverEvidenceFrom, crossArtifactErrors } = require('../lib/result-builder.js');
 
 const [inPath, outPath, collectPath, drivePath] = process.argv.slice(2);
 if (!inPath || !outPath) { console.error('usage: build-results.js <input.json> <out/results.json> <collect.json> <drive.json>'); process.exit(2); }
@@ -44,56 +44,19 @@ let drive;
 try { drive = JSON.parse(fs.readFileSync(drivePath, 'utf8')); }
 catch (e) { console.error('cannot read/parse drive.json:', e.message); process.exit(2); }
 
-// R2.5-C (R24-H1): IDENTITY BINDING — records, collector, and driver must describe the
-// SAME page, so a drive/collect from another page cannot authorize this result.
-if (!input.file || input.file !== collect.file || input.file !== drive.file) {
-  console.error(`REFUSED: page-identity mismatch — records.file=${JSON.stringify(input.file)}, collect.file=${JSON.stringify(collect.file)}, drive.file=${JSON.stringify(drive.file)} must be identical (R2.5-C).`);
+// R2.9-B (R2.8 self-audit #3): the cross-artifact gate — page identity (R2.5-C), run
+// identity (R2.6-C), freshness/sequencing (R2.7-C/R2.8-D), page-content digest (R2.9-D),
+// collector-xpath uniqueness (R2.6-C) and driver-inventory integrity (R2.8-B: unique +
+// driver ⊆ collector) — is now ONE shared function in result-builder.js, so the read-only
+// re-gate (regression-sweep.js) enforces IDENTICALLY (the sweep previously omitted the
+// driver-inventory checks, a parity hole). Mandatory presence is enforced above.
+const xErrs = crossArtifactErrors(input, collect, drive);
+if (xErrs.length) {
+  console.error(`REFUSED: ${xErrs.length} cross-artifact gate violation(s):`);
+  for (const m of xErrs) console.error('  ' + m);
   process.exit(2);
 }
-// R2.6-C: RUN identity — collector and driver must be from the SAME run (shared --run-id),
-// so a STALE drive.json from an earlier run of the same page cannot authorize a now-wrong
-// behavioral verdict. (file identity alone can't distinguish runs of the same page.)
-if (!collect.runId || !drive.runId || collect.runId !== drive.runId) {
-  console.error(`REFUSED: run-identity mismatch — collect.runId=${JSON.stringify(collect.runId)} != drive.runId=${JSON.stringify(drive.runId)}. Pass the SAME --run-id to eval-page and drive-page in one run (stale drive rejected, R2.6-C).`);
-  process.exit(2);
-}
-// R2.7-C/R2.8-D (#5/H2): the run-id proves COORDINATION; the timestamps prove FRESHNESS +
-// SEQUENCING. collectedAt is stamped at collector COMPLETION; drivenAt at driver start. Both
-// are now REQUIRED finite numbers (a missing timestamp no longer skips the check, fail-open),
-// and the driver must have started after the collector FINISHED (drivenAt >= collectedAt) —
-// so a stale drive (older drivenAt) is rejected and the driver used a completed collection.
-if (!Number.isFinite(collect.collectedAt) || !Number.isFinite(drive.drivenAt)) {
-  console.error(`REFUSED: missing freshness timestamps — collect.collectedAt=${JSON.stringify(collect.collectedAt)}, drive.drivenAt=${JSON.stringify(drive.drivenAt)} must both be finite (R2.8-D).`);
-  process.exit(2);
-}
-if (drive.drivenAt < collect.collectedAt) {
-  console.error(`REFUSED: stale drive — drive.drivenAt (${drive.drivenAt}) is BEFORE collect.collectedAt completion (${collect.collectedAt}); the driver did not run after this collect (R2.7-C/R2.8-D).`);
-  process.exit(2);
-}
-// R2.5-C/R2.6-C/R2.7-C: raw collector xpaths must be UNIQUE before normalization — reject
-// (don't silently dedup) so a duplicate-laden inventory can't mask a fabricated count.
-// Strip ALL whitespace for the comparison key so predicate-spacing variants
-// (`[@id="x"]` vs `[@id = "x"]`, which Chrome resolves to the SAME node) can't slip past.
-const norm = x => String(x).replace(/\s+/g, '');
-const rawXpaths = (collect.elements || []).map(e => e.xpath).filter(Boolean);
-const dupX = new Set(); { const seen = new Set(); for (const x of rawXpaths) { const n = norm(x); if (seen.has(n)) dupX.add(n); seen.add(n); } }
-if (dupX.size) {
-  console.error(`REFUSED: collector inventory has ${dupX.size} duplicate xpath(s) (e.g. ${String([...dupX][0]).slice(-40)}) — must be unique (R2.6-C, normalized).`);
-  process.exit(2);
-}
-const xpaths = rawXpaths;
-// R2.8-B (R27-H4): DRIVER inventory integrity. A duplicate driver xpath would make the
-// authoritative behavioral evidence order-dependent (later overwrites earlier in
-// driverEvidenceFrom); a driver element the collector never saw is a cross-artifact
-// mismatch. Reject both before the evidence is distilled.
-const driveXpaths = (drive.elements || []).map(e => e.xpath).filter(Boolean);
-const dDup = new Set(); { const seen = new Set(); for (const x of driveXpaths) { const n = norm(x); if (seen.has(n)) dDup.add(n); seen.add(n); } }
-if (dDup.size) {
-  console.error(`REFUSED: driver inventory has ${dDup.size} duplicate xpath(s) (e.g. ${String([...dDup][0]).slice(-40)}) — behavioral evidence would be order-dependent (R2.8-B).`);
-  process.exit(2);
-}
-const colSet = new Set(xpaths.map(norm));
-for (const x of driveXpaths) if (!colSet.has(norm(x))) { console.error(`REFUSED: driver probed ${String(x).slice(-40)} which is NOT in the collector inventory (cross-artifact mismatch, R2.8-B).`); process.exit(2); }
+const xpaths = (collect.elements || []).map(e => e.xpath).filter(Boolean);
 input.provenance = { collect: { xpaths, count: xpaths.length, skipped: Array.isArray(input.skipped) ? input.skipped : [], collectedAt: collect.collectedAt || null, page: collect.file } };
 // R2.5-B/R2.7-B/R2.8-C: the collector's OWN axe run is independent ground truth. Count any
 // violation carrying a real WCAG SC tag (not impact-gated). `ran` must be EXPLICITLY true

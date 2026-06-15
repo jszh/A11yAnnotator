@@ -537,6 +537,15 @@ test('R2.8-C reconciliation: a matching FINDING that cites the SC satisfies it',
   const R = build({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a', { 'reflow-and-pointer-affordances': { verdict: 'REPRODUCED', sc: '2.5.8', level: 'AA', evidence: 'too small', trust: 'trusted', isolation: 'isolated' } })] });
   assert.equal(validateResults(R, { collectorAxe: { ran: true, wcagViolations: 1, scs: ['2.5.8'] } }).ok, true, 'the result reports 2.5.8 → reconciled');
 });
+test('R2.9-C: an axe adjudication needs a SUBSTANTIVE reason (same bar as skipped) — filler is rejected', () => {
+  const base = (extra) => buildResults(Object.assign({ file: 'f', slug: 's', pageSkills: pageOk(), elements: [el('/a')], provenance: { collect: { xpaths: ['/a'], count: 1 } } }, extra));
+  const axe = { collectorAxe: { ran: true, wcagViolations: 1, scs: ['2.4.4'] } };
+  for (const r of ['.', 'n/a', 'ok', '12345678']) // <8 chars, or 8+ chars but no 3-letter word
+    assert.ok(validateResults(base({ axeAdjudications: [{ sc: '2.4.4', reason: r }] }), axe).errors.some(e => /SUBSTANTIVE reason/.test(e)), `filler reason ${JSON.stringify(r)} rejected`);
+  assert.equal(validateResults(base({ axeAdjudications: [{ sc: '2.4.4', reason: 'axe false positive — the link has a discernible accessible name' }] }), axe).ok, true, 'a real justification passes');
+  // parity check: the same bar fires WITHOUT a collectorAxe (the else-branch)
+  assert.ok(validateResults(base({ axeAdjudications: [{ sc: '2.4.4', reason: '.' }] }), {}).errors.some(e => /SUBSTANTIVE reason/.test(e)));
+});
 
 // ---- R2.8-G: strict 25% skip cap (R27-M1) ----
 test('R2.8-G: the skip cap is a strict floor(25%) with NO min-2 exception', () => {

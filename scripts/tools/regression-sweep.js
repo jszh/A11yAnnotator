@@ -33,10 +33,11 @@ for (const s of slugs) {
   // identity/freshness gate (the same the mandatory CLI enforces), so the sweep cannot
   // approve an incomplete page.
   for (const [name, art] of [['collect.json', C], ['drive.json', D], ['results.json', R]]) if (art === undefined) fails.push(`[H1] ${s}: ${name} is missing or unparseable`);
-  if (C && D && R) {
-    if (!(C.file && C.file === D.file && C.file === R.file)) fails.push(`[H1] ${s}: page identity mismatch (collect=${JSON.stringify(C.file)} drive=${JSON.stringify(D.file)} results=${JSON.stringify(R.file)})`);
-    if (!(C.runId && D.runId && C.runId === D.runId)) fails.push(`[H1] ${s}: collect.runId !== drive.runId (stale/mismatched drive)`);
-    if (!Number.isFinite(C.collectedAt) || !Number.isFinite(D.drivenAt) || D.drivenAt < C.collectedAt) fails.push(`[H1] ${s}: freshness — drive.drivenAt must be a finite value >= collect.collectedAt`);
+  // R2.9-B: enforce the EXACT same cross-artifact gate the mandatory CLI uses (page/run
+  // identity, freshness, page-digest, collector-xpath uniqueness, driver ⊆ collector). The
+  // sweep previously checked only a subset (no driver-inventory integrity) — a parity hole.
+  if (C && D && R && builder && builder.crossArtifactErrors) {
+    for (const m of builder.crossArtifactErrors(R, C, D)) fails.push(`[H1] ${s}: ${m}`);
   }
   const cByXp = {}; for (const e of (C && C.elements) || []) cByXp[e.xpath] = e;
 

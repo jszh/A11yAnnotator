@@ -80,8 +80,13 @@ Every reportable observation is one of:
    was/wasn't announced (`liveRegionChanged` excludes display:none/`aria-live="off"`);
    2.4.3↔an observed focus-return outcome; **2.1.2↔the page `tabWalk`** (`trapDetected:true`
    for REPRODUCED; a positively-escapable walk — not indeterminate — for `NOT REPRODUCED`);
-   3.3.1↔the FIELD'S OWN probed form (an unmapped field → PARTIAL). The DRIVER inventory is
-   integrity-checked (no duplicate/extra driver xpaths) so evidence is not order-dependent.
+   **2.4.11↔the driver's `obscured` probe** (REPRODUCED↔`obscured:true`, `NOT REPRODUCED`↔
+   `obscured:false`, unmeasured⇒PARTIAL); 3.3.1↔the FIELD'S OWN probed form (an unmapped field
+   → PARTIAL). **2.4.13** (Focus Appearance, AAA) is **captured as proxies, NOT enforced** —
+   a definite verdict is rejected → PARTIAL. The coverage is **default-closed (R2.9-A):** any
+   dynamic-skill definite verdict citing an SC with NO support predicate is rejected (no silent
+   pass). The DRIVER inventory is integrity-checked (no duplicate/extra driver xpaths) so
+   evidence is not order-dependent.
 7. `bucket ∈ {normative, at-compat, best-practice}`; only `normative` REPRODUCED counts toward
    an SC tally.
 8. **Completeness:** all 3 page skills present and NOT `N/A`; no unexpected top-level/
@@ -90,7 +95,12 @@ Every reportable observation is one of:
    `provenance.collect.xpaths` is derived from the MANDATORY `collect.json` (not the agent);
    `records.file === collect.file === drive.file`; collect and drive must share a `runId` AND
    `drive.drivenAt` (driver start) ≥ `collect.collectedAt` (collector COMPLETION) — both
-   REQUIRED finite (a stale/reused drive is rejected). Raw collector xpaths must be unique
+   REQUIRED finite (a stale/reused drive is rejected) — AND a matching **`pageDigest`**
+   (sha256 of the served page SOURCE, R2.9-D): a stale drive from a CHANGED page version (same
+   file name, edited content) is rejected. *Limit:* a fully-fabricating agent that writes BOTH
+   artifacts can echo any digest — this binds the REAL collector↔driver pair, not a forged one.
+   These checks live in ONE shared `crossArtifactErrors()` (R2.9-B) used by both the mandatory
+   CLI and the read-only sweep, so they enforce identically. Raw collector xpaths must be unique
    (whitespace-normalized). Completeness is **default-closed**: every collected element is
    evaluated OR in `skipped:[{xpath,reason}]` with a SUBSTANTIVE reason; skips are capped at a
    **strict floor(25%)** of the inventory (no min-2 — a <4-element page permits none; record an
@@ -99,5 +109,7 @@ Every reportable observation is one of:
     FAILS CLOSED — `axeRan === true` is required (missing ⇒ not-run), and a skip is rejected
     when axe didn't run OR found any WCAG-SC-tagged violation. RECONCILIATION: every WCAG SC
     the collector's axe flagged must be reported as a finding OR explicitly adjudicated in
-    `axeAdjudications:[{sc,reason}]`. The `regression-sweep` re-runs the identity/freshness/axe
-    gate and requires all three parseable artifacts per page (an incomplete page fails).
+    `axeAdjudications:[{sc,reason}]` — each `reason` held to the SAME substantive bar as a
+    skipped reason (≥8 chars with a real word, R2.9-C). The `regression-sweep` re-runs the FULL
+    shared cross-artifact gate (identity/freshness/page-digest/driver-inventory) + the axe floor,
+    and requires all three parseable artifacts per page (an incomplete page fails).

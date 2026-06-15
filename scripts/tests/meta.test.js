@@ -126,6 +126,37 @@ test('R2.8-D: build-results.js CLI rejects MISSING freshness timestamps (no long
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test('R2.9-D: build-results.js CLI rejects a page-content digest MISMATCH (stale drive from a changed page)', () => {
+  const S = require('../lib/result-schema.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'digest_'));
+  const sk = {}; for (const k of S.SKILLS) sk[k] = { verdict: 'N/A', sc: null, level: null, evidence: 'na' };
+  const ps = {}; for (const k of S.PAGE_SKILLS) ps[k] = { verdict: 'NOT REPRODUCED', sc: null, level: null, evidence: 'ok' };
+  const recP = path.join(dir, 'rec.json'); fs.writeFileSync(recP, JSON.stringify({ file: 'p.html', slug: 's', pageSkills: ps, elements: [{ xpath: '/a', axRole: 'x', axName: 'y', skills: sk }] }));
+  fs.writeFileSync(path.join(dir, 'collect.json'), JSON.stringify({ file: 'p.html', runId: 'R', pageDigest: 'sha256:AAA', collectedAt: 1000, axeRan: true, axe: [], elements: [{ xpath: '/a' }] }));
+  // same run-id + fresh, but the driver ran against a DIFFERENT page version (different digest)
+  fs.writeFileSync(path.join(dir, 'drive_changed.json'), JSON.stringify({ file: 'p.html', runId: 'R', pageDigest: 'sha256:BBB', drivenAt: 2000, elements: [{ xpath: '/a' }], forms: [] }));
+  fs.writeFileSync(path.join(dir, 'drive_match.json'), JSON.stringify({ file: 'p.html', runId: 'R', pageDigest: 'sha256:AAA', drivenAt: 2000, elements: [{ xpath: '/a' }], forms: [] }));
+  const cli = (drive) => { try { run('node', ['scripts/tools/build-results.js', recP, path.join(dir, 'out.json'), path.join(dir, 'collect.json'), path.join(dir, drive)], { cwd: ROOT, encoding: 'utf8' }); return { ok: true, out: '' }; } catch (e) { return { ok: false, out: (e.stdout || '') + (e.stderr || '') }; } };
+  const changed = cli('drive_changed.json'); assert.equal(changed.ok, false); assert.match(changed.out, /page-content digest mismatch/);
+  assert.equal(cli('drive_match.json').ok, true, 'matching digests validate');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('R2.9-B: the sweep enforces the SAME driver-inventory gate as the CLI (parity — was omitted)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sweepdrv_'));
+  const slug = path.join(dir, 'p'); fs.mkdirSync(slug);
+  // a DUPLICATE driver xpath — the CLI rejects this (R2.8-B); the sweep must too now.
+  fs.writeFileSync(path.join(slug, 'collect.json'), JSON.stringify({ file: 'x', runId: 'R', collectedAt: 1000, axeRan: true, axe: [], elements: [{ xpath: '/a' }] }));
+  fs.writeFileSync(path.join(slug, 'drive.json'), JSON.stringify({ file: 'x', runId: 'R', drivenAt: 2000, elements: [{ xpath: '/a' }, { xpath: '/a' }], forms: [] }));
+  fs.writeFileSync(path.join(slug, 'results.json'), JSON.stringify({ file: 'x', slug: 'p', elements: [] }));
+  let failed = false, out = '';
+  try { run('node', ['scripts/tools/regression-sweep.js', dir], { cwd: ROOT, encoding: 'utf8' }); }
+  catch (e) { failed = true; out = (e.stdout || '') + (e.stderr || ''); }
+  fs.rmSync(dir, { recursive: true, force: true });
+  assert.ok(failed, 'the sweep must reject a duplicate driver xpath, like the CLI');
+  assert.match(out, /driver inventory has 1 duplicate/);
+});
+
 test('R2.8-E: the sweep FAILS on an incomplete page (missing collect/results — auditor R27-H1)', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sweepinc_'));
   const slug = path.join(dir, 'incpage'); fs.mkdirSync(slug);

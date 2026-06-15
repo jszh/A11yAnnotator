@@ -223,6 +223,43 @@ function validateProvenance(E, R) {
   if (c.page != null && R.file != null && c.page !== R.file) E(`provenance.collect.page=${JSON.stringify(c.page)} != results.file=${JSON.stringify(R.file)} (cross-page substitution)`);
 }
 
+// R2.9-B (R2.8 self-audit #3): ONE shared cross-artifact gate used by BOTH the mandatory
+// CLI (build-results.js) and the read-only re-gate (regression-sweep.js), so the sweep can
+// never approve a page the CLI would refuse. Returns errors[] (empty = ok). Pure.
+function crossArtifactErrors(records, collect, drive) {
+  const E = []; const push = m => E.push(m);
+  const norm = x => String(x).replace(/\s+/g, '');
+  if (!records || typeof records !== 'object') return ['cross-artifact: missing/unparseable records'];
+  if (!collect || typeof collect !== 'object') return ['cross-artifact: missing/unparseable collect.json'];
+  if (!drive || typeof drive !== 'object') return ['cross-artifact: missing/unparseable drive.json'];
+  // PAGE identity
+  if (!records.file || records.file !== collect.file || records.file !== drive.file)
+    push(`page-identity mismatch — records.file=${JSON.stringify(records.file)}, collect.file=${JSON.stringify(collect.file)}, drive.file=${JSON.stringify(drive.file)} must be identical`);
+  // RUN identity
+  if (!collect.runId || !drive.runId || collect.runId !== drive.runId)
+    push(`run-identity mismatch — collect.runId=${JSON.stringify(collect.runId)} != drive.runId=${JSON.stringify(drive.runId)} (stale/mismatched drive)`);
+  // FRESHNESS (required finite; driver started after collector COMPLETION)
+  if (!Number.isFinite(collect.collectedAt) || !Number.isFinite(drive.drivenAt))
+    push(`missing freshness timestamps — collect.collectedAt=${JSON.stringify(collect.collectedAt)}, drive.drivenAt=${JSON.stringify(drive.drivenAt)} must both be finite`);
+  else if (drive.drivenAt < collect.collectedAt)
+    push(`stale drive — drive.drivenAt (${drive.drivenAt}) is BEFORE collect.collectedAt completion (${collect.collectedAt})`);
+  // PAGE-CONTENT digest (R2.9-D): the driver must have run against the SAME page the
+  // collector hashed — a stale drive from a CHANGED page carries a different digest.
+  if (collect.pageDigest || drive.pageDigest) {
+    if (!collect.pageDigest || !drive.pageDigest || collect.pageDigest !== drive.pageDigest)
+      push(`page-content digest mismatch — collect.pageDigest=${JSON.stringify(collect.pageDigest)} != drive.pageDigest=${JSON.stringify(drive.pageDigest)} (the driver ran against a different page version)`);
+  }
+  // COLLECTOR inventory uniqueness (normalized)
+  const cx = (collect.elements || []).map(e => e && e.xpath).filter(Boolean);
+  { const seen = new Set(), dup = new Set(); for (const x of cx) { const n = norm(x); if (seen.has(n)) dup.add(n); seen.add(n); } if (dup.size) push(`collector inventory has ${dup.size} duplicate xpath(s) (e.g. ${String([...dup][0]).slice(-40)}) — must be unique`); }
+  // DRIVER inventory: unique + subset of the collector inventory
+  const dx = (drive.elements || []).map(e => e && e.xpath).filter(Boolean);
+  { const seen = new Set(), dup = new Set(); for (const x of dx) { const n = norm(x); if (seen.has(n)) dup.add(n); seen.add(n); } if (dup.size) push(`driver inventory has ${dup.size} duplicate xpath(s) (e.g. ${String([...dup][0]).slice(-40)}) — behavioral evidence would be order-dependent`); }
+  const colSet = new Set(cx.map(norm));
+  for (const x of dx) if (!colSet.has(norm(x))) { push(`driver probed ${String(x).slice(-40)} which is NOT in the collector inventory (cross-artifact mismatch)`); break; }
+  return E;
+}
+
 // R2.4-B/R2.5-A: distil drive.json into per-element + page evidence, including the
 // OBSERVED OUTCOME signals (not just probe trust) the binding needs to detect a verdict
 // that contradicts the driver.
@@ -359,6 +396,14 @@ function behavioralSupport(skill, verdict, codes, ev, formsTrust, formOutcome, t
 // binds definite behavioral verdicts to the driver's evidence (R2.4-B); when absent, the
 // binding is skipped (library/unit use) — the mandatory gate (build-results.js) always
 // supplies it.
+// R2.9-C: adjudications carry the SAME substantive-reason bar as skipped elements — a
+// definite "axe is wrong here" claim must be a real ≥8-char justification with letters,
+// not "." / "n/a" / filler (parity with the provenance.skipped reason check above).
+function adjReasonOk(a) {
+  if (!a || typeof a !== 'object' || !a.sc) return false;
+  const r = String(a.reason || '').trim();
+  return r.length >= 8 && /[a-z]{3,}/i.test(r);
+}
 function validateResults(R, opts = {}) {
   const errors = [];
   const E = m => errors.push(m);
@@ -389,12 +434,12 @@ function validateResults(R, opts = {}) {
     if (Array.isArray(AX.scs) && AX.scs.length) {
       const citedScs = new Set((R.summary && Array.isArray(R.summary.issues) ? R.summary.issues : []).flatMap(i => S.scCodes(i.sc)));
       const adj = Array.isArray(R.axeAdjudications) ? R.axeAdjudications : [];
-      for (const a of adj) if (!a || typeof a !== 'object' || !a.sc || !String(a.reason || '').trim()) E('axeAdjudications: each entry needs {sc, reason} with a non-empty reason');
+      for (const a of adj) if (!adjReasonOk(a)) E('axeAdjudications: each entry needs {sc, reason} with a SUBSTANTIVE reason (a real ≥8-char justification with letters, not "." / "n/a" / filler) — same bar as skipped reasons (R2.9-C)');
       const adjScs = new Set(adj.flatMap(a => (a && a.sc) ? S.scCodes(a.sc) : []));
       for (const sc of AX.scs) if (!citedScs.has(sc) && !adjScs.has(sc)) E(`axe reconciliation: the collector's axe flagged SC ${sc} but the result neither reports it nor adjudicates it (add a finding or an axeAdjudications entry)`);
     }
   } else if (Array.isArray(R.axeAdjudications)) {
-    for (const a of R.axeAdjudications) if (!a || typeof a !== 'object' || !a.sc || !String(a.reason || '').trim()) E('axeAdjudications: each entry needs {sc, reason} with a non-empty reason');
+    for (const a of R.axeAdjudications) if (!adjReasonOk(a)) E('axeAdjudications: each entry needs {sc, reason} with a SUBSTANTIVE reason (a real ≥8-char justification with letters, not "." / "n/a" / filler) — same bar as skipped reasons (R2.9-C)');
   }
 
   for (const el of R.elements) {
@@ -453,4 +498,4 @@ function validateResults(R, opts = {}) {
   return { ok: errors.length === 0, errors };
 }
 
-module.exports = { buildResults, validateResults, deriveElement, fullIssue, issueIdentity, driverEvidenceFrom, behavioralSupport };
+module.exports = { buildResults, validateResults, deriveElement, fullIssue, issueIdentity, driverEvidenceFrom, behavioralSupport, crossArtifactErrors };

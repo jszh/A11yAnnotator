@@ -29,9 +29,16 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const A = require('./lib/a11y-eval.js'); // shared pure helpers (see HARNESS-ISSUES.md)
 
 const ROOT = path.join(__dirname, '..');
+// R2.9-D: sha256 of the served page SOURCE — must MATCH the collector's pageDigest in
+// build-results, so a stale drive from a changed page version is rejected (see eval-page.js).
+function pageDigest(file) {
+  try { return 'sha256:' + crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'assets/saved', file))).digest('hex'); }
+  catch (e) { return null; }
+}
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = process.env.PORT ? +process.env.PORT : 3001;
 const BASE = process.env.A11Y_BASE || `http://127.0.0.1:${PORT}`;
@@ -78,7 +85,7 @@ function loadXpaths() {
 (async () => {
   try { fs.mkdirSync(SHOTDIR, { recursive: true }); } catch (e) {}
   const xpaths = loadXpaths();
-  const out = { file: FILE, runId: RUN_ID, drivenAt: Date.now(), noscript: NOSCRIPT, scriptsDisabled: NOSCRIPT, maxTab: MAXTAB, problems: [] };
+  const out = { file: FILE, runId: RUN_ID, pageDigest: pageDigest(FILE), drivenAt: Date.now(), noscript: NOSCRIPT, scriptsDisabled: NOSCRIPT, maxTab: MAXTAB, problems: [] };
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   try { const _bc = await browser.target().createCDPSession(); await _bc.send('Browser.setDownloadBehavior', { behavior: 'deny' }); } catch (e) {}
   try {
