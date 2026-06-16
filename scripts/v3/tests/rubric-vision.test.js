@@ -161,3 +161,15 @@ test('adversarial LOW: mergeVision ignores array inputs', () => {
   assert.deepEqual(mergeVision([1, 2, 3]), {});
   assert.deepEqual(mergeVision({ '/x': { v: 'A' } }, [1, 2]), { '/x': { v: 'A' } });
 });
+
+const FXV = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-vision.html');
+test('captureVision (corpus probe regressions): scrolls a below-fold element in; skips a degenerate <6px box', { skip: !chromeOK, concurrency: false }, async () => {
+  const puppeteer = require('puppeteer');
+  const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const p = await b.newPage(); await p.setViewport({ width: 800, height: 600 }); await p.goto(FXV, { waitUntil: 'load' });
+    const vis = await captureVision(p, ['//*[@id="belowfold"]', '//*[@id="tiny"]'], {});
+    assert.ok(vis['//*[@id="belowfold"]'] && vis['//*[@id="belowfold"]']['element-crop'], 'a below-the-fold element is scrolled into view and captured (real pages put most elements off-screen)');
+    assert.ok(!(vis['//*[@id="tiny"]'] && vis['//*[@id="tiny"]']['element-crop']), 'a degenerate 4x4 box is SKIPPED (no near-blank crop)');
+  } finally { await b.close(); }
+});

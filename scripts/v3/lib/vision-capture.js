@@ -26,6 +26,10 @@ async function captureVision(page, xpaths, opts = {}) {
   }
 
   for (const xp of xpaths) {
+    // scroll the target into view first — on a real page most sampled elements are BELOW THE FOLD, so
+    // without this their element-crop is skipped (off-viewport) and the LLM gets no pixels (probe finding
+    // on the corpus). scrollIntoView centres it; getBoundingClientRect is then viewport-relative and clips.
+    await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } }, xp).catch(() => {});
     const rect = await page.evaluate((x) => {
       const el = document.evaluate(x, document, null, 9, null).singleNodeValue;
       if (!el || !el.getBoundingClientRect) return null;
@@ -34,7 +38,10 @@ async function captureVision(page, xpaths, opts = {}) {
       const cs = getComputedStyle(el);
       if (cs.visibility === 'hidden' || cs.visibility === 'collapse' || parseFloat(cs.opacity) === 0) return null;
       const r = el.getBoundingClientRect();
-      if (!(r.width > 0) || !(r.height > 0)) return null;
+      // a DEGENERATE box (either dim < 6px — a collapsed layout artifact or a hairline element) yields a
+      // near-blank crop that misleads the agent (corpus probe: Domino's 5x5, Amazon's 200x2 link). Skip
+      // it — a <6px element is not a meaningful visual target anyway.
+      if (!(r.width >= 6) || !(r.height >= 6)) return null;
       return { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight };
     }, xp).catch(() => null);
     const frames = {};
