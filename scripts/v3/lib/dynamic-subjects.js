@@ -26,6 +26,15 @@ function fingerprintOf(subject) {
   return 'sha256:' + crypto.createHash('sha256').update(canon).digest('hex');
 }
 
+// Static obligations are implicitly bounded by the collected element count; a DISCOVERED subject set is
+// bounded only by what a (possibly buggy/compromised) runner result asserts. Without a cap, a result
+// claiming 200k subjects expands to ~1.8M obligations (~1GB heap) and DoSes the build BEFORE any gate
+// runs (gap-fill red-team). These caps are generous for legitimate discovery (a dialog rarely reveals
+// >256 focusable subjects) yet bound the blowup; a breach is a FAIL-CLOSED error (the builder refuses),
+// enforced BEFORE expansion so the pathological expansion never materializes.
+const MAX_SUBJECTS_PER_RESULT = 256;
+const MAX_TOTAL_SUBJECTS = 1024;
+
 // Expand the obligations contributed by dynamically-discovered subjects across all experiment results.
 // Returns { obligations[], subjects[], errors[] }. A malformed/unprovenanced/forged-fingerprint subject
 // is an ERROR (fail-closed); a well-formed one yields one obligation per oracle-derived family.
@@ -34,10 +43,15 @@ function expandDiscovered(experiments) {
   const subjects = [];
   const errors = [];
   const seen = new Set();
+  let totalSubjects = 0;
   for (const r of (experiments && experiments.results) || []) {
     const list = (r && r.discoveredSubjects) || [];
     if (!Array.isArray(list)) { errors.push(`result ${r && r.claimId}: discoveredSubjects must be an array`); continue; }
+    // bound BEFORE the inner loop so an over-cap result never expands (DoS backstop, fail-closed).
+    if (list.length > MAX_SUBJECTS_PER_RESULT) { errors.push(`result ${r && r.claimId}: ${list.length} discovered subjects exceeds per-result cap ${MAX_SUBJECTS_PER_RESULT} (over-cap ⇒ refuse)`); continue; }
     for (const s of list) {
+      if (totalSubjects >= MAX_TOTAL_SUBJECTS) { errors.push(`discovered-subject total exceeds run cap ${MAX_TOTAL_SUBJECTS} (over-cap ⇒ refuse)`); break; }
+      totalSubjects++;
       const from = r && r.claimId;
       if (!s || typeof s.xpath !== 'string' || !s.xpath) { errors.push(`discovered subject from ${from} requires a non-empty xpath`); continue; }
       if (typeof s.viaAction !== 'string' || !s.viaAction) { errors.push(`discovered subject ${s.xpath} from ${from} requires typed discovery provenance (viaAction)`); continue; }
@@ -58,4 +72,4 @@ function expandDiscovered(experiments) {
   return { obligations, subjects, errors };
 }
 
-module.exports = { fingerprintOf, expandDiscovered };
+module.exports = { fingerprintOf, expandDiscovered, MAX_SUBJECTS_PER_RESULT, MAX_TOTAL_SUBJECTS };

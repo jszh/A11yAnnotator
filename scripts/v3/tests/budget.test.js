@@ -18,6 +18,17 @@ test('costFor: defaults, catalog override, and clamping of invalid values', () =
   assert.deepEqual(budget.costFor({ cost: { maxWallClockMs: -1, retries: -3, mutationRisk: 'bogus' } }), { maxWallClockMs: 20000, retries: 1, mutationRisk: 'low' }, 'invalid cost clamps to defaults');
 });
 
+// gap-fill red-team: clamping only the LOWER bound let a catalog (or an attacker who supplies one)
+// request retries:1e6 / maxWallClockMs:1e9, multiplying the per-request run-budget overshoot without
+// limit. costFor must clamp BOTH ends; all real catalog entries sit well under the caps.
+test('costFor: pathological upper values are clamped to the hard caps', () => {
+  const c = budget.costFor({ cost: { maxWallClockMs: 864000000, retries: 1000000, mutationRisk: 'high' } });
+  assert.equal(c.retries, budget.MAX_RETRIES, 'retries clamped to the upper cap');
+  assert.equal(c.maxWallClockMs, budget.MAX_WALL_CLOCK_MS, 'wall-clock clamped to the upper cap');
+  // a legitimate in-range value passes through unchanged
+  assert.deepEqual(budget.costFor({ cost: { maxWallClockMs: 30000, retries: 1 } }), { maxWallClockMs: 30000, retries: 1, mutationRisk: 'low' });
+});
+
 test('the catalog declares cost/risk for mutating + long-running experiments', () => {
   assert.equal(budget.costFor(cat.getExperiment('keyboard-activation')).mutationRisk, 'high');
   assert.equal(budget.costFor(cat.getExperiment('ax-state-diff')).mutationRisk, 'high');

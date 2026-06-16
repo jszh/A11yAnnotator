@@ -69,6 +69,26 @@ test('coverage: every declared claim-family is realizable (mutation backstop)', 
   assert.deepEqual(obl.coverageErrors(), []);
 });
 
+// gap-fill red-team (CRITICAL): a hostile xpath equal to an Object.prototype member name must be DATA,
+// never a method/prototype — a plain `{}` map let `byXpath['__proto__'].push` throw and crash the build
+// FAIL-OPEN. `reconcile` was hardened (R2-L1); `aggregateElementSkill`/`bySkill` were the missed siblings.
+test('aggregateElementSkill: a prototype-member xpath is inert data, never crashes (null-proto maps)', () => {
+  for (const evil of ['__proto__', 'constructor', 'toString', 'valueOf', 'hasOwnProperty']) {
+    const ledger = [{ obligationId: `${evil}::2.4.7::focus-indicator-visible`, xpath: evil, sc: '2.4.7', claimFamily: 'focus-indicator-visible', disposition: 'CLAIM', cleared: true, autoPartial: false }];
+    let sums;
+    assert.doesNotThrow(() => { sums = obl.aggregateElementSkill(ledger); }, `xpath "${evil}" must not crash aggregation`);
+    assert.ok(sums.some((s) => s.xpath === evil && s.skill === 'focus-visibility' && s.cleared), `the "${evil}" summary is produced`);
+  }
+});
+
+test('buildV3: a collect element with a prototype-member xpath REFUSES or builds, but never throws (fail-closed)', () => {
+  for (const evil of ['__proto__', 'constructor', 'toString']) {
+    let r;
+    assert.doesNotThrow(() => { r = buildV3(withPipeline(bundleWith([], [], [{ xpath: evil, focusable: true }])), { authority: PROMOTED }); }, `collect xpath "${evil}" must not crash the build`);
+    assert.equal(typeof r.ok, 'boolean', 'the build returns a disposition object, not an uncaught throw');
+  }
+});
+
 // ---- end-to-end through buildV3 (PROMOTED so the publish path is exercised) ----
 const bundleWith = (proposals, results, elements) => ({
   collect: { file: 'p', runId: 'R', pageDigest: 'sha256:d', collectedAt: 1000, elements },

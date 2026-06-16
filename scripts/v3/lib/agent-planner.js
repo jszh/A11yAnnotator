@@ -36,7 +36,11 @@ function planLevel3(autoPlan, candidatesArtifact, planner = deterministicPlanner
   try { agentPlan = planner(escalations, { candidates: candidatesArtifact }); }
   catch (e) { return { plan: autoPlan, errors: [`planner threw: ${String((e && e.message) || e)}`] }; }
   if (!agentPlan || !Array.isArray(agentPlan.requests)) return { plan: autoPlan, errors: ['planner produced no valid requests'] };
-  return sch.mergeAgentPlan(autoPlan, agentPlan, candidatesArtifact);
+  // defense-in-depth: the merger drops/reports each malformed request, but a wholly pathological plan
+  // (e.g. a `requests` array that mutates under iteration) must still never escape the untrusted
+  // planner's containment — fail CLOSED to the un-widened autoPlan if the merge itself throws.
+  try { return sch.mergeAgentPlan(autoPlan, agentPlan, candidatesArtifact); }
+  catch (e) { return { plan: autoPlan, errors: [`merger rejected the agent plan: ${String((e && e.message) || e)}`] }; }
 }
 
 module.exports = { deterministicPlanner, planLevel3 };

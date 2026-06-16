@@ -11,12 +11,18 @@
 // conservative defaults; an experiment overrides via its catalog `cost` block.
 const DEFAULT_COST = Object.freeze({ maxWallClockMs: 20000, retries: 1, mutationRisk: 'low' });
 const RISK_CLASSES = Object.freeze(['none', 'low', 'high']);
+// HARD upper bounds: clamping only the LOWER bound let a catalog entry (or an attacker who can supply a
+// catalog) request retries:1e6 / maxWallClockMs:1e9, multiplying the per-request run-budget overshoot
+// without limit (gap-fill red-team). All real catalog entries are ≤30000ms / 1 retry, so these caps are
+// generous headroom, not a functional constraint — they bound only the pathological tail.
+const MAX_WALL_CLOCK_MS = 120000;
+const MAX_RETRIES = 5;
 
-// the effective cost class for an experiment (catalog `cost` ∪ defaults), validated/clamped.
+// the effective cost class for an experiment (catalog `cost` ∪ defaults), validated/clamped BOTH ends.
 function costFor(exp) {
   const c = (exp && exp.cost) || {};
-  const maxWallClockMs = Number.isFinite(c.maxWallClockMs) && c.maxWallClockMs > 0 ? c.maxWallClockMs : DEFAULT_COST.maxWallClockMs;
-  const retries = Number.isInteger(c.retries) && c.retries >= 0 ? c.retries : DEFAULT_COST.retries;
+  const maxWallClockMs = Number.isFinite(c.maxWallClockMs) && c.maxWallClockMs > 0 ? Math.min(c.maxWallClockMs, MAX_WALL_CLOCK_MS) : DEFAULT_COST.maxWallClockMs;
+  const retries = Number.isInteger(c.retries) && c.retries >= 0 ? Math.min(c.retries, MAX_RETRIES) : DEFAULT_COST.retries;
   const mutationRisk = RISK_CLASSES.includes(c.mutationRisk) ? c.mutationRisk : DEFAULT_COST.mutationRisk;
   return { maxWallClockMs, retries, mutationRisk };
 }
@@ -45,4 +51,4 @@ function withDeadline(factory, ms) {
   });
 }
 
-module.exports = { DEFAULT_COST, RISK_CLASSES, costFor, makeRunBudget, withDeadline };
+module.exports = { DEFAULT_COST, RISK_CLASSES, MAX_WALL_CLOCK_MS, MAX_RETRIES, costFor, makeRunBudget, withDeadline };

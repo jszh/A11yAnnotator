@@ -55,3 +55,32 @@ test('a planner that throws or returns garbage never widens the plan', () => {
   assert.deepEqual(planner.planLevel3(auto, cs, () => null).plan.requests, auto.requests);
   assert.deepEqual(planner.planLevel3(auto, cs, () => ({ requests: 'not-an-array' })).plan.requests, auto.requests);
 });
+
+// gap-fill red-team: a non-object request ELEMENT (null/undefined/scalar) must be dropped-and-reported,
+// never dereferenced — the explicitly-untrusted planner must not crash the deterministic merger FAIL-OPEN.
+test('a planner whose requests array holds null/undefined/scalar elements is contained, never crashes', () => {
+  const cs = cands();
+  const auto = sch.schedulePlan(cs);
+  for (const bad of [[null], [undefined], [42], ['str'], [[]], [true]]) {
+    let r;
+    assert.doesNotThrow(() => { r = planner.planLevel3(auto, cs, () => ({ requests: bad })); }, `requests:${JSON.stringify(bad)} must not throw`);
+    assert.deepEqual(r.plan.requests, auto.requests, 'the plan is not widened by a malformed request element');
+    assert.ok(r.errors.some((m) => /not an object/.test(m)), `rejected with a report: ${JSON.stringify(r.errors)}`);
+  }
+  // a valid request mixed with a null element: the valid one still merges, the null is dropped-and-reported.
+  const r = planner.planLevel3(auto, cs, () => ({ requests: [null, { candidateId: 'L3a', experimentId: 'keyboard-trap-escape', targetXpath: '/html/body/div/input', sc: '2.1.2' }] }));
+  assert.ok(r.errors.some((m) => /not an object/.test(m)));
+  assert.ok(r.plan.requests.some((x) => x.candidateId === 'L3a' && x.selectionSource === 'agent-selected'), 'the valid request still merges');
+});
+
+// defense-in-depth: even if the merge itself throws (a pathological requests array), planLevel3 fails
+// CLOSED to the un-widened autoPlan rather than letting the exception escape orchestrate().
+test('mergeAgentPlan throwing is contained by planLevel3 (fail-closed to the un-widened plan)', () => {
+  const cs = cands();
+  const auto = sch.schedulePlan(cs);
+  const bombArray = new Proxy([{}], { get(t, k) { if (k === '0') throw new Error('elem-bomb'); return t[k]; } });
+  let r;
+  assert.doesNotThrow(() => { r = planner.planLevel3(auto, cs, () => ({ requests: bombArray })); });
+  assert.deepEqual(r.plan.requests, auto.requests);
+  assert.ok(r.errors.length >= 1, JSON.stringify(r.errors));
+});

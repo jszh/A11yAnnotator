@@ -372,6 +372,60 @@ function probeFormError(marker) {
   const fieldConstrained = !!(form && hasConstraint);
   if (!isUserInputField || !fieldRendered || !fieldConstrained) return { isUserInputField, fieldRendered, fieldConstrained, applicable: false, errorNotIdentified: false };
 
+  // ---- error-surface detection (3.3.1: identification is AUTHOR-VISIBLE text, not only aria-wired) ----
+  // The old channel only honoured a message reachable via aria-describedby/errormessage AND gated on
+  // aria-invalid, OR any global live region. That FALSE-BARRIERED the dominant real-world patterns
+  // (unreferenced inline error, sibling .error div, toast/snackbar, GOV.UK error summary, referenced
+  // message without aria-invalid) and FALSE-CLEARED a real barrier whenever any unrelated live region
+  // (e.g. a cart status) held text (gap-fill red-team fb1-6/fc1). We instead diff visible error surfaces
+  // before/after the invalid-input+submit: an error is IDENTIFIED iff a visible, error-associated message
+  // SURFACED as a result (newly created / shown / populated). The before/after diff stops a pre-existing
+  // global status from masking a barrier; the association test stops an unrelated change from clearing it.
+  const visibleText = (n) => {
+    if (!n || n.nodeType !== 1) return '';
+    const ncs = getComputedStyle(n);
+    if (ncs.display === 'none' || ncs.visibility === 'hidden' || parseFloat(ncs.opacity) === 0) return '';
+    const r = n.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return '';
+    return (n.textContent || '').replace(/\s+/g, ' ').trim();
+  };
+  const reddish = (c) => { const m = String(c).match(/rgba?\(([^)]+)\)/i); if (!m) return false; const p = m[1].split(',').map((x) => parseFloat(x)); if (p.length >= 4 && p[3] === 0) return false; return p[0] > 120 && p[0] > p[1] * 1.4 && p[0] > p[2] * 1.4; };
+  const ERR_CLASS = /(error|invalid|warn|danger|fail|required|alert|toast|snackbar|notif|flash)/i;
+  const ERR_TEXT = /\b(error|errors|invalid|required|must|please|enter|missing|cannot|can't|incorrect|select|provide|fill|problem|wrong|empty|blank)\b/i;
+  const OK_TEXT = /\b(thank|thanks|success|succeeded|saved|received|complete|completed|submitted|sent|welcome|congratulations)\b/i;
+  const fieldId = el.id || '';
+  const esc = (s) => (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+  const refSet = new Set(((el.getAttribute('aria-errormessage') || '') + ' ' + (el.getAttribute('aria-describedby') || '')).split(/\s+/).filter(Boolean));
+  const isLiveRegion = (n) => { const r = (n.getAttribute('role') || '').toLowerCase(); const al = (n.getAttribute('aria-live') || '').toLowerCase(); return r === 'alert' || r === 'status' || al === 'assertive' || al === 'polite' || n.tagName === 'OUTPUT'; };
+  const errorStyled = (n) => {
+    const r = (n.getAttribute('role') || '').toLowerCase();
+    if (r === 'alert' || r === 'status') return true;
+    if (n.hasAttribute('data-error') || n.getAttribute('aria-invalid') === 'true') return true;
+    if (ERR_CLASS.test(n.getAttribute('class') || '')) return true;
+    if (/error|invalid|alert|warn/i.test(n.id || '')) return true;
+    return reddish(getComputedStyle(n).color);
+  };
+  const referencesField = (n) => {
+    if (n.id && refSet.has(n.id)) return true;                       // the field points AT this node (describedby/errormessage)
+    if (!fieldId) return false;
+    try { const sel = `a[href="#${esc(fieldId)}"]`; if ((n.matches && n.matches(sel)) || (n.querySelector && n.querySelector(sel))) return true; } catch (e) {}  // summary links to the field
+    return false;
+  };
+  const universe = () => {
+    const set = new Set();
+    if (form) for (const n of form.querySelectorAll('*')) set.add(n);
+    for (const n of document.querySelectorAll('[role="alert"],[role="status"],[aria-live],output,[class*="error"],[class*="invalid"],[class*="alert"],[class*="warn"],[class*="danger"],[class*="toast"],[class*="snackbar"],[class*="notif"],[data-error]')) set.add(n);
+    for (const id of refSet) { const n = document.getElementById(id); if (n) set.add(n); }
+    if (fieldId) { try { for (const a of document.querySelectorAll(`a[href="#${esc(fieldId)}"]`)) { let p = a; for (let k = 0; k < 5 && p; k++) { set.add(p); p = p.parentElement; } } } catch (e) {} }
+    return [...set];
+  };
+
+  // BEFORE the error condition: snapshot the PRISTINE visible text of every candidate surface, so an
+  // error that surfaces on EITHER blur (below) or submit registers as a CHANGE — and a pre-existing,
+  // unrelated live region (e.g. "3 items in your cart") that never changes is NOT mistaken for an error.
+  const PRE = '__v3preText';
+  for (const n of universe()) n[PRE] = visibleText(n);
+
   // make the field invalid (the error condition this constraint detects)
   const orig = ('value' in el) ? el.value : null;
   if ('value' in el) {
@@ -381,9 +435,8 @@ function probeFormError(marker) {
   // native: would the browser BLOCK submit and show a message? (off when the form is novalidate)
   const willValidate = (typeof el.willValidate === 'boolean') ? el.willValidate : true;
   const nativeWouldBlock = !form.noValidate && willValidate && typeof el.checkValidity === 'function' && !el.checkValidity() && !!(el.validationMessage && el.validationMessage.length);
-  // attempt submit WITHOUT navigating — the page's own submit handler may set aria-invalid / show errors
-  let prevented = false;
-  const onSubmit = (e) => { e.preventDefault(); prevented = true; };
+  // attempt submit WITHOUT navigating — the page's own submit handler shows errors by ANY mechanism
+  const onSubmit = (e) => { e.preventDefault(); };
   form.addEventListener('submit', onSubmit, true);
   try {
     const btn = form.querySelector('button[type="submit"],input[type="submit"],button:not([type])');
@@ -392,16 +445,23 @@ function probeFormError(marker) {
     else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
   } catch (e) { /* ignore */ }
   form.removeEventListener('submit', onSubmit, true);
-  // custom error identification: aria-invalid + a referenced VISIBLE message, or a live-region alert.
-  const ariaInvalid = el.getAttribute('aria-invalid') === 'true';
-  const refIds = (el.getAttribute('aria-errormessage') || el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
-  let refText = '';
-  for (const id of refIds) { const n = document.getElementById(id); if (n) { const ncs = getComputedStyle(n); if (ncs.display !== 'none' && ncs.visibility !== 'hidden' && (n.textContent || '').trim()) refText += (n.textContent || '').trim() + ' '; } }
-  let alertText = '';
-  for (const a of document.querySelectorAll('[role="alert"],[aria-live="assertive"],[aria-live="polite"],output')) { const acs = getComputedStyle(a); if (acs.display !== 'none' && acs.visibility !== 'hidden' && (a.textContent || '').trim()) alertText += (a.textContent || '').trim() + ' '; }
-  const customIdentifies = (ariaInvalid && refText.length > 0) || alertText.length > 0;
+
+  // AFTER: a freshly-SURFACED (new / shown / populated), visible, error-ASSOCIATED message identifies the
+  // error. Association = references the field, is a live region, is error-styled (role/class/data/colour),
+  // or reads as error text. A success/confirmation surface is excluded. Bias toward NOT-barrier: any
+  // plausible identification ⇒ errorNotIdentified=false ⇒ PARTIAL, never a false BARRIER.
+  let customIdentifies = false, errorSample = '';
+  for (const n of universe()) {
+    const now = visibleText(n);
+    if (!now) continue;
+    const pre = (PRE in n) ? n[PRE] : '';                 // not in the pre-universe (newly created/styled) ⇒ pristine '' ⇒ surfaced
+    if (pre === now) continue;                            // unchanged surface (e.g. the persistent cart status) is not an error event
+    if (OK_TEXT.test(now) && !ERR_TEXT.test(now)) continue;  // a success/confirmation surface is not error identification
+    if (referencesField(n) || isLiveRegion(n) || errorStyled(n) || ERR_TEXT.test(now)) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
+  }
+  for (const n of universe()) { try { delete n[PRE]; } catch (e) {} }
   if (orig != null) { el.value = orig; } // restore
-  return { isUserInputField, fieldRendered, fieldConstrained: true, applicable: true, errorNotIdentified: !(nativeWouldBlock || customIdentifies), nativeWouldBlock, customIdentifies };
+  return { isUserInputField, fieldRendered, fieldConstrained: true, applicable: true, errorNotIdentified: !(nativeWouldBlock || customIdentifies), nativeWouldBlock, customIdentifies, errorSample };
 }
 
 async function runFormErrorProbe(page, request) {

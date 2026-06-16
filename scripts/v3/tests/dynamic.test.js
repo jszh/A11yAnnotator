@@ -60,3 +60,35 @@ test('buildV3: a forged-fingerprint discovered subject REFUSES the build', () =>
   assert.equal(r.ok, false);
   assert.ok(r.errors.some((m) => /dynamic-subject/.test(m)), JSON.stringify(r.errors));
 });
+
+// gap-fill red-team (HIGH): a static page bounds obligations by collected elements, but a DISCOVERED
+// subject set is bounded only by what a (buggy/compromised) runner asserts. Without a cap, 200k subjects
+// expand to ~1.8M obligations (~1GB) and DoS the build BEFORE any gate runs. The cap must be enforced
+// BEFORE expansion (fail-closed), so the pathological expansion never materializes.
+const wellFormed = (n) => Array.from({ length: n }, (_, i) => { const s = { xpath: 'node:dlg/btn' + i, viaAction: 'activate', surfaceFacts: { focusable: true } }; s.fingerprint = dynamic.fingerprintOf(s); return s; });
+
+test('expandDiscovered: an over-cap per-result subject set is REFUSED before expansion (DoS backstop)', () => {
+  const over = dynamic.MAX_SUBJECTS_PER_RESULT + 1;
+  const t0 = Date.now();
+  const r = dynamic.expandDiscovered({ results: [{ claimId: 'c1', discoveredSubjects: wellFormed(over) }] });
+  assert.ok(Date.now() - t0 < 2000, 'returns promptly — no per-subject expansion of the over-cap set');
+  assert.ok(r.errors.some((m) => /per-result cap/.test(m)), JSON.stringify(r.errors.slice(0, 2)));
+  assert.equal(r.subjects.length, 0, 'the over-cap result is NOT expanded');
+  assert.equal(r.obligations.length, 0);
+});
+
+test('expandDiscovered: the run-level subject total is bounded across results (over-cap ⇒ error)', () => {
+  const per = dynamic.MAX_SUBJECTS_PER_RESULT;       // each result is within the per-result cap
+  const nResults = Math.ceil((dynamic.MAX_TOTAL_SUBJECTS + per) / per);
+  let idx = 0;
+  const results = Array.from({ length: nResults }, (_, k) => ({ claimId: 'c' + k, discoveredSubjects: Array.from({ length: per }, () => { const s = { xpath: 'node:n' + (idx++), viaAction: 'activate', surfaceFacts: { focusable: true } }; s.fingerprint = dynamic.fingerprintOf(s); return s; }) }));
+  const r = dynamic.expandDiscovered({ results });
+  assert.ok(r.errors.some((m) => /run cap/.test(m)), JSON.stringify(r.errors.slice(0, 2)));
+  assert.ok(r.subjects.length <= dynamic.MAX_TOTAL_SUBJECTS, `subjects bounded to the run cap (${r.subjects.length} <= ${dynamic.MAX_TOTAL_SUBJECTS})`);
+});
+
+test('buildV3: an over-cap dynamic result FAILS CLOSED (refuses the build, no silent expansion)', () => {
+  const r = buildV3(bundleWith(wellFormed(dynamic.MAX_SUBJECTS_PER_RESULT + 1)), { authority: promoted(['focus-visual-retry/NO_BARRIER_OBSERVED']) });
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((m) => /dynamic-subject.*cap|cap/.test(m)), JSON.stringify(r.errors.slice(0, 3)));
+});

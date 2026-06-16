@@ -10,10 +10,15 @@ no mechanism publishes authoritative until its trust + soundness gates pass.
 
 Closed (sound + tested): the publication boundary (attestation lineage, observed-page binding,
 fail-closed provenance, runner-identity), the contrast/obscuration/keyboard wrong-verdict paths, and
-strict per-stage schemas. **Phase-0 trust/contract foundation now also closed this pass: G1 attested
-run-manifest (Rule 17), G2 independent coverage registry (Rule 16), G3 independent applicability
-corroboration (Rule 15) — implemented + tested (commits e6536a6, 7324423).** Open: the **higher
-phases** (agent planner, semantic skills, benchmark, budgets) — designed below, not yet built.
+strict per-stage schemas. **Phase-0 trust/contract foundation closed: G1 attested run-manifest (Rule
+17), G2 independent coverage registry (Rule 16), G3 independent applicability (Rule 15, now with the
+faithful separate-code observer).** **Build-out closed (this pass): G5 budgets (Rule 8), G6 dynamic
+subjects (Rule 13), G8 agent planner (Phase 2), G9 semantic judgments (Phase 3), and the 3.3.1
+error-identification experiment — all implemented, tested, and adversarially hardened (see the
+hardening pass below).** Remaining: **G4** the authority benchmark — which IS the user's run-the-suite
++ manually-verify gold loop (operational, not a code gap); and **G7/G10** (AT-capability + Phase-4
+broader states), explicitly out of this build-out. Default-shadow holds throughout: nothing here
+publishes authoritative until its trust + benchmark gate passes.
 
 ## Status of each item
 
@@ -21,14 +26,49 @@ phases** (agent planner, semantic skills, benchmark, budgets) — designed below
 |---|---|---|
 | G1 attested run-manifest | 17 / H7 | **Implemented** (`manifest.js`; builder verifies; production requires) |
 | G2 independent coverage registry | 16 / H8 | **Implemented** (`coverage-registry.js`; mutation-backstop test) |
-| G3 independent applicability | 15 / H6 | **Bounded** — explicit family-level gate, but overlaps obligation reconciliation (red-team); fine-flag observer is the faithful endpoint, future |
-| G4 authority benchmark | 9 | Designed; not built (gold sizing + sealed eval) |
-| G5 budgets + risk classes | 8 | Designed; not built |
-| G6 dynamic subjects | 13 | Designed; not built |
-| G7 AT capability | 12 | Designed; not built |
-| G8 agent planner | Phase 2 | Designed; not built (bounded, untrusted) |
-| G9 semantic skills | Phase 3 | Designed; not built |
-| G10 broader states | Phase 4 | Designed; not built |
+| G3 independent applicability | 15 / H6 | **Implemented** — family-level gate (oracle) **plus** a separate-code structural observer (`applicability-observer.js`, da81c97) the builder agrees-gates; disagreement/absence ⇒ PARTIAL |
+| G4 authority benchmark | 9 | Designed; not built — this is the user's *run-the-suite + manually-verify* gold loop (operational, future) |
+| G5 budgets + risk classes | 8 | **Implemented** (`budget.js`, 56515d4) — per-experiment deadline + bounded retries + run-level cap; over-budget ⇒ deferred. Hardened this pass (upper clamps + per-attempt debit) |
+| G6 dynamic subjects | 13 | **Implemented** (`dynamic-subjects.js`, 3baf652) — typed provenance + content-addressed fingerprint + deterministic expansion. Hardened this pass (expansion cap, fail-closed) |
+| G7 AT capability | 12 | Not built (explicitly out of this build-out, plan #6) |
+| G8 agent planner | Phase 2 | **Implemented** (`agent-planner.js`, cfa6771) — untrusted Level-3 planner behind the validating merger. Hardened this pass (crash containment) |
+| G9 semantic skills | Phase 3 | **Implemented** (`judgments.js`, 4e8bae9) — non-authoritative adjudication recommendations; never publishes a clear without a calibrated, sealed rubric (uncalibrated by default) |
+| #8 3.3.1 error-identification | 3.0-D | **Implemented** (`form-error-probe`, 18cf5de) — barrier-only. Soundness-fixed this pass (visible-surface before/after diff) |
+| G10 broader states | Phase 4 | Not built (explicitly out of this build-out, plan #7) |
+
+## Gap-fill hardening pass (post-build adversarial red-team)
+
+After building G5/G6/G8/G9 + the 3.3.1 experiment, a focused adversarial red-team (3 agents, 28+
+probes, real Chrome + vision) found five real defects; all are fixed + regression-tested:
+
+1. **CRITICAL — prototype-pollution xpath fail-OPEN crash.** An xpath equal to an `Object.prototype`
+   member (`__proto__`/`constructor`/`toString`/…) crashed `buildV3` with an uncaught `TypeError` in
+   `obligations.aggregateElementSkill`/`bySkill` (plain `{}` maps), reachable from a dynamic subject AND
+   a static collect element. `reconcile` was already null-proto-hardened (R2-L1); the two sibling maps
+   were missed. **Fix:** `Object.create(null)` for both; the build now fail-closes, never throws.
+2. **HIGH — 3.3.1 false barriers + a false clear.** The error-identification channel only honoured an
+   aria-referenced message gated on `aria-invalid`, or any *global* live region. It false-barriered five
+   real author patterns (unreferenced inline error, sibling `.error`, toast/snackbar, GOV.UK error
+   summary, referenced message without `aria-invalid`) and false-cleared a real barrier whenever any
+   unrelated live region held text. **Fix:** a before/after diff of visible, error-*associated* surfaces
+   (references the field / live region / error-styled / error text), excluding success surfaces and
+   pre-existing unchanged ones. **Vision-confirmed** on Chrome across all six vectors + the genuine
+   barriers + the committed fixture (screenshots under `/tmp/c6fx/v2-*.png`).
+3. **HIGH — unbounded dynamic-subject expansion (DoS).** A runner result claiming ~200k subjects
+   expanded to ~1.8M obligations (~1GB) *before* any gate. **Fix:** per-result + run-level caps enforced
+   *before* expansion; over-cap ⇒ fail-closed refusal.
+4. **MEDIUM — run-budget overshoot + unclamped cost.** The run wall-clock cap could be overshot by
+   `(retries+1)×` (debited once after the whole retry loop; `wall` computed once) and `retries`/
+   `maxWallClockMs` had no upper clamp. **Fix:** recompute `wall` per attempt against the remaining run
+   budget, debit each attempt, and clamp both cost bounds (`budget.js`).
+5. **MEDIUM — untrusted planner crash containment.** A planner returning `requests:[null]` (or a
+   scalar) crashed the deterministic merger fail-OPEN, violating the module's own "a planner that
+   throws never widens the plan" contract. **Fix:** the merger drops-and-reports each non-object
+   request; `planLevel3` also wraps the merge fail-closed to the un-widened plan.
+
+Gate A (applicability observer) and Gate C (judgments) held against every attack (no boundary escape,
+no false authorization, no rubber-stamp — the manifest hashes the applicability/judgments stages, so a
+forged rubber-stamp is refused or shadowed).
 
 ## Threat model (what every gap-fill must resist)
 

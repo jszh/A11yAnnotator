@@ -53,6 +53,10 @@ function mergeAgentPlan(autoPlan, agentPlan, candidatesArtifact) {
   const merged = [...autoPlan.requests];
   const seen = new Set(merged.map((r) => `${norm(r.targetXpath)}::${r.experimentId}`));
   for (const req of (agentPlan && agentPlan.requests) || []) {
+    // the planner is UNTRUSTED (may be an LLM): a non-object request element (null/undefined/scalar)
+    // must be DROPPED-AND-REPORTED, never dereferenced — `req.experimentId` on null throws and would
+    // crash the deterministic merger fail-open (gap-fill red-team). Containment, not trust.
+    if (!req || typeof req !== 'object' || Array.isArray(req)) { errors.push('agent request is not an object (rejected)'); continue; }
     const exp = cat.getExperiment(req.experimentId);
     if (!exp) { errors.push(`agent request cites unknown experiment ${req.experimentId}`); continue; }
     const cand = l3.get(req.candidateId);

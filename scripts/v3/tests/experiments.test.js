@@ -278,6 +278,23 @@ test('C6b form-error-probe: a constrained field that identifies NO error is a 3.
   assert.equal(dir('form-error-probe', byXp['/html/body/form[4]/div/label/input']), null, 'an unconstrained field has no detectable error condition ⇒ applicability fails ⇒ PARTIAL');
 });
 
+// ---- gap-fill red-team: 3.3.1 identification is AUTHOR-VISIBLE, not only aria-wired (fb1-6/fc1) ----
+// Every verdict below was vision-confirmed on Chrome (screenshots under /tmp/c6fx/v2-*.png): the false
+// barriers showed a clear red message; the barriers showed NO visible error text for the field.
+test('C6b2 form-error-probe: visible error surfaces (inline/toast/summary/described) are identification, not barriers; title-only + silent are', { skip: !chromeOK, concurrency: false }, async () => {
+  const xp = (id) => `//input[@id='${id}']`;
+  const { byXp } = await run('form-error-probe', 'fx-v3-c6b2-formerror.html', ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7'].map(xp));
+  // NOT barriers — a visible, error-associated message surfaced on submit (vision-confirmed red text):
+  assert.notEqual(dir('form-error-probe', byXp[xp('q1')]), 'BARRIER_OBSERVED', 'sibling .error div shown, unreferenced (fb1)');
+  assert.notEqual(dir('form-error-probe', byXp[xp('q2')]), 'BARRIER_OBSERVED', 'aria-describedby node populated, aria-invalid omitted (fb6)');
+  assert.notEqual(dir('form-error-probe', byXp[xp('q3')]), 'BARRIER_OBSERVED', 'visible red message, aria-invalid set but unreferenced (fb5)');
+  assert.notEqual(dir('form-error-probe', byXp[xp('q4')]), 'BARRIER_OBSERVED', 'GOV.UK error summary linking to the field (fb3)');
+  assert.notEqual(dir('form-error-probe', byXp[xp('q5')]), 'BARRIER_OBSERVED', 'toast/snackbar with no role/aria-live (fb2)');
+  // BARRIERS — no VISIBLE TEXT identifies the error for THIS field (vision-confirmed: none shown):
+  assert.equal(dir('form-error-probe', byXp[xp('q6')]), 'BARRIER_OBSERVED', 'title-only tooltip + red outline is not visible-text identification (fb4)');
+  assert.equal(dir('form-error-probe', byXp[xp('q7')]), 'BARRIER_OBSERVED', 'nothing shown; an unrelated global live region must NOT mask it (fc1/mc1)');
+});
+
 // ---- build-through: shadow by default; AT-independent C3 clears authoritative when PROMOTED ----
 test('C3 build-through: default-shadow; PROMOTED ⇒ authoritative clear (AT-independent, no baseline needed)', { skip: !chromeOK, concurrency: false }, async () => {
   const { byXp } = await run('text-contrast-pixel', 'fx-v3-c3-contrast.html', ['/html/body/div[1]/span']);

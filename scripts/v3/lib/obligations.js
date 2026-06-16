@@ -52,11 +52,15 @@ function reconcile(obligations, dispositions) {
 // never touches the focus-management summary). `cleared` is true ONLY when the skill has ≥1 child
 // and EVERY child is cleared.
 function aggregateElementSkill(ledger) {
-  const byXpath = {};
+  // null-proto: an xpath/skill key like "__proto__"/"constructor"/"toString" is DATA, not a method or
+  // prototype member — a plain `{}` here lets a hostile xpath resolve `byXpath['__proto__']` to a
+  // function and throws `.push is not a function`, crashing the build FAIL-OPEN. `reconcile` above was
+  // already hardened (audit R2-L1); these two maps were the missed sibling (gap-fill red-team).
+  const byXpath = Object.create(null);
   for (const row of ledger) (byXpath[row.xpath] = byXpath[row.xpath] || []).push(row);
   const summaries = [];
   for (const [xpath, rows] of Object.entries(byXpath)) {
-    const bySkill = {};
+    const bySkill = Object.create(null);
     for (const row of rows) {
       for (const skill of oracle.skillsForFamily(row.claimFamily)) (bySkill[skill] = bySkill[skill] || []).push(row);
     }

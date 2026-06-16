@@ -323,10 +323,15 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
       // unbounded. Each experiment carries a cost class (wall-clock deadline + retries) enforced below.
       if (runBudget.exceeded()) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock budget (${runBudget.max}ms) exhausted` }); continue; }
       const cost = budget.costFor(RUNNERS[request.experimentId] && cat.getExperiment(request.experimentId));
-      const wall = Math.min(cost.maxWallClockMs, runBudget.remaining());
-      const t0 = Date.now();
       let produced = false;
       for (let attempt = 0; attempt <= cost.retries && !produced; attempt++) {
+        // Recompute the per-attempt wall against the RUN-level remaining budget, and DEBIT each attempt
+        // immediately — so a single slow/erroring request cannot overshoot the run cap by a (retries+1)×
+        // multiplier (gap-fill red-team). If the run budget is exhausted before a retry, defer (one
+        // disposition, never a silent drop). Debiting once after the whole loop was the overshoot bug.
+        const wall = Math.min(cost.maxWallClockMs, runBudget.remaining());
+        if (wall <= 0) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock budget (${runBudget.max}ms) exhausted before attempt ${attempt}` }); break; }
+        const aStart = Date.now();
         const page = await browser.newPage();                 // FRESH isolated page per attempt (Rule 3)
         const outcome = await budget.withDeadline(async () => {
           // independently digest the resource the browser ACTUALLY loaded — the navigation response
@@ -338,11 +343,11 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
           return sign(await runner(page, req), observedPageDigest);
         }, Math.max(1, wall)).catch((e) => ({ ok: false, error: e }));
         await page.close().catch(() => {});                   // abort any work still pending past the deadline
+        runBudget.add(Date.now() - aStart);                   // debit THIS attempt's real cost before deciding to retry
         if (outcome.ok) { results.push(outcome.value); produced = true; }
         else if (outcome.timeout) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `wall-clock budget ${wall}ms exceeded (mutationRisk:${cost.mutationRisk})` }); break; }
         else if (attempt >= cost.retries) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String((outcome.error && outcome.error.message) || outcome.error || 'unknown').slice(0, 200) }); }
       }
-      runBudget.add(Date.now() - t0);
     }
   } finally { await browser.close().catch(() => {}); }
   return {
