@@ -79,6 +79,7 @@ function crossArtifactErrors(bundle, requiredStages = ['collect', 'experiments',
     // (3.1 §4/M5) — content-bind both the structured verdicts and the free-text rationale to the run.
     ['llm', bundle.llm],
     ['llmRationale', bundle.llmRationale],
+    ['llmVision', bundle.llmVision],
   ].filter(([, a]) => a != null);
 
   for (const [name, art] of arts) { const hit = findLegacyLabel(art, name); if (hit) push(`legacy verdict label present in ${name} (v3 is a clean schema break): ${hit}`); }

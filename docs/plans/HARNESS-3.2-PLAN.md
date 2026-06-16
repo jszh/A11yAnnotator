@@ -1,12 +1,14 @@
 # Harness 3.2 — the PROVISIONAL disposition: a calibrated LLM verdict fills the gap
 
-> **Status: SPINE IMPLEMENTED (2026-06-16).** Work items 1–7 (the PROVISIONAL mechanism end-to-end) are
-> built, adversarially hardened (3-skeptic pass), and green (v3 261, pure 190). Items 8–12 (gold
-> labelling, the v3.2 rubric/skills rewrite, vision/multimodal evidence) are DEFERRED — see §"Implementation
-> status" at the end. The default is `provisionalMode:'ungated'`: a build with an `llm`/`judgments`
-> artifact now FILLS auto-PARTIAL obligations with non-authoritative PROVISIONAL rows (a behaviour change
-> from 3.1's annotation-only lane); `provisionalMode:'gated'` reproduces 3.1 output until a mechanism
-> earns canary on gold.
+> **Status: FULLY IMPLEMENTED (2026-06-16).** All 12 work items are built, adversarially hardened
+> (5-skeptic total), and green (v3 273, pure 190). The default is `provisionalMode:'ungated'`: a build
+> with an `llm`/`judgments` artifact FILLS auto-PARTIAL obligations with non-authoritative PROVISIONAL
+> rows (a behaviour change from 3.1's annotation-only lane); `provisionalMode:'gated'` reproduces 3.1
+> output until a mechanism earns canary on gold. Two things still need the ON-HOLD harness run, not more
+> code: (a) the hand-labelled GOLD for the new families — the loader + worksheet are wired, the labels
+> come from the post-run labelling pass; (b) the real browser-captured vision frames + drive-page
+> state-before/after pairs fed into `visionByXpath` — the capture module + multimodal plumbing are wired
+> and probe-verified, the frames are produced when the run executes.
 
 ## Objective
 
@@ -367,19 +369,35 @@ identical to 3.1; PROVISIONAL appears only for a mechanism that earned canary on
   refusal), no strict-scan leak via the provisional block, oracle↔coverage equivalence, and the
   asymmetry (barrier promotes at N=1; clear blocked until 149).
 
-**Deferred — the evidence-QUALITY + browser/data layer (items 8–12).** These improve *how good* the LLM
-verdict is, not the *soundness* of the PROVISIONAL mechanism, and several are gated on the on-hold gold
-run:
-- **8 gold** — extend the blinded gold set to the new ○ families. Needed only to LEAVE research mode
-  (run `provisionalMode:'gated'`); the strict gate already enforces `unlabelledClears===0`, so an
-  un-labelled tier simply cannot promote. Blocked on the on-hold harness run over the saved corpus.
-- **9–10 rubric/skills rewrite** — author the atomic, versioned, judge-over-evidence `llm-rubric:*` set
-  and re-scope `skills/*.md`. Content authoring; the mechanism already calibrates per-rubric, so this
-  changes verdict QUALITY, not the spine. (`promptHash` provenance slot already exists.)
-- **11–12 vision evidence + multimodal prompt** — capture before/after crops in `eval-page.js`/
-  `drive-page.js`, thread a `visionByXpath` map, `buildPrompt → buildMessages`, crops in a side
-  `llmVision` artifact. Browser-coupled and needs the same probe-verification discipline as the §5.2
-  VSR work; it strengthens the judgment but a vision-grounded verdict is still a PROVISIONAL row.
+**The evidence-QUALITY + browser/data layer (items 8–12) — IMPLEMENTED (2026-06-16).** These improve
+*how good* the LLM verdict is; the spine's soundness is unchanged. Adversarially hardened (2 skeptics: 2
+HIGH + 3 MED/LOW fixed with regressions).
+- **8 gold** (`lib/gold-loader.js`) — `loadGold()` flattens the per-mechanism gold files
+  (`{mechanism, sc, labels[]}`) into the flat `[{xpath,sc,goldOutcome}]` array build-v3/metrics consume,
+  and enforces the floor: only an **adjudicated** label gates (a draft is inert). Hardened against a
+  `null`/primitive gold doc (degrades, never crashes). Worksheet rows added for the new families. The
+  real labels are produced by the post-run blinded labelling pass (on hold) — this is the wiring.
+- **9 rubrics + loader** (`lib/rubric-loader.js` + `scripts/v3/llm-rubrics/*.md`) — the atomic, versioned,
+  gap-scoped `llm-rubric:<id>-v0` set (8 rubrics, each declaring its `visionEvidence`) + a loader that
+  reads `skills/*.md` + the atomic set into `opts.llmRubrics`, PINNING each rubric's content hash (now
+  binding the body AND `visionEvidence`/`sc`, so a reworded/re-scoped rubric is a different mechanism that
+  can't inherit gold). Duplicate ids are deterministic (sorted, first-wins) + recorded.
+- **10 skills re-scope** — every `skills/*.md` gained a v3.2 "division of labor" header: do NOT
+  investigate/drive tools; JUDGE meaning over the handed evidence; DEFER where a deterministic CLAIM
+  exists (the builder enforces this — `selectSubjects` hands only auto-PARTIAL obligations); keep the WCAG
+  soundness caveats.
+- **11 vision capture** (`lib/vision-capture.js`) — `captureVision(page, xpaths)` produces the
+  `visionByXpath` map (element-crop / surrounding-region / viewport / viewport-320), probe-verified on
+  real Chrome (tight vs padded crops; the 320px reflow render genuinely differs; viewport crops captured
+  ONCE and shared; off-screen/edge/zero-size/hidden elements skipped without crashing; the viewport is
+  ALWAYS restored — even under `defaultViewport:null`). `mergeVision` folds in drive-page's
+  state-before/after pairs. The actual run-time frames are produced when the harness executes.
+- **12 multimodal plumbing** (`llm-adjudicator.buildMessages` + the `runAdjudication` vision branch) —
+  text + image blocks; the adjudicator supplies EXACTLY the rubric-declared frames the collector captured;
+  crops live in a side `llmVision` artifact (base64 — content-bound by M5, NEVER in the strict-scanned
+  results), referenced by opaque id in `evidenceRefs`; `runAgent(messages, subject)` stays injected
+  (default refuses). Vision-frame ids are stable per subject, so a dropped verdict can never bind the
+  wrong element's crop.
 
 **Known caveat (by design, flagged for the re-run workflow):** the oracle now derives 2.5.8/2.5.5 for any
 boxed interactive element, so a STALE pre-3.2 `collect.json` whose precomputed `applicableScs` omits them

@@ -185,6 +185,17 @@ function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
   ].join('\n');
 }
 
+// MULTIMODAL prompt (Harness 3.2 §12) — text + image blocks. The text is buildPrompt's; each declared
+// vision frame for this element becomes an image block carrying the base64 crop (the agent must SEE the
+// pixels). The blocks go to the injected multimodal `runAgent(messages, subject)`; they are NOT persisted
+// in the structured `llm` artifact (the crops live in the side `llmVision` artifact, referenced by id).
+function buildMessages(subject, signals, transcriptExcerpt, frames, opts = {}) {
+  const blocks = [{ type: 'text', text: buildPrompt(subject, signals, transcriptExcerpt, opts) }];
+  if (frames && frames.length) blocks.push({ type: 'text', text: `--- vision evidence (${frames.map((f) => f.state).join(', ')}) ---` });
+  for (const f of frames || []) blocks.push({ type: 'image', id: f.id, state: f.state, mediaType: f.mediaType || 'image/png', data: f.data });
+  return blocks;
+}
+
 // ONE sentence, normalized + bounded — for the human-readable annotation companion (NOT scored).
 function oneSentence(s) {
   if (typeof s !== 'string') return '';
@@ -208,26 +219,44 @@ async function runAdjudication(subjects, opts = {}) {
   const budget = opts.budget || null;
   const id = { file: opts.file || null, runId: opts.runId || null, pageDigest: opts.pageDigest || null };
   const transcriptByXpath = opts.transcriptByXpath || {};
+  const visionByXpath = opts.visionByXpath || {}; // xpath -> { 'element-crop': base64, 'state-before': base64, ... }
+  // rubric source: the loader's { skills:{[skill]:{text,visionEvidence}} } OR a plain { skill: text } map.
+  const rubricsBySkill = (opts.llmRubrics && opts.llmRubrics.skills) || opts.rubrics || {};
+  const getRubric = (skill) => { const r = rubricsBySkill[skill]; if (!r) return { text: null, visionEvidence: [] }; if (typeof r === 'string') return { text: r, visionEvidence: [] }; return { text: r.text || null, visionEvidence: Array.isArray(r.visionEvidence) ? r.visionEvidence : [] }; };
   const scope = (xpath) => ({ actionTargetRef: xpath, state: opts.state || 'fresh-load', action: opts.action || 'inspect', environment: opts.environment || 'headless-chromium' });
   const verdicts = [];
   const rationales = [];
-  let n = 0;
+  const visionImages = []; // → the side llmVision artifact (crops, never in results)
+  let n = 0, idx = -1;
   for (const subj of subjects) {
+    idx++; // a STABLE per-subject token for frame ids — independent of whether the verdict survives, so a
+    // dropped verdict can never make the NEXT subject reuse an id and bind the wrong element's crop.
     // a malformed budget (exceeded() that throws) must not crash the producer — degrade to "run".
     if (budget && typeof budget.exceeded === 'function') { let done = false; try { done = budget.exceeded(); } catch (e) { done = false; } if (done) break; }
     const transcriptExcerpt = transcriptByXpath[subj.xpath];
     const signals = precomputeSignals(subj.element, subj.skill);
-    const prompt = buildPrompt(subj, signals, transcriptExcerpt, { rubric: opts.rubrics && opts.rubrics[subj.skill] });
+    const { text: rubricText, visionEvidence } = getRubric(subj.skill);
+    // supply EXACTLY the vision frames the rubric declares AND the collector captured for this element.
+    const avail = visionByXpath[subj.xpath] || {};
+    const frames = [];
+    for (const state of visionEvidence) {
+      const data = avail[state];
+      if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.skill}:${idx}:${state}`, state, data, mediaType: 'image/png' });
+    }
+    const messages = buildMessages(subj, signals, transcriptExcerpt, frames, { rubric: rubricText });
     let out;
-    try { out = await runAgent(prompt, subj); } catch (e) { out = null; }
+    try { out = await runAgent(messages, subj); } catch (e) { out = null; }
     if (!out || !V2_9_VERDICTS.includes(out.verdict)) continue; // a malformed agent reply is dropped, never guessed
+    // the verdict survived → NOW persist its frames (no orphan crops for dropped verdicts).
+    for (const f of frames) visionImages.push({ id: f.id, xpath: subj.xpath, state: f.state, mediaType: f.mediaType, data: f.data });
     const verdictId = `llm:${subj.skill}:${n++}`;
     const rationaleRef = `${verdictId}#basis`;
     verdicts.push({
       verdictId, sc: subj.sc, claimFamily: subj.claimFamily, targetXpath: subj.xpath,
       observationScope: scope(subj.xpath), agentVerdict: out.verdict,
       confidence: V.LLM_CONFIDENCE.includes(out.confidence) ? out.confidence : 'low',
-      evidenceRefs: scrubRefs(out.evidenceRefs), rationaleRef,
+      // the vision frame ids join the agent's own evidenceRefs (opaque ids → the llmVision artifact).
+      evidenceRefs: [...scrubRefs(out.evidenceRefs), ...frames.map((f) => f.id)], rationaleRef,
     });
     // The ANNOTATION COMPANION (free text — lives ONLY in the side artifact, never in strict results):
     // for every verdict we record the EVIDENCE the LLM actually saw (the deterministic signals + the VSR
@@ -243,12 +272,15 @@ async function runAdjudication(subjects, opts = {}) {
     });
   }
   return {
-    llm: { ...id, model: opts.model || null, promptHash: opts.promptHash || null, verdicts },
+    llm: { ...id, model: opts.model || null, promptHash: (opts.llmRubrics && opts.llmRubrics.promptHash) || opts.promptHash || null, verdicts },
     llmRationale: { ...id, rationales },
+    // crops live HERE (a side artifact, like llmRationale) — referenced by opaque id in evidenceRefs;
+    // binary can't pass the strict text scanner, so it NEVER rides results. Empty unless vision was supplied.
+    llmVision: { ...id, images: visionImages },
   };
 }
 
 module.exports = {
   MECHANISM, V2_9_VERDICTS, validateLlmShape, processLlm,
-  selectSubjects, precomputeSignals, buildPrompt, runAdjudication, scrubRefs, isLegacyToken,
+  selectSubjects, precomputeSignals, buildPrompt, buildMessages, runAdjudication, scrubRefs, isLegacyToken,
 };

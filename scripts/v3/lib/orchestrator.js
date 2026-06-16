@@ -68,24 +68,28 @@ async function orchestrate(collect, drive, opts = {}) {
     key: attestationKey, environment: experiments.environment,
     observedPageDigest, runnerVersion: '3.0.0-phase0', catalogVersion: experiments.catalogVersion,
   });
-  let built = buildV3(bundle, { authority: opts.authority, attestationKey: opts.attestationKey, artifactVerifier: opts.artifactVerifier });
-  // LLM EVIDENCE LANE (Harness 3.1 §2/§3) — opt-in, offline, and INERT unless an agent is injected
-  // (the default runAgent refuses, so no run can accidentally hit an API). Two-pass: the preliminary
-  // build above gives the obligation ledger, from which we select the auto-PARTIAL subjects (the
-  // runner-less SCs) to judge per (element, skill); then we re-gate with the frozen llm + rationale
-  // artifacts attached. The lane is non-authoritative and NOT hashed (like judgments/instruments), so
-  // the manifest is unchanged. A producer failure leaves the original build intact.
+  // build opts threaded to BOTH passes so provisionalMode/gold take effect on the LLM-attached re-gate.
+  const buildOpts = { authority: opts.authority, attestationKey: opts.attestationKey, artifactVerifier: opts.artifactVerifier, provisionalMode: opts.provisionalMode, gold: opts.gold, provisionOpts: opts.provisionOpts };
+  let built = buildV3(bundle, buildOpts);
+  // LLM EVIDENCE LANE (Harness 3.1 §2/§3; 3.2 rubrics+vision) — opt-in, offline, and INERT unless an
+  // agent is injected (the default runAgent refuses, so no run can accidentally hit an API). Two-pass:
+  // the preliminary build gives the obligation ledger, from which we select the auto-PARTIAL subjects to
+  // judge per (element, skill) with the loaded v3.2 rubrics + (optional) vision crops; then we re-gate
+  // with the frozen llm + rationale + vision artifacts attached. The lane is non-authoritative and NOT
+  // hashed, so the manifest is unchanged. A producer failure leaves the original build intact.
   if (opts.runLlm && opts.runAgent && built.ok) {
     const llmAdj = require('./llm-adjudicator.js');
+    const llmRubrics = opts.llmRubrics || require('./rubric-loader.js').loadRubrics();
     const subjects = llmAdj.selectSubjects(collect, built.results.obligationLedger, { onlyAutoPartial: opts.llmOnlyAutoPartial !== false });
     const adj = await llmAdj.runAdjudication(subjects, {
       runAgent: opts.runAgent, budget: opts.llmBudget, model: opts.llmModel, promptHash: opts.llmPromptHash,
-      rubrics: opts.llmRubrics, transcriptByXpath: opts.transcriptByXpath,
+      llmRubrics, transcriptByXpath: opts.transcriptByXpath, visionByXpath: opts.visionByXpath,
       file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest,
     }).catch(() => null);
     if (adj && adj.llm && adj.llm.verdicts.length) {
       bundle.llm = adj.llm; bundle.llmRationale = adj.llmRationale;
-      built = buildV3(bundle, { authority: opts.authority, attestationKey: opts.attestationKey, artifactVerifier: opts.artifactVerifier });
+      if (adj.llmVision && adj.llmVision.images.length) bundle.llmVision = adj.llmVision;
+      built = buildV3(bundle, buildOpts);
     }
   }
   return { candidates, plan, experiments, claimProposals, bundle, built, planErrors };

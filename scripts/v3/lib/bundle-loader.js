@@ -19,6 +19,7 @@ const STAGE_FILES = {
   instruments: 'instruments.json',     // VSR/keyboard instrument findings (non-authoritative shadow signals; not hashed)
   llm: 'llm.json',                     // Harness 3.1 whole-obligation LLM verdicts (source:'llm' shadow obs; non-authoritative)
   llmRationale: 'llm-rationale.json',  // the LLM's free-text rationales (side artifact, bound by id; scanned LENIENTLY)
+  llmVision: 'llm-vision.json',        // Harness 3.2 vision crops the LLM judged (side artifact, base64; NEVER in results)
 };
 
 // A PRODUCTION v3 build requires the COMPLETE lineage (audit V3R3-M3): collect baseline + drive +
@@ -34,7 +35,7 @@ const PRODUCTION_REQUIRED = ['manifest', 'collect', 'drive', 'candidates', 'plan
 const SHADOW_DEBUG_REQUIRED = ['collect', 'experiments', 'claimProposals'];
 
 // required stages must be present + parseable; optional stages may be absent (→ undefined).
-function loadBundle(dir, { required = ['collect', 'experiments', 'claimProposals'], optional = ['manifest', 'drive', 'candidates', 'plan', 'applicability', 'judgments', 'instruments', 'llm', 'llmRationale'] } = {}) {
+function loadBundle(dir, { required = ['collect', 'experiments', 'claimProposals'], optional = ['manifest', 'drive', 'candidates', 'plan', 'applicability', 'judgments', 'instruments', 'llm', 'llmRationale', 'llmVision'] } = {}) {
   const errors = [];
   const bundle = {};
   // reject a stray v2 results artifact being passed as a v3 run

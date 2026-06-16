@@ -231,6 +231,18 @@ test('adversarial: a verdict whose observationScope.actionTargetRef disagrees wi
   assert.ok(r.errors.some((m) => /must equal targetXpath/.test(m)));
 });
 
+test('gold-loader: flattens ADJUDICATED labels into the flat array; an un-adjudicated draft is INERT', () => {
+  const gl = require('../lib/gold-loader.js');
+  const { gold, errors, byMechanism } = gl.loadGold();
+  assert.deepEqual(errors, [], JSON.stringify(errors));
+  assert.ok(gold.length >= 3, 'the seed focus-visual-retry labels load');
+  assert.ok(gold.every((g) => g.xpath && g.sc && ['BARRIER_OBSERVED', 'NO_BARRIER_OBSERVED', 'INAPPLICABLE'].includes(g.goldOutcome)));
+  assert.ok(byMechanism['focus-visual-retry'] >= 3);
+  // a draft (adjudicated:false) label must not enter the gating array.
+  const drafts = gl.loadGold({ requireAdjudicated: false });
+  assert.ok(drafts.gold.length >= gold.length, 'inspecting drafts is a superset');
+});
+
 test('the v3-schema provisional() constructor is structured-only + never authoritative', () => {
   const p = V.provisional({ source: 'llm', mechanism: 'llm-agent', mode: 'ungated', calibrated: false, outcome: 'NO_BARRIER_OBSERVED', confidence: 'high', rationaleRef: 'r#1', evidenceRefs: ['e1'] });
   assert.equal(p.authoritative, false);

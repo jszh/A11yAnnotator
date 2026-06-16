@@ -7,6 +7,15 @@ instruments: Tab driver (/sr-drive — to wire), DOM geometry (--eval), AX tree 
 behavioral: yes (requires a scripted serve)
 ---
 
+> **v3.2 division of labor (LLM lane).** In Harness v3.2 you do NOT investigate or drive tools — the
+> collector and the deterministic runners already measured the page and HAND you their signals + the
+> (realism-corrected) VSR transcript + vision crops. Your job is to JUDGE MEANING over that evidence,
+> not to re-run `--eval`/`/ax-node` or drive a submit. Where a deterministic runner already disposed an
+> obligation (a CLAIM exists) you are NOT asked about it — the builder only hands you the auto-PARTIAL
+> residue, so DEFER to the runner and never re-litigate (e.g. do not re-judge 1.4.3 contrast the runner
+> owns). KEEP every WCAG soundness caveat below: they are what STOP a false clear or false barrier.
+
+
 > **SC by sub-check.** A *trap* (focus can't leave) is **2.1.2** (A). *Illogical
 > sequence* is **2.4.3** (A). *Off-screen / hidden focusable items* are a **2.4.3**
 > problem (they're in the tab order but shouldn't be) and, because focus lands
