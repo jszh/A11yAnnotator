@@ -32,12 +32,30 @@ const FAMILIES = Object.freeze({
   'hover-content':           Object.freeze({ sc: '1.4.13', skills: ['color-and-visual-text'] }),  // C9
   'reflow-no-hscroll':       Object.freeze({ sc: '1.4.10', skills: ['reflow'] }),                 // C8 (page-level)
   'focus-not-obscured':      Object.freeze({ sc: '2.4.11', skills: ['focus-management'] }),       // C7
+  // ---- Harness 3.2 ○-tier: the collector HAS these facts but no runner enumerates an obligation, so
+  //      the SC was invisible to reconciliation. Registering the family makes it an auto-PARTIAL the LLM
+  //      can fill provisionally (and is the shared prerequisite for a future deterministic runner). ----
+  'target-size-minimum':     Object.freeze({ sc: '2.5.8', skills: ['reflow-and-pointer-affordances'] }), // 3.2 ○
+  'target-size-enhanced':    Object.freeze({ sc: '2.5.5', skills: ['reflow-and-pointer-affordances'] }), // 3.2 ○ (AAA)
+  'page-title':              Object.freeze({ sc: '2.4.2', skills: ['page-structure'] }),                  // 3.2 ○ (page-level)
+  'label-in-name':           Object.freeze({ sc: '2.5.3', skills: ['name-role-state'] }),                 // 3.2 ○
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
 const FORMFIELD_ROLE = /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$/;
 // page-level pseudo-element for the page-scoped reflow obligation (C8).
 const PAGE_REFLOW_XPATH = '/page-level::reflow';
+// page-level pseudo-element for the page-title obligation (3.2 ○-tier, 2.4.2).
+const PAGE_TITLE_XPATH = '/page-level::title';
+// The page's title slot, read from EITHER the synthetic `collect.page` convention OR the real
+// collector's `collect.structure` (eval-page.js emits page-level facts under `structure`). Presence of
+// the slot — even an empty title — means this is a titled-document context that owes a 2.4.2 obligation.
+const pageTitleSlotPresent = (collect) => {
+  for (const p of [collect && collect.page, collect && collect.structure]) {
+    if (p && typeof p === 'object' && Object.prototype.hasOwnProperty.call(p, 'title')) return true;
+  }
+  return false;
+};
 
 // COLLECTOR FIELD CONTRACT (audit V3R5-H1). The real collector (scripts/eval-page.js) emits `text`
 // (string) and `roleAttr`, NOT the `hasText`/`role` booleans the synthetic v3 fixtures use. Reading
@@ -81,6 +99,13 @@ function familiesFor(el) {
   if (el.focusable === true && el.underOverlay === true) fams.push('focus-not-obscured');           // C7
   if (el.isFormField === true || FORMFIELD_ROLE.test(role)) { fams.push('field-label'); fams.push('error-identification'); } // C6: label (3.3.2) + error id (3.3.1)
   if (el.hasHoverContent === true) fams.push('hover-content');                                       // C9
+  // ---- Harness 3.2 ○-tier (per-element). Strict raw-fact predicates: a rendered POINTER TARGET (it
+  //      has a box AND is interactive) owes the target-size SCs; a WIDGET with BOTH a visible label and
+  //      a computed accessible name owes label-in-name. Minimal synthetic fixtures lack box/axName, so
+  //      these never fire there — only real collector records carry them. ----
+  const interactive = el.focusable === true || WIDGET_ROLE.test(role);
+  if (el.box != null && interactive) { fams.push('target-size-minimum'); fams.push('target-size-enhanced'); } // 2.5.8 + 2.5.5
+  if (WIDGET_ROLE.test(role) && factHasText(el) && typeof el.axName === 'string' && el.axName.trim().length > 0) fams.push('label-in-name'); // 2.5.3
   return [...new Set(fams)];
 }
 
@@ -99,6 +124,11 @@ function deriveObligations(collect) {
   if (collect && collect.page && collect.page.reflowApplicable === true) {
     const f = FAMILIES['reflow-no-hscroll'];
     out.push({ obligationId: oblId(PAGE_REFLOW_XPATH, f.sc, 'reflow-no-hscroll'), xpath: PAGE_REFLOW_XPATH, sc: f.sc, claimFamily: 'reflow-no-hscroll' });
+  }
+  // Harness 3.2 ○-tier: a page-level 2.4.2 page-title obligation whenever the collector carries a title slot.
+  if (pageTitleSlotPresent(collect)) {
+    const f = FAMILIES['page-title'];
+    out.push({ obligationId: oblId(PAGE_TITLE_XPATH, f.sc, 'page-title'), xpath: PAGE_TITLE_XPATH, sc: f.sc, claimFamily: 'page-title' });
   }
   return out;
 }
@@ -151,6 +181,7 @@ function skillsForFamily(claimFamily) { return (FAMILIES[claimFamily] && FAMILIE
 function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[claimFamily].sc; }
 
 module.exports = {
-  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, PAGE_REFLOW_XPATH, isEvaluable, familiesFor, deriveObligations, oblId,
+  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, pageTitleSlotPresent,
+  isEvaluable, familiesFor, deriveObligations, oblId,
   applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily, factHasText, factRole,
 };

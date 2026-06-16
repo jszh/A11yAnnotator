@@ -35,6 +35,11 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'focusable-under-overlay', when: (el) => el.focusable === true && el.underOverlay === true, families: ['focus-not-obscured'] }),
   Object.freeze({ id: 'form-field', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['field-label', 'error-identification'] }),
   Object.freeze({ id: 'hover-content', when: (el) => el.hasHoverContent === true, families: ['hover-content'] }),
+  // Harness 3.2 ○-tier — predicates RE-DECLARED to match the oracle's familiesFor branches exactly, so a
+  // drift between the two is caught (Rule 16). A rendered pointer target owes the target-size SCs; a
+  // widget with a visible label AND a computed accessible name owes label-in-name.
+  Object.freeze({ id: 'pointer-target', when: (el) => el.box != null && (el.focusable === true || WIDGET_ROLE.test(factRole(el))), families: ['target-size-minimum', 'target-size-enhanced'] }),
+  Object.freeze({ id: 'labelled-control', when: (el) => WIDGET_ROLE.test(factRole(el)) && factHasText(el) && typeof el.axName === 'string' && el.axName.trim().length > 0, families: ['label-in-name'] }),
 ]);
 
 // The families this registry requires for one element (independent of the oracle).
@@ -60,6 +65,11 @@ function coverageErrors(collect, familiesFor = oracle.familiesFor) {
   if (collect && collect.page && collect.page.reflowApplicable === true) {
     const obls = oracle.deriveObligations(collect);
     if (!obls.some((o) => o.claimFamily === 'reflow-no-hscroll')) E.push('coverage gap: page declares reflowApplicable but no page-level reflow obligation was enumerated (Rule 16)');
+  }
+  // Harness 3.2 ○-tier page-level: a title slot must yield a page-title obligation (independent cross-check).
+  if (oracle.pageTitleSlotPresent(collect)) {
+    const obls = oracle.deriveObligations(collect);
+    if (!obls.some((o) => o.claimFamily === 'page-title')) E.push('coverage gap: page carries a title slot but no page-level page-title obligation was enumerated (Rule 16)');
   }
   return E;
 }

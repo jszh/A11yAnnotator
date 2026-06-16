@@ -68,10 +68,39 @@ const scKey = (sc, direction) => `${sc}/${direction}`;
 const isClearing = (direction) => CLEARING_DIRECTIONS.includes(direction);
 const isKeyboardInteractionSc = (sc) => KEYBOARD_INTERACTION_SCS.includes(sc);
 
+// The three ledger disposition tiers (Harness 3.2). Precedence CLAIM ▸ PROVISIONAL ▸ PARTIAL: a
+// deterministic CLAIM always wins; a PROVISIONAL fills an otherwise-auto-PARTIAL obligation with a
+// calibrated/ungated LLM verdict; PARTIAL is the safe sink. PROVISIONAL is NEVER authoritative.
+const DISPOSITIONS = ['CLAIM', 'PROVISIONAL', 'PARTIAL'];
+
 // A PARTIAL disposition — the safe sink. Returned whenever support/completeness/applicability
 // is not positively demonstrated. It is NOT an authoritative claim and carries no clear.
 function partial(reason, extra = {}) {
   return { disposition: 'PARTIAL', authoritative: false, reason, ...extra };
+}
+
+// A PROVISIONAL sub-block (Harness 3.2) — the channel-tagged, STRUCTURED-ONLY record carried on a
+// PROVISIONAL ledger row. It is NEVER authoritative and never sets conformance; it only fills an
+// obligation the deterministic + instrument lanes left at auto-PARTIAL. Every field is an enum / xpath /
+// SC / mechanism / opaque ref / number, so the strict legacy scanner cannot trip — the free-text basis
+// stays in the side rationale artifact, referenced by `rationaleRef`. `mode` is 'ungated' (research
+// default — the registry is bypassed, `calibrated:false`) or 'gated' (a mechanism earned canary on gold).
+function provisional({ source, mechanism, mode, calibrated, outcome, confidence, rationaleRef, evidenceRefs, calibration, conflict, supportRefs }) {
+  const block = {
+    source: source != null ? String(source) : 'llm',
+    mechanism: mechanism != null ? String(mechanism) : 'llm-agent',
+    mode: mode === 'gated' ? 'gated' : 'ungated',
+    calibrated: calibrated === true,
+    outcome, // NO_BARRIER_OBSERVED (provisional clear) | BARRIER_OBSERVED (provisional barrier)
+    confidence: LLM_CONFIDENCE.includes(confidence) ? confidence : 'low',
+    rationaleRef: rationaleRef != null ? String(rationaleRef) : null,
+    evidenceRefs: Array.isArray(evidenceRefs) ? evidenceRefs.map(String) : [],
+    calibration: calibration || null,
+    supportRefs: Array.isArray(supportRefs) ? supportRefs.map(String) : [],
+    authoritative: false,
+  };
+  if (conflict) block.conflict = conflict; // a clear blocked by a dominating barrier (or vice-versa)
+  return block;
 }
 
 // An authoritative v3 claim. Carries its observation scope and the NOT_ASSESSED conformance
@@ -128,7 +157,7 @@ function llmShadowObservation({ sc, claimFamily, observationScope, observationOu
 
 module.exports = {
   OBSERVATION_OUTCOMES, APPLICABILITY, CONFORMANCE, DIRECTIONS, CLEARING_DIRECTIONS,
-  CLEARABILITY, KEYBOARD_INTERACTION_SCS, ALL_SCS,
+  CLEARABILITY, KEYBOARD_INTERACTION_SCS, ALL_SCS, DISPOSITIONS,
   EVIDENCE_SOURCES, LLM_CONFIDENCE, V2_9_VERDICT_MAP, RUBRIC_VERDICT_MAP, mapVerdict,
-  scKey, isClearing, isKeyboardInteractionSc, partial, claim, llmShadowObservation,
+  scKey, isClearing, isKeyboardInteractionSc, partial, claim, provisional, llmShadowObservation,
 };

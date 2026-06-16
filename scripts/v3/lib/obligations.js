@@ -21,28 +21,51 @@ function enumerateObligations(collect) {
 // Fail-closed enumeration checks (non-empty evaluable page must yield obligations; no drift).
 function enumerationErrors(collect) { return oracle.enumerationErrors(collect); }
 
-// dispositions: [{ obligationId, kind: 'CLAIM'|'PARTIAL', cleared, shadow? }]
-// Returns { errors[], ledger: [{obligationId, xpath, sc, claimFamily, disposition, cleared, autoPartial, shadow}] }.
+// dispositions: [{ obligationId, kind:'CLAIM'|'PARTIAL'|'PROVISIONAL', cleared, shadow?, outcome?, provisional? }]
+// Returns { errors[], ledger: [{obligationId, xpath, sc, claimFamily, disposition, cleared, autoPartial, shadow, provisional?}] }.
+//
+// Harness 3.2 — three tiers with precedence CLAIM ▸ PROVISIONAL ▸ PARTIAL. A DETERMINISTIC disposition
+// (CLAIM/PARTIAL) is the floor and KEEPS its duplicate-detection invariant: two deterministic
+// dispositions on one obligation is still an error (a forged/duplicate result must not be
+// order-dependently resolved). A PROVISIONAL disposition ONLY fills an obligation that has NO
+// deterministic disposition (the auto-PARTIAL slot), so it never collides with — and never overrides —
+// a deterministic CLAIM/PARTIAL. Multiple PROVISIONAL on one obligation merge by barrier-dominates-clear.
+const _confRank = (c) => ({ high: 3, medium: 2, low: 1 }[c] || 0);
+function mergeProvisional(fills) {
+  const barriers = fills.filter((f) => f.outcome === 'BARRIER_OBSERVED');
+  const clears = fills.filter((f) => f.outcome === 'NO_BARRIER_OBSERVED');
+  if (!barriers.length && !clears.length) return null; // no DECISIVE fill (all abstentions/unknown) ⇒ no row, fail-closed
+  const pick = (arr) => arr.slice().sort((a, b) => _confRank((b.provisional || {}).confidence) - _confRank((a.provisional || {}).confidence))[0];
+  let chosen, cleared, conflict;
+  if (barriers.length) { chosen = pick(barriers); cleared = false; if (clears.length) conflict = { blockedClears: [...new Set(clears.map((c) => (c.provisional || {}).mechanism))] }; } // barrier dominates (fail-closed)
+  else { chosen = pick(clears); cleared = true; }
+  // strip any pre-existing `conflict` from the chosen block so a STALE conflict can't ride the spread —
+  // the conflict is RECOMPUTED here from the actual merge (adversarial A-F3).
+  const { conflict: _stale, ...rest } = (chosen.provisional || {});
+  const block = { ...rest, supportRefs: [...new Set(fills.map((f) => (f.provisional || {}).mechanism).filter(Boolean))] };
+  if (conflict) block.conflict = conflict;
+  return { cleared, provisional: block };
+}
 function reconcile(obligations, dispositions) {
   const errors = [];
-  const byId = Object.create(null); // null-proto: an obligationId like "toString"/"__proto__" is data, not a method (audit R2-L1)
+  const det = Object.create(null);  // the ONE deterministic disposition per obligation (null-proto: audit R2-L1)
+  const prov = Object.create(null); // PROVISIONAL fills per obligation (array — merged below)
   for (const d of dispositions || []) {
-    if (Object.prototype.hasOwnProperty.call(byId, d.obligationId)) errors.push(`duplicate disposition for obligation ${d.obligationId}`);
-    byId[d.obligationId] = d;
+    if (d.kind === 'PROVISIONAL') { (prov[d.obligationId] = prov[d.obligationId] || []).push(d); continue; }
+    if (Object.prototype.hasOwnProperty.call(det, d.obligationId)) errors.push(`duplicate disposition for obligation ${d.obligationId}`);
+    det[d.obligationId] = d;
   }
   const oblSet = new Set(obligations.map((o) => o.obligationId));
   for (const d of dispositions || []) {
     if (!oblSet.has(d.obligationId)) errors.push(`disposition for ${d.obligationId} is not an enumerated obligation (out-of-inventory)`);
   }
   const ledger = obligations.map((o) => {
-    const d = Object.prototype.hasOwnProperty.call(byId, o.obligationId) ? byId[o.obligationId] : undefined;
-    return {
-      obligationId: o.obligationId, xpath: o.xpath, sc: o.sc, claimFamily: o.claimFamily,
-      disposition: d ? d.kind : 'PARTIAL',
-      cleared: d ? !!d.cleared : false,
-      autoPartial: !d,
-      shadow: !!(d && d.shadow),
-    };
+    const base = { obligationId: o.obligationId, xpath: o.xpath, sc: o.sc, claimFamily: o.claimFamily };
+    const d = Object.prototype.hasOwnProperty.call(det, o.obligationId) ? det[o.obligationId] : undefined;
+    if (d) return { ...base, disposition: d.kind, cleared: !!d.cleared, autoPartial: false, shadow: !!d.shadow }; // deterministic wins
+    const fills = Object.prototype.hasOwnProperty.call(prov, o.obligationId) ? prov[o.obligationId] : null;
+    if (fills && fills.length) { const m = mergeProvisional(fills); if (m) return { ...base, disposition: 'PROVISIONAL', cleared: m.cleared, autoPartial: false, shadow: false, provisional: m.provisional }; }
+    return { ...base, disposition: 'PARTIAL', cleared: false, autoPartial: true, shadow: false }; // un-filled ⇒ auto-PARTIAL
   });
   return { errors, ledger };
 }
@@ -65,10 +88,16 @@ function aggregateElementSkill(ledger) {
       for (const skill of oracle.skillsForFamily(row.claimFamily)) (bySkill[skill] = bySkill[skill] || []).push(row);
     }
     for (const [skill, children] of Object.entries(bySkill)) {
-      const cleared = children.every((c) => c.cleared);
+      // DETERMINISTIC aggregates (unchanged meaning — Rule 14): `cleared` requires every child to be a
+      // deterministic CLAIM clear (a PROVISIONAL clear must NOT make a skill read as authoritatively
+      // cleared); `anyBarrier` is a deterministic CLAIM barrier.
+      const cleared = children.every((c) => c.disposition === 'CLAIM' && c.cleared);
       const anyBarrier = children.some((c) => c.disposition === 'CLAIM' && !c.cleared);
+      // PROVISIONAL aggregates (Harness 3.2 — additive; never affect the deterministic fields above).
+      const provisionallyCleared = children.some((c) => c.disposition === 'PROVISIONAL' && c.cleared);
+      const provisionalBarrier = children.some((c) => c.disposition === 'PROVISIONAL' && !c.cleared);
       summaries.push({
-        xpath, skill, children: children.length, cleared, anyBarrier,
+        xpath, skill, children: children.length, cleared, anyBarrier, provisionallyCleared, provisionalBarrier,
         families: [...new Set(children.map((c) => c.claimFamily))].sort(),
       });
     }

@@ -63,7 +63,13 @@ function validateLlmShape(art) {
     if (v.evidenceRefs != null && !Array.isArray(v.evidenceRefs)) E.push(`${p}.evidenceRefs must be an array`);
     if (v.observationScope != null) {
       if (!isObj(v.observationScope)) E.push(`${p}.observationScope must be an object`);
-      else for (const f of SCOPE_FIELDS) { if (!isStr(v.observationScope[f])) E.push(`${p}.observationScope.${f} must be a non-empty string`); else rejectLegacy(E, `${p}.observationScope`, f, v.observationScope[f]); }
+      else {
+        for (const f of SCOPE_FIELDS) { if (!isStr(v.observationScope[f])) E.push(`${p}.observationScope.${f} must be a non-empty string`); else rejectLegacy(E, `${p}.observationScope`, f, v.observationScope[f]); }
+        // the obligation is matched by observationScope.actionTargetRef — it must AGREE with targetXpath,
+        // or a verdict could silently fill a DIFFERENT element's obligation than the one it names (adversarial).
+        if (isStr(v.observationScope.actionTargetRef) && isStr(v.targetXpath) && v.observationScope.actionTargetRef !== v.targetXpath)
+          E.push(`${p}.observationScope.actionTargetRef ${JSON.stringify(v.observationScope.actionTargetRef)} must equal targetXpath ${JSON.stringify(v.targetXpath)}`);
+      }
     }
     // agent-controlled STRUCTURAL strings reach results — they may never be a legacy token (a boxed
     // wrapper is coerced by isLegacyToken). evidenceRefs are SCRUBBED instead (opaque ids), not rejected.

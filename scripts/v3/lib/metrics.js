@@ -64,7 +64,9 @@ function mechanismOfRecord(rec) {
   const ref = (rec.supportRefs || []).find((r) => typeof r === 'string' && r.startsWith('experiment:'));
   return ref ? ref.slice('experiment:'.length) : (rec.source || 'deterministic');
 }
-const goldIndex = (gold) => { const m = {}; for (const g of gold || []) m[`${g.xpath}::${g.sc}`] = g.goldOutcome; return m; };
+// a malformed gold ROW (null / non-object) must DEGRADE (skip it), never crash the scorer — gold is
+// operator-supplied config and a single bad row must not fail-crash a soundness-critical build.
+const goldIndex = (gold) => { const m = {}; for (const g of gold || []) if (g && typeof g === 'object') m[`${g.xpath}::${g.sc}`] = g.goldOutcome; return m; };
 const recKey = (r) => `${r.scope && r.scope.actionTargetRef}::${r.sc}`;
 
 function collectDirection(results, includeShadow, predicate) {
@@ -154,22 +156,47 @@ function decisionCoverage(results, mechanism = null, { includeShadow = true } = 
   return { decided, abstained, total, coverage: total ? +(decided / total).toFixed(4) : null };
 }
 
-// Full per-mechanism scorecard: both directions + coverage. The promotion VERDICT is asymmetric — a
-// clear may NOT promote with any false clear (and stays shadow under the zero-false-clear gate); a
-// barrier MAY reach canary when its false rate is within tolerance AND coverage is adequate.
+// Full per-mechanism scorecard: both directions + coverage, with the ASYMMETRIC canary gates (Harness
+// 3.2). A provisional BARRIER reaches canary under the lenient gate (false rate ≤ threshold + coverage);
+// a provisional CLEAR — the dangerous direction — reaches canary only under the STRICT gate: zero
+// observed false clears, zero UNLABELLED clears, AND enough labelled clears to bound the false-clear
+// rate below `clearTarget` (requiredZeroEventN, e.g. 149 for a 2% bound), plus the coverage floor. This
+// is materially harder than a barrier and much harder than a deterministic clear, by design.
 function scoreMechanism(results, gold, mechanism, opts = {}) {
   const clears = scoreClears(results, gold, { ...opts, mechanism });
   const barriers = scoreBarriers(results, gold, { ...opts, mechanism });
   const coverage = decisionCoverage(results, mechanism, opts);
+  // BARRIER gate: a false barrier is review-noise, so the operator MAY relax its coverage floor.
+  const barrierCoverageFloor = opts.coverageFloor != null ? opts.coverageFloor : 0.5;
+  const barrierCoverageOk = coverage.coverage != null && coverage.coverage >= barrierCoverageFloor;
+  // CLEAR gate: the DANGEROUS direction. The 2%-bound (149) + 50% coverage are HARD floors — clamp so an
+  // operator-supplied provisionOpts can only make the clear gate STRICTER, never weaker (adversarial B-F3).
+  const clearTarget = Math.min(opts.clearTarget != null ? opts.clearTarget : 0.02, 0.02);
+  const need = requiredZeroEventN(clearTarget);
+  const clearCoverageOk = coverage.coverage != null && coverage.coverage >= Math.max(barrierCoverageFloor, 0.5);
   return {
     mechanism, clears, barriers, coverage,
-    // a clear NEVER auto-promotes here (the clear lane is deterministic-only — §1); a barrier MAY,
-    // subject to the asymmetric + coverage gate. Authoritative is never a target for an LLM mechanism.
-    barrierCanaryEligible: barriers.promotionEligible && coverage.coverage != null && coverage.coverage >= (opts.coverageFloor != null ? opts.coverageFloor : 0.5),
+    barrierCanaryEligible: barriers.promotionEligible && barrierCoverageOk,
+    // the strict clear gate (3.2 §"safety crux"): promotionEligible already requires zero false + zero
+    // unlabelled clears; we additionally require the sample to actually BOUND the rate (≥ need) + coverage.
+    clearCanaryEligible: clears.promotionEligible && clears.labelledClears >= need && clearCoverageOk,
+    clearRequiredN: need,
+  };
+}
+
+// Per-direction canary verdicts for a mechanism (Harness 3.2 §gated PROVISIONAL). Returns the metrics
+// half of the gate; the authority half is `authority.provisionFor`. build-v3 requires BOTH in gated mode.
+function provisionEligibility(results, gold, mechanism, opts = {}) {
+  const sc = scoreMechanism(results, gold, mechanism, opts);
+  return {
+    mechanism,
+    NO_BARRIER_OBSERVED: sc.clearCanaryEligible,
+    BARRIER_OBSERVED: sc.barrierCanaryEligible,
+    scorecard: sc,
   };
 }
 
 module.exports = {
   computeMetrics, zeroEventUpperBound, ruleOfThree, requiredZeroEventN,
-  scoreClears, scoreBarriers, decisionCoverage, scoreMechanism, mechanismOfRecord,
+  scoreClears, scoreBarriers, decisionCoverage, scoreMechanism, provisionEligibility, mechanismOfRecord,
 };

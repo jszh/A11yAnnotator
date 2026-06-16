@@ -27,6 +27,7 @@ const dynamic = require('./dynamic-subjects.js');
 const observer = require('./applicability-observer.js');
 const judgments = require('./judgments.js');
 const llmAdj = require('./llm-adjudicator.js');
+const metrics = require('./metrics.js');
 const { resolveClaim } = require('./claims.js');
 
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
@@ -130,6 +131,9 @@ function buildV3(bundle, opts = {}) {
   const oracleCorroborates = (xpath, fam) => {
     if (!fam) return false;
     if (xpath === oracle.PAGE_REFLOW_XPATH) return fam === 'reflow-no-hscroll' && pageReflowApplicable;
+    // page-level page-title pseudo-element (3.2 ○-tier) — parity with reflow so a future deterministic
+    // 2.4.2 runner can bind evidence (today the lane is LLM-provisional only).
+    if (xpath === oracle.PAGE_TITLE_XPATH) return fam === 'page-title' && oracle.pageTitleSlotPresent(bundle.collect);
     const el = collectByXpath[xpath];
     return !!el && oracle.familiesFor(el).includes(fam);
   };
@@ -236,6 +240,21 @@ function buildV3(bundle, opts = {}) {
     });
   }
 
+  // THE LLM EVIDENCE LANE (Harness 3.1 §2/§3) — the fourth evidence source, bound + verdict-mapped into
+  // `source:'llm'` SHADOW observations (the whole-obligation agent `llm-agent` from bundle.llm; each
+  // atomic rubric `llm-rubric:<id>` from bundle.judgments). They ride results.shadowObservations for
+  // per-mechanism gold scoring. Processed BEFORE reconciliation now, because in 3.2 a calibrated/ungated
+  // subset also FILLS its auto-PARTIAL obligation as a PROVISIONAL ledger row (§5b below).
+  const lres = llmAdj.processLlm(bundle.llm);
+  if (lres.errors.length) { for (const m of lres.errors) E(`llm: ${m}`); return { ok: false, errors, results: null }; }
+  const jres = judgments.processJudgments(bundle.judgments);
+  if (jres.errors.length) { for (const m of jres.errors) E(`judgments: ${m}`); return { ok: false, errors, results: null }; }
+  const stampAuthority = (o) => {
+    const a = auth.authorityFor(o.mechanism, o.wouldBe.observationOutcome, authorityReg);
+    return { ...o, authorityState: a.state, mayPublish: false }; // an llm obs never publishes — annotation only
+  };
+  const annotationObs = [...lres.shadowObservations, ...jres.shadowObservations].map(stampAuthority);
+
   // (5) INDEPENDENT obligation reconciliation: enumerate from the COLLECTOR (atomic per family);
   //     every obligation gets exactly one disposition. Authoritative CLAIMs clear; shadow
   //     observations and unsupported proposals are PARTIAL (shadow flagged); un-proposed ⇒ auto.
@@ -256,6 +275,49 @@ function buildV3(bundle, opts = {}) {
   for (const p of partials) dispositions.push({ obligationId: oracle.oblId(p._target, p._sc, p._family), kind: 'PARTIAL', cleared: false });
   for (const s of shadowObs) dispositions.push({ obligationId: oracle.oblId(s.observationScope && s.observationScope.actionTargetRef, s.sc, s.claimFamily), kind: 'PARTIAL', cleared: false, shadow: true });
 
+  // (5b) PROVISIONAL FILL (Harness 3.2): a calibrated/ungated LLM verdict FILLS an obligation the
+  //      deterministic lane left at auto-PARTIAL. We emit a PROVISIONAL disposition ONLY for an
+  //      ENUMERATED obligation with NO deterministic disposition (so reconcile never sees a collision
+  //      and a CLAIM/PARTIAL is never overridden); reconcile merges multiple by barrier-dominates-clear.
+  //      `provisionalMode:'ungated'` (research DEFAULT): fill for any non-abstaining obs, bypass the
+  //      registry, calibrated:false, with the per-mechanism gold numbers ATTACHED (measurement, not gate)
+  //      when gold is supplied. `'gated'` (production): fill only when the mechanism mayProvision at
+  //      canary AND its metrics gate passes (strict for a clear; ≤threshold+coverage for a barrier).
+  const provisionalMode = opts.provisionalMode === 'gated' ? 'gated' : 'ungated';
+  const gold = Array.isArray(opts.gold) ? opts.gold : null;
+  const scoringView = { claims, shadowObservations: [...shadowObs, ...annotationObs] };
+  const scoreCache = Object.create(null);
+  const scoreMech = (mech) => { if (!Object.prototype.hasOwnProperty.call(scoreCache, mech)) scoreCache[mech] = metrics.scoreMechanism(scoringView, gold || [], mech, opts.provisionOpts || {}); return scoreCache[mech]; };
+  const obsByObl = Object.create(null);
+  for (const o of annotationObs) {
+    const oid = oracle.oblId(o.observationScope && o.observationScope.actionTargetRef, o.sc, o.claimFamily);
+    (obsByObl[oid] = obsByObl[oid] || []).push(o);
+  }
+  const deterministicIds = new Set(dispositions.map((d) => d.obligationId));
+  for (const o of obligations) {
+    if (deterministicIds.has(o.obligationId)) continue; // a CLAIM/PARTIAL already owns it — never overridden
+    const obs = Object.prototype.hasOwnProperty.call(obsByObl, o.obligationId) ? obsByObl[o.obligationId] : null;
+    if (!obs) continue;
+    for (const ob of obs) {
+      const outcome = ob.wouldBe && ob.wouldBe.observationOutcome;
+      if (outcome !== 'BARRIER_OBSERVED' && outcome !== 'NO_BARRIER_OBSERVED') continue; // INCONCLUSIVE abstention ⇒ no row
+      const mech = ob.mechanism;
+      const sm = gold ? scoreMech(mech) : null;
+      const calibration = sm ? { falseClearRate: sm.clears.falseClearanceRate, falseBarrierRate: sm.barriers.falseBarrierRate, coverage: sm.coverage.coverage, labelledClears: sm.clears.labelledClears, labelledBarriers: sm.barriers.labelledBarriers } : null;
+      let calibrated = false;
+      if (provisionalMode === 'gated') {
+        if (!auth.provisionFor(mech, outcome, authorityReg).mayProvision) continue; // authority half (canary + provenance)
+        if (!sm) continue;                                                          // no gold ⇒ cannot score-gate
+        if (!(outcome === 'NO_BARRIER_OBSERVED' ? sm.clearCanaryEligible : sm.barrierCanaryEligible)) continue; // metrics half
+        calibrated = true;
+      }
+      dispositions.push({
+        obligationId: o.obligationId, kind: 'PROVISIONAL', outcome,
+        provisional: V.provisional({ source: ob.source, mechanism: mech, mode: provisionalMode, calibrated, outcome, confidence: ob.confidence, rationaleRef: ob.rationaleRef, evidenceRefs: ob.evidenceRefs, calibration }),
+      });
+    }
+  }
+
   const { errors: recErrors, ledger } = obl.reconcile(obligations, dispositions);
   for (const m of recErrors) E(`obligation: ${m}`);
   if (errors.length) return { ok: false, errors, results: null };
@@ -263,37 +325,25 @@ function buildV3(bundle, opts = {}) {
   // explicit coverage boundary: elements with a surface no Phase-0 family covers (audit R1-F5).
   const outOfScope = oracle.outOfScopeElements(bundle.collect);
 
-  // THE LLM EVIDENCE LANE (Harness 3.1 §2/§3) — the fourth evidence source. Both the whole-obligation
-  // agent (bundle.llm, mechanism `llm-agent`) and each atomic rubric judgment (bundle.judgments,
-  // mechanism `llm-rubric:<id>`) are bound + verdict-mapped into `source:'llm'` SHADOW observations.
-  // They are PURE ANNOTATIONS: they ride results.shadowObservations for offline per-mechanism scoring
-  // against the hand-labeled gold, but they DO NOT enter obligation reconciliation — so the
-  // obligation's authoritative disposition is untouched (it stays auto-PARTIAL when no deterministic
-  // CLAIM exists). Keeping them out of `dispositions` is also what prevents a duplicate-disposition
-  // crash when the LLM opines on an obligation a deterministic runner already CLAIMed (§2.1).
-  const lres = llmAdj.processLlm(bundle.llm);
-  if (lres.errors.length) { for (const m of lres.errors) E(`llm: ${m}`); return { ok: false, errors, results: null }; }
-  const jres = judgments.processJudgments(bundle.judgments);
-  if (jres.errors.length) { for (const m of jres.errors) E(`judgments: ${m}`); return { ok: false, errors, results: null }; }
-  // stamp the authority state (default-shadow; LLM mechanisms cap at canary) onto each annotation, so
-  // the derived review queue can report eligibility without a second pass over the registry.
-  const stampAuthority = (o) => {
-    const a = auth.authorityFor(o.mechanism, o.wouldBe.observationOutcome, authorityReg);
-    return { ...o, authorityState: a.state, mayPublish: false }; // an llm obs never publishes — annotation only
-  };
-  const annotationObs = [...lres.shadowObservations, ...jres.shadowObservations].map(stampAuthority);
-  // ADJUDICATION RECOMMENDATIONS are now a DERIVED VIEW over the un-promoted `source:'llm'` shadow
-  // observations (3.1 unify M1): one source of truth, one review queue. STRUCTURED-ONLY — the v3
-  // outcome (never the raw agent verdict, which could be a legacy token) plus the rationale REFERENCE
-  // (the free text itself stays in the side artifact), so the strict scanner can never trip.
-  const adjudicationRecommendations = annotationObs.map((o) => ({
-    sc: o.sc, claimFamily: o.claimFamily, targetXpath: o.observationScope && o.observationScope.actionTargetRef,
-    observationScope: o.observationScope, source: o.source, mechanism: o.mechanism,
-    wouldBeOutcome: o.wouldBe.observationOutcome, confidence: o.confidence,
-    status: 'adjudication-recommendation', authoritative: false,
-    eligibleForAuthority: o.authorityState !== 'shadow', // calibrated past default-shadow (still never authoritative)
-    rationaleRef: o.rationaleRef,
-  }));
+  // ADJUDICATION RECOMMENDATIONS — DERIVED view over the `source:'llm'` shadow obs (3.1 unify M1): one
+  // review queue. STRUCTURED-ONLY (the v3 outcome + the rationale REFERENCE, never the raw verdict). A
+  // mechanism that FILLED a PROVISIONAL row for its obligation reports `promotedTo:'PROVISIONAL'`.
+  const provisionalRowByObl = Object.create(null);
+  for (const r of ledger) if (r.disposition === 'PROVISIONAL') provisionalRowByObl[r.obligationId] = r;
+  const adjudicationRecommendations = annotationObs.map((o) => {
+    const oid = oracle.oblId(o.observationScope && o.observationScope.actionTargetRef, o.sc, o.claimFamily);
+    const provRow = provisionalRowByObl[oid];
+    const promotedTo = (provRow && provRow.provisional && (provRow.provisional.supportRefs || []).includes(o.mechanism)) ? 'PROVISIONAL' : null;
+    return {
+      sc: o.sc, claimFamily: o.claimFamily, targetXpath: o.observationScope && o.observationScope.actionTargetRef,
+      observationScope: o.observationScope, source: o.source, mechanism: o.mechanism,
+      wouldBeOutcome: o.wouldBe.observationOutcome, confidence: o.confidence,
+      status: 'adjudication-recommendation', authoritative: false,
+      eligibleForAuthority: o.authorityState !== 'shadow', // calibrated past default-shadow (still never authoritative)
+      promotedTo, // 'PROVISIONAL' when this mechanism filled the obligation's ledger row (else null)
+      rationaleRef: o.rationaleRef,
+    };
+  });
 
   // INSTRUMENT FINDINGS (VSR + keyboard instruments): page-level accessibility signals (reading order
   // 1.3.2, name/role/value 4.1.2, focus order 2.4.3, keyboard/SR traps 2.1.2). Like judgments they are
@@ -338,6 +388,11 @@ function buildV3(bundle, opts = {}) {
       llmShadowObservations: annotationObs.length, // the fourth-source annotations (3.1)
       partial: ledger.filter((r) => r.disposition === 'PARTIAL').length,
       autoPartial: ledger.filter((r) => r.autoPartial).length,
+      // PROVISIONAL counts (Harness 3.2) — NON-authoritative. The authoritative `cleared`/`barriersObserved`
+      // below stay DETERMINISTIC-only (unchanged meaning); these are the calibrated/ungated LLM fills.
+      provisionalCleared: ledger.filter((r) => r.disposition === 'PROVISIONAL' && r.cleared).length,
+      provisionalBarrier: ledger.filter((r) => r.disposition === 'PROVISIONAL' && !r.cleared).length,
+      provisionalByMechanism: ledger.reduce((m, r) => { if (r.disposition === 'PROVISIONAL') { const k = (r.provisional && r.provisional.mechanism) || 'unknown'; m[k] = (m[k] || 0) + 1; } return m; }, Object.create(null)), // null-proto: a mechanism id is DATA (audit R2-L1 parity)
       barriersObserved: claims.filter((c) => c.observationOutcome === 'BARRIER_OBSERVED').length,
       cleared: claims.filter((c) => c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE').length,
       outOfScopeElements: outOfScope.length,

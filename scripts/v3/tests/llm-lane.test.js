@@ -70,19 +70,19 @@ test('processLlm: a legacy-token evidenceRef is SCRUBBED so it can never reach t
 });
 
 // ============================ build-v3 integration ============================
-test('build: an LLM shadow obs rides shadowObservations, never publishes authoritative, leaves the disposition AUTO-PARTIAL', () => {
+test('build: an LLM obs rides shadowObservations, never AUTHORITATIVE; gated-without-gold leaves AUTO-PARTIAL', () => {
   const b = withPipeline(baseBundle());
-  b.llm = llmArt([llmVerdict()]); // opines NO_BARRIER on node:b1/2.4.7 — but there is no deterministic CLAIM
-  const r = buildV3(reseal(b), { authority: promoted([]) });
+  b.llm = llmArt([llmVerdict()]); // opines NO_BARRIER on node:b1/2.4.7 — no deterministic CLAIM
+  // GATED mode with no calibrated mechanism + no gold ⇒ the 3.1 contract holds: pure annotation, AUTO-PARTIAL.
+  const r = buildV3(reseal(b), { authority: promoted([]), provisionalMode: 'gated' });
   assert.equal(r.ok, true, JSON.stringify(r.errors));
-  assert.equal(r.results.summary.authoritative, 0, 'the LLM never clears an obligation');
+  assert.equal(r.results.summary.authoritative, 0, 'the LLM never publishes authoritative');
   assert.equal(r.results.summary.llmShadowObservations, 1);
   assert.ok(r.results.shadowObservations.some((o) => o.source === 'llm' && o.mechanism === 'llm-agent'));
-  // the 2.4.7 obligation it opined on stays an AUTO-PARTIAL — the annotation did NOT clear it.
   const row = r.results.obligationLedger.find((o) => o.sc === '2.4.7' && o.claimFamily === 'focus-indicator-visible');
   assert.equal(row.disposition, 'PARTIAL');
   assert.equal(row.autoPartial, true);
-  assert.equal(row.cleared, false);
+  assert.equal(row.cleared, false, 'gated mode without a canary mechanism never fills');
 });
 
 test('build: an LLM opinion on an obligation a deterministic runner already CLAIMed does NOT crash reconciliation', () => {

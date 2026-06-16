@@ -51,29 +51,51 @@ const AUTHORITY = Object.freeze({
 });
 
 const key = (experimentId, direction) => `${experimentId}/${direction}`;
+// OWN, non-empty string property — a provenance ref must be NAMED on the entry itself, never inherited
+// through the prototype chain (parity with the own-boolean readiness discipline; audit R2-L2 + adversarial).
+const ownTrimStr = (obj, f) => Object.prototype.hasOwnProperty.call(obj, f) && typeof obj[f] === 'string' && !!obj[f].trim();
 
 // May this (experiment, direction) be published as an AUTHORITATIVE claim?
 // FAIL-CLOSED: no entry, an unknown state, or any unmet readiness flag ⇒ shadow (mayPublish:false).
 function authorityFor(experimentId, direction, reg = AUTHORITY) {
   const entry = reg[key(experimentId, direction)];
-  if (!entry) return { state: 'shadow', mayPublish: false, reason: `no promotion entry for ${experimentId}/${direction} — default-shadow` };
-  if (!STATES.includes(entry.state)) return { state: 'shadow', mayPublish: false, reason: `invalid promotion state ${JSON.stringify(entry.state)} — fail-closed to shadow` };
+  if (!entry) return { state: 'shadow', mayPublish: false, mayProvision: false, reason: `no promotion entry for ${experimentId}/${direction} — default-shadow` };
+  if (!STATES.includes(entry.state)) return { state: 'shadow', mayPublish: false, mayProvision: false, reason: `invalid promotion state ${JSON.stringify(entry.state)} — fail-closed to shadow` };
   // LLM mechanisms cap at canary — they never publish authoritative (3.1 §4/H4). A config that marks
   // one 'authoritative' fails closed here (and validateAuthority rejects the registry outright).
   if (isLlmMechanism(experimentId) && entry.state === 'authoritative')
-    return { state: 'shadow', mayPublish: false, reason: `${experimentId} is an LLM mechanism — capped at ${MAX_LLM_STATE}; cannot publish authoritative (3.1 §4/H4)` };
-  if (entry.state !== 'authoritative') return { state: entry.state, mayPublish: false, reason: entry.reason || `${entry.state}: not authoritative` };
+    return { state: 'shadow', mayPublish: false, mayProvision: false, reason: `${experimentId} is an LLM mechanism — capped at ${MAX_LLM_STATE}; cannot publish authoritative (3.1 §4/H4)` };
+  // Harness 3.2: `canary` now has meaning — it is the PROVISIONAL rung (mayProvision), never CLAIM.
+  if (entry.state !== 'authoritative') return { state: entry.state, mayPublish: false, mayProvision: entry.state === 'canary', reason: entry.reason || `${entry.state}: not authoritative` };
   // 'authoritative' must be backed by ALL readiness flags as OWN booleans — registration is not
   // promotion, and an inherited (prototype-chain) flag does not count (audit R2-L2).
   const r = entry.readiness || {};
   const own = (f) => Object.prototype.hasOwnProperty.call(r, f) && r[f] === true;
   const unmet = READINESS_FLAGS.filter((f) => !own(f));
   if (unmet.length) return { state: 'shadow', mayPublish: false, reason: `marked authoritative but readiness unmet: ${unmet.join(', ')} — fail-closed to shadow` };
-  // readiness booleans must be backed by NAMED provenance artifacts (audit V3R2-H7).
+  // readiness booleans must be backed by NAMED, OWN provenance artifacts (audit V3R2-H7; inherited refs
+  // do not count — adversarial: a prototype-chain provenance must not satisfy the gate).
   const prov = entry.provenance || {};
-  const noProv = PROVENANCE_REFS.filter((f) => typeof prov[f] !== 'string' || !prov[f].trim());
-  if (noProv.length) return { state: 'shadow', mayPublish: false, reason: `marked authoritative but provenance refs missing: ${noProv.join(', ')} — fail-closed to shadow` };
-  return { state: 'authoritative', mayPublish: true, reason: entry.reason || 'promoted' };
+  const noProv = PROVENANCE_REFS.filter((f) => !ownTrimStr(prov, f));
+  if (noProv.length) return { state: 'shadow', mayPublish: false, mayProvision: false, reason: `marked authoritative but provenance refs missing: ${noProv.join(', ')} — fail-closed to shadow` };
+  return { state: 'authoritative', mayPublish: true, mayProvision: true, reason: entry.reason || 'promoted' };
+}
+
+// Harness 3.2 — may this (mechanism, direction) contribute a PROVISIONAL (canary) ledger row? This is
+// the GATED-mode authority check (the metrics score gate is separate, in metrics.js). `canary` is the
+// floor; `shadow`/no-entry cannot provision. For an LLM mechanism at canary, the LLM-specific
+// provenance (sealedEval + model/prompt pinning + gold-blinding) must be present — the same evidence
+// validateAuthority already enforces for an LLM canary, re-checked here so provisionFor is self-contained.
+function provisionFor(mechanism, direction, reg = AUTHORITY) {
+  const a = authorityFor(mechanism, direction, reg);
+  if (!a.mayProvision) return { mayProvision: false, state: a.state, reason: a.reason || `${mechanism}/${direction}: not canary` };
+  if (isLlmMechanism(mechanism)) {
+    const entry = reg[key(mechanism, direction)] || {};
+    const r = entry.readiness || {}, prov = entry.provenance || {};
+    const ok = (Object.prototype.hasOwnProperty.call(r, 'sealedEval') && r.sealedEval === true) && LLM_PROVENANCE_REFS.every((f) => ownTrimStr(prov, f));
+    if (!ok) return { mayProvision: false, state: a.state, reason: `LLM canary provision requires OWN readiness.sealedEval + provenance ${LLM_PROVENANCE_REFS.join('/')}` };
+  }
+  return { mayProvision: true, state: a.state, reason: a.reason || 'canary' };
 }
 
 // Are this promotion's NAMED provenance artifacts independently VERIFIED (audit V3R3-C1/M1)?
@@ -103,7 +125,7 @@ function validateAuthority(reg = AUTHORITY) {
         if (!(Object.prototype.hasOwnProperty.call(r, 'sealedEval') && r.sealedEval === true)) E.push(`authority ${k}: an LLM canary promotion requires readiness.sealedEval === true (mandatory held-out eval, H4)`);
         const prov = entry.provenance || {};
         for (const f of LLM_PROVENANCE_REFS)
-          if (typeof prov[f] !== 'string' || !prov[f].trim()) E.push(`authority ${k}: an LLM canary promotion requires provenance.${f} (model/prompt pinning + gold-blinding, H3/H5)`);
+          if (!ownTrimStr(prov, f)) E.push(`authority ${k}: an LLM canary promotion requires an OWN provenance.${f} (model/prompt pinning + gold-blinding, H3/H5)`);
       }
     }
     if (entry.state === 'authoritative') {
@@ -112,10 +134,10 @@ function validateAuthority(reg = AUTHORITY) {
         if (!Object.prototype.hasOwnProperty.call(r, f) || typeof r[f] !== 'boolean') E.push(`authority ${k}: authoritative requires an OWN boolean readiness.${f}`);
       const prov = entry.provenance || {};
       for (const f of PROVENANCE_REFS)
-        if (typeof prov[f] !== 'string' || !prov[f].trim()) E.push(`authority ${k}: authoritative requires provenance.${f} (a named artifact reference)`);
+        if (!ownTrimStr(prov, f)) E.push(`authority ${k}: authoritative requires an OWN provenance.${f} (a named artifact reference)`);
     }
   }
   return E;
 }
 
-module.exports = { AUTHORITY, STATES, authorityFor, validateAuthority, provenanceArtifactsVerified, PROVENANCE_REFS, LLM_PROVENANCE_REFS, MAX_LLM_STATE, isLlmMechanism, mechanismOf };
+module.exports = { AUTHORITY, STATES, authorityFor, provisionFor, validateAuthority, provenanceArtifactsVerified, PROVENANCE_REFS, LLM_PROVENANCE_REFS, MAX_LLM_STATE, isLlmMechanism, mechanismOf };
