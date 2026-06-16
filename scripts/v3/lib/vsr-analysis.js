@@ -14,11 +14,18 @@
 //       icon-button with aria-label), never asserted here — fail-honest.
 
 const { visualOrderDivergence } = require('./order-check.js');
+const { isVsrNoisePhrase } = require('../../lib/a11y-eval.js');
 
 const WIDGET_ROLES = /^(link|button|checkbox|radio|switch|tab|menuitem|menuitemcheckbox|menuitemradio|combobox|textbox|searchbox|listbox|slider|spinbutton|option|treeitem)$/;
 
-// content steps only — drop the structural boundary (enter/exit) announcements.
-const contentSteps = (t) => ((t && t.steps) ? t.steps : []).filter((s) => !s.boundary && s.xpath);
+// content steps only — drop the structural boundary (enter/exit) announcements AND the VSR root/landmark
+// NOISE phrases (§5.2.1: inherit a11y-eval.isVsrNoisePhrase so a bare "document"/"navigation"/"main"
+// announcement cannot pollute the reading-order or meaning check). An interactive control never carries
+// one of those as its whole announced phrase, so this only sheds structural noise.
+// NB: isVsrNoisePhrase('') is true (an empty announcement is "nothing"), but an empty-phrase step is
+// NOT landmark noise — drop only steps whose phrase is a RECOGNIZED non-empty noise phrase, so a
+// nameless widget (which the meaning check needs) survives while a bare "main"/"navigation" is shed.
+const contentSteps = (t) => ((t && t.steps) ? t.steps : []).filter((s) => !s.boundary && s.xpath && !(s.phrase && isVsrNoisePhrase(s.phrase)));
 
 // (1) reading order vs visual order — delegates to the shared detector (same logic as the keyboard
 // 2.4.3 tab-order check), then restores the reading-order field shape (`phrase`).
@@ -44,6 +51,11 @@ function meaningFindings(t) {
     // A <select>/combobox with no <label> makes the VSR voice its FIRST OPTION as the "name". A real
     // label is never one of the options, so a name that is a substring of the option text (visibleText)
     // is an option leaking through ⇒ the control has NO accessible name (audit: unlabeled-select FN).
+    // NOTE (3.1 §5.2.0/§6-item-8): with the CDP axName correction now applied in vsr-collect, an
+    // unlabeled <select> already surfaces with name='' (probe-confirmed), so the `!name` branch below
+    // catches it directly and this heuristic is REDUNDANT on the corrected path. It is retained as a
+    // sound fallback for the raw path (collectVsrTranscript({cdpCorrect:false})); the plan defers its
+    // removal until verified against the hand-labeled gold (currently on hold).
     const optionLeak = selectish && name && s.visibleText && s.visibleText.toLowerCase().includes(name.toLowerCase());
     if (!name || optionLeak) {
       findings.push({ kind: 'no-accessible-name', sc: '4.1.2', xpath: s.xpath, role: role || s.tag,

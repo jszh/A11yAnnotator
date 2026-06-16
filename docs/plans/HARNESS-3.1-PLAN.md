@@ -1,78 +1,124 @@
-# Harness 3.1 Plan — the LLM-adjudicated outcome + v2.9 pipeline inheritance
+# Harness 3.1 Plan — the LLM evidence source + v2.9 pipeline inheritance
 
-Status: PROPOSED (2026-06-15). Builds on the in-flight round2 VSR/keyboard instrument wiring
+Status: **IMPLEMENTED (2026-06-16)**. Builds on the round2 VSR/keyboard instrument wiring
 (`vsr-collect.js`, `vsr-analysis.js`, `vsr-graph.js`, `kbd-graph.js`, `order-check.js`,
 `run-instruments.js`). Nothing here weakens a v3 invariant: the harness still never publishes an
 uncalibrated clear, and every obligation still receives exactly one *authoritative* disposition.
+
+> **Implementation note (2026-06-16).** Shipped: the LLM fourth evidence source as a `source:'llm'`
+> shadow-emitting mechanism (`llm-adjudicator.js`), the judgments unify (M1 — `judgments.RUBRICS`
+> deleted, atomic rubrics emit `llm-rubric:*` shadow obs), per-mechanism + asymmetric + coverage gold
+> scoring (`metrics.js`), the LLM-mechanism authority cap at `canary` with model/prompt/gold-blinding
+> provenance (`authority.js`), the `llm`/`llmRationale` stages with M5 content-binding, the CDP
+> `axName` correction in `vsr-collect.js` (§5.2.0, probe-verified), the §5.2.1 phrase-noise filter, and
+> the §5.2.2 4.1.3 action→announcement detector (`status-detector.js`). Two design refinements emerged
+> from implementation + a 5-skeptic adversarial pass (all findings fixed with regression tests):
+> (a) LLM/rubric shadow obs are kept OUT of obligation reconciliation entirely (pure annotations) —
+> `reconcile` errors on a duplicate disposition, so an LLM opinion on an already-CLAIMed obligation
+> would otherwise crash the build; (b) the artifact stores the raw v2.9 token under `agentVerdict`
+> (not `verdict`) and every agent-controlled structural string is coerced + legacy-token-rejected at
+> validation, and the strict scanner now coerces boxed primitives — closing a `new String('N/A')`
+> leak. Item 8 (`optionLeak` removal) is DEFERRED pending gold verification (the heuristic is retained
+> as a sound fallback for the raw `cdpCorrect:false` path). Suites green: v3 242, pure 190.
+
+> **Revision note (post critical-review).** This supersedes the first draft, which modeled the LLM as a
+> separate `llmAdjudications[]` array with its own promotion path. That array was invisible to the
+> existing scoring/authority machinery (which reads only `claims` + `shadowObservations`), so it could
+> never actually be promoted, and it overstated the LLM's ability to *clear* SCs. The corrected design
+> makes the LLM a **shadow-emitting mechanism** that reuses the existing rails. See §8 for the full list
+> of corrections.
 
 ---
 
 ## 1. Goal
 
-Today v3 has two evidence lanes that can touch an obligation:
+Today v3 has these evidence lanes that can touch an obligation:
 
 | Lane | Source | Authority | Where it surfaces |
 |---|---|---|---|
-| Deterministic experiment | `exp-runners.js` (trusted) | `CLAIM` (authoritative) or shadow | `claims` / `shadowObservations` |
+| Deterministic experiment | `exp-runners.js` (trusted) | `CLAIM` (authoritative) or gold-gated shadow | `claims` / `shadowObservations` |
 | Safe sink | un-proposed / unproven | `PARTIAL` | `partials`, `obligationLedger` |
 | Atomic semantic judgment | `judgments.js` (LLM + rubric) | recommendation-only (no rubric calibrated) | `adjudicationRecommendations` |
 | VSR/keyboard instruments | `run-instruments.js` | non-authoritative shadow | `instrumentFindings` |
 
-What is missing: a **whole-obligation LLM verdict for every obligation**, produced by directly
-inheriting the v2.9 agent pipeline, recorded so it can be **scored against the hand-labeled gold**
-(memory: `ground-truth-hand-labeled-after-harness`). The atomic `judgments.js` lane only covers the
-handful of rubric-scoped meaning calls (alt adequacy, error helpfulness); it does **not** give the
-14 SCs with no deterministic runner an opinion that gold can grade. v3.1 adds that as a first-class,
-non-authoritative **fourth outcome type**.
+What is missing: a **whole-obligation LLM verdict**, produced by directly inheriting the v2.9 agent
+pipeline, recorded so it can be **scored against the hand-labeled gold** (memory:
+`ground-truth-hand-labeled-after-harness`). The atomic `judgments.js` lane only covers a handful of
+rubric-scoped meaning calls (alt adequacy, error helpfulness); it does **not** give the 14 SCs with no
+deterministic runner an opinion that gold can grade. v3.1 adds the LLM as a **fourth evidence source**
+feeding the *existing* non-authoritative shadow lane — not a new disposition and not a new array.
 
-The strategic payoff: this is the only principled path to eventually *clearing* the uncovered SCs.
-An LLM mechanism that demonstrates both-direction precision against gold can be promoted by the
-existing `authority.js` machinery from `shadow` → `canary` → `authoritative` — exactly like a
-deterministic mechanism. Until then it is a graded opinion, never a clear.
+### Honest value (what this does and does not buy)
+
+- **Does:** a barrier-flagging opinion across all 10 categories, including the 14 runner-less SCs, for
+  human review; and a *measured* agreement signal vs gold that tells us where an LLM is reliable.
+- **Does NOT (near-term):** earn authoritative **clears**. The clear-promotion gate in `metrics.js`
+  requires **zero** false clears on a fully gold-labeled set (`promotionEligible = unlabelledClears===0
+  && labelledClears>0 && falseClears===0`). A realistic LLM will produce the occasional false clear, so
+  LLM clears stay `shadow`/unpublished indefinitely under that gate — by design. The clear lane stays the
+  domain of deterministic runners.
+- **Plausible future ceiling:** the *barrier* direction (false barriers are review-noise, not safety
+  failures) MAY reach a `canary` state under a deliberate, asymmetric threshold (§4) — never automatic,
+  and gated on a held-out sealed eval because an LLM does not generalize off a gold set the way a
+  deterministic mechanism does (§8/H4).
 
 ---
 
-## 2. The fourth outcome type — `LLM_ADJUDICATED`
+## 2. The fourth evidence source — `source: 'llm'` shadow observations
 
 ### 2.1 What it is (and is not)
 
-It is a **non-authoritative observation carrying one of the existing three directions** plus LLM
-provenance and a confidence band. It is NOT a fourth value on the observation axis — v3 deliberately
-keeps observation / applicability / conformance orthogonal (`v3-schema.js`), and "who judged it" is a
-fourth *orthogonal* axis (evidence source), not a fourth observation. So:
+The LLM is realized as a **mechanism** (like `focus-visual-retry` is a mechanism) whose outputs are
+**shadow observations**, never authoritative claims. v3 keeps observation / applicability / conformance
+orthogonal (`v3-schema.js`); "who produced it" is a *fourth orthogonal axis* (evidence source), not a
+fourth observation value and not a new disposition:
 
 ```
 observationOutcome ∈ { BARRIER_OBSERVED, NO_BARRIER_OBSERVED, INCONCLUSIVE }   // unchanged
-source             ∈ { deterministic, instrument, llm }                        // NEW axis
+source             ∈ { deterministic, instrument, llm }                        // NEW axis (tag)
 authoritative      = false                                                     // ALWAYS for llm
 ```
 
-`LLM_ADJUDICATED` records `{ obligationId, sc, claimFamily, xpath, observationOutcome, confidence,
-basis, evidenceRefs, source: 'v2.9-agent', rubricRef? }`. It **annotates** an obligation; it never
-becomes the obligation's `disposition` (reconcile still enforces exactly one CLAIM|PARTIAL per
-obligation). "Uncertain" is structural: an `llm` outcome can never clear or barrier, regardless of
-how confident the agent is, until a per-(sc, direction) authority promotion says otherwise.
+Each LLM verdict becomes a record in `results.shadowObservations` of the shape `scoreClears` already
+consumes — `{ sc, observationScope: { actionTargetRef: xpath }, wouldBe: { observationOutcome,
+wcagApplicability }, source: 'llm', mechanism: 'llm-agent', claimFamily, confidence, evidenceRefs,
+decisionCoverageRef }`. Because it is a shadow observation, the obligation's disposition is **untouched**
+(it stays auto-`PARTIAL` when no deterministic CLAIM exists). "Uncertain" is structural: an `llm` outcome
+can never clear or barrier until `authority.js` promotes its `(mechanism, direction)` off the
+default-`shadow` state, and the clear direction is effectively gated out (§1).
+
+This reuses, for free: `scoreClears` (sees `shadowObservations.wouldBe`), the `unlabelledClears`
+fail-closed guard, the statistical-power sizing, and `authority.js` promotion — no parallel machinery.
 
 ### 2.2 Schema changes (`v3-schema.js`)
 
-- Add `EVIDENCE_SOURCES = ['deterministic', 'instrument', 'llm']`.
-- Add `LLM_CONFIDENCE = ['low', 'medium', 'high']`.
-- Add constructor `llmAdjudication({...})` returning `{ disposition: 'LLM_ADJUDICATED',
-  authoritative: false, source: 'llm', ... }`, mirroring `partial()`/`claim()`.
-- Add `V2_9_VERDICT_MAP` (single source of truth for the inheritance mapping):
-  `REPRODUCED → BARRIER_OBSERVED`, `NOT REPRODUCED → NO_BARRIER_OBSERVED`,
-  `PARTIAL → INCONCLUSIVE`, `N/A → (applicability) INAPPLICABLE`.
+- Add `EVIDENCE_SOURCES = ['deterministic', 'instrument', 'llm']` and `LLM_CONFIDENCE =
+  ['low','medium','high']`.
+- Extend the shadow-observation record with `source`, `mechanism`, `claimFamily`, `confidence`,
+  `evidenceRefs`, `decisionCoverageRef` (all structured/enumerated — see 2.3 on why no free text).
+- Add `V2_9_VERDICT_MAP` (single source of truth): `REPRODUCED → BARRIER_OBSERVED`,
+  `NOT REPRODUCED → NO_BARRIER_OBSERVED`, `PARTIAL → INCONCLUSIVE`, **`N/A → INCONCLUSIVE` (abstain)**.
+  The LLM may **not** assert `INAPPLICABLE` — applicability is owned by the independent oracle
+  (`applicability-oracle.js`); an LLM "N/A" is an abstention, not an applicability ruling (§8/H1).
 
-### 2.3 Output surfacing (`build-v3.js`)
+### 2.3 Output surfacing + strict-scan safety (`build-v3.js`)
 
-Mirror the existing `instrumentFindings` block (lines ~273–281):
+The LLM verdicts ride the existing `shadowObservations` array, so they pass through
+`findLegacyLabelStrict(results)` ([build-v3.js:319]). That scanner rejects **any** string value (and
+key) whose whole, normalized value equals a legacy token (`REPRODUCED` / `NOT REPRODUCED` / `N/A`) —
+there are no exempt fields on the strict path. An LLM `evidenceRef` or rationale that is literally
+`"N/A"` would therefore cause a **non-deterministic publish refusal**.
 
-- New top-level `results.llmAdjudications[]` + `summary.llmAdjudications` count.
-- Fail-closed coupling to the strict legacy scanner: the agent emits legacy tokens
-  (`REPRODUCED` / `NOT REPRODUCED` / `N/A`) — these MUST be mapped to v3 directions and the raw
-  rationale sanitized **before** the strict `findLegacyLabelStrict(results)` runs (build-v3.js:319),
-  or publication refuses. Add the mapping at ingestion, store rationale under a scanned-but-tolerated
-  field, and unit-test that a REPRODUCED-laden rationale cannot reach the strict output.
+Resolution (this is the C3 fix — the first draft's "sanitize" was underspecified):
+
+- **Structured-only in `results`.** Everything the strict scanner sees is an enum, an xpath, an SC code,
+  or an opaque id — never agent free text. `observationOutcome`/`wcagApplicability` come from
+  `V2_9_VERDICT_MAP`; `confidence` is an enum; `evidenceRefs` are ids.
+- **Free text in a side artifact.** The agent's natural-language rationale lives in a separate
+  `llm-rationale.json` artifact bound by id, scanned with the *lenient* `findLegacyLabel` (keys +
+  verdict-fields only), so legitimate prose containing a token is safe and a stray whole-value token in
+  a non-verdict field cannot block publication.
+- Unit-test: an `evidenceRef`/rationale equal to `"N/A"` must not reach the strict-scanned `results`.
 
 ---
 
@@ -88,41 +134,71 @@ never gospel). It directly inherits v2.9's per-skill agent evaluation:
   `meaningfulAnnouncement` (1.3.2/4.1.3/4.1.2), `CONSENT_SELECTORS` (the `underOverlay` flag).
 - **Evidence — reuse v2.9 instruments + the realism-corrected VSR transcript.** The agent reads the same
   screenshots and collector facts v2.9 used, PLUS the v3 VSR transcript with the v2.9 CDP accessible-name
-  correction applied (see §5.2 — the name slot the agent judges must be the *real* announced name, not a
-  Guidepup artifact). The 4.1.2 meaning call (announced name vs purpose/visible text) is only sound on the
-  realistic name; the raw VSR name would inject false mismatches the agent then has to relitigate.
-- **Verdict — inherit the v2.9 skill rubric prompts.** For each enumerated obligation (prioritize
-  auto-PARTIAL ones with no deterministic CLAIM), the agent returns
-  `{ verdict, confidence, basis, evidenceRefs }`; `V2_9_VERDICT_MAP` lifts it into a v3 direction.
-- **Coverage.** Because this runs per obligation across all 10 categories, it gives the 14
-  runner-less SCs (1.1.1, 1.3.1, 1.4.1, 1.4.5, 1.4.11, 2.4.2, 2.4.4, 2.4.6, 2.4.13, 2.5.3, 2.5.5,
+  correction applied (§5.2.0 — the name slot the agent judges must be the *real* announced name, not a
+  Guidepup artifact). The 4.1.2 meaning call (announced name vs purpose/visible text) is only sound on
+  the realistic name; the raw VSR name would inject false mismatches the agent then has to relitigate.
+- **Verdict — inherit the v2.9 skill rubric prompts.** The agent returns `{ verdict, confidence, basis,
+  evidenceRefs }`; `V2_9_VERDICT_MAP` lifts it into a v3 direction.
+- **Binding (M3).** Each verdict binds to `(xpath, sc, claimFamily)` and the agent must name the
+  `claimFamily`. Gold and `scoreClears` key on `(xpath, sc)`, which is sufficient while family↔sc is 1:1,
+  but carry the family so a future multi-family SC (the oracle warns 2.4.7 can be one) is unambiguous.
+- **Batching + budget (M4).** Judge per `(element, skill)` as v2.9 did — NOT one LLM call per obligation
+  (that multiplies cost by the obligations-per-element fan-out). Drive the fan-out from `budget.js`.
+- **Coverage.** Prioritize obligations that are auto-`PARTIAL` (no deterministic CLAIM); this gives the
+  14 runner-less SCs (1.1.1, 1.3.1, 1.4.1, 1.4.5, 1.4.11, 2.4.2, 2.4.4, 2.4.6, 2.4.13, 2.5.3, 2.5.5,
   2.5.8, 3.3.3, 4.1.3) a gold-gradeable opinion for the first time.
 
-`adjudicationRecommendations` (the atomic rubric judgments) become a **special case** of this lane —
-same `source: 'llm'`, same scoring path — so there is one LLM provenance model, not two.
+**Consolidation (M1) — full unify, committed.** Round2 is committed to git and frozen, so there is no
+collision risk in refactoring the existing judgments lane. v3.1 makes `authority.js` the **single**
+calibration/promotion gate for every LLM opinion:
+
+- `judgments.js` keeps its shape validation + binding but **stops owning calibration**: it emits its
+  atomic rubric judgments as `source:'llm'` shadow observations with `mechanism: 'llm-rubric:<rubricRef>'`
+  and a verdict map (`LIKELY_BARRIER → BARRIER_OBSERVED`, `LIKELY_OK → NO_BARRIER_OBSERVED`,
+  `UNCERTAIN → INCONCLUSIVE`).
+- the whole-obligation agent emits `mechanism: 'llm-agent'` (per §2).
+- both promote per `(mechanism, direction)` through `authority.AUTHORITY`; the parallel
+  `judgments.RUBRICS` registry is **deleted**.
+- `adjudicationRecommendations` becomes a **derived view** over the un-promoted `source:'llm'` shadow
+  observations — one source of truth, one review queue.
+
+Unify the *gate*, not the *mechanisms*: the agent and each rubric stay DISTINCT mechanism identities so
+each is calibrated on its own reliability, never pooled.
 
 ---
 
-## 4. Gold comparison + calibration/promotion loop
+## 4. Gold comparison + calibration loop
 
-This is the reason the outcome exists. The loop (memory: ground truth is hand-labeled AFTER the run):
+The loop (memory: ground truth is hand-labeled AFTER the run):
 
-1. **Run** harness → `results.llmAdjudications` recorded (non-authoritative).
-2. **Hand-label** gold via the annotator (`server.js`) → `gold: [{ xpath, sc, goldOutcome }]`.
-3. **Score** (`metrics.js`, extend the existing `scoreClears`): add
-   `scoreLlmAdjudications(results.llmAdjudications, gold)` → per-(sc, direction) confusion matrix
-   (TP/FP/FN/TN), both-direction precision, and the false-clear CI already implemented. Reuse the
-   `unlabelledClears` fail-closed guard (every scored outcome must carry a gold label or the bound is
-   void — audit R2-M1).
-4. **Power-gate** with the existing statistical-power check (metrics.js:40) so a thin gold set bounds
-   regressions, not a low-FN claim.
-5. **Promote** via `authority.js`: register an `llm:<skill|sc>` mechanism per direction, default
-   `shadow`. When readiness (`goldSized`, `sealedEval`, `independentRaters`, `measurementValidated`)
-   plus the both-direction precision threshold are met, flip to `canary`/`authoritative`. Only then
-   may an `llm` outcome graduate to authoritative — the same gate every mechanism passes.
+1. **Run** harness → LLM verdicts recorded as `source:'llm'` shadow observations (non-authoritative);
+   the run artifact is content-bound to `pageDigest`/`runId` and scoring rejects a mismatch (M5).
+2. **Hand-label** gold via the annotator (`server.js`) → `gold: [{ xpath, sc, goldOutcome }]`, labeled
+   **blind to the LLM output** (the annotator must not show the model verdict to the labeler) — otherwise
+   the precision estimate is circular (§8/H3).
+3. **Score per mechanism + direction.** `metrics.js`:
+   - extend `scoreClears` to **group/filter by `mechanism`** (so LLM shadow clears are scored apart from
+     deterministic shadow clears, which it currently lumps together);
+   - add `scoreBarriers` for the BARRIER direction (precision / false-barrier rate) — none exists today,
+     and the two directions need **asymmetric** thresholds (a false clear is dangerous; a false barrier
+     is review-noise) (§8/M2);
+   - report **decision coverage** (the INCONCLUSIVE/abstention rate). Precision on the *decided* subset
+     is gameable by abstaining on every hard case, so promotion gates on coverage too (§8/H2).
+4. **Power-gate** with the existing zero-event sizing (`requiredZeroEventN`, e.g. 149 for a 2% bound) so
+   a thin gold set bounds regressions, not a low-FN claim.
+5. **Promote** via `authority.js`: register the LLM as `llm-agent/<direction>` (or per skill), default
+   `shadow`. Readiness for the LLM mechanism is STRICTER than for a deterministic one, because an LLM
+   calibrated on gold does **not** generalize to unseen pages the way fixed code does (§8/H4):
+   - the existing flags (`goldSized`, `sealedEval`, `independentRaters`, `measurementValidated`), AND
+   - **`sealedEval` is mandatory, not optional** — held-out pages the calibration never saw;
+   - **a pinned `(model, prompt)` provenance** (model id + prompt hash) — a model/prompt change
+     invalidates the promotion (§8/H5); carry it in the authority `provenance` refs;
+   - **`goldBlinded`** provenance — gold was labeled without sight of the model output;
+   - realistically, the LLM is **capped at `canary`** (barrier direction) with ongoing drift monitoring;
+     authoritative clears are not a target under the current gate.
 
-Net: the LLM agent is wired in as just another mechanism on the existing promotion rails. No new trust
-primitive; the fail-closed default (`shadow`) is unchanged.
+Net: the LLM is one more mechanism on the existing promotion rails, with stricter, LLM-specific readiness
+evidence. The fail-closed default (`shadow`) is unchanged.
 
 ---
 
@@ -195,30 +271,125 @@ primitive; the fail-closed default (`shadow`) is unchanged.
 
 | # | File | Change |
 |---|---|---|
-| 1 | `lib/v3-schema.js` | `EVIDENCE_SOURCES`, `LLM_CONFIDENCE`, `llmAdjudication()`, `V2_9_VERDICT_MAP` |
-| 2 | `lib/llm-adjudicator.js` (new) | inherit v2.9 signal pre-compute (`a11y-eval`) + skill prompts; emit `{verdict,confidence,basis,evidenceRefs}` per obligation; map to direction |
-| 3 | `lib/build-v3.js` | ingest `bundle.llmAdjudications`, map+sanitize before strict scan, surface `results.llmAdjudications` + summary |
-| 4 | `lib/bundle-loader.js` / `orchestrator.js` | load the llm-adjudication artifact (parallel to judgments/instruments); bind by `runId` |
-| 5 | `lib/metrics.js` | `scoreLlmAdjudications()` → per-(sc,direction) confusion + both-direction precision, reuse `unlabelledClears` guard + power gate |
-| 6 | `lib/authority.js` | register `llm:<skill\|sc>` mechanisms, default `shadow`, readiness-gated promotion |
+| 1 | `lib/v3-schema.js` | `EVIDENCE_SOURCES`, `LLM_CONFIDENCE`; extend the shadow-observation record with `source`/`mechanism`/`claimFamily`/`confidence`/`evidenceRefs`/`decisionCoverageRef`; `V2_9_VERDICT_MAP` (N/A→INCONCLUSIVE) |
+| 2 | `lib/llm-adjudicator.js` (new) | inherit v2.9 signal pre-compute (`a11y-eval`) + skill prompts; judge per `(element, skill)` under `budget.js`; bind `(xpath, sc, family)`; emit `source:'llm'` shadow obs + a side `llm-rationale` artifact |
+| 3 | `lib/build-v3.js` | ingest LLM shadow obs into `shadowObservations` (structured-only); rationale to side artifact; `adjudicationRecommendations` becomes a derived view; keep strict scan green |
+| 3b | `lib/judgments.js` | **full unify (M1):** emit atomic judgments as `source:'llm'` `mechanism:'llm-rubric:<id>'` shadow obs + verdict map (LIKELY_BARRIER/LIKELY_OK/UNCERTAIN → BARRIER/NO_BARRIER/INCONCLUSIVE); **delete `RUBRICS`**; calibration moves to `authority.js` |
+| 4 | `lib/bundle-loader.js` / `orchestrator.js` | load the LLM + rationale artifacts; content-bind to `pageDigest`/`runId`, reject mismatch (M5) |
+| 5 | `lib/metrics.js` | group/filter `scoreClears` by `mechanism`; add `scoreBarriers` (asymmetric thresholds); report decision-coverage (abstention) |
+| 6 | `lib/authority.js` | register `llm-agent/*` **and `llm-rubric:*/*`** mechanisms, default `shadow`; add `(model,prompt)` + `goldBlinded` provenance; mandatory `sealedEval`; cap barrier at `canary` |
 | 7 | `lib/vsr-collect.js` | **adopt the v2.9 CDP `axName` correction + bare-role `textContent` fallback (§5.2.0)**; retain `rawPhrase`; revise the header comment that currently justifies NOT porting the correction; then inherit `a11y-eval` phrase-noise filters (§5.2.1) |
 | 8 | `lib/vsr-analysis.js` | drop the now-redundant `optionLeak` artifact heuristic once §5.2.0 lands (verify against gold first) |
 | 9 | `lib/run-instruments.js` | add 4.1.3 action→announcement detector (§5.2.2) |
-| 10 | `tests/` | adjudication shape + verdict-map + strict-scan-cannot-leak-legacy + gold-scoring + authority-promotion + name-correction (no "About, About"; unlabeled-select → empty name) fixtures |
+| 10 | `tests/` | shadow-obs `source:'llm'` shape + verdict-map (N/A→INCONCLUSIVE) + strict-scan-cannot-leak-legacy + per-mechanism gold scoring + abstention-coverage + authority `(model,prompt)`/blinding gates + name-correction (no "About, About"; unlabeled-select → empty name) |
 
-Phasing: 1–3 (outcome type + builder surfacing, no browser) → 4 (wiring) → 5–6 (gold loop) →
-7–9 (VSR realism + hardening) → 10 throughout.
+Phasing: 1–3, 3b (LLM source on the shadow lane + judgments unify, no browser) → 4 (wiring + binding) →
+5–6 (gold loop: per-mechanism scoring, asymmetric/blinded/pinned promotion) → 7–9 (VSR realism +
+hardening) → 10 throughout.
 
 ---
 
 ## 7. Invariants preserved
 
-- Exactly one *authoritative* disposition per obligation (CLAIM|PARTIAL); `LLM_ADJUDICATED` annotates,
-  never replaces.
-- No uncalibrated clear ever published: `llm` outcomes are `authoritative: false` and gated by
-  `authority.js` (default `shadow`) just like every other mechanism.
-- Strict output stays legacy-token-free: v2.9 verdicts are mapped + rationale sanitized before the
-  `findLegacyLabelStrict` gate.
+- Exactly one *authoritative* disposition per obligation (CLAIM|PARTIAL); an `llm` shadow observation
+  annotates, never replaces — same as a deterministic shadow observation.
+- No uncalibrated clear ever published: `llm` outcomes are `authoritative:false`, default-`shadow` in
+  `authority.js`; the clear-promotion gate (zero false clears, full gold labeling) keeps LLM clears out.
+- One calibration gate: every mechanism — deterministic, `llm-agent`, or `llm-rubric:*` — promotes only
+  through `authority.js`; there is no parallel rubric registry (`judgments.RUBRICS` is deleted).
+- Applicability stays oracle-owned: the LLM may not assert `INAPPLICABLE` (N/A → INCONCLUSIVE abstain).
+- Strict output stays legacy-token-free: only structured/enumerated fields ride `results`; agent free
+  text lives in a side artifact scanned leniently.
+- Determinism of the build is preserved: the LLM runs offline into a frozen, content-bound artifact; the
+  builder is a pure function over it.
 - The VSR remains an INSTRUMENT, not ground truth (memory: `vsr-is-harness-instrument`); gold remains
   hand-labeled after the run (memory: `ground-truth-hand-labeled-after-harness`).
+
+---
+
+## 8. Corrections folded in from the critical review
+
+| # | Severity | Issue | Resolution in this plan |
+|---|---|---|---|
+| C1 | critical | Separate `llmAdjudications[]` array was invisible to `scoreClears`/`authority.js` (which read only claims + shadowObservations) → unpromotable | LLM is a **shadow-emitting mechanism** (`source:'llm'`); reuses scoreClears + authority unchanged (§2) |
+| C2 | critical | Overstated "only path to clearing the 14 SCs" — the zero-false-clear gate effectively bars LLM clears | Reframed value to barrier-flagging + agreement measurement; clears explicitly gated out (§1, §4) |
+| C3 | critical | Strict scanner rejects any whole-value legacy token in *any* field → non-deterministic publish refusal on LLM phrasing | Structured-only in `results`; free text in a side artifact scanned leniently (§2.3) |
+| H1 | high | `N/A → INAPPLICABLE` usurps the independent applicability oracle and routes into the clear-gate | `N/A → INCONCLUSIVE` (abstain); applicability stays oracle-owned (§2.2) |
+| H2 | high | Abstention/selection bias inflates precision-on-decided | Report + gate on decision coverage (§4) |
+| H3 | high | Gold contaminated if labeled with sight of the model verdict | Gold labeled **blind**; `goldBlinded` provenance (§4) |
+| H4 | high | LLM gold-calibration doesn't generalize like deterministic code | Mandatory sealed/held-out eval; cap at `canary`; drift monitoring (§4) |
+| H5 | high | No model/prompt version pinning | Pinned `(model, prompt)` in authority provenance; upgrade invalidates (§4) |
+| M1 | med | Three parallel calibration registries | **Full unify (committed — round2 frozen, no collision):** `authority.js` is the single gate; `judgments.js` emits `source:'llm'` shadow obs and `judgments.RUBRICS` is **deleted** (§3, work item 3b) |
+| M2 | med | No barrier-direction scorer; "both-direction precision" was net-new | Add `scoreBarriers` with asymmetric thresholds (§4) |
+| M3 | med | Binding by `(xpath, sc)` only | Bind `(xpath, sc, family)`; agent names the family (§3) |
+| M4 | med | Per-obligation LLM calls multiply cost | Batch per `(element, skill)` under `budget.js` (§3) |
+| M5 | med | Stale artifact could score against the wrong page | Content-bind to `pageDigest`/`runId`; reject mismatch (§4) |
+
+---
+
+## 9. Implementation deltas & additions (2026-06-16)
+
+What the implementation changed or added relative to §§1–8, with the reason. All deltas are covered by
+tests (v3 242, pure 190) and a 5-skeptic adversarial pass.
+
+### 9.1 Producer vs consumer (clarified)
+`lib/llm-adjudicator.js` is split into two halves, mirroring `judgments.js`:
+- **Consumer** `processLlm()` — a PURE function the builder runs over a frozen `llm.json`: validate →
+  bind → verdict-map → emit `source:'llm'` shadow obs. This is what keeps `buildV3` deterministic.
+- **Producer** `runAdjudication()` — the OFFLINE pass that CREATES `llm.json` (+ `llm-rationale.json`):
+  select auto-PARTIAL subjects → pre-compute `a11y-eval` signals + VSR excerpt → prompt per
+  `(element, skill)` → call the INJECTABLE `runAgent` → write the artifacts. Inert by default (no
+  `runAgent` ⇒ refuses), so a misconfigured/headless run can never hit an API. This is the pass that
+  will run over the saved corpus once the hold is lifted; the builder only ever sees its frozen output.
+
+### 9.2 Deviations forced by the real code (each is a correctness fix, not a scope change)
+- **LLM/rubric shadow obs are kept OUT of obligation reconciliation entirely** (pure annotations on
+  `results.shadowObservations`, a separate `annotationObs` list). `obligations.reconcile` raises a
+  *duplicate disposition* error when two dispositions share an `obligationId`, so an LLM opinion on an
+  obligation a deterministic runner already CLAIMed (or PARTIAL'd) would have CRASHED the build.
+  Annotation-only is the only way to honor §2.1's "disposition untouched" in every case.
+- **Raw v2.9 token stored under `agentVerdict`, not `verdict`.** A field literally named `verdict` is a
+  VERDICT_FIELD scanned by the bundle's lenient legacy scan, so a raw `REPRODUCED`/`N/A` there would
+  reject the whole bundle. `agentVerdict` is the untrusted agent's raw reply (a non-schema string the
+  lenient scan tolerates); `processLlm` maps it to a v3 enum — only the enum reaches `results`.
+- **LLM mechanisms are CAPPED at `canary` in `authority.js`** (canary never publishes). This is the
+  cleanest guarantee no LLM opinion ever publishes authoritative, satisfying §7; `validateAuthority`
+  rejects a registry that marks an `llm-agent`/`llm-rubric:*` entry `authoritative`.
+
+### 9.3 Adversarial hardening (findings fixed + regression-tested)
+- **C3 reinforced (HIGH):** a boxed `new String('N/A')` is `typeof 'object'` and evaded the strict
+  scanner but serializes to the bare token. Fix: coerce agent-controlled strings to primitives at
+  construction, REJECT legacy tokens in structural fields (`claimFamily`/scope/ids) at validation (a
+  clear early error, not a confusing terminal refusal), and the strict scanner now coerces boxed
+  primitives as a backstop.
+- **4.1.3 detector soundness (HIGH ×3):** triggers inside `aria-hidden`, `visibility:hidden`/`opacity:0`
+  triggers, and re-parented PRE-EXISTING content were false-flagged. Fix: an AT-perceivability gate, a
+  "new text only" check (vs a pre-click `body.innerText` snapshot), and a navigation-resilient
+  per-trigger loop (a scripted-nav control is skipped, and a navigation keeps findings gathered so far).
+- **MED/LOW:** `precomputeSignals` no longer crashes on a malformed element; the barrier/clear scorers
+  are mutually exclusive (no double-count); sectioning containers (`article`…) removed from the VSR
+  text-fallback roles so they don't fold a subtree into a bogus name.
+
+### 9.4 VSR realism specifics (§5.2.0–§5.2.2 as built)
+- The CDP name-slot correction overwrites ONLY the name (role + states preserved — we avoid the v2.9
+  prefix-match state-drop), retains `rawName`/`rawPhrase`/`axName`, and restricts the textContent
+  fallback to leaf-ish nameFrom:contents roles (probe-verified: unlabeled `<select>` → name='', so the
+  `optionLeak` heuristic is now redundant on the corrected path — its REMOVAL stays deferred until
+  verified against gold, per item 8).
+- §5.2.1 phrase-noise filter drops only RECOGNIZED non-empty noise phrases (an empty announcement is
+  not landmark noise — a nameless widget must survive for the 4.1.2 check).
+
+### 9.5 Annotation companion — evidence + summary + reasoning per verdict (NEW, requested)
+Goal: hand-annotation after the run should never re-derive anything. For every LLM verdict the PRODUCER
+records, in the side `llm-rationale.json` (free text — lenient-scanned, NEVER in strict `results`):
+- `evidence` = exactly what the LLM saw — the deterministic `a11y-eval` `signals` + the VSR announcement
+  (`name`/`role`/`states`/`axName`/`rawName`) + the agent's `evidenceRefs`;
+- `summary` = ONE sentence stating the verdict in plain language;
+- `reasoning` = ONE sentence citing the evidence that drove it;
+- plus `verdictId`/`sc`/`targetXpath`/`mechanism`/`agentVerdict` for joining.
+The structured `results.adjudicationRecommendations` review queue carries the `rationaleRef` pointer, so
+the annotation tool resolves verdict → its evidence + summary + reasoning. The rubric lane is symmetric:
+`judgments.json` records carry optional `rationale`/`summary`/`reasoning` (same lenient-scanned home).
+For deterministic CLAIMs/shadows the evidence is the experiment outcome flags already in
+`experiments.json` (joined by `(xpath, sc)`); for instrument findings it is the finding `detail`.
 </content>

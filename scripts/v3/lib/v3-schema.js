@@ -10,6 +10,40 @@ const OBSERVATION_OUTCOMES = ['BARRIER_OBSERVED', 'NO_BARRIER_OBSERVED', 'INCONC
 const APPLICABILITY = ['APPLICABLE', 'INAPPLICABLE', 'UNKNOWN'];
 const CONFORMANCE = 'NOT_ASSESSED'; // constant; conformance is never assessed by the harness
 
+// WHO produced an observation — a FOURTH orthogonal axis (Harness 3.1 §2). It is a tag, not a new
+// observation value and not a new disposition: an `llm` observation is ALWAYS a non-authoritative
+// shadow record, scored against gold before any promotion (and even then capped — authority.js).
+const EVIDENCE_SOURCES = ['deterministic', 'instrument', 'llm'];
+const LLM_CONFIDENCE = ['low', 'medium', 'high'];
+
+// SINGLE SOURCE OF TRUTH for lifting a v2.9 agent verdict into a v3 observation outcome (3.1 §2.2).
+// Critically: `N/A → INCONCLUSIVE` is an ABSTENTION, never `INAPPLICABLE` — applicability is owned by
+// the independent oracle (applicability-oracle.js); an LLM may not assert a page is out of scope (H1).
+// NOTE: the KEYS here are legacy tokens by construction. This map is an INTERNAL lookup used only to
+// translate an offline artifact; it must NEVER be embedded in `results` (build-v3's strict scanner
+// rejects a legacy token in any key/value). Only the mapped v3 VALUES ever reach the published output.
+const V2_9_VERDICT_MAP = Object.freeze({
+  REPRODUCED: 'BARRIER_OBSERVED',
+  'NOT REPRODUCED': 'NO_BARRIER_OBSERVED',
+  PARTIAL: 'INCONCLUSIVE',
+  'N/A': 'INCONCLUSIVE', // abstain (H1) — not an applicability ruling
+});
+// the rubric verdicts judgments.js emits (a parallel, coarser vocabulary) map the same way.
+const RUBRIC_VERDICT_MAP = Object.freeze({
+  LIKELY_BARRIER: 'BARRIER_OBSERVED',
+  LIKELY_OK: 'NO_BARRIER_OBSERVED',
+  UNCERTAIN: 'INCONCLUSIVE',
+});
+
+// Normalize a raw verdict (case/space tolerant) to a v3 observation outcome via a chosen map.
+// Returns null for an unmappable verdict, so a caller fails closed rather than guessing a direction.
+function mapVerdict(verdict, map = V2_9_VERDICT_MAP) {
+  if (typeof verdict !== 'string') return null;
+  const key = verdict.trim().toUpperCase().replace(/\s+/g, ' ');
+  for (const k of Object.keys(map)) if (k.toUpperCase() === key) return map[k];
+  return null;
+}
+
 // A claim asserts a DIRECTION. INCONCLUSIVE/UNKNOWN are not assertable directions — they map
 // to a PARTIAL disposition (the safe sink), never to an authoritative claim.
 const DIRECTIONS = ['BARRIER_OBSERVED', 'NO_BARRIER_OBSERVED', 'INAPPLICABLE'];
@@ -58,8 +92,43 @@ function claim({ claimId, sc, claimFamily, observationOutcome, wcagApplicability
   };
 }
 
+// An LLM SHADOW OBSERVATION (3.1 §2.1) — a record of the shape `scoreClears`/`scoreBarriers` already
+// consume, tagged `source:'llm'`, ALWAYS non-authoritative. It rides results.shadowObservations as a
+// pure ANNOTATION: it never enters obligation reconciliation, so the obligation's disposition is
+// untouched (it stays auto-PARTIAL when no deterministic CLAIM exists). STRUCTURED-ONLY — every field
+// is an enum / xpath / SC code / opaque id; no agent free text (that lives in the side rationale
+// artifact, referenced by `rationaleRef`), so the strict legacy-token scanner can never trip on it.
+const _SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
+function llmShadowObservation({ sc, claimFamily, observationScope, observationOutcome, wcagApplicability, mechanism, confidence, evidenceRefs, decisionCoverageRef, rationaleRef }) {
+  // COERCE every agent-controlled string to a primitive (a boxed `new String('N/A')` is typeof 'object'
+  // and evades the strict legacy scanner but serializes to the bare token) and rebuild the scope from
+  // ONLY the known fields, so nothing extra rides into the published record (defense-in-depth; the
+  // lane validators already reject a legacy token in any of these fields before we reach here).
+  let scope = null;
+  if (observationScope && typeof observationScope === 'object') {
+    scope = {};
+    for (const f of _SCOPE_FIELDS) if (observationScope[f] != null) scope[f] = String(observationScope[f]);
+  }
+  return {
+    source: 'llm',
+    mechanism: mechanism != null ? String(mechanism) : 'llm-agent',
+    sc,
+    claimFamily: claimFamily != null ? String(claimFamily) : null,
+    observationScope: scope,
+    wouldBe: {
+      observationOutcome,
+      wcagApplicability: wcagApplicability || (observationOutcome === 'INCONCLUSIVE' ? 'UNKNOWN' : 'APPLICABLE'),
+    },
+    confidence: LLM_CONFIDENCE.includes(confidence) ? confidence : 'low',
+    evidenceRefs: Array.isArray(evidenceRefs) ? evidenceRefs.map(String) : [],
+    decisionCoverageRef: decisionCoverageRef != null ? String(decisionCoverageRef) : null,
+    rationaleRef: rationaleRef != null ? String(rationaleRef) : null,
+  };
+}
+
 module.exports = {
   OBSERVATION_OUTCOMES, APPLICABILITY, CONFORMANCE, DIRECTIONS, CLEARING_DIRECTIONS,
   CLEARABILITY, KEYBOARD_INTERACTION_SCS, ALL_SCS,
-  scKey, isClearing, isKeyboardInteractionSc, partial, claim,
+  EVIDENCE_SOURCES, LLM_CONFIDENCE, V2_9_VERDICT_MAP, RUBRIC_VERDICT_MAP, mapVerdict,
+  scKey, isClearing, isKeyboardInteractionSc, partial, claim, llmShadowObservation,
 };

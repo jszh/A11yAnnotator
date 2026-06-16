@@ -1,30 +1,23 @@
-// Harness 3.0 — semantic judgment skills (plan 3.0-D, Phase 3, Rule 6).
+// Harness 3.0/3.1 — semantic judgment skills (plan 3.0-D, Phase 3, Rule 6; 3.1 §3b unify M1).
 //
 // Some SCs need MEANING (alt-text adequacy, error-message helpfulness, instruction clarity) that no
 // deterministic experiment can decide. A SKILL (an untrusted LLM agent with a rubric) produces a
-// `judgments.json` artifact. This module binds + classifies those judgments. The keystone Phase-3
-// rule: a subjective judgment CANNOT authorize an observation until its individual rubric passes a
-// both-direction precision threshold (calibrated against gold). Until then — and by default ALL
-// rubrics are uncalibrated — every judgment is a NON-DEFINITE adjudication RECOMMENDATION: it is
-// surfaced for human review, never published as an authoritative clear/barrier, and the obligation it
-// touches stays PARTIAL. Ambiguous judgments (`UNCERTAIN`) stay unresolved by construction.
+// `judgments.json` artifact. This module binds + verdict-maps those atomic judgments — but it no
+// longer owns CALIBRATION. Under the 3.1 unify, EVERY LLM opinion (the whole-obligation agent AND
+// each atomic rubric) promotes through the SINGLE gate in authority.js. So a judgment is emitted as a
+// `source:'llm'`, `mechanism:'llm-rubric:<rubricRef>'` SHADOW observation: non-authoritative by
+// construction, scored against gold per-mechanism before any promotion, and even then capped at
+// `canary` (authority.js). The parallel `RUBRICS` registry that used to live here is DELETED — there
+// is one review queue and one calibration gate. Ambiguous judgments (`UNCERTAIN`) map to INCONCLUSIVE.
 'use strict';
 
 const V = require('./v3-schema.js');
 
 const VERDICTS = ['LIKELY_BARRIER', 'LIKELY_OK', 'UNCERTAIN'];
-
-// Rubric calibration registry (parallels authority.js). DEFAULT: empty ⇒ every rubric uncalibrated ⇒
-// recommendations only. A rubric becomes authorizable ONLY with `calibrated:true`, a met both-
-// direction precision bound, and named gold provenance — none ship in Phase 0.
-const RUBRICS = Object.freeze({});
-
-function rubricState(rubricRef, reg = RUBRICS) {
-  const r = reg && reg[rubricRef];
-  if (!r) return { calibrated: false, reason: `rubric ${JSON.stringify(rubricRef)} is uncalibrated (no entry) — recommendation only` };
-  const ok = r.calibrated === true && r.bothDirectionPrecisionMet === true && typeof r.goldRef === 'string' && !!r.goldRef.trim();
-  return { calibrated: ok, reason: ok ? 'calibrated' : 'rubric not yet calibrated to the both-direction precision threshold — recommendation only' };
-}
+const LEGACY = new Set(['REPRODUCED', 'NOT REPRODUCED', 'N/A']);
+const isLegacyToken = (s) => s != null && LEGACY.has(String(s).trim().toUpperCase().replace(/\s+/g, ' '));
+const scrubRefs = (refs) => (Array.isArray(refs) ? refs.map(String).filter((r) => !isLegacyToken(r)) : []);
+const rejectLegacy = (E, p, field, val) => { if (val != null && isLegacyToken(val)) E.push(`${p}.${field} must not be a legacy verdict token ${JSON.stringify(String(val))} (v3 schema break)`); };
 
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
 const isStr = (v) => typeof v === 'string' && v.length > 0;
@@ -36,7 +29,11 @@ function validateJudgmentsShape(art) {
   if (art == null) return E;
   if (!isObj(art)) return ['judgments: must be an object'];
   if (!Array.isArray(art.judgments)) return ['judgments.judgments must be an array'];
-  const KEYS = ['judgmentId', 'sc', 'claimFamily', 'targetXpath', 'observationScope', 'rubricRef', 'verdict', 'rationale', 'evidenceRefs', 'confidence'];
+  // `rationale`/`summary`/`reasoning` are the free-text ANNOTATION COMPANION (1 sentence each): they
+  // stay in this lenient-scanned artifact and are NEVER copied into strict `results` (processJudgments
+  // emits only structured shadow obs + a rationaleRef back to here), so a hand-annotator can review the
+  // verdict against its basis. Mirrors the agent lane's llm-rationale artifact.
+  const KEYS = ['judgmentId', 'sc', 'claimFamily', 'targetXpath', 'observationScope', 'rubricRef', 'verdict', 'rationale', 'summary', 'reasoning', 'evidenceRefs', 'confidence'];
   art.judgments.forEach((j, i) => {
     const p = `judgments.judgments[${i}]`;
     if (!isObj(j)) return E.push(`${p}: must be an object`);
@@ -46,30 +43,39 @@ function validateJudgmentsShape(art) {
     if (!isStr(j.targetXpath)) E.push(`${p}.targetXpath required`);
     if (!isStr(j.rubricRef)) E.push(`${p}.rubricRef required`);
     if (!VERDICTS.includes(j.verdict)) E.push(`${p}.verdict must be one of ${VERDICTS.join('|')}`);
-    if (j.observationScope != null) { if (!isObj(j.observationScope)) E.push(`${p}.observationScope must be an object`); else for (const f of SCOPE_FIELDS) if (!isStr(j.observationScope[f])) E.push(`${p}.observationScope.${f} must be a non-empty string`); }
+    if (j.observationScope != null) { if (!isObj(j.observationScope)) E.push(`${p}.observationScope must be an object`); else for (const f of SCOPE_FIELDS) { if (!isStr(j.observationScope[f])) E.push(`${p}.observationScope.${f} must be a non-empty string`); else rejectLegacy(E, `${p}.observationScope`, f, j.observationScope[f]); } }
+    // structural strings that reach results may never be a legacy token (boxed wrappers are coerced).
+    for (const f of ['judgmentId', 'targetXpath', 'rubricRef', 'claimFamily']) rejectLegacy(E, p, f, j[f]);
   });
   return E;
 }
 
-// Bind + classify judgments. Returns { recommendations[], errors[] }. NO judgment is ever
-// authoritative here (Phase 3 is not exited): each is an adjudication recommendation, and a judgment
-// whose rubric IS calibrated is flagged `eligibleForAuthority` for the future wiring — but still
-// emitted as a recommendation. `UNCERTAIN` verdicts are surfaced as unresolved.
-function processJudgments(judgmentsArt, rubricReg = RUBRICS) {
+// Bind + verdict-map judgments into `source:'llm'` SHADOW observations (3.1 unify). Returns
+// { shadowObservations[], errors[] }. STRUCTURED-ONLY: the verdict is lifted to a v3 outcome via
+// RUBRIC_VERDICT_MAP; the free-text rationale is NOT echoed into the record (it stays in the bundle's
+// judgments artifact, referenced by `rationaleRef = judgmentId`), so nothing the strict scanner sees
+// in `results` carries agent prose. `UNCERTAIN → INCONCLUSIVE` (never clears/barriers). Each record's
+// mechanism is `llm-rubric:<rubricRef>`, so a per-rubric reliability is calibrated independently in
+// authority.js — never pooled with the whole-obligation agent or another rubric.
+function processJudgments(judgmentsArt) {
   const errors = validateJudgmentsShape(judgmentsArt);
-  if (errors.length) return { recommendations: [], errors };
-  const recommendations = [];
+  if (errors.length) return { shadowObservations: [], errors };
+  const shadowObservations = [];
   for (const j of (judgmentsArt && judgmentsArt.judgments) || []) {
-    const cal = rubricState(j.rubricRef, rubricReg);
-    recommendations.push({
-      judgmentId: j.judgmentId, sc: j.sc, claimFamily: j.claimFamily || null, targetXpath: j.targetXpath,
-      observationScope: j.observationScope || null, rubricRef: j.rubricRef, verdict: j.verdict,
-      rationale: typeof j.rationale === 'string' ? j.rationale.slice(0, 500) : null,
-      status: 'adjudication-recommendation', authoritative: false,
-      eligibleForAuthority: cal.calibrated, calibration: cal.reason,
-    });
+    const outcome = V.mapVerdict(j.verdict, V.RUBRIC_VERDICT_MAP);
+    if (outcome == null) { errors.push(`judgment verdict ${JSON.stringify(j.verdict)} is not mappable to a v3 outcome`); continue; }
+    shadowObservations.push(V.llmShadowObservation({
+      sc: j.sc, claimFamily: j.claimFamily || null,
+      observationScope: j.observationScope || { actionTargetRef: j.targetXpath },
+      observationOutcome: outcome,
+      wcagApplicability: outcome === 'INCONCLUSIVE' ? 'UNKNOWN' : 'APPLICABLE',
+      mechanism: `llm-rubric:${j.rubricRef}`,
+      confidence: j.confidence,
+      evidenceRefs: scrubRefs(j.evidenceRefs),
+      rationaleRef: j.judgmentId,
+    }));
   }
-  return { recommendations, errors: [] };
+  return { shadowObservations, errors };
 }
 
-module.exports = { VERDICTS, RUBRICS, rubricState, validateJudgmentsShape, processJudgments };
+module.exports = { VERDICTS, validateJudgmentsShape, processJudgments };

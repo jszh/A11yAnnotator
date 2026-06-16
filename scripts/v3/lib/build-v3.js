@@ -26,6 +26,7 @@ const coverage = require('./coverage-registry.js');
 const dynamic = require('./dynamic-subjects.js');
 const observer = require('./applicability-observer.js');
 const judgments = require('./judgments.js');
+const llmAdj = require('./llm-adjudicator.js');
 const { resolveClaim } = require('./claims.js');
 
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
@@ -225,6 +226,9 @@ function buildV3(bundle, opts = {}) {
               : 'no independent applicability stage in the bundle (Rule 15: applicability cannot self-attest) — cannot publish authoritative (audit V3R5-C2)';
     shadowObs.push({
       claimId: p.claimId, sc: p.sc, claimFamily: family,
+      // EVIDENCE SOURCE (3.1 §2): a deterministic runner's gate-passing-but-unpromoted observation.
+      // Tagged so scoreClears/scoreBarriers can score it APART from the LLM lane (per-mechanism).
+      source: 'deterministic', mechanism: p.experimentId,
       wouldBe: { observationOutcome: out.observationOutcome, wcagApplicability: out.wcagApplicability },
       observationScope: out.observationScope,
       authorityState: a.state, reason,
@@ -259,11 +263,37 @@ function buildV3(bundle, opts = {}) {
   // explicit coverage boundary: elements with a surface no Phase-0 family covers (audit R1-F5).
   const outOfScope = oracle.outOfScopeElements(bundle.collect);
 
-  // SEMANTIC JUDGMENTS (plan Phase 3 / Rule 6): bind + classify any judgments. They are NON-DEFINITE
-  // adjudication recommendations — NEVER authoritative until a rubric is calibrated (none ship), so
-  // they cannot clear/barrier an obligation; they enter the output as an adjudication queue only.
-  const jres = judgments.processJudgments(bundle.judgments, opts.rubrics);
+  // THE LLM EVIDENCE LANE (Harness 3.1 §2/§3) — the fourth evidence source. Both the whole-obligation
+  // agent (bundle.llm, mechanism `llm-agent`) and each atomic rubric judgment (bundle.judgments,
+  // mechanism `llm-rubric:<id>`) are bound + verdict-mapped into `source:'llm'` SHADOW observations.
+  // They are PURE ANNOTATIONS: they ride results.shadowObservations for offline per-mechanism scoring
+  // against the hand-labeled gold, but they DO NOT enter obligation reconciliation — so the
+  // obligation's authoritative disposition is untouched (it stays auto-PARTIAL when no deterministic
+  // CLAIM exists). Keeping them out of `dispositions` is also what prevents a duplicate-disposition
+  // crash when the LLM opines on an obligation a deterministic runner already CLAIMed (§2.1).
+  const lres = llmAdj.processLlm(bundle.llm);
+  if (lres.errors.length) { for (const m of lres.errors) E(`llm: ${m}`); return { ok: false, errors, results: null }; }
+  const jres = judgments.processJudgments(bundle.judgments);
   if (jres.errors.length) { for (const m of jres.errors) E(`judgments: ${m}`); return { ok: false, errors, results: null }; }
+  // stamp the authority state (default-shadow; LLM mechanisms cap at canary) onto each annotation, so
+  // the derived review queue can report eligibility without a second pass over the registry.
+  const stampAuthority = (o) => {
+    const a = auth.authorityFor(o.mechanism, o.wouldBe.observationOutcome, authorityReg);
+    return { ...o, authorityState: a.state, mayPublish: false }; // an llm obs never publishes — annotation only
+  };
+  const annotationObs = [...lres.shadowObservations, ...jres.shadowObservations].map(stampAuthority);
+  // ADJUDICATION RECOMMENDATIONS are now a DERIVED VIEW over the un-promoted `source:'llm'` shadow
+  // observations (3.1 unify M1): one source of truth, one review queue. STRUCTURED-ONLY — the v3
+  // outcome (never the raw agent verdict, which could be a legacy token) plus the rationale REFERENCE
+  // (the free text itself stays in the side artifact), so the strict scanner can never trip.
+  const adjudicationRecommendations = annotationObs.map((o) => ({
+    sc: o.sc, claimFamily: o.claimFamily, targetXpath: o.observationScope && o.observationScope.actionTargetRef,
+    observationScope: o.observationScope, source: o.source, mechanism: o.mechanism,
+    wouldBeOutcome: o.wouldBe.observationOutcome, confidence: o.confidence,
+    status: 'adjudication-recommendation', authoritative: false,
+    eligibleForAuthority: o.authorityState !== 'shadow', // calibrated past default-shadow (still never authoritative)
+    rationaleRef: o.rationaleRef,
+  }));
 
   // INSTRUMENT FINDINGS (VSR + keyboard instruments): page-level accessibility signals (reading order
   // 1.3.2, name/role/value 4.1.2, focus order 2.4.3, keyboard/SR traps 2.1.2). Like judgments they are
@@ -291,25 +321,28 @@ function buildV3(bundle, opts = {}) {
     conformanceOutcome: V.CONFORMANCE,
     claims: claims.map(stripClaim),
     partials: partials.map(stripPartial),
-    shadowObservations: shadowObs,
+    // deterministic gate-passing shadows FIRST (lineage/fifth-pass tests key on [0]), then the
+    // non-disposition LLM annotations — one array for per-mechanism gold scoring (metrics.js).
+    shadowObservations: [...shadowObs, ...annotationObs],
     obligationLedger: ledger,
     elementSkillSummaries: aggregates,
     outOfScope,
     dynamicSubjects: dyn.subjects, // post-action discoveries, expanded + reconciled (Rule 13)
-    adjudicationRecommendations: jres.recommendations, // non-definite semantic judgments (Phase 3)
+    adjudicationRecommendations, // DERIVED view over the un-promoted source:'llm' shadow obs (3.1 unify)
     instrumentFindings, // non-authoritative VSR/keyboard instrument signals (shadow until gold-calibrated)
     summary: {
       obligations: obligations.length,
       proposals: proposals.length,
       authoritative: claims.length,
-      shadow: shadowObs.length,
+      shadow: shadowObs.length, // deterministic gate-passing shadows ONLY (unchanged meaning)
+      llmShadowObservations: annotationObs.length, // the fourth-source annotations (3.1)
       partial: ledger.filter((r) => r.disposition === 'PARTIAL').length,
       autoPartial: ledger.filter((r) => r.autoPartial).length,
       barriersObserved: claims.filter((c) => c.observationOutcome === 'BARRIER_OBSERVED').length,
       cleared: claims.filter((c) => c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE').length,
       outOfScopeElements: outOfScope.length,
       dynamicSubjects: dyn.subjects.length,
-      adjudicationRecommendations: jres.recommendations.length,
+      adjudicationRecommendations: adjudicationRecommendations.length,
       instrumentFindings: instrumentFindings.length,
     },
   };

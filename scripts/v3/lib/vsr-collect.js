@@ -11,11 +11,73 @@
 //     when scripting is enabled; Chrome's AX tree ignores it but the VSR prunes by computed style only
 //     and would "speak" the literal markup (server.js:640-647);
 //   • recognize the "end of X" / "document" structural boundary announcements (server.js:692-694).
-// We DELIBERATELY DO NOT PORT the cross-channel CORRECTION server.js applies — overwriting the VSR's
-// announced NAME with Chrome's CDP accessible name (server.js:494-510). For v3 that would launder away
-// the exact 4.1.2 name/role/value mismatches the downstream meaning-alignment check exists to detect.
-// Here the announced phrase + name are kept RAW, as the VSR actually voiced them.
+//
+// Harness 3.1 §5.2.0 — we NOW ADOPT the v2.9 CDP accessible-name CORRECTION (server.js:494-510), which
+// an earlier v3 draft wrongly skipped. Guidepup follows ARIA mechanically and mis-voices the NAME slot
+// in ways no shipping AT does (it duplicates nameFrom:contents — "link, About, About" — and for
+// nameFrom:n/a roles like paragraph/list it voices the bare role instead of the text). The harness
+// models what a real screen-reader USER HEARS, so the announced name the 1.3.2/4.1.2 checks (and the
+// §3 LLM lane) judge must be the REAL accessible name. We substitute Chrome's authoritative CDP `axName`
+// into the NAME slot, fall back to textContent for bare-role nodes, and KEEP the role + states the VSR
+// voiced. Crucially we correct the NAME ONLY (our parse already isolates role/name/states explicitly,
+// so we avoid the server.js prefix-match state-drop hazard, §5.2.0 port hazard) and retain the original
+// `rawPhrase`/`rawName` so a genuine role/state divergence is still inspectable.
 const fs = require('fs');
+
+// Roles that READ THEIR TEXT as the announced name (nameFrom:contents / text). For these, an empty CDP
+// axName means "fall back to textContent", NOT "no accessible name". LANDMARKS + containers
+// (main/nav/region/list/table/group/section/…) are DELIBERATELY EXCLUDED: an unlabeled landmark
+// genuinely has NO accessible name, and folding its whole subtree into a "name" is noise, not realism
+// (probe-confirmed: an unlabeled <main> otherwise absorbs the entire page text). This is a refinement
+// over server.js:514's blanket list, which was written for a single queried element, not a full walk.
+// ONLY leaf-ish nameFrom:contents roles whose text IS their name and is bounded. Sectioning/grouping
+// containers (article/blockquote/figure/caption/note/tooltip) are EXCLUDED — they nest other content
+// and would fold a whole subtree into a bogus "name" (adversarial A-LOW-1).
+const TEXT_FALLBACK_ROLES = /^(paragraph|listitem|cell|columnheader|rowheader|term|definition|code|emphasis|strong|mark|time|deletion|insertion|subscript|superscript|heading)$/i;
+
+// Resolve ONE element's authoritative accessible name via CDP (the same path server.js + eval-page.js
+// use): xpath → objectId → backendNodeId → Accessibility.getAXNodeAndAncestors → name.value. Returns
+// null on a resolution failure (caller keeps the raw VSR name), '' when the AX node has no name.
+async function cdpAxName(cdp, xpath) {
+  let objectId = null;
+  try {
+    const ev = await cdp.send('Runtime.evaluate', { expression: `(function(){var r=document.evaluate(${JSON.stringify(xpath)},document,null,9,null);return r.singleNodeValue;})()`, returnByValue: false });
+    if (!ev.result || !ev.result.objectId) return null;
+    objectId = ev.result.objectId;
+    const { node } = await cdp.send('DOM.describeNode', { objectId });
+    if (!node || node.backendNodeId == null) return null;
+    const { nodes } = await cdp.send('Accessibility.getAXNodeAndAncestors', { backendNodeId: node.backendNodeId });
+    const ax = nodes && nodes[0];
+    if (!ax || ax.ignored) return ''; // ignored / nameless ⇒ no announced name
+    return ax.name && ax.name.value != null ? String(ax.name.value) : '';
+  } catch (e) { return null; }
+  finally { if (objectId) await cdp.send('Runtime.releaseObject', { objectId }).catch(() => {}); }
+}
+
+// Apply the CDP name-slot correction to a collected transcript IN PLACE (Node-side; CDP is unavailable
+// inside page.evaluate). Bounded by a deadline so a huge page cannot stall collection.
+async function correctNamesViaCdp(page, result, opts = {}) {
+  if (!result || !result.ok || !Array.isArray(result.steps) || !page || typeof page.target !== 'function') return result;
+  const cdp = await page.target().createCDPSession().catch(() => null);
+  if (!cdp) return result;
+  try {
+    await cdp.send('Accessibility.enable').catch(() => {});
+    const deadline = Date.now() + (Number.isFinite(opts.cdpDeadlineMs) ? opts.cdpDeadlineMs : 15000);
+    for (const step of result.steps) {
+      step.rawPhrase = step.phrase; step.rawName = step.name; step.axName = null;
+      if (step.boundary || !step.xpath) continue;
+      if (Date.now() > deadline) continue;
+      const ax = await cdpAxName(cdp, step.xpath);
+      if (ax == null) continue;                 // resolution failed — keep the raw VSR name
+      step.axName = ax;
+      if (ax !== '') step.name = ax;            // real accessible name → name slot (role + states kept)
+      else if (TEXT_FALLBACK_ROLES.test(step.role || '')) step.name = step.visibleText || ''; // nameFrom:contents → read the text
+      else step.name = '';                       // AX confirms NO accessible name (e.g. unlabeled control / landmark)
+    }
+    result.cdpCorrected = true;
+  } finally { await cdp.detach().catch(() => {}); }
+  return result;
+}
 
 // the self-contained ~393KB browser ESM bundle (the same build server.js injects).
 const VSR_BUILD = require.resolve('@guidepup/virtual-screen-reader/browser.js');
@@ -52,7 +114,7 @@ async function collectVsrTranscript(page, opts = {}) {
   if (!ok) return { ok: false, reason: 'vsr-injection-failed', steps: [], totalSteps: 0, reachedEnd: false, stoppedEarly: false, wrapped: false, stuckXpath: null };
   const cap = Number.isFinite(opts.maxSteps) ? opts.maxSteps : 6000;
   const deadlineMs = Number.isFinite(opts.deadlineMs) ? opts.deadlineMs : 30000;
-  return page.evaluate(async (cap, deadlineMs, ROLE_SRC) => {
+  const result = await page.evaluate(async (cap, deadlineMs, ROLE_SRC) => {
     const ROLE_RE = new RegExp(ROLE_SRC, 'i');
     const vsr = window.__vsr;
     const getXPath = (e) => {
@@ -151,6 +213,11 @@ async function collectVsrTranscript(page, opts = {}) {
     if (!reachedEnd && !stoppedEarly && !wrapped) timedOut = true; // ran out the cap without a clean end
     return { ok: true, steps, totalSteps: steps.length, reachedEnd, stoppedEarly, wrapped, stuckXpath, timedOut };
   }, cap, deadlineMs, ROLE_LEAD).catch((e) => ({ ok: false, reason: 'evaluate-failed: ' + (e && e.message), steps: [], totalSteps: 0, reachedEnd: false, stoppedEarly: false, wrapped: false, stuckXpath: null, timedOut: false }));
+
+  // §5.2.0 — REALISM: overwrite the VSR's mis-voiced NAME slot with Chrome's authoritative CDP axName
+  // (Node-side; CDP is unavailable inside the page.evaluate above). Opt-out via { cdpCorrect: false }.
+  if (opts.cdpCorrect === false) return result;
+  return correctNamesViaCdp(page, result, opts);
 }
 
-module.exports = { ensureVsr, collectVsrTranscript, VSR_BUILD };
+module.exports = { ensureVsr, collectVsrTranscript, correctNamesViaCdp, cdpAxName, TEXT_FALLBACK_ROLES, VSR_BUILD };

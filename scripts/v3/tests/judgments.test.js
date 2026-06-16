@@ -1,5 +1,7 @@
-// Harness 3.0 — semantic judgment skills (plan Phase 3 / Rule 6): judgments are NON-DEFINITE
-// adjudication recommendations and CANNOT authorize an observation until their rubric is calibrated.
+// Harness 3.0/3.1 — semantic judgment skills. Under the 3.1 unify (M1), an atomic rubric judgment is
+// emitted as a `source:'llm'`, `mechanism:'llm-rubric:<rubricRef>'` SHADOW observation (non-authoritative
+// by construction) — there is no parallel RUBRICS registry, and calibration lives in authority.js. The
+// build surfaces these as a DERIVED adjudication-recommendation view; a judgment never clears/barriers.
 'use strict';
 
 const { test } = require('node:test');
@@ -12,31 +14,38 @@ const { withPipeline, reseal, promoted } = require('./helpers.js');
 const SCOPE = { actionTargetRef: 'node:b1', state: 'fresh-load', action: 'inspect', environment: 'headless-chromium' };
 const judgment = (over = {}) => ({ judgmentId: 'j1', sc: '1.1.1', targetXpath: 'node:img', observationScope: { ...SCOPE, actionTargetRef: 'node:img' }, rubricRef: 'alt-text-adequacy-v0', verdict: 'LIKELY_OK', rationale: 'the alt text describes the image', ...over });
 
-test('processJudgments: an uncalibrated rubric ⇒ recommendation only, never authoritative', () => {
-  const { recommendations, errors } = judgments.processJudgments({ judgments: [judgment()] });
+test('processJudgments: a judgment becomes a source:llm llm-rubric SHADOW observation (never authoritative)', () => {
+  const { shadowObservations, errors } = judgments.processJudgments({ judgments: [judgment()] });
   assert.deepEqual(errors, []);
-  assert.equal(recommendations.length, 1);
-  assert.equal(recommendations[0].authoritative, false);
-  assert.equal(recommendations[0].eligibleForAuthority, false, 'no rubric is calibrated in Phase 0');
-  assert.equal(recommendations[0].status, 'adjudication-recommendation');
+  assert.equal(shadowObservations.length, 1);
+  const o = shadowObservations[0];
+  assert.equal(o.source, 'llm');
+  assert.equal(o.mechanism, 'llm-rubric:alt-text-adequacy-v0', 'each rubric is its own mechanism — calibrated independently');
+  assert.equal(o.wouldBe.observationOutcome, 'NO_BARRIER_OBSERVED', 'LIKELY_OK → NO_BARRIER_OBSERVED');
+  assert.equal(o.rationaleRef, 'j1', 'the free-text rationale is referenced, not embedded');
+  assert.equal(Object.prototype.hasOwnProperty.call(o, 'rationale'), false, 'no free text in the structured record');
 });
 
-test('processJudgments: a CALIBRATED rubric flags eligibility but is STILL a recommendation (Phase 3 not exited)', () => {
-  const rubrics = { 'alt-text-adequacy-v0': { calibrated: true, bothDirectionPrecisionMet: true, goldRef: 'gold://alt-text' } };
-  const { recommendations } = judgments.processJudgments({ judgments: [judgment()] }, rubrics);
-  assert.equal(recommendations[0].eligibleForAuthority, true);
-  assert.equal(recommendations[0].authoritative, false, 'even a calibrated rubric does not auto-publish in this implementation');
+test('processJudgments: verdict mapping is total — LIKELY_BARRIER/UNCERTAIN → BARRIER/INCONCLUSIVE', () => {
+  const barrier = judgments.processJudgments({ judgments: [judgment({ verdict: 'LIKELY_BARRIER' })] });
+  assert.equal(barrier.shadowObservations[0].wouldBe.observationOutcome, 'BARRIER_OBSERVED');
+  const uncertain = judgments.processJudgments({ judgments: [judgment({ verdict: 'UNCERTAIN' })] });
+  assert.equal(uncertain.shadowObservations[0].wouldBe.observationOutcome, 'INCONCLUSIVE');
+  assert.equal(uncertain.shadowObservations[0].wouldBe.wcagApplicability, 'UNKNOWN', 'INCONCLUSIVE is an abstention, never a clear/barrier');
 });
 
-test('processJudgments: UNCERTAIN stays unresolved; malformed judgments are errors', () => {
-  const u = judgments.processJudgments({ judgments: [judgment({ verdict: 'UNCERTAIN' })] });
-  assert.equal(u.recommendations[0].verdict, 'UNCERTAIN');
+test('processJudgments: malformed judgments are errors (verdict / SC / unknown key)', () => {
   assert.ok(judgments.processJudgments({ judgments: [judgment({ verdict: 'DEFINITELY_FINE' })] }).errors.some((m) => /verdict/.test(m)));
   assert.ok(judgments.processJudgments({ judgments: [judgment({ sc: '9.9.9' })] }).errors.some((m) => /known SC/.test(m)));
   assert.ok(judgments.processJudgments({ judgments: [{ ...judgment(), smuggled: 1 }] }).errors.some((m) => /unknown key/.test(m)));
 });
 
-test('buildV3: a judgment NEVER produces an authoritative claim — only an adjudication recommendation', () => {
+test('the parallel RUBRICS registry is DELETED — there is one calibration gate (authority.js)', () => {
+  assert.equal(judgments.RUBRICS, undefined, 'judgments must not export a parallel calibration registry');
+  assert.equal(judgments.rubricState, undefined, 'rubric calibration no longer lives here');
+});
+
+test('buildV3: a judgment NEVER produces an authoritative claim — only a derived adjudication recommendation', () => {
   const b = withPipeline({
     collect: { file: 'p', runId: 'R', pageDigest: 'sha256:d', collectedAt: 1, elements: [{ xpath: 'node:b1', focusable: true }] },
     experiments: { file: 'p', runId: 'R', pageDigest: 'sha256:d', catalogVersion: '3.0.0-phase0', startedAt: 2, results: [] },
@@ -48,6 +57,11 @@ test('buildV3: a judgment NEVER produces an authoritative claim — only an adju
   assert.equal(r.results.summary.authoritative, 0, 'a semantic judgment cannot clear anything');
   assert.equal(r.results.summary.adjudicationRecommendations, 1);
   assert.equal(r.results.adjudicationRecommendations[0].authoritative, false);
+  assert.equal(r.results.adjudicationRecommendations[0].mechanism, 'llm-rubric:alt-text-adequacy-v0');
+  assert.equal(r.results.adjudicationRecommendations[0].eligibleForAuthority, false, 'uncalibrated by default');
+  // it also rides shadowObservations (for per-mechanism gold scoring) but never enters reconciliation:
+  assert.ok(r.results.shadowObservations.some((o) => o.mechanism === 'llm-rubric:alt-text-adequacy-v0'));
+  assert.equal(r.results.summary.llmShadowObservations, 1);
 });
 
 test('buildV3: a malformed judgments stage REFUSES the build', () => {

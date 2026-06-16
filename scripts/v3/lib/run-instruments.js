@@ -11,6 +11,7 @@ const { collectVsrTranscript } = require('./vsr-collect.js');
 const { analyzeTranscript } = require('./vsr-analysis.js');
 const { collectTabOrder, tabOrderFindings, detectKeyboardTraps } = require('./kbd-graph.js');
 const { vsrNavigationIntegrity } = require('./vsr-graph.js');
+const { detectStatusMessages } = require('./status-detector.js');
 
 const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -40,6 +41,11 @@ async function runInstruments(page, opts = {}) {
   // VSR navigation traps (reading-cursor cannot advance/retreat)
   const vt = await vsrNavigationIntegrity(page, opts).catch(() => null);
   if (vt) add('vsr-trap', vt.traps);
+  // 4.1.3 status messages (action→announcement). Runs LAST: it DRIVES actions (clicks), so it must
+  // not perturb the read-only VSR/keyboard instruments above. Sound-first (only flags content that
+  // demonstrably appeared without a live region and without focus moving to it).
+  const status = await detectStatusMessages(page, opts).catch(() => null);
+  if (status) add('status-message', status.findings);
 
   return { findings };
 }

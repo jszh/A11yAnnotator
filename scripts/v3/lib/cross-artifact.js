@@ -24,6 +24,9 @@ const VERDICT_FIELDS = new Set([
 // checked. Returns a path string for the first hit, else null.
 function findLegacyLabel(node, path = '$', inVerdictField = false) {
   if (node == null) return null;
+  // boxed primitives (new String('N/A')) are typeof 'object' yet serialize to the bare token — coerce
+  // so a wrapper object cannot smuggle a legacy label past the typeof-string check (adversarial gap).
+  if (node instanceof String || node instanceof Number || node instanceof Boolean) node = node.valueOf();
   if (typeof node === 'string') return (inVerdictField && isLegacyToken(node)) ? `${path}=${JSON.stringify(node)}` : null;
   if (Array.isArray(node)) { for (let i = 0; i < node.length; i++) { const h = findLegacyLabel(node[i], `${path}[${i}]`, inVerdictField); if (h) return h; } return null; }
   if (typeof node === 'object') {
@@ -40,6 +43,9 @@ function findLegacyLabel(node, path = '$', inVerdictField = false) {
 // key OR ANY string value refuses. Used by build-v3 on the v3 results only.
 function findLegacyLabelStrict(node, path = '$') {
   if (node == null) return null;
+  // boxed primitives serialize to a bare token but are typeof 'object' — coerce so a wrapper object
+  // (new String('N/A')) cannot evade the typeof-string check and leak into published results (HIGH).
+  if (node instanceof String || node instanceof Number || node instanceof Boolean) node = node.valueOf();
   if (typeof node === 'string') return isLegacyToken(node) ? `${path}=${JSON.stringify(node)}` : null;
   if (Array.isArray(node)) { for (let i = 0; i < node.length; i++) { const h = findLegacyLabelStrict(node[i], `${path}[${i}]`); if (h) return h; } return null; }
   if (typeof node === 'object') {
@@ -69,6 +75,10 @@ function crossArtifactErrors(bundle, requiredStages = ['collect', 'experiments',
     // bound to the run like experiments/claimProposals — a wrong-page/run observer artifact whose facts
     // happen to agree must not satisfy the boundary (audit R5R-C1).
     ['applicability', bundle.applicability],
+    // the Harness 3.1 LLM lane is gold-SCORED, so a STALE artifact would score against the wrong page
+    // (3.1 §4/M5) — content-bind both the structured verdicts and the free-text rationale to the run.
+    ['llm', bundle.llm],
+    ['llmRationale', bundle.llmRationale],
   ].filter(([, a]) => a != null);
 
   for (const [name, art] of arts) { const hit = findLegacyLabel(art, name); if (hit) push(`legacy verdict label present in ${name} (v3 is a clean schema break): ${hit}`); }

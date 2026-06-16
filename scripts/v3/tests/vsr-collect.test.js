@@ -64,3 +64,25 @@ test('vsr-collect: <noscript> raw markup is skipped (ported artifact fix)', { sk
   assert.ok(t.steps.some((s) => s.role === 'heading' && /Shop/.test(s.name)), 'heading present');
   assert.ok(t.steps.some((s) => s.xpath === '/html/body/a[1]'), 'the Cart link is still read');
 });
+
+test('vsr-collect §5.2.0: CDP axName correction overwrites the mis-voiced name slot, keeps role+states', { skip: !chromeOK, concurrency: false }, async () => {
+  const t = await transcribe('fx-v3-adv-unlabeled-select.html');
+  assert.equal(t.ok, true);
+  assert.equal(t.cdpCorrected, true, 'the CDP name-slot correction ran');
+  // the UNLABELED <select> voiced its first option ("Apple") as its name — CDP says it has NO name.
+  const sel = t.steps.find((s) => s.role === 'combobox' && /select\[1\]$/.test(s.xpath));
+  assert.ok(sel, 'the unlabeled select is in the transcript');
+  assert.equal(sel.rawName, 'Apple', 'raw VSR name was the leaked first option');
+  assert.equal(sel.axName, '', 'Chrome reports no accessible name');
+  assert.equal(sel.name, '', 'corrected name slot is empty — the real "no accessible name" (no optionLeak heuristic needed)');
+  assert.match(sel.states, /has popup listbox/, 'role + ARIA states are preserved through the correction');
+});
+
+test('vsr-collect §5.2.0: a bare-role node reads its TEXT, but an unlabeled landmark does NOT absorb the subtree', { skip: !chromeOK, concurrency: false }, async () => {
+  const t = await transcribe('fx-v3-vsr-semantic.html');
+  const p = t.steps.find((s) => s.role === 'paragraph');
+  assert.ok(p && /Sunny today/.test(p.name), 'paragraph (nameFrom:contents) falls back to its text');
+  const sel = await transcribe('fx-v3-adv-unlabeled-select.html');
+  const main = sel.steps.find((s) => s.role === 'main');
+  assert.ok(main && main.name === '', 'an unlabeled <main> landmark has NO name (no whole-subtree fold-in)');
+});

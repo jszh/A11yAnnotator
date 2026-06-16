@@ -20,6 +20,18 @@ const READINESS_FLAGS = ['goldSized', 'sealedEval', 'independentRaters', 'measur
 // against on-disk files is a further step (documented in the gold README); naming them is the floor.
 const PROVENANCE_REFS = ['goldRef', 'sealedRef', 'raterRef', 'measurementSuiteHash'];
 
+// LLM MECHANISMS (Harness 3.1 §4/§6) are a STRICTER, CAPPED class. The whole-obligation agent
+// (`llm-agent`) and every atomic rubric (`llm-rubric:<id>`) promote through THIS one gate — there is
+// no parallel registry. But an LLM calibrated on gold does NOT generalize to unseen pages the way
+// fixed deterministic code does (H4), so an LLM mechanism is CAPPED at `canary` and can never publish
+// authoritative. A `canary` LLM promotion additionally requires model+prompt version pinning (H5),
+// gold-blinding provenance (H3), and a mandatory sealed/held-out eval (H4) — stricter than a
+// deterministic promotion. Default (no entry) is `shadow`, exactly like any other mechanism.
+const LLM_PROVENANCE_REFS = ['modelRef', 'promptHash', 'goldBlindedRef'];
+const MAX_LLM_STATE = 'canary';
+const mechanismOf = (key) => { const i = key.lastIndexOf('/'); return i > 0 ? key.slice(0, i) : key; };
+const isLlmMechanism = (experimentId) => experimentId === 'llm-agent' || (typeof experimentId === 'string' && experimentId.startsWith('llm-rubric:'));
+
 // Default-shadow registry. focus-visual-retry stays shadow in BOTH directions because (a) its gold
 // seed (3 cases) is far below the worksheet sizing target (149), and (b) its measurement is only
 // just being validated against the transparent-shadow / visible-border adversarial fixtures. The
@@ -46,6 +58,10 @@ function authorityFor(experimentId, direction, reg = AUTHORITY) {
   const entry = reg[key(experimentId, direction)];
   if (!entry) return { state: 'shadow', mayPublish: false, reason: `no promotion entry for ${experimentId}/${direction} — default-shadow` };
   if (!STATES.includes(entry.state)) return { state: 'shadow', mayPublish: false, reason: `invalid promotion state ${JSON.stringify(entry.state)} — fail-closed to shadow` };
+  // LLM mechanisms cap at canary — they never publish authoritative (3.1 §4/H4). A config that marks
+  // one 'authoritative' fails closed here (and validateAuthority rejects the registry outright).
+  if (isLlmMechanism(experimentId) && entry.state === 'authoritative')
+    return { state: 'shadow', mayPublish: false, reason: `${experimentId} is an LLM mechanism — capped at ${MAX_LLM_STATE}; cannot publish authoritative (3.1 §4/H4)` };
   if (entry.state !== 'authoritative') return { state: entry.state, mayPublish: false, reason: entry.reason || `${entry.state}: not authoritative` };
   // 'authoritative' must be backed by ALL readiness flags as OWN booleans — registration is not
   // promotion, and an inherited (prototype-chain) flag does not count (audit R2-L2).
@@ -79,6 +95,17 @@ function validateAuthority(reg = AUTHORITY) {
   const E = [];
   for (const [k, entry] of Object.entries(reg)) {
     if (!STATES.includes(entry.state)) E.push(`authority ${k}: invalid state ${JSON.stringify(entry.state)}`);
+    // LLM mechanisms (3.1 §4/§6): capped at canary; a canary promotion carries STRICTER provenance.
+    if (isLlmMechanism(mechanismOf(k))) {
+      if (entry.state === 'authoritative') E.push(`authority ${k}: an LLM mechanism cannot be 'authoritative' — capped at ${MAX_LLM_STATE} (3.1 §4/H4)`);
+      if (entry.state === 'canary') {
+        const r = entry.readiness || {};
+        if (!(Object.prototype.hasOwnProperty.call(r, 'sealedEval') && r.sealedEval === true)) E.push(`authority ${k}: an LLM canary promotion requires readiness.sealedEval === true (mandatory held-out eval, H4)`);
+        const prov = entry.provenance || {};
+        for (const f of LLM_PROVENANCE_REFS)
+          if (typeof prov[f] !== 'string' || !prov[f].trim()) E.push(`authority ${k}: an LLM canary promotion requires provenance.${f} (model/prompt pinning + gold-blinding, H3/H5)`);
+      }
+    }
     if (entry.state === 'authoritative') {
       const r = entry.readiness || {};
       for (const f of READINESS_FLAGS)
@@ -91,4 +118,4 @@ function validateAuthority(reg = AUTHORITY) {
   return E;
 }
 
-module.exports = { AUTHORITY, STATES, authorityFor, validateAuthority, provenanceArtifactsVerified, PROVENANCE_REFS };
+module.exports = { AUTHORITY, STATES, authorityFor, validateAuthority, provenanceArtifactsVerified, PROVENANCE_REFS, LLM_PROVENANCE_REFS, MAX_LLM_STATE, isLlmMechanism, mechanismOf };
