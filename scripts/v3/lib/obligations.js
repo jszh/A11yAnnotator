@@ -31,18 +31,30 @@ function enumerationErrors(collect) { return oracle.enumerationErrors(collect); 
 // deterministic disposition (the auto-PARTIAL slot), so it never collides with — and never overrides —
 // a deterministic CLAIM/PARTIAL. Multiple PROVISIONAL on one obligation merge by barrier-dominates-clear.
 const _confRank = (c) => ({ high: 3, medium: 2, low: 1 }[c] || 0);
+const _mechOf = (f) => (f.provisional || {}).mechanism || '';
+// an ATOMIC `llm-rubric:<sc>-v<n>` is scoped to one SC and individually gold-calibratable, so on a tie it
+// is the more trustworthy/specific judgment than the broad whole-obligation `llm-agent` — prefer it for
+// the row's primary attribution (mechanism/rationaleRef). Both still appear in supportRefs.
+const _specificity = (f) => (_mechOf(f).startsWith('llm-rubric:') ? 1 : 0);
 function mergeProvisional(fills) {
   const barriers = fills.filter((f) => f.outcome === 'BARRIER_OBSERVED');
   const clears = fills.filter((f) => f.outcome === 'NO_BARRIER_OBSERVED');
   if (!barriers.length && !clears.length) return null; // no DECISIVE fill (all abstentions/unknown) ⇒ no row, fail-closed
-  const pick = (arr) => arr.slice().sort((a, b) => _confRank((b.provisional || {}).confidence) - _confRank((a.provisional || {}).confidence))[0];
+  // PRINCIPLED + DETERMINISTIC pick (audit D1-1): (1) highest confidence, then (2) the more specific
+  // atomic rubric over the broad agent, then (3) mechanism id ascending as the FINAL stable tie-break —
+  // so the published block is byte-stable regardless of producer emission order, and the attribution is
+  // the most-specific calibratable mechanism rather than just whatever sorts first alphabetically.
+  const pick = (arr) => arr.slice().sort((a, b) =>
+    _confRank((b.provisional || {}).confidence) - _confRank((a.provisional || {}).confidence)
+    || _specificity(b) - _specificity(a)
+    || (_mechOf(a) < _mechOf(b) ? -1 : _mechOf(a) > _mechOf(b) ? 1 : 0))[0];
   let chosen, cleared, conflict;
-  if (barriers.length) { chosen = pick(barriers); cleared = false; if (clears.length) conflict = { blockedClears: [...new Set(clears.map((c) => (c.provisional || {}).mechanism))] }; } // barrier dominates (fail-closed)
+  if (barriers.length) { chosen = pick(barriers); cleared = false; if (clears.length) conflict = { blockedClears: [...new Set(clears.map((c) => (c.provisional || {}).mechanism))].sort() }; } // barrier dominates (fail-closed)
   else { chosen = pick(clears); cleared = true; }
   // strip any pre-existing `conflict` from the chosen block so a STALE conflict can't ride the spread —
   // the conflict is RECOMPUTED here from the actual merge (adversarial A-F3).
   const { conflict: _stale, ...rest } = (chosen.provisional || {});
-  const block = { ...rest, supportRefs: [...new Set(fills.map((f) => (f.provisional || {}).mechanism).filter(Boolean))] };
+  const block = { ...rest, supportRefs: [...new Set(fills.map((f) => (f.provisional || {}).mechanism).filter(Boolean))].sort() };
   if (conflict) block.conflict = conflict;
   return { cleared, provisional: block };
 }

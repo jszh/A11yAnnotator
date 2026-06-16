@@ -165,11 +165,12 @@ test('R1-F4: a manifest naming a different page/run/digest is caught by the iden
 });
 
 test('R1-F5: an evaluable role-only element is surfaced as out-of-scope, never silently dropped', () => {
-  const r = buildV3(bundle([{ xpath: 'btn', focusable: true }, { xpath: 'img', role: 'img' }], [], []), { authority: PROMOTED });
+  // `region` is a landmark role no Phase-0/3.2 family covers (unlike img/link/heading, which now enumerate).
+  const r = buildV3(bundle([{ xpath: 'btn', focusable: true }, { xpath: 'reg', role: 'region' }], [], []), { authority: PROMOTED });
   assert.equal(r.ok, true, JSON.stringify(r.errors));
-  assert.equal(r.results.summary.outOfScopeElements, 1, 'the img is explicitly counted, not vanished');
-  assert.ok(r.results.outOfScope.some((o) => o.xpath === 'img'));
-  assert.ok(!r.results.obligationLedger.some((l) => l.xpath === 'img'), 'and it produced no phantom obligation');
+  assert.equal(r.results.summary.outOfScopeElements, 1, 'the region is explicitly counted, not vanished');
+  assert.ok(r.results.outOfScope.some((o) => o.xpath === 'reg'));
+  assert.ok(!r.results.obligationLedger.some((l) => l.xpath === 'reg'), 'and it produced no phantom obligation');
 });
 
 test('R1-F6: a result that answers a different target/SC than its request is rejected by reconciliation', () => {

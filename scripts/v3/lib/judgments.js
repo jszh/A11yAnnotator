@@ -43,7 +43,17 @@ function validateJudgmentsShape(art) {
     if (!isStr(j.targetXpath)) E.push(`${p}.targetXpath required`);
     if (!isStr(j.rubricRef)) E.push(`${p}.rubricRef required`);
     if (!VERDICTS.includes(j.verdict)) E.push(`${p}.verdict must be one of ${VERDICTS.join('|')}`);
-    if (j.observationScope != null) { if (!isObj(j.observationScope)) E.push(`${p}.observationScope must be an object`); else for (const f of SCOPE_FIELDS) { if (!isStr(j.observationScope[f])) E.push(`${p}.observationScope.${f} must be a non-empty string`); else rejectLegacy(E, `${p}.observationScope`, f, j.observationScope[f]); } }
+    if (j.observationScope != null) {
+      if (!isObj(j.observationScope)) E.push(`${p}.observationScope must be an object`);
+      else {
+        for (const f of SCOPE_FIELDS) { if (!isStr(j.observationScope[f])) E.push(`${p}.observationScope.${f} must be a non-empty string`); else rejectLegacy(E, `${p}.observationScope`, f, j.observationScope[f]); }
+        // PARITY with the LLM lane (adversarial MED): the obligation is matched by actionTargetRef — it must
+        // AGREE with targetXpath, or a (forged, disk-loaded, un-hashed) judgment binds its verdict to a
+        // DIFFERENT element than it names. validateJudgmentsShape is the SOLE gate on bundle.judgments.
+        if (isStr(j.observationScope.actionTargetRef) && isStr(j.targetXpath) && j.observationScope.actionTargetRef !== j.targetXpath)
+          E.push(`${p}.observationScope.actionTargetRef ${JSON.stringify(j.observationScope.actionTargetRef)} must equal targetXpath ${JSON.stringify(j.targetXpath)}`);
+      }
+    }
     // structural strings that reach results may never be a legacy token (boxed wrappers are coerced).
     for (const f of ['judgmentId', 'targetXpath', 'rubricRef', 'claimFamily']) rejectLegacy(E, p, f, j[f]);
   });

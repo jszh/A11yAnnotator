@@ -134,6 +134,7 @@ function buildV3(bundle, opts = {}) {
     // page-level page-title pseudo-element (3.2 ○-tier) — parity with reflow so a future deterministic
     // 2.4.2 runner can bind evidence (today the lane is LLM-provisional only).
     if (xpath === oracle.PAGE_TITLE_XPATH) return fam === 'page-title' && oracle.pageTitleSlotPresent(bundle.collect);
+    if (xpath === oracle.PAGE_INFOREL_XPATH) return fam === 'info-relationships' && !!(bundle.collect && bundle.collect.structure);
     const el = collectByXpath[xpath];
     return !!el && oracle.familiesFor(el).includes(fam);
   };
@@ -306,9 +307,13 @@ function buildV3(bundle, opts = {}) {
       const calibration = sm ? { falseClearRate: sm.clears.falseClearanceRate, falseBarrierRate: sm.barriers.falseBarrierRate, coverage: sm.coverage.coverage, labelledClears: sm.clears.labelledClears, labelledBarriers: sm.barriers.labelledBarriers } : null;
       let calibrated = false;
       if (provisionalMode === 'gated') {
-        if (!auth.provisionFor(mech, outcome, authorityReg).mayProvision) continue; // authority half (canary + provenance)
-        if (!sm) continue;                                                          // no gold ⇒ cannot score-gate
-        if (!(outcome === 'NO_BARRIER_OBSERVED' ? sm.clearCanaryEligible : sm.barrierCanaryEligible)) continue; // metrics half
+        // GATED gate = the STANDING canary (audit D-GATE-3). The 149-bound / sealed-eval / gold-blinding
+        // are a per-MECHANISM property EARNED OFFLINE over the WHOLE gold set and attested in the registry
+        // (`goldSized` + provenance, enforced by provisionFor + validateAuthority) — NOT re-derived from
+        // ONE page's observations (which can never reach 149 per-run and would double-gate goldSized). The
+        // per-page metrics `sm` ride along as MEASUREMENT only (the `calibration` block above); the offline
+        // calibrator uses metrics.provisionEligibility over the corpus gold to DECIDE the canary promotion.
+        if (!auth.provisionFor(mech, outcome, authorityReg).mayProvision) continue;
         calibrated = true;
       }
       dispositions.push({
@@ -333,7 +338,12 @@ function buildV3(bundle, opts = {}) {
   const adjudicationRecommendations = annotationObs.map((o) => {
     const oid = oracle.oblId(o.observationScope && o.observationScope.actionTargetRef, o.sc, o.claimFamily);
     const provRow = provisionalRowByObl[oid];
-    const promotedTo = (provRow && provRow.provisional && (provRow.provisional.supportRefs || []).includes(o.mechanism)) ? 'PROVISIONAL' : null;
+    // promotedTo is true ONLY when THIS obs is on the WINNING side of the fill (its outcome equals the
+    // row's outcome) AND its mechanism contributed — so an ABSTAINING (INCONCLUSIVE) obs, or a clear that
+    // a dominating barrier blocked, never falsely reads `promotedTo:'PROVISIONAL'` (audit D7-4).
+    const promotedTo = (provRow && provRow.provisional
+      && o.wouldBe.observationOutcome === provRow.provisional.outcome
+      && (provRow.provisional.supportRefs || []).includes(o.mechanism)) ? 'PROVISIONAL' : null;
     return {
       sc: o.sc, claimFamily: o.claimFamily, targetXpath: o.observationScope && o.observationScope.actionTargetRef,
       observationScope: o.observationScope, source: o.source, mechanism: o.mechanism,

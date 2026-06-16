@@ -66,25 +66,53 @@ function mechanismOfRecord(rec) {
 }
 // a malformed gold ROW (null / non-object) must DEGRADE (skip it), never crash the scorer — gold is
 // operator-supplied config and a single bad row must not fail-crash a soundness-critical build.
-const goldIndex = (gold) => { const m = {}; for (const g of gold || []) if (g && typeof g === 'object') m[`${g.xpath}::${g.sc}`] = g.goldOutcome; return m; };
-const recKey = (r) => `${r.scope && r.scope.actionTargetRef}::${r.sc}`;
+// FAMILY-AWARE keying (audit D-GATE-2): a single (xpath, sc) can carry materially different assertions
+// in different claim families (the documented future 1.3.1 case), with different ground truths — so a
+// gold label that names a `claimFamily` is keyed to it and credits ONLY that family; a family-agnostic
+// label keys to `*` and credits any family (back-compat with today's family-less gold).
+const goldIndex = (gold) => {
+  const m = Object.create(null);
+  for (const g of gold || []) {
+    if (!g || typeof g !== 'object') continue;
+    const key = `${g.xpath}::${g.sc}::${g.claimFamily != null ? g.claimFamily : '*'}`;
+    // BARRIER-DOMINANT fold (audit D-GATE/gold): once a key is a BARRIER (a caught false clear), a later
+    // NO_BARRIER/INAPPLICABLE row must NEVER erase it — file/array order cannot weaken the clear gate.
+    if (m[key] === 'BARRIER_OBSERVED') continue;
+    m[key] = g.goldOutcome;
+  }
+  return m;
+};
+// the resolved gold CELL key for a record (family-specific wins; else the family-agnostic '*'), or null.
+const recCellKey = (goldBy, r) => {
+  const base = `${r.scope && r.scope.actionTargetRef}::${r.sc}`;
+  if (r.family != null && Object.prototype.hasOwnProperty.call(goldBy, `${base}::${r.family}`)) return `${base}::${r.family}`;
+  if (Object.prototype.hasOwnProperty.call(goldBy, `${base}::*`)) return `${base}::*`;
+  return null;
+};
+const recLookup = (goldBy, r) => { const k = recCellKey(goldBy, r); return k == null ? undefined : goldBy[k]; };
 
 function collectDirection(results, includeShadow, predicate) {
   const out = [];
-  for (const c of results.claims || []) if (predicate(c.observationOutcome, c.wcagApplicability)) out.push({ scope: c.observationScope, sc: c.sc, source: 'authoritative', mechanism: mechanismOfRecord(c) });
-  if (includeShadow) for (const s of results.shadowObservations || []) { const wb = s.wouldBe || {}; if (predicate(wb.observationOutcome, wb.wcagApplicability)) out.push({ scope: s.observationScope, sc: s.sc, source: 'shadow', mechanism: s.mechanism || mechanismOfRecord(s) }); }
+  for (const c of results.claims || []) if (predicate(c.observationOutcome, c.wcagApplicability)) out.push({ scope: c.observationScope, sc: c.sc, family: c.claimFamily, source: 'authoritative', mechanism: mechanismOfRecord(c) });
+  if (includeShadow) for (const s of results.shadowObservations || []) { const wb = s.wouldBe || {}; if (predicate(wb.observationOutcome, wb.wcagApplicability)) out.push({ scope: s.observationScope, sc: s.sc, family: s.claimFamily, source: 'shadow', mechanism: s.mechanism || mechanismOfRecord(s) }); }
   return out;
 }
 
 function tallyClears(clears, goldBy, conf) {
-  let labelledClears = 0, falseClears = 0, shadowClears = 0, unlabelledClears = 0;
+  let shadowClears = 0, unlabelledClears = 0;
+  // Count DISTINCT gold CELLS, not records (audit D-GATE/dedup): an authoritative claim + a same-mechanism
+  // shadow obs on ONE obligation share one gold label, so the 149-bound's "independent true cases" premise
+  // requires deduping by cell — else the labelled count (and the false-clear count) inflate.
+  const cells = new Map();
   for (const c of clears) {
     if (c.source === 'shadow') shadowClears++;
-    const g = goldBy[recKey(c)];
-    if (!g) { unlabelledClears++; continue; } // a clear with NO gold label — must NOT be silently dropped (audit R2-M1)
-    labelledClears++;
-    if (g === 'BARRIER_OBSERVED') falseClears++;
+    const cell = recCellKey(goldBy, c);
+    if (cell == null) { unlabelledClears++; continue; } // a clear with NO gold label — must NOT be silently dropped (audit R2-M1)
+    if (!cells.has(cell)) cells.set(cell, goldBy[cell]);
   }
+  const labelledClears = cells.size;
+  let falseClears = 0;
+  for (const outcome of cells.values()) if (outcome === 'BARRIER_OBSERVED') falseClears++;
   const rate = labelledClears ? falseClears / labelledClears : null;
   const upperBound = (falseClears === 0 && unlabelledClears === 0) ? zeroEventUpperBound(labelledClears, conf) : null;
   return {
@@ -109,15 +137,18 @@ function scoreClears(results, gold, { conf = 0.95, includeShadow = true, mechani
 }
 
 function tallyBarriers(barriers, goldBy) {
-  let labelledBarriers = 0, falseBarriers = 0, shadowBarriers = 0, unlabelledBarriers = 0;
+  let shadowBarriers = 0, unlabelledBarriers = 0;
+  const cells = new Map(); // distinct gold cells (dedup — audit)
   for (const b of barriers) {
     if (b.source === 'shadow') shadowBarriers++;
-    const g = goldBy[recKey(b)];
-    if (!g) { unlabelledBarriers++; continue; }
-    labelledBarriers++;
-    // a barrier gold says is NOT a barrier (a clear / out of scope) is a FALSE BARRIER — review-noise.
-    if (g === 'NO_BARRIER_OBSERVED' || g === 'INAPPLICABLE') falseBarriers++;
+    const cell = recCellKey(goldBy, b);
+    if (cell == null) { unlabelledBarriers++; continue; }
+    if (!cells.has(cell)) cells.set(cell, goldBy[cell]);
   }
+  const labelledBarriers = cells.size;
+  let falseBarriers = 0;
+  // a barrier gold says is NOT a barrier (a clear / out of scope) is a FALSE BARRIER — review-noise.
+  for (const outcome of cells.values()) if (outcome === 'NO_BARRIER_OBSERVED' || outcome === 'INAPPLICABLE') falseBarriers++;
   const rate = labelledBarriers ? falseBarriers / labelledBarriers : null;
   return { labelledBarriers, falseBarriers, shadowBarriers, unlabelledBarriers, falseBarrierRate: rate };
 }
@@ -166,13 +197,17 @@ function scoreMechanism(results, gold, mechanism, opts = {}) {
   const clears = scoreClears(results, gold, { ...opts, mechanism });
   const barriers = scoreBarriers(results, gold, { ...opts, mechanism });
   const coverage = decisionCoverage(results, mechanism, opts);
-  // BARRIER gate: a false barrier is review-noise, so the operator MAY relax its coverage floor.
-  const barrierCoverageFloor = opts.coverageFloor != null ? opts.coverageFloor : 0.5;
+  // BARRIER gate: a false barrier is review-noise, so the operator MAY relax its coverage floor (but a
+  // non-finite/negative floor falls back to the default — never an accidental zero-floor).
+  const barrierCoverageFloor = Number.isFinite(opts.coverageFloor) && opts.coverageFloor >= 0 ? opts.coverageFloor : 0.5;
   const barrierCoverageOk = coverage.coverage != null && coverage.coverage >= barrierCoverageFloor;
-  // CLEAR gate: the DANGEROUS direction. The 2%-bound (149) + 50% coverage are HARD floors — clamp so an
-  // operator-supplied provisionOpts can only make the clear gate STRICTER, never weaker (adversarial B-F3).
-  const clearTarget = Math.min(opts.clearTarget != null ? opts.clearTarget : 0.02, 0.02);
-  const need = requiredZeroEventN(clearTarget);
+  // CLEAR gate: the DANGEROUS direction. The 2%-bound (149) + 50% coverage are HARD floors. The clamp is
+  // TWO-SIDED (audit D-GATE-1): a non-finite/≤0 clearTarget previously made requiredZeroEventN NEGATIVE,
+  // collapsing the 149-floor so one labelled clear passed. Validate to (0, 0.02], AND floor `need` at 149
+  // so provisionOpts can only make the clear gate STRICTER, never weaker.
+  const rawTarget = Number.isFinite(opts.clearTarget) && opts.clearTarget > 0 ? opts.clearTarget : 0.02;
+  const clearTarget = Math.min(rawTarget, 0.02);
+  const need = Math.max(requiredZeroEventN(clearTarget), requiredZeroEventN(0.02)); // never below the 149 floor
   const clearCoverageOk = coverage.coverage != null && coverage.coverage >= Math.max(barrierCoverageFloor, 0.5);
   return {
     mechanism, clears, barriers, coverage,

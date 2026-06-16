@@ -1,92 +1,101 @@
 ---
 name: color-and-visual-text
-description: Verify contrast with exact math, and use vision for the perceptual cases axe can't reach — information carried by color alone, and text baked into raster images.
+description: Judge the perceptual meaning behind contrast and color signals the runner already measured — information carried by color alone, text baked into raster images, and non-text contrast — over handed evidence, not your own tool runs.
 covers: cat_6 (primary)
 wcag: 1.4.1 Use of Color (A); 1.4.3 Contrast (Minimum) (AA); 1.4.5 Images of Text (AA); 1.4.11 Non-text Contrast (AA, WCAG 2.1)
 instruments: contrast math (--contrast), pixel sampling (--pixel-contrast), computed styles (--eval), vision (screenshots), axe
 behavioral: no (static)
 ---
 
-> **v3.2 division of labor (LLM lane).** In Harness v3.2 you do NOT investigate or drive tools — the
-> collector and the deterministic runners already measured the page and HAND you their signals + the
-> (realism-corrected) VSR transcript + vision crops. Your job is to JUDGE MEANING over that evidence,
-> not to re-run `--eval`/`/ax-node` or drive a submit. Where a deterministic runner already disposed an
-> obligation (a CLAIM exists) you are NOT asked about it — the builder only hands you the auto-PARTIAL
-> residue, so DEFER to the runner and never re-litigate (e.g. do not re-judge 1.4.3 contrast the runner
-> owns). KEEP every WCAG soundness caveat below: they are what STOP a false clear or false barrier.
-
 
 # color-and-visual-text
 
-> **Tooling note.** All `--eval`/`--xpath`/`--contrast`/`--pixel-contrast` below
-> are flags of `scripts/verify-finding.js`. `--eval "<body>"` runs your string as
-> a function body **inside the page** (`page.evaluate`), so `getComputedStyle`,
-> `document`, `getBoundingClientRect`, etc. are the ordinary browser globals there
-> — there is no custom `getComputedStyle`; it's the DOM API.
+## v3.2 division of labor
+You do **not** investigate and you do **not** drive tools. The collector and the
+deterministic runners have already loaded the page, walked the DOM, computed
+styles, sampled pixels, run axe, and recorded the (realism-corrected) VSR
+transcript. They **hand you** their signals plus the declared vision crops. Your
+only job is to **judge meaning** over that evidence — the perceptual residue a
+deterministic check cannot resolve.
 
-## When to run
-Findings about low-contrast text/UI, charts/legends/status distinguished only by
-color, or memes/ads/screenshots that bake text into an image.
+**Defer to the runner.** Where a deterministic runner already disposed an
+obligation, do not re-open it:
+- **1.4.3 Contrast (Minimum) is owned by the runner.** The a11y-eval contrast
+  engine measures the ratio against the correct threshold and emits the verdict.
+  Do **not** re-judge 1.4.3 here, and do not recompute its ratio.
+- You receive only the **auto-PARTIAL residue**: findings the runner could not
+  fully dispose because meaning is perceptual — color used as the sole channel,
+  text fused into a raster, or a non-text-contrast boundary that needs an eye on
+  the crop. Judge those; pass everything else through as the runner left it.
 
-## Procedure — contrast (1.4.3, 1.4.11)
-First decide which background you're dealing with:
+## What you JUDGE
+Scope yourself to three obligations, judged over the handed contrast signal +
+crops. (Again: **not** 1.4.3 — the runner owns it.)
 
-**A. Solid, single-layer background** (element or an ancestor has an opaque
-`backgroundColor`, no image/gradient):
-1. `--eval` the *computed* colors: `getComputedStyle(el).color` + the effective
-   `backgroundColor` (walk ancestors while it's `rgba(...,0)`/transparent).
-2. `--contrast "r,g,b|r,g,b"` → exact ratio. Thresholds: **1.4.3 (AA)** = 4.5:1
-   normal text, 3:1 large text — large = **≥24px (18pt)** OR **≥18.66px (14pt) bold**
-   (NOT "≥18.66px / ≥14px bold" — that was the harness bug; this matches
-   `lib/a11y-eval.js` `isLargeText`/`contrastThresholdFor`); **1.4.11 (AA)** = 3:1 for
-   UI-component boundaries and graphical objects. **Don't trust the finding's
-   stated hex** — the sweetgreen claim was inverted (real 16.75:1, not 1.14:1).
+- **1.4.1 Use of Color (A) — colour-only meaning.** Decide whether hue is the
+  *sole* carrier of information. Over the crop and the handed DOM signal: is a
+  state/series/category distinguished only by color, with no dash, pattern,
+  icon, label, shape, or underline? If the handed signal shows series differing
+  only by `stroke` (no `stroke-dasharray`, no text label), or a link set apart
+  from body text by color with no underline, that is colour-only meaning →
+  REPRODUCED. A non-color redundant cue anywhere → NOT REPRODUCED.
+- **1.4.5 Images of Text (AA) — text-as-image.** The handed signal already tells
+  you the node is an `<img>`/`<canvas>` (its "text" is not DOM text and cannot
+  be zoomed or restyled). Judge the crop: does it bake **essential** text into
+  the raster (a meme caption, an ad slogan, a screenshot of prose) rather than
+  incidental/logotype text? An `alt` that describes the subject instead of the
+  embedded words corroborates. Essential baked text → REPRODUCED.
+- **1.4.11 Non-text Contrast (AA, WCAG 2.1) — non-text contrast.** Judge over the
+  handed contrast signal + crop whether a UI-component boundary or a graphical
+  object meant to be perceived clears **3:1**. Trust `worstOverBackground` and
+  your eyes for a control sitting over a busy or photographic image; the worst
+  overlapped spot governs, not the cosmetic center.
 
-**B. Composited background — REQUIRED whenever the resolved background is
-`transparent`, or there's a `background-image`/gradient, or a semitransparent
-element/image sits behind the text** (`getComputedStyle` returns only the
-element's *own* background and axe-core reports `color-contrast` as *incomplete*
-for these — they are **not** covered by method A):
-3. `--pixel-contrast --xpath <xp>` (or `--sel`). It screenshots the element and
-   samples the **final rendered pixels**, returning: `palette` (dominant colors +
-   %), `estimatedText`/`estimatedBg`, `contrastTextVsBg`, and
-   `worstOverBackground` (text vs every other prominent cluster — the worst spot a
-   button-over-image actually overlaps). It also saves the crop to `/tmp`.
-   - Example: Domino's "Join Now" — `getComputedStyle` gives `ownBg rgba(0,0,0,0)`
-     (transparent, unusable); pixel sampling gives blue text on a cream composite
-     = **4.63:1**.
-4. **Confirm with vision** — read the saved crop; verify the estimated text/bg
-   pair matches what you see (the estimator can mis-pick if an image region is
-   more frequent than the text). For a button over a busy/photographic image,
-   trust `worstOverBackground` and your eyes over a single number.
-5. Cross-check axe `color-contrast`, but treat its `incomplete` results as "method
-   B required", not "passes".
+## Evidence you are handed
+You judge over these — you do not gather them.
 
-## Procedure — color-only (1.4.1) and text-in-image (1.4.5) — vision
-4. **Color as sole channel** — screenshot the chart/legend/status. Is the *only*
-   distinction hue (no dashes/patterns/labels/icons)? Confirm in DOM that series
-   differ only by `stroke`, with no `stroke-dasharray` or text label → REPRODUCED.
-   For the specific **link-in-a-text-block** case (a link distinguished from
-   surrounding text by color alone, no underline), axe has a dedicated rule:
-   `--axe link-in-text-block` (1.4.1, enabled by default) — run it before falling
-   back to vision.
-5. **Text in raster** — confirm the element is an `<img>`/`<canvas>` (so its
-   "text" is not DOM text and can't be zoomed/restyled), then read the PNG: does
-   it contain essential text (meme, ad, screenshot)? The `alt` describing the
-   subreddit rather than the embedded text corroborates.
+- **Precomputed a11y-eval contrast signals.** For each finding the runner hands
+  you: the resolved computed `color`/`backgroundColor` pair (ancestors already
+  walked through transparent layers); the exact `--contrast` ratio; for
+  composited backgrounds (`background-image`, gradient, semitransparent overlay,
+  or a `transparent`-resolved own background) the `--pixel-contrast` output —
+  `palette` (dominant colors + %), `estimatedText`/`estimatedBg`,
+  `contrastTextVsBg`, and `worstOverBackground` (text vs every other prominent
+  cluster). The relevant thresholds, already applied by the runner: **1.4.3
+  (AA)** 4.5:1 normal text, 3:1 large text, where large text = **≥ 24px** (18pt)
+  OR **≥ 18.66px** (14pt) bold; **1.4.11 (AA)** 3:1 for UI-component boundaries
+  and graphical objects. The handed signal also flags the DOM facts you need for
+  1.4.1/1.4.5 (e.g. `stroke`/`stroke-dasharray`, node tag, `alt`) and the axe
+  results (`color-contrast`, `link-in-text-block`).
+- **The (realism-corrected) VSR announcement transcript.** What a screen-reader
+  user is actually told about the affected element — already realism-corrected,
+  so read it as the user's experience, not as a fact to re-derive.
+- **The declared vision crops.** The saved element/region screenshots the
+  runner pinned for this finding (the composited button crop, the chart/legend,
+  the raster image). Judge these; do not request or generate new ones.
 
-## Classify
-- **REPRODUCED** — measured ratio below threshold; or color is the sole channel; or essential text is baked into an image.
-- **NOT REPRODUCED** — ratio passes (record it — sweetgreen was 18.8:1, not 1.14:1); or a non-color cue exists.
-- **PARTIAL** — chart needs a second series added (live) to show the color-only legend.
+## WCAG soundness caveats (these STOP a false clear or a false barrier)
+- **Don't trust the finding's stated hex.** The sweetgreen claim was inverted —
+  real **16.75:1**, not 1.14:1. Judge the handed measured ratio, never the
+  number the finding asserts.
+- **The large-text threshold split is load-bearing.** Large text = **≥ 24px**
+  (18pt) OR **≥ 18.66px** (14pt) bold. The old "14px bold" cutoff was a BUG (14px is
+  not 14pt); the handed signal already matches `lib/a11y-eval.js`
+  `isLargeText`/`contrastThresholdFor`. If a verdict you are reasoning over rests on
+  the buggy split, it is unsound — flag it rather than ratify it.
+- **axe `incomplete` is not `pass`.** For composited backgrounds axe-core reports
+  `color-contrast` as *incomplete*; treat that as "the pixel-sampled signal
+  governs", never as a clear.
+- **Over photographic/composited backgrounds, the segmentation is a heuristic.**
+  The estimator picks most-frequent = background, farthest-luminance = text and
+  can mis-pick when an image region outnumbers the text. Confirm
+  `estimatedText`/`estimatedBg` against the crop and let `worstOverBackground`
+  and your eyes govern. Quantization rounds colors to 16 levels/channel, so the
+  ratio can differ by a few tenths from the true value (sweetgreen: sampled
+  16.75 vs computed 18.8) — fine for pass/fail, not for audit-grade exact figures.
+- **Colour-only and text-in-image remain perceptual judgments.** A passing
+  contrast number does not clear 1.4.1 or 1.4.5, and a failing one does not by
+  itself prove them; judge the channel and the raster on their own terms.
 
-## Limits
-Method A (solid bg) is deterministic — prefer it over eyeballing. Method B (pixel
-sampling) is the only thing that handles `background-image`, gradients,
-semitransparent overlays, and transparent-resolved backgrounds — but its
-text/background segmentation is a heuristic (most-frequent = background,
-farthest-luminance = text); over photographic backgrounds confirm the pair with
-vision and report `worstOverBackground`. Quantization rounds colors to 16
-levels/channel, so the ratio can differ by a few tenths from the true value
-(sweetgreen: sampled 16.75 vs computed 18.8) — fine for pass/fail, not for
-audit-grade exact figures. Color-only and text-in-image remain vision judgments.
+## Output
+One verdict per finding: **REPRODUCED** / **NOT REPRODUCED** / **PARTIAL** / **N/A**.

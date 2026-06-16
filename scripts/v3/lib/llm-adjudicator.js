@@ -280,7 +280,80 @@ async function runAdjudication(subjects, opts = {}) {
   };
 }
 
+// ============================ ATOMIC RUBRIC producer (llm-rubric:<id>) — wires the authored rubric set ============================
+// The whole-obligation `runAdjudication` above emits `llm-agent`. This producer runs the ATOMIC,
+// versioned rubrics (scripts/v3/llm-rubrics/*.md, loaded by rubric-loader) — each scoped to ONE SC, with
+// its own `visionEvidence` — and emits a `judgments` artifact whose `rubricRef` is the rubric id, so the
+// builder's existing judgments lane lifts it to a `llm-rubric:<id>` shadow obs (and, calibrated, a
+// PROVISIONAL fill). This is the wiring the audit (D12-1) found missing: without it the authored rubrics
+// never reach a prompt.
+const RUBRIC_VERDICT_FROM_V29 = Object.freeze({ REPRODUCED: 'LIKELY_BARRIER', 'NOT REPRODUCED': 'LIKELY_OK', PARTIAL: 'UNCERTAIN', 'N/A': 'UNCERTAIN' });
+const mapToRubricVerdict = (v29) => RUBRIC_VERDICT_FROM_V29[v29] || null;
+
+// Build (element, rubric) judging subjects: each auto-PARTIAL obligation × every atomic rubric whose
+// `sc` matches the obligation's SC. `rubrics` is loadRubrics().rubrics ({ [id]: {id, sc, skill, text, visionEvidence} }).
+function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true } = {}) {
+  const elByXpath = {};
+  for (const el of (collect && collect.elements) || []) if (el && el.xpath) elByXpath[el.xpath] = el;
+  const bySc = {};
+  for (const r of Object.values(rubrics || {})) if (r && r.sc) (bySc[r.sc] = bySc[r.sc] || []).push(r);
+  const rows = (ledger || []).filter((r) => (onlyAutoPartial ? r.autoPartial : true));
+  const seen = new Set();
+  const subjects = [];
+  for (const row of rows) for (const rub of (bySc[row.sc] || [])) {
+    const key = `${row.xpath}::${rub.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    subjects.push({ xpath: row.xpath, sc: row.sc, claimFamily: row.claimFamily, rubricId: rub.id, rubric: rub, skill: rub.skill || null, element: elByXpath[row.xpath] || { xpath: row.xpath } });
+  }
+  return subjects;
+}
+
+// Run the atomic rubrics. Returns { judgments, llmVision } to attach to the bundle. The judgment's free
+// text (summary/reasoning) rides the judgments artifact (lenient-scanned, never in strict results); the
+// crops ride a side llmVision artifact, referenced by opaque id. `runAgent(messages, subject)` is injected
+// (default REFUSES). A malformed/unmappable agent reply is dropped, never guessed.
+async function runRubricJudgments(rubricSubjects, opts = {}) {
+  const runAgent = opts.runAgent || (() => { throw new Error('llm-adjudicator: no runAgent configured (refusing to call an API by default)'); });
+  const budget = opts.budget || null;
+  const id = { file: opts.file || null, runId: opts.runId || null, pageDigest: opts.pageDigest || null };
+  const visionByXpath = opts.visionByXpath || {};
+  const transcriptByXpath = opts.transcriptByXpath || {};
+  const scope = (xpath) => ({ actionTargetRef: xpath, state: opts.state || 'fresh-load', action: opts.action || 'inspect', environment: opts.environment || 'headless-chromium' });
+  const judgments = [];
+  const visionImages = [];
+  let idx = -1;
+  for (const subj of rubricSubjects) {
+    idx++;
+    if (budget && typeof budget.exceeded === 'function') { let done = false; try { done = budget.exceeded(); } catch (e) { done = false; } if (done) break; }
+    if (isLegacyToken(subj.rubricId)) continue; // a legacy-token rubric id → rubricRef → would make validateJudgmentsShape reject the WHOLE artifact; drop the subject (adversarial)
+    const rub = subj.rubric || {};
+    const signals = precomputeSignals(subj.element, subj.skill);
+    const avail = visionByXpath[subj.xpath] || {};
+    const frames = [];
+    for (const state of (rub.visionEvidence || [])) { const data = avail[state]; if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.rubricId}:${idx}:${state}`, state, data, mediaType: 'image/png' }); }
+    const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text });
+    let out;
+    try { out = await runAgent(messages, subj); } catch (e) { out = null; }
+    if (!out || !V2_9_VERDICTS.includes(out.verdict)) continue;
+    const verdict = mapToRubricVerdict(out.verdict);
+    if (!verdict) continue;
+    for (const f of frames) visionImages.push({ id: f.id, xpath: subj.xpath, state: f.state, mediaType: f.mediaType, data: f.data });
+    const judgmentId = `jud:${subj.rubricId}:${idx}`;
+    judgments.push({
+      judgmentId, sc: subj.sc, claimFamily: subj.claimFamily, targetXpath: subj.xpath,
+      observationScope: scope(subj.xpath), rubricRef: subj.rubricId, verdict,
+      confidence: V.LLM_CONFIDENCE.includes(out.confidence) ? out.confidence : 'low',
+      evidenceRefs: [...scrubRefs(out.evidenceRefs), ...frames.map((f) => f.id)],
+      summary: oneSentence(out.summary) || oneSentence(out.basis),
+      reasoning: oneSentence(out.reasoning) || oneSentence(out.basis),
+    });
+  }
+  return { judgments: { ...id, judgments }, llmVision: { ...id, images: visionImages } };
+}
+
 module.exports = {
-  MECHANISM, V2_9_VERDICTS, validateLlmShape, processLlm,
-  selectSubjects, precomputeSignals, buildPrompt, buildMessages, runAdjudication, scrubRefs, isLegacyToken,
+  MECHANISM, V2_9_VERDICTS, validateLlmShape, processLlm, mapToRubricVerdict,
+  selectSubjects, selectRubricSubjects, precomputeSignals, buildPrompt, buildMessages,
+  runAdjudication, runRubricJudgments, scrubRefs, isLegacyToken,
 };

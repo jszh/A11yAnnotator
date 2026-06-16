@@ -80,17 +80,33 @@ async function orchestrate(collect, drive, opts = {}) {
   if (opts.runLlm && opts.runAgent && built.ok) {
     const llmAdj = require('./llm-adjudicator.js');
     const llmRubrics = opts.llmRubrics || require('./rubric-loader.js').loadRubrics();
-    const subjects = llmAdj.selectSubjects(collect, built.results.obligationLedger, { onlyAutoPartial: opts.llmOnlyAutoPartial !== false });
-    const adj = await llmAdj.runAdjudication(subjects, {
-      runAgent: opts.runAgent, budget: opts.llmBudget, model: opts.llmModel, promptHash: opts.llmPromptHash,
-      llmRubrics, transcriptByXpath: opts.transcriptByXpath, visionByXpath: opts.visionByXpath,
-      file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest,
-    }).catch(() => null);
-    if (adj && adj.llm && adj.llm.verdicts.length) {
-      bundle.llm = adj.llm; bundle.llmRationale = adj.llmRationale;
-      if (adj.llmVision && adj.llmVision.images.length) bundle.llmVision = adj.llmVision;
-      built = buildV3(bundle, buildOpts);
+    const ledger = built.results.obligationLedger;
+    const onlyAutoPartial = opts.llmOnlyAutoPartial !== false;
+    const agentSubjects = llmAdj.selectSubjects(collect, ledger, { onlyAutoPartial });                    // llm-agent (per skill)
+    const rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial }); // llm-rubric:<id> (per SC)
+    // VISION (audit D11-1): use a caller-supplied map, else CAPTURE it (browser) for the union of subject
+    // xpaths — so the adjudicator stays a pure function over visionByXpath but a real run gets real pixels.
+    let visionByXpath = opts.visionByXpath || null;
+    if (!visionByXpath && opts.captureVision && opts.resolveUrl) {
+      const xps = [...new Set([...agentSubjects, ...rubricSubjects].map((s) => s.xpath))];
+      const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
+      visionByXpath = await require('./vision-capture.js').captureVisionForUrl(url, xps, { executablePath: opts.executablePath }).catch(() => ({}));
     }
+    const pOpts = {
+      runAgent: opts.runAgent, budget: opts.llmBudget, model: opts.llmModel, llmRubrics,
+      transcriptByXpath: opts.transcriptByXpath, visionByXpath: visionByXpath || {},
+      file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest,
+    };
+    const adj = await llmAdj.runAdjudication(agentSubjects, pOpts).catch(() => null);                 // → bundle.llm
+    const rub = await llmAdj.runRubricJudgments(rubricSubjects, pOpts).catch(() => null);             // → bundle.judgments
+    let changed = false;
+    if (adj && adj.llm && adj.llm.verdicts.length) { bundle.llm = adj.llm; bundle.llmRationale = adj.llmRationale; changed = true; }
+    if (rub && rub.judgments && rub.judgments.judgments.length) { bundle.judgments = rub.judgments; changed = true; }
+    // merge the crops both producers captured (dedup by id) into one llmVision side artifact.
+    const seen = new Set(); const images = [];
+    for (const im of [...((adj && adj.llmVision && adj.llmVision.images) || []), ...((rub && rub.llmVision && rub.llmVision.images) || [])]) if (!seen.has(im.id)) { seen.add(im.id); images.push(im); }
+    if (images.length) { bundle.llmVision = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, images }; changed = true; }
+    if (changed) built = buildV3(bundle, buildOpts);
   }
   return { candidates, plan, experiments, claimProposals, bundle, built, planErrors };
 }

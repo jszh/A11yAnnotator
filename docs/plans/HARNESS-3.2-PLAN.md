@@ -1,14 +1,59 @@
 # Harness 3.2 — the PROVISIONAL disposition: a calibrated LLM verdict fills the gap
 
-> **Status: FULLY IMPLEMENTED (2026-06-16).** All 12 work items are built, adversarially hardened
-> (5-skeptic total), and green (v3 273, pure 190). The default is `provisionalMode:'ungated'`: a build
-> with an `llm`/`judgments` artifact FILLS auto-PARTIAL obligations with non-authoritative PROVISIONAL
-> rows (a behaviour change from 3.1's annotation-only lane); `provisionalMode:'gated'` reproduces 3.1
-> output until a mechanism earns canary on gold. Two things still need the ON-HOLD harness run, not more
-> code: (a) the hand-labelled GOLD for the new families — the loader + worksheet are wired, the labels
-> come from the post-run labelling pass; (b) the real browser-captured vision frames + drive-page
-> state-before/after pairs fed into `visionByXpath` — the capture module + multimodal plumbing are wired
-> and probe-verified, the frames are produced when the run executes.
+> **Status (2026-06-16, corrected after independent audit — see [docs/audits/HARNESS-3.2-AUDIT.md](../audits/HARNESS-3.2-AUDIT.md)).**
+> **Spine (items 1–7): FULLY IMPLEMENTED, adversarially hardened, and green (v3 273, pure 190).** The
+> default is `provisionalMode:'ungated'`: a build with an `llm`/`judgments` artifact FILLS auto-PARTIAL
+> obligations with non-authoritative PROVISIONAL rows (a behaviour change from 3.1's annotation-only
+> lane); `provisionalMode:'gated'` reproduces 3.1 output until a mechanism earns canary on gold. No
+> safety invariant is broken (never-authoritative cap, CLAIM-always-wins, barrier-dominates-clear all
+> hold; verified by the audit).
+>
+> **LLM lane (items 8–12): AUTHORED + UNIT-TESTED, but NOT wired end-to-end.** The modules exist and are
+> green in isolation, but the live pipeline does not yet use them — do not read "implemented" as
+> "reachable from a real run." Specifically:
+> - The **8 atomic rubrics never reach a prompt** (audit D12-1): `runAdjudication` consumes only the
+>   broad `llmRubrics.skills` and stamps `mechanism:'llm-agent'`, never `llm-rubric:<id>`. The authored
+>   `rubrics{}` map + its per-rubric `visionEvidence` have no production consumer.
+> - **Vision capture is not invoked** by `eval-page.js`/`drive-page.js` (untouched) or by the CLI
+>   `run-evaluation.js` (which calls `orchestrate` without `runLlm`/`runAgent`/`visionByXpath`/`gold`) —
+>   `vision-capture.js` has only test callers (audit D11-1).
+> - **`gold-loader` is inert** — no non-test caller; `build-v3` reads a pre-flattened `opts.gold` (D4-2).
+> - The **`skills/*.md` "re-scope" is a prepended banner**, not a body rewrite — the tool-driving
+>   procedures remain (D10-1).
+>
+> Plus the still-pending ON-HOLD data: (a) the hand-labelled GOLD for the new families (loader + worksheet
+> wired; labels come from the post-run labelling pass); (b) the real browser-captured vision frames. The
+> audit also flags latent gated-mode gate defects (D-GATE-1/2/3) and test-coverage gaps on the safety
+> guards (D7-1/2/3) — all safe today under the ungated default + never-authoritative cap.
+
+> **Audit REPAIR — the above ⚠️ gaps are now CLOSED (2026-06-16).** Every audit finding was repaired and
+> the LLM lane is WIRED end-to-end (v3 296, pure 190 — incl. adversarial-repair regressions). Supersedes the warnings above:
+> - **D12-1/D12-2 (rubrics reach a prompt):** `llm-adjudicator.runRubricJudgments` runs the atomic rubrics
+>   and emits `llm-rubric:<id>` via the judgments lane. To make them *selectable*, FIVE meaning families
+>   are now enumerated — `non-text-content` (1.1.1), `link-purpose` (2.4.4), `heading-descriptive` (2.4.6),
+>   `error-suggestion` (3.3.3), `info-relationships` (1.3.1, page-level).
+> - **D11-1 (vision invoked):** `vision-capture.captureVisionForUrl` is called from the orchestrator's
+>   `runLlm` path; the CLI threads it. The adjudicator stays a pure function over `visionByXpath`.
+> - **D4-2 (gold consumed):** the CLI calls `gold-loader.loadGold()` → `opts.gold`.
+> - **D10-1 (skills rewritten):** the 10 `skills/*.md` are genuine v3.2 rewrites (judge-over-evidence; the
+>   tool-driving procedures removed); the v1/v2 originals are preserved under **`skills/v1/`**.
+> - **D9-1 (rubric coverage):** 15 atomic rubrics now (8 + 7 reachable: focus/reflow/forms/hover/
+>   focus-obscured/target-enhanced), each with a pinned content hash.
+> - **D-GATE-1 (clamp):** two-sided — `need = max(requiredZeroEventN(clamped), 149)`; provisionOpts validated.
+> - **D-GATE-3 (locus):** the gated gate is the STANDING canary (`provisionFor`); the 149-bound is earned
+>   offline via `provisionEligibility` over the corpus gold, attested by `goldSized`. Per-page metrics are
+>   measurement only.
+> - **D-GATE-2 (family gold):** `goldIndex`/`recLookup` key on `(xpath, sc, family)` with a family-agnostic
+>   fallback — a gold label for family A no longer credits family B.
+> - **D1-1/D-2 (determinism):** `mergeProvisional` has a mechanism tie-break + sorted `supportRefs`/
+>   `blockedClears`; `gold-loader` sorts `readdir`.
+> - **D7-1/2/3/4 (test debt):** mutation-killing tests added (provisional-clear ≠ authoritative `cleared`;
+>   the gated authority half; shadow-PARTIAL precedence; per-obs `promotedTo` so an abstention never reads
+>   as a disposition).
+> - **The real multimodal `runAgent`:** `scripts/v3/lib/llm-agent-adapter.js` (Anthropic Messages API, injectable
+>   transport, unit-tested with a mock). The CLI is env-gated (`V3_LLM=1` + a key) and **inert by default**,
+>   so the on-hold corpus run is never auto-triggered. (The inline ⚠️ notes in §"Work items" / §"Implementation
+>   status" below predate this repair.)
 
 ## Objective
 
@@ -80,7 +125,12 @@ lifts the categorical ban on LLM clears:
   `promotionEligible` (zero observed false clears, **zero unlabelled clears**) **and** the
   false-clear 95% upper bound is under target — i.e. `labelledClears ≥ requiredZeroEventN(target)`
   (149 for a 2% bound). Coverage floor still applies. This is materially harder than a barrier and
-  much harder than a deterministic clear, by design.
+  much harder than a deterministic clear, by design. **⚠️ AUDIT (D-GATE-3): as built, this gate is
+  re-derived per-run from a single page's observations (`scoreMechanism(scoringView, …)`), so it needs
+  ≥149 fully-adjudicated clears for one mechanism on ONE page — effectively unreachable per-run — and it
+  double-gates the registry's standing `goldSized`. Decide whether the 149-bound is a standing
+  per-mechanism property (registry/sealed-eval) or a corpus-level score over many pages before relying
+  on gated clears.**
 
 The **only** code-policy change in `metrics.js` is to replace the hard-coded
 *"a clear NEVER auto-promotes"* in `scoreMechanism` with a `clearCanaryEligible` flag computed from the
@@ -260,20 +310,25 @@ verdict is still a non-authoritative PROVISIONAL row, channel-tagged and (in gat
 
 ## Work items
 
+> **Path note (audit D9-2):** the `scripts/v3/lib/…` prefixes below are shorthand — the real modules live under
+> `scripts/v3/lib/`, and the atomic rubrics under `scripts/v3/llm-rubrics/` (NOT `scripts/v3/lib/llm-rubrics/`).
+> **Wiring note:** rows 9–12 are built but the live pipeline does not yet consume them (see the corrected
+> status header). The "✅/⚠️" column records the audited end-to-end state.
+
 | # | File | Change |
 |---|---|---|
-| 1 | `lib/v3-schema.js` | add `DISPOSITIONS = ['CLAIM','PROVISIONAL','PARTIAL']`; a `provisional()` constructor mirroring `claim()`/`partial()` (structured-only, `authoritative:false`). |
-| 2 | `lib/authority.js` | give `canary` a return contract: `authorityFor` returns `{ state:'canary', mayPublish:false, mayProvision:true }`. Add `provisionFor(mechanism, direction)` — same readiness checks as a canary LLM promotion (`sealedEval`, `modelRef`, `promptHash`, `goldBlindedRef`), still capped at canary. |
-| 3 | `lib/metrics.js` | replace the hard-coded "clear never auto-promotes" in `scoreMechanism` with `clearCanaryEligible` (strict gate: zero false + zero unlabelled clears + `labelledClears ≥ requiredZeroEventN(target)` + coverage floor). Add `provisionEligibility(mechanism)` returning per-direction canary verdicts. No change to the deterministic→authoritative path. |
-| 4 | `lib/obligations.js` | `reconcile` accepts `kind:'PROVISIONAL'`; precedence CLAIM ▸ PROVISIONAL ▸ PARTIAL; barrier-dominates-clear conflict rule; `aggregateElementSkill` adds the two provisional fields without touching `cleared`/`anyBarrier`. |
-| 5 | `lib/build-v3.js` | after reconciliation, for each `autoPartial` obligation look up the matching `source:'llm'` shadow obs by `(target, sc, family)` and emit a PROVISIONAL disposition into a SECOND reconciliation pass over the `autoPartial` subset only (no duplicate-disposition collision — §266 invariant preserved). `provisionalMode:'ungated'` (**default**): emit for any such obs, stamp `mode/source/mechanism/calibrated:false` + attached `calibration`, bypass the registry. `'gated'`: emit only if the mechanism `mayProvision` for that direction (+ strict clear gate). |
-| 6 | `lib/applicability-oracle.js` + `lib/coverage-registry.js` | register the four ○-tier families in lockstep (oracle `FAMILIES` + `familiesFor` branch + coverage `SURFACES`); add page-level `page-title` enumeration beside the existing reflow page obligation. |
-| 7 | `lib/catalog.js` | register the new families as known (validateCatalog cross-check) even before a deterministic runner exists, so the family set stays consistent (no runner entry yet for ○). |
+| 1 | `scripts/v3/lib/v3-schema.js` | add `DISPOSITIONS = ['CLAIM','PROVISIONAL','PARTIAL']`; a `provisional()` constructor mirroring `claim()`/`partial()` (structured-only, `authoritative:false`). |
+| 2 | `scripts/v3/lib/authority.js` | give `canary` a return contract: `authorityFor` returns `{ state:'canary', mayPublish:false, mayProvision:true }`. Add `provisionFor(mechanism, direction)` — same readiness checks as a canary LLM promotion (`sealedEval`, `modelRef`, `promptHash`, `goldBlindedRef`), still capped at canary. |
+| 3 | `scripts/v3/lib/metrics.js` | replace the hard-coded "clear never auto-promotes" in `scoreMechanism` with `clearCanaryEligible` (strict gate: zero false + zero unlabelled clears + `labelledClears ≥ requiredZeroEventN(target)` + coverage floor). Add `provisionEligibility(mechanism)` returning per-direction canary verdicts. No change to the deterministic→authoritative path. |
+| 4 | `scripts/v3/lib/obligations.js` | `reconcile` accepts `kind:'PROVISIONAL'`; precedence CLAIM ▸ PROVISIONAL ▸ PARTIAL; barrier-dominates-clear conflict rule; `aggregateElementSkill` adds the two provisional fields without touching `cleared`/`anyBarrier`. |
+| 5 | `scripts/v3/lib/build-v3.js` | after reconciliation, for each `autoPartial` obligation look up the matching `source:'llm'` shadow obs by `(target, sc, family)` and emit a PROVISIONAL disposition into a SECOND reconciliation pass over the `autoPartial` subset only (no duplicate-disposition collision — §266 invariant preserved). `provisionalMode:'ungated'` (**default**): emit for any such obs, stamp `mode/source/mechanism/calibrated:false` + attached `calibration`, bypass the registry. `'gated'`: emit only if the mechanism `mayProvision` for that direction (+ strict clear gate). |
+| 6 | `scripts/v3/lib/applicability-oracle.js` + `scripts/v3/lib/coverage-registry.js` | register the four ○-tier families in lockstep (oracle `FAMILIES` + `familiesFor` branch + coverage `SURFACES`); add page-level `page-title` enumeration beside the existing reflow page obligation. |
+| 7 | `scripts/v3/lib/catalog.js` | register the new families as known (validateCatalog cross-check) even before a deterministic runner exists, so the family set stays consistent (no runner entry yet for ○). |
 | 8 | gold + `eval/gold/v3` | extend the blinded gold set to label the new families' obligations (H3 blinding); a mechanism cannot reach `canary`/PROVISIONAL on a tier with no labelled gold (the strict gate's `unlabelledClears===0` enforces this automatically). |
-| 9 | new `lib/llm-rubrics/` + loader | author the **v3.2 atomic rubric set** (scoped to the gap, judge-over-evidence, versioned `…-v0`, declaring `visionEvidence` needs); a ~10-line loader reads `skills/*.md` + the atomic rubrics into `opts.llmRubrics`; pin each rubric's content hash into `promptHash` provenance. |
-| 10 | `skills/*.md` | **re-scope** the broad skill rubrics for `llm-agent`: defer to the deterministic runner where a CLAIM exists; replace tool-driving procedures with judge-over-supplied-evidence; keep the WCAG soundness caveats. |
-| 11 | `eval-page.js` + `drive-page.js` | **capture vision evidence** per the rubric declarations: static `element-crop`/`surrounding-region`/`viewport-320` from the collector; `state-before`/`state-after` pairs from the focus/hover/submit transitions the driver already performs. Emit a `visionByXpath` map keyed by (xpath, state). |
-| 12 | `llm-adjudicator.js` | `buildPrompt`→`buildMessages` (multimodal text + image blocks); thread `visionByXpath`; store crops in a side `llmVision` artifact referenced by opaque `evidenceRefs`; `runAgent(messages, subject)` injected adapter (default **refuses**). |
+| 9 | `scripts/v3/lib/rubric-loader.js` + `scripts/v3/llm-rubrics/` | author the **v3.2 atomic rubric set** (scoped to the gap, judge-over-evidence, versioned `…-v0`, declaring `visionEvidence` needs); loader reads `skills/*.md` + the atomic rubrics into `opts.llmRubrics`; pins each rubric's content hash. **⚠️ Built; only 8 atomic rubrics (not the full per-skill table — D9-1), and the `rubrics{}` map is NOT consumed by the producer — the live prompt uses the broad `skills` rubric and emits `llm-agent` (D12-1).** |
+| 10 | `skills/*.md` | **⚠️ Prepended** a "v3.2 division of labor" banner (defer to the runner; judge over evidence) — **NOT** the body re-scope this row originally claimed: the `--eval`/`/ax-node`/submit procedures remain verbatim (D10-1). |
+| 11 | `scripts/v3/lib/vision-capture.js` | `captureVision`/`mergeVision` produce the `visionByXpath` map (`element-crop`/`surrounding-region`/`viewport`/`viewport-320` + driver `state-before`/`state-after`). **⚠️ Standalone module, probe-verified, but NOT invoked by `eval-page.js`/`drive-page.js` (untouched) or the CLI — only test callers (D11-1).** |
+| 12 | `scripts/v3/lib/llm-adjudicator.js` | `buildPrompt`→`buildMessages` (multimodal text + image blocks); thread `visionByXpath`; store crops in a side `llmVision` artifact referenced by opaque `evidenceRefs`; `runAgent(messages, subject)` injected adapter (default **refuses**). **✅ Mechanics verified real (D12-3); inert only because no frames are supplied upstream.** |
 
 ## Invariants preserved (the red-team checklist)
 
@@ -324,7 +379,8 @@ identical to 3.1; PROVISIONAL appears only for a mechanism that earned canary on
 
 ## Implementation status (2026-06-16)
 
-**Built + adversarially hardened + green (v3 261, pure 190): the PROVISIONAL spine, items 1–7.**
+**Built + adversarially hardened + green (v3 273, pure 190): the PROVISIONAL spine, items 1–7.**
+*(Independently audited 2026-06-16 — [docs/audits/HARNESS-3.2-AUDIT.md](../audits/HARNESS-3.2-AUDIT.md). Spine confirmed sound; the items 8–12 caveats below are corrected to match the audit.)*
 
 - **1 `v3-schema.js`** — `DISPOSITIONS = ['CLAIM','PROVISIONAL','PARTIAL']`; `provisional()` constructor
   (structured-only, `authoritative:false`, coerces source/mechanism/refs).
@@ -361,37 +417,55 @@ identical to 3.1; PROVISIONAL appears only for a mechanism that earned canary on
 - `goldIndex` degrades on a `null`/non-object gold row instead of fail-crashing.
 - `mergeProvisional` fails CLOSED (no row) on a non-decisive set instead of throwing (reconcile is a
   public entry point).
-- The 149-bound / coverage floor are CLAMPED for the clear direction — `provisionOpts` can only make
-  the clear gate stricter, never weaker.
+- The 149-bound / coverage floor are CLAMPED for the clear direction so `provisionOpts` cannot RAISE the
+  target above 2%. **⚠️ AUDIT (D-GATE-1): the clamp is ONE-SIDED — `Math.min(clearTarget, 0.02)` guards
+  only the upper bound, so a numeric `clearTarget ≤ 0` makes `requiredZeroEventN` negative and collapses
+  the 149-floor, letting a single labelled clear pass the gated clear gate. `provisionOpts` is threaded
+  unvalidated. Safe today (gated mode is non-default/on-hold) but the "can only make it stricter" claim
+  is FALSE on the low side; fix is a two-sided clamp / `Math.max(need, 149)`.**
 - Plus LOW fixes: null-proto `provisionalByMechanism`; stale-conflict stripped in the merge;
   `oracleCorroborates` page-title branch; `observationScope.actionTargetRef` must equal `targetXpath`.
 - Proven sound: never-authoritative floor, CLAIM-always-wins, ghost-verdict-dropped (no out-of-inventory
   refusal), no strict-scan leak via the provisional block, oracle↔coverage equivalence, and the
   asymmetry (barrier promotes at N=1; clear blocked until 149).
 
-**The evidence-QUALITY + browser/data layer (items 8–12) — IMPLEMENTED (2026-06-16).** These improve
-*how good* the LLM verdict is; the spine's soundness is unchanged. Adversarially hardened (2 skeptics: 2
-HIGH + 3 MED/LOW fixed with regressions).
-- **8 gold** (`lib/gold-loader.js`) — `loadGold()` flattens the per-mechanism gold files
+**The evidence-QUALITY + browser/data layer (items 8–12) — AUTHORED + UNIT-TESTED, NOT WIRED END-TO-END
+(corrected 2026-06-16 after audit).** These modules exist and are green in isolation and improve *how
+good* the LLM verdict would be; the spine's soundness is unchanged. But the live pipeline does not yet
+consume them — see the per-item ⚠️ caveats below. Adversarially hardened in isolation (2 skeptics: 2 HIGH
++ 3 MED/LOW fixed with regressions).
+- **8 gold** (`scripts/v3/lib/gold-loader.js`) — `loadGold()` flattens the per-mechanism gold files
   (`{mechanism, sc, labels[]}`) into the flat `[{xpath,sc,goldOutcome}]` array build-v3/metrics consume,
   and enforces the floor: only an **adjudicated** label gates (a draft is inert). Hardened against a
-  `null`/primitive gold doc (degrades, never crashes). Worksheet rows added for the new families. The
-  real labels are produced by the post-run blinded labelling pass (on hold) — this is the wiring.
-- **9 rubrics + loader** (`lib/rubric-loader.js` + `scripts/v3/llm-rubrics/*.md`) — the atomic, versioned,
-  gap-scoped `llm-rubric:<id>-v0` set (8 rubrics, each declaring its `visionEvidence`) + a loader that
-  reads `skills/*.md` + the atomic set into `opts.llmRubrics`, PINNING each rubric's content hash (now
-  binding the body AND `visionEvidence`/`sc`, so a reworded/re-scoped rubric is a different mechanism that
-  can't inherit gold). Duplicate ids are deterministic (sorted, first-wins) + recorded.
+  `null`/primitive gold doc (degrades, never crashes). Worksheet rows added for the new families. **⚠️
+  AUDIT (D4-2): `loadGold` has no non-test caller — `build-v3` reads a pre-flattened `opts.gold`, which
+  no runner currently populates from the loader, so the loader is inert wiring.** The real labels are
+  produced by the post-run blinded labelling pass (on hold). **Note (D-GATE-2): the flat row drops
+  `claimFamily`/`mechanism`, and `metrics` keys gold by `(xpath,sc)` only — family-/mechanism-blind;
+  latent today (1:1 SC↔family) but unsound if a future family shares an SC+xpath.**
+- **9 rubrics + loader** (`scripts/v3/lib/rubric-loader.js` + `scripts/v3/llm-rubrics/*.md`) — the atomic,
+  versioned, gap-scoped `llm-rubric:<id>-v0` set + a loader that reads `skills/*.md` + the atomic set into
+  `opts.llmRubrics`, PINNING each rubric's content hash (binding the body AND `visionEvidence`/`sc`).
+  Duplicate ids are deterministic (sorted, first-wins) + recorded. **⚠️ AUDIT (D9-1, D12-1): only 8 atomic
+  rubrics exist — fewer than the per-skill vision table implies — and the loaded `rubrics{}` map is NEVER
+  consumed: `runAdjudication` reads only `llmRubrics.skills` and emits `mechanism:'llm-agent'`, so no
+  authored `llm-rubric:<id>` ever drives a prompt. The only `llm-rubric:*` emitter is `judgments.js`, fed
+  by an externally-supplied `rubricRef` (D12-2). Threading `rubrics{}` into the producer is unbuilt.**
 - **10 skills re-scope** — every `skills/*.md` gained a v3.2 "division of labor" header: do NOT
   investigate/drive tools; JUDGE meaning over the handed evidence; DEFER where a deterministic CLAIM
-  exists (the builder enforces this — `selectSubjects` hands only auto-PARTIAL obligations); keep the WCAG
-  soundness caveats.
-- **11 vision capture** (`lib/vision-capture.js`) — `captureVision(page, xpaths)` produces the
+  exists; keep the WCAG soundness caveats. **⚠️ AUDIT (D10-1): this is a PREPENDED banner only — the
+  bodies still contain the `--eval`/`/ax-node`/"drive a submit" procedures verbatim, so the prompt the
+  `llm-agent` lane actually receives still embeds the old investigation steps. Not the body re-scope
+  item 10 originally promised.**
+- **11 vision capture** (`scripts/v3/lib/vision-capture.js`) — `captureVision(page, xpaths)` produces the
   `visionByXpath` map (element-crop / surrounding-region / viewport / viewport-320), probe-verified on
   real Chrome (tight vs padded crops; the 320px reflow render genuinely differs; viewport crops captured
   ONCE and shared; off-screen/edge/zero-size/hidden elements skipped without crashing; the viewport is
   ALWAYS restored — even under `defaultViewport:null`). `mergeVision` folds in drive-page's
-  state-before/after pairs. The actual run-time frames are produced when the harness executes.
+  state-before/after pairs. **⚠️ AUDIT (D11-1): this is a STANDALONE module — `eval-page.js`/`drive-page.js`
+  were NOT modified, and the CLI `run-evaluation.js` calls `orchestrate` without `runLlm`/`runAgent`/
+  `visionByXpath`/`gold`. Only tests call `captureVision`/`mergeVision`, so no real run produces a frame
+  yet. (Item 11 originally claimed the capture lived in eval-page/drive-page.)**
 - **12 multimodal plumbing** (`llm-adjudicator.buildMessages` + the `runAdjudication` vision branch) —
   text + image blocks; the adjudicator supplies EXACTLY the rubric-declared frames the collector captured;
   crops live in a side `llmVision` artifact (base64 — content-bound by M5, NEVER in the strict-scanned

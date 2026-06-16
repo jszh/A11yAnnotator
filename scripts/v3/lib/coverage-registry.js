@@ -20,6 +20,8 @@ const oracle = require('./applicability-oracle.js');
 // caught by disagreement rather than silently shared.
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
 const FORMFIELD_ROLE = /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$/;
+const IMG_ROLE = /^(img|image|figure)$/;   // re-declared (independence discipline) for non-text-content
+const HEADING_ROLE = /^heading$/;          // re-declared for heading-descriptive
 // the COLLECTOR FIELD CONTRACT (how to read hasText/role from a real collector record) IS shared with
 // the oracle — that is the input contract both must agree on (audit V3R5-H1); only the surface→family
 // LOGIC is independently re-declared. Reading raw `el.hasText`/`el.role` here would silently agree
@@ -40,6 +42,11 @@ const SURFACES = Object.freeze([
   // widget with a visible label AND a computed accessible name owes label-in-name.
   Object.freeze({ id: 'pointer-target', when: (el) => el.box != null && (el.focusable === true || WIDGET_ROLE.test(factRole(el))), families: ['target-size-minimum', 'target-size-enhanced'] }),
   Object.freeze({ id: 'labelled-control', when: (el) => WIDGET_ROLE.test(factRole(el)) && factHasText(el) && typeof el.axName === 'string' && el.axName.trim().length > 0, families: ['label-in-name'] }),
+  // Harness 3.2 meaning-call families — predicates re-declared to match the oracle exactly (Rule 16).
+  Object.freeze({ id: 'image', when: (el) => IMG_ROLE.test(factRole(el)), families: ['non-text-content'] }),
+  Object.freeze({ id: 'link', when: (el) => factRole(el) === 'link', families: ['link-purpose'] }),
+  Object.freeze({ id: 'heading', when: (el) => HEADING_ROLE.test(factRole(el)), families: ['heading-descriptive'] }),
+  Object.freeze({ id: 'form-field-suggestion', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['error-suggestion'] }),
 ]);
 
 // The families this registry requires for one element (independent of the oracle).
@@ -70,6 +77,11 @@ function coverageErrors(collect, familiesFor = oracle.familiesFor) {
   if (oracle.pageTitleSlotPresent(collect)) {
     const obls = oracle.deriveObligations(collect);
     if (!obls.some((o) => o.claimFamily === 'page-title')) E.push('coverage gap: page carries a title slot but no page-level page-title obligation was enumerated (Rule 16)');
+  }
+  // page-level 1.3.1: a structure slot must yield an info-relationships obligation.
+  if (collect && collect.structure && typeof collect.structure === 'object') {
+    const obls = oracle.deriveObligations(collect);
+    if (!obls.some((o) => o.claimFamily === 'info-relationships')) E.push('coverage gap: page carries a structure slot but no page-level info-relationships obligation was enumerated (Rule 16)');
   }
   return E;
 }

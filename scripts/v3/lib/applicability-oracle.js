@@ -39,14 +39,26 @@ const FAMILIES = Object.freeze({
   'target-size-enhanced':    Object.freeze({ sc: '2.5.5', skills: ['reflow-and-pointer-affordances'] }), // 3.2 ○ (AAA)
   'page-title':              Object.freeze({ sc: '2.4.2', skills: ['page-structure'] }),                  // 3.2 ○ (page-level)
   'label-in-name':           Object.freeze({ sc: '2.5.3', skills: ['name-role-state'] }),                 // 3.2 ○
+  // ---- Harness 3.2 MEANING-call families: an LLM-judged adequacy obligation no deterministic runner can
+  //      decide. Enumerated so the authored atomic rubrics REACH a prompt (audit D12-1) and become
+  //      auto-PARTIAL the LLM fills provisionally. Strict role/page predicates ⇒ minimal fixtures unaffected.
+  'non-text-content':        Object.freeze({ sc: '1.1.1', skills: ['name-role-state'] }),                 // alt adequacy (img)
+  'link-purpose':            Object.freeze({ sc: '2.4.4', skills: ['name-role-state'] }),                 // link purpose (link)
+  'heading-descriptive':     Object.freeze({ sc: '2.4.6', skills: ['page-structure'] }),                  // heading descriptiveness
+  'error-suggestion':        Object.freeze({ sc: '3.3.3', skills: ['forms-instructions-errors'] }),       // error suggestion (form field)
+  'info-relationships':      Object.freeze({ sc: '1.3.1', skills: ['grouping-and-reading-order'] }),      // info+relationships (page-level)
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
 const FORMFIELD_ROLE = /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$/;
+const IMG_ROLE = /^(img|image|figure)$/;   // 3.2 non-text-content (1.1.1)
+const HEADING_ROLE = /^heading$/;          // 3.2 heading-descriptive (2.4.6)
 // page-level pseudo-element for the page-scoped reflow obligation (C8).
 const PAGE_REFLOW_XPATH = '/page-level::reflow';
 // page-level pseudo-element for the page-title obligation (3.2 ○-tier, 2.4.2).
 const PAGE_TITLE_XPATH = '/page-level::title';
+// page-level pseudo-element for the info-and-relationships obligation (3.2, 1.3.1).
+const PAGE_INFOREL_XPATH = '/page-level::info-relationships';
 // The page's title slot, read from EITHER the synthetic `collect.page` convention OR the real
 // collector's `collect.structure` (eval-page.js emits page-level facts under `structure`). Presence of
 // the slot — even an empty title — means this is a titled-document context that owes a 2.4.2 obligation.
@@ -106,6 +118,11 @@ function familiesFor(el) {
   const interactive = el.focusable === true || WIDGET_ROLE.test(role);
   if (el.box != null && interactive) { fams.push('target-size-minimum'); fams.push('target-size-enhanced'); } // 2.5.8 + 2.5.5
   if (WIDGET_ROLE.test(role) && factHasText(el) && typeof el.axName === 'string' && el.axName.trim().length > 0) fams.push('label-in-name'); // 2.5.3
+  // MEANING-call families (3.2) — role-precise so they fire only on real img/link/heading/form elements.
+  if (IMG_ROLE.test(role)) fams.push('non-text-content');                                 // 1.1.1
+  if (role === 'link') fams.push('link-purpose');                                          // 2.4.4
+  if (HEADING_ROLE.test(role)) fams.push('heading-descriptive');                           // 2.4.6
+  if (el.isFormField === true || FORMFIELD_ROLE.test(role)) fams.push('error-suggestion'); // 3.3.3 (alongside field-label/error-identification)
   return [...new Set(fams)];
 }
 
@@ -129,6 +146,11 @@ function deriveObligations(collect) {
   if (pageTitleSlotPresent(collect)) {
     const f = FAMILIES['page-title'];
     out.push({ obligationId: oblId(PAGE_TITLE_XPATH, f.sc, 'page-title'), xpath: PAGE_TITLE_XPATH, sc: f.sc, claimFamily: 'page-title' });
+  }
+  // Harness 3.2 page-level 1.3.1 info-and-relationships obligation whenever the page has a structure slot.
+  if (collect && collect.structure && typeof collect.structure === 'object') {
+    const f = FAMILIES['info-relationships'];
+    out.push({ obligationId: oblId(PAGE_INFOREL_XPATH, f.sc, 'info-relationships'), xpath: PAGE_INFOREL_XPATH, sc: f.sc, claimFamily: 'info-relationships' });
   }
   return out;
 }
@@ -181,7 +203,7 @@ function skillsForFamily(claimFamily) { return (FAMILIES[claimFamily] && FAMILIE
 function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[claimFamily].sc; }
 
 module.exports = {
-  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, pageTitleSlotPresent,
+  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, IMG_ROLE, HEADING_ROLE, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, PAGE_INFOREL_XPATH, pageTitleSlotPresent,
   isEvaluable, familiesFor, deriveObligations, oblId,
   applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily, factHasText, factRole,
 };

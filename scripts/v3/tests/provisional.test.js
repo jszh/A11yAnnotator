@@ -132,13 +132,25 @@ test('gated: a canary mechanism + gold that PASSES the barrier gate fills a cali
   assert.equal(row.provisional.calibrated, true);
 });
 
-test('gated: a provisional CLEAR is BLOCKED by the strict 149-bound gate (the dangerous direction)', () => {
-  const b = withPipeline(baseBundle());
-  b.llm = llmArt([llmVerdict()]); // CLEAR
-  const gold = [{ xpath: 'node:b1', sc: '2.4.7', goldOutcome: 'NO_BARRIER_OBSERVED' }]; // 1 labelled clear — far below 149
-  const r = buildV3(reseal(b), { authority: canaryLlm(['llm-agent/NO_BARRIER_OBSERVED']), provisionalMode: 'gated', gold });
-  assert.equal(focusRow(r).disposition, 'PARTIAL', 'one labelled clear cannot bound the false-clear rate ⇒ no provisional clear');
-  assert.equal(focusRow(r).autoPartial, true);
+test('gated CLEAR: the 149-bound is a STANDING canary property (earned offline), not a per-page gate (D-GATE-3)', () => {
+  // a NON-canary clear is blocked (the authority half — D7-2); a canary clear (offline-earned 149) fills.
+  const mk = () => { const b = withPipeline(baseBundle()); b.llm = llmArt([llmVerdict()]); return reseal(b); };
+  const blocked = buildV3(mk(), { authority: promoted([]), provisionalMode: 'gated' });
+  assert.equal(focusRow(blocked).disposition, 'PARTIAL', 'no canary ⇒ no gated provisional clear');
+  const filled = buildV3(mk(), { authority: canaryLlm(['llm-agent/NO_BARRIER_OBSERVED']), provisionalMode: 'gated' });
+  assert.equal(focusRow(filled).disposition, 'PROVISIONAL', 'a canary mechanism (149 attested offline) fills the gated clear');
+  assert.equal(focusRow(filled).provisional.calibrated, true);
+});
+
+test('D7-2: the gated AUTHORITY half is load-bearing — a NON-canary mechanism cannot fill (mutation guard)', () => {
+  // a VALID registry where llm-agent is default-shadow; the decisive obs IS present, so only the
+  // provisionFor gate stands between it and a (wrong) calibrated fill. Removing that gate (the audit's
+  // mutation) would fill — so this pins it.
+  const b = withPipeline(baseBundle()); b.llm = llmArt([llmVerdict()]);
+  const r = buildV3(reseal(b), { authority: promoted([]), provisionalMode: 'gated' });
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  assert.equal(r.results.summary.llmShadowObservations, 1, 'the obs IS present — the GATE blocked the fill, not a missing obs');
+  assert.equal(focusRow(r).disposition, 'PARTIAL', 'a non-canary (shadow) mechanism must not fill in gated mode');
 });
 
 // ============================ authority + metrics units ============================
@@ -208,6 +220,17 @@ test('adversarial MED: a malformed gold row (null) DEGRADES — it never fail-cr
   assert.equal(r.ok, true);
 });
 
+test('tie-break: on a confidence tie the ATOMIC rubric wins the attribution (not the broad agent), order-independent', () => {
+  const oid = 'x::1.1.1::non-text-content';
+  const obls = [{ obligationId: oid, xpath: 'x', sc: '1.1.1', claimFamily: 'non-text-content' }];
+  const fill = (mech) => ({ obligationId: oid, kind: 'PROVISIONAL', outcome: 'NO_BARRIER_OBSERVED', provisional: { mechanism: mech, confidence: 'high' } });
+  const r1 = obl.reconcile(obls, [fill('llm-agent'), fill('llm-rubric:alt-text-adequacy-v0')]);
+  const r2 = obl.reconcile(obls, [fill('llm-rubric:alt-text-adequacy-v0'), fill('llm-agent')]); // reversed input order
+  assert.equal(r1.ledger[0].provisional.mechanism, 'llm-rubric:alt-text-adequacy-v0', 'the scoped, calibratable rubric wins, not alphabetical llm-agent');
+  assert.equal(r2.ledger[0].provisional.mechanism, 'llm-rubric:alt-text-adequacy-v0', 'order-independent (deterministic)');
+  assert.ok(r1.ledger[0].provisional.supportRefs.includes('llm-agent'), 'the agent still appears in supportRefs');
+});
+
 test('adversarial MED: reconcile never throws on a non-decisive PROVISIONAL set (fail-closed, not fail-open)', () => {
   const oid = 'a::2.4.7::focus-indicator-visible';
   const obls = [{ obligationId: oid, xpath: 'a', sc: '2.4.7', claimFamily: 'focus-indicator-visible' }];
@@ -216,11 +239,70 @@ test('adversarial MED: reconcile never throws on a non-decisive PROVISIONAL set 
   assert.equal(res.ledger[0].autoPartial, true, 'a non-decisive fill yields NO provisional row');
 });
 
-test('adversarial MED: provisionOpts can NOT weaken the strict 149 clear gate', () => {
-  const b = withPipeline(baseBundle()); b.llm = llmArt([llmVerdict()]); // one clear
-  const gold = [{ xpath: 'node:b1', sc: '2.4.7', goldOutcome: 'NO_BARRIER_OBSERVED' }];
-  const r = buildV3(reseal(b), { authority: canaryLlm(['llm-agent/NO_BARRIER_OBSERVED']), provisionalMode: 'gated', gold, provisionOpts: { clearTarget: 0.999, coverageFloor: 0 } });
-  assert.equal(focusRow(r).disposition, 'PARTIAL', 'clearTarget/coverageFloor are clamped — the clear gate cannot be loosened');
+test('D-GATE-1: the clear-gate clamp is TWO-SIDED — a malicious clearTarget cannot collapse the 149 floor', () => {
+  // 200 clean labelled clears so the ONLY thing that could pass/fail the gate is the required-N floor.
+  const mk = (n) => ({ claims: [], shadowObservations: Array.from({ length: n }, (_, i) => ({ source: 'llm', mechanism: 'llm-agent', sc: '2.4.7', observationScope: scope('x' + i), wouldBe: { observationOutcome: 'NO_BARRIER_OBSERVED', wcagApplicability: 'APPLICABLE' } })) });
+  const gold = (n) => Array.from({ length: n }, (_, i) => ({ xpath: 'x' + i, sc: '2.4.7', goldOutcome: 'NO_BARRIER_OBSERVED' }));
+  // clearTarget <= 0 previously made requiredZeroEventN negative ⇒ a single clear passed. Now floored at 149.
+  assert.equal(metrics.scoreMechanism(mk(1), gold(1), 'llm-agent', { clearTarget: -5 }).clearCanaryEligible, false, 'one clear cannot pass even with clearTarget:-5');
+  assert.equal(metrics.scoreMechanism(mk(148), gold(148), 'llm-agent', { clearTarget: 0.999 }).clearCanaryEligible, false, '148 < 149 floor, even with a huge clearTarget');
+  assert.equal(metrics.scoreMechanism(mk(149), gold(149), 'llm-agent', { clearTarget: 0.999 }).clearCanaryEligible, true, '149 clears clears the clamped floor');
+});
+
+test('D7-1: a PROVISIONAL clear does NOT set the authoritative `cleared` aggregate (mutation guard)', () => {
+  const b = withPipeline(baseBundle());
+  b.llm = llmArt([llmVerdict()]); // a provisional clear on node:b1/2.4.7
+  const r = buildV3(reseal(b), { authority: promoted([]) });
+  const summ = r.results.elementSkillSummaries.filter((s) => s.xpath === 'node:b1');
+  assert.ok(summ.length, 'node:b1 has skill summaries');
+  assert.ok(summ.every((s) => s.cleared === false), 'a provisional clear must NEVER make a skill read deterministically `cleared`');
+  assert.ok(summ.some((s) => s.provisionallyCleared === true), 'it is recorded as provisionallyCleared instead');
+});
+
+test('D7-3: a provisional clear does NOT override a deterministic SHADOW-PARTIAL obligation', () => {
+  // a gate-passing-but-unpromoted deterministic clear becomes a shadow-PARTIAL (not autoPartial); the LLM
+  // also clears the same obligation — the deterministic disposition must win (precedence), no PROVISIONAL.
+  const good = {
+    collect: { ...ID, collectedAt: 1000, elements: [{ xpath: 'node:b1', focusable: true }] },
+    experiments: { ...ID, catalogVersion: '3.0.0-phase0', startedAt: 2000, results: [{ claimId: 'c1', experimentId: 'focus-visual-retry', targetXpath: 'node:b1', sc: '2.4.7', observationScope: { ...scope('node:b1'), action: 'tab-to' }, outcome: { targetIsFocusable: true, keyboardReachableInState: true, realKeyboardFocus: true, hydrationReady: true, focusDependentIndicator: true, obviouslyVisible: true, stableIndicatorAbsence: true, modeCompletenessProven: true }, applicabilityEvidence: { targetIsFocusable: true, keyboardReachableInState: true } }] },
+    claimProposals: { ...ID, proposals: [{ claimId: 'c1', sc: '2.4.7', direction: 'NO_BARRIER_OBSERVED', experimentId: 'focus-visual-retry', claimFamily: 'focus-indicator-visible', observationScope: { ...scope('node:b1'), action: 'tab-to' } }] },
+  };
+  const b = withPipeline(good);
+  b.llm = llmArt([llmVerdict({ observationScope: { ...scope('node:b1'), action: 'tab-to' } })]);
+  const r = buildV3(reseal(b), { authority: promoted([]) }); // UNPROMOTED ⇒ the clear is a deterministic shadow-PARTIAL
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  const row = focusRow(r);
+  assert.equal(row.disposition, 'PARTIAL', 'the deterministic shadow-PARTIAL stands');
+  assert.equal(row.shadow, true, 'and it is the deterministic shadow row, not a PROVISIONAL fill');
+  assert.equal(row.autoPartial, false);
+});
+
+test('D7-4: an ABSTAINING obs of a mechanism that filled the row via another obs does NOT read promotedTo', () => {
+  // llm-agent BARRIER on node:b1/2.4.7 fills a provisional barrier; an llm-agent INCONCLUSIVE obs on a
+  // DIFFERENT obligation (node:b1/2.1.1) must not read promotedTo just because the mechanism filled elsewhere.
+  const b = withPipeline(baseBundle());
+  b.llm = llmArt([
+    llmVerdict({ verdictId: 'v1', agentVerdict: 'REPRODUCED' }),                                   // BARRIER → fills 2.4.7
+    llmVerdict({ verdictId: 'v2', sc: '2.1.1', claimFamily: 'keyboard-operable', agentVerdict: 'PARTIAL' }), // INCONCLUSIVE on 2.1.1
+  ]);
+  const r = buildV3(reseal(b), { authority: promoted([]) });
+  const recs = r.results.adjudicationRecommendations;
+  const barrierRec = recs.find((x) => x.sc === '2.4.7' && x.wouldBeOutcome === 'BARRIER_OBSERVED');
+  const abstainRec = recs.find((x) => x.sc === '2.1.1');
+  assert.equal(barrierRec.promotedTo, 'PROVISIONAL', 'the winning barrier obs reports promotedTo');
+  assert.equal(abstainRec.promotedTo, null, 'the abstaining obs must NOT look like a disposition (D7-4)');
+});
+
+test('D-GATE-2: a gold label for family A does NOT credit a clear from family B (family-aware keying)', () => {
+  const results = { claims: [], shadowObservations: [{ source: 'llm', mechanism: 'llm-agent', sc: '1.3.1', claimFamily: 'famB', observationScope: scope('x'), wouldBe: { observationOutcome: 'NO_BARRIER_OBSERVED', wcagApplicability: 'APPLICABLE' } }] };
+  const goldA = [{ xpath: 'x', sc: '1.3.1', claimFamily: 'famA', goldOutcome: 'BARRIER_OBSERVED' }]; // labels family A only
+  const s = metrics.scoreClears(results, goldA, { mechanism: 'llm-agent' });
+  assert.equal(s.labelledClears, 0, 'the famA gold must NOT label the famB clear');
+  assert.equal(s.unlabelledClears, 1);
+  // a family-agnostic gold (no claimFamily) DOES credit it (back-compat).
+  const s2 = metrics.scoreClears(results, [{ xpath: 'x', sc: '1.3.1', goldOutcome: 'BARRIER_OBSERVED' }], { mechanism: 'llm-agent' });
+  assert.equal(s2.labelledClears, 1);
+  assert.equal(s2.falseClears, 1);
 });
 
 test('adversarial: a verdict whose observationScope.actionTargetRef disagrees with targetXpath is REFUSED', () => {
@@ -249,4 +331,23 @@ test('the v3-schema provisional() constructor is structured-only + never authori
   assert.equal(p.mode, 'ungated');
   assert.equal(p.outcome, 'NO_BARRIER_OBSERVED');
   assert.deepEqual(V.DISPOSITIONS, ['CLAIM', 'PROVISIONAL', 'PARTIAL']);
+});
+
+test('adversarial LOW: a contradictory gold pair is BARRIER-dominant (order-independent) + the loader surfaces it', () => {
+  const results = { claims: [], shadowObservations: [{ source: 'llm', mechanism: 'llm-agent', sc: '2.4.7', observationScope: scope('x'), wouldBe: { observationOutcome: 'NO_BARRIER_OBSERVED', wcagApplicability: 'APPLICABLE' } }] };
+  const pair = (o1, o2) => [{ xpath: 'x', sc: '2.4.7', goldOutcome: o1 }, { xpath: 'x', sc: '2.4.7', goldOutcome: o2 }];
+  for (const g of [pair('BARRIER_OBSERVED', 'NO_BARRIER_OBSERVED'), pair('NO_BARRIER_OBSERVED', 'BARRIER_OBSERVED')]) {
+    const s = metrics.scoreClears(results, g);
+    assert.equal(s.falseClears, 1, 'a caught false clear can never be erased by a later NO_BARRIER row');
+    assert.equal(s.promotionEligible, false);
+  }
+});
+
+test('adversarial LOW: labelledClears counts distinct gold CELLS, not records (auth + same-mechanism shadow = 1)', () => {
+  const results = {
+    claims: [{ sc: '2.4.7', claimFamily: 'focus-indicator-visible', observationOutcome: 'NO_BARRIER_OBSERVED', observationScope: scope('x'), supportRefs: ['experiment:focus-visual-retry'] }],
+    shadowObservations: [{ source: 'deterministic', mechanism: 'focus-visual-retry', sc: '2.4.7', claimFamily: 'focus-indicator-visible', observationScope: scope('x'), wouldBe: { observationOutcome: 'NO_BARRIER_OBSERVED', wcagApplicability: 'APPLICABLE' } }],
+  };
+  const s = metrics.scoreClears(results, [{ xpath: 'x', sc: '2.4.7', goldOutcome: 'NO_BARRIER_OBSERVED' }], { mechanism: 'focus-visual-retry' });
+  assert.equal(s.labelledClears, 1, 'two records on ONE gold cell count once (the 149-bound counts independent cells)');
 });

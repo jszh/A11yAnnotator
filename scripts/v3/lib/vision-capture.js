@@ -2,9 +2,13 @@
 // Harness 3.2 §11 — vision evidence capture. Produces the `visionByXpath` map the adjudicator threads
 // (exactly like `transcriptByXpath`): xpath -> { 'element-crop', 'surrounding-region', 'viewport',
 // 'viewport-320' } as base64 PNGs. This captures the STATIC crops from a loaded page (the collector
-// context). The state-before/after PAIRS come from drive-page.js, which already screenshots the
-// focus/hover/submit transitions — the caller MERGES those into this map by (xpath, state). Keeping
-// capture here (where the page lives) leaves `runAdjudication` a pure function over its inputs.
+// context); the orchestrator's runLlm path calls captureVisionForUrl and threads the result.
+//
+// NOTE (not yet wired): the `state-before`/`state-after` PAIRS that 5 rubrics declare (focus / forms /
+// dynamic) are NOT produced here — they require driving the focus/hover/submit transitions (drive-page.js
+// already screenshots those). `mergeVision` exists to fold them in once that driver→visionByXpath bridge
+// lands; until then those rubrics receive no state frame and must abstain (PARTIAL) when they cannot see
+// the before/after, per their rubric text. Keeping capture here leaves `runAdjudication` pure over inputs.
 
 // Capture the declared static crops for a set of element xpaths. opts: { states[], pad=24 }.
 async function captureVision(page, xpaths, opts = {}) {
@@ -78,4 +82,19 @@ function mergeVision(base, ...more) {
   return out;
 }
 
-module.exports = { captureVision, mergeVision };
+// Launch a fresh browser, load `url`, and capture vision for `xpaths` — the production entry point the
+// orchestrator/CLI calls so the adjudicator stays a pure function over `visionByXpath` (audit D11-1).
+async function captureVisionForUrl(url, xpaths, opts = {}) {
+  const puppeteer = require('puppeteer');
+  const CHROME = opts.executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
+    || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: opts.width || 1280, height: opts.height || 900 });
+    await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
+    return await captureVision(page, xpaths, opts);
+  } finally { await browser.close(); }
+}
+
+module.exports = { captureVision, captureVisionForUrl, mergeVision };

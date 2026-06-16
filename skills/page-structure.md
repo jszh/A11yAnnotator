@@ -7,14 +7,27 @@ instruments: DOM, axe, AX tree, vision
 behavioral: no (static — safe in noscript mode)
 ---
 
-> **v3.2 division of labor (LLM lane).** In Harness v3.2 you do NOT investigate or drive tools — the
-> collector and the deterministic runners already measured the page and HAND you their signals + the
-> (realism-corrected) VSR transcript + vision crops. Your job is to JUDGE MEANING over that evidence,
-> not to re-run `--eval`/`/ax-node` or drive a submit. Where a deterministic runner already disposed an
-> obligation (a CLAIM exists) you are NOT asked about it — the builder only hands you the auto-PARTIAL
-> residue, so DEFER to the runner and never re-litigate (e.g. do not re-judge 1.4.3 contrast the runner
-> owns). KEEP every WCAG soundness caveat below: they are what STOP a false clear or false barrier.
+# page-structure
 
+## v3.2 division of labor
+You do **not** investigate and you do **not** drive tools. The collector + the
+deterministic runners have already loaded the page, read the DOM, run axe, walked
+the AX tree, and captured the vision crops. They **hand** you their signals, the
+realism-corrected VSR (screen-reader) transcript, and the declared crops. Your
+only job is to **judge meaning** over that handed evidence.
+
+**Defer to the runner.** Where a deterministic runner already disposed an
+obligation — `document-title` already fired for a *missing/empty* title,
+`empty-heading` already fired for a heading with no accessible name, `p-as-heading`
+already caught a `<p>` styled as a heading, `heading-order` already flagged a level
+skip — that obligation is **settled by the runner**, not by you. Do not re-litigate
+a clean or already-failed deterministic check.
+
+You only adjudicate the **auto-PARTIAL residue**: the meaning calls a runner
+*cannot* make. Concretely, that residue is the descriptiveness/relationship
+judgments below — a title that is *present but names nothing*, a heading that is
+*present but generic*, and a *visually-shown* heading/section relationship that the
+DOM does *not* expose programmatically.
 
 > **Map findings to the right SC and level.** An *empty / non-descriptive*
 > heading is **1.3.1** (broken programmatic structure, A) and/or **2.4.6**
@@ -24,51 +37,77 @@ behavioral: no (static — safe in noscript mode)
 > SC requires a single h1; `page-has-heading-one` is an axe *best-practice* rule,
 > so report it as best-practice, not a conformance violation.
 
-# page-structure
+## What you JUDGE
+Three meaning calls, scoped to the handed evidence:
 
-## When to run
-Findings about page title quality, empty/skipped/non-descriptive headings,
-missing `<h1>`, "eyebrow" labels that look like headings but aren't, or absent
-landmark structure.
+- **2.4.2 page-title descriptiveness** — the runner already disposed
+  *missing/empty* (`document-title`). You judge whether the *present* title
+  actually describes the page's topic/state. Generic, truncated, or boilerplate
+  titles fail 2.4.2 even when axe passes them ("Amazon.com: Keep shopping for",
+  "Home", "Untitled").
+- **2.4.6 heading descriptiveness** — for headings that *have* an accessible name
+  (so `empty-heading` did not fire), judge whether the name describes the section
+  it labels. A present-but-uninformative heading ("More", "Section", "Click here")
+  fails 2.4.6 (AA).
+- **1.3.1 info + relationships** — judge whether a relationship that is **shown
+  visually** is **exposed programmatically**. A styled `<div>`/`<p>` that reads as a
+  section header ("Our Research Pillars") but is not a heading element / not
+  `role=heading` is a genuine 1.3.1 failure: the heading relationship is visible to
+  sighted users but absent from the outline a screen-reader navigates. Likewise a
+  landmark that *exists* but is mis-typed or duplicated-and-unlabelled exposes the
+  *wrong* relationship → 1.3.1.
 
-## Procedure
-1. **Title** — `--eval "return document.title"`. Fails 2.4.2 if generic, truncated,
-   or it doesn't describe the page's topic/state ("Amazon.com: Keep shopping for").
-   axe `document-title` only catches *missing/empty* — descriptiveness is a vision call.
-2. **Heading tree** — `--eval "return [...document.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].map(h=>h.tagName+(h.getAttribute('aria-level')?'/al'+h.getAttribute('aria-level'):'')+':'+JSON.stringify((h.textContent||'').trim().slice(0,40)))"`.
-   Flag: **empty heading text** (1.3.1 / 2.4.6 — a named heading present in the
-   outline but with no accessible name *is* a programmatic-structure defect), **level
-   skips** (axe `heading-order` — **AT-compat / best-practice, NOT a hard 1.3.1
-   failure**; WCAG does not require sequential levels — note it, don't assert 1.3.1),
-   and **visually-prominent labels that are not headings** (a styled
-   `<div>`/`<p>` "Our Research Pillars" → genuine 1.3.1: a heading relationship shown
-   visually is not exposed programmatically; axe `p-as-heading` catches the
-   `<p>`-styled-as-heading case). A **missing `<h1>`** (axe `page-has-heading-one`)
-   is **best-practice, not an SC** — note it as such. (`heading-order`,
-   `empty-heading`, `p-as-heading`, `landmark-unique`, `region` are best-practice /
-   experimental axe rules — runnable by name via `--axe <rule>`; the annotator's
-   auto-scan now includes the `best-practice` tag so they surface there too.)
-3. **Confirm via SR** — `/ax-node` on a suspect heading: an empty `<h2>` or a
-   `role=heading` span with no name returns `name:null` → invisible to heading
-   navigation even though it occupies the outline.
-4. **Landmarks** — `--eval` count `header/nav/main/aside/footer` + `[role=...]`.
-   **H5: missing `main`/`nav` is NOT a 1.3.1 failure** — no SC requires landmarks;
-   they're a best-practice/AT-navigation aid (axe `landmark-*`/`region` are
-   best-practice rules). Report absence as **best practice**, not a conformance
-   violation. A landmark that exists but is mis-typed/duplicated-unlabelled can be a
-   1.3.1 issue (wrong relationship is exposed); plain absence is not.
-5. **Vision** — screenshot; map the *visual* section headers to the DOM headings.
-   Visual sections with no corresponding heading element = the gap.
+**Soundness floor — do not promote best-practice to a 1.3.1 failure.** A
+heading-level **skip** (`heading-order`), a **missing `<h1>`** (`page-has-heading-one`),
+and a **missing landmark** (no `main`/`nav`; `landmark-*`/`region`) are
+**best-practice / AT-navigation** findings. WCAG does **not** require sequential
+heading levels, a single h1, or any landmark. A missing landmark or a heading-skip
+is **best-practice, NOT a 1.3.1** conformance violation — record it as
+best-practice and move on. (Plain *absence* of a landmark is best-practice;
+a landmark that is present but mis-typed/duplicated-unlabelled is a real 1.3.1
+relationship defect — that distinction is yours to make.)
 
-## Classify — separate the three buckets (H5); don't fold best-practice into 1.3.1
-- **REPRODUCED (normative failure)** — empty/un-named heading in the outline, a
-  visually-styled non-heading that should be a heading (relationship not exposed), a
-  mis-typed/duplicated-unlabelled landmark, or a title that names nothing (2.4.2).
-- **AT-compat / best-practice (record, do NOT count as a 1.3.1 conformance failure)** —
-  heading-level skips, missing `<h1>`, missing `main`/`nav` landmarks, duplicate heading
-  *text* (repetition alone isn't a failure). Tag these `best-practice`.
-- **NOT REPRODUCED** — outline is coherent and the title is descriptive.
+## Evidence you are handed
+You receive, pre-computed — you do not re-collect any of it:
 
-## Limits
-"Descriptive enough" (2.4.2/2.4.6) is judgment — axe passes a present-but-generic
-title and an empty `role=heading` span, so don't rely on a clean axe run here.
+- **a11y-eval signals (DOM)** — `document.title`; the full heading list
+  (`h1..h6` + `[role=heading]` with `aria-level`, each with its trimmed text); the
+  landmark inventory (`header/nav/main/aside/footer` + `[role=...]`, counts and
+  labels).
+- **axe runner verdicts** — which of `document-title`, `empty-heading`,
+  `p-as-heading`, `heading-order`, `landmark-unique`, `page-has-heading-one`,
+  `region` fired (and which passed). A rule that fired has **already disposed** its
+  obligation; treat it as settled, classify by the bucket rules above.
+- **AX-tree signal** — the accessible name the AT computes for each suspect
+  heading/landmark (e.g. an empty `<h2>` or a nameless `role=heading` span resolves
+  to `name:null` and is invisible to heading navigation even though it sits in the
+  outline). This is handed to you; you do not query nodes yourself.
+- **VSR announcement** — the realism-corrected screen-reader transcript of the
+  page title and the heading-navigation order, exactly as an AT user would hear it.
+  Read it as the announced reality; do not re-derive it.
+- **Declared vision crops** — the screenshots the collector marked relevant:
+  the rendered title/tab, and the page regions where *visual* section headers
+  appear. Map those visual section headers onto the handed DOM heading list — a
+  visual section with no corresponding heading element is the 1.3.1 gap.
+
+## WCAG soundness caveats (these STOP a false clear or a false barrier)
+- **Don't clear on a clean axe run.** axe passes a present-but-generic title and a
+  named-but-uninformative heading. "Descriptive enough" (2.4.2 / 2.4.6) is the
+  residue handed to *you*; a green deterministic check is not a clear here.
+- **Don't barrier on best-practice.** Heading-level skips, missing `<h1>`, and
+  missing `main`/`nav` landmarks are **best-practice, NOT a 1.3.1** failure. Tag
+  them `best-practice`; do not count them as conformance violations.
+- **Repetition is not a failure.** Duplicate heading *text* alone is not a 1.3.1
+  or 2.4.6 failure — record it, don't barrier on it.
+- **2.4.10 is AAA.** Cite Section Headings only for "are headings used to organize
+  content," and mark it AAA — never fold it into the A/AA verdict.
+- **Absence vs. wrong relationship.** Plain absence of a landmark is best-practice;
+  a present-but-mis-typed/duplicated-unlabelled landmark is a real 1.3.1 defect.
+
+## Output
+One line: **verdict — REPRODUCED** (normative 2.4.2 / 2.4.6 / 1.3.1 failure in the
+handed evidence) / **NOT REPRODUCED** (outline coherent, title and headings
+descriptive) / **PARTIAL** (some obligations met, descriptiveness/relationship
+residue still fails, or best-practice findings recorded alongside a clear normative
+result) / **N-A** (no page-structure obligation in scope) — with the SC, the level,
+and the one piece of handed evidence that decides it.
