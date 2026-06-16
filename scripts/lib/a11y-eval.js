@@ -4,7 +4,7 @@
 // unit-tested in isolation (scripts/tests/unit.test.js) and reused by both
 // eval-page.js (static collector) and drive-page.js (dynamic driver). Each
 // function fixes a specific harness issue catalogued in
-// eval-results/HARNESS-ISSUES.md (referenced by Txx tags below).
+// docs/audits/HARNESS-ISSUES.md (referenced by Txx tags below).
 
 'use strict';
 

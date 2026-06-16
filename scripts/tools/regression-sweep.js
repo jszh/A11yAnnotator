@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // Regression sweep — assert harness invariants across a directory of generated
-// drive.json / collect.json / results.json (e.g. a fresh eval-results/<slug>/ set).
+// drive.json / collect.json / results.json (e.g. a fresh eval/results/<slug>/ set).
 // READ-ONLY. Does not modify any input.
 //
 //   node scripts/tools/regression-sweep.js <dir-of-slug-folders>
 //
 // Checks the cross-page invariants the unit/integration tests can't cover per-page
-// (each maps to an issue in eval-results/HARNESS-ISSUES.md / the audit). Exits
+// (each maps to an issue in docs/audits/HARNESS-ISSUES.md / the audit). Exits
 // non-zero if any invariant is violated.
 'use strict';
 const fs = require('fs');

@@ -1,6 +1,6 @@
 # Harness fix — QA / test plan
 
-Covers every issue catalogued in `eval-results/HARNESS-ISSUES.md` (T1–T16). Each
+Covers every issue catalogued in `docs/audits/HARNESS-ISSUES.md` (T1–T16). Each
 issue gets (a) the fix location, (b) one or more QA methods, and (c) a concrete,
 re-runnable check. The eval-results are **not** modified — these tests run the
 fixed harness against the saved pages fresh.
@@ -10,7 +10,7 @@ fixed harness against the saved pages fresh.
 node --test scripts/tests/unit.test.js          # pure-function unit tests (fast, no browser)
 node --test --test-timeout=600000 scripts/tests/integration.test.js   # end-to-end vs live server :3001
 node --test --test-timeout=600000 scripts/tests/*.test.js             # everything (glob — NOT the bare dir)
-node scripts/tools/regression-sweep.js eval-results                   # cross-page invariants
+node scripts/tools/regression-sweep.js eval/results/v1                   # cross-page invariants
 ```
 Use the `*.test.js` glob, not the bare directory (`node --test scripts/tests/` tries to
 *load* the path as a module and fails). The integration suite has a non-skipped

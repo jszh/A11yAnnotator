@@ -10,7 +10,7 @@
 // A direction reaches `authoritative` only when its readiness evidence is satisfied: a gold set at
 // the sizing target, a sealed-test promotion evaluation, independent rater provenance, and a
 // validated measurement (the adversarial fixtures pass). Those facts are asserted here per version;
-// the gold/sealed machinery (metrics.js + eval-results/v3-gold) supplies the numbers.
+// the gold/sealed machinery (metrics.js + eval/gold/v3) supplies the numbers.
 'use strict';
 
 const STATES = ['shadow', 'canary', 'authoritative'];

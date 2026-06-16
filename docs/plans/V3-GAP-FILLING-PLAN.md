@@ -168,7 +168,7 @@ operational run+verify loop, the one remaining non-excluded item. G7 is out of t
   (hash-pinned in the manifest provenance) so a promoter can't grow/trim the set to pass; promotion of
   each (experiment, direction) stays SHADOW until the sealed set hits the worksheet sizing AND the
   sealed-eval false-clear bound is met — `metrics.js` already refuses a bound when `unlabelledClears >
-  0`. *Build:* extend `metrics.js` + `eval-results/v3-gold/` (hashed sealed sets) + the review/labeling
+  0`. *Build:* extend `metrics.js` + `eval/gold/v3/` (hashed sealed sets) + the review/labeling
   surface; wire promotion gating to the bound. *Adversarial:* sealing + the unlabelled-clear refusal
   defeat a self-serving gold set; default-shadow holds until the gate passes.
 - **G5 Budgets + risk classes (Rule 8) — IMPLEMENTED (`budget.js`, 56515d4; hardened this pass).**

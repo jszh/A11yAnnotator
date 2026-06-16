@@ -1,4 +1,4 @@
-// Harness 3.0 — experiment runners C1/C3/C4/C5/C6/C7/C8/C9 (plan eval-results/V3-EXPERIMENTS-PLAN.md).
+// Harness 3.0 — experiment runners C1/C3/C4/C5/C6/C7/C8/C9 (plan docs/plans/V3-EXPERIMENTS-PLAN.md).
 // Each follows the focus-visual-retry discipline: hydrate → real input → INDEPENDENT channels →
 // withhold BOTH directions on any disagreement/uncertainty (INCONCLUSIVE → PARTIAL). Clearable
 // experiments emit a universe-closing obligation (singleModeControl / statesInventoryClosed /

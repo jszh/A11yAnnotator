@@ -1,4 +1,4 @@
-// Canonical result schema constants — encodes eval-results/RESULT-CONTRACT.md.
+// Canonical result schema constants — encodes docs/contracts/RESULT-CONTRACT.md.
 // Pure data + tiny helpers; consumed by result-builder.js and the tests.
 'use strict';
 

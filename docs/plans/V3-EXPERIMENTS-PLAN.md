@@ -45,7 +45,7 @@ owns it and `aggregateElementSkill` buckets it under the `reflow` skill. It can 
 ## Implementation order (each = wiring + runner + fixture + adversarial test-repair + doc)
 Clearable first (they exercise the completeness machinery hardest): C3 → C5 → C6 → C4 → C1.
 Then barrier-only: C9, C8, C7. Everything stays shadow; promotion remains gated on gold + the
-adversarial fixture suite per [v3-gold/README.md](v3-gold/README.md).
+adversarial fixture suite per [eval/gold/v3/README.md](../../eval/gold/v3/README.md).
 
 ## Status: IMPLEMENTED & VERIFIED on real Chrome
 All eight runners are built ([exp-runners.js](../scripts/v3/lib/exp-runners.js), dispatched from

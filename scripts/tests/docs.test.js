@@ -24,7 +24,7 @@ test('H6: color skill large-text threshold matches the lib (24px / 18.66px-bold)
 test('C1: 4.1.3 is scoped to status messages — state changes route to 4.1.2', () => {
   const ann = read('skills/dynamic-announcement.md');
   assert.ok(/4\.1\.2/.test(ann) && /status message/i.test(ann), 'announcement skill must route state→4.1.2 and scope to status messages');
-  const plan = read('eval-results/AGENT-PLAN.md');
+  const plan = read('docs/plans/AGENT-PLAN.md');
   // the plan must NOT instruct: expanded/pressed/dialog with no announcement => 4.1.3 candidate
   assert.ok(!/(expandedChanged|pressedChanged)[^\n]*⇒\s*4\.1\.3 candidate/.test(plan), 'plan must not map a bare state change to a 4.1.3 candidate');
   assert.ok(/4\.1\.2/.test(plan), 'plan Step 6 must mention 4.1.2 routing');
@@ -43,12 +43,12 @@ test('H5: page-structure separates best-practice from 1.3.1 (missing landmark !=
 });
 
 test('R21-H4: AGENT-PLAN requires PARTIAL when a behavioral verdict rests on synthetic/non-isolated input', () => {
-  const plan = read('eval-results/AGENT-PLAN.md');
+  const plan = read('docs/plans/AGENT-PLAN.md');
   assert.ok(/synthetic/i.test(plan) && /PARTIAL/.test(plan), 'plan must calibrate behavioral confidence to probe trust');
   assert.ok(/activate\.synthetic|submitMethod|trusted-keys/.test(plan), 'plan must reference the concrete trust flags');
 });
 test('R21-H3: AGENT-PLAN target-size uses the tri-state (needs-judgment => PARTIAL; fail checks Equivalent/Essential)', () => {
-  const plan = read('eval-results/AGENT-PLAN.md');
+  const plan = read('docs/plans/AGENT-PLAN.md');
   assert.ok(/needs-judgment/.test(plan) && /equivalent/i.test(plan), 'plan must consume the target-size tri-state');
 });
 
@@ -74,7 +74,7 @@ test('contract SC lists are self-consistent with the schema and SC_LEVEL', () =>
 });
 
 test('R2.8-H (R27-M2): RESULT-CONTRACT documents the R2.6/R2.7/R2.8 gate exactly', () => {
-  const c = read('eval-results/RESULT-CONTRACT.md');
+  const c = read('docs/contracts/RESULT-CONTRACT.md');
   // support-based binding + 2.1.2↔tabWalk
   assert.ok(/SUPPORT-based|positively demonstrated/i.test(c), 'contract must state support-based binding');
   assert.ok(/2\.1\.2.{0,40}tabWalk/i.test(c), 'contract must bind 2.1.2 to the tab-walk');
