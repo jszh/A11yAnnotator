@@ -169,3 +169,35 @@ test('adversarial LOW: a legacy-token rubric id is DROPPED, not made to abort th
   const { judgments } = await llmAdj.runRubricJudgments(subs, { runAgent: stub, ...ID });
   assert.equal(judgments.judgments.length, 0, 'the degenerate rubric is skipped — no N/A rubricRef to reject the artifact');
 });
+
+// ============================ partition by construction (no duplicate eval) ============================
+test('partition: selectSubjects skips SCs an atomic rubric OWNS, keeps rubric-less SCs as the agent fallback', () => {
+  const { rubrics } = loadRubrics();
+  const ownedScs = new Set(Object.values(rubrics).filter((r) => r && r.sc).map((r) => r.sc));
+  const collect = { elements: [{ xpath: '/img' }, { xpath: '/btn' }] };
+  const ledger = [
+    { xpath: '/img', sc: '1.1.1', claimFamily: 'non-text-content', autoPartial: true }, // OWNED by alt-text-adequacy-v0
+    { xpath: '/btn', sc: '4.1.2', claimFamily: 'name-role-value', autoPartial: true },   // rubric-less → agent is the filler
+  ];
+  const subs = llmAdj.selectSubjects(collect, ledger, { ownedScs });
+  assert.ok(!subs.some((s) => s.sc === '1.1.1'), 'the whole-obligation agent does NOT fire on a cell the rubric owns');
+  assert.ok(subs.some((s) => s.sc === '4.1.2'), 'the agent IS the fallback on a rubric-less SC (one of 2.1.1/1.4.3/4.1.2/2.1.2)');
+});
+
+test('partition: agent + rubric select DISJOINT (xpath,sc) cells over one ledger — the tie-break can never fire on agreement', () => {
+  const { rubrics } = loadRubrics();
+  const ownedScs = new Set(Object.values(rubrics).filter((r) => r && r.sc).map((r) => r.sc));
+  const collect = { elements: [{ xpath: '/img' }] };
+  const ledger = [{ xpath: '/img', sc: '1.1.1', claimFamily: 'non-text-content', autoPartial: true }];
+  const agentCells = new Set(llmAdj.selectSubjects(collect, ledger, { ownedScs }).map((s) => `${s.xpath}::${s.sc}`));
+  const rubricCells = new Set(llmAdj.selectRubricSubjects(collect, ledger, rubrics, {}).map((s) => `${s.xpath}::${s.sc}`));
+  assert.equal([...agentCells].filter((c) => rubricCells.has(c)).length, 0, 'no (xpath,sc) cell is judged by BOTH producers');
+  assert.ok(rubricCells.has('/img::1.1.1'), 'the rubric owns the overlap cell');
+  assert.equal(agentCells.size, 0, 'the agent emits nothing on a ledger of only rubric-owned SCs');
+});
+
+test('partition: WITHOUT ownedScs (legacy/direct callers) selectSubjects is unchanged — agent still fires on every auto-PARTIAL SC', () => {
+  const collect = { elements: [{ xpath: '/img' }] };
+  const ledger = [{ xpath: '/img', sc: '1.1.1', claimFamily: 'non-text-content', autoPartial: true }];
+  assert.ok(llmAdj.selectSubjects(collect, ledger).some((s) => s.sc === '1.1.1'), 'backward compatible: no ownedScs ⇒ no exclusion');
+});

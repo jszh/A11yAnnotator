@@ -111,10 +111,20 @@ function processLlm(llmArt, opts = {}) {
 // SUBJECT SELECTION (3.1 §3 Coverage): prioritize obligations that are auto-PARTIAL (no deterministic
 // CLAIM) — those give the 14 runner-less SCs a gold-gradeable opinion for the first time. We judge per
 // (element, skill) — NOT per obligation — so the fan-out is the element×skill grid, not element×sc (M4).
-function selectSubjects(collect, ledger, { onlyAutoPartial = true } = {}) {
+//
+// PARTITION BY CONSTRUCTION (3.2): an SC that a more-specific atomic rubric covers is filled by that
+// rubric ALONE — the whole-obligation agent SKIPS those rows (`ownedScs`), so the two LLM producers
+// never co-fire on one cell. Without this the agent and the rubric both emit a `source:'llm'` shadow obs
+// on the identical (xpath, sc, family) cell (the rubric SC set is a subset of the agent's), so on every
+// such cell mergeProvisional pays two LLM calls + two vision-frame sets and the tie-break discards one on
+// agreement. The agent stays the FALLBACK for the rubric-less SCs. We filter owned rows BEFORE the
+// per-skill fan-out, so a skill still fires for any rubric-less SC it covers on the element and never
+// binds its verdict to an owned SC.
+function selectSubjects(collect, ledger, { onlyAutoPartial = true, ownedScs } = {}) {
   const elByXpath = {};
   for (const el of (collect && collect.elements) || []) if (el && el.xpath) elByXpath[el.xpath] = el;
-  const rows = (ledger || []).filter((r) => (onlyAutoPartial ? r.autoPartial : true));
+  const owned = ownedScs instanceof Set ? ownedScs : new Set(ownedScs || []);
+  const rows = (ledger || []).filter((r) => (onlyAutoPartial ? r.autoPartial : true) && !owned.has(r.sc));
   // collapse (xpath, sc, family) obligations to (xpath, skill) judging subjects.
   const seen = new Set();
   const subjects = [];

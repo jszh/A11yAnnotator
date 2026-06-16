@@ -82,7 +82,10 @@ async function orchestrate(collect, drive, opts = {}) {
     const llmRubrics = opts.llmRubrics || require('./rubric-loader.js').loadRubrics();
     const ledger = built.results.obligationLedger;
     const onlyAutoPartial = opts.llmOnlyAutoPartial !== false;
-    const agentSubjects = llmAdj.selectSubjects(collect, ledger, { onlyAutoPartial });                    // llm-agent (per skill)
+    // PARTITION: the SCs an atomic rubric covers are OWNED by the rubric producer; the whole-obligation
+    // agent runs only on the rubric-less SCs, so the two never co-fire on one cell (no duplicate eval).
+    const ownedScs = new Set(Object.values(llmRubrics.rubrics || {}).filter((r) => r && r.sc).map((r) => r.sc));
+    const agentSubjects = llmAdj.selectSubjects(collect, ledger, { onlyAutoPartial, ownedScs });          // llm-agent (rubric-less SCs only)
     const rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial }); // llm-rubric:<id> (per SC)
     // VISION (audit D11-1): use a caller-supplied map, else CAPTURE it (browser) for the union of subject
     // xpaths — so the adjudicator stays a pure function over visionByXpath but a real run gets real pixels.
