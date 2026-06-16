@@ -65,6 +65,10 @@ function crossArtifactErrors(bundle, requiredStages = ['collect', 'experiments',
   const arts = [
     ['manifest', bundle.manifest], ['collect', bundle.collect], ['drive', bundle.drive],
     ['candidates', bundle.candidates], ['plan', bundle.plan], ['experiments', bundle.experiments], ['claimProposals', bundle.claimProposals],
+    // applicability is publication-influencing (it gates authoritative claims) so its identity must be
+    // bound to the run like experiments/claimProposals — a wrong-page/run observer artifact whose facts
+    // happen to agree must not satisfy the boundary (audit R5R-C1).
+    ['applicability', bundle.applicability],
   ].filter(([, a]) => a != null);
 
   for (const [name, art] of arts) { const hit = findLegacyLabel(art, name); if (hit) push(`legacy verdict label present in ${name} (v3 is a clean schema break): ${hit}`); }

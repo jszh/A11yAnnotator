@@ -209,12 +209,20 @@ function buildV3(bundle, opts = {}) {
     // (audit V3R4-H4).
     const provenanceVerified = !!trust.artifactVerifier
       && auth.provenanceArtifactsVerified(p.experimentId, p.direction, authorityReg, trust.artifactVerifier);
-    if (a.mayPublish && bundleComplete && manifestVerified && lineageVerified && provenanceVerified) { out._authState = a.state; claims.push(out); continue; }
+    // MANDATORY INDEPENDENT APPLICABILITY (Rule 15; audit V3R5-C2): an authoritative claim requires a
+    // present applicability stage. Rule 15 is "applicability cannot self-attest" — without an
+    // independent observer artifact there is no second channel at all, so the claim cannot publish
+    // authoritative (it is recorded as shadow). When the stage IS present, the per-target observer
+    // AGREEMENT was already enforced at bind time above (a missing/disagreeing observation makes the
+    // claim PARTIAL before it ever reaches here), so presence here ⇒ corroborated.
+    const applicabilityPresent = bundle.applicability != null;
+    if (a.mayPublish && bundleComplete && manifestVerified && lineageVerified && provenanceVerified && applicabilityPresent) { out._authState = a.state; claims.push(out); continue; }
     const reason = !a.mayPublish ? a.reason
       : !bundleComplete ? 'incomplete bundle (no plan/candidates/drive) — cannot publish authoritative'
         : !manifestVerified ? 'run-manifest absent or unverified (no attested manifest binding the artifact hashes + page identity) — cannot publish authoritative (audit V3R4-H7)'
           : !lineageVerified ? 'evidence lineage unverified (no valid attestation binding the cited runner + observed page identity) — cannot publish authoritative (audit V3R3-C1/V3R4-C1/M1)'
-            : 'promotion provenance artifacts unverified (no verifier configured, or a ref failed on disk) — cannot publish authoritative (audit V3R4-H4)';
+            : !provenanceVerified ? 'promotion provenance artifacts unverified (no verifier configured, or a ref failed on disk) — cannot publish authoritative (audit V3R4-H4)'
+              : 'no independent applicability stage in the bundle (Rule 15: applicability cannot self-attest) — cannot publish authoritative (audit V3R5-C2)';
     shadowObs.push({
       claimId: p.claimId, sc: p.sc, claimFamily: family,
       wouldBe: { observationOutcome: out.observationOutcome, wcagApplicability: out.wcagApplicability },
@@ -257,6 +265,21 @@ function buildV3(bundle, opts = {}) {
   const jres = judgments.processJudgments(bundle.judgments, opts.rubrics);
   if (jres.errors.length) { for (const m of jres.errors) E(`judgments: ${m}`); return { ok: false, errors, results: null }; }
 
+  // INSTRUMENT FINDINGS (VSR + keyboard instruments): page-level accessibility signals (reading order
+  // 1.3.2, name/role/value 4.1.2, focus order 2.4.3, keyboard/SR traps 2.1.2). Like judgments they are
+  // NON-AUTHORITATIVE — recorded for offline scoring against the hand-labeled ground truth, never
+  // clearing/barriering an obligation or publishing authoritative until calibrated. Normalised inline so
+  // the pure builder gains no browser dependency (the runner lives in run-instruments.js).
+  const instrumentFindings = [];
+  if (bundle.instruments != null) {
+    const inst = bundle.instruments;
+    if (typeof inst !== 'object' || inst === null || !Array.isArray(inst.findings)) { E('instruments: must be an object with a findings[] array'); return { ok: false, errors, results: null }; }
+    for (const f of inst.findings) {
+      if (typeof f !== 'object' || f === null) { E('instruments: each finding must be an object'); return { ok: false, errors, results: null }; }
+      instrumentFindings.push({ detector: String(f.detector || 'instrument'), sc: String(f.sc || ''), kind: String(f.kind || ''), xpath: f.xpath || null, detail: String(f.detail || ''), review: !!f.review, authoritative: false, shadow: true });
+    }
+  }
+
   // (6) emit v3-only results; refuse if a legacy label somehow survived
   const stripClaim = (c) => { const { _target, _family, _sc, _authState, disposition, authoritative, ...rest } = c; return rest; };
   const stripPartial = (p) => { const { _target, _family, _sc, authoritative, ...rest } = p; return rest; };
@@ -274,6 +297,7 @@ function buildV3(bundle, opts = {}) {
     outOfScope,
     dynamicSubjects: dyn.subjects, // post-action discoveries, expanded + reconciled (Rule 13)
     adjudicationRecommendations: jres.recommendations, // non-definite semantic judgments (Phase 3)
+    instrumentFindings, // non-authoritative VSR/keyboard instrument signals (shadow until gold-calibrated)
     summary: {
       obligations: obligations.length,
       proposals: proposals.length,
@@ -286,6 +310,7 @@ function buildV3(bundle, opts = {}) {
       outOfScopeElements: outOfScope.length,
       dynamicSubjects: dyn.subjects.length,
       adjudicationRecommendations: jres.recommendations.length,
+      instrumentFindings: instrumentFindings.length,
     },
   };
   // The v3 OUTPUT is entirely harness-authored (no page content), so scan it STRICTLY: any legacy

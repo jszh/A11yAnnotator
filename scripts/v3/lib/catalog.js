@@ -82,7 +82,13 @@ const CATALOG = {
     'form-error-probe': {
       sc: '3.3.1', claimFamily: 'error-identification',
       cost: { maxWallClockMs: 25000, retries: 1, mutationRisk: 'high' }, // sets invalid input + attempts submit
-      accessibilitySupportDependent: { BARRIER_OBSERVED: true }, // whether an error is "identified" is AT-relevant
+      // The barrier is `errorNotIdentified` = the probe found NO error surface of ANY channel after an
+      // invalid submit — no native validation block, no visible error text/styling, no live region
+      // (exp-runners.js probeFormError). "No error conveyed to ANYONE" is AT-INDEPENDENT, so the
+      // barrier needs no AT baseline (audit V3R5-H3). Mirrors field-label-probe's barrier direction; a
+      // CLEAR (asserting the error IS adequately conveyed to AT) WOULD be AT-dependent, but this runner
+      // is barrier-only and never clears.
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false },
       applicability: { requires: ['isUserInputField', 'fieldRendered', 'fieldConstrained'] },
       supports: {
         BARRIER_OBSERVED: { requires: ['isUserInputField', 'fieldRendered', 'fieldConstrained', 'hydrationReady', 'errorNotIdentified'] },

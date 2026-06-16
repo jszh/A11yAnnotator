@@ -28,7 +28,11 @@ function withPipeline(bundle, key = TEST_KEY) {
   const candidates = { ...id, candidates: results.map((r) => ({ candidateId: r.claimId, xpath: r.targetXpath, sc: r.sc, experimentId: r.experimentId, selectionLevel: 1 })) };
   const plan = { ...id, requests: results.map((r) => ({ candidateId: r.claimId, experimentId: r.experimentId, targetXpath: r.targetXpath, sc: r.sc })), escalations: [] };
   const drive = { ...id, elements: [] };
-  const built = { ...bundle, drive, candidates, plan, experiments: { ...bundle.experiments, results, unrun: [] } };
+  // INDEPENDENT applicability stage (Rule 15; audit V3R5-C2): a trusted run ships an observer artifact
+  // whose per-target facts CORROBORATE each result's applicabilityEvidence, so authoritative publication
+  // (now mandatory-applicability) succeeds. A test that wants the no-applicability regression deletes it.
+  const applicability = { ...id, observations: results.map((r) => ({ xpath: r.targetXpath, facts: { ...(r.applicabilityEvidence || {}) } })) };
+  const built = { ...bundle, drive, candidates, plan, experiments: { ...bundle.experiments, results, unrun: [] }, applicability };
   // a trusted orchestrator finalizes + signs the run-manifest binding the artifact hashes + page id.
   built.manifest = manifest.buildManifest(built, { key, environment: 'test', observedPageDigest: c.pageDigest, runnerVersion: '3.0.0-phase0', catalogVersion: '3.0.0-phase0' });
   return built;

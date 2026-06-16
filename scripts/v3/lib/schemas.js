@@ -10,7 +10,7 @@
 const V = require('./v3-schema.js');
 const cat = require('./catalog.js');
 
-const KNOWN_STAGES = ['manifest', 'collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals', 'applicability', 'judgments'];
+const KNOWN_STAGES = ['manifest', 'collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals', 'applicability', 'judgments', 'instruments'];
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
 const isStr = (v) => typeof v === 'string' && v.length > 0;
 const isObj = (v) => v != null && typeof v === 'object' && !Array.isArray(v);
@@ -177,8 +177,11 @@ function validateBundle(bundle) {
   if (bundle.manifest != null) validateBaseline(bundle.manifest, 'manifest', E);
   if (bundle.applicability != null) { // independent observation stage (Rule 15)
     if (!isObj(bundle.applicability)) E.push('applicability: must be an object');
-    else if (!Array.isArray(bundle.applicability.observations)) E.push('applicability.observations must be an array');
-    else bundle.applicability.observations.forEach((o, i) => { if (!isObj(o) || !isStr(o.xpath) || !isObj(o.facts)) E.push(`applicability.observations[${i}] requires xpath + facts`); });
+    else {
+      validIdentity(bundle.applicability, 'applicability', E); // bind the stage to the run (audit R5R-C1)
+      if (!Array.isArray(bundle.applicability.observations)) E.push('applicability.observations must be an array');
+      else bundle.applicability.observations.forEach((o, i) => { if (!isObj(o) || !isStr(o.xpath) || !isObj(o.facts)) E.push(`applicability.observations[${i}] requires xpath + facts`); });
+    }
   }
   return E;
 }

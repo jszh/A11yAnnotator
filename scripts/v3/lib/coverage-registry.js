@@ -20,15 +20,20 @@ const oracle = require('./applicability-oracle.js');
 // caught by disagreement rather than silently shared.
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
 const FORMFIELD_ROLE = /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$/;
+// the COLLECTOR FIELD CONTRACT (how to read hasText/role from a real collector record) IS shared with
+// the oracle — that is the input contract both must agree on (audit V3R5-H1); only the surface→family
+// LOGIC is independently re-declared. Reading raw `el.hasText`/`el.role` here would silently agree
+// with the oracle on "nothing" for real artifacts and so hide the under-enumeration.
+const { factHasText, factRole } = oracle;
 
 // SURFACE → required families. Each `when` reads ONLY raw collector facts (never a runner outcome).
 const SURFACES = Object.freeze([
   Object.freeze({ id: 'focusable', when: (el) => el.focusable === true, families: ['focus-indicator-visible', 'keyboard-operable'] }),
-  Object.freeze({ id: 'has-text', when: (el) => el.hasText === true, families: ['text-contrast'] }),
-  Object.freeze({ id: 'widget-role', when: (el) => typeof el.role === 'string' && WIDGET_ROLE.test(el.role), families: ['name-role-value'] }),
+  Object.freeze({ id: 'has-text', when: (el) => factHasText(el), families: ['text-contrast'] }),
+  Object.freeze({ id: 'widget-role', when: (el) => WIDGET_ROLE.test(factRole(el)), families: ['name-role-value'] }),
   Object.freeze({ id: 'focusable-in-modal', when: (el) => el.focusable === true && el.inModal === true, families: ['no-keyboard-trap'] }),
   Object.freeze({ id: 'focusable-under-overlay', when: (el) => el.focusable === true && el.underOverlay === true, families: ['focus-not-obscured'] }),
-  Object.freeze({ id: 'form-field', when: (el) => el.isFormField === true || (typeof el.role === 'string' && FORMFIELD_ROLE.test(el.role)), families: ['field-label', 'error-identification'] }),
+  Object.freeze({ id: 'form-field', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['field-label', 'error-identification'] }),
   Object.freeze({ id: 'hover-content', when: (el) => el.hasHoverContent === true, families: ['hover-content'] }),
 ]);
 

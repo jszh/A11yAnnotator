@@ -707,7 +707,7 @@ async function runFocusObscuredBarrier(page, request) {
   const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
   if (!tagged) return mk(request, 'focus-obscured-barrier', '2.4.11', o, {}, { action: 'focus-then-hittest' });
   o.targetIsFocusable = await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return false; el.focus(); const ok = document.activeElement === el; el.blur(); return ok; }, marker).catch(() => false);
-  const reached = await H.realKeyboardReach(page, marker);
+  const reach = await H.realKeyboardReach(page, marker); const reached = reach.reached; // V3R6-MAXTAB: ring-walk, no fixed cap
   o.keyboardReachableInState = reached; o.realKeyboardFocus = reached;
   await H.settle(page);
   const m = await page.evaluate(measureObscured, marker).catch(() => null);
@@ -734,9 +734,9 @@ async function runKeyboardTrapEscape(page, request) {
     region.setAttribute('data-v3-region', m);
   }, marker).catch(() => {});
 
-  const reached = await H.realKeyboardReach(page, marker);
+  const reach = await H.realKeyboardReach(page, marker); const reached = reach.reached; // V3R6-MAXTAB
   o.keyboardReachableInState = reached; o.focusEnteredRegion = reached;
-  if (!reached) return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: false }, { action: 'tab-into-then-escape' });
+  if (!reached) return mk(request, 'keyboard-trap-escape', '2.1.2', o, { targetIsFocusable: o.targetIsFocusable, keyboardReachableInState: false }, { action: 'tab-into-then-escape', measurement: { reachTabs: reach.tabs, reachExhausted: reach.exhausted } });
 
   // probe state: in region? in document?
   const probe = (m) => {
@@ -882,7 +882,7 @@ async function runKeyboardActivation(page, request) {
   const syntheticEffect = c4changed(s0, s1);
 
   // real activation (Enter then Space, each from a fresh real-keyboard focus)
-  const reached = await H.realKeyboardReach(page, marker);
+  const reach = await H.realKeyboardReach(page, marker); const reached = reach.reached; // V3R6-MAXTAB
   o.keyboardReachableInState = reached; o.reachedForActivation = reached;
   let activatedByEnter = false, activatedBySpace = false, navigated = false;
   page.once('framenavigated', () => { navigated = true; });
@@ -975,7 +975,7 @@ async function runAxStateDiff(page, request) {
 
   // real activation
   let navigated = false; page.once('framenavigated', () => { navigated = true; });
-  const reached = await H.realKeyboardReach(page, marker);
+  const reach = await H.realKeyboardReach(page, marker); const reached = reach.reached; // V3R6-MAXTAB
   if (reached) { await page.keyboard.press('Enter'); } else { await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); el && el.click(); }, marker).catch(() => {}); }
   o.activationWasReal = reached;
   await H.settle(page, 80);

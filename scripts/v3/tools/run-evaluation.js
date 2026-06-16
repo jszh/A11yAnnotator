@@ -38,6 +38,7 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
   w('experiment-plan.json', bundle.plan);
   w('experiments.json', experiments);    // includes unrun[] + environment
   w('claim-proposals.json', claimProposals);
+  w('applicability.json', bundle.applicability); // independent applicability observation (Rule 15) — hashed in the manifest, must round-trip for replay (audit V3R5-C1)
   if (!built.ok) {
     console.error(`REFUSED: ${built.errors.length} gate violation(s):`);
     for (const m of built.errors.slice(0, 40)) console.error('  ' + m);

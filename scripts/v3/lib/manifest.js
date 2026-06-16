@@ -15,8 +15,12 @@
 const crypto = require('crypto');
 const attest = require('./attestation.js');
 
-// stages the manifest hashes — the complete lineage. The manifest never hashes ITSELF.
-const HASHED_STAGES = ['collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals', 'applicability', 'judgments'];
+// stages the manifest hashes — the complete lineage. The manifest never hashes ITSELF. `judgments`
+// is deliberately EXCLUDED: it is a Phase-3, non-authoritative artifact produced by the builder
+// AFTER the orchestrator finalizes this manifest, so hashing it would make any future judgments-
+// bearing replay fail "manifest hashes an absent stage" / "missing a hash for present stage". It
+// rides the bundle as an optional, non-integrity-bound stage instead (audit V3R5-C1/M3).
+const HASHED_STAGES = ['collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals', 'applicability'];
 
 const sha256 = (s) => 'sha256:' + crypto.createHash('sha256').update(s).digest('hex');
 const hmac = (key, msg) => crypto.createHmac('sha256', String(key)).update(msg).digest('hex');
@@ -24,10 +28,31 @@ const eq = (a, b) => { const x = Buffer.from(String(a)), y = Buffer.from(String(
 
 function artifactHash(stage) { return sha256(attest.stableStringify(stage)); }
 
-// Build (and, with a key, sign) a run-manifest for a complete bundle.
-function buildManifest(bundle, { key, environment = null, observedPageDigest = null, runnerVersion = null, catalogVersion = null } = {}) {
+// Derive the manifest's observed page identity from the runner's OWN per-result observations rather
+// than copying the collector's claimed digest (audit V3R5-M1). Returns the single digest all signed
+// results agree on, or null when there are no results, an attestation/observed digest is missing, or
+// the results disagree — fail-closed: the caller then records null, which fails the manifest schema
+// (a manifest cannot claim an observed identity it did not independently observe).
+function deriveObservedPageDigest(experiments) {
+  const results = experiments && Array.isArray(experiments.results) ? experiments.results : null;
+  if (!results || results.length === 0) return null;
+  const observed = new Set();
+  for (const r of results) {
+    const d = r && r.attestation && r.attestation.runIdentity && r.attestation.runIdentity.observedPageDigest;
+    if (!d) return null; // an unobserved/unsigned result cannot corroborate the page identity
+    observed.add(d);
+  }
+  return observed.size === 1 ? [...observed][0] : null; // disagreement ⇒ fail closed
+}
+
+// Build (and, with a key, sign) a run-manifest for a complete bundle. `observedPageDigest` is
+// undefined-distinguishing (audit V3R5-M1): OMITTED ⇒ fall back to the collector's digest (back-compat
+// for callers that don't independently observe); PASSED (incl. null) ⇒ honored verbatim, so a caller
+// that derived a null identity cannot silently fall back to the collector's unattested claim. The
+// existing verifyManifest identity gate then refuses any manifest whose observed digest != collect's.
+function buildManifest(bundle, { key, environment = null, observedPageDigest, runnerVersion = null, catalogVersion = null } = {}) {
   const c = bundle.collect || {};
-  const pageDigest = observedPageDigest || c.pageDigest || null;
+  const pageDigest = (observedPageDigest !== undefined ? observedPageDigest : c.pageDigest) || null;
   const artifacts = {};
   for (const s of HASHED_STAGES) if (bundle[s] != null) artifacts[s] = artifactHash(bundle[s]);
   const base = {
@@ -92,4 +117,4 @@ function validateManifestShape(m) {
   return E;
 }
 
-module.exports = { HASHED_STAGES, artifactHash, buildManifest, verifyManifest, validateManifestShape };
+module.exports = { HASHED_STAGES, artifactHash, buildManifest, verifyManifest, validateManifestShape, deriveObservedPageDigest };

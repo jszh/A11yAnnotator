@@ -44,12 +44,29 @@ async function orchestrate(collect, drive, opts = {}) {
   const planArt = { file: plan.file, runId: plan.runId, pageDigest: plan.pageDigest, requests: plan.requests, escalations: plan.escalations };
   const applicability = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, observations };
   const bundle = { collect, drive: driveArt, candidates, plan: planArt, experiments, claimProposals, applicability };
+  // INSTRUMENT FINDINGS stage (opt-in): run the hardened VSR + keyboard instruments against the page and
+  // attach the findings. NON-AUTHORITATIVE and NOT hashed (like judgments) — they never publish
+  // authoritative; they are recorded for offline scoring against the hand-labeled ground truth.
+  if (opts.runInstruments && opts.resolveUrl) {
+    const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
+    const inst = await require('./run-instruments.js')
+      .runInstrumentsForUrl(url, { executablePath: opts.executablePath, file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest })
+      .catch(() => ({ file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, findings: [] }));
+    bundle.instruments = inst;
+  }
   // the trusted orchestrator finalizes + attests the run-manifest binding every artifact hash and the
-  // observed page identity (plan Rule 17; audit V3R4-H7). Absent a key, the manifest is unsigned ⇒
-  // shadow-only, like the rest of the trust chain.
+  // observed page identity (plan Rule 17; audit V3R4-H7). The observed identity is the RUNNER's own
+  // per-result observation, not the collector's claim (audit V3R5-M1): a SIGNED, RESULT-BEARING run
+  // derives it from the attested results (fail-closed null on disagreement ⇒ the manifest schema then
+  // refuses it). An EMPTY run (all candidates deferred/unrun) has no observation to derive AND no claim
+  // to publish authoritative, so it records the collector identity — that cannot mislead a publication
+  // decision (there are none) and lets an all-PARTIAL sweep produce a clean bundle instead of refusing
+  // (audit R5R-L1). An UNSIGNED run is shadow-only anyway, so it also records the collector's digest.
+  const hasResults = !!(experiments && Array.isArray(experiments.results) && experiments.results.length > 0);
+  const observedPageDigest = (attestationKey && hasResults) ? manifest.deriveObservedPageDigest(experiments) : collect.pageDigest;
   bundle.manifest = manifest.buildManifest(bundle, {
     key: attestationKey, environment: experiments.environment,
-    observedPageDigest: collect.pageDigest, runnerVersion: '3.0.0-phase0', catalogVersion: experiments.catalogVersion,
+    observedPageDigest, runnerVersion: '3.0.0-phase0', catalogVersion: experiments.catalogVersion,
   });
   const built = buildV3(bundle, { authority: opts.authority, attestationKey: opts.attestationKey, artifactVerifier: opts.artifactVerifier });
   return { candidates, plan, experiments, claimProposals, bundle, built, planErrors };

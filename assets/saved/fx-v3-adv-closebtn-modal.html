@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>APG modal, close-button only, no Esc</title></head>
+<body>
+<button id="opener">Open dialog</button>
+<div role="dialog" aria-modal="true" aria-labelledby="t1" id="dlg">
+  <h2 id="t1">Subscribe</h2>
+  <label>Email <input type="email" id="email"></label>
+  <button id="subscribe">Subscribe</button>
+  <button id="close">Close</button>
+</div>
+<script>
+// A CORRECT APG modal focus trap: Tab cycles within the dialog (required by APG).
+// Dismissable ONLY by the Close button (keyboard-accessible). NO Esc handler.
+const dlg = document.getElementById('dlg');
+function focusables() {
+  return [...dlg.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')]
+    .filter(el => !el.disabled && el.offsetParent !== null);
+}
+dlg.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return;
+  const f = focusables();
+  if (f.length === 0) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey) {
+    if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+  } else {
+    if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+// Close button: keyboard-accessible escape route (removes the modal).
+document.getElementById('close').addEventListener('click', () => {
+  dlg.parentNode.removeChild(dlg);
+  document.getElementById('opener').focus();
+});
+</script>
+</body>
+</html>

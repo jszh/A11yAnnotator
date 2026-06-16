@@ -14,6 +14,9 @@ const STAGE_FILES = {
   plan: 'experiment-plan.json',
   experiments: 'experiments.json',
   claimProposals: 'claim-proposals.json',
+  applicability: 'applicability.json', // independent applicability observation (Rule 15) — hashed in the manifest, so it MUST round-trip (audit V3R5-C1)
+  judgments: 'judgments.json',         // Phase-3 semantic adjudication recommendations (non-authoritative; absent in Phase 0) (audit V3R5-M3)
+  instruments: 'instruments.json',     // VSR/keyboard instrument findings (non-authoritative shadow signals; not hashed)
 };
 
 // A PRODUCTION v3 build requires the COMPLETE lineage (audit V3R3-M3): collect baseline + drive +
@@ -21,11 +24,15 @@ const STAGE_FILES = {
 // explicit shadow/debug build only — it can never publish authoritative (the builder demotes an
 // incomplete bundle to shadow), but the meaning of "complete" must be enforced at the loader, not
 // left implicit. `manifest` stays optional (the orchestrator does not emit one).
-const PRODUCTION_REQUIRED = ['manifest', 'collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals'];
+// applicability is publication-influencing (its hash is in the manifest and it gates authoritative
+// claims — audit V3R5-C1/C2), so a PRODUCTION build requires it. judgments stays OPTIONAL: it is
+// non-authoritative and not produced in Phase 0, but the loader must KNOW about it so the replay/CLI
+// contract can carry the Phase-3 artifact when it exists (audit V3R5-M3).
+const PRODUCTION_REQUIRED = ['manifest', 'collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals', 'applicability'];
 const SHADOW_DEBUG_REQUIRED = ['collect', 'experiments', 'claimProposals'];
 
 // required stages must be present + parseable; optional stages may be absent (→ undefined).
-function loadBundle(dir, { required = ['collect', 'experiments', 'claimProposals'], optional = ['manifest', 'drive', 'candidates', 'plan'] } = {}) {
+function loadBundle(dir, { required = ['collect', 'experiments', 'claimProposals'], optional = ['manifest', 'drive', 'candidates', 'plan', 'applicability', 'judgments', 'instruments'] } = {}) {
   const errors = [];
   const bundle = {};
   // reject a stray v2 results artifact being passed as a v3 run

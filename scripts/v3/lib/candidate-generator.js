@@ -32,9 +32,16 @@ function generateCandidates(collect, drive) {
   for (const e of (drive && drive.elements) || []) if (e && e.xpath) driveByXpath[e.xpath] = e;
   const candidates = [];
   let i = 0;
-  const add = (xpath, claimFamily, reason, missing = []) => {
+  // DEFERRED (plan Phase 2; audit V3R5-M2): every candidate is currently Level-1 mandatory-automatic
+  // with a single allowedExperiment. The Level-3 contextual planner + validating merger
+  // (agent-planner.js, scheduler.js) are built and tested with synthetic Level-3 candidates, but NO
+  // production candidate is emitted at Level 3 yet — so there is no live agent-selected escalation.
+  // Phase 2 will detect context-dependent choices (advised-exit-key selection for a keyboard trap,
+  // custom-widget recipe selection, setup sequencing) and call add(... , 3) with a multi-experiment
+  // allowlist. The `selectionLevel` parameter below is the seam; until Phase 2 it always defaults to 1.
+  const add = (xpath, claimFamily, reason, missing = [], selectionLevel = 1) => {
     const experimentId = FAM_EXP[claimFamily]; if (!experimentId) return;
-    candidates.push({ candidateId: `cand-${++i}`, xpath, sc: oracle.scForFamily(claimFamily), claimFamily, experimentId, allowedExperiments: [experimentId], selectionLevel: 1, selectionReason: reason, missingEvidence: missing });
+    candidates.push({ candidateId: `cand-${++i}`, xpath, sc: oracle.scForFamily(claimFamily), claimFamily, experimentId, allowedExperiments: [experimentId], selectionLevel, selectionReason: reason, missingEvidence: missing });
   };
   for (const el of (collect && collect.elements) || []) {
     if (!el || !el.xpath) continue;

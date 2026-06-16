@@ -311,3 +311,28 @@ test('C3 build-through: default-shadow; PROMOTED ⇒ authoritative clear (AT-ind
   assert.equal(r2.ok, true, JSON.stringify(r2.errors));
   assert.equal(r2.results.summary.cleared, 1, 'a flat-backdrop contrast clear publishes when promoted (complete bundle + provenance)');
 });
+
+// ---- V3R6-MAXTAB: the keyboard reach must not give up at a fixed step cap ----
+// Grounded in LOTUS (ICSE'23): legitimate reach distances run to ~160 Tab steps, so the old fixed
+// MAX_TAB=60 manufactured false "unreachable" verdicts. The deep target sits at tab position 75.
+test('reach: target beyond the old 60-tab cap is reached + cleared; tabindex=-1 wraps (no false barrier)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('focus-visual-retry', 'fx-v3-reach-deep.html', ['/html/body/button[1]', '/html/body/button[7]']);
+  const deep = byXp['/html/body/button[1]'];   // #b75 — visible green focus ring, at tab position 75
+  const unreach = byXp['/html/body/button[7]']; // #unreach — tabindex=-1, genuinely not in the tab order
+
+  // the deep target is now reached past the old cap and clears 2.4.7 (was a false-negative INCONCLUSIVE)
+  assert.equal(deep.outcome.keyboardReachableInState, true, 'deep target (tab 75) is keyboard-reachable');
+  assert.equal(deep.outcome.realKeyboardFocus, true, 'real keyboard focus landed on the deep target');
+  assert.equal(deep.outcome.focusDependentIndicator, true, 'its focus ring is detected as focus-dependent');
+  assert.equal(deep.valid, true, 'the measurement is valid (reached + usable crop)');
+  assert.equal(deep.measurement.reachExhausted, false, 'reach did not exhaust the safety cap');
+  assert.ok(deep.measurement.reachTabs > 60, `reach walked past the old 60 cap (tabs=${deep.measurement.reachTabs})`);
+  assert.equal(dir('focus-visual-retry', deep), 'NO_BARRIER_OBSERVED', 'a deep, visibly-focused control clears');
+
+  // a genuinely-unreachable control is reach:false via a full ring WRAP (not a premature give-up), and
+  // it must NEVER become a false barrier — every barrier flag stays gated behind `reached`.
+  assert.equal(unreach.outcome.keyboardReachableInState, false, 'tabindex=-1 control is not keyboard-reachable');
+  assert.equal(unreach.outcome.stableIndicatorAbsence, false, 'unreachable ⇒ no false 2.4.7 barrier');
+  assert.equal(unreach.measurement.reachExhausted, false, 'unreachable target WRAPPED (sound), did not exhaust the cap');
+  assert.equal(dir('focus-visual-retry', unreach), null, 'unreachable ⇒ INCONCLUSIVE/PARTIAL, never a confident verdict');
+});

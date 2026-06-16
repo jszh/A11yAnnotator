@@ -39,10 +39,30 @@ const FORMFIELD_ROLE = /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$
 // page-level pseudo-element for the page-scoped reflow obligation (C8).
 const PAGE_REFLOW_XPATH = '/page-level::reflow';
 
+// COLLECTOR FIELD CONTRACT (audit V3R5-H1). The real collector (scripts/eval-page.js) emits `text`
+// (string) and `roleAttr`, NOT the `hasText`/`role` booleans the synthetic v3 fixtures use. Reading
+// only the synthetic names silently under-enumerates text-contrast and name-role-value obligations on
+// real artifacts (the coverage registry, which reads the SAME names, agrees on "nothing" and so does
+// not catch it). These accessors normalize BOTH shapes at the single point every consumer reads a
+// fact, so the family LOGIC stays independently declared while the INPUT contract is shared + explicit.
+const factHasText = (el) => !!el && (el.hasText === true || (typeof el.text === 'string' && el.text.trim().length > 0));
+// The collector reports an element's role across several channels: an explicit ARIA `role`/`roleAttr`
+// AND, for NATIVE controls (where roleAttr is null), the sampled/computed role under `sampledRole` /
+// `axRole` (audit R5R-H1). Read the full contract first-non-empty, else native <a>/<button>/<input>
+// lose their name-role-value (4.1.2) obligations entirely.
+const factRole = (el) => {
+  if (!el) return '';
+  for (const f of ['role', 'roleAttr', 'sampledRole', 'axRole']) {
+    const v = el[f];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return '';
+};
+
 // Is this a collected element with any evaluable accessibility surface at all? Used to fail closed:
 // a non-empty page of evaluable elements that yields ZERO obligations is a generation defect.
 function isEvaluable(el) {
-  return !!el && !!el.xpath && (el.focusable === true || el.hasText === true || (typeof el.role === 'string' && el.role.length > 0));
+  return !!el && !!el.xpath && (el.focusable === true || factHasText(el) || factRole(el).length > 0);
 }
 
 // Derive the atomic obligations for ONE element from raw facts. Each branch is the independent
@@ -50,15 +70,16 @@ function isEvaluable(el) {
 function familiesFor(el) {
   const fams = [];
   if (!el) return fams;
+  const role = factRole(el);
   if (el.focusable === true) { fams.push('focus-indicator-visible'); fams.push('keyboard-operable'); }
-  if (el.hasText === true) fams.push('text-contrast');
-  if (typeof el.role === 'string' && WIDGET_ROLE.test(el.role)) fams.push('name-role-value');
+  if (factHasText(el)) fams.push('text-contrast');
+  if (WIDGET_ROLE.test(role)) fams.push('name-role-value');
   // RISK-GATED families: a focusable element carries a trap obligation only inside a focus-trapping
   // region, and an obscuration obligation only when the page has an overlay/sticky/consent layer that
   // could cover it — so plain controls don't accrue obligations for risks their page doesn't present.
   if (el.focusable === true && el.inModal === true) fams.push('no-keyboard-trap');                 // C5
   if (el.focusable === true && el.underOverlay === true) fams.push('focus-not-obscured');           // C7
-  if (el.isFormField === true || (typeof el.role === 'string' && FORMFIELD_ROLE.test(el.role))) { fams.push('field-label'); fams.push('error-identification'); } // C6: label (3.3.2) + error id (3.3.1)
+  if (el.isFormField === true || FORMFIELD_ROLE.test(role)) { fams.push('field-label'); fams.push('error-identification'); } // C6: label (3.3.2) + error id (3.3.1)
   if (el.hasHoverContent === true) fams.push('hover-content');                                       // C9
   return [...new Set(fams)];
 }
@@ -131,5 +152,5 @@ function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[cla
 
 module.exports = {
   FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, PAGE_REFLOW_XPATH, isEvaluable, familiesFor, deriveObligations, oblId,
-  applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily,
+  applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily, factHasText, factRole,
 };

@@ -20,7 +20,13 @@ const observer = require('./applicability-observer.js');
 // Chrome path: env override first (CI / non-mac), then the local macOS default.
 const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const MAX_TAB = 60;
+const MAX_TAB = 60; // legacy constant (kept for export stability); reach no longer uses a fixed cap.
+// Generous anti-pathology ceiling. The focus ring of a real page is bounded by its tabbable count;
+// observed LEGITIMATE reach distances run to ~160 Tab steps (LOTUS, ICSE'23 — Vimeo 161, WhatsApp 36+,
+// TikTok 33), so a fixed 60-cap manufactured false "unreachable" verdicts (audit V3R6-MAXTAB). The cap
+// below is ONLY a guard against a pathologically growing / never-wrapping focus order — never the normal
+// stop condition, which is a WRAP (focus revisiting an already-seen node ⇒ the whole ring was walked).
+const REACH_SAFETY_CAP = 2000;
 const CLIP_PAD = 10; // include an outline-offset ring that renders outside the border box
 
 // In-page: resolve an element by xpath and tag it so we can recognise focus landing on it.
@@ -77,6 +83,25 @@ function readIndicator(marker) {
     return { visible, sig: `${cs.outlineStyle}|${cs.outlineWidth}|${cs.outlineOffset}|${cs.outlineColor}|${shadowRaw}|${borderSig}|${pseudo ? cs.content + cs.backgroundColor : ''}`, extent };
   }
 
+  // DETERMINISTIC animation detection (audit V3R5-H2): inspect animation STATE, not sampled pixels.
+  // A running CSS animation / Web Animation on the target, any descendant (subtree), or any ancestor
+  // (a transform/opacity keyframe up the tree repaints the crop) makes a two-frame pixel diff
+  // unattributable. This does not depend on screenshot timing, so it resolves the R2-F1 flake.
+  const anyRunning = (list) => { try { return (list || []).some((a) => a.playState === 'running'); } catch (e) { return false; } };
+  const declaresAnim = (node) => { try { const s = getComputedStyle(node); return !!s.animationName && s.animationName !== 'none'; } catch (e) { return false; } };
+  function hasRunningAnimation(node) {
+    let sub = [];
+    try { sub = node.getAnimations ? node.getAnimations({ subtree: true }) : []; }
+    catch (e) { try { sub = node.getAnimations ? node.getAnimations() : []; } catch (_) { sub = []; } }
+    if (anyRunning(sub) || declaresAnim(node)) return true;
+    for (let p = node.parentElement; p; p = p.parentElement) {
+      let pa = [];
+      try { pa = p.getAnimations ? p.getAnimations() : []; } catch (e) { pa = []; }
+      if (anyRunning(pa) || declaresAnim(p)) return true;
+    }
+    return false;
+  }
+
   const base = readOn(null), before = readOn('::before'), after = readOn('::after');
   const cs = getComputedStyle(el);
   const r = el.getBoundingClientRect();
@@ -86,6 +111,7 @@ function readIndicator(marker) {
     ringExtent: Math.max(base.extent, before.extent, after.extent),
     rect: { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) },
     role: el.getAttribute('role') || '', tag: el.tagName,
+    hasActiveAnimations: hasRunningAnimation(el),
   };
 }
 
@@ -154,15 +180,45 @@ async function hydrate(page) {
     return true;
   }).catch(() => false);
 }
-// REAL keyboard reach: Tab from the top of the document until the tagged target is active.
-async function realKeyboardReach(page, marker, max = MAX_TAB) {
-  await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
-  let reached = false;
-  for (let i = 0; i < max && !reached; i++) {
+// REAL keyboard reach: Tab from the top of the document, walking the focus ring ONCE. Cycle detection
+// — not a step count — is the principled stop condition (BAGEL CHI'23 / LOTUS ICSE'23): a far-but-
+// reachable target is no longer a false negative. Terminates when:
+//   • the tagged target receives focus            ⇒ { reached:true }
+//   • focus REVISITS an already-seen node, or returns to the body sentinel after visiting ≥1 node
+//     (the ring wrapped) ⇒ { wrapped:true } — the target is genuinely NOT in the focus order (a SOUND
+//     "keyboard-unreachable" signal), versus the old code that gave up at 60 and looked identical.
+//   • the safety cap trips without either         ⇒ { exhausted:true } — INCONCLUSIVE; callers must NOT
+//     record (un)reachability from an exhausted walk (it is budget exhaustion, not evidence).
+// Node identity is by a per-call WeakMap on `window` (reset each call) keyed by the live DOM node, so no
+// attribute pollution and re-reaches stay independent. Returns { reached, wrapped, exhausted, tabs }.
+async function realKeyboardReach(page, marker, opts = {}) {
+  const cap = Number.isFinite(opts.safetyCap) ? opts.safetyCap : REACH_SAFETY_CAP;
+  await page.evaluate(() => {
+    window.__v3reachSeen = new WeakMap();             // per-call node-identity set (survives across evaluate)
+    const b = document.body; if (b) { b.tabIndex = -1; b.focus(); }
+  });
+  let reached = false, wrapped = false, tabs = 0, sawNode = false;
+  for (let i = 0; i < cap; i++) {
     await page.keyboard.press('Tab');
-    reached = await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); return !!el && document.activeElement === el; }, marker).catch(() => false);
+    tabs += 1;
+    const p = await page.evaluate((m) => {
+      const a = document.activeElement;
+      if (!a || a === document.body || a === document.documentElement) return { state: 'sentinel' };
+      const isTarget = !!(a.getAttribute && a.getAttribute('data-v3-target') === m);
+      const map = window.__v3reachSeen || (window.__v3reachSeen = new WeakMap());
+      const seen = map.has(a);
+      if (!seen) map.set(a, true);
+      return { state: 'node', isTarget, seen };
+    }, marker).catch(() => ({ state: 'error' }));
+    if (p.state === 'node') {
+      if (p.isTarget) { reached = true; break; }
+      if (p.seen) { wrapped = true; break; }           // revisited a node ⇒ full ring traversed
+      sawNode = true;
+    } else if (p.state === 'sentinel' && sawNode) {
+      wrapped = true; break;                            // focus fell back to top after nodes ⇒ wrap
+    } // leading sentinel (focus not yet in the order) or a transient error ⇒ keep tabbing within cap
   }
-  return reached;
+  return { reached, wrapped, exhausted: !reached && !wrapped, tabs };
 }
 // a paint/idle settle (double-rAF + a short timeout) for time-varying effects.
 async function settle(page, ms = 120) {
@@ -208,8 +264,11 @@ async function runFocusVisualRetry(page, request) {
   await settle(page);
   const beforeShotB = clip ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
 
-  // REAL keyboard reach: Tab from the top until the target is the active element
-  const reached = await realKeyboardReach(page, marker);
+  // REAL keyboard reach: walk the focus ring until the target is active (no fixed tab cap; audit V3R6-MAXTAB)
+  const reach = await realKeyboardReach(page, marker);
+  const reached = reach.reached;
+  measurement.reachTabs = reach.tabs;
+  measurement.reachExhausted = reach.exhausted; // cap hit without reach/wrap ⇒ reachability is unknown, not absent
   outcome.keyboardReachableInState = reached;
   outcome.realKeyboardFocus = reached;
 
@@ -224,7 +283,11 @@ async function runFocusVisualRetry(page, request) {
   let stableUnfocused = null;
   if (beforeShotA && beforeShotB) {
     const s = await page.evaluate(spatialStatsInPage, beforeShotA, beforeShotB).catch(() => null);
-    stableUnfocused = !!s && s.totalPixels > 0 && s.changedPixels < PIXEL_MIN;
+    // Deterministic guard FIRST (audit V3R5-H2): if the target/ancestors/subtree have a running
+    // animation, the two-crop pixel agreement is unreliable (it can sample the same phase twice and
+    // read "stable") ⇒ fail closed to UNSTABLE. Null-safe: a failed unfocused read is never "stable".
+    const animating = !!(unfocused && unfocused.hasActiveAnimations);
+    stableUnfocused = unfocused !== null && !animating && !!s && s.totalPixels > 0 && s.changedPixels < PIXEL_MIN;
   }
   measurement.stableUnfocused = stableUnfocused;
 
