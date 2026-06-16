@@ -340,8 +340,16 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     const rub = subj.rubric || {};
     const signals = precomputeSignals(subj.element, subj.skill);
     const avail = visionByXpath[subj.xpath] || {};
+    const declaredVision = rub.visionEvidence || [];
     const frames = [];
-    for (const state of (rub.visionEvidence || [])) { const data = avail[state]; if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.rubricId}:${idx}:${state}`, state, data, mediaType: 'image/png' }); }
+    for (const state of declaredVision) { const data = avail[state]; if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.rubricId}:${idx}:${state}`, state, data, mediaType: 'image/png' }); }
+    // REQUIRED-EVIDENCE GATE (adversarial): an atomic rubric judges over EXACTLY its declared evidence. If
+    // ANY declared frame is missing — capture skipped the element (off-viewport / <6px / hidden), or the
+    // transition isn't driven yet (the form-submit pair for 3.3.1/3.3.3 is not produced) — ABSTAIN rather
+    // than judge BLIND. Sending a focus/hover/form rubric to the model with no driven-state pixels would let
+    // it publish an uncalibrated NO_BARRIER clear for a state never seen (a false clear). Missing declared
+    // evidence ⇒ the obligation simply stays auto-PARTIAL, which is the honest "could not decide".
+    if (declaredVision.length && frames.length < declaredVision.length) continue;
     const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text });
     let out;
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }

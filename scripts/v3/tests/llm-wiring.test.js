@@ -16,6 +16,8 @@ const { withPipeline, reseal, promoted } = require('./helpers.js');
 
 const ID = { file: 'p', runId: 'R', pageDigest: 'sha256:d' };
 const scope = (xpath) => ({ actionTargetRef: xpath, state: 'fresh-load', action: 'inspect', environment: 'headless-chromium' });
+const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='; // 1x1
+const altVision = { '/img': { 'element-crop': PNG, 'surrounding-region': PNG } }; // alt-text-adequacy-v0 declares both
 
 // ============================ meaning families are enumerated (so rubrics can select) ============================
 test('the meaning-call families enumerate obligations for the authored rubric SCs', () => {
@@ -47,7 +49,7 @@ test('runRubricJudgments: the rubric REACHES a prompt and emits an llm-rubric ju
   let sawRubric = false;
   const stub = async (messages) => { sawRubric = messages[0].text.includes('alt-text adequacy') || messages[0].text.includes('1.1.1'); return { verdict: 'REPRODUCED', confidence: 'high', summary: 'no alt.', reasoning: 'informative image with empty alt.', evidenceRefs: [] }; };
   const subs = [{ xpath: '/img', sc: '1.1.1', claimFamily: 'non-text-content', rubricId: 'alt-text-adequacy-v0', rubric: rubrics['alt-text-adequacy-v0'], skill: 'name-role-state', element: { xpath: '/img' } }];
-  const { judgments } = await llmAdj.runRubricJudgments(subs, { runAgent: stub, ...ID });
+  const { judgments } = await llmAdj.runRubricJudgments(subs, { runAgent: stub, visionByXpath: altVision, ...ID });
   assert.ok(sawRubric, 'the authored rubric text was actually in the prompt');
   assert.equal(judgments.judgments.length, 1);
   const j = judgments.judgments[0];
@@ -200,4 +202,22 @@ test('partition: WITHOUT ownedScs (legacy/direct callers) selectSubjects is unch
   const collect = { elements: [{ xpath: '/img' }] };
   const ledger = [{ xpath: '/img', sc: '1.1.1', claimFamily: 'non-text-content', autoPartial: true }];
   assert.ok(llmAdj.selectSubjects(collect, ledger).some((s) => s.sc === '1.1.1'), 'backward compatible: no ownedScs ⇒ no exclusion');
+});
+
+// ============================ adversarial: required-evidence gate (no blind judging) ============================
+test('required-evidence gate: a state-pair rubric with an INCOMPLETE pair ABSTAINS (never judges blind → no false clear)', async () => {
+  const { rubrics } = loadRubrics();
+  const ran = (vision) => llmAdj.runRubricJudgments(
+    [{ xpath: '/btn', sc: '2.4.7', claimFamily: 'focus-indicator-visible', rubricId: 'focus-visible-clear-v0', rubric: rubrics['focus-visible-clear-v0'], skill: 'focus-visibility', element: { xpath: '/btn' } }],
+    { runAgent: async () => ({ verdict: 'NOT REPRODUCED', confidence: 'high', summary: 's', reasoning: 'r', evidenceRefs: [] }), visionByXpath: vision, ...ID });
+  assert.equal((await ran({ '/btn': { 'state-before': PNG } })).judgments.judgments.length, 0, 'state-after missing → abstain, NOT a blind clear');
+  assert.equal((await ran({})).judgments.judgments.length, 0, 'zero frames → abstain');
+  assert.equal((await ran({ '/btn': { 'state-before': PNG, 'state-after': PNG } })).judgments.judgments.length, 1, 'the COMPLETE pair → it judges');
+});
+
+test('required-evidence gate: the un-driven form rubrics (3.3.1/3.3.3) ABSTAIN rather than emit a false clear from zero frames', async () => {
+  const { rubrics } = loadRubrics();
+  const subs = ['error-identification-v0', 'error-suggestion-v0'].map((id) => ({ xpath: '/f', sc: rubrics[id].sc, claimFamily: 'form', rubricId: id, rubric: rubrics[id], skill: rubrics[id].skill, element: { xpath: '/f' } }));
+  const { judgments } = await llmAdj.runRubricJudgments(subs, { runAgent: async () => ({ verdict: 'NOT REPRODUCED', confidence: 'high', summary: 's', reasoning: 'r', evidenceRefs: [] }), visionByXpath: {}, ...ID });
+  assert.equal(judgments.judgments.length, 0, 'form-submit pair not driven → no PROVISIONAL clear published for 3.3.1/3.3.3');
 });

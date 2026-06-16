@@ -91,9 +91,12 @@ async function orchestrate(collect, drive, opts = {}) {
     // xpaths — so the adjudicator stays a pure function over visionByXpath but a real run gets real pixels.
     let visionByXpath = opts.visionByXpath || null;
     if (!visionByXpath && opts.captureVision && opts.resolveUrl) {
-      const xps = [...new Set([...agentSubjects, ...rubricSubjects].map((s) => s.xpath))];
+      const vc = require('./vision-capture.js');
+      const allSubs = [...agentSubjects, ...rubricSubjects];
+      const xps = [...new Set(allSubs.map((s) => s.xpath))];
+      const statePlan = vc.buildStatePlan(allSubs); // focus/hover state-before/after pairs for the dynamic-state rubrics (audit #1 bridge)
       const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
-      visionByXpath = await require('./vision-capture.js').captureVisionForUrl(url, xps, { executablePath: opts.executablePath }).catch(() => ({}));
+      visionByXpath = await vc.captureVisionForUrl(url, xps, { executablePath: opts.executablePath, statePlan }).catch(() => ({}));
     }
     const pOpts = {
       runAgent: opts.runAgent, budget: opts.llmBudget, model: opts.llmModel, llmRubrics,

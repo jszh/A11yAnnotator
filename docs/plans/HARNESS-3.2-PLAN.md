@@ -34,6 +34,12 @@
 >   `error-suggestion` (3.3.3), `info-relationships` (1.3.1, page-level).
 > - **D11-1 (vision invoked):** `vision-capture.captureVisionForUrl` is called from the orchestrator's
 >   `runLlm` path; the CLI threads it. The adjudicator stays a pure function over `visionByXpath`.
+> - **#1 state-pair bridge (focus/hover):** `captureStateVision` drives the per-element transition and folds
+>   `state-before`/`state-after` into the map in ONE page load — FOCUS (2.4.7/2.4.11) via CDP `:focus`+
+>   `:focus-visible` forcing, HOVER (1.4.13) via a real pointer move + wider clip. Screenshot-verified on
+>   `fx-v3-focus.html`/`fx-v3-c9-autohide.html` and a live-Chrome regression. So 3 of the 5 dynamic-state
+>   rubrics now get real frames; the FORM-SUBMIT pair (3.3.1/3.3.3) is page-level and not yet driven — those
+>   two keep abstaining (PARTIAL) until that handler lands.
 > - **D4-2 (gold consumed):** the CLI calls `gold-loader.loadGold()` → `opts.gold`.
 > - **D10-1 (skills rewritten):** the 10 `skills/*.md` are genuine v3.2 rewrites (judge-over-evidence; the
 >   tool-driving procedures removed); the v1/v2 originals are preserved under **`skills/v1/`**.

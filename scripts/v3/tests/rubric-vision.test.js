@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { loadRubrics, parseFrontmatter, sha256, SKILL_VISION } = require('../lib/rubric-loader.js');
-const { captureVision, mergeVision } = require('../lib/vision-capture.js');
+const { captureVision, captureStateVision, mergeVision, buildStatePlan, STATE_TRANSITIONS } = require('../lib/vision-capture.js');
 const llmAdj = require('../lib/llm-adjudicator.js');
 const { buildV3 } = require('../lib/build-v3.js');
 const { CHROME } = require('../lib/run-experiments.js');
@@ -95,9 +95,61 @@ test('mergeVision: driver state pairs merge into the static crop map by (xpath, 
   assert.equal(m['/y']['state-after'], 'D');
 });
 
+// ============================ item 11 bridge: the state-pair plan + driver (audit #1) ============================
+test('buildStatePlan: focus/hover SCs map to a transition; form SCs (page-level) do NOT; deduped per xpath', () => {
+  const subs = [
+    { xpath: '/a', sc: '2.4.7' }, { xpath: '/a', sc: '2.4.11' }, // same xpath: first transition wins
+    { xpath: '/b', sc: '1.4.13' }, { xpath: '/c', sc: '3.3.1' }, { xpath: '/d', sc: '1.1.1' },
+  ];
+  const plan = buildStatePlan(subs);
+  assert.equal(plan['/a'], 'focus', '2.4.7 → focus');
+  assert.equal(plan['/b'], 'hover', '1.4.13 → hover');
+  assert.equal(plan['/c'], undefined, '3.3.1 (form submit) is not driven per-element yet');
+  assert.equal(plan['/d'], undefined, 'a static SC needs no state pair');
+  assert.equal(STATE_TRANSITIONS['2.4.11'], 'focus');
+});
+
+test('captureStateVision: an empty plan is a no-op (no browser launched)', async () => {
+  assert.deepEqual(await captureStateVision(null, {}), {});
+  assert.deepEqual(await captureStateVision(null, null), {});
+});
+
+test('the bridge output is CONSUMED: a focus rubric handed state-before/after emits a judgment citing both frames', async () => {
+  const { rubrics } = loadRubrics();
+  const subs = [{ xpath: '/btn', sc: '2.4.7', claimFamily: 'focus-indicator-visible', rubricId: 'focus-visible-clear-v0', rubric: rubrics['focus-visible-clear-v0'], skill: 'focus-visibility', element: { xpath: '/btn' } }];
+  const visionByXpath = { '/btn': { 'state-before': PNG, 'state-after': PNG } };
+  const stub = async () => ({ verdict: 'NOT REPRODUCED', confidence: 'high', summary: 'ring visible.', reasoning: 'clear delta.', evidenceRefs: [] });
+  const { judgments, llmVision } = await llmAdj.runRubricJudgments(subs, { runAgent: stub, visionByXpath, ...ID });
+  assert.equal(judgments.judgments.length, 1, 'the rubric ran (it had its declared state frames)');
+  const states = llmVision.images.filter((i) => i.xpath === '/btn').map((i) => i.state).sort();
+  assert.deepEqual(states, ['state-after', 'state-before'], 'both driven frames were handed to the rubric and persisted');
+});
+
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — vision-capture e2e SKIPPED');
 const FX = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-vsr-semantic.html');
+
+test('captureStateVision e2e: focus forces a ring delta; an indicator-less control does not; hover reveals content', { skip: !chromeOK, concurrency: false }, async () => {
+  const puppeteer = require('puppeteer');
+  const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const fx = (n) => 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', n);
+    // FOCUS: #real (button[1]) gains a :focus ring; #none (button[2]) has outline:none → no delta.
+    const pf = await b.newPage(); await pf.setViewport({ width: 800, height: 400 }); await pf.goto(fx('fx-v3-focus.html'), { waitUntil: 'load' });
+    const f = await captureStateVision(pf, { '/html/body/button[1]': 'focus', '/html/body/button[2]': 'focus' });
+    const isPng = (d) => Buffer.from(d, 'base64').slice(0, 8).toString('hex') === '89504e470d0a1a0a';
+    const real = f['/html/body/button[1]'], none = f['/html/body/button[2]'];
+    assert.ok(real && isPng(real['state-before']) && isPng(real['state-after']), 'real focus pair is two PNGs');
+    assert.notEqual(real['state-before'], real['state-after'], 'forcing :focus changed the pixels (a ring appeared)');
+    assert.equal(none['state-before'], none['state-after'], 'an outline:none control shows NO focus delta (true-negative)');
+    // HOVER: #h (button[1]) reveals a JS-mouseenter tooltip the wider clip captures.
+    const ph = await b.newPage(); await ph.setViewport({ width: 800, height: 400 }); await ph.goto(fx('fx-v3-c9-autohide.html'), { waitUntil: 'load' });
+    const h = await captureStateVision(ph, { '/html/body/button[1]': 'hover' });
+    const hov = h['/html/body/button[1]'];
+    assert.ok(hov && isPng(hov['state-before']) && isPng(hov['state-after']), 'hover pair is two PNGs');
+    assert.notEqual(hov['state-before'], hov['state-after'], 'a real pointer move revealed the tooltip');
+  } finally { await b.close(); }
+});
 
 test('captureVision e2e: real PNG crops; viewport-320 differs from viewport (reflow)', { skip: !chromeOK, concurrency: false }, async () => {
   const puppeteer = require('puppeteer');
@@ -171,5 +223,23 @@ test('captureVision (corpus probe regressions): scrolls a below-fold element in;
     const vis = await captureVision(p, ['//*[@id="belowfold"]', '//*[@id="tiny"]'], {});
     assert.ok(vis['//*[@id="belowfold"]'] && vis['//*[@id="belowfold"]']['element-crop'], 'a below-the-fold element is scrolled into view and captured (real pages put most elements off-screen)');
     assert.ok(!(vis['//*[@id="tiny"]'] && vis['//*[@id="tiny"]']['element-crop']), 'a degenerate 4x4 box is SKIPPED (no near-blank crop)');
+  } finally { await b.close(); }
+});
+
+test('captureStateVision e2e: a prior hover does NOT contaminate the next subject; a far-rendered tooltip is captured (adversarial)', { skip: !chromeOK, concurrency: false }, async () => {
+  const puppeteer = require('puppeteer');
+  const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const fx = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-hover-adv.html');
+    const near = '/html/body/button[1]', far = '/html/body/button[2]'; // far renders its tooltip bottom-right; corner #div is a fixed top-left hover trap
+    const p1 = await b.newPage(); await p1.setViewport({ width: 1000, height: 700 }); await p1.goto(fx, { waitUntil: 'load' });
+    const solo = await captureStateVision(p1, { [near]: 'hover' });
+    const p2 = await b.newPage(); await p2.setViewport({ width: 1000, height: 700 }); await p2.goto(fx, { waitUntil: 'load' });
+    const afterFar = await captureStateVision(p2, { [far]: 'hover', [near]: 'hover' }); // near is judged AFTER a hover iteration
+    assert.ok(solo[near] && afterFar[near] && afterFar[far], 'all pairs captured');
+    // (0,0)-park bug would leave the fixed top-left corner overlay :hover, polluting near's before-frame ⇒ different bytes.
+    assert.equal(afterFar[near]['state-before'], solo[near]['state-before'], 'near before-frame is identical whether or not a hover preceded it (no corner-overlay leak)');
+    // the far tooltip renders bottom-right, far outside any fixed pad: the reveal-aware union clip still captures the delta.
+    assert.notEqual(afterFar[far]['state-before'], afterFar[far]['state-after'], 'the far-rendered tooltip was captured');
   } finally { await b.close(); }
 });

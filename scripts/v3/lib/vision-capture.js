@@ -4,11 +4,28 @@
 // 'viewport-320' } as base64 PNGs. This captures the STATIC crops from a loaded page (the collector
 // context); the orchestrator's runLlm path calls captureVisionForUrl and threads the result.
 //
-// NOTE (not yet wired): the `state-before`/`state-after` PAIRS that 5 rubrics declare (focus / forms /
-// dynamic) are NOT produced here — they require driving the focus/hover/submit transitions (drive-page.js
-// already screenshots those). `mergeVision` exists to fold them in once that driver→visionByXpath bridge
-// lands; until then those rubrics receive no state frame and must abstain (PARTIAL) when they cannot see
-// the before/after, per their rubric text. Keeping capture here leaves `runAdjudication` pure over inputs.
+// STATE PAIRS (the driver→visionByXpath bridge): `captureStateVision` drives the per-element transition a
+// dynamic-state rubric declares and screenshots the SAME clip in two states, emitting `state-before`/
+// `state-after`. FOCUS (2.4.7 / 2.4.11) forces :focus AND :focus-visible via CDP (so a keyboard-only ring
+// still shows — mirroring drive-page.js's forcedFocusRing); HOVER (1.4.13) uses a REAL pointer move (fires
+// CSS :hover AND JS mouseenter, which CDP forcing does not) with a wider clip so a tooltip rendered beside/
+// below the trigger is captured. `captureVisionForUrl` folds the pairs into the static map via `mergeVision`
+// in ONE page load, so `runAdjudication` stays pure over `visionByXpath`. STILL PENDING: the form-submit
+// transition (3.3.1 / 3.3.3) is page-level (fill + failed submit → error state) and is not driven here yet,
+// so the two form rubrics keep abstaining (PARTIAL) until that handler lands.
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// SC → the per-element transition whose before/after a rubric for that SC needs. Form SCs are intentionally
+// absent (their state pair is page-level, not yet driven). Exported so the orchestrator + a pure test share it.
+const STATE_TRANSITIONS = Object.freeze({ '2.4.7': 'focus', '2.4.11': 'focus', '1.4.13': 'hover' });
+
+// Build the xpath -> transition plan from LLM subjects (first transition per xpath wins; deduped).
+function buildStatePlan(subjects) {
+  const plan = {};
+  for (const s of subjects || []) { const t = s && STATE_TRANSITIONS[s.sc]; if (t && s.xpath && !plan[s.xpath]) plan[s.xpath] = t; }
+  return plan;
+}
 
 // Capture the declared static crops for a set of element xpaths. opts: { states[], pad=24 }.
 async function captureVision(page, xpaths, opts = {}) {
@@ -82,8 +99,114 @@ function mergeVision(base, ...more) {
   return out;
 }
 
+// Drive a per-element transition and capture its state-before/after PAIR. `plan` maps xpath -> 'focus' |
+// 'hover'. Screenshots the SAME clip in both states so the diff is honest. Mirrors captureVision's
+// visibility / min-dim / in-viewport guards; emits a frame map ONLY when BOTH shots exist (the rubric needs
+// the pair). Page state is mutated (focus/hover) so this must run AFTER the static crops on a given page.
+async function captureStateVision(page, plan, opts = {}) {
+  const entries = Object.entries(plan || {});
+  if (!entries.length) return {};
+  const out = {};
+  let cdp = null;
+  try { cdp = await page.createCDPSession(); await cdp.send('DOM.enable'); await cdp.send('CSS.enable'); } catch (e) { cdp = null; }
+  const shot = (clip) => page.screenshot({ clip, encoding: 'base64' }).catch(() => null);
+  const str = (s) => typeof s === 'string' && s.length > 0;
+  // park the pointer FAR off-viewport (proven idle): (0,0) is a real hittable coordinate, so a prior hover
+  // iteration that ended there could leave a fixed top-left element :hover and pollute the NEXT subject's
+  // before-frame (adversarial finding). 10000,10000 is outside any viewport ⇒ nothing is :hover.
+  const parkPointer = () => page.mouse.move(10000, 10000).catch(() => {});
+  const clampClip = (rc, pad) => {
+    const x0 = Math.max(0, Math.min(rc.x - pad, rc.vw - 1));
+    const y0 = Math.max(0, Math.min(rc.y - pad, rc.vh - 1));
+    return { x: x0, y: y0, width: Math.max(1, Math.min(rc.w + 2 * pad, rc.vw - x0)), height: Math.max(1, Math.min(rc.h + 2 * pad, rc.vh - y0)) };
+  };
+  // a hover clip that actually CONTAINS the reveal: trigger ∪ measured revealed-node bbox (clamped), since a
+  // fixed pad misses a tooltip/menu rendered far from the trigger (adversarial finding → false abstain).
+  const unionClip = (rc, reveal, pad) => {
+    if (!reveal) return clampClip(rc, pad);
+    const x0 = Math.max(0, Math.min(rc.x, reveal.x0) - 8);
+    const y0 = Math.max(0, Math.min(rc.y, reveal.y0) - 8);
+    const x1 = Math.min(rc.vw, Math.max(rc.x + rc.w, reveal.x1) + 8);
+    const y1 = Math.min(rc.vh, Math.max(rc.y + rc.h, reveal.y1) + 8);
+    return (x1 > x0 && y1 > y0) ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : clampClip(rc, pad);
+  };
+  // resolve an xpath -> CDP nodeId (DOM.performSearch accepts XPath) for forcePseudoState (drive-page.js T1/T8).
+  const nodeIdFor = async (xp) => {
+    if (!cdp) return null;
+    try {
+      await cdp.send('DOM.getDocument', { depth: -1 });
+      const sr = await cdp.send('DOM.performSearch', { query: xp });
+      if (!sr || !sr.resultCount) return null;
+      const r = await cdp.send('DOM.getSearchResults', { searchId: sr.searchId, fromIndex: 0, toIndex: 1 });
+      return (r && r.nodeIds && r.nodeIds[0]) || null;
+    } catch (e) { return null; }
+  };
+  const hoverSettle = Number.isFinite(opts.hoverSettleMs) ? opts.hoverSettleMs : 300; // ≥ a typical show-delay, < a typical auto-hide
+  for (const [xp, transition] of entries) {
+    await parkPointer(); // RESET to a guaranteed-idle pointer BEFORE the before-frame (kills cross-subject hover leak)
+    // a true IDLE before-state: blur whatever is focused, then bring the target into view.
+    await page.evaluate((x) => { try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {} const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } } }, xp).catch(() => {});
+    const rect = await page.evaluate((x) => {
+      const el = document.evaluate(x, document, null, 9, null).singleNodeValue;
+      if (!el || !el.getBoundingClientRect) return null;
+      const cs = getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.visibility === 'collapse' || parseFloat(cs.opacity) === 0) return null;
+      const r = el.getBoundingClientRect();
+      if (!(r.width >= 6) || !(r.height >= 6)) return null;
+      return { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+    }, xp).catch(() => null);
+    if (!rect) continue;
+    const inView = rect.x < rect.vw && rect.y < rect.vh && rect.x + rect.w > 0 && rect.y + rect.h > 0;
+    if (!inView) continue;
+    const pad = transition === 'hover' ? (Number.isFinite(opts.hoverPad) ? opts.hoverPad : 96) : (Number.isFinite(opts.statePad) ? opts.statePad : 16);
+    let before = null, after = null;
+    if (transition === 'focus') {
+      const clip = clampClip(rect, pad); // a focus ring hugs the element
+      before = await shot(clip);
+      if (!str(before)) continue;
+      await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.focus) { try { el.focus({ preventScroll: true }); } catch (e) { try { el.focus(); } catch (_) {} } } }, xp).catch(() => {});
+      const nodeId = await nodeIdFor(xp);
+      let forced = false;
+      if (nodeId) { try { await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['focus', 'focus-visible'] }); forced = true; } catch (e) {} }
+      await sleep(60);
+      after = await shot(clip);
+      if (forced) { try { await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] }); } catch (e) {} }
+      await page.evaluate(() => { try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {} }).catch(() => {});
+    } else if (transition === 'hover') {
+      // PROBE: hover, MEASURE where the reveal actually rendered, then un-hover — so before/after share a clip
+      // that CONTAINS the revealed content wherever it sits (a fixed pad misses a far tooltip/menu).
+      try { await page.mouse.move(rect.cx, rect.cy); } catch (e) {}
+      await sleep(hoverSettle);
+      const reveal = await page.evaluate((x) => {
+        const trig = document.evaluate(x, document, null, 9, null).singleNodeValue;
+        if (!trig) return null;
+        const cands = new Set();
+        for (const a of ['aria-describedby', 'aria-controls', 'popovertarget']) for (const id of (trig.getAttribute(a) || '').split(/\s+/)) { if (id) { const e = document.getElementById(id); if (e) cands.add(e); } }
+        for (const e of document.querySelectorAll('[role=tooltip],[popover],[role=menu],[role=listbox]')) cands.add(e);
+        const vis = (e) => { const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return false; const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < window.innerHeight && r.left < window.innerWidth; };
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, found = false;
+        for (const e of cands) { if (!vis(e)) continue; const r = e.getBoundingClientRect(); x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom); found = true; }
+        return found ? { x0, y0, x1, y1 } : null;
+      }, xp).catch(() => null);
+      await parkPointer(); await sleep(30); // back to idle for an honest before-frame
+      const clip = unionClip(rect, reveal, pad);
+      before = await shot(clip);
+      if (!str(before)) continue;
+      try { await page.mouse.move(rect.cx, rect.cy); } catch (e) {}
+      await sleep(hoverSettle);
+      after = await shot(clip);
+      await parkPointer();
+    }
+    if (str(after)) out[xp] = { 'state-before': before, 'state-after': after };
+  }
+  try { if (cdp) await cdp.detach(); } catch (e) {}
+  return out;
+}
+
 // Launch a fresh browser, load `url`, and capture vision for `xpaths` — the production entry point the
-// orchestrator/CLI calls so the adjudicator stays a pure function over `visionByXpath` (audit D11-1).
+// orchestrator/CLI calls so the adjudicator stays a pure function over `visionByXpath` (audit D11-1). When
+// `opts.statePlan` (xpath -> transition) is given, also drives those transitions and folds the resulting
+// state pairs into the static map — ONE page load for both (audit #1: the state-pair bridge).
 async function captureVisionForUrl(url, xpaths, opts = {}) {
   const puppeteer = require('puppeteer');
   const CHROME = opts.executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
@@ -93,8 +216,10 @@ async function captureVisionForUrl(url, xpaths, opts = {}) {
     const page = await browser.newPage();
     await page.setViewport({ width: opts.width || 1280, height: opts.height || 900 });
     await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
-    return await captureVision(page, xpaths, opts);
+    const stat = await captureVision(page, xpaths, opts);          // static crops first (no page mutation)
+    const pairs = opts.statePlan ? await captureStateVision(page, opts.statePlan, opts) : {}; // then driven pairs
+    return mergeVision(stat, pairs);
   } finally { await browser.close(); }
 }
 
-module.exports = { captureVision, captureVisionForUrl, mergeVision };
+module.exports = { captureVision, captureStateVision, captureVisionForUrl, mergeVision, buildStatePlan, STATE_TRANSITIONS };
