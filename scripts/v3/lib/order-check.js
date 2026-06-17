@@ -55,19 +55,25 @@ function visualOrderDivergence(items, opts = {}) {
   const byCol = new Map(); // colId -> items IN READING ORDER
   for (const s of leaves) { const c = colOf.get(s.xpath); if (!byCol.has(c)) byCol.set(c, []); byCol.get(c).push(s); }
 
-  // (3) within each column, flag a gross backward jump in the reading subsequence vs visual (y) order.
+  // (3) within each column, flag ANY backward step in the reading subsequence vs visual (y) order. A5
+  // (Harness 3.3, closes B1): the old `JUMP = max(3, 0.25n)` + strict `>` had recall holes — an adjacent
+  // transposition (delta=1) was invisible, and a fully-reversed n≤4 column (max delta n−1 ≤ 3) was never
+  // flagged. WCAG has no magnitude threshold for "meaningful sequence", so any within-column inversion
+  // (delta ≥ 1) is a candidate. This is INTENTIONALLY high-recall: every finding is QUARANTINED as
+  // uncalibrated triage (review:true, calibrated:false) — the x-overlap column model cannot decide
+  // cross-column reading order (Z-order/RTL/masonry) from geometry alone (audit J.1/J.2), so an order
+  // finding is a review prompt, never a pass/fail. Absence of a finding is NOT a pass.
   const findings = [];
   for (const colItems of byCol.values()) {
     if (colItems.length < 3) continue; // too few to judge order within a column
     const vis = [...colItems].sort((a, b) => (Math.abs(a.rect.y - b.rect.y) > band ? a.rect.y - b.rect.y : a.rect.x - b.rect.x));
     const rank = new Map(); vis.forEach((s, i) => rank.set(s.xpath, i));
-    const JUMP = Math.max(3, Math.round(colItems.length * 0.25));
     let prevRank = -1, prevXp = null;
     for (const s of colItems) { // colItems are in READING order
       const r = rank.get(s.xpath);
-      if (prevRank >= 0 && (prevRank - r) > JUMP) {
-        findings.push({ kind, sc, xpath: s.xpath, label: s.label || '',
-          detail: `encountered after ${prevXp} but sits ${prevRank - r} visual positions earlier within its column — navigation order diverges from visual order` });
+      if (prevRank >= 0 && (prevRank - r) >= 1) {
+        findings.push({ kind, sc, xpath: s.xpath, label: s.label || '', review: true, calibrated: false,
+          detail: `encountered after ${prevXp} but sits ${prevRank - r} visual position(s) earlier within its column — navigation order may diverge from visual order (uncalibrated triage, not a verdict)` });
       }
       prevRank = r; prevXp = s.xpath;
     }

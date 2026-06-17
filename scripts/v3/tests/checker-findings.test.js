@@ -106,6 +106,46 @@ test('build: evidenceMode (B) reflects which non-authoritative lanes contributed
   assert.deepEqual(em, { provisionalMode: 'gated', runLlm: false, runInstruments: true, checkers: ['axe'] });
 });
 
+test('build: triageCandidates (E) consolidate instrument+checker signals on review SCs by (xpath,sc) with agreement', () => {
+  const bundle = baseBundle();
+  bundle.instruments = { file: 'p', runId: 'R', pageDigest: 'sha256:d', findings: [
+    { detector: 'vsr-reading-order', sc: '1.3.2', kind: 'reading-order', xpath: '/x', detail: 'order diverges', review: true, calibrated: false },
+    { detector: 'status-message', sc: '4.1.3', kind: 'status-not-announced', xpath: '/y', detail: 'unannounced status' },
+    { detector: 'vsr-meaning', sc: '4.1.2', kind: 'no-accessible-name', xpath: '/z', detail: 'no name' }, // 4.1.2 is NOT a triage SC → excluded
+  ] };
+  bundle.checkerFindings = { file: 'p', runId: 'R', pageDigest: 'sha256:d', source: 'checker', ran: true, findings: [
+    { source: 'checker', detector: 'ibm:g1', ruleId: 'g1', sc: '1.4.1', impact: 'serious', kind: 'review', xpath: '/x', review: true }, // 1.4.1 candidate (IBM prior)
+    { source: 'axe', detector: 'axe:list', ruleId: 'list', sc: '1.3.1', impact: 'serious', kind: 'violation', xpath: '/u', review: false }, // 1.3.1 is decided, NOT triage → excluded
+  ] };
+  const r = buildV3(bundle);
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  const tc = r.results.triageCandidates;
+  assert.deepEqual([...new Set(tc.map((c) => c.sc))].sort(), ['1.3.2', '1.4.1', '4.1.3'], '4.1.2 + decided 1.3.1 are excluded');
+  assert.ok(tc.every((c) => c.review === true && c.authoritative === false), 'triage candidates are review-only, never authoritative');
+  assert.ok(tc.every((c) => c.agreement === c.signals.length && c.agreement >= 1), 'agreement = number of unioned signals');
+  assert.equal(r.results.summary.triageCandidates, tc.length);
+});
+
+test('build: deterministicSignals (F) — 2.5.8 geometry + 2.5.3 label-in-name from collector facts, shadow only', () => {
+  const bundle = baseBundle();
+  bundle.collect.elements = [
+    { xpath: 'node:b1', focusable: true }, // the focus subject (no box/text) — no signal
+    { xpath: '/big', focusable: true, box: { x: 0, y: 0, w: 40, h: 40, squareFits: true }, targetOpts: { squareFits: true } }, // 2.5.8 geometry-pass
+    { xpath: '/small', focusable: true, box: { x: 0, y: 0, w: 18, h: 18 }, targetOpts: { neighbors: [{ x: 16, y: 0, w: 100, h: 18 }] } }, // 2.5.8 geometry-fail (circle hits neighbour)
+    { xpath: '/round', focusable: true, box: { x: 0, y: 0, w: 40, h: 40 }, targetOpts: { cornerRadius: 20 } }, // needs-judgment ⇒ NO signal (deferred)
+    { xpath: '/btn', focusable: true, text: 'Submit', axName: 'Go' }, // 2.5.3 label-not-in-name ("submit" ⊄ "go")
+    { xpath: '/ok', focusable: true, text: 'Search', axName: 'Search products' }, // visible ⊆ name ⇒ NO signal
+  ];
+  const r = buildV3(bundle);
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  const ds = r.results.deterministicSignals;
+  assert.ok(ds.every((s) => s.authoritative === false && s.shadow === true), 'deterministic signals are shadow only (Decision B)');
+  const kinds = ds.map((s) => `${s.sc}:${s.kind}`).sort();
+  assert.deepEqual(kinds, ['2.5.3:label-not-in-name', '2.5.8:geometry-fail', '2.5.8:geometry-pass'], 'round (needs-judgment) + ok (label⊆name) emit no signal');
+  assert.equal(r.results.summary.deterministicSignals, 3);
+  assert.deepEqual({ ...r.results.summary.deterministicSignalsBySc }, { '2.5.8': 2, '2.5.3': 1 });
+});
+
 test('build: a malformed checkerFindings artifact is REFUSED (findings must be an array)', () => {
   const bundle = baseBundle();
   bundle.checkerFindings = { file: 'p', runId: 'R', pageDigest: 'sha256:d', findings: 'nope' };

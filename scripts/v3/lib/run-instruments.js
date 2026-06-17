@@ -19,7 +19,7 @@ const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
 // Run every instrument against an already-loaded Puppeteer page. Returns { findings: [...] }.
 async function runInstruments(page, opts = {}) {
   const findings = [];
-  const add = (detector, list) => { for (const f of (list || [])) findings.push({ detector, sc: f.sc || '', kind: f.kind, xpath: f.xpath || null, detail: f.detail || '', review: !!f.review }); };
+  const add = (detector, list) => { for (const f of (list || [])) { const row = { detector, sc: f.sc || '', kind: f.kind, xpath: f.xpath || null, detail: f.detail || '', review: !!f.review }; if (f.calibrated === false) row.calibrated = false; findings.push(row); } };
 
   // VSR transcript → reading order (1.3.2) + announcement-vs-meaning (4.1.2)
   const transcript = await collectVsrTranscript(page, opts).catch(() => null);

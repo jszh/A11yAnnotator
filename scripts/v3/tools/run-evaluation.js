@@ -58,6 +58,7 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
   // not hashed, identity-bound. Present whenever the collector ran axe (collect.axeRan).
   if (bundle.checkerFindings) w('checker-findings.json', bundle.checkerFindings);
   if (bundle.instruments) w('instruments.json', bundle.instruments); // B: shadow VSR/keyboard findings (V3_INSTRUMENTS)
+  if (built.ok && built.results.triageCandidates && built.results.triageCandidates.length) w('triage-candidates.json', built.results.triageCandidates); // E: non-ledger semantic review queue
   // LLM evidence-lane artifacts (only present when the lane ran): non-authoritative, not hashed.
   if (bundle.llm) w('llm.json', bundle.llm);
   if (bundle.judgments) w('judgments.json', bundle.judgments);

@@ -29,6 +29,7 @@ const judgments = require('./judgments.js');
 const llmAdj = require('./llm-adjudicator.js');
 const metrics = require('./metrics.js');
 const { resolveClaim } = require('./claims.js');
+const A = require('../../lib/a11y-eval.js'); // F (Harness 3.3): reuse the target-size geometry verbatim
 
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
 const sameScope = (a, b) => !!a && !!b && SCOPE_FIELDS.every((f) => a[f] === b[f]);
@@ -366,7 +367,9 @@ function buildV3(bundle, opts = {}) {
     if (typeof inst !== 'object' || inst === null || !Array.isArray(inst.findings)) { E('instruments: must be an object with a findings[] array'); return { ok: false, errors, results: null }; }
     for (const f of inst.findings) {
       if (typeof f !== 'object' || f === null) { E('instruments: each finding must be an object'); return { ok: false, errors, results: null }; }
-      instrumentFindings.push({ detector: String(f.detector || 'instrument'), sc: String(f.sc || ''), kind: String(f.kind || ''), xpath: f.xpath || null, detail: String(f.detail || ''), review: !!f.review, authoritative: false, shadow: true });
+      const row = { detector: String(f.detector || 'instrument'), sc: String(f.sc || ''), kind: String(f.kind || ''), xpath: f.xpath || null, detail: String(f.detail || ''), review: !!f.review, authoritative: false, shadow: true };
+      if (f.calibrated === false) row.calibrated = false; // A5: order findings are explicitly UNCALIBRATED triage
+      instrumentFindings.push(row);
     }
   }
 
@@ -384,6 +387,48 @@ function buildV3(bundle, opts = {}) {
       checkerFindings.push({ source: String(f.source || 'checker'), detector: String(f.detector || f.ruleId || 'checker'), ruleId: f.ruleId != null ? String(f.ruleId) : null, sc: String(f.sc || ''), impact: f.impact != null ? String(f.impact) : '', kind: String(f.kind || 'violation'), xpath: f.xpath != null ? String(f.xpath) : null, review: !!f.review, authoritative: false, shadow: true });
     }
   }
+
+  // DETERMINISTIC SIGNALS (Harness 3.3 F): closed-sub-domain facts that reduce LLM load, derived PURELY
+  // from the collector's element facts (box / text / axName) — no browser pass. SHADOW only (Decision B):
+  // they never clear or barrier an obligation; promotion is a post-corpus decision once their precision on
+  // this corpus is known. 2.5.8 target-size geometry decides geometry pass/fail (transform/clip/rounded/
+  // no-neighbour cases stay 'needs-judgment' ⇒ deferred to LLM/human). 2.5.3 label-in-name emits a hard
+  // signal when a reliable visible label is not contained in the reliable accessible name — an INDEPENDENT
+  // cross-signal that agrees-or-not with IBM's 2.5.3 (C1) under the same (sc, xpath) key.
+  const normTxt = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const deterministicSignals = [];
+  for (const el of (bundle.collect && bundle.collect.elements) || []) {
+    if (!el || typeof el !== 'object') continue;
+    if (el.box && typeof el.box === 'object' && el.focusable === true) {
+      const ts = A.evalTargetSize(el.box, el.targetOpts || {});
+      if (ts && (ts.verdict === 'pass' || ts.verdict === 'fail')) {
+        deterministicSignals.push({ source: 'deterministic', detector: 'target-size-geometry', sc: '2.5.8', xpath: el.xpath || null, kind: ts.verdict === 'pass' ? 'geometry-pass' : 'geometry-fail', detail: String(ts.reason || ''), authoritative: false, shadow: true });
+      }
+    }
+    if (typeof el.text === 'string' && typeof el.axName === 'string' && el.focusable === true) {
+      const visible = normTxt(el.text), name = normTxt(el.axName);
+      if (visible && name && !name.includes(visible)) {
+        deterministicSignals.push({ source: 'deterministic', detector: 'label-in-name', sc: '2.5.3', xpath: el.xpath || null, kind: 'label-not-in-name', detail: `visible label ${JSON.stringify(el.text.slice(0, 40))} not contained in accessible name ${JSON.stringify(el.axName.slice(0, 40))}`, authoritative: false, shadow: true });
+      }
+    }
+  }
+
+  // TRIAGE CANDIDATES (Harness 3.3 E): a consolidated, NON-LEDGER review queue for semantic SCs that get
+  // NO obligation disposition in 3.3 — 1.4.1 Use of Color + 1.3.3 Sensory Characteristics (fed by IBM
+  // review priors once C1 lands) and instrument adjudication for 1.3.2 / 2.4.3 / 4.1.3. DERIVED from the
+  // already-identity-gated instrument + checker signals, so it carries no new stale-artifact risk. One
+  // candidate per (xpath, SC) UNIONS every non-authoritative signal on it with an `agreement` count (plan
+  // §2: union evidence, never adjudicate to a verdict). These are review packets, NOT PROVISIONAL ledger
+  // rows — the project has no sound enumeration story for these families yet, so they never clear/barrier.
+  const TRIAGE_SCS = new Set(['1.4.1', '1.3.3', '1.3.2', '2.4.3', '4.1.3']);
+  const triageMap = new Map();
+  for (const f of [...instrumentFindings, ...checkerFindings]) {
+    if (!TRIAGE_SCS.has(f.sc)) continue;
+    const key = `${f.sc}::${f.xpath || '(page)'}`;
+    if (!triageMap.has(key)) triageMap.set(key, { sc: f.sc, xpath: f.xpath || null, signals: [], review: true, authoritative: false });
+    triageMap.get(key).signals.push({ source: f.source || 'instrument', detector: f.detector, kind: f.kind, detail: f.detail || (f.ruleId ? String(f.ruleId) : '') });
+  }
+  const triageCandidates = [...triageMap.values()].map((c) => ({ ...c, agreement: c.signals.length }));
 
   // (6) emit v3-only results; refuse if a legacy label somehow survived
   const stripClaim = (c) => { const { _target, _family, _sc, _authState, disposition, authoritative, ...rest } = c; return rest; };
@@ -406,6 +451,8 @@ function buildV3(bundle, opts = {}) {
     adjudicationRecommendations, // DERIVED view over the un-promoted source:'llm' shadow obs (3.1 unify)
     instrumentFindings, // non-authoritative VSR/keyboard instrument signals (shadow until gold-calibrated)
     checkerFindings, // non-authoritative external-checker cross-signals (axe C0 / IBM C1) — never a disposition
+    triageCandidates, // non-ledger review queue for semantic SCs (1.4.1/1.3.3 + 1.3.2/2.4.3/4.1.3) — review packets, not dispositions
+    deterministicSignals, // F: shadow 2.5.8 geometry + 2.5.3 label-in-name facts (closed sub-domains; reduce LLM load)
     summary: {
       obligations: obligations.length,
       proposals: proposals.length,
@@ -427,6 +474,9 @@ function buildV3(bundle, opts = {}) {
       instrumentFindings: instrumentFindings.length,
       checkerFindings: checkerFindings.length, // external-checker cross-signal count (axe C0 / IBM C1)
       checkerFindingsBySc: checkerFindings.reduce((m, f) => { const k = f.sc || 'unknown'; m[k] = (m[k] || 0) + 1; return m; }, Object.create(null)), // per-SC, for the §G annotation sampling
+      triageCandidates: triageCandidates.length, // non-ledger semantic review candidates (E)
+      deterministicSignals: deterministicSignals.length, // F: shadow 2.5.8 geometry + 2.5.3 label-in-name facts
+      deterministicSignalsBySc: deterministicSignals.reduce((m, s) => { m[s.sc] = (m[s.sc] || 0) + 1; return m; }, Object.create(null)),
       // EVIDENCE MODE (Harness 3.3, B): which non-authoritative lanes contributed, visible without reading
       // logs. provisionalMode is the build option; the rest are derived from which artifacts the bundle
       // carries (so the run summary records exactly what produced its evidence). Authoritative output is

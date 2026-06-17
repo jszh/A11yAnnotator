@@ -63,13 +63,15 @@ test('B1 CORRECT-GUARD: false-positive guards hold (2-column main+sidebar is NOT
   assert.equal(visualOrderDivergence(items, { sc: '1.3.2', kind: 'reading-order' }).findings.length, 0);
 });
 
-test('B1 KNOWN-GAP: an adjacent transposition (delta=1) in a 6-item column should be flagged', { todo: 'fix order-check.js:64,68 — strict `>` + floor-of-3 makes delta=1 invisible' }, () => {
+test('B1 GUARD (was KNOWN-GAP; fixed by A5): an adjacent transposition (delta=1) in a 6-item column is flagged', () => {
   const reading = [0, 1, 3, 2, 4, 5].map((vr) => colItem(vr, 'i' + vr)); // neighbors 2,3 transposed
-  // post-fix count is algorithm-dependent (a delta>=1 check flags ≥1; BAGEL FuncSet may differ) ⇒ assert ≥1.
-  assert.ok(visualOrderDivergence(reading, { sc: '1.3.2', kind: 'reading-order' }).findings.length >= 1);
+  // A5: a within-column delta≥1 backward step is flagged (the floor-of-3 + strict `>` hole is gone).
+  const r = visualOrderDivergence(reading, { sc: '1.3.2', kind: 'reading-order' });
+  assert.ok(r.findings.length >= 1);
+  assert.ok(r.findings.every((f) => f.review === true && f.calibrated === false), 'order findings are quarantined as uncalibrated triage');
 });
 
-test('B1 KNOWN-GAP: a fully-reversed 4-item column should be flagged (n≤4 dead zone)', { todo: 'fix order-check.js:64,68 — max delta n−1 ≤ JUMP=3 with strict `>` ⇒ 0/24 perms detected at n=4' }, () => {
+test('B1 GUARD (was KNOWN-GAP; fixed by A5): a fully-reversed 4-item column is flagged (n≤4 dead zone)', () => {
   const reversed = [3, 2, 1, 0].map((vr) => colItem(vr, 'i' + vr));
   assert.ok(visualOrderDivergence(reversed, { sc: '1.3.2', kind: 'reading-order' }).findings.length >= 1);
 });
@@ -128,14 +130,16 @@ test('B3 CORRECT-GUARD: a genuinely un-announced status IS flagged; a live-regio
   assert.equal(ok.findings.length, 0);
 });
 
-test('B3 KNOWN-GAP: a lazy-inserted disclosure body (primary content) must NOT be flagged', gap('fix status-detector.js:91-105 — add an aria-expanded/aria-controls (and role=tabpanel) disclosure exclusion'), async () => {
+test('B3 GUARD (was KNOWN-GAP; fixed by A4): a lazy-inserted disclosure body (primary content) is NOT flagged', guard, async () => {
   const r = await withPage('b3-status-disclosure-fp.html', (p) => detectStatusMessages(p, {}));
-  assert.equal(r.findings.length, 0); // WCAG-correct: a disclosure body is primary content, not a status
+  // A4: a control that expands its own aria-controls target (aria-expanded→true) renders primary content,
+  // not a status — the disclosure/tab exclusion drops it.
+  assert.equal(r.findings.length, 0);
 });
 
-test('B3 KNOWN-GAP: a real barrier on the 15th button must be found at the default cap', gap('fix status-detector.js:24,57 — maxTriggers=12 default + slice(0,maxTriggers) truncates coverage'), async () => {
+test('B3 GUARD (was KNOWN-GAP; fixed by A4): a real barrier on the 15th button is found at the default cap', guard, async () => {
   const def = await withPage('b3-status-cap-fn.html', (p) => detectStatusMessages(p, {}));
-  assert.equal(def.findings.length, 1); // today 0 — the 12-cap never probes button[15]
+  assert.equal(def.findings.length, 1); // A4: default cap raised to 25 (was 12) ⇒ button[15] is probed
 });
 
 test('B3 CORRECT-GUARD: lifting the cap proves the 15th button IS the cause', guard, async () => {
@@ -143,9 +147,10 @@ test('B3 CORRECT-GUARD: lifting the cap proves the 15th button IS the cause', gu
   assert.equal(lifted.findings.length, 1, 'with maxTriggers=20 the barrier on button[15] is found');
 });
 
-test('B3 KNOWN-GAP: un-announced statuses behind non-button triggers should be found', gap('fix status-detector.js:55 — pass-1 selector is button,[role=button],input[type=button] only'), async () => {
+test('B3 GUARD (was KNOWN-GAP; fixed by A4): un-announced statuses behind non-button triggers are found', guard, async () => {
   const r = await withPage('b3-status-nonbutton-fn.html', (p) => detectStatusMessages(p, {}));
-  // post-fix count depends on the widened selector + isSafe rules ⇒ assert ≥1 (today 0: never probed).
+  // A4: the pass-1 selector now includes checkbox/radio/switch/tab/menuitem/link, so the link/checkbox/tab
+  // triggers are probed (was 0: never probed).
   assert.ok(r.findings.length >= 1);
 });
 

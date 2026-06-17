@@ -19,9 +19,13 @@ const XPATH_FN = `function getXPath(e){
   return getXPath(e.parentElement)+'/'+t+'['+idx+']';
 }`;
 
-// Detect 4.1.3 status-message gaps. opts: { maxTriggers=12, settleMs=300, minTextLen=3 }.
+// Detect 4.1.3 status-message gaps. opts: { maxTriggers=25, settleMs=300, minTextLen=3 }.
+// COVERAGE (Harness 3.3 A4 / Decision C): this instrument is INSERTION-ONLY — it observes content that is
+// newly ADDED to the DOM, so a status revealed by toggling `hidden`/`display`/`aria-hidden` on a
+// PRE-RENDERED node (addedCount=0) is invisible to it (audit B3). That class is NOT covered here; the
+// returned `coverageMode:'insertion-only'` makes the limitation explicit rather than silently complete.
 async function detectStatusMessages(page, opts = {}) {
-  const maxTriggers = Number.isFinite(opts.maxTriggers) ? opts.maxTriggers : 12;
+  const maxTriggers = Number.isFinite(opts.maxTriggers) ? opts.maxTriggers : 25; // A4: ≥12 (the old cap truncated coverage)
   const settleMs = Number.isFinite(opts.settleMs) ? opts.settleMs : 300;
   const minTextLen = Number.isFinite(opts.minTextLen) ? opts.minTextLen : 3;
 
@@ -29,8 +33,10 @@ async function detectStatusMessages(page, opts = {}) {
   // loop is one isolated evaluate per trigger (navigation-resilient). A trigger is excluded when it is
   // not in the a11y tree (display:none / visibility:hidden / opacity:0 / inside aria-hidden) — a control
   // no AT user can reach cannot present a 4.1.3 barrier (adversarial B-HIGH-1/2) — or when it would
-  // navigate (submit/reset/href/scripted location change), which would end the page.
-  const xpaths = await page.evaluate((maxTriggers, XPATH_SRC) => {
+  // navigate (submit/reset/href/scripted location change), which would end the page. A4: the selector is
+  // widened beyond buttons to other activatable controls (checkbox/radio/switch/tab/menuitem/link), and
+  // the total count is returned so truncation past the cap is reported, not silently dropped.
+  const enumed = await page.evaluate((maxTriggers, XPATH_SRC) => {
     eval(XPATH_SRC); // eslint-disable-line no-eval — defines getXPath in this scope
     const NAV_RE = /location\s*[.=]|\.href|window\.open|\.submit\s*\(|history\.(push|replace|go|back|forward)/i;
     const isPerceivable = (el) => {
@@ -52,11 +58,11 @@ async function detectStatusMessages(page, opts = {}) {
       if (el.closest && el.closest('a[href]')) return false; // nested inside a link
       return true;
     };
-    return [...document.querySelectorAll('button,[role="button"],input[type="button"]')]
-      .filter((el) => isPerceivable(el) && isSafe(el))
-      .slice(0, maxTriggers)
-      .map((el) => getXPath(el));
-  }, maxTriggers, XPATH_FN).catch(() => []);
+    const SEL = 'button,[role="button"],input[type="button"],input[type="checkbox"],input[type="radio"],[role="checkbox"],[role="radio"],[role="switch"],[role="tab"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"],[role="link"]';
+    const all = [...document.querySelectorAll(SEL)].filter((el) => isPerceivable(el) && isSafe(el));
+    return { xpaths: all.slice(0, maxTriggers).map((el) => getXPath(el)), total: all.length };
+  }, maxTriggers, XPATH_FN).catch(() => ({ xpaths: [], total: 0 }));
+  const xpaths = enumed.xpaths;
 
   // PASS 2 (one isolated evaluate per trigger): drive it, observe the change, judge soundly.
   const findings = [];
@@ -88,10 +94,23 @@ async function detectStatusMessages(page, opts = {}) {
         await new Promise((r) => setTimeout(r, settleMs));
         obs.disconnect();
 
-        const msgs = added.filter((a) => a.text.length >= minTextLen
+        let msgs = added.filter((a) => a.text.length >= minTextLen
           && a.node !== trig && !(trig.contains && trig.contains(a.node))
           && !beforeText.includes(a.text.toLowerCase())); // genuinely NEW text, not pre-existing/relocated
-        if (!msgs.length) return { finding: null }; // nothing new appeared → not a status message (sound)
+        // DISCLOSURE / TAB exclusion (A4 / audit B3): a control that EXPANDS its own aria-controls target
+        // (aria-expanded toggled true) or reveals its tabpanel is rendering PRIMARY content, not a 4.1.3
+        // status message — exclude content inside that controlled region (lazy-rendered disclosure bodies).
+        const role = (trig.getAttribute('role') || '').toLowerCase();
+        const expandedNow = trig.getAttribute('aria-expanded') === 'true';
+        const controlsEls = (trig.getAttribute('aria-controls') || '').split(/\s+/).filter(Boolean).map((id) => document.getElementById(id)).filter(Boolean);
+        const isDisclosureReveal = (node) => {
+          const e = toEl(node); if (!e) return false;
+          if ((expandedNow || role === 'tab') && controlsEls.some((c) => c === e || c.contains(e))) return true;
+          if (role === 'tab' && e.closest && e.closest('[role="tabpanel"]')) return true;
+          return false;
+        };
+        msgs = msgs.filter((a) => !isDisclosureReveal(a.node));
+        if (!msgs.length) return { finding: null }; // nothing new appeared (or only disclosure/tab content) → not a status (sound)
         if (msgs.some((a) => inLiveRegion(a.node))) return { finding: null }; // announced via a live region
         const focusEl = document.activeElement;
         const focusMovedToMsg = focusEl && focusEl !== focusBefore && msgs.some((a) => { const e = toEl(a.node); return e && (e === focusEl || e.contains(focusEl) || (focusEl.contains && focusEl.contains(e))); });
@@ -107,7 +126,10 @@ async function detectStatusMessages(page, opts = {}) {
     } catch (e) { break; } // the page navigated / context was destroyed — keep the findings gathered so far
     if (res && res.finding) findings.push(res.finding);
   }
-  return { findings };
+  // A4: report coverage honestly — how many triggers were probed, whether the cap truncated the sweep, and
+  // that this instrument only sees INSERTED status (not hidden/display toggles on pre-rendered nodes).
+  const coverageTruncated = enumed.total > xpaths.length;
+  return { findings, coverageMode: 'insertion-only', triggersProbed: xpaths.length, triggersTotal: enumed.total, coverageTruncated, unprobedTriggers: Math.max(0, enumed.total - xpaths.length) };
 }
 
 module.exports = { detectStatusMessages };
