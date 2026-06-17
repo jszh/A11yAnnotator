@@ -13,6 +13,19 @@ const { buildV3 } = require('./build-v3.js');
 const manifest = require('./manifest.js');
 const agentPlanner = require('./agent-planner.js');
 
+// PHASE 2 tool session: a live browser at the page URL + a fresh-clone factory, threaded to the in-process
+// CDP tool server so the judge can drive the page mid-reasoning. One page per RUN serves every subject (the
+// tools take xpath/coordinate args); mutating tools clone. Lazy puppeteer require (only when tools are on).
+async function openToolSession(url, executablePath) {
+  const puppeteer = require('puppeteer');
+  const CHROME = executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {});
+  const freshClone = async () => { const p = await browser.newPage(); await p.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {}); return p; };
+  return { browser, page, freshClone };
+}
+
 // collect, drive: baseline artifacts. opts.resolveUrl(request)->url; opts.now is a caller-supplied
 // timestamp (the runner stamps freshness). Returns every stage artifact + the gated result.
 async function orchestrate(collect, drive, opts = {}) {
@@ -122,21 +135,48 @@ async function orchestrate(collect, drive, opts = {}) {
       const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
       visionByXpath = await vc.captureVisionForUrl(url, xps, { executablePath: opts.executablePath, statePlan }).catch(() => ({}));
     }
-    const pOpts = {
-      runAgent: opts.runAgent, budget: opts.llmBudget, model: opts.llmModel, llmRubrics, llmConcurrency: opts.llmConcurrency,
-      transcriptByXpath: opts.transcriptByXpath, visionByXpath: visionByXpath || {},
-      file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest,
-    };
-    const adj = await llmAdj.runAdjudication(agentSubjects, pOpts).catch(() => null);                 // → bundle.llm
-    const rub = await llmAdj.runRubricJudgments(rubricSubjects, pOpts).catch(() => null);             // → bundle.judgments
-    let changed = false;
-    if (adj && adj.llm && adj.llm.verdicts.length) { bundle.llm = adj.llm; bundle.llmRationale = adj.llmRationale; changed = true; }
-    if (rub && rub.judgments && rub.judgments.judgments.length) { bundle.judgments = rub.judgments; changed = true; }
-    // merge the crops both producers captured (dedup by id) into one llmVision side artifact.
-    const seen = new Set(); const images = [];
-    for (const im of [...((adj && adj.llmVision && adj.llmVision.images) || []), ...((rub && rub.llmVision && rub.llmVision.images) || [])]) if (!seen.has(im.id)) { seen.add(im.id); images.push(im); }
-    if (images.length) { bundle.llmVision = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, images }; changed = true; }
-    if (changed) built = buildV3(bundle, buildOpts);
+    // PHASE 2 (opt-in V3_LLM_TOOLS): give the judge a LIVE in-process CDP tool session so it can activate
+    // controls / resolve nodes mid-reasoning. The tools take xpath/coordinate args ⇒ ONE server over the
+    // page serves every subject; mutating tools clone. Verdicts stay canary-capped shadow regardless. The
+    // live session is opened here and ALWAYS closed in the finally. Tool-path concurrency is bounded (≤4) to
+    // cap concurrent live pages. Falls back to the single-shot runAgent if the session/server can't open.
+    let llmRunAgent = opts.runAgent, toolSession = null, toolConcurrency = opts.llmConcurrency;
+    try {
+      if (opts.llmTools && opts.llmTransportConfig && opts.resolveUrl) {
+        const adapter = require('./llm-agent-adapter.js');
+        const cdpTools = require('./cdp-tools.js');
+        const turl = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
+        toolSession = await openToolSession(turl, opts.executablePath).catch(() => null);
+        const server = toolSession ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
+        if (server) {
+          toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, 4);
+          llmRunAgent = adapter.makeRunAgent({
+            transport: adapter.makeClaudeSdkTransport({
+              ...opts.llmTransportConfig, mcpServers: { cdp: server }, allowedTools: ['mcp__cdp__*'],
+              maxTurns: opts.llmToolMaxTurns || 3, runTimeoutMs: opts.llmToolRunTimeoutMs || 300000,
+            }),
+            model: opts.llmTransportConfig.model,
+          });
+        }
+      }
+      const pOpts = {
+        runAgent: llmRunAgent, budget: opts.llmBudget, model: opts.llmModel, llmRubrics, llmConcurrency: toolConcurrency,
+        transcriptByXpath: opts.transcriptByXpath, visionByXpath: visionByXpath || {},
+        file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest,
+      };
+      const adj = await llmAdj.runAdjudication(agentSubjects, pOpts).catch(() => null);                 // → bundle.llm
+      const rub = await llmAdj.runRubricJudgments(rubricSubjects, pOpts).catch(() => null);             // → bundle.judgments
+      let changed = false;
+      if (adj && adj.llm && adj.llm.verdicts.length) { bundle.llm = adj.llm; bundle.llmRationale = adj.llmRationale; changed = true; }
+      if (rub && rub.judgments && rub.judgments.judgments.length) { bundle.judgments = rub.judgments; changed = true; }
+      // merge the crops both producers captured (dedup by id) into one llmVision side artifact.
+      const seen = new Set(); const images = [];
+      for (const im of [...((adj && adj.llmVision && adj.llmVision.images) || []), ...((rub && rub.llmVision && rub.llmVision.images) || [])]) if (!seen.has(im.id)) { seen.add(im.id); images.push(im); }
+      if (images.length) { bundle.llmVision = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, images }; changed = true; }
+      if (changed) built = buildV3(bundle, buildOpts);
+    } finally {
+      if (toolSession && toolSession.browser) { try { await toolSession.browser.close(); } catch (e) {} }
+    }
   }
   return { candidates, plan, experiments, claimProposals, bundle, built, planErrors };
 }

@@ -34,14 +34,15 @@ const { makeRunAgent, makeClaudeSdkTransport } = require('../../scripts/v3/lib/l
 const REPO_ROOT = path.join(__dirname, '..', '..');
 require('../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
 const LLM_ON = process.env.V3_LLM === '1';
-const LLM_AGENT = LLM_ON ? makeRunAgent({
-  transport: makeClaudeSdkTransport({
-    oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
-    perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || 60000),
-    runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || 120000),
-  }),
+// PHASE 2: V3_LLM_TOOLS=1 (on top of V3_LLM=1) enables the live in-process CDP tool repertoire (multi-turn).
+const LLM_TRANSPORT_CONFIG = LLM_ON ? {
+  oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
   model: process.env.V3_LLM_MODEL || 'claude-sonnet-4-6',
-}) : null;
+  perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || 60000),
+  runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || 120000),
+} : undefined;
+const LLM_AGENT = LLM_ON ? makeRunAgent({ transport: makeClaudeSdkTransport(LLM_TRANSPORT_CONFIG), model: LLM_TRANSPORT_CONFIG.model }) : null;
+const LLM_TOOLS = LLM_ON && process.env.V3_LLM_TOOLS === '1';
 
 const CHROME = process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -486,6 +487,7 @@ async function main() {
         runAgent: LLM_ON ? LLM_AGENT : undefined,
         captureVision: LLM_ON,
         llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || 10),
+        llmTools: LLM_TOOLS, llmTransportConfig: LLM_TRANSPORT_CONFIG, // PHASE 2 live CDP tools
       });
       if (!built.ok) {
         rec.error = `v3 build refused: ${built.errors.slice(0, 8).join('; ')}`;

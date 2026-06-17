@@ -34,14 +34,17 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
   // requires a canary-promoted mechanism; default ungated. Model defaults to sonnet-4.6 (V3_LLM_MODEL).
   require('../lib/load-env.js').loadEnv(ROOT); // populate CLAUDE_CODE_OAUTH_TOKEN from .env if present
   const runLlm = process.env.V3_LLM === '1';
-  const runAgent = runLlm ? adapter.makeRunAgent({
-    transport: adapter.makeClaudeSdkTransport({
-      oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
-      perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || 60000),
-      runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || 120000),
-    }),
+  // PHASE 2: V3_LLM_TOOLS=1 (on top of V3_LLM=1) gives the judge the live in-process CDP tool repertoire
+  // (multi-turn). The orchestrator builds the tool-enabled runAgent from llmTransportConfig (it owns the
+  // live page session); the single-shot runAgent below is the no-tools fallback.
+  const llmTransportConfig = runLlm ? {
+    oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
     model: process.env.V3_LLM_MODEL || 'claude-sonnet-4-6',
-  }) : null;
+    perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || 60000),
+    runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || 120000),
+  } : undefined;
+  const runAgent = runLlm ? adapter.makeRunAgent({ transport: adapter.makeClaudeSdkTransport(llmTransportConfig), model: llmTransportConfig.model }) : null;
+  const llmTools = runLlm && process.env.V3_LLM_TOOLS === '1';
   const gold = runLlm ? loadGold().gold : undefined;
   // INSTRUMENT lane (Harness 3.3, B): opt-in shadow VSR/keyboard findings. Independent of the LLM lane —
   // no API key, no cost — so it can run on its own (V3_INSTRUMENTS=1) for the annotation-input corpus.
@@ -57,6 +60,7 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
     artifactVerifier: attest.makeDiskArtifactVerifier(ROOT),
     runLlm, runAgent, captureVision: runLlm, gold, runInstruments, runChecker,
     llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || 10), // bounded judge concurrency (429-backoff is the real governor)
+    llmTools, llmTransportConfig, // PHASE 2: live CDP tool session (opt-in V3_LLM_TOOLS)
     provisionalMode: process.env.V3_PROVISIONAL === 'gated' ? 'gated' : 'ungated',
   });
   const w = (name, obj) => fs.writeFileSync(path.join(outDir, name), JSON.stringify(obj, null, 2));
