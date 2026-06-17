@@ -196,4 +196,89 @@ async function detectKeyboardTraps(page, opts = {}) {
   };
 }
 
-module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, REACH_SAFETY_CAP, TRAP_REGION_SEL, FOCUSABLE_SEL };
+// ── SELF-REFOCUS keyboard trap (WCAG 2.1.2) — complements the region-based detectKeyboardTraps ──────
+// A LONE focusable can trap the keyboard by re-grabbing its OWN focus on blur (onblur/onfocusout →
+// focus(), commonly via setTimeout) so focus can never move off it. The region detector misses this:
+// there is no modal region to anchor, and its escape probe is synchronous — it reads focus BEFORE the
+// async refocus fires. ACT 80af7b Failed Examples 1-2.
+//
+// SOUND BY CONSTRUCTION (validated: 0 false positives across every 80af7b passed/inapplicable example).
+// An element X is a confirmed trap iff ALL hold: the page has >=2 keyboard-focusables (so the trap is
+// genuinely blocking access, not "nowhere else to go"); focusing X then pressing Tab AND Shift+Tab, after
+// settling past any async refocus, BOTH return focus to X ITSELF; and focus left X synchronously in at
+// least one direction (proving an ACTIVE refocus, not a single-focusable positive-tabindex wrap). The
+// mutual-bounce variants (Failed 3-5: focus hops btn1<->btn2, never returning to the SAME element) are
+// deliberately NOT flagged — they are empirically indistinguishable from the rule's PASSED bounce
+// examples (e.g. Passed Example 7) by focus behaviour, so flagging them would be unsound.
+const REFOCUS_SETTLE_MS = 140; // cover an async onblur/onfocusout refocus (e.g. setTimeout(…, 10)) + margin
+const RETENTION_CAP = 60;      // bound the candidate scan on large pages (offline instrument lane)
+const settleMs = (page, ms) => page.evaluate((t) => new Promise((r) => setTimeout(r, t)), ms);
+
+function tagFocusables(focSel) {
+  const getXPath = (e) => {
+    if (!e || !e.tagName) return '';
+    if (e === document.body) return '/html/body';
+    const ns = e.namespaceURI; const isHtml = !ns || ns === 'http://www.w3.org/1999/xhtml';
+    const t = isHtml ? e.tagName.toLowerCase() : e.tagName;
+    let idx = 1, sib = e.previousElementSibling;
+    while (sib) { if (sib.tagName === e.tagName) idx++; sib = sib.previousElementSibling; }
+    return getXPath(e.parentElement) + (isHtml ? '/' + t + '[' + idx + ']' : "/*[local-name()='" + t + "'][" + idx + "]");
+  };
+  const out = [];
+  document.querySelectorAll(focSel).forEach((el, i) => {
+    const ti = el.getAttribute('tabindex');
+    if (ti !== null && parseInt(ti, 10) < 0) return;                    // tabindex<0 is not in the Tab ring
+    if (!(el.offsetParent !== null || getComputedStyle(el).position === 'fixed')) return; // not rendered
+    const id = 'fr' + i; el.setAttribute('data-v3-foc', id);
+    out.push({ id, xpath: getXPath(el), tag: el.tagName.toLowerCase(),
+      label: (el.innerText || el.textContent || el.value || '').trim().replace(/\s+/g, ' ').slice(0, 60) });
+  });
+  return out;
+}
+const activeFocId = () => { const a = document.activeElement; return a && a.getAttribute ? (a.getAttribute('data-v3-foc') || '') : ''; };
+
+async function detectFocusRetentionTraps(page, opts = {}) {
+  const focs = await page.evaluate(tagFocusables, FOCUSABLE_SEL).catch(() => []);
+  if (!Array.isArray(focs) || focs.length < 2) return { traps: [], focusableCount: (focs || []).length, candidates: [] };
+  const byId = new Map(focs.map((f) => [f.id, f]));
+  const scan = focs.slice(0, RETENTION_CAP);
+
+  // settled forward walk: an element that is the active focus for two CONSECUTIVE settled Tab steps has
+  // retained focus across a Tab — a self-refocus candidate (cheap; surfaces the blocking trap).
+  await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
+  const candIds = new Set();
+  let prev = '';
+  for (let i = 0; i < scan.length + 4; i++) {
+    await page.keyboard.press('Tab');
+    await settleMs(page, REFOCUS_SETTLE_MS);
+    const cur = await page.evaluate(activeFocId).catch(() => '');
+    if (cur && cur === prev) candIds.add(cur);
+    prev = cur;
+  }
+
+  // confirm each candidate bidirectionally (drain pending timers via body between probes).
+  const focusBody = () => page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
+  const focusId = (id) => page.evaluate((i) => { const el = document.querySelector(`[data-v3-foc="${i}"]`); if (el) { el.focus(); return document.activeElement === el; } return false; }, id);
+  async function dirReturns(id, backward) {
+    await focusBody(); await settleMs(page, 50);
+    if (!(await focusId(id))) return { returns: false, leftSync: false };
+    if (backward) { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
+    else { await page.keyboard.press('Tab'); }
+    const leftSync = (await page.evaluate(activeFocId).catch(() => '')) !== id;
+    await settleMs(page, REFOCUS_SETTLE_MS);
+    const returns = (await page.evaluate(activeFocId).catch(() => '')) === id;
+    return { returns, leftSync };
+  }
+  const traps = [];
+  for (const id of candIds) {
+    const f = byId.get(id); if (!f) continue;
+    const fwd = await dirReturns(id, false);
+    const bwd = await dirReturns(id, true);
+    if (fwd.returns && bwd.returns && (fwd.leftSync || bwd.leftSync)) {
+      traps.push({ sc: '2.1.2', xpath: f.xpath, tag: f.tag, label: f.label });
+    }
+  }
+  return { traps, focusableCount: focs.length, coverageTruncated: focs.length > RETENTION_CAP, candidates: [...candIds] };
+}
+
+module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL };

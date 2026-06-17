@@ -210,7 +210,17 @@ function measureContrast(marker) {
   // meaningful text. Sound + narrow: exempt ONLY when the element's OWN text has NO Unicode letter or
   // number in ANY script — so a price/number/CJK/any worded run is still checked (no false clear).
   let ownText = ''; for (const n of el.childNodes) if (n.nodeType === 3) ownText += n.textContent;
-  const expressesLanguage = /[\p{L}\p{N}]/u.test(ownText);
+  const trimmedOwn = ownText.trim();
+  // ALSO non-language (ACT afw4f7 Passed Example 7): a SINGLE-letter visible glyph used as an ICON on a
+  // widget whose accessible name is carried SEPARATELY (aria-label/aria-labelledby) and does NOT contain
+  // the glyph — e.g. <button aria-label="Close">X</button>. The lone "X" is a decorative close icon, not
+  // human-language text, so it carries no contrast requirement. Guarded TIGHT against a false clear: it
+  // fires ONLY for a length-1 letter whose meaning is supplied by a separate name — a real word, an A–Z
+  // index link whose name IS its own letter, or a lone letter with no aria name all stay checked.
+  let accName = (el.getAttribute('aria-label') || '').trim();
+  if (!accName) { const lb = (el.getAttribute('aria-labelledby') || '').trim(); if (lb) { for (const id of lb.split(/\s+/)) { const r = document.getElementById(id); if (r) accName += ' ' + (r.textContent || ''); } accName = accName.trim(); } }
+  const singleCharIcon = [...trimmedOwn].length === 1 && /\p{L}/u.test(trimmedOwn) && accName.length > 0 && !accName.includes(trimmedOwn);
+  const expressesLanguage = /[\p{L}\p{N}]/u.test(ownText) && !singleCharIcon;
   return {
     isTextNode: ownsText, textRendersVisible: visible && ownsText,
     foregroundResolved, backgroundResolved, backdropIsSolidUniform, contrastComputable,
@@ -529,7 +539,15 @@ function probeFormError(marker) {
     const now = visibleText(n);
     if (!now) continue;
     const pre = (PRE in n) ? n[PRE] : '';                 // not in the pre-universe (newly created/styled) ⇒ pristine '' ⇒ surfaced
-    if (pre === now) continue;                            // unchanged surface (e.g. the persistent cart status) is not an error event
+    if (pre === now) {                                    // unchanged surface
+      // A pre-existing, STATIC message the field ITSELF references (aria-describedby/aria-errormessage)
+      // and that is error-associated by markup (role/class/data/id) is already-identified — e.g. a number
+      // field pre-populated with an invalid value whose referenced <span id="error"> describes it (ACT
+      // 36b590 Passed Example 1). Credit it. An UNREFERENCED unchanged surface (a persistent cart status)
+      // still falls through and is ignored, so a real barrier is not masked.
+      if (n.id && refSet.has(n.id) && errorStyled(n) && !(OK_TEXT.test(now) && !ERR_TEXT.test(now))) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
+      continue;                                           // unchanged + unreferenced surface is not an error event
+    }
     if (OK_TEXT.test(now) && !ERR_TEXT.test(now)) continue;  // a pure success/confirmation surface is not error identification
     if (referencesField(n) || isLiveRegion(n) || errorStyled(n) || (form && form.contains(n))) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
   }

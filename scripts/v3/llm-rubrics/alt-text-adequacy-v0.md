@@ -13,9 +13,16 @@ is to JUDGE whether the text alternative conveys the same *purpose and content* 
 deterministic runner already disposed this obligation, DEFER — you are only handed auto-PARTIAL ones.
 
 **Judge:** does the announced text alternative serve the image's PURPOSE for a non-sighted user — not
-"is alt present" (that is mechanical) but "does it say what a sighted user gets"? Three failure modes:
+"is alt present" (that is mechanical) but "does it say what a sighted user gets"? Four failure modes:
 - **Missing / placeholder:** an informative image with empty/placeholder/filename alt ("image",
   "img_1234.png") IS a barrier. A genuinely DECORATIVE image correctly has an empty name (NOT a barrier).
+- **Decoratively MARKED but meaningful (hidden from AT):** an image that conveys meaning or identity — a
+  logo/wordmark, an informative diagram, a content photo — that has been REMOVED from the accessibility
+  tree by an empty `alt=""`, `role="presentation"`/`role="none"`, or `aria-hidden="true"` IS a barrier:
+  the author asserted "decorative" but the pixels carry content a non-sighted user is now denied (ACT
+  e88epe — e.g. a `<img alt="">` or `aria-hidden` W3C logo). Judge the PIXELS: if a meaningful image was
+  marked decorative, REPRODUCED. (A truly decorative flourish correctly marked decorative is NOT a barrier
+  — the call hinges on whether the rendered image actually conveys something.)
 - **Incorrect / MISMATCHED (compare the name to the PIXELS):** a non-empty, plausible-sounding alt that
   names the WRONG thing IS a barrier — the alternative is *incorrect*, not just missing. Look at the
   `element-crop` and decide whether the accessible name actually describes what the image DEPICTS. If the

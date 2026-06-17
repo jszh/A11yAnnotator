@@ -160,6 +160,38 @@ test('B5 GUARD: text in a DISABLED context is 1.4.3-inapplicable (notExemptText:
 });
 
 // =====================================================================================
+// B6 — ACT afw4f7 Passed Example 7 (1.4.3 false barrier, worklist v2 §B). A lone visible letter on a
+// widget whose accessible name is supplied SEPARATELY (aria-label) is a decorative icon glyph, not
+// human-language text ⇒ notExemptText:false. FIX: exp-runners.js measureContrast `singleCharIcon`.
+// =====================================================================================
+test('B6 GUARD (was worklist-v2 §B false barrier; fixed): a single-letter icon (aria-label override) is 1.4.3-inapplicable', guard, async () => {
+  const r = await withPage('b6-contrast-icon-glyph.html', (p) => run(p, 'text-contrast-pixel', "//*[@id='close']"));
+  assert.equal(r.outcome.thresholdFailed, true, 'the X really is below 4.5:1 (3.66:1) — the gate is exemption, not the ratio');
+  assert.equal(r.outcome.notExemptText, false, 'a lone "X" whose name is "Close" (aria-label) is a decorative icon ⇒ no BARRIER');
+});
+test('B6 CORRECT-GUARD: single low-contrast letters that ARE content still barrier (no over-exemption)', guard, async () => {
+  // an A–Z index link whose name derives from its own content "A"
+  const idx = await withPage('b6-contrast-icon-glyph.html', (p) => run(p, 'text-contrast-pixel', "//*[@id='index']"));
+  assert.equal(idx.outcome.notExemptText, true, 'a single letter that IS the content (no overriding name) is NOT exempt');
+  // the glyph and the aria-label are the SAME character ⇒ the name does not override the glyph
+  const same = await withPage('b6-contrast-icon-glyph.html', (p) => run(p, 'text-contrast-pixel', "//*[@id='named-same']"));
+  assert.equal(same.outcome.notExemptText, true, 'aria-label equal to the glyph is content, not an icon — NOT exempt');
+  // a multi-character worded button is still readable language
+  const word = await withPage('b6-contrast-icon-glyph.html', (p) => run(p, 'text-contrast-pixel', "//*[@id='word']"));
+  assert.equal(word.outcome.notExemptText, true, 'only a length-1 glyph is exempt; a worded button stays checked');
+});
+test('B6 GUARD (was worklist-v2 §B false barrier; fixed): a pre-existing field-referenced static error IS identified (3.3.1)', guard, async () => {
+  // ACT 36b590 Passed Example 1 — number field pre-set to an invalid 0 with a referenced, error-styled message.
+  const r = await withPage('b6-error-static-referenced.html', (p) => run(p, 'form-error-probe', "//*[@id='age']"));
+  assert.equal(r.valid, true, 'the constrained number field is applicable');
+  assert.equal(r.outcome.errorNotIdentified, false, 'a referenced, error-styled, already-visible message identifies the error ⇒ no BARRIER');
+});
+test('B6 CORRECT-GUARD: a referenced PLAIN HINT (not error-styled) is NOT mistaken for error identification', guard, async () => {
+  const r = await withPage('b6-error-static-referenced.html', (p) => run(p, 'form-error-probe', "//*[@id='email2']"));
+  assert.equal(r.outcome.errorNotIdentified, true, 'an unchanged, non-error-styled aria-describedby hint must not clear a real barrier');
+});
+
+// =====================================================================================
 // B3 — 4.1.3 status-message rule (browser). (audit §B3)
 // FIX: scripts/v3/lib/status-detector.js — :55 selector (button-only) widen to other activatable controls;
 //      :24/:57 maxTriggers=12 cap raise/record; :91-105 add a disclosure/tab exclusion (skip when the

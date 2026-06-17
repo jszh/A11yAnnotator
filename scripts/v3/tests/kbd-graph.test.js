@@ -6,7 +6,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { collectTabOrder, tabOrderFindings, detectKeyboardTraps } = require('../lib/kbd-graph.js');
+const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps } = require('../lib/kbd-graph.js');
 
 // ---- pure unit ----
 test('tab-order: a focusable element tabbed last but positioned visually first is flagged (2.4.3)', () => {
@@ -70,4 +70,24 @@ test('kbd-graph e2e: a JS focus-trap dialog is confirmed (2.1.2); a well-behaved
   // the well-behaved dialog must be a candidate but NOT confirmed (Tab flows out).
   const ok = res.candidates.find((c) => c.regionXpath === '/html/body/div[2]');
   assert.ok(ok && ok.confirmed === false && ok.forwardTrapped === false, 'the well-behaved dialog is cleared');
+});
+
+// ---- self-refocus trap (2.1.2) — the LONE-focusable trap the region detector cannot see (ACT 80af7b) ----
+async function retentionTraps(fixture) {
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try { const page = await browser.newPage(); await page.goto(fx(fixture), { waitUntil: 'load' }); return await detectFocusRetentionTraps(page); }
+  finally { await browser.close(); }
+}
+
+test('self-refocus trap: a lone button that re-grabs its own focus on blur IS confirmed (2.1.2)', { skip: !chromeOK, concurrency: false }, async () => {
+  const res = await retentionTraps('fx-v3-self-refocus-trap.html');
+  assert.equal(res.traps.length, 1, 'exactly one self-refocus trap');
+  assert.equal(res.traps[0].xpath, '/html/body/button[1]', 'the onblur-refocus button is the trap');
+  assert.equal(res.traps[0].sc, '2.1.2');
+});
+
+test('self-refocus trap CORRECT-GUARD: a normal page + sibling-progression bounce (Passed Ex7) is NOT flagged', { skip: !chromeOK, concurrency: false }, async () => {
+  const res = await retentionTraps('fx-v3-self-refocus-ok.html');
+  assert.equal(res.traps.length, 0, 'no false positive: nothing refocuses ITSELF (sibling progression goes to a DIFFERENT element)');
+  assert.ok(res.focusableCount >= 5, 'the guard page has multiple focusables (the trap requires >=2, so this exercises the real path)');
 });
