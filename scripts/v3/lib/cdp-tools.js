@@ -463,6 +463,51 @@ async function resolveDestination(page, args) {
 }
 
 // ============================================================================================
+// compare_named_regions — READ-ONLY: the only surviving limb of the proposed "eyedropper". For an image/chart
+// whose sub-regions only the MODEL can name, return per-region dominant colour + a DERIVED perceptual deltaE
+// + perceptiblyDistinct between the named regions (1.1.1 F13 — a colour-encoded distinction the alt omits).
+// The model names regions as fractional rects; the harness resolves + measures. NOT a raw-pixel stream and
+// NOT a text-contrast source — returns the derived measure only, never a verdict.
+function rgbToLab(r, g, b) {
+  const f = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const R = f(r), G = f(g), B = f(b);
+  let X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047, Y = R * 0.2126 + G * 0.7152 + B * 0.0722, Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+  const k = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  const fx = k(X), fy = k(Y), fz = k(Z);
+  return { L: 116 * fy - 16, a: 500 * (fx - fy), bb: 200 * (fy - fz) };
+}
+const deltaE76 = (c1, c2) => { const a = rgbToLab(c1.r, c1.g, c1.b), b = rgbToLab(c2.r, c2.g, c2.b); return Math.hypot(a.L - b.L, a.a - b.a, a.bb - b.bb); };
+
+async function compareNamedRegions(page, args) {
+  const { targetXpath, regions } = args || {};
+  if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required' };
+  if (!Array.isArray(regions) || regions.length < 2) return { error: 'at least 2 named regions required (each {name,x,y,w,h} as fractions 0-1 of the element)' };
+  const box = await page.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { x: Math.max(0, r.x), y: Math.max(0, r.y), w: r.width, h: r.height }; }, targetXpath).catch(() => null);
+  if (!box || !(box.w > 0 && box.h > 0)) return { error: 'target not found or zero-size' };
+  const clip = { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.w), height: Math.round(box.h) };
+  const shot = await page.screenshot({ encoding: 'base64', clip }).catch(() => null);
+  if (!shot) return { error: 'capture failed' };
+  const colors = await page.evaluate(async (b64, regs) => {
+    try {
+      const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+      return regs.map((reg) => {
+        const rx = Math.max(0, Math.floor((reg.x || 0) * img.width)), ry = Math.max(0, Math.floor((reg.y || 0) * img.height));
+        const rw = Math.min(img.width - rx, Math.max(1, Math.floor((reg.w || 0.2) * img.width))), rh = Math.min(img.height - ry, Math.max(1, Math.floor((reg.h || 0.2) * img.height)));
+        if (rw <= 0 || rh <= 0) return { name: reg.name, error: 'region out of bounds' };
+        const d = ctx.getImageData(rx, ry, rw, rh).data; let R = 0, G = 0, B = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4) { R += d[i]; G += d[i + 1]; B += d[i + 2]; n++; }
+        return { name: reg.name, r: Math.round(R / n), g: Math.round(G / n), b: Math.round(B / n) };
+      });
+    } catch (e) { return null; }
+  }, shot, regions).catch(() => null);
+  if (!colors) return { error: 'pixel sampling failed' };
+  const pairs = [];
+  for (let i = 0; i < colors.length; i++) for (let j = i + 1; j < colors.length; j++) { if (colors[i].error || colors[j].error) continue; const dE = deltaE76(colors[i], colors[j]); pairs.push({ a: colors[i].name, b: colors[j].name, deltaE: +dE.toFixed(1), perceptiblyDistinct: dE > 11 }); }
+  return { regionColors: colors, pairs, note: 'per-region dominant colour + perceptual deltaE (CIE76) between named regions (F13). Derived measure only — never raw pixels, never a 1.4.3/1.4.11 contrast ratio, never a verdict.' };
+}
+
+// ============================================================================================
 // SDK binding — wrap the raw tool functions as an in-process MCP server over the live page `session`.
 // `session` = { page, freshClone:()=>Promise<page> }. Lazy-imports the SDK (ESM) + zod. Each tool returns
 // the JSON-stringified OBJECTIVE result as MCP text content — never a verdict.
@@ -494,8 +539,10 @@ async function buildCdpToolServer(session) {
       { x: z.number(), y: z.number() }, (a) => wrap(resolvePartColor, a)),
     tool('resolve_destination', 'Read-only: follow a SAME-ORIGIN link (by xpath) in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph) — for 2.4.4 (do two same-named links go to different destinations). NEVER returns same/equivalent/different — that is your judgment. Cross-origin/non-http links are refused.',
       { linkXpath: z.string() }, (a) => wrap(resolveDestination, a)),
+    tool('compare_named_regions', 'Read-only: for an image/chart, given >=2 named regions (each {name,x,y,w,h} as fractions 0-1 of the element), return each region dominant colour + the perceptual deltaE + perceptiblyDistinct between them (1.1.1 F13 — a colour-encoded distinction the alt omits). Derived measure only — never raw pixels, never a contrast ratio, never a verdict.',
+      { targetXpath: z.string(), regions: z.array(z.object({ name: z.string(), x: z.number(), y: z.number(), w: z.number(), h: z.number() })) }, (a) => wrap(compareNamedRegions, a)),
   ];
   return createSdkMcpServer({ name: 'cdp', version: '1.0.0', tools });
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, buildCdpToolServer, resolveXpath };
+module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, buildCdpToolServer, resolveXpath };

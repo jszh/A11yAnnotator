@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { CHROME } = require('../lib/run-experiments.js');
-const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination } = require('../lib/cdp-tools.js');
+const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions } = require('../lib/cdp-tools.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — cdp-tools e2e SKIPPED');
@@ -26,6 +26,7 @@ const XP = {
   graytext: '/html[1]/body[1]/span[2]',
   destlink: '/html[1]/body[1]/a[1]',
   extlink: '/html[1]/body[1]/a[2]',
+  chart: '/html[1]/body[1]/div[2]',
 };
 
 // ONE shared browser for the whole file (not one per test) — fewer parallel Chrome instances under the full
@@ -190,5 +191,20 @@ test('resolve_destination: same-origin link returns a raw fingerprint; cross-ori
     assert.ok(!('equivalent' in r) && !('same' in r) && !('verdict' in r), 'raw fingerprint only — the "same purpose?" call stays with the model');
     const ext = await resolveDestination(page, { linkXpath: XP.extlink });
     assert.equal(ext.refused, 'cross-origin', 'an external (cross-origin) link is refused, not fetched (SSRF guard)');
+  });
+});
+
+test('compare_named_regions: a red vs blue chart half is measured perceptibly distinct (1.1.1 F13); derived only', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const r = await compareNamedRegions(page, { targetXpath: XP.chart, regions: [
+      { name: 'left', x: 0, y: 0, w: 0.4, h: 1 },
+      { name: 'right', x: 0.6, y: 0, w: 0.4, h: 1 },
+    ] });
+    assert.ok(!r.error, `ran: ${r.error || 'ok'}`);
+    const left = r.regionColors.find((c) => c.name === 'left'), right = r.regionColors.find((c) => c.name === 'right');
+    assert.ok(left.r > left.b && right.b > right.r, 'left sampled red-dominant, right blue-dominant');
+    const pair = r.pairs[0];
+    assert.ok(pair.deltaE > 11 && pair.perceptiblyDistinct === true, 'the two halves are perceptibly distinct');
+    assert.ok(!r.pairs.some((p) => 'contrastRatio' in p || 'verdict' in p), 'derived deltaE only — no contrast ratio, no verdict');
   });
 });
