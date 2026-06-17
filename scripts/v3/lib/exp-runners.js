@@ -173,15 +173,37 @@ function measureContrast(marker) {
 
   const foregroundResolved = !!fg && !mixedRuns; // a mixed-colour element has no single foreground
   const backgroundResolved = !!bg;
+  // GLYPH EFFECT (audit §B5; ACT afw4f7 false barrier): a text-shadow paints a halo around the glyphs that
+  // can PROVIDE the contrast (e.g. a white shadow on dark text over a mid-grey backdrop renders readable
+  // at < 4.5:1 flat). The flat fg/bg model cannot account for it, so the runner must ABSTAIN rather than
+  // barrier on the stripped-shadow ratio — it is not soundly computable. (filter/blend are already gated.)
+  const hasGlyphEffect = typeof cs.textShadow === 'string' && cs.textShadow !== 'none' && cs.textShadow.trim() !== '';
   const backdropIsSolidUniform = backgroundResolved && uniformSamples && layersContainText && !foreignPainter && !pseudoPainter && !hasImage && !hasFilterBlend && opacityChain === 1;
-  const contrastComputable = foregroundResolved && backgroundResolved && backdropIsSolidUniform && !mixedRuns;
+  const contrastComputable = foregroundResolved && backgroundResolved && backdropIsSolidUniform && !mixedRuns && !hasGlyphEffect;
   let ratio = null, effFgColor = null;
   if (foregroundResolved && backgroundResolved) {
     const effFg = over(fg, bg);
     effFgColor = { r: Math.round(effFg.r), g: Math.round(effFg.g), b: Math.round(effFg.b) }; // the FG the ratio used
     if (contrastComputable) { const l1 = lum(effFg), l2 = lum(bg); ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); }
   }
-  const disabled = el.disabled === true || el.getAttribute('aria-disabled') === 'true';
+  // 1.4.3 INAPPLICABILITY (ACT afw4f7 false barriers): contrast does not apply to text in a disabled
+  // control, text inside a disabled CONTEXT (a `fieldset[disabled]` or `[aria-disabled=true]` ancestor),
+  // or text that LABELS a disabled widget. The old check looked only at the element itself, so it
+  // false-barriered the grey label of a disabled control. (A disabled control is removed from the
+  // accessibility tree's interactive state — its text is incidental.)
+  const labelsDisabledWidget = () => {
+    try {
+      if (el.id && document.querySelector(`[aria-labelledby~="${CSS.escape(el.id)}"][aria-disabled="true"], [aria-labelledby~="${CSS.escape(el.id)}"]:disabled`)) return true;
+    } catch (e) {}
+    if (el.tagName === 'LABEL') {
+      const f = el.getAttribute('for');
+      const c = f ? document.getElementById(f) : el.querySelector('input,select,textarea,[role="textbox"],[role="combobox"],[role="spinbutton"],[role="listbox"]');
+      if (c && (c.disabled === true || c.getAttribute('aria-disabled') === 'true')) return true;
+    }
+    return false;
+  };
+  const disabled = el.disabled === true || el.getAttribute('aria-disabled') === 'true'
+    || el.closest('[disabled],[aria-disabled="true"]') != null || labelsDisabledWidget();
   const ariaHidden = el.closest('[aria-hidden="true"]') != null;
   return {
     isTextNode: ownsText, textRendersVisible: visible && ownsText,

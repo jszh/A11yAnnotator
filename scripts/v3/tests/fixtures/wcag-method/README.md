@@ -24,6 +24,8 @@ the tests assert instrument-level behavior, not published verdicts.
 |---|---|---|---|---|
 | `b2-contrast-false-clear.html` | §B2 | `text-contrast-pixel` | KNOWN-GAP | `exp-runners.js` `runTextContrastPixel` ~`:271` — use the rendered backdrop mean, not `a.bgColor`, when `pixelAgrees` gap>0 |
 | `b2-contrast-gap17-rejects.html` | §B2 | `text-contrast-pixel` | CORRECT-GUARD | — |
+| `b5-contrast-textshadow-false-barrier.html` | §B5 | `text-contrast-pixel` | KNOWN-GAP | `exp-runners.js` `measureContrast` ~`:160` — abstain when `text-shadow`/`-webkit-text-stroke` present (axe returns `review`) |
+| `b5-contrast-noshadow-control.html` | §B5 | `text-contrast-pixel` | CORRECT-GUARD | — |
 | `b3-status-true-barrier.html` | §B3 | `detectStatusMessages` | CORRECT-GUARD | — |
 | `b3-status-live-region-ok.html` | §B3 | `detectStatusMessages` | CORRECT-GUARD | — |
 | `b3-status-disclosure-fp.html` | §B3 | `detectStatusMessages` | KNOWN-GAP | `status-detector.js:91-105` — add an `aria-expanded`/`aria-controls` (+`role=tabpanel`) disclosure exclusion |

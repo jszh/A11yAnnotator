@@ -116,6 +116,38 @@ test('B2 CORRECT-GUARD: a 17/channel disagreement (just past the tolerance) is R
 });
 
 // =====================================================================================
+// B5 — 1.4.3 false barriers from ACT afw4f7 (audit §B5; docs/analysis/V3-ACT-WORKLIST.md).
+// FIX (exp-runners.js measureContrast): (1) a text-shadow / -webkit-text-stroke GLYPH EFFECT is part of the
+//   rendered glyph and can PROVIDE contrast (a white shadow halo lifts a 4.43:1 case to an ACT PASS); the
+//   flat fg/bg model cannot account for it ⇒ contrastComputable:false (abstain → the vision rubric, which
+//   no static tool decides). (2) text in a DISABLED context (a disabled control, a [disabled]/[aria-disabled]
+//   ancestor, or a label NAMING a disabled widget) is 1.4.3-INAPPLICABLE ⇒ notExemptText:false. A BARRIER
+//   requires BOTH contrastComputable AND notExemptText (catalog.js:49), so these abstain rather than flag.
+// =====================================================================================
+test('B5 GUARD (was KNOWN-GAP; fixed): a contrast-lifting text-shadow must NOT be hard-failed (abstain → vision lane)', guard, async () => {
+  const r = await withPage('b5-contrast-textshadow-false-barrier.html', (p) => run(p, 'text-contrast-pixel', "//*[@id='t']"));
+  assert.equal(r.outcome.contrastComputable, false); // glyph effect ⇒ not soundly computable
+  assert.equal(r.outcome.thresholdFailed, false);    // no false BARRIER; hands off to the vision rubric
+});
+
+test('B5 CORRECT-GUARD: the same fg/bg with NO glyph effect (genuine 4.43:1) IS still a barrier', guard, async () => {
+  const r = await withPage('b5-contrast-noshadow-control.html', (p) => run(p, 'text-contrast-pixel', "//*[@id='t']"));
+  assert.equal(r.outcome.thresholdFailed, true); // guards against an over-broad fix that abstains on all near-threshold text
+});
+
+test('B5 GUARD: text in a DISABLED context is 1.4.3-inapplicable (notExemptText:false); enabled low-contrast still barriers', guard, async () => {
+  // disabled fieldset ancestor, aria-disabled group ancestor, and a label NAMING a disabled widget — all exempt.
+  for (const id of ['lbl_fieldset', 'lbl_aria', 'lbl_target']) {
+    const r = await withPage('b5-contrast-disabled-context.html', (p) => run(p, 'text-contrast-pixel', `//*[@id='${id}']`));
+    assert.equal(r.outcome.notExemptText, false, `${id}: disabled-context text is exempt ⇒ no BARRIER (notExemptText gates it)`);
+  }
+  // GUARD (no over-exemption): the same #888-on-white run with NO disabled context IS a real barrier.
+  const enabled = await withPage('b5-contrast-disabled-context.html', (p) => run(p, 'text-contrast-pixel', "//*[@id='lbl_enabled']"));
+  assert.equal(enabled.outcome.notExemptText, true, 'enabled text is NOT exempt');
+  assert.equal(enabled.outcome.thresholdFailed, true, 'enabled 3.55:1 text still fails the threshold (no over-exemption)');
+});
+
+// =====================================================================================
 // B3 — 4.1.3 status-message rule (browser). (audit §B3)
 // FIX: scripts/v3/lib/status-detector.js — :55 selector (button-only) widen to other activatable controls;
 //      :24/:57 maxTriggers=12 cap raise/record; :91-105 add a disclosure/tab exclusion (skip when the
