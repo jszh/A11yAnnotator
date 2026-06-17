@@ -4,7 +4,7 @@
 // observe_state_after_activation runs on a fresh clone.
 'use strict';
 
-const { test } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -24,14 +24,18 @@ const XP = {
   chk: '/html[1]/body[1]/input[2]',
 };
 
+// ONE shared browser for the whole file (not one per test) — fewer parallel Chrome instances under the full
+// suite, which keeps the timing-sensitive e2e tests across files from starving each other of CPU.
+let sharedBrowser = null;
+before(async () => { if (chromeOK) sharedBrowser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] }); });
+after(async () => { if (sharedBrowser) { try { await sharedBrowser.close(); } catch (e) {} } });
 async function withPage(fn) {
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const page = await sharedBrowser.newPage();
   try {
-    const page = await browser.newPage();
     await page.goto(FX, { waitUntil: 'load' });
-    const freshClone = async () => { const p = await browser.newPage(); await p.goto(FX, { waitUntil: 'load' }); return p; };
+    const freshClone = async () => { const p = await sharedBrowser.newPage(); await p.goto(FX, { waitUntil: 'load' }); return p; };
     return await fn(page, freshClone);
-  } finally { await browser.close(); }
+  } finally { try { await page.close(); } catch (e) {} }
 }
 
 test('query_ax_node: a real <h2> resolves to role heading w/ level; a styled <p> does NOT (1.3.1 F2)', { skip: !chromeOK, concurrency: false }, async () => {
