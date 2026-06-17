@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { CHROME } = require('../lib/run-experiments.js');
-const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction } = require('../lib/cdp-tools.js');
+const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio } = require('../lib/cdp-tools.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — cdp-tools e2e SKIPPED');
@@ -19,9 +19,11 @@ const XP = {
   realh: '/html[1]/body[1]/h2[1]',
   fakeh: '/html[1]/body[1]/p[1]',
   lbl: '/html[1]/body[1]/input[1]',
+  lblsrc: '/html[1]/body[1]/span[1]',
   reveal: '/html[1]/body[1]/button[1]',
   focusbtn: '/html[1]/body[1]/button[2]',
   chk: '/html[1]/body[1]/input[2]',
+  graytext: '/html[1]/body[1]/span[2]',
 };
 
 // ONE shared browser for the whole file (not one per test) — fewer parallel Chrome instances under the full
@@ -120,5 +122,46 @@ test('probe_screen_reader_after_action: activating the Apply button voices the l
     assert.equal(r.emptyQueue, false, 'the screen reader voiced something after the action');
     assert.ok(r.announcements.some((a) => /Coupon applied/.test(a)), 'the live-region text was announced');
     assert.ok(!('verdict' in r) && !('announced' in r), 'raw announcement queue only — no adequacy verdict');
+  });
+});
+
+test('measure_geometry_live: read-only box + overflow + two-element overlap; no verdict (1.4.13/1.4.10)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const r = await measureGeometryLive(page, { targetXpath: XP.realh, otherXpath: XP.fakeh });
+    assert.ok(r.box && Number.isFinite(r.box.w) && r.box.w > 0, 'a measured box is returned');
+    assert.equal(typeof r.overflowsHorizontally, 'boolean');
+    assert.ok(r.overlap && Number.isFinite(r.overlap.overlapAreaPx), 'two-element overlap is measured (raw px)');
+    assert.ok(!('verdict' in r) && !('pass' in r) && !('obscured' in r), 'raw geometry only, never a verdict');
+  });
+});
+
+test('request_hi_res_crop: re-rasters at N device-scale; device px = css px x scale; full element (1.1.1/1.4.5)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page, freshClone) => {
+    const r = await requestHiResCrop(page, { targetXpath: XP.focusbtn, scale: 3 }, { freshClone });
+    assert.ok(!r.error, `crop ran: ${r.error || 'ok'}`);
+    assert.equal(r.scaleUsed, 3);
+    assert.ok(typeof r.screenshot === 'string' && r.screenshot.length > 100, 'a PNG crop is returned');
+    assert.equal(r.devicePixelSize.w, r.cssPixelSize.w * 3, 'higher device-scale, same layout (not zoom)');
+  });
+});
+
+test('render_with_overrides: forced-colors + grayscale each return a transformed crop; clone-isolated; no verdict (1.4.1)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page, freshClone) => {
+    const fc = await renderWithOverrides(page, { transform: 'forced-colors', targetXpath: XP.focusbtn }, { freshClone });
+    assert.ok(!fc.error && typeof fc.screenshot === 'string' && fc.screenshot.length > 100, 'forced-colors render returned');
+    const gs = await renderWithOverrides(page, { transform: 'grayscale', targetXpath: XP.focusbtn }, { freshClone });
+    assert.ok(!gs.error && typeof gs.screenshot === 'string', 'grayscale render returned');
+    assert.ok(!('verdict' in fc) && !('contrastRatio' in fc), 'pixels only — no numeric ratio from a transformed image');
+  });
+});
+
+test('compute_contrast_ratio: WCAG ratio for two flat used-colours (G183); refuses a missing node (1.4.1)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const r = await computeContrastRatio(page, { nodeAXpath: XP.graytext, nodeBXpath: XP.realh, threshold: 3 });
+    assert.equal(r.source, 'cssom');
+    assert.ok(Number.isFinite(r.contrastRatio) && r.contrastRatio > 1, 'a real ratio between #767676 and black');
+    assert.equal(typeof r.passes, 'boolean');
+    const miss = await computeContrastRatio(page, { nodeAXpath: '/html[1]/body[1]/nope[9]', nodeBXpath: XP.realh });
+    assert.ok(miss.error, 'a missing node yields an error, not a fabricated ratio');
   });
 });

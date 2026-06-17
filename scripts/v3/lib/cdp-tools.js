@@ -277,6 +277,113 @@ async function probeScreenReaderAfterAction(page, args, ctx) {
 }
 
 // ============================================================================================
+// measure_geometry_live — READ-ONLY (shared base page; no viewport/render change ⇒ concurrency-safe): box +
+// horizontal-overflow + overflow culprit for one element, and the overlap/gap between TWO named elements
+// (1.4.13 occlusion; 1.4.10 sub-element overflow). Raw measured numbers; marks an ambiguous case rather than
+// inventing a value; never pass/fail. (For a popup that only exists on hover/focus, drive the state with
+// set_state_and_capture first; for a non-collected viewport width, that's a clone op — out of this tool.)
+async function measureGeometryLive(page, args) {
+  const { targetXpath, otherXpath } = args || {};
+  if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required' };
+  const r = await page.evaluate((xp, oxp) => {
+    const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+    if (!el) return { found: false };
+    const b = el.getBoundingClientRect();
+    const overflowsH = el.scrollWidth > el.clientWidth + 2;
+    let culprit = null;
+    if (overflowsH) { for (const d of el.querySelectorAll('*')) { const dr = d.getBoundingClientRect(); if (dr.right > b.left + el.clientWidth + 2) { culprit = { tag: d.tagName.toLowerCase(), role: d.getAttribute('role') || null }; break; } } }
+    let overlap = null;
+    if (oxp) {
+      const o = document.evaluate(oxp, document, null, 9, null).singleNodeValue;
+      if (o) { const ob = o.getBoundingClientRect(); const ix = Math.max(0, Math.min(b.right, ob.right) - Math.max(b.left, ob.left)); const iy = Math.max(0, Math.min(b.bottom, ob.bottom) - Math.max(b.top, ob.top)); const area = ix * iy; const gapX = ob.left > b.right ? ob.left - b.right : (b.left > ob.right ? b.left - ob.right : 0); const gapY = ob.top > b.bottom ? ob.top - b.bottom : (b.top > ob.bottom ? b.top - ob.bottom : 0); overlap = { overlapAreaPx: Math.round(area), overlapFraction: b.width * b.height ? +(area / (b.width * b.height)).toFixed(3) : 0, gapPx: Math.round(Math.hypot(gapX, gapY)), otherBox: { x: Math.round(ob.x), y: Math.round(ob.y), w: Math.round(ob.width), h: Math.round(ob.height) } }; }
+      else overlap = { error: 'otherXpath not found' };
+    }
+    const ambiguous = b.width < 6 || b.height < 6;
+    return { found: true, box: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, overflowsHorizontally: overflowsH, overflowPx: Math.max(0, el.scrollWidth - el.clientWidth), overflowCulprit: culprit, overlap, viewportWidthUsed: window.innerWidth, ambiguous, ambiguityReason: ambiguous ? 'degenerate box (<6px)' : undefined };
+  }, targetXpath, otherXpath || null).catch(() => null);
+  if (!r) return { error: 'measurement failed' };
+  if (!r.found) return { error: 'target not found' };
+  return r;
+}
+
+// ============================================================================================
+// request_hi_res_crop — re-raster ONE element at a higher DEVICE-scale (NOT page zoom — that reflows). Runs
+// on a FRESH clone so the shared page's deviceScaleFactor isn't changed under concurrency. Always covers the
+// full element bounds (the model can't crop away disconfirming detail). Returns the actual scale + CSS-pixel
+// and device-pixel sizes so the model knows whether higher scale yields NEW detail (vector/font/SVG) or is
+// merely upsampling an already-native raster (no new info). 1.1.1 (read a small wordmark) / 1.4.5 (chart text).
+async function requestHiResCrop(page, args, ctx) {
+  const { targetXpath, scale } = args || {};
+  if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required' };
+  const s = Math.max(1, Math.min(Number(scale) || 3, 4));
+  const live = ctx && typeof ctx.freshClone === 'function' ? await ctx.freshClone() : page;
+  const ownClone = !!(ctx && typeof ctx.freshClone === 'function');
+  try {
+    const vp = live.viewport() || { width: 1280, height: 900 };
+    await live.setViewport({ width: vp.width, height: vp.height, deviceScaleFactor: s }).catch(() => {});
+    const meta = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { box: { x: Math.max(0, r.x), y: Math.max(0, r.y), w: r.width, h: r.height }, cssW: Math.round(r.width), cssH: Math.round(r.height) }; }, targetXpath).catch(() => null);
+    if (!meta || !(meta.box.w > 0 && meta.box.h > 0)) return { error: 'target not found or zero-size' };
+    const clip = { x: Math.round(meta.box.x), y: Math.round(meta.box.y), width: Math.round(meta.box.w), height: Math.round(meta.box.h) };
+    const screenshot = await live.screenshot({ encoding: 'base64', clip }).catch(() => null);
+    if (!screenshot) return { error: 'capture failed' };
+    return { screenshot, scaleUsed: s, cssPixelSize: { w: meta.cssW, h: meta.cssH }, devicePixelSize: { w: Math.round(meta.cssW * s), h: Math.round(meta.cssH * s) }, note: 'higher device-scale re-raster of the SAME layout (not page zoom); if still illegible, return PARTIAL — do not invent text' };
+  } finally { if (ownClone) { try { await live.close(); } catch (e) {} } }
+}
+
+// ============================================================================================
+// render_with_overrides — MUTATING (fresh clone): re-render under ONE fixed transform from a closed enum
+// (grayscale / a named CVD / forced-colors / author-CSS-off) and return the transformed screenshot. The
+// model picks only WHICH transform; parameters are not tunable. For 1.4.1 (which colour cue is load-bearing,
+// after grayscale/CVD) and forced-colors survival. Returns PIXELS — never a numeric ratio from a transformed
+// image (the rubrics forbid that). Runs on a clone so the shared page's emulation isn't changed.
+async function renderWithOverrides(page, args, ctx) {
+  const { transform, targetXpath } = args || {};
+  const VISION = { grayscale: 'achromatopsia', protanopia: 'protanopia', deuteranopia: 'deuteranopia', tritanopia: 'tritanopia' };
+  const allowed = [...Object.keys(VISION), 'forced-colors', 'no-author-css'];
+  if (!allowed.includes(transform)) return { error: `transform must be one of: ${allowed.join(', ')}` };
+  const live = ctx && typeof ctx.freshClone === 'function' ? await ctx.freshClone() : page;
+  const ownClone = !!(ctx && typeof ctx.freshClone === 'function');
+  try {
+    const cdp = await live.createCDPSession();
+    if (VISION[transform]) await cdp.send('Emulation.setEmulatedVisionDeficiency', { type: VISION[transform] }).catch(() => {});
+    else if (transform === 'forced-colors') await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] }).catch(() => {});
+    else if (transform === 'no-author-css') await live.evaluate(() => { for (const s of [...document.querySelectorAll('style,link[rel=stylesheet]')]) { try { s.disabled = true; } catch (e) {} } }).catch(() => {});
+    await new Promise((r) => setTimeout(r, 160));
+    let clip;
+    if (typeof targetXpath === 'string' && targetXpath) {
+      const meta = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { x: Math.max(0, r.x), y: Math.max(0, r.y), w: r.width, h: r.height }; }, targetXpath).catch(() => null);
+      if (meta && meta.w > 0 && meta.h > 0) clip = { x: Math.round(meta.x), y: Math.round(meta.y), width: Math.round(meta.w), height: Math.round(meta.h) };
+    }
+    const screenshot = await live.screenshot({ encoding: 'base64', ...(clip ? { clip } : {}) }).catch(() => null);
+    if (!screenshot) return { error: 'capture failed', transform };
+    return { transform, screenshot, note: 'rendered under one fixed transform; judge from these pixels — do NOT assert a numeric ratio from a grayscale/CVD image' };
+  } finally { if (ownClone) { try { await live.close(); } catch (e) {} } }
+}
+
+// ============================================================================================
+// compute_contrast_ratio — READ-ONLY: the WCAG contrast ratio for TWO LLM-chosen FLAT used-colours (the G183
+// link-vs-surrounding-text pair for 1.4.1, or an indicator-vs-adjacent-fill pair). Uses CSSOM used-colour.
+// REFUSES (inconclusive) a translucent/unparseable colour — it does NOT sweep a photo/gradient (that is the
+// deterministic runner's abandoned case, routed to the perceptual rubric). `passes` is a mechanical threshold
+// compare, never an SC disposition.
+async function computeContrastRatio(page, args) {
+  const A = require('../../lib/a11y-eval.js');
+  const { nodeAXpath, nodeBXpath, threshold } = args || {};
+  if (typeof nodeAXpath !== 'string' || typeof nodeBXpath !== 'string') return { error: 'nodeAXpath and nodeBXpath required (the two flat colour sources to compare)' };
+  const cols = await page.evaluate((xa, xb) => {
+    const used = (xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; return el ? getComputedStyle(el).color : null; };
+    return { a: used(xa), b: used(xb) };
+  }, nodeAXpath, nodeBXpath).catch(() => null);
+  if (!cols || !cols.a || !cols.b) return { error: 'one or both nodes not found' };
+  const pa = A.parseRGB(cols.a), pb = A.parseRGB(cols.b);
+  if (!pa || !pb) return { inconclusive: 'unparseable-color', colorA: cols.a, colorB: cols.b };
+  if ((pa.a != null && pa.a < 1) || (pb.a != null && pb.a < 1)) return { inconclusive: 'alpha-unresolved', note: 'a translucent colour cannot be reduced to a sound ratio — defer to the perceptual rubric' };
+  const ratio = A.contrastRatio([pa.r, pa.g, pa.b], [pb.r, pb.g, pb.b]);
+  const th = Number.isFinite(threshold) ? threshold : 3;
+  return { colorA: cols.a, colorB: cols.b, source: 'cssom', contrastRatio: ratio, threshold: th, passes: ratio >= th, note: 'WCAG ratio of two FLAT used-colours (G183); `passes` is a mechanical compare, not an SC disposition.' };
+}
+
+// ============================================================================================
 // SDK binding — wrap the raw tool functions as an in-process MCP server over the live page `session`.
 // `session` = { page, freshClone:()=>Promise<page> }. Lazy-imports the SDK (ESM) + zod. Each tool returns
 // the JSON-stringified OBJECTIVE result as MCP text content — never a verdict.
@@ -296,8 +403,16 @@ async function buildCdpToolServer(session) {
       { targetXpath: z.string(), state: z.enum(['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown']) }, (a) => wrap(setStateAndCapture, a)),
     tool('probe_screen_reader_after_action', 'Mutating (FRESH clone): run a screen reader, clear its log, activate ONE control (by xpath), settle, and return the VERBATIM live-region announcement queue (4.1.3; and the announced-after-submit slice of 3.3.1/3.3.3). The only datum here is WHETHER and WHAT the SR voiced after the action — raw phrases, never an adequacy/announced verdict. Returns emptyQueue:true if nothing was voiced.',
       { triggerXpath: z.string() }, (a) => wrap(probeScreenReaderAfterAction, a)),
+    tool('measure_geometry_live', 'Read-only: measured geometry for an element — bounding box, horizontal overflow (scrollWidth vs clientWidth) + the overflow culprit, and (if otherXpath is given) the overlap area/fraction and gap between the two boxes (1.4.13 occlusion, 1.4.10 sub-element overflow). Raw numbers only; marks ambiguous (degenerate) boxes instead of inventing a value; never a pass/fail.',
+      { targetXpath: z.string(), otherXpath: z.string().optional() }, (a) => wrap(measureGeometryLive, a)),
+    tool('request_hi_res_crop', 'Mutating (FRESH clone): re-raster ONE element at a higher DEVICE scale (2-4x, NOT page zoom) and return the PNG + the actual scale + CSS-pixel and device-pixel sizes. Use when a small wordmark/chart label is unreadable in the 1x crop (1.1.1/1.4.5). Covers the whole element. If the result is still illegible, return PARTIAL — never invent text.',
+      { targetXpath: z.string(), scale: z.number().optional() }, (a) => wrap(requestHiResCrop, a)),
+    tool('render_with_overrides', 'Mutating (FRESH clone): re-render under ONE transform (grayscale|protanopia|deuteranopia|tritanopia|forced-colors|no-author-css) and return the screenshot (whole element if targetXpath given, else viewport). For 1.4.1 (which colour cue is load-bearing after grayscale/CVD) and forced-colors survival. Judge from pixels; never assert a numeric ratio from a transformed image.',
+      { transform: z.enum(['grayscale', 'protanopia', 'deuteranopia', 'tritanopia', 'forced-colors', 'no-author-css']), targetXpath: z.string().optional() }, (a) => wrap(renderWithOverrides, a)),
+    tool('compute_contrast_ratio', 'Read-only: the WCAG contrast ratio for TWO flat used-colours the model chooses (e.g. an in-text link colour vs the surrounding text colour — G183 for 1.4.1). Returns colorA/colorB/contrastRatio/threshold/passes from CSSOM. REFUSES (inconclusive) translucent/unparseable colours — it never sweeps a photo/gradient. `passes` is a mechanical compare, not a verdict.',
+      { nodeAXpath: z.string(), nodeBXpath: z.string(), threshold: z.number().optional() }, (a) => wrap(computeContrastRatio, a)),
   ];
   return createSdkMcpServer({ name: 'cdp', version: '1.0.0', tools });
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, buildCdpToolServer, resolveXpath };
+module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, buildCdpToolServer, resolveXpath };
