@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { CHROME } = require('../lib/run-experiments.js');
-const { queryAxNode, observeStateAfterActivation, setStateAndCapture } = require('../lib/cdp-tools.js');
+const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction } = require('../lib/cdp-tools.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — cdp-tools e2e SKIPPED');
@@ -110,5 +110,15 @@ test('set_state_and_capture: an unreachable state is reported stateReached:false
     const r = await setStateAndCapture(page, { targetXpath: XP.realh, state: 'checked' }, { freshClone });
     assert.equal(r.stateReached, false);
     assert.ok(/did not reproduce/.test(r.note || ''), 'the unreached state is called out so the model cannot infer a pass');
+  });
+});
+
+test('probe_screen_reader_after_action: activating the Apply button voices the live-region update (4.1.3)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page, freshClone) => {
+    const r = await probeScreenReaderAfterAction(page, { triggerXpath: XP.reveal }, { freshClone });
+    assert.ok(!r.error, `probe ran: ${r.error || 'ok'}`);
+    assert.equal(r.emptyQueue, false, 'the screen reader voiced something after the action');
+    assert.ok(r.announcements.some((a) => /Coupon applied/.test(a)), 'the live-region text was announced');
+    assert.ok(!('verdict' in r) && !('announced' in r), 'raw announcement queue only — no adequacy verdict');
   });
 });

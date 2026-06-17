@@ -61,6 +61,9 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
     runLlm, runAgent, captureVision: runLlm, gold, runInstruments, runChecker,
     llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || 10), // bounded judge concurrency (429-backoff is the real governor)
     llmTools, llmTransportConfig, // PHASE 2: live CDP tool session (opt-in V3_LLM_TOOLS)
+    llmToolConcurrency: +(process.env.V3_LLM_TOOL_CONCURRENCY || 4), // bounds concurrent live tool sessions/tabs
+    llmToolMaxTurns: +(process.env.V3_LLM_TOOL_MAX_TURNS || 3),
+    llmToolRunTimeoutMs: +(process.env.V3_LLM_TOOL_RUN_TIMEOUT_MS || 300000),
     provisionalMode: process.env.V3_PROVISIONAL === 'gated' ? 'gated' : 'ungated',
   });
   const w = (name, obj) => fs.writeFileSync(path.join(outDir, name), JSON.stringify(obj, null, 2));

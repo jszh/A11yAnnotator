@@ -271,7 +271,7 @@ function compactVsr(step) {
 // is checked before each pull: once true, workers take no NEW items (in-flight finish), mirroring the serial
 // budget early-break. A task that throws yields `null` for its slot (the caller drops it). concurrency 1 ⇒
 // byte-identical to the old serial loop (the production default is 1; run-evaluation passes V3_LLM_CONCURRENCY).
-async function runPool(items, concurrency, fn, shouldStop) {
+async function runPool(items, concurrency, fn, shouldStop, afterEach) {
   const arr = Array.isArray(items) ? items : [];
   const results = new Array(arr.length).fill(null);
   let cursor = 0, stop = false;
@@ -281,6 +281,9 @@ async function runPool(items, concurrency, fn, shouldStop) {
       const i = cursor++;
       if (i >= arr.length) return;
       try { results[i] = await fn(arr[i], i); } catch (e) { results[i] = null; }
+      // per-subject hook (e.g. reap any leaked tool tab AFTER this worker's subject is done). Must never
+      // throw into the pool. Runs once the subject's judge call (and all its tool turns) have completed.
+      if (afterEach) { try { await afterEach(i, arr[i]); } catch (e) {} }
     }
   };
   const c = Math.max(1, Math.min(Number(concurrency) || 1, arr.length || 1));
@@ -327,7 +330,7 @@ async function runAdjudication(subjects, opts = {}) {
     let out;
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }
     return { subj, frames, out, signals, transcriptExcerpt };
-  }, stop);
+  }, stop, opts.afterEach);
   // PHASE B (sequential, IN SUBJECT ORDER): assemble surviving verdicts — dense verdictId, no orphan crops.
   let n = 0;
   for (const c of computed) {
@@ -431,7 +434,7 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     let out;
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }
     return { subj, i, frames, out };
-  }, stop);
+  }, stop, opts.afterEach);
   for (const c of computed) {
     if (!c) continue; // abstained / budget-stopped / task error
     const { subj, i, frames, out } = c;

@@ -488,6 +488,9 @@ async function main() {
         captureVision: LLM_ON,
         llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || 10),
         llmTools: LLM_TOOLS, llmTransportConfig: LLM_TRANSPORT_CONFIG, // PHASE 2 live CDP tools
+        llmToolConcurrency: +(process.env.V3_LLM_TOOL_CONCURRENCY || 4),
+        llmToolMaxTurns: +(process.env.V3_LLM_TOOL_MAX_TURNS || 3),
+        llmToolRunTimeoutMs: +(process.env.V3_LLM_TOOL_RUN_TIMEOUT_MS || 300000),
       });
       if (!built.ok) {
         rec.error = `v3 build refused: ${built.errors.slice(0, 8).join('; ')}`;

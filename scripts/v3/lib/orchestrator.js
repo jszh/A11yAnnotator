@@ -22,8 +22,23 @@ async function openToolSession(url, executablePath) {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const page = await browser.newPage();
   await page.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {});
-  const freshClone = async () => { const p = await browser.newPage(); await p.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {}); return p; };
-  return { browser, page, freshClone };
+  // Track every clone tab so leaks can be swept. Mutating tools close their own clone in a `finally`
+  // (per-call cleanup, finer than per-subject); the close listener keeps this map = currently-open clones.
+  const clones = new Map(); // page -> bornMs
+  const freshClone = async () => {
+    const p = await browser.newPage();
+    clones.set(p, Date.now());
+    p.once('close', () => clones.delete(p));
+    await p.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {});
+    return p;
+  };
+  // CHECK #1 (after each worker): reap any STALE clone — open longer than any single tool call could run.
+  // Concurrency-SAFE: an in-use clone is always younger than the per-turn stall timeout, so a peer subject's
+  // active tab is never closed; only a genuinely-leaked tab (an aborted tool whose finally never ran) is.
+  const reapStale = async (maxAgeMs = 120000) => { let n = 0; const now = Date.now(); for (const [p, born] of [...clones]) { if (!p.isClosed() && now - born > maxAgeMs) { try { await p.close(); n++; } catch (e) {} } } return n; };
+  // CHECK #2 (after ALL workers, no subject still running): close every remaining clone tab.
+  const sweep = async () => { let n = 0; for (const p of [...clones.keys()]) { if (!p.isClosed()) { try { await p.close(); n++; } catch (e) {} } } return n; };
+  return { browser, page, freshClone, reapStale, sweep, openCloneCount: () => { let n = 0; for (const p of clones.keys()) if (!p.isClosed()) n++; return n; } };
 }
 
 // collect, drive: baseline artifacts. opts.resolveUrl(request)->url; opts.now is a caller-supplied
@@ -149,7 +164,7 @@ async function orchestrate(collect, drive, opts = {}) {
         toolSession = await openToolSession(turl, opts.executablePath).catch(() => null);
         const server = toolSession ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
         if (server) {
-          toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, 4);
+          toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, Number(opts.llmToolConcurrency) || 4); // V3_LLM_TOOL_CONCURRENCY (default 4) bounds concurrent live tool sessions/tabs
           llmRunAgent = adapter.makeRunAgent({
             transport: adapter.makeClaudeSdkTransport({
               ...opts.llmTransportConfig, mcpServers: { cdp: server }, allowedTools: ['mcp__cdp__*'],
@@ -163,6 +178,8 @@ async function orchestrate(collect, drive, opts = {}) {
         runAgent: llmRunAgent, budget: opts.llmBudget, model: opts.llmModel, llmRubrics, llmConcurrency: toolConcurrency,
         transcriptByXpath: opts.transcriptByXpath, visionByXpath: visionByXpath || {},
         file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest,
+        // CHECK #1 (after each worker/subject): reap any stale leaked clone tab (concurrency-safe).
+        afterEach: toolSession ? () => toolSession.reapStale() : undefined,
       };
       const adj = await llmAdj.runAdjudication(agentSubjects, pOpts).catch(() => null);                 // → bundle.llm
       const rub = await llmAdj.runRubricJudgments(rubricSubjects, pOpts).catch(() => null);             // → bundle.judgments
@@ -174,7 +191,11 @@ async function orchestrate(collect, drive, opts = {}) {
       for (const im of [...((adj && adj.llmVision && adj.llmVision.images) || []), ...((rub && rub.llmVision && rub.llmVision.images) || [])]) if (!seen.has(im.id)) { seen.add(im.id); images.push(im); }
       if (images.length) { bundle.llmVision = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, images }; changed = true; }
       if (changed) built = buildV3(bundle, buildOpts);
+      // CHECK #2 (after ALL workers, no subject still running): sweep any clone tab left open (e.g. a tool
+      // aborted mid-call whose finally didn't fire). Normally 0 — the per-call finally already closed them.
+      if (toolSession) { const leaked = await toolSession.sweep(); if (leaked) console.error(`[v3-tools] swept ${leaked} leaked clone tab(s) after the run`); }
     } finally {
+      // ultimate catch-all: closing the browser drops the base page + any tab that survived both checks.
       if (toolSession && toolSession.browser) { try { await toolSession.browser.close(); } catch (e) {} }
     }
   }

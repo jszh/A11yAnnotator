@@ -276,6 +276,17 @@ test('runAdjudication: bounded concurrency is ORDER-DETERMINISTIC (parallel == s
   assert.deepEqual(serial.llm.verdicts.map((v) => v.targetXpath), ['node:b0', 'node:b1', 'node:b3', 'node:b4', 'node:b6', 'node:b7']);
 });
 
+test('runAdjudication: afterEach fires once per subject after its judge completes (the per-worker tab-reap hook)', async () => {
+  const subjects = Array.from({ length: 4 }, (_, k) => ({ xpath: `node:${k}`, skill: 'keyboard-operability', sc: '2.1.1', claimFamily: 'keyboard-operable', element: { xpath: `node:${k}`, focusable: false } }));
+  const stub = async () => ({ verdict: 'REPRODUCED', confidence: 'high', summary: 's.', reasoning: 'r.', evidenceRefs: [] });
+  const seen = [];
+  await llmAdj.runAdjudication(subjects, { runAgent: stub, llmConcurrency: 2, afterEach: (i) => { seen.push(i); }, ...ID });
+  assert.equal(seen.length, 4, 'afterEach runs exactly once per subject');
+  assert.deepEqual([...seen].sort((a, b) => a - b), [0, 1, 2, 3], 'every subject index is reaped exactly once');
+  // a throwing afterEach must never break the producer
+  await assert.doesNotReject(llmAdj.runAdjudication(subjects, { runAgent: stub, afterEach: () => { throw new Error('reap boom'); }, ...ID }));
+});
+
 // ============================ adversarial regressions (skeptic round) ============================
 test('adversarial HIGH: a BOXED String legacy token (claimFamily) can NEVER leak into published results', () => {
   const b = withPipeline(baseBundle());

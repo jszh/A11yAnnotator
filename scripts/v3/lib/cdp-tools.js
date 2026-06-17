@@ -240,6 +240,43 @@ async function setStateAndCapture(page, args, ctx) {
 }
 
 // ============================================================================================
+// probe_screen_reader_after_action — MUTATING (fresh clone): the only genuinely during-inspection SR datum.
+// On a fresh clone, inject the Guidepup VSR, clear its spoken-phrase log, trigger ONE control, settle the
+// politeness queue, and return the VERBATIM live-region announcement queue (4.1.3 — and the announced-after-
+// submit slice of 3.3.1/3.3.3). The harness owns the AT + settle window (the model only names the trigger),
+// removing the "tune the window until it announces" channel. CAVEAT (memory: vsr-is-harness-instrument): the
+// VSR draws from the SAME Chromium AX tree as CDP, so an announcement is NOT an independent source — its only
+// uniquely-new datum is the POST-ACTION VOICING. Raw observation only, never an "announced/adequate" verdict.
+async function probeScreenReaderAfterAction(page, args, ctx) {
+  const { triggerXpath } = args || {};
+  if (typeof triggerXpath !== 'string' || !triggerXpath) return { error: 'triggerXpath required' };
+  const live = ctx && typeof ctx.freshClone === 'function' ? await ctx.freshClone() : page;
+  const ownClone = !!(ctx && typeof ctx.freshClone === 'function');
+  try {
+    const vsr = require('./vsr-collect.js');
+    const ok = await vsr.ensureVsr(live);
+    if (!ok) return { error: 'vsr-injection-failed', announcements: [], emptyQueue: true };
+    const res = await live.evaluate(async (xp) => {
+      const v = window.__vsr;
+      const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+      if (!el) return { found: false };
+      try { await v.start({ container: document.body }); } catch (e) { return { found: true, started: false }; }
+      try { await v.clearSpokenPhraseLog(); } catch (e) {}
+      el.click(); // trigger the action; the VSR's live-region observer voices any change
+      await new Promise((r) => setTimeout(r, 1400)); // settle the politeness queue
+      let log = [];
+      try { log = await v.spokenPhraseLog(); } catch (e) {}
+      try { await v.stop(); } catch (e) {}
+      return { found: true, started: true, log: Array.isArray(log) ? log.map(String) : [] };
+    }, triggerXpath);
+    if (!res || !res.found) return { error: 'trigger not found', announcements: [], emptyQueue: true };
+    if (!res.started) return { error: 'vsr-start-failed', announcements: [], emptyQueue: true };
+    const announcements = (res.log || []).filter(Boolean);
+    return { announcements, announcementCount: announcements.length, emptyQueue: announcements.length === 0 };
+  } finally { if (ownClone) { try { await live.close(); } catch (e) {} } }
+}
+
+// ============================================================================================
 // SDK binding — wrap the raw tool functions as an in-process MCP server over the live page `session`.
 // `session` = { page, freshClone:()=>Promise<page> }. Lazy-imports the SDK (ESM) + zod. Each tool returns
 // the JSON-stringified OBJECTIVE result as MCP text content — never a verdict.
@@ -257,8 +294,10 @@ async function buildCdpToolServer(session) {
       { targetXpath: z.string() }, (a) => wrap(observeStateAfterActivation, a)),
     tool('set_state_and_capture', 'Mutating (FRESH clone): drive ONE element into an interaction state (focus|hover|checked|open|expanded|placeholder-shown) and return before/after screenshots of the same region + the computed-style DELTA (which outline/border/decoration/background props changed) + stateReached/textVisible. Use for state-specific indicators (1.4.11/1.4.1/1.4.3). Returns PIXELS + objective style deltas, never a contrast number or a verdict; if stateReached is false, do not infer a pass.',
       { targetXpath: z.string(), state: z.enum(['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown']) }, (a) => wrap(setStateAndCapture, a)),
+    tool('probe_screen_reader_after_action', 'Mutating (FRESH clone): run a screen reader, clear its log, activate ONE control (by xpath), settle, and return the VERBATIM live-region announcement queue (4.1.3; and the announced-after-submit slice of 3.3.1/3.3.3). The only datum here is WHETHER and WHAT the SR voiced after the action — raw phrases, never an adequacy/announced verdict. Returns emptyQueue:true if nothing was voiced.',
+      { triggerXpath: z.string() }, (a) => wrap(probeScreenReaderAfterAction, a)),
   ];
   return createSdkMcpServer({ name: 'cdp', version: '1.0.0', tools });
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, buildCdpToolServer, resolveXpath };
+module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, buildCdpToolServer, resolveXpath };
