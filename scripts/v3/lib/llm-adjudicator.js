@@ -265,10 +265,34 @@ function compactVsr(step) {
   return { phrase: step.phrase, name: step.name, role: step.role, states: step.states, axName: step.axName, rawName: step.rawName };
 }
 
+// Bounded, ORDER-PRESERVING worker pool. Runs `fn(item, i)` over `items` with at most `concurrency` tasks in
+// flight; `results[i]` aligns to `items[i]` regardless of completion order, so a downstream sequential pass
+// produces the SAME verdicts/ids as the prior serial loop — only wall-clock changes. `shouldStop()` (optional)
+// is checked before each pull: once true, workers take no NEW items (in-flight finish), mirroring the serial
+// budget early-break. A task that throws yields `null` for its slot (the caller drops it). concurrency 1 ⇒
+// byte-identical to the old serial loop (the production default is 1; run-evaluation passes V3_LLM_CONCURRENCY).
+async function runPool(items, concurrency, fn, shouldStop) {
+  const arr = Array.isArray(items) ? items : [];
+  const results = new Array(arr.length).fill(null);
+  let cursor = 0, stop = false;
+  const worker = async () => {
+    while (!stop) {
+      if (shouldStop && shouldStop()) { stop = true; return; }
+      const i = cursor++;
+      if (i >= arr.length) return;
+      try { results[i] = await fn(arr[i], i); } catch (e) { results[i] = null; }
+    }
+  };
+  const c = Math.max(1, Math.min(Number(concurrency) || 1, arr.length || 1));
+  await Promise.all(Array.from({ length: c }, () => worker()));
+  return results;
+}
+
 // Run the offline adjudication. `runAgent(prompt, subject) -> { verdict, confidence, basis, evidenceRefs }`
 // is INJECTABLE (default REFUSES, so a misconfigured run cannot silently hit an API). `budget` is the
 // run-budget; `transcriptByXpath` maps xpath -> the realism-corrected VSR step. Returns the two frozen
-// artifacts: `llm` (structured verdicts) + `llmRationale` (free text, bound by id).
+// artifacts: `llm` (structured verdicts) + `llmRationale` (free text, bound by id). Subjects are judged with
+// bounded concurrency (`opts.llmConcurrency`, default 1) then assembled IN ORDER.
 async function runAdjudication(subjects, opts = {}) {
   const runAgent = opts.runAgent || (() => { throw new Error('llm-adjudicator: no runAgent configured (refusing to call an API by default)'); });
   const budget = opts.budget || null;
@@ -282,12 +306,13 @@ async function runAdjudication(subjects, opts = {}) {
   const verdicts = [];
   const rationales = [];
   const visionImages = []; // → the side llmVision artifact (crops, never in results)
-  let n = 0, idx = -1;
-  for (const subj of subjects) {
-    idx++; // a STABLE per-subject token for frame ids — independent of whether the verdict survives, so a
-    // dropped verdict can never make the NEXT subject reuse an id and bind the wrong element's crop.
-    // a malformed budget (exceeded() that throws) must not crash the producer — degrade to "run".
-    if (budget && typeof budget.exceeded === 'function') { let done = false; try { done = budget.exceeded(); } catch (e) { done = false; } if (done) break; }
+  const concurrency = Math.max(1, Number(opts.llmConcurrency) || 1);
+  // a malformed budget (exceeded() that throws) must not crash the producer — degrade to "run".
+  const stop = () => { if (budget && typeof budget.exceeded === 'function') { try { return budget.exceeded(); } catch (e) { return false; } } return false; };
+  // PHASE A (bounded-parallel, PURE per subject): judge each subject. The per-subject frame id uses the
+  // subject's INDEX `i` (stable, independent of whether the verdict survives), so a dropped verdict can never
+  // make another subject reuse an id and bind the wrong element's crop. No shared mutation here.
+  const computed = await runPool(subjects, concurrency, async (subj, i) => {
     const transcriptExcerpt = transcriptByXpath[subj.xpath];
     const signals = precomputeSignals(subj.element, subj.skill);
     const { text: rubricText, visionEvidence } = getRubric(subj.skill);
@@ -296,11 +321,18 @@ async function runAdjudication(subjects, opts = {}) {
     const frames = [];
     for (const state of visionEvidence) {
       const data = avail[state];
-      if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.skill}:${idx}:${state}`, state, data, mediaType: 'image/png' });
+      if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.skill}:${i}:${state}`, state, data, mediaType: 'image/png' });
     }
     const messages = buildMessages(subj, signals, transcriptExcerpt, frames, { rubric: rubricText });
     let out;
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }
+    return { subj, frames, out, signals, transcriptExcerpt };
+  }, stop);
+  // PHASE B (sequential, IN SUBJECT ORDER): assemble surviving verdicts — dense verdictId, no orphan crops.
+  let n = 0;
+  for (const c of computed) {
+    if (!c) continue; // budget-stopped (not run) or task error
+    const { subj, frames, out, signals, transcriptExcerpt } = c;
     if (!out || !V2_9_VERDICTS.includes(out.verdict)) continue; // a malformed agent reply is dropped, never guessed
     // the verdict survived → NOW persist its frames (no orphan crops for dropped verdicts).
     for (const f of frames) visionImages.push({ id: f.id, xpath: subj.xpath, state: f.state, mediaType: f.mediaType, data: f.data });
@@ -377,32 +409,37 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
   const scope = (xpath) => ({ actionTargetRef: xpath, state: opts.state || 'fresh-load', action: opts.action || 'inspect', environment: opts.environment || 'headless-chromium' });
   const judgments = [];
   const visionImages = [];
-  let idx = -1;
-  for (const subj of rubricSubjects) {
-    idx++;
-    if (budget && typeof budget.exceeded === 'function') { let done = false; try { done = budget.exceeded(); } catch (e) { done = false; } if (done) break; }
-    if (isLegacyToken(subj.rubricId)) continue; // a legacy-token rubric id → rubricRef → would make validateJudgmentsShape reject the WHOLE artifact; drop the subject (adversarial)
+  const concurrency = Math.max(1, Number(opts.llmConcurrency) || 1);
+  const stop = () => { if (budget && typeof budget.exceeded === 'function') { try { return budget.exceeded(); } catch (e) { return false; } } return false; };
+  // PHASE A (bounded-parallel, PURE): the per-rubric-subject frame id + judgmentId both use the subject's
+  // INDEX `i` (position-stable, matching the old `idx`). The required-evidence gate / legacy-token drop
+  // return null (the subject abstains), exactly as the prior `continue`.
+  const computed = await runPool(rubricSubjects, concurrency, async (subj, i) => {
+    if (isLegacyToken(subj.rubricId)) return null; // a legacy-token rubric id would make the artifact reject — drop it
     const rub = subj.rubric || {};
     const signals = precomputeSignals(subj.element, subj.skill);
     const avail = visionByXpath[subj.xpath] || {};
     const declaredVision = rub.visionEvidence || [];
     const frames = [];
-    for (const state of declaredVision) { const data = avail[state]; if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.rubricId}:${idx}:${state}`, state, data, mediaType: 'image/png' }); }
+    for (const state of declaredVision) { const data = avail[state]; if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.rubricId}:${i}:${state}`, state, data, mediaType: 'image/png' }); }
     // REQUIRED-EVIDENCE GATE (adversarial): an atomic rubric judges over EXACTLY its declared evidence. If
     // ANY declared frame is missing — capture skipped the element (off-viewport / <6px / hidden), or the
     // transition isn't driven yet (the form-submit pair for 3.3.1/3.3.3 is not produced) — ABSTAIN rather
-    // than judge BLIND. Sending a focus/hover/form rubric to the model with no driven-state pixels would let
-    // it publish an uncalibrated NO_BARRIER clear for a state never seen (a false clear). Missing declared
-    // evidence ⇒ the obligation simply stays auto-PARTIAL, which is the honest "could not decide".
-    if (declaredVision.length && frames.length < declaredVision.length) continue;
+    // than judge BLIND. Missing declared evidence ⇒ the obligation simply stays auto-PARTIAL (honest "could not decide").
+    if (declaredVision.length && frames.length < declaredVision.length) return null;
     const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text });
     let out;
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }
+    return { subj, i, frames, out };
+  }, stop);
+  for (const c of computed) {
+    if (!c) continue; // abstained / budget-stopped / task error
+    const { subj, i, frames, out } = c;
     if (!out || !V2_9_VERDICTS.includes(out.verdict)) continue;
     const verdict = mapToRubricVerdict(out.verdict);
     if (!verdict) continue;
     for (const f of frames) visionImages.push({ id: f.id, xpath: subj.xpath, state: f.state, mediaType: f.mediaType, data: f.data });
-    const judgmentId = `jud:${subj.rubricId}:${idx}`;
+    const judgmentId = `jud:${subj.rubricId}:${i}`;
     judgments.push({
       judgmentId, sc: subj.sc, claimFamily: subj.claimFamily, targetXpath: subj.xpath,
       observationScope: scope(subj.xpath), rubricRef: subj.rubricId, verdict,

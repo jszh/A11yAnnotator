@@ -123,7 +123,7 @@ async function orchestrate(collect, drive, opts = {}) {
       visionByXpath = await vc.captureVisionForUrl(url, xps, { executablePath: opts.executablePath, statePlan }).catch(() => ({}));
     }
     const pOpts = {
-      runAgent: opts.runAgent, budget: opts.llmBudget, model: opts.llmModel, llmRubrics,
+      runAgent: opts.runAgent, budget: opts.llmBudget, model: opts.llmModel, llmRubrics, llmConcurrency: opts.llmConcurrency,
       transcriptByXpath: opts.transcriptByXpath, visionByXpath: visionByXpath || {},
       file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest,
     };

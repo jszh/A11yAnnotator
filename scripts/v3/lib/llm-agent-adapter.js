@@ -81,4 +81,68 @@ function makeAnthropicTransport({ apiKey, fetchImpl, baseUrl = 'https://api.anth
   };
 }
 
-module.exports = { makeRunAgent, makeAnthropicTransport, parseAgentReply, toAnthropicContent };
+// Production transport via the Claude Agent SDK + the Claude Code SUBSCRIPTION (OAuth, NO metered key).
+// Maps our Anthropic-format `request` → an SDK streaming-input `query()` and returns the same
+// `{ content:[{type:'text',text}] }` shape `makeRunAgent` expects (or null to degrade). Verified empirically:
+// the SDK authenticates from `CLAUDE_CODE_OAUTH_TOKEN` with no `ANTHROPIC_API_KEY`, accepts image content
+// blocks via streaming input, and `settingSources:[]` isolation coexists with the OAuth token (unlike
+// `--bare`, which disables it). The ESM-only SDK is LAZY-imported so the (CommonJS) harness loads + tests
+// without it when the lane is OFF; `queryImpl` is injectable so unit tests need no SDK and no network.
+// Safeguards: maxTurns cap, per-turn stall timeout (env) + whole-run AbortController timeout, and
+// exponential backoff + retry on 429/overloaded (the real subscription governor — no hard concurrent cap).
+function makeClaudeSdkTransport(opts = {}) {
+  const {
+    queryImpl = null, oauthToken, model,
+    perTurnTimeoutMs = 60000, runTimeoutMs = 120000,
+    settingSources = [], maxTurns = 1, allowedTools = [], mcpServers = null,
+    maxRetries = 4, baseBackoffMs = 1000, maxBackoffMs = 30000,
+  } = opts;
+  let _query = queryImpl;
+  const getQuery = async () => {
+    if (_query) return _query;
+    try { const mod = await import('@anthropic-ai/claude-agent-sdk'); _query = mod.query; return _query; }
+    catch (e) { return null; } // SDK absent ⇒ no transport (the lane should be OFF then)
+  };
+  // 429 / overloaded / SDK terminal rate-limit reasons ⇒ retriable.
+  const isOverloaded = (x) => /\b429\b|overloaded|rate.?limit|too many requests|blocking_limit|rapid_refill_breaker/i.test(String(x == null ? '' : (x.message || x)));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const backoffMs = (attempt) => Math.min(maxBackoffMs, baseBackoffMs * (2 ** attempt)) + Math.floor(Math.random() * 500);
+
+  return async function transport(request) {
+    const q = await getQuery();
+    if (typeof q !== 'function') return null;
+    const content = (request && request.messages && request.messages[0] && request.messages[0].content) || [];
+    const useModel = (request && request.model) || model || 'claude-sonnet-4-6';
+    async function* input() { yield { type: 'user', parent_tool_use_id: null, message: { role: 'user', content } }; }
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), runTimeoutMs);
+      let text = '', overloaded = false;
+      try {
+        const env = { ...process.env, CLAUDE_CODE_OAUTH_TOKEN: oauthToken || process.env.CLAUDE_CODE_OAUTH_TOKEN || '', CLAUDE_ASYNC_AGENT_STALL_TIMEOUT_MS: String(perTurnTimeoutMs) };
+        delete env.ANTHROPIC_API_KEY; delete env.ANTHROPIC_AUTH_TOKEN; // never let a metered key into the child
+        const options = { maxTurns, allowedTools, settingSources, model: useModel, abortController: ctrl, env };
+        if (mcpServers) options.mcpServers = mcpServers;
+        for await (const msg of q({ prompt: input(), options })) {
+          if (msg && msg.type === 'assistant') {
+            const tt = (msg.message && Array.isArray(msg.message.content) ? msg.message.content : []).filter((b) => b && b.type === 'text').map((b) => b.text).join('\n');
+            if (tt) text += (text ? '\n' : '') + tt;
+          } else if (msg && msg.type === 'result' && (msg.is_error || (msg.subtype && msg.subtype !== 'success'))) {
+            if (isOverloaded(msg.subtype) || isOverloaded(msg.result)) overloaded = true;
+          }
+        }
+      } catch (e) {
+        if (ctrl.signal.aborted) { clearTimeout(timer); return null; } // whole-run timeout ⇒ degrade
+        if (isOverloaded(e)) overloaded = true; // else: fall through to degrade below
+      } finally { clearTimeout(timer); }
+
+      if (text && !overloaded) return { content: [{ type: 'text', text }] };
+      if (overloaded && attempt < maxRetries) { await sleep(backoffMs(attempt)); continue; }
+      return text ? { content: [{ type: 'text', text }] } : null; // exhausted / fatal / empty ⇒ degrade
+    }
+    return null;
+  };
+}
+
+module.exports = { makeRunAgent, makeAnthropicTransport, makeClaudeSdkTransport, parseAgentReply, toAnthropicContent };

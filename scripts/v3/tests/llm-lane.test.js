@@ -257,6 +257,25 @@ test('runAdjudication: a stub agent produces structured verdicts + a side ration
   assert.equal(empty.llm.verdicts.length, 0);
 });
 
+test('runAdjudication: bounded concurrency is ORDER-DETERMINISTIC (parallel == serial verdicts/ids)', async () => {
+  const subjects = Array.from({ length: 8 }, (_, k) => ({ xpath: `node:b${k}`, skill: 'keyboard-operability', sc: '2.1.1', claimFamily: 'keyboard-operable', element: { xpath: `node:b${k}`, focusable: false } }));
+  // a stub whose latency VARIES per subject (higher k resolves FIRST) and which drops every 3rd subject — so
+  // order-preservation AND dense verdictId assignment across gaps are both exercised under completion reordering.
+  const stub = async (_messages, subj) => {
+    const k = +String(subj.xpath).replace('node:b', '');
+    await new Promise((r) => setTimeout(r, (8 - k) * 4));
+    if (k % 3 === 2) return null; // drop k=2,5
+    return { verdict: k % 2 ? 'REPRODUCED' : 'NOT REPRODUCED', confidence: 'high', summary: `s${k}.`, reasoning: `r${k}.`, evidenceRefs: [`e${k}`] };
+  };
+  const serial = await llmAdj.runAdjudication(subjects, { runAgent: stub, llmConcurrency: 1, ...ID });
+  const parallel = await llmAdj.runAdjudication(subjects, { runAgent: stub, llmConcurrency: 5, ...ID });
+  assert.deepEqual(parallel.llm.verdicts, serial.llm.verdicts, 'concurrency changes ONLY wall-clock, never the verdicts');
+  assert.deepEqual(parallel.llmRationale.rationales, serial.llmRationale.rationales);
+  // DENSE verdictIds despite the dropped subjects, each bound to the right xpath IN ORDER:
+  assert.deepEqual(serial.llm.verdicts.map((v) => v.verdictId), Array.from({ length: 6 }, (_, j) => `llm:keyboard-operability:${j}`));
+  assert.deepEqual(serial.llm.verdicts.map((v) => v.targetXpath), ['node:b0', 'node:b1', 'node:b3', 'node:b4', 'node:b6', 'node:b7']);
+});
+
 // ============================ adversarial regressions (skeptic round) ============================
 test('adversarial HIGH: a BOXED String legacy token (claimFamily) can NEVER leak into published results', () => {
   const b = withPipeline(baseBundle());

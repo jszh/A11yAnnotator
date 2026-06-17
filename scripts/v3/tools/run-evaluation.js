@@ -27,12 +27,21 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
   // exercise the REAL trust path (audit V3R4-H5): the runner signs evidence with V3_ATTEST_KEY from
   // the environment, and the builder verifies promotion provenance against on-disk artifacts. With no
   // key / no promotion configured this run is simply all-shadow, as before.
-  // OPTIONAL LLM EVIDENCE LANE (audit D11-1/D4-2): INERT unless V3_LLM=1 AND a key is present — so the
-  // on-hold corpus run is never auto-triggered, but a real run is reachable end-to-end (rubrics + vision +
-  // gold + both producers). V3_PROVISIONAL=gated requires a canary-promoted mechanism; default ungated.
-  const llmKey = process.env.V3_LLM_KEY || process.env.ANTHROPIC_API_KEY || null;
-  const runLlm = process.env.V3_LLM === '1' && !!llmKey;
-  const runAgent = runLlm ? adapter.makeRunAgent({ transport: adapter.makeAnthropicTransport({ apiKey: llmKey }), model: process.env.V3_LLM_MODEL || undefined }) : null;
+  // SINGLE LLM ACTIVATION GATE (Harness 3.4): one switch — V3_LLM=1 turns the judge ON, unset/0 is OFF and
+  // byte-identical to today's deterministic run. ON authenticates via the Claude Code SUBSCRIPTION (Agent
+  // SDK + CLAUDE_CODE_OAUTH_TOKEN — NO metered API key; .env, never committed). The on-hold corpus run is
+  // never auto-triggered — OFF is the default and only an explicit V3_LLM=1 fires it. V3_PROVISIONAL=gated
+  // requires a canary-promoted mechanism; default ungated. Model defaults to sonnet-4.6 (V3_LLM_MODEL).
+  require('../lib/load-env.js').loadEnv(ROOT); // populate CLAUDE_CODE_OAUTH_TOKEN from .env if present
+  const runLlm = process.env.V3_LLM === '1';
+  const runAgent = runLlm ? adapter.makeRunAgent({
+    transport: adapter.makeClaudeSdkTransport({
+      oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
+      perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || 60000),
+      runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || 120000),
+    }),
+    model: process.env.V3_LLM_MODEL || 'claude-sonnet-4-6',
+  }) : null;
   const gold = runLlm ? loadGold().gold : undefined;
   // INSTRUMENT lane (Harness 3.3, B): opt-in shadow VSR/keyboard findings. Independent of the LLM lane —
   // no API key, no cost — so it can run on its own (V3_INSTRUMENTS=1) for the annotation-input corpus.
@@ -47,6 +56,7 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
     attestationKey: attest.loadKey({}),
     artifactVerifier: attest.makeDiskArtifactVerifier(ROOT),
     runLlm, runAgent, captureVision: runLlm, gold, runInstruments, runChecker,
+    llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || 10), // bounded judge concurrency (429-backoff is the real governor)
     provisionalMode: process.env.V3_PROVISIONAL === 'gated' ? 'gated' : 'ungated',
   });
   const w = (name, obj) => fs.writeFileSync(path.join(outDir, name), JSON.stringify(obj, null, 2));

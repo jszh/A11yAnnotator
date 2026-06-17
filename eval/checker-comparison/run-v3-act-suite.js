@@ -26,6 +26,22 @@ const puppeteer = require('puppeteer');
 
 const { orchestrate } = require('../../scripts/v3/lib/orchestrator.js');
 const { CATALOG } = require('../../scripts/v3/lib/catalog.js');
+const { makeRunAgent, makeClaudeSdkTransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
+
+// SINGLE LLM ACTIVATION GATE (shared with run-evaluation.js): V3_LLM=1 turns the judge ON via the Claude
+// Code SUBSCRIPTION (Agent SDK + CLAUDE_CODE_OAUTH_TOKEN — no metered key; .env never committed). Unset/0 =
+// OFF = today's deterministic ACT run, unchanged. The corpus run is never auto-triggered (OFF is default).
+const REPO_ROOT = path.join(__dirname, '..', '..');
+require('../../scripts/v3/lib/load-env.js').loadEnv(REPO_ROOT);
+const LLM_ON = process.env.V3_LLM === '1';
+const LLM_AGENT = LLM_ON ? makeRunAgent({
+  transport: makeClaudeSdkTransport({
+    oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
+    perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || 60000),
+    runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || 120000),
+  }),
+  model: process.env.V3_LLM_MODEL || 'claude-sonnet-4-6',
+}) : null;
 
 const CHROME = process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -466,8 +482,10 @@ async function main() {
         executablePath: CHROME,
         now: collect.collectedAt + 2,
         maxAutomatic: Number.isFinite(MAX_AUTO) ? MAX_AUTO : Infinity,
-        runLlm: false,
-        captureVision: false,
+        runLlm: LLM_ON,
+        runAgent: LLM_ON ? LLM_AGENT : undefined,
+        captureVision: LLM_ON,
+        llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || 10),
       });
       if (!built.ok) {
         rec.error = `v3 build refused: ${built.errors.slice(0, 8).join('; ')}`;
