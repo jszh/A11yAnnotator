@@ -396,6 +396,17 @@ function buildV3(bundle, opts = {}) {
   // signal when a reliable visible label is not contained in the reliable accessible name — an INDEPENDENT
   // cross-signal that agrees-or-not with IBM's 2.5.3 (C1) under the same (sc, xpath) key.
   const normTxt = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  // AX-NAME-PRESENCE (coverage analysis B): a NAME-REQUIRING role that IS exposed in the AX tree
+  // (`inTree:true`) but whose CDP-computed accessible name is EMPTY is a name-presence barrier. The CDP
+  // role strings are exact (verified): <img>→'image', <summary>→'DisclosureTriangle', <select>→'combobox'.
+  // This is an INDEPENDENT cross-signal to axe's now-surfaced name family (image-alt/button-name/label/
+  // summary-name…) under the same (sc, xpath) key — it agrees-or-not, same pattern as 2.5.3↔IBM. SOUND:
+  // fires ONLY on an empty-STRING axName for an in-tree name-requiring role, so a decorative img
+  // (role=presentation ⇒ ignored ⇒ NOT in tree) and any correctly-named control never trip; null axName
+  // (CDP did not resolve a name) is skipped as uncertain. Iframe/object never reach here (not sampled).
+  // `option` is deliberately EXCLUDED — an empty <option> (placeholder / spacer / reset) is a routine,
+  // non-barrier pattern that axe itself has no per-option name rule for; flagging it would be noise.
+  const NAME_REQ_SC = { image: '1.1.1', button: '4.1.2', link: '4.1.2', checkbox: '4.1.2', radio: '4.1.2', switch: '4.1.2', tab: '4.1.2', menuitem: '4.1.2', menuitemcheckbox: '4.1.2', menuitemradio: '4.1.2', textbox: '4.1.2', combobox: '4.1.2', listbox: '4.1.2', searchbox: '4.1.2', spinbutton: '4.1.2', slider: '4.1.2', DisclosureTriangle: '4.1.2', heading: '1.3.1' };
   const deterministicSignals = [];
   for (const el of (bundle.collect && bundle.collect.elements) || []) {
     if (!el || typeof el !== 'object') continue;
@@ -411,7 +422,15 @@ function buildV3(bundle, opts = {}) {
         deterministicSignals.push({ source: 'deterministic', detector: 'label-in-name', sc: '2.5.3', xpath: el.xpath || null, kind: 'label-not-in-name', detail: `visible label ${JSON.stringify(el.text.slice(0, 40))} not contained in accessible name ${JSON.stringify(el.axName.slice(0, 40))}`, authoritative: false, shadow: true });
       }
     }
+    const reqSc = typeof el.axRole === 'string' ? NAME_REQ_SC[el.axRole] : undefined;
+    if (reqSc && el.inTree === true && typeof el.axName === 'string' && el.axName.trim() === '') {
+      deterministicSignals.push({ source: 'deterministic', detector: 'ax-name-presence', sc: reqSc, xpath: el.xpath || null, kind: 'empty-accessible-name', detail: `${el.axRole} is exposed in the accessibility tree but its accessible name is empty`, authoritative: false, shadow: true });
+    }
   }
+  // (No page-title deterministic signal: an empty/whitespace <title> is already surfaced by axe
+  // `document-title` under 2.4.2, on the same shadow tier and the same predicate — a separate
+  // deterministic signal would be pure duplication that can never disagree, not an independent
+  // cross-signal. The axe checkerFinding is the canonical 2.4.2-presence source.)
 
   // TRIAGE CANDIDATES (Harness 3.3 E): a consolidated, NON-LEDGER review queue for semantic SCs that get
   // NO obligation disposition in 3.3 — 1.4.1 Use of Color + 1.3.3 Sensory Characteristics (fed by IBM

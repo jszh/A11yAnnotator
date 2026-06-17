@@ -1,61 +1,105 @@
 // Harness 3.3 — C0: surface axe's already-decided coverage into v3 as a NON-AUTHORITATIVE checker
-// cross-signal. axe runs at COLLECTION time (scripts/eval-page.js → `collect.axe`/`collect.axeRan`),
-// but the v3 ledger never consumed it — its decided wins were free coverage v3 threw away. We
-// reconcile ONLY axe's decided wins (the allow-list below) into a side `checkerFindings` artifact.
+// cross-signal. axe runs at COLLECTION time (scripts/eval-page.js → `collect.axe`/`collect.axeRan`,
+// + `collect.axeIncomplete` for needs-review outcomes), but the v3 ledger never consumed it — its
+// decided wins were free coverage v3 threw away. We reconcile axe's decided wins (the allow-lists
+// below) into a side `checkerFindings` artifact.
 //
 // INVARIANT (HARNESS-3.3-IMPLEMENTATION.md §2): a checker finding is NEVER an obligation disposition.
 // It does not enter reconcile() and so adds NO tie-break — it is a shadow cross-signal at the same
-// tier as instrument findings, unioned as evidence and scored against gold, never authoritative.
+// tier as instrument findings, unioned as evidence and scored against gold, never authoritative. So
+// EXPANDING what we surface (this file) can only add shadow signals — it can never false-clear or
+// false-barrier an obligation.
 'use strict';
 
-// axe owns these outright on the scored ACT pilot (1.3.1 + 1.3.5 perfect, 0 FP; 1.4.4 / 2.4.4 / 3.1.x
-// decided). Everything else axe flags is intentionally NOT surfaced as decided coverage here — we do
-// not want axe's noisier rules masquerading as v3 decisions. IBM (Stage 4) supplies a DIFFERENT,
-// non-overlapping set (1.4.12 / 2.5.3 / triage), so the two checkers never double-decide one SC.
-const AXE_SURFACED_SCS = Object.freeze(new Set(['1.3.1', '1.3.5', '1.4.4', '2.4.4']));
+// (1) SCs surfaced WHOLESALE — every axe rule carrying one of these wcag tags is surfaced. axe owns
+// these cleanly (the coverage analysis verified the rule families are precise, not noisy):
+//   1.3.1 info-relationships, 1.3.5 autocomplete, 1.4.4 resize, 2.4.4 link purpose (pre-existing);
+//   1.1.1 the non-text-name family that axe tags `wcag111` — image-alt/input-image-alt/svg-img-alt/
+//         object-alt/role-img-alt, AND aria-meter-name/aria-progressbar-name (axe tags these 1.1.1 too,
+//         though they read as 4.1.2 conceptually); note `area-alt` is NOT here (axe tags it 2.4.4/4.1.2);
+//   2.1.1 scrollable-region-focusable/frame-focusable-content/server-side-image-map; 2.4.2 document-title.
+const AXE_SURFACED_SCS = Object.freeze(new Set(['1.1.1', '1.3.1', '1.3.5', '1.4.4', '2.1.1', '2.4.2', '2.4.4']));
 const AXE_SURFACED_PREFIXES = Object.freeze(['3.1.']); // 3.1.x language SCs (3.1.1 lang, 3.1.2 lang-of-parts)
+
+// (2) PER-RULE allow-list — rules surfaced by their axe ruleId regardless of SC, so their (typically
+// 4.1.2) limb is consumed WITHOUT opening bare 4.1.2 to the whole noisy name/aria family (coverage
+// analysis §A caveat). Each is the verified ACT reference implementation for a name/aria-validity rule.
+const AXE_SURFACED_RULES = Object.freeze(new Set([
+  // name-presence (4.1.2 limb)
+  'button-name', 'link-name', 'label', 'select-name', 'aria-input-field-name', 'aria-toggle-field-name',
+  'summary-name', 'frame-title', 'aria-command-name',
+  // aria-validity (4.1.2)
+  'aria-required-attr', 'aria-allowed-attr', 'aria-valid-attr', 'aria-roles', 'aria-valid-attr-value',
+  'nested-interactive', 'aria-hidden-focus',
+  // required owned/context (1.3.1 — redundant with the wholesale set, listed for intent/robustness)
+  'aria-required-children', 'aria-required-parent', 'td-headers-attr',
+]));
+
+// (3) BEST-PRACTICE rules carry NO `/^wcag\d/` tag, so eval-page.js retains an EMPTY `wcag` array for
+// them and tag-based surfacing alone drops them. Map the ruleId → the SC the rule actually evidences.
+const BEST_PRACTICE_RULE_SC = Object.freeze({
+  'presentation-role-conflict': '1.1.1', // 46ca7f — decorative marking conflicts with a global ARIA attr
+  'empty-heading': '1.3.1',              // ffd0e9 — semantic heading with no accessible name (ARIA §5.2.8)
+});
 
 // axe carries its SC binding in the violation's own WCAG TAGS (e.g. 'wcag131'); level/version tags
 // ('wcag2a', 'wcag21aa') and category tags do not match this and resolve to null (then dropped).
 const wcagTagToSc = (t) => { const m = /^wcag(\d)(\d)(\d+)$/.exec(String(t)); return m ? `${m[1]}.${m[2]}.${m[3]}` : null; };
 const isSurfaced = (sc) => AXE_SURFACED_SCS.has(sc) || AXE_SURFACED_PREFIXES.some((p) => sc.startsWith(p));
 
-// Map `collect.axe` (the eval-page.js shape: [{ id, impact, help, wcag:[tag…], nodes:[{target,html}] }])
-// to surfaced checker findings, filtered to the decided allow-list.
+// The surfaced SC set for one axe finding (violation or incomplete). A rule on the per-rule allow-list
+// surfaces under ALL of its WCAG SCs; otherwise only its wholesale-allow-listed SCs surface; a
+// best-practice rule with no wcag tag falls back to its ruleId→SC mapping.
+function surfacedScsFor(v) {
+  const ruleId = String(v.id || '');
+  const tagScs = [...new Set((Array.isArray(v.wcag) ? v.wcag : []).map(wcagTagToSc).filter(Boolean))];
+  const ruleAllowed = AXE_SURFACED_RULES.has(ruleId);
+  let scs = tagScs.filter((sc) => ruleAllowed || isSurfaced(sc));
+  if (!scs.length && Object.prototype.hasOwnProperty.call(BEST_PRACTICE_RULE_SC, ruleId)) scs = [BEST_PRACTICE_RULE_SC[ruleId]];
+  return [...new Set(scs)];
+}
+
+// Map `collect.axe` (violations) + `collect.axeIncomplete` (needs-review) — the eval-page.js shape
+// [{ id, impact, help, wcag:[tag…], nodes:[{target,html}] }] — to surfaced checker findings.
 //
 // FAIL-CLOSED: `collect.axeRan` MUST be EXACTLY true. A missing sentinel means axe never ran on this
 // page — surfacing nothing then is correct, but we must NOT let "no findings" read as "axe says clean"
 // (R2.7-B). Callers should treat `ran:false` as "no axe signal", not "no violations".
 //
-// A violation can carry several decided SC tags and several nodes; it fans out to one finding per
-// (rule, SC, element), deduped by (ruleId, sc, target). We deliberately drop axe's raw `html` snippet
-// and human `help` prose: the surfaced finding is structured harness data (rule id + SC + impact +
+// A finding can carry several decided SC tags and several nodes; it fans out to one finding per
+// (rule, SC, element, kind), deduped by (ruleId, sc, target, kind). axe's raw `html` snippet and human
+// `help` prose are dropped: the surfaced finding is structured harness data (rule id + SC + impact +
 // element selector), so it cannot leak page content into the strictly-scanned v3 results.
 function surfaceAxeFindings(collect) {
   const ran = !!(collect && collect.axeRan === true);
-  if (!ran || !Array.isArray(collect.axe)) return { ran, findings: [] };
+  if (!ran) return { ran, findings: [] };
   const findings = [];
   const seen = new Set();
-  for (const v of collect.axe) {
-    if (!v || typeof v !== 'object') continue;
-    const ruleId = String(v.id || 'axe-rule');
-    const impact = v.impact != null ? String(v.impact) : '';
-    const scs = [...new Set((Array.isArray(v.wcag) ? v.wcag : []).map(wcagTagToSc).filter(Boolean).filter(isSurfaced))];
-    if (!scs.length) continue; // violation carries no DECIDED (allow-listed) SC → not surfaced
-    const nodes = Array.isArray(v.nodes) && v.nodes.length ? v.nodes : [null];
-    for (const sc of scs) {
-      for (const n of nodes) {
-        const target = n && Array.isArray(n.target) ? n.target.join(' ') : (n && n.target != null ? String(n.target) : null);
-        const key = `${ruleId}::${sc}::${target || ''}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        // source:'axe' tags WHO produced it; kind:'violation' is axe's hard finding (axe emits only
-        // violations here — resultTypes:['violations']). review:false ⇒ a decided hard signal, not a prior.
-        findings.push({ source: 'axe', detector: `axe:${ruleId}`, ruleId, sc, impact, kind: 'violation', xpath: target, review: false });
+  // kind:'violation' is axe's hard finding (review:false ⇒ a decided hard signal); kind:'incomplete' is
+  // axe's needs-review outcome (review:true ⇒ a prior, NOT a decision) — e.g. td-headers-attr empty-headers,
+  // aria-required-children empty-container, aria-prohibited-attr ambiguity. Both stay non-authoritative.
+  const emit = (list, kind, review) => {
+    for (const v of (Array.isArray(list) ? list : [])) {
+      if (!v || typeof v !== 'object') continue;
+      const ruleId = String(v.id || 'axe-rule');
+      const impact = v.impact != null ? String(v.impact) : '';
+      const scs = surfacedScsFor(v);
+      if (!scs.length) continue; // finding carries no surfaced SC → not surfaced
+      const nodes = Array.isArray(v.nodes) && v.nodes.length ? v.nodes : [null];
+      for (const sc of scs) {
+        for (const n of nodes) {
+          const target = n && Array.isArray(n.target) ? n.target.join(' ') : (n && n.target != null ? String(n.target) : null);
+          const key = `${ruleId}::${sc}::${target || ''}::${kind}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          findings.push({ source: 'axe', detector: `axe:${ruleId}`, ruleId, sc, impact, kind, xpath: target, review });
+        }
       }
     }
-  }
+  };
+  emit(collect.axe, 'violation', false);
+  emit(collect.axeIncomplete, 'incomplete', true);
   return { ran: true, findings };
 }
 
-module.exports = { surfaceAxeFindings, wcagTagToSc, isSurfaced, AXE_SURFACED_SCS, AXE_SURFACED_PREFIXES };
+module.exports = { surfaceAxeFindings, surfacedScsFor, wcagTagToSc, isSurfaced, AXE_SURFACED_SCS, AXE_SURFACED_PREFIXES, AXE_SURFACED_RULES, BEST_PRACTICE_RULE_SC };

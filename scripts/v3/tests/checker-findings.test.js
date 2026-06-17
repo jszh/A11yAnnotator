@@ -21,24 +21,50 @@ const axeViolation = (id, wcag, targets, impact = 'serious') =>
 
 // ===== surfaceAxeFindings (pure mapping) =====
 
-test('axe-surface: surfaces ONLY the decided allow-list (1.3.1/1.3.5/1.4.4/2.4.4/3.1.x), drops the rest', () => {
+test('axe-surface: wholesale SCs + per-rule 4.1.2 allow-list surface; genuinely-unowned SCs drop', () => {
   const collect = { axeRan: true, axe: [
-    axeViolation('color-contrast', ['wcag143', 'wcag2aa'], ['.a']),          // 1.4.3 — NOT surfaced (axe doesn't own it)
+    axeViolation('color-contrast', ['wcag143', 'wcag2aa'], ['.a']),          // 1.4.3 — NOT surfaced (not wholesale, not a per-rule)
     axeViolation('html-has-lang', ['wcag311'], ['html']),                    // 3.1.1 — surfaced (prefix)
     axeViolation('valid-lang', ['wcag312'], ['span']),                       // 3.1.2 — surfaced (prefix)
-    axeViolation('autocomplete-valid', ['wcag135', 'wcag21aa'], ['#email']), // 1.3.5 — surfaced
-    axeViolation('link-name', ['wcag244', 'wcag412'], ['a']),                // 2.4.4 surfaced; 4.1.2 tag dropped
+    axeViolation('autocomplete-valid', ['wcag135', 'wcag21aa'], ['#email']), // 1.3.5 — surfaced (wholesale)
+    axeViolation('image-alt', ['wcag111'], ['img']),                         // 1.1.1 — surfaced (wholesale, NEW)
+    axeViolation('link-name', ['wcag244', 'wcag412'], ['a']),                // 2.4.4 wholesale + 4.1.2 per-rule (NEW)
     axeViolation('list', ['wcag131'], ['ul']),                               // 1.3.1 — surfaced
-    axeViolation('aria-roles', ['wcag412'], ['div']),                        // 4.1.2 — NOT surfaced
+    axeViolation('aria-roles', ['wcag412'], ['div']),                        // 4.1.2 — surfaced via per-rule allow-list (NEW)
+    axeViolation('aria-roledescription', ['wcag412'], ['div']),              // 4.1.2 — NOT in the per-rule allow-list ⇒ dropped (no wholesale 4.1.2)
   ] };
   const { ran, findings } = surfaceAxeFindings(collect);
   assert.equal(ran, true);
-  assert.deepEqual([...new Set(findings.map((f) => f.sc))].sort(), ['1.3.1', '1.3.5', '2.4.4', '3.1.1', '3.1.2']);
-  assert.ok(!findings.some((f) => f.sc === '1.4.3' || f.sc === '4.1.2'), 'non-allow-listed SCs are dropped');
+  assert.deepEqual([...new Set(findings.map((f) => f.sc))].sort(), ['1.1.1', '1.3.1', '1.3.5', '2.4.4', '3.1.1', '3.1.2', '4.1.2']);
+  assert.ok(!findings.some((f) => f.sc === '1.4.3'), 'color-contrast (1.4.3) is NOT surfaced (axe does not own it here)');
+  assert.ok(!findings.some((f) => f.ruleId === 'aria-roledescription'), 'a 4.1.2 rule NOT on the per-rule allow-list is dropped (no wholesale 4.1.2)');
+  assert.ok(findings.some((f) => f.ruleId === 'link-name' && f.sc === '2.4.4') && findings.some((f) => f.ruleId === 'link-name' && f.sc === '4.1.2'), 'link-name fans out to BOTH its SCs (per-rule allow-list)');
   // structured-only: axe's raw html/help prose is NOT carried (cannot leak page content into the
   // strictly-scanned results — note the fixture html even contains the legacy token "N/A").
   assert.ok(findings.every((f) => !('html' in f) && !('help' in f) && !('detail' in f)), 'no page-content prose leaked');
   assert.ok(findings.every((f) => f.source === 'axe' && f.review === false && f.kind === 'violation' && f.authoritative === undefined));
+});
+
+test('axe-surface: best-practice rules (no wcag tag) surface via ruleId→SC map', () => {
+  const collect = { axeRan: true, axe: [
+    axeViolation('presentation-role-conflict', [], ['img']), // best-practice, empty wcag ⇒ mapped to 1.1.1
+    axeViolation('empty-heading', [], ['h2']),               // best-practice, empty wcag ⇒ mapped to 1.3.1
+    axeViolation('some-other-bp', [], ['div']),              // best-practice not in the map ⇒ dropped
+  ] };
+  const findings = surfaceAxeFindings(collect).findings;
+  assert.deepEqual(findings.map((f) => `${f.ruleId}@${f.sc}`).sort(), ['empty-heading@1.3.1', 'presentation-role-conflict@1.1.1']);
+});
+
+test('axe-surface: incomplete (needs-review) findings surface as review-tier (review:true, kind:incomplete)', () => {
+  const collect = { axeRan: true,
+    axe: [axeViolation('list', ['wcag131'], ['ul'])],
+    axeIncomplete: [axeViolation('td-headers-attr', ['wcag131'], ['td']), axeViolation('aria-required-children', ['wcag131'], ['[role=list]'])],
+  };
+  const findings = surfaceAxeFindings(collect).findings;
+  const inc = findings.filter((f) => f.kind === 'incomplete');
+  assert.equal(inc.length, 2, 'both incomplete findings surface');
+  assert.ok(inc.every((f) => f.review === true), 'incomplete findings are review-tier (a prior, not a decision)');
+  assert.ok(findings.some((f) => f.ruleId === 'list' && f.kind === 'violation' && f.review === false), 'violations stay decided (review:false)');
 });
 
 test('axe-surface: FAIL-CLOSED when axe did not run (missing sentinel ⇒ no signal, not "axe clean")', () => {
@@ -144,6 +170,30 @@ test('build: deterministicSignals (F) — 2.5.8 geometry + 2.5.3 label-in-name f
   assert.deepEqual(kinds, ['2.5.3:label-not-in-name', '2.5.8:geometry-fail', '2.5.8:geometry-pass'], 'round (needs-judgment) + ok (label⊆name) emit no signal');
   assert.equal(r.results.summary.deterministicSignals, 3);
   assert.deepEqual({ ...r.results.summary.deterministicSignalsBySc }, { '2.5.8': 2, '2.5.3': 1 });
+});
+
+test('build: deterministicSignals (F) — ax-name-presence fires on an EXPOSED name-requiring role with an empty CDP name', () => {
+  // NB: the empty-name fixtures use axName:'' — exactly what eval-page.js now produces for a name that
+  // resolved to empty (the prior `value || null` coercion conflated empty-with-unresolved, which made
+  // this detector unreachable on real data; that coercion is fixed). null = unresolved ⇒ skipped.
+  const bundle = baseBundle();
+  bundle.collect.elements = [
+    { xpath: 'node:b1', focusable: true }, // focus subject — no axRole ⇒ no signal
+    { xpath: '/img', axRole: 'image', axName: '', inTree: true },          // 1.1.1 empty-accessible-name
+    { xpath: '/btn', axRole: 'button', axName: '', inTree: true },          // 4.1.2 empty-accessible-name
+    { xpath: '/sum', axRole: 'DisclosureTriangle', axName: '', inTree: true }, // 4.1.2 (summary)
+    { xpath: '/hd', axRole: 'heading', axName: '', inTree: true },          // 1.3.1 (empty heading)
+    { xpath: '/opt', axRole: 'option', axName: '', inTree: true },          // option EXCLUDED (placeholder pattern) ⇒ NO signal
+    { xpath: '/named', axRole: 'button', axName: 'Close', inTree: true },   // has a name ⇒ NO signal
+    { xpath: '/decor', axRole: 'image', axName: '', inTree: false },        // ignored / not in tree ⇒ NO signal (decorative)
+    { xpath: '/unres', axRole: 'button', axName: null, inTree: true },      // null axName (unresolved) ⇒ NO signal (uncertain)
+    { xpath: '/plain', axRole: 'paragraph', axName: '', inTree: true },     // not a name-requiring role ⇒ NO signal
+  ];
+  const r = buildV3(bundle);
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  const names = r.results.deterministicSignals.filter((s) => s.detector === 'ax-name-presence');
+  assert.ok(names.every((s) => s.authoritative === false && s.shadow === true && s.kind === 'empty-accessible-name'));
+  assert.deepEqual(names.map((s) => `${s.sc}:${s.xpath}`).sort(), ['1.1.1:/img', '1.3.1:/hd', '4.1.2:/btn', '4.1.2:/sum']);
 });
 
 test('build: a malformed checkerFindings artifact is REFUSED (findings must be an array)', () => {

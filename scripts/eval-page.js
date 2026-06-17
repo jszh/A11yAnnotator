@@ -202,20 +202,23 @@ function parseRGB(s) {
     // ---- axe (CACHED full run) ----
     try {
       await page.addScriptTag({ path: path.join(ROOT, 'axe.min.js') });
-      out.axe = await page.evaluate(async () => {
+      const axeOut = await page.evaluate(async () => {
         const cfg = {
           runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] },
           rules: { 'target-size': { enabled: true }, 'aria-roledescription': { enabled: true }, 'label-content-name-mismatch': { enabled: true } },
-          resultTypes: ['violations'],
+          resultTypes: ['violations', 'incomplete'], // incomplete = axe's needs-review priors (surfaced as review-tier, never a decision)
         };
         const r = await axe.run(document, cfg);
-        return r.violations.map(v => ({
+        const map = (arr) => (arr || []).map(v => ({
           id: v.id, impact: v.impact, help: v.help, wcag: (v.tags || []).filter(t => /^wcag\d/.test(t)),
           nodes: v.nodes.map(n => ({ target: n.target, html: (n.html || '').slice(0, 160) })),
         }));
+        return { violations: map(r.violations), incomplete: map(r.incomplete) };
       });
+      out.axe = axeOut.violations;            // unchanged shape (array of decided violations)
+      out.axeIncomplete = axeOut.incomplete;  // NEW: axe needs-review outcomes (surfaced as shadow review priors)
       out.axeRan = true; // R2.7-B: distinguish "axe ran clean" from "axe never ran" (fail-closed gate)
-    } catch (e) { out.problems.push('axe: ' + e.message); out.axe = []; out.axeRan = false; }
+    } catch (e) { out.problems.push('axe: ' + e.message); out.axe = []; out.axeIncomplete = []; out.axeRan = false; }
 
     // R21-H2: measure the TRUE UA-default checkbox/radio size in an isolated iframe
     // (no page CSS), so a stylesheet that resizes all checkboxes can't masquerade as a
@@ -457,7 +460,12 @@ function parseRGB(s) {
             if (ax) {
               const getProp = name => { const p = (ax.properties || []).find(p => p.name === name); return p ? p.value.value : undefined; };
               rec.axRole = ax.role && ax.role.value || null;
-              rec.axName = ax.name && ax.name.value || null;
+              // PRESERVE an empty CDP name as '' (a name property that resolved to empty), distinct from
+              // null (no name property / unresolved). The old `|| null` conflated them, which made the
+              // ax-name-presence detector (build-v3.js, fires only on empty-STRING) unreachable on real
+              // data. Downstream label-in-name checks gate on `trim().length > 0`, so '' behaves like null
+              // there (no label-in-name) — only the empty-vs-unresolved distinction is restored.
+              rec.axName = ax.name && ax.name.value != null ? String(ax.name.value) : null;
               // T12: a video/audio that can't load offline yields the browser's
               // fallback string as the AX name — flag it as NOT author-supplied.
               if (A.isMediaErrorName(rec.axName)) { rec.mediaErrorName = true; rec.axNameAuthorSupplied = false; }
