@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { CHROME } = require('../lib/run-experiments.js');
-const { queryAxNode, observeStateAfterActivation } = require('../lib/cdp-tools.js');
+const { queryAxNode, observeStateAfterActivation, setStateAndCapture } = require('../lib/cdp-tools.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — cdp-tools e2e SKIPPED');
@@ -20,6 +20,8 @@ const XP = {
   fakeh: '/html[1]/body[1]/p[1]',
   lbl: '/html[1]/body[1]/input[1]',
   reveal: '/html[1]/body[1]/button[1]',
+  focusbtn: '/html[1]/body[1]/button[2]',
+  chk: '/html[1]/body[1]/input[2]',
 };
 
 async function withPage(fn) {
@@ -76,5 +78,33 @@ test('observe_state_after_activation: a fresh clone is used — the live page th
     // the ORIGINAL page's status region is still empty (activation happened only on the throwaway clone)
     const statusText = await page.evaluate(() => document.getElementById('status').textContent.trim());
     assert.equal(statusText, '', 'the activation ran on a clone; the frozen page is untouched');
+  });
+});
+
+test('set_state_and_capture: driving :focus surfaces the focus-only outline as an objective style delta (1.4.11/2.4.7)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page, freshClone) => {
+    const r = await setStateAndCapture(page, { targetXpath: XP.focusbtn, state: 'focus' }, { freshClone });
+    assert.equal(r.stateReached, true, 'the element took focus on the clone');
+    assert.ok(r.styleDelta && (r.styleDelta.outlineWidth || r.styleDelta.outlineStyle), 'the :focus outline shows up as a changed outline prop');
+    assert.ok(r.screenshots && typeof r.screenshots.before === 'string' && typeof r.screenshots.after === 'string', 'before/after pixels returned (the sound datum)');
+    assert.ok(!('contrastRatio' in r) && !('verdict' in r), 'no synthesized contrast number, no verdict');
+  });
+});
+
+test('set_state_and_capture: state=checked reaches the state; fresh-clone isolation leaves the frozen page unchecked', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page, freshClone) => {
+    const r = await setStateAndCapture(page, { targetXpath: XP.chk, state: 'checked' }, { freshClone });
+    assert.equal(r.stateReached, true);
+    const origChecked = await page.evaluate(() => document.getElementById('chk').checked);
+    assert.equal(origChecked, false, 'the checkbox was checked only on the throwaway clone');
+  });
+});
+
+test('set_state_and_capture: an unreachable state is reported stateReached:false (never a silent pass)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page, freshClone) => {
+    // a plain <h2> cannot be "checked" → not reproduced, flagged honestly
+    const r = await setStateAndCapture(page, { targetXpath: XP.realh, state: 'checked' }, { freshClone });
+    assert.equal(r.stateReached, false);
+    assert.ok(/did not reproduce/.test(r.note || ''), 'the unreached state is called out so the model cannot infer a pass');
   });
 });

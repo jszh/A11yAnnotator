@@ -162,6 +162,84 @@ async function observeStateAfterActivation(page, args, ctx) {
 }
 
 // ============================================================================================
+// set_state_and_capture — MUTATING (fresh clone): drive ONE element into a named INTERACTION STATE the frozen
+// transition table doesn't cover (focus / hover / checked / open / expanded / placeholder-shown), then
+// re-capture the SAME clip before/after + a read-only computed-style DELTA over a fixed allowlist. For
+// state-specific indicators (1.4.11 non-text contrast, 1.4.1 use-of-color, 1.4.3 state-only text). Returns the
+// after-frame PIXELS (the sound datum) — NEVER a synthesized used-colour pair (unsound on the surfaces that
+// reach this lane). `stateReached`/`textVisible` are load-bearing: a state that did not reproduce returns
+// stateReached:false so the model cannot read a PASS from a state never seen.
+const STYLE_KEYS = ['textDecorationLine', 'fontWeight', 'fontStyle', 'fontSize', 'outlineStyle', 'outlineWidth', 'outlineColor', 'borderStyle', 'borderTopWidth', 'borderColor', 'backgroundColor', 'boxShadow'];
+async function setStateAndCapture(page, args, ctx) {
+  const { targetXpath, state } = args || {};
+  if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required' };
+  const allowed = ['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown'];
+  if (!allowed.includes(state)) return { error: `state must be one of: ${allowed.join(', ')}` };
+  const live = ctx && typeof ctx.freshClone === 'function' ? await ctx.freshClone() : page;
+  const ownClone = !!(ctx && typeof ctx.freshClone === 'function');
+  try {
+    const meta = await live.evaluate((xp, keys) => {
+      const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+      if (!el) return null;
+      el.setAttribute('data-v3-state-target', '1');
+      try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {}
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el); const style = {}; for (const k of keys) style[k] = cs[k];
+      return { box: { x: Math.max(0, r.x - 6), y: Math.max(0, r.y - 6), w: Math.min(innerWidth, r.width + 12), h: Math.min(innerHeight, r.height + 12) }, style };
+    }, targetXpath, STYLE_KEYS);
+    if (!meta || !(meta.box.w > 0 && meta.box.h > 0)) return { stateReached: false, reason: 'target not found or has no rendered box' };
+    const clip = { x: Math.round(meta.box.x), y: Math.round(meta.box.y), width: Math.round(meta.box.w), height: Math.round(meta.box.h) };
+    const before = await live.screenshot({ encoding: 'base64', clip });
+    // drive the state on the clone (pseudo / native property / activation — all reload-isolated)
+    let driven = { reached: false };
+    if (state === 'hover') {
+      await live.mouse.move(clip.x + clip.width / 2, clip.y + clip.height / 2);
+      driven = { reached: null }; // hover-reached is judged by the style/pixel delta below
+    } else {
+      driven = await live.evaluate((st) => {
+        const el = document.querySelector('[data-v3-state-target="1"]'); if (!el) return { reached: false };
+        if (st === 'focus') { el.focus({ preventScroll: true }); return { reached: document.activeElement === el }; }
+        if (st === 'checked') {
+          if ('checked' in el) { el.checked = true; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return { reached: !!el.checked }; }
+          const role = el.getAttribute('role');
+          if (role === 'checkbox' || role === 'switch' || el.hasAttribute('aria-checked')) { const b = el.getAttribute('aria-checked'); el.click(); return { reached: el.getAttribute('aria-checked') !== b }; }
+          return { reached: false }; // not a checkable element — honest "not reproduced"
+        }
+        if (st === 'placeholder-shown') { if ('value' in el && el.value) { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); return { reached: el.value === '' }; } return { reached: false }; }
+        if (st === 'open' || st === 'expanded') {
+          const det = el.tagName === 'SUMMARY' ? el.parentElement : (el.tagName === 'DETAILS' ? el : null);
+          if (det) { const was = det.open; el.click(); return { reached: det.open !== was }; }
+          if (el.hasAttribute('aria-expanded')) { const b = el.getAttribute('aria-expanded'); el.click(); return { reached: el.getAttribute('aria-expanded') !== b }; }
+          return { reached: false }; // nothing exposes an expanded state — honest "not reproduced"
+        }
+        return { reached: false };
+      }, state).catch(() => ({ reached: false }));
+    }
+    await new Promise((r) => setTimeout(r, 220));
+    const afterMeta = await live.evaluate((keys) => {
+      const el = document.querySelector('[data-v3-state-target="1"]'); if (!el) return null;
+      const cs = getComputedStyle(el); const style = {}; for (const k of keys) style[k] = cs[k];
+      const r = el.getBoundingClientRect();
+      return { style, hasText: !!((el.innerText || el.textContent || '').trim()), box: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } };
+    }, STYLE_KEYS).catch(() => null);
+    const after = await live.screenshot({ encoding: 'base64', clip });
+    const styleDelta = {};
+    if (afterMeta) for (const k of STYLE_KEYS) if (meta.style[k] !== afterMeta.style[k]) styleDelta[k] = { before: meta.style[k], after: afterMeta.style[k] };
+    const pixelsChanged = before !== after;
+    const stateReached = state === 'hover' ? (Object.keys(styleDelta).length > 0 || pixelsChanged) : !!(driven && driven.reached);
+    return {
+      stateReached,
+      textVisible: !!(afterMeta && afterMeta.hasText),
+      styleDelta,            // which allowlisted props changed (read-only) — NO synthesized fg/bg pair
+      pixelsChanged,
+      indicatorBox: afterMeta ? afterMeta.box : null,
+      screenshots: { before, after }, // judge the AFTER pixels; the runner abandoned this surface for a reason
+      ...(stateReached ? {} : { note: `state '${state}' did not reproduce — do not read a pass from it` }),
+    };
+  } finally { if (ownClone) { try { await live.close(); } catch (e) {} } }
+}
+
+// ============================================================================================
 // SDK binding — wrap the raw tool functions as an in-process MCP server over the live page `session`.
 // `session` = { page, freshClone:()=>Promise<page> }. Lazy-imports the SDK (ESM) + zod. Each tool returns
 // the JSON-stringified OBJECTIVE result as MCP text content — never a verdict.
@@ -177,8 +255,10 @@ async function buildCdpToolServer(session) {
       { targetXpath: z.string().optional(), x: z.number().optional(), y: z.number().optional() }, (a) => wrap(queryAxNode, a)),
     tool('observe_state_after_activation', 'Mutating (runs on a FRESH page clone): activate ONE control (by xpath) and return the OBJECTIVE before/after delta — what newly-visible text appeared, whether it appeared inside a live region, whether focus moved, whether the page navigated/opened a window. Reports WHAT changed and HOW, never whether it is conformant.',
       { targetXpath: z.string() }, (a) => wrap(observeStateAfterActivation, a)),
+    tool('set_state_and_capture', 'Mutating (FRESH clone): drive ONE element into an interaction state (focus|hover|checked|open|expanded|placeholder-shown) and return before/after screenshots of the same region + the computed-style DELTA (which outline/border/decoration/background props changed) + stateReached/textVisible. Use for state-specific indicators (1.4.11/1.4.1/1.4.3). Returns PIXELS + objective style deltas, never a contrast number or a verdict; if stateReached is false, do not infer a pass.',
+      { targetXpath: z.string(), state: z.enum(['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown']) }, (a) => wrap(setStateAndCapture, a)),
   ];
   return createSdkMcpServer({ name: 'cdp', version: '1.0.0', tools });
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, buildCdpToolServer, resolveXpath };
+module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, buildCdpToolServer, resolveXpath };
