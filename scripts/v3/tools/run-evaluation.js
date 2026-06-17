@@ -51,6 +51,9 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
   w('experiments.json', experiments);    // includes unrun[] + environment
   w('claim-proposals.json', claimProposals);
   w('applicability.json', bundle.applicability); // independent applicability observation (Rule 15) — hashed in the manifest, must round-trip for replay (audit V3R5-C1)
+  // C0 (Harness 3.3): axe's decided coverage surfaced from the collector's own run — non-authoritative,
+  // not hashed, identity-bound. Present whenever the collector ran axe (collect.axeRan).
+  if (bundle.checkerFindings) w('checker-findings.json', bundle.checkerFindings);
   // LLM evidence-lane artifacts (only present when the lane ran): non-authoritative, not hashed.
   if (bundle.llm) w('llm.json', bundle.llm);
   if (bundle.judgments) w('judgments.json', bundle.judgments);

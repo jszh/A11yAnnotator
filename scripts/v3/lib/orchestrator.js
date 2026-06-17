@@ -54,6 +54,15 @@ async function orchestrate(collect, drive, opts = {}) {
       .catch(() => ({ file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, findings: [] }));
     bundle.instruments = inst;
   }
+  // CHECKER FINDINGS stage — C0 (Harness 3.3): surface axe's already-decided coverage from the
+  // collector's OWN run (collect.axe / collect.axeRan, scripts/eval-page.js). FREE: no browser, no
+  // network, no API — axe already ran at collection time and v3 was throwing the decided wins away.
+  // NON-AUTHORITATIVE and identity-stamped; never an obligation disposition (no tie-break — §2). Only
+  // attached when axe actually ran (a missing sentinel ⇒ no axe signal, not "axe clean").
+  const axeSurf = require('./axe-surface.js').surfaceAxeFindings(collect);
+  if (axeSurf.ran) {
+    bundle.checkerFindings = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, source: 'axe', ran: true, findings: axeSurf.findings };
+  }
   // the trusted orchestrator finalizes + attests the run-manifest binding every artifact hash and the
   // observed page identity (plan Rule 17; audit V3R4-H7). The observed identity is the RUNNER's own
   // per-result observation, not the collector's claim (audit V3R5-M1): a SIGNED, RESULT-BEARING run

@@ -370,6 +370,21 @@ function buildV3(bundle, opts = {}) {
     }
   }
 
+  // CHECKER FINDINGS (Harness 3.3, C0/C1): external-checker cross-signals — axe surfaced from the
+  // collector's own run (C0) and, later, a live engine like IBM (C1). Like instrument findings they are
+  // NON-AUTHORITATIVE and NEVER an obligation disposition (so reconcile() sees no second decision and
+  // emits no tie-break — HARNESS-3.3-IMPLEMENTATION.md §2). Structured only (no page-content prose), so
+  // the strict legacy scanner below cannot trip. `source` distinguishes axe from a live checker.
+  const checkerFindings = [];
+  if (bundle.checkerFindings != null) {
+    const chk = bundle.checkerFindings;
+    if (typeof chk !== 'object' || chk === null || !Array.isArray(chk.findings)) { E('checkerFindings: must be an object with a findings[] array'); return { ok: false, errors, results: null }; }
+    for (const f of chk.findings) {
+      if (typeof f !== 'object' || f === null) { E('checkerFindings: each finding must be an object'); return { ok: false, errors, results: null }; }
+      checkerFindings.push({ source: String(f.source || 'checker'), detector: String(f.detector || f.ruleId || 'checker'), ruleId: f.ruleId != null ? String(f.ruleId) : null, sc: String(f.sc || ''), impact: f.impact != null ? String(f.impact) : '', kind: String(f.kind || 'violation'), xpath: f.xpath != null ? String(f.xpath) : null, review: !!f.review, authoritative: false, shadow: true });
+    }
+  }
+
   // (6) emit v3-only results; refuse if a legacy label somehow survived
   const stripClaim = (c) => { const { _target, _family, _sc, _authState, disposition, authoritative, ...rest } = c; return rest; };
   const stripPartial = (p) => { const { _target, _family, _sc, authoritative, ...rest } = p; return rest; };
@@ -390,6 +405,7 @@ function buildV3(bundle, opts = {}) {
     dynamicSubjects: dyn.subjects, // post-action discoveries, expanded + reconciled (Rule 13)
     adjudicationRecommendations, // DERIVED view over the un-promoted source:'llm' shadow obs (3.1 unify)
     instrumentFindings, // non-authoritative VSR/keyboard instrument signals (shadow until gold-calibrated)
+    checkerFindings, // non-authoritative external-checker cross-signals (axe C0 / IBM C1) — never a disposition
     summary: {
       obligations: obligations.length,
       proposals: proposals.length,
@@ -409,6 +425,8 @@ function buildV3(bundle, opts = {}) {
       dynamicSubjects: dyn.subjects.length,
       adjudicationRecommendations: adjudicationRecommendations.length,
       instrumentFindings: instrumentFindings.length,
+      checkerFindings: checkerFindings.length, // external-checker cross-signal count (axe C0 / IBM C1)
+      checkerFindingsBySc: checkerFindings.reduce((m, f) => { const k = f.sc || 'unknown'; m[k] = (m[k] || 0) + 1; return m; }, Object.create(null)), // per-SC, for the §G annotation sampling
     },
   };
   // The v3 OUTPUT is entirely harness-authored (no page content), so scan it STRICTLY: any legacy

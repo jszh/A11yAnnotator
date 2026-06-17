@@ -13,7 +13,10 @@ const CONFORMANCE = 'NOT_ASSESSED'; // constant; conformance is never assessed b
 // WHO produced an observation — a FOURTH orthogonal axis (Harness 3.1 §2). It is a tag, not a new
 // observation value and not a new disposition: an `llm` observation is ALWAYS a non-authoritative
 // shadow record, scored against gold before any promotion (and even then capped — authority.js).
-const EVIDENCE_SOURCES = ['deterministic', 'instrument', 'llm'];
+// Harness 3.3 adds external-checker sources: `axe` (surfaced from the collector's own run, C0) and
+// `checker` (a live external engine, e.g. IBM, C1). Both are non-authoritative cross-signals that
+// live in the side `checkerFindings` lane, never an obligation disposition (no tie-break — §2).
+const EVIDENCE_SOURCES = ['deterministic', 'instrument', 'llm', 'axe', 'checker'];
 const LLM_CONFIDENCE = ['low', 'medium', 'high'];
 
 // SINGLE SOURCE OF TRUTH for lifting a v2.9 agent verdict into a v3 observation outcome (3.1 §2.2).

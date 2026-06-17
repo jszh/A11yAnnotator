@@ -10,7 +10,7 @@
 const V = require('./v3-schema.js');
 const cat = require('./catalog.js');
 
-const KNOWN_STAGES = ['manifest', 'collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals', 'applicability', 'judgments', 'instruments', 'llm', 'llmRationale', 'llmVision'];
+const KNOWN_STAGES = ['manifest', 'collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals', 'applicability', 'judgments', 'instruments', 'checkerFindings', 'llm', 'llmRationale', 'llmVision'];
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
 const isStr = (v) => typeof v === 'string' && v.length > 0;
 const isObj = (v) => v != null && typeof v === 'object' && !Array.isArray(v);

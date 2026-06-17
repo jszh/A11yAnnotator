@@ -80,6 +80,11 @@ function crossArtifactErrors(bundle, requiredStages = ['collect', 'experiments',
     ['llm', bundle.llm],
     ['llmRationale', bundle.llmRationale],
     ['llmVision', bundle.llmVision],
+    // Harness 3.3 — non-authoritative side lanes humans may label from, so a stale/wrong-page artifact
+    // is still harmful even though it never publishes. Bind instruments (was attached but UNGATED) and
+    // the external-checker findings (axe C0 / IBM C1) to the run identity like the LLM lane.
+    ['instruments', bundle.instruments],
+    ['checkerFindings', bundle.checkerFindings],
   ].filter(([, a]) => a != null);
 
   for (const [name, art] of arts) { const hit = findLegacyLabel(art, name); if (hit) push(`legacy verdict label present in ${name} (v3 is a clean schema break): ${hit}`); }
