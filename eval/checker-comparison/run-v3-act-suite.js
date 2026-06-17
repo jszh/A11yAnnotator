@@ -486,6 +486,7 @@ async function main() {
         runLlm: LLM_ON,
         runAgent: LLM_ON ? LLM_AGENT : undefined,
         captureVision: LLM_ON,
+        experimentConcurrency: Math.min(6, Math.max(1, +(process.env.V3_EXPERIMENT_CONCURRENCY || 1))), // DETERMINISTIC lane: default 1 = byte-identical serial; opt into parallel tab-copies, hard cap 6
         llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || 10),
         llmTools: LLM_TOOLS, llmTransportConfig: LLM_TRANSPORT_CONFIG, // PHASE 2 live CDP tools
         llmToolConcurrency: +(process.env.V3_LLM_TOOL_CONCURRENCY || 4),

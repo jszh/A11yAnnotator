@@ -343,9 +343,11 @@ function finalize(request, outcome, measurement, completed) {
 // Run a plan against a page-URL resolver. resolveUrl(request) -> a URL (file:// or http://).
 // Every request gets exactly ONE disposition: a typed result, or an explicit `unrun` record
 // (skipped/failed/deferred) — nothing disappears silently (audit V3-H6).
-async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationKey = null, budgetOpts = {} } = {}) {
+async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationKey = null, budgetOpts = {}, experimentConcurrency = 1 } = {}) {
   // dispatch table: focus runner here + the C1/C3–C9 runners (lazy require breaks the module cycle).
   const RUNNERS = Object.assign({ 'focus-visual-retry': runFocusVisualRetry }, require('./exp-runners.js').RUNNERS);
+  // the ONE audited order-preserving worker pool (shared with the LLM lane); lazy require avoids a cycle.
+  const { runPool } = require('./llm-adjudicator.js');
   // the production runner reads the trust-anchor key from the environment too (audit V3R4-H5) — so a
   // real `V3_ATTEST_KEY` run signs its evidence, not only the injected-key test path.
   const key = attestationKey || attest.loadKey({});
@@ -375,25 +377,35 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
         finally { await op.close().catch(() => {}); }
       }
     } catch (e) { /* best-effort; absence ⇒ the builder falls back to family-level corroboration */ }
-    for (const request of (plan && plan.requests) || []) {
+    // Each request is self-contained and opens its OWN fresh page per attempt (Rule 3) — so the in-page state
+    // it drives (focus/hover/viewport/form/CDP) is ALREADY isolated per request. That makes the request loop
+    // safe to run on N tab-copies concurrently (V3_EXPERIMENT_CONCURRENCY). Determinism is preserved by:
+    //   (1) runPool writes each outcome into a FIXED slot keyed by request index — completion order is
+    //       irrelevant; the serial merge below assembles results[]/unrun[] in REQUEST order, so the signed
+    //       evidence + attestation replay are byte-identical to the old serial loop;
+    //   (2) the budget RESERVATION guard (reserve/reconcile) — concurrent attempts cannot overshoot the cap;
+    //   (3) page-per-attempt is untouched, so no two requests ever share a DOM / CDP session.
+    // At concurrency 1 (the default) there is never an outstanding reservation and requests run one-at-a-time,
+    // so this is provably identical to the prior serial loop.
+    const runOneRequest = async (request) => {
+      const out = { result: null, unrun: [] };
       const req = { ...request, environment };
       const runner = RUNNERS[request.experimentId];
       if (!runner) { // nothing disappears silently (audit V3-H6)
-        unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: 'experiment has no registered runner' });
-        continue;
+        out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: 'experiment has no registered runner' });
+        return out;
       }
-      // BUDGET (plan Rule 8): once the run-level wall-clock cap is hit, defer the rest — never run
-      // unbounded. Each experiment carries a cost class (wall-clock deadline + retries) enforced below.
-      if (runBudget.exceeded()) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock budget (${runBudget.max}ms) exhausted` }); continue; }
+      // BUDGET (plan Rule 8): once the run-level wall-clock cap is hit, defer the rest — never run unbounded.
+      if (runBudget.exceeded()) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock budget (${runBudget.max}ms) exhausted` }); return out; }
       const cost = budget.costFor(RUNNERS[request.experimentId] && cat.getExperiment(request.experimentId));
       let produced = false;
       for (let attempt = 0; attempt <= cost.retries && !produced; attempt++) {
-        // Recompute the per-attempt wall against the RUN-level remaining budget, and DEBIT each attempt
-        // immediately — so a single slow/erroring request cannot overshoot the run cap by a (retries+1)×
-        // multiplier (gap-fill red-team). If the run budget is exhausted before a retry, defer (one
-        // disposition, never a silent drop). Debiting once after the whole loop was the overshoot bug.
+        // Recompute the per-attempt wall against the RUN-level remaining budget; RESERVE it up front so
+        // concurrent workers can't double-spend the cap, then RECONCILE to the REAL cost after. Reserving +
+        // reconciling per-attempt (not once after the retry loop) is the overshoot fix, extended to parallel.
         const wall = Math.min(cost.maxWallClockMs, runBudget.remaining());
-        if (wall <= 0) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock budget (${runBudget.max}ms) exhausted before attempt ${attempt}` }); break; }
+        if (wall <= 0) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock budget (${runBudget.max}ms) exhausted before attempt ${attempt}` }); break; }
+        const grant = runBudget.reserve(wall);
         const aStart = Date.now();
         const page = await browser.newPage();                 // FRESH isolated page per attempt (Rule 3)
         const outcome = await budget.withDeadline(async () => {
@@ -406,12 +418,25 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
           return sign(await runner(page, req), observedPageDigest);
         }, Math.max(1, wall)).catch((e) => ({ ok: false, error: e }));
         await page.close().catch(() => {});                   // abort any work still pending past the deadline
-        runBudget.add(Date.now() - aStart);                   // debit THIS attempt's real cost before deciding to retry
-        if (outcome.ok) { results.push(outcome.value); produced = true; }
-        else if (outcome.timeout) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `wall-clock budget ${wall}ms exceeded (mutationRisk:${cost.mutationRisk})` }); break; }
-        else if (attempt >= cost.retries) { unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String((outcome.error && outcome.error.message) || outcome.error || 'unknown').slice(0, 200) }); }
+        runBudget.reconcile(grant, Date.now() - aStart);      // release the reservation, book the real cost
+        if (outcome.ok) { out.result = outcome.value; produced = true; }
+        else if (outcome.timeout) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `wall-clock budget ${wall}ms exceeded (mutationRisk:${cost.mutationRisk})` }); break; }
+        else if (attempt >= cost.retries) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String((outcome.error && outcome.error.message) || outcome.error || 'unknown').slice(0, 200) }); }
       }
-    }
+      return out;
+    };
+    const reqList = (plan && plan.requests) || [];
+    // NO shouldStop: every request must flow through runOneRequest so a budget-exhausted request still gets its
+    // own `deferred` disposition (audit V3-H6) instead of being silently skipped by an early pool stop.
+    const slots = await runPool(reqList, Math.max(1, Number(experimentConcurrency) || 1), runOneRequest);
+    // SERIAL merge in REQUEST order ⇒ deterministic results[]/unrun[]. A null slot (runOneRequest threw — it
+    // shouldn't) still gets a disposition so nothing disappears silently (audit V3-H6).
+    slots.forEach((slot, i) => {
+      const request = reqList[i];
+      if (!slot) { unrun.push({ candidateId: request && request.candidateId, experimentId: request && request.experimentId, status: 'failed', reason: 'worker error (no disposition produced)' }); return; }
+      if (slot.result) results.push(slot.result);
+      for (const u of slot.unrun) unrun.push(u);
+    });
   } finally { await browser.close().catch(() => {}); }
   return {
     file: plan.file, runId: plan.runId, pageDigest: plan.pageDigest,

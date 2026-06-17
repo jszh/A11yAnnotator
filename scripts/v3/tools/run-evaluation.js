@@ -59,6 +59,7 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
     attestationKey: attest.loadKey({}),
     artifactVerifier: attest.makeDiskArtifactVerifier(ROOT),
     runLlm, runAgent, captureVision: runLlm, gold, runInstruments, runChecker,
+    experimentConcurrency: Math.min(6, Math.max(1, +(process.env.V3_EXPERIMENT_CONCURRENCY || 1))), // DETERMINISTIC lane: default 1 = byte-identical serial; opt into parallel tab-copies, hard cap 6
     llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || 10), // bounded judge concurrency (429-backoff is the real governor)
     llmTools, llmTransportConfig, // PHASE 2: live CDP tool session (opt-in V3_LLM_TOOLS)
     llmToolConcurrency: +(process.env.V3_LLM_TOOL_CONCURRENCY || 4), // bounds concurrent live tool sessions/tabs

@@ -459,4 +459,5 @@ module.exports = {
   MECHANISM, V2_9_VERDICTS, validateLlmShape, processLlm, mapToRubricVerdict,
   selectSubjects, selectRubricSubjects, precomputeSignals, buildPrompt, buildMessages,
   runAdjudication, runRubricJudgments, scrubRefs, isLegacyToken,
+  runPool, // the one audited order-preserving worker pool — shared by the deterministic experiment lane
 };

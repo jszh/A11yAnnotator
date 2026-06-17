@@ -61,7 +61,7 @@ async function orchestrate(collect, drive, opts = {}) {
   // builder can verify lineage at the publish boundary. The key comes from opts or the trusted
   // authority config (__trust) — never the bundle. Absent a key, evidence is unsigned ⇒ shadow-only.
   const attestationKey = opts.attestationKey || (opts.authority && opts.authority.__trust && opts.authority.__trust.attestationKey) || null;
-  const experiments = await run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey, budgetOpts: opts.budgetOpts });
+  const experiments = await run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey, budgetOpts: opts.budgetOpts, experimentConcurrency: opts.experimentConcurrency });
   experiments.startedAt = now;
   // the INDEPENDENT applicability observation (Rule 15) is produced by the runner pass but lives in
   // its OWN stage artifact (a different producer than the experiment outcome) — pull it out so the

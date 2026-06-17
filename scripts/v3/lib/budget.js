@@ -28,13 +28,23 @@ function costFor(exp) {
 }
 
 // run-level wall-clock cap shared across a plan; exceeded ⇒ remaining candidates are deferred.
+// `reserved` is the parallel reservation guard: when experiments run concurrently (V3_EXPERIMENT_CONCURRENCY>1)
+// a worker RESERVES its attempt's worst-case wall BEFORE launching, so N in-flight attempts cannot collectively
+// overshoot the cap (the user's chosen policy). reconcile() releases the reservation and books the REAL cost.
+// At concurrency 1 there is never an outstanding reservation between attempts, so remaining()/exceeded()/the
+// deferred-set are BYTE-IDENTICAL to the pre-reservation serial behaviour.
 function makeRunBudget({ maxRunWallClockMs = 10 * 60 * 1000 } = {}) {
-  let spent = 0;
+  let spent = 0, reserved = 0;
   return {
     add(ms) { spent += Math.max(0, ms || 0); },
     spent() { return spent; },
-    remaining() { return Math.max(0, maxRunWallClockMs - spent); },
-    exceeded() { return spent >= maxRunWallClockMs; },
+    remaining() { return Math.max(0, maxRunWallClockMs - spent - reserved); },
+    exceeded() { return spent + reserved >= maxRunWallClockMs; },
+    // Atomically claim up to `ms` of the FREE headroom (single-threaded ⇒ the read-then-add can't interleave).
+    // Returns the granted amount (0 ⇒ no headroom ⇒ the caller defers). Always pair with reconcile().
+    reserve(ms) { const grant = Math.min(Math.max(0, ms || 0), Math.max(0, maxRunWallClockMs - spent - reserved)); reserved += grant; return grant; },
+    // Release the reservation and book the attempt's REAL measured cost (net spend = actualMs).
+    reconcile(grant, actualMs) { reserved = Math.max(0, reserved - Math.max(0, grant || 0)); spent += Math.max(0, actualMs || 0); },
     max: maxRunWallClockMs,
   };
 }
