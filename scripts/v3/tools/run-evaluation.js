@@ -34,12 +34,15 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
   const runLlm = process.env.V3_LLM === '1' && !!llmKey;
   const runAgent = runLlm ? adapter.makeRunAgent({ transport: adapter.makeAnthropicTransport({ apiKey: llmKey }), model: process.env.V3_LLM_MODEL || undefined }) : null;
   const gold = runLlm ? loadGold().gold : undefined;
+  // INSTRUMENT lane (Harness 3.3, B): opt-in shadow VSR/keyboard findings. Independent of the LLM lane —
+  // no API key, no cost — so it can run on its own (V3_INSTRUMENTS=1) for the annotation-input corpus.
+  const runInstruments = process.env.V3_INSTRUMENTS === '1';
 
   const { candidates, plan, experiments, claimProposals, bundle, built } = await orchestrate(collect, drive, {
     resolveUrl, now: Date.now(),
     attestationKey: attest.loadKey({}),
     artifactVerifier: attest.makeDiskArtifactVerifier(ROOT),
-    runLlm, runAgent, captureVision: runLlm, gold,
+    runLlm, runAgent, captureVision: runLlm, gold, runInstruments,
     provisionalMode: process.env.V3_PROVISIONAL === 'gated' ? 'gated' : 'ungated',
   });
   const w = (name, obj) => fs.writeFileSync(path.join(outDir, name), JSON.stringify(obj, null, 2));
@@ -54,6 +57,7 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
   // C0 (Harness 3.3): axe's decided coverage surfaced from the collector's own run — non-authoritative,
   // not hashed, identity-bound. Present whenever the collector ran axe (collect.axeRan).
   if (bundle.checkerFindings) w('checker-findings.json', bundle.checkerFindings);
+  if (bundle.instruments) w('instruments.json', bundle.instruments); // B: shadow VSR/keyboard findings (V3_INSTRUMENTS)
   // LLM evidence-lane artifacts (only present when the lane ran): non-authoritative, not hashed.
   if (bundle.llm) w('llm.json', bundle.llm);
   if (bundle.judgments) w('judgments.json', bundle.judgments);

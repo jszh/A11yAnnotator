@@ -9,16 +9,18 @@
 // `state-after`. FOCUS (2.4.7 / 2.4.11) forces :focus AND :focus-visible via CDP (so a keyboard-only ring
 // still shows — mirroring drive-page.js's forcedFocusRing); HOVER (1.4.13) uses a REAL pointer move (fires
 // CSS :hover AND JS mouseenter, which CDP forcing does not) with a wider clip so a tooltip rendered beside/
-// below the trigger is captured. `captureVisionForUrl` folds the pairs into the static map via `mergeVision`
-// in ONE page load, so `runAdjudication` stays pure over `visionByXpath`. STILL PENDING: the form-submit
-// transition (3.3.1 / 3.3.3) is page-level (fill + failed submit → error state) and is not driven here yet,
-// so the two form rubrics keep abstaining (PARTIAL) until that handler lands.
+// below the trigger is captured. SUBMIT (3.3.1 / 3.3.3, Harness 3.3 D) fills the field invalid and submits
+// WITHOUT navigating (mirroring form-error-probe), capturing the form region before/after so the error
+// rubrics can read the surfaced message — the after-clip UNIONS the grown form so a message appended on
+// submit is in-frame. Invalid submit mutates page state irreversibly, so each form subject is isolated on a
+// fresh reload. `captureVisionForUrl` folds the pairs into the static map via `mergeVision` in ONE page
+// load, so `runAdjudication` stays pure over `visionByXpath`.
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// SC → the per-element transition whose before/after a rubric for that SC needs. Form SCs are intentionally
-// absent (their state pair is page-level, not yet driven). Exported so the orchestrator + a pure test share it.
-const STATE_TRANSITIONS = Object.freeze({ '2.4.7': 'focus', '2.4.11': 'focus', '1.4.13': 'hover' });
+// SC → the per-element transition whose before/after a rubric for that SC needs. Exported so the
+// orchestrator + a pure test share it. Form SCs drive a 'submit' (page-mutating ⇒ reload-isolated).
+const STATE_TRANSITIONS = Object.freeze({ '2.4.7': 'focus', '2.4.11': 'focus', '1.4.13': 'hover', '3.3.1': 'submit', '3.3.3': 'submit' });
 
 // Build the xpath -> transition plan from LLM subjects (first transition per xpath wins; deduped).
 function buildStatePlan(subjects) {
@@ -142,7 +144,57 @@ async function captureStateVision(page, plan, opts = {}) {
     } catch (e) { return null; }
   };
   const hoverSettle = Number.isFinite(opts.hoverSettleMs) ? opts.hoverSettleMs : 300; // ≥ a typical show-delay, < a typical auto-hide
+  // SUBMIT (3.3.1 / 3.3.3, Harness 3.3 D): the form-region before/after around a real invalid submit. The
+  // after-clip UNIONS the before-form-rect with the after-form-rect (the form grows when an error renders),
+  // measured in the SAME scroll frame so the union is valid. Invalid submit is irreversible, so each form
+  // subject runs on a fresh reload (focus/hover pairs are already captured + stored in `out`).
+  const scrollFormIntoView = (xp) => page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; const form = el && el.closest && el.closest('form'); if (form && form.scrollIntoView) { try { form.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { form.scrollIntoView(); } } }, xp).catch(() => {});
+  const measureForm = (xp) => page.evaluate((x) => {
+    const el = document.evaluate(x, document, null, 9, null).singleNodeValue;
+    const form = el && el.closest && el.closest('form');
+    if (!form) return null;
+    const cs = getComputedStyle(form); if (cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return null;
+    const r = form.getBoundingClientRect();
+    if (!(r.width >= 6) || !(r.height >= 6)) return null;
+    return { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight };
+  }, xp).catch(() => null);
+  const driveInvalidSubmit = (xp) => page.evaluate((x) => {
+    const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return false;
+    const form = el.closest('form'); if (!form) return false;
+    const type = (el.getAttribute('type') || '').toLowerCase();
+    const required = el.required === true || el.getAttribute('aria-required') === 'true';
+    if ('value' in el) { el.value = required ? '' : /^(email|url)$/.test(type) ? 'x' : /number/.test(type) ? 'abc' : ''; for (const ev of ['input', 'change', 'blur']) el.dispatchEvent(new Event(ev, { bubbles: true })); }
+    const onSubmit = (e) => e.preventDefault();                          // never navigate — the page's own handler shows errors
+    form.addEventListener('submit', onSubmit, true);
+    try { const btn = form.querySelector('button[type="submit"],input[type="submit"],button:not([type])'); if (btn) btn.click(); else if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); } catch (e) {}
+    form.removeEventListener('submit', onSubmit, true);
+    return true;
+  }, xp).catch(() => false);
+  // union the before- and after-form rects (same scroll frame), padded + clamped — contains the message
+  // wherever it rendered (above for a GOV.UK summary, below for an inline error).
+  const unionFormClip = (r0, r1, pad) => {
+    const x0 = Math.max(0, Math.min(r0.x, r1 ? r1.x : r0.x) - pad);
+    const y0 = Math.max(0, Math.min(r0.y, r1 ? r1.y : r0.y) - pad);
+    const x1 = Math.min(r0.vw, Math.max(r0.x + r0.w, r1 ? r1.x + r1.w : 0) + pad);
+    const y1 = Math.min(r0.vh, Math.max(r0.y + r0.h, r1 ? r1.y + r1.h : 0) + pad);
+    return (x1 > x0 && y1 > y0) ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : clampClip(r0, pad);
+  };
+  const captureSubmitPair = async (xp) => {
+    try { await page.reload({ waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }); } catch (e) {}
+    await parkPointer();
+    await scrollFormIntoView(xp);
+    const r0 = await measureForm(xp); if (!r0) return null;
+    const inView = r0.x < r0.vw && r0.y < r0.vh && r0.x + r0.w > 0 && r0.y + r0.h > 0; if (!inView) return null;
+    const pad = Number.isFinite(opts.submitPad) ? opts.submitPad : 20;
+    const before = await shot(clampClip(r0, pad)); if (!str(before)) return null;
+    if (!(await driveInvalidSubmit(xp))) return null;
+    await sleep(Number.isFinite(opts.submitSettleMs) ? opts.submitSettleMs : 150);
+    const r1 = await measureForm(xp);                                   // SAME scroll frame (no re-scroll) ⇒ union is valid
+    const after = await shot(unionFormClip(r0, r1, pad)); if (!str(after)) return null;
+    return { 'state-before': before, 'state-after': after };
+  };
   for (const [xp, transition] of entries) {
+    if (transition === 'submit') { const pair = await captureSubmitPair(xp); if (pair) out[xp] = pair; continue; }
     await parkPointer(); // RESET to a guaranteed-idle pointer BEFORE the before-frame (kills cross-subject hover leak)
     // a true IDLE before-state: blur whatever is focused, then bring the target into view.
     await page.evaluate((x) => { try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {} const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } } }, xp).catch(() => {});

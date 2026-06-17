@@ -8,6 +8,23 @@
 
 const H = require('./run-experiments.js'); // shared helpers (tagByXpath, hydrate, reach, settle, …)
 
+// Node-side relative-luminance + contrast ratio (mirrors the in-page WCAG formula). Used by the 1.4.3
+// runner to compute the WORST-CASE rendered contrast (Harness 3.3 A1 / audit J.4): a clear must hold
+// against the backdrop's contrast-REDUCING luminance extreme, not its mean — the mean hides a darker
+// (or lighter) sub-region that can fail while the average passes. Robust to a few stray edge pixels via
+// the 5th/95th-percentile extremes analyzeBackdrop returns.
+const _lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+const _lum = (c) => 0.2126 * _lin(c.r) + 0.7152 * _lin(c.g) + 0.0722 * _lin(c.b);
+const contrastRatio = (fg, bg) => { const l1 = _lum(fg), l2 = _lum(bg); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
+// worst (minimum) contrast of the foreground against the rendered backdrop mean and its luminance
+// extremes — taking the min automatically picks the contrast-reducing end for either text polarity.
+const worstContrast = (fg, backdrop) => {
+  const cands = [{ r: backdrop.r, g: backdrop.g, b: backdrop.b }];
+  if (backdrop.p05) cands.push(backdrop.p05);
+  if (backdrop.p95) cands.push(backdrop.p95);
+  return Math.min(...cands.map((c) => contrastRatio(fg, c)));
+};
+
 // standard result envelope (same shape as the focus runner's finalize()).
 function mk(request, experimentId, sc, outcome, applicabilityEvidence, { action, state = 'fresh-load', valid = false, measurement = {} } = {}) {
   return {
@@ -216,7 +233,11 @@ function analyzeBackdrop(sentAB64, sentBB64, hiddenB64) {
     const w = a.naturalWidth, h = a.naturalHeight; if (!w || !h) return { uniform: false };
     const px = (img) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.drawImage(img, 0, 0); return x.getImageData(0, 0, w, h).data; };
     const da = px(a), db = px(b), dh = px(hd);
+    // relative luminance (WCAG), to rank backdrop pixels and pick the contrast-reducing extreme.
+    const lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    const lumOf = (r, g, bl) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(bl);
     let minR = 255, minG = 255, minB = 255, maxR = 0, maxG = 0, maxB = 0, glyphPixels = 0, sumR = 0, sumG = 0, sumB = 0;
+    const samples = []; // {L,r,g,b} for each BACKDROP-behind-glyph pixel (for luminance percentiles)
     for (let i = 0; i < da.length; i += 4) {
       const sentDelta = Math.max(Math.abs(da[i] - db[i]), Math.abs(da[i + 1] - db[i + 1]), Math.abs(da[i + 2] - db[i + 2]));
       if (sentDelta <= 40) continue;             // backdrop pixel (unchanged between the two sentinels)
@@ -225,12 +246,20 @@ function analyzeBackdrop(sentAB64, sentBB64, hiddenB64) {
       if (r < minR) minR = r; if (g < minG) minG = g; if (bl < minB) minB = bl;
       if (r > maxR) maxR = r; if (g > maxG) maxG = g; if (bl > maxB) maxB = bl;
       sumR += r; sumG += g; sumB += bl;
+      samples.push({ L: lumOf(r, g, bl), r, g, b: bl });
     }
     const range = Math.max(maxR - minR, maxG - minG, maxB - minB);
     const n = glyphPixels || 1;
-    // the REPRESENTATIVE backdrop colour actually behind the glyphs — the ratio MUST be computed
-    // against this, not an unrelated CSS-resolved surface (audit V3R4-H1).
-    return { uniform: glyphPixels >= 8 && range <= 12, range, glyphPixels, r: Math.round(sumR / n), g: Math.round(sumG / n), b: Math.round(sumB / n) };
+    // 5th / 95th-percentile backdrop colours BY LUMINANCE — the worst-case extremes the ratio must hold
+    // against (audit J.4 residual). The percentile (not the absolute min/max) rejects a few stray edge
+    // pixels the sentinel mask let through. The MEAN is still returned for the CSS-agreement check.
+    samples.sort((x, y) => x.L - y.L);
+    const at = (q) => { const s = samples[Math.min(samples.length - 1, Math.max(0, Math.round(q * (samples.length - 1))))]; return s ? { r: s.r, g: s.g, b: s.b } : null; };
+    return {
+      uniform: glyphPixels >= 8 && range <= 12, range, glyphPixels,
+      r: Math.round(sumR / n), g: Math.round(sumG / n), b: Math.round(sumB / n), // representative MEAN (audit V3R4-H1)
+      p05: samples.length ? at(0.05) : null, p95: samples.length ? at(0.95) : null,
+    };
   });
 }
 
@@ -248,7 +277,7 @@ async function runTextContrastPixel(page, request) {
   // is genuinely uniform only if every captured pixel is one colour. A clear/barrier (anything that
   // needs a single computable contrast) requires BOTH the geometric channel AND this pixel channel
   // to agree the backdrop is uniform — closing SVG/canvas/pseudo painters enumeration cannot see.
-  let pixelUniform = false, pixelAgrees = false;
+  let pixelUniform = false, pixelAgrees = false, backdrop = null;
   if (a && a.textRendersVisible && a.foregroundResolved) {
     const clip = await page.evaluate(inkClip, marker).catch(() => null);
     if (clip) {
@@ -262,6 +291,7 @@ async function runTextContrastPixel(page, request) {
       await page.evaluate(setGlyphColor, marker, '').catch(() => {});
       if (sentA && sentB && hidden) {
         const px = await page.evaluate(analyzeBackdrop, sentA, sentB, hidden).catch(() => null);
+        backdrop = px;
         pixelUniform = !!(px && px.uniform);
         // the RATIO's backdrop colour (CSS paint stack) must AGREE with the rendered backdrop behind
         // the glyphs, or the ratio is computed against the wrong surface (audit V3R4-H1: white text
@@ -274,20 +304,27 @@ async function runTextContrastPixel(page, request) {
     }
   }
 
+  let renderedRatio = null;
   if (a && b) {
     const pixelOk = pixelUniform && pixelAgrees;
     const uniform = a.backdropIsSolidUniform && pixelOk;                 // both channels + colour agree
     const contrastComputable = a.contrastComputable && pixelOk;         // a.contrastComputable already ANDs the geometric channel
     Object.assign(o, { isTextNode: a.isTextNode, textRendersVisible: a.textRendersVisible, foregroundResolved: a.foregroundResolved, backgroundResolved: a.backgroundResolved, backdropIsSolidUniform: uniform, contrastComputable, sizeClassResolved: a.sizeClassResolved, notExemptText: a.notExemptText });
     o.measurementStable = a.signature === b.signature; // no color animation between reads
-    if (contrastComputable && o.measurementStable && a.ratio != null) {
-      o.thresholdMet = a.ratio >= a.threshold;
-      o.thresholdFailed = a.ratio < a.threshold;
+    // A1 (Harness 3.3): compute the ratio against the RENDERED backdrop's worst-case luminance extreme
+    // (analyzeBackdrop mean + p05/p95), NOT the CSS-resolved a.ratio. The CSS ratio can clear a true
+    // failure when the rendered backdrop differs within the ±16 agreement tolerance (audit B2), and the
+    // mean alone hides a darker sub-region under range≤12 (audit J.4). pixelAgrees still gates
+    // computability, so a >16 CSS/rendered disagreement abstains (INCONCLUSIVE), unchanged.
+    if (contrastComputable && o.measurementStable && a.fgColor && backdrop) {
+      renderedRatio = worstContrast(a.fgColor, backdrop);
+      o.thresholdMet = renderedRatio >= a.threshold;
+      o.thresholdFailed = renderedRatio < a.threshold;
     }
     // non-uniform backdrop (either channel) or instability ⇒ neither met nor failed ⇒ INCONCLUSIVE
   }
   const valid = !!(a && b && o.textRendersVisible && o.measurementStable);
-  return mk(request, 'text-contrast-pixel', '1.4.3', { ...o, hydrationReady }, { isTextNode: o.isTextNode, textRendersVisible: o.textRendersVisible, sizeClassResolved: o.sizeClassResolved }, { action: 'measure-contrast', valid, measurement: { ratio: a && a.ratio, threshold: a && a.threshold, pixelUniform, pixelAgrees } });
+  return mk(request, 'text-contrast-pixel', '1.4.3', { ...o, hydrationReady }, { isTextNode: o.isTextNode, textRendersVisible: o.textRendersVisible, sizeClassResolved: o.sizeClassResolved }, { action: 'measure-contrast', valid, measurement: { ratio: renderedRatio, threshold: a && a.threshold, pixelUniform, pixelAgrees, range: backdrop && backdrop.range } });
 }
 
 // =====================================================================================
@@ -389,21 +426,26 @@ function probeFormError(marker) {
     if (r.width <= 0 || r.height <= 0) return '';
     return (n.textContent || '').replace(/\s+/g, ' ').trim();
   };
-  const reddish = (c) => { const m = String(c).match(/rgba?\(([^)]+)\)/i); if (!m) return false; const p = m[1].split(',').map((x) => parseFloat(x)); if (p.length >= 4 && p[3] === 0) return false; return p[0] > 120 && p[0] > p[1] * 1.4 && p[0] > p[2] * 1.4; };
   const ERR_CLASS = /(error|invalid|warn|danger|fail|required|alert|toast|snackbar|notif|flash)/i;
+  // A2 (Harness 3.3): ERR_TEXT is English-only and NOT normative — it is no longer part of the
+  // identification DECISION (a Spanish/German/Japanese message must not false-barrier). It survives only
+  // as a guard that keeps a success surface that ALSO carries error/instruction wording from being
+  // wrongly excluded by OK_TEXT below; the reddish() colour cue is dropped entirely (colour is not text).
   const ERR_TEXT = /\b(error|errors|invalid|required|must|please|enter|missing|cannot|can't|incorrect|select|provide|fill|problem|wrong|empty|blank)\b/i;
   const OK_TEXT = /\b(thank|thanks|success|succeeded|saved|received|complete|completed|submitted|sent|welcome|congratulations)\b/i;
   const fieldId = el.id || '';
   const esc = (s) => (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
   const refSet = new Set(((el.getAttribute('aria-errormessage') || '') + ' ' + (el.getAttribute('aria-describedby') || '')).split(/\s+/).filter(Boolean));
   const isLiveRegion = (n) => { const r = (n.getAttribute('role') || '').toLowerCase(); const al = (n.getAttribute('aria-live') || '').toLowerCase(); return r === 'alert' || r === 'status' || al === 'assertive' || al === 'polite' || n.tagName === 'OUTPUT'; };
+  // error-styled by MARKUP only (role / data / class / id). Colour is NOT a normative identification
+  // signal and is not internationalised, so the reddish() fallback is dropped (audit B4 / A2).
   const errorStyled = (n) => {
     const r = (n.getAttribute('role') || '').toLowerCase();
     if (r === 'alert' || r === 'status') return true;
     if (n.hasAttribute('data-error') || n.getAttribute('aria-invalid') === 'true') return true;
     if (ERR_CLASS.test(n.getAttribute('class') || '')) return true;
     if (/error|invalid|alert|warn/i.test(n.id || '')) return true;
-    return reddish(getComputedStyle(n).color);
+    return false;
   };
   const referencesField = (n) => {
     if (n.id && refSet.has(n.id)) return true;                       // the field points AT this node (describedby/errormessage)
@@ -447,17 +489,21 @@ function probeFormError(marker) {
   form.removeEventListener('submit', onSubmit, true);
 
   // AFTER: a freshly-SURFACED (new / shown / populated), visible, error-ASSOCIATED message identifies the
-  // error. Association = references the field, is a live region, is error-styled (role/class/data/colour),
-  // or reads as error text. A success/confirmation surface is excluded. Bias toward NOT-barrier: any
-  // plausible identification ⇒ errorNotIdentified=false ⇒ PARTIAL, never a false BARRIER.
+  // error — LANGUAGE-AGNOSTIC (A2). Association = the field references it (describedby/errormessage/
+  // summary-link), it is a live region, it is error-styled by MARKUP (role/class/data/id — NOT colour),
+  // or it surfaced INSIDE the field's own form. The English-only ERR_TEXT keyword and the reddish() colour
+  // cue are no longer part of the decision (audit B4): a non-English in-text message must not false-barrier
+  // and colour is not text. A pure success/confirmation surface (OK_TEXT, no error/instruction wording) is
+  // still excluded. Bias toward NOT-barrier: any plausible identification ⇒ errorNotIdentified=false ⇒
+  // PARTIAL (language/meaning deferred to the LLM/human lane), never a false BARRIER.
   let customIdentifies = false, errorSample = '';
   for (const n of universe()) {
     const now = visibleText(n);
     if (!now) continue;
     const pre = (PRE in n) ? n[PRE] : '';                 // not in the pre-universe (newly created/styled) ⇒ pristine '' ⇒ surfaced
     if (pre === now) continue;                            // unchanged surface (e.g. the persistent cart status) is not an error event
-    if (OK_TEXT.test(now) && !ERR_TEXT.test(now)) continue;  // a success/confirmation surface is not error identification
-    if (referencesField(n) || isLiveRegion(n) || errorStyled(n) || ERR_TEXT.test(now)) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
+    if (OK_TEXT.test(now) && !ERR_TEXT.test(now)) continue;  // a pure success/confirmation surface is not error identification
+    if (referencesField(n) || isLiveRegion(n) || errorStyled(n) || (form && form.contains(n))) { customIdentifies = true; errorSample = now.slice(0, 80); break; }
   }
   for (const n of universe()) { try { delete n[PRE]; } catch (e) {} }
   if (orig != null) { el.value = orig; } // restore
@@ -727,12 +773,18 @@ async function runKeyboardTrapEscape(page, request) {
   if (!tagged) return mk(request, 'keyboard-trap-escape', '2.1.2', o, {}, { action: 'tab-into-then-escape' });
   o.targetIsFocusable = await page.evaluate((m) => { const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return false; el.focus(); const ok = document.activeElement === el; el.blur(); return ok; }, marker).catch(() => false);
 
-  // tag the containing region so we can detect "focus left the region"
-  await page.evaluate((m) => {
-    const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return;
-    const region = el.closest('[role="dialog"],dialog,[aria-modal="true"],[role="menu"],[role="listbox"],[role="grid"],[role="tablist"]') || el;
+  // tag the containing region so we can detect "focus left the region". A3 (Harness 3.3): use the SHARED
+  // class-aware selector from kbd-graph (TRAP_REGION_SEL) so a role-LESS `<div class=modal>` trap anchors
+  // to the overlay, not collapsing to the input itself — which false-CLEARED the role-less trap the
+  // detector catches (audit §D / L5). Also read the in-region focusable count to size the escape budget.
+  const kg = require('./kbd-graph.js');
+  const regionInfo = await page.evaluate((m, regSel, focSel) => {
+    const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return { focusableCount: 0 };
+    const region = el.closest(regSel) || el;
     region.setAttribute('data-v3-region', m);
-  }, marker).catch(() => {});
+    const fs = [...region.querySelectorAll(focSel)].filter((f) => f.offsetParent !== null || getComputedStyle(f).position === 'fixed');
+    return { focusableCount: fs.length };
+  }, marker, kg.TRAP_REGION_SEL, kg.FOCUSABLE_SEL).catch(() => ({ focusableCount: 0 }));
 
   const reach = await H.realKeyboardReach(page, marker); const reached = reach.reached; // V3R6-MAXTAB
   o.keyboardReachableInState = reached; o.focusEnteredRegion = reached;
@@ -746,7 +798,10 @@ async function runKeyboardTrapEscape(page, request) {
     const inDoc = !!(a && a !== document.body && a.tagName !== 'IFRAME' && document.hasFocus());
     return { inRegion, inDoc, isTarget: !!(a && a.getAttribute && a.getAttribute('data-v3-target') === m) };
   };
-  const BUDGET = 12;
+  // A3: derive the escape budget from the in-region focusable count (+ margin), not a fixed 12 — a fixed
+  // budget over-abstained (flipped a valid CLEAR to INCONCLUSIVE) at ≥13 in-region focusables, because a
+  // well-behaved large region needs more than 12 Tabs to step past every focusable and exit. Floor at 12.
+  const BUDGET = Math.max(12, regionInfo.focusableCount + 4);
   // forward Tab escape (re-reach first)
   let tabEscapes = false, cycledBackToStart = false, lost = false;
   for (let i = 0; i < BUDGET; i++) {

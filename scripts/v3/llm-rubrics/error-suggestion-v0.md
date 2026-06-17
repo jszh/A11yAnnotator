@@ -20,6 +20,9 @@ suggestion is actually possible (free-text essays / security reasons may exempt 
 `state-after`), the validation/error text, and the field type.
 
 **WCAG soundness caveats (these STOP a false barrier):**
+- LANGUAGE-AGNOSTIC (Harness 3.3 D): a correction suggestion in ANY language counts — do NOT require
+  English phrasing. Colour and `error`/`invalid` class names are WEAK PRIORS only; judge the meaning of
+  the message text actually shown in `state-after`, across languages.
 - C2 (mechanism-agnostic): do NOT infer a 3.3.3 failure from a missing `aria-invalid` or the absence of a
   message — only judge the CONTENT of a message that IS shown.
 - If a correction suggestion is genuinely not knowable (or withholding it is essential, e.g. security),

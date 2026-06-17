@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>e</title></head>
+<body>
+<h1>Many buttons</h1>
+<div id="out"></div>
+<script>
+// 20 buttons. Buttons 1..14 and 16..20 are inert (no DOM change). ONLY button 15 produces an
+// un-announced plain-text status. With maxTriggers=12 the 15th is never probed -> false negative.
+for (var i=1;i<=20;i++){
+  var b=document.createElement('button');
+  b.type='button';
+  b.id='b'+i;
+  b.textContent='Button '+i;
+  if(i===15){
+    b.setAttribute('onclick',"document.getElementById('out').appendChild(Object.assign(document.createElement('div'),{textContent:'Saved successfully'}))");
+  }else{
+    b.setAttribute('onclick',"void 0"); // inert: no DOM change, no navigation
+  }
+  document.body.appendChild(b);
+}
+</script>
+</body></html>

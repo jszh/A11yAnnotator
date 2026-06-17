@@ -427,6 +427,16 @@ function buildV3(bundle, opts = {}) {
       instrumentFindings: instrumentFindings.length,
       checkerFindings: checkerFindings.length, // external-checker cross-signal count (axe C0 / IBM C1)
       checkerFindingsBySc: checkerFindings.reduce((m, f) => { const k = f.sc || 'unknown'; m[k] = (m[k] || 0) + 1; return m; }, Object.create(null)), // per-SC, for the §G annotation sampling
+      // EVIDENCE MODE (Harness 3.3, B): which non-authoritative lanes contributed, visible without reading
+      // logs. provisionalMode is the build option; the rest are derived from which artifacts the bundle
+      // carries (so the run summary records exactly what produced its evidence). Authoritative output is
+      // unaffected — these lanes never publish a CLAIM.
+      evidenceMode: {
+        provisionalMode: opts.provisionalMode === 'gated' ? 'gated' : 'ungated',
+        runLlm: !!(bundle.llm || bundle.judgments),
+        runInstruments: !!bundle.instruments,
+        checkers: [...new Set(checkerFindings.map((f) => f.source))].sort(), // ['axe'] now; ['axe','checker'] once IBM (C1) is wired
+      },
     },
   };
   // The v3 OUTPUT is entirely harness-authored (no page content), so scan it STRICTLY: any legacy

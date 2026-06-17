@@ -196,4 +196,4 @@ async function detectKeyboardTraps(page, opts = {}) {
   };
 }
 
-module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, REACH_SAFETY_CAP };
+module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, REACH_SAFETY_CAP, TRAP_REGION_SEL, FOCUSABLE_SEL };

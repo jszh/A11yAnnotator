@@ -24,6 +24,11 @@ message that identifies but does not suggest still passes 3.3.1.)
 `state-after`), the textual error/validation message that was shown, and the field type.
 
 **WCAG soundness caveats (these STOP a false clear/barrier):**
+- LANGUAGE-AGNOSTIC (Harness 3.3 D): the error text may be in ANY language — a clearly-worded message in
+  Spanish/German/Japanese/etc. identifies the error exactly as an English one does. Do NOT require English
+  keywords. Colour (a red message/border), an `error`/`invalid` CSS class, and English error stems are
+  WEAK PRIORS ONLY — their presence is not sufficient and their absence is not decisive. Judge the ACTUAL
+  rendered text shown in `state-after` (vs `state-before`), reading meaning across languages.
 - C2 (mechanism-agnostic): do NOT infer a 3.3.1 failure from a missing `aria-invalid` — the absence of
   that attribute is not itself a barrier. Judge whether the error is identified IN TEXT, by whatever
   mechanism; programmatic association is necessary but a missing attribute alone does not manufacture a

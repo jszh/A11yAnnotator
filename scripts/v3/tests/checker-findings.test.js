@@ -94,6 +94,18 @@ test('build: checker findings surface NON-AUTHORITATIVE, counted by SC; authorit
   assert.equal(r.results.summary.authoritative, without.results.summary.authoritative, 'checkers do not change the authoritative count');
 });
 
+test('build: evidenceMode (B) reflects which non-authoritative lanes contributed', () => {
+  // bare deterministic run: no lanes
+  const bare = buildV3(baseBundle()).results.summary.evidenceMode;
+  assert.deepEqual(bare, { provisionalMode: 'ungated', runLlm: false, runInstruments: false, checkers: [] });
+  // axe surfaced + instruments attached
+  const bundle = baseBundle();
+  bundle.checkerFindings = { file: 'p', runId: 'R', pageDigest: 'sha256:d', source: 'axe', ran: true, findings: [{ source: 'axe', detector: 'axe:list', ruleId: 'list', sc: '1.3.1', impact: 'serious', kind: 'violation', xpath: 'ul', review: false }] };
+  bundle.instruments = { file: 'p', runId: 'R', pageDigest: 'sha256:d', findings: [{ detector: 'tab-order', sc: '2.4.3', kind: 'tab-order', xpath: '/y', detail: 'x' }] };
+  const em = buildV3(bundle, { provisionalMode: 'gated' }).results.summary.evidenceMode;
+  assert.deepEqual(em, { provisionalMode: 'gated', runLlm: false, runInstruments: true, checkers: ['axe'] });
+});
+
 test('build: a malformed checkerFindings artifact is REFUSED (findings must be an array)', () => {
   const bundle = baseBundle();
   bundle.checkerFindings = { file: 'p', runId: 'R', pageDigest: 'sha256:d', findings: 'nope' };

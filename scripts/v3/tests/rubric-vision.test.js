@@ -96,15 +96,16 @@ test('mergeVision: driver state pairs merge into the static crop map by (xpath, 
 });
 
 // ============================ item 11 bridge: the state-pair plan + driver (audit #1) ============================
-test('buildStatePlan: focus/hover SCs map to a transition; form SCs (page-level) do NOT; deduped per xpath', () => {
+test('buildStatePlan: focus/hover/submit SCs map to a transition; a static SC does NOT; deduped per xpath', () => {
   const subs = [
     { xpath: '/a', sc: '2.4.7' }, { xpath: '/a', sc: '2.4.11' }, // same xpath: first transition wins
-    { xpath: '/b', sc: '1.4.13' }, { xpath: '/c', sc: '3.3.1' }, { xpath: '/d', sc: '1.1.1' },
+    { xpath: '/b', sc: '1.4.13' }, { xpath: '/c', sc: '3.3.1' }, { xpath: '/d', sc: '1.1.1' }, { xpath: '/e', sc: '3.3.3' },
   ];
   const plan = buildStatePlan(subs);
   assert.equal(plan['/a'], 'focus', '2.4.7 → focus');
   assert.equal(plan['/b'], 'hover', '1.4.13 → hover');
-  assert.equal(plan['/c'], undefined, '3.3.1 (form submit) is not driven per-element yet');
+  assert.equal(plan['/c'], 'submit', '3.3.1 → submit (Harness 3.3 D)');
+  assert.equal(plan['/e'], 'submit', '3.3.3 → submit');
   assert.equal(plan['/d'], undefined, 'a static SC needs no state pair');
   assert.equal(STATE_TRANSITIONS['2.4.11'], 'focus');
 });
@@ -148,6 +149,24 @@ test('captureStateVision e2e: focus forces a ring delta; an indicator-less contr
     const hov = h['/html/body/button[1]'];
     assert.ok(hov && isPng(hov['state-before']) && isPng(hov['state-after']), 'hover pair is two PNGs');
     assert.notEqual(hov['state-before'], hov['state-after'], 'a real pointer move revealed the tooltip');
+  } finally { await b.close(); }
+});
+
+test('captureStateVision e2e: form-submit pairs capture pristine→error (3.3.1/3.3.3); each form reload-isolated (Harness 3.3 D)', { skip: !chromeOK, concurrency: false }, async () => {
+  const puppeteer = require('puppeteer');
+  const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const fx = (n) => 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', n);
+    const p = await b.newPage(); await p.setViewport({ width: 800, height: 600 }); await p.goto(fx('fx-v3-submit-pair.html'), { waitUntil: 'load' });
+    const isPng = (d) => Buffer.from(d, 'base64').slice(0, 8).toString('hex') === '89504e470d0a1a0a';
+    const e1 = '/html/body/form[1]/input[1]', e2 = '/html/body/form[2]/input[1]';
+    // TWO form subjects: invalid submit mutates the page, so each must be reload-isolated — both produce a
+    // pristine before-frame and an after-frame where the (initially display:none) error has surfaced.
+    const s = await captureStateVision(p, { [e1]: 'submit', [e2]: 'submit' });
+    for (const xp of [e1, e2]) {
+      assert.ok(s[xp] && isPng(s[xp]['state-before']) && isPng(s[xp]['state-after']), `${xp} submit pair is two PNGs`);
+      assert.notEqual(s[xp]['state-before'], s[xp]['state-after'], `${xp}: the error message surfaced ⇒ before≠after`);
+    }
   } finally { await b.close(); }
 });
 

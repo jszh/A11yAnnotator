@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><title>b: APG-correct modal</title></head>
+<body>
+<button id="opener">open</button>
+<div id="t" role="dialog" aria-modal="true" class="dialog"
+     style="position:fixed;top:40px;left:40px;width:320px;height:220px;background:#fff;border:2px solid #333">
+  <h2>Sign in</h2>
+  <input id="i1" placeholder="user">
+  <input id="i2" placeholder="pass">
+  <button id="submit">Submit</button>
+  <button id="closeBtn">Close</button>
+</div>
+<button id="after">after</button>
+<script>
+// APG-correct: Tab cycles WITHIN the dialog (focus trap), BUT Esc closes it (display:none),
+// AND there is a keyboard-operable Close button. NOT a 2.1.2 trap.
+(function(){
+  var modal = document.getElementById('t');
+  var f = ['i1','i2','submit','closeBtn'].map(function(id){return document.getElementById(id);});
+  function close(){ modal.style.display='none'; var o=document.getElementById('opener'); if(o) o.focus(); }
+  modal.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){ e.preventDefault(); close(); return; }
+    if (e.key !== 'Tab') return;
+    var a = document.activeElement; var idx = f.indexOf(a); if (idx===-1) return;
+    e.preventDefault();
+    var next = e.shiftKey ? f[(idx-1+f.length)%f.length] : f[(idx+1)%f.length];
+    next.focus();
+  });
+  document.getElementById('closeBtn').addEventListener('click', close);
+})();
+</script>
+</body></html>
