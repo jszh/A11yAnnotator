@@ -97,8 +97,8 @@ async function observeStateAfterActivation(page, args, ctx) {
   const { targetXpath } = args || {};
   if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required' };
   // ALWAYS on a fresh clone — activation mutates the page.
-  const live = ctx && typeof ctx.freshClone === 'function' ? await ctx.freshClone() : page;
-  const ownClone = !!(ctx && typeof ctx.freshClone === 'function');
+  if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
+  const live = await ctx.freshClone();
   try {
     const snapshot = () => live.evaluate((xp) => {
       const visText = () => { const s = new Set(); for (const el of document.querySelectorAll('body *')) { const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden') continue; for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) s.add(n.textContent.trim()); } return [...s]; };
@@ -158,7 +158,7 @@ async function observeStateAfterActivation(page, args, ctx) {
       newVisibleTextCount: newTexts.length,
       anyNewTextInLiveRegion: newlyVisible.some((n) => n.inLiveRegion),
     };
-  } finally { if (ownClone) { try { await live.close(); } catch (e) {} } }
+  } finally { try { await live.close(); } catch (e) {} }
 }
 
 // ============================================================================================
@@ -175,8 +175,8 @@ async function setStateAndCapture(page, args, ctx) {
   if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required' };
   const allowed = ['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown'];
   if (!allowed.includes(state)) return { error: `state must be one of: ${allowed.join(', ')}` };
-  const live = ctx && typeof ctx.freshClone === 'function' ? await ctx.freshClone() : page;
-  const ownClone = !!(ctx && typeof ctx.freshClone === 'function');
+  if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
+  const live = await ctx.freshClone();
   try {
     const meta = await live.evaluate((xp, keys) => {
       const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
@@ -200,7 +200,9 @@ async function setStateAndCapture(page, args, ctx) {
         const el = document.querySelector('[data-v3-state-target="1"]'); if (!el) return { reached: false };
         if (st === 'focus') { el.focus({ preventScroll: true }); return { reached: document.activeElement === el }; }
         if (st === 'checked') {
-          if ('checked' in el) { el.checked = true; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return { reached: !!el.checked }; }
+          // ONLY a native checkbox/radio has a 'checked' STATE — `'checked' in el` is true for the whole
+          // HTMLInputElement prototype (text/range/...), which would no-op-write and falsely report reached.
+          if (el.tagName === 'INPUT' && (el.type === 'checkbox' || el.type === 'radio')) { el.checked = true; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); return { reached: !!el.checked }; }
           const role = el.getAttribute('role');
           if (role === 'checkbox' || role === 'switch' || el.hasAttribute('aria-checked')) { const b = el.getAttribute('aria-checked'); el.click(); return { reached: el.getAttribute('aria-checked') !== b }; }
           return { reached: false }; // not a checkable element — honest "not reproduced"
@@ -236,7 +238,7 @@ async function setStateAndCapture(page, args, ctx) {
       screenshots: { before, after }, // judge the AFTER pixels; the runner abandoned this surface for a reason
       ...(stateReached ? {} : { note: `state '${state}' did not reproduce — do not read a pass from it` }),
     };
-  } finally { if (ownClone) { try { await live.close(); } catch (e) {} } }
+  } finally { try { await live.close(); } catch (e) {} }
 }
 
 // ============================================================================================
@@ -250,8 +252,8 @@ async function setStateAndCapture(page, args, ctx) {
 async function probeScreenReaderAfterAction(page, args, ctx) {
   const { triggerXpath } = args || {};
   if (typeof triggerXpath !== 'string' || !triggerXpath) return { error: 'triggerXpath required' };
-  const live = ctx && typeof ctx.freshClone === 'function' ? await ctx.freshClone() : page;
-  const ownClone = !!(ctx && typeof ctx.freshClone === 'function');
+  if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
+  const live = await ctx.freshClone();
   try {
     const vsr = require('./vsr-collect.js');
     const ok = await vsr.ensureVsr(live);
@@ -273,7 +275,7 @@ async function probeScreenReaderAfterAction(page, args, ctx) {
     if (!res.started) return { error: 'vsr-start-failed', announcements: [], emptyQueue: true };
     const announcements = (res.log || []).filter(Boolean);
     return { announcements, announcementCount: announcements.length, emptyQueue: announcements.length === 0 };
-  } finally { if (ownClone) { try { await live.close(); } catch (e) {} } }
+  } finally { try { await live.close(); } catch (e) {} }
 }
 
 // ============================================================================================
@@ -316,8 +318,8 @@ async function requestHiResCrop(page, args, ctx) {
   const { targetXpath, scale } = args || {};
   if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required' };
   const s = Math.max(1, Math.min(Number(scale) || 3, 4));
-  const live = ctx && typeof ctx.freshClone === 'function' ? await ctx.freshClone() : page;
-  const ownClone = !!(ctx && typeof ctx.freshClone === 'function');
+  if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
+  const live = await ctx.freshClone();
   try {
     const vp = live.viewport() || { width: 1280, height: 900 };
     await live.setViewport({ width: vp.width, height: vp.height, deviceScaleFactor: s }).catch(() => {});
@@ -327,7 +329,7 @@ async function requestHiResCrop(page, args, ctx) {
     const screenshot = await live.screenshot({ encoding: 'base64', clip }).catch(() => null);
     if (!screenshot) return { error: 'capture failed' };
     return { screenshot, scaleUsed: s, cssPixelSize: { w: meta.cssW, h: meta.cssH }, devicePixelSize: { w: Math.round(meta.cssW * s), h: Math.round(meta.cssH * s) }, note: 'higher device-scale re-raster of the SAME layout (not page zoom); if still illegible, return PARTIAL — do not invent text' };
-  } finally { if (ownClone) { try { await live.close(); } catch (e) {} } }
+  } finally { try { await live.close(); } catch (e) {} }
 }
 
 // ============================================================================================
@@ -341,8 +343,8 @@ async function renderWithOverrides(page, args, ctx) {
   const VISION = { grayscale: 'achromatopsia', protanopia: 'protanopia', deuteranopia: 'deuteranopia', tritanopia: 'tritanopia' };
   const allowed = [...Object.keys(VISION), 'forced-colors', 'no-author-css'];
   if (!allowed.includes(transform)) return { error: `transform must be one of: ${allowed.join(', ')}` };
-  const live = ctx && typeof ctx.freshClone === 'function' ? await ctx.freshClone() : page;
-  const ownClone = !!(ctx && typeof ctx.freshClone === 'function');
+  if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this mutating tool refuses to touch the shared page' };
+  const live = await ctx.freshClone();
   try {
     const cdp = await live.createCDPSession();
     if (VISION[transform]) await cdp.send('Emulation.setEmulatedVisionDeficiency', { type: VISION[transform] }).catch(() => {});
@@ -357,7 +359,7 @@ async function renderWithOverrides(page, args, ctx) {
     const screenshot = await live.screenshot({ encoding: 'base64', ...(clip ? { clip } : {}) }).catch(() => null);
     if (!screenshot) return { error: 'capture failed', transform };
     return { transform, screenshot, note: 'rendered under one fixed transform; judge from these pixels — do NOT assert a numeric ratio from a grayscale/CVD image' };
-  } finally { if (ownClone) { try { await live.close(); } catch (e) {} } }
+  } finally { try { await live.close(); } catch (e) {} }
 }
 
 // ============================================================================================
@@ -452,6 +454,11 @@ async function resolveDestination(page, args) {
     ctx = browser.createBrowserContext ? await browser.createBrowserContext() : await browser.createIncognitoBrowserContext();
     p = await ctx.newPage();
     const resp = await p.goto(target.href, { waitUntil: 'load', timeout: 15000 }).catch(() => null);
+    // REDIRECT GUARD (adversarial verify): the static-href check only validated the LINK; a 3xx can land on
+    // ANOTHER origin. Re-validate the SETTLED url — refuse rather than fingerprint a foreign origin (SSRF).
+    let finalU = null; try { finalU = new URL(p.url()); } catch (e) {}
+    const finalSameOrigin = finalU && (target.protocol === 'file:' ? (finalU.protocol === 'file:' && dir(finalU) === dir(base)) : (finalU.origin === base.origin));
+    if (!finalSameOrigin) return { refused: 'cross-origin-redirect', finalOrigin: finalU ? finalU.origin : null };
     const fp = await p.evaluate(() => {
       const m = document.querySelector('main') || document.body;
       const para = m && m.querySelector('p');

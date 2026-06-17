@@ -16,7 +16,7 @@ const agentPlanner = require('./agent-planner.js');
 // PHASE 2 tool session: a live browser at the page URL + a fresh-clone factory, threaded to the in-process
 // CDP tool server so the judge can drive the page mid-reasoning. One page per RUN serves every subject (the
 // tools take xpath/coordinate args); mutating tools clone. Lazy puppeteer require (only when tools are on).
-async function openToolSession(url, executablePath) {
+async function openToolSession(url, executablePath, reapAgeMs = 330000) {
   const puppeteer = require('puppeteer');
   const CHROME = executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
@@ -32,10 +32,14 @@ async function openToolSession(url, executablePath) {
     await p.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {});
     return p;
   };
-  // CHECK #1 (after each worker): reap any STALE clone — open longer than any single tool call could run.
-  // Concurrency-SAFE: an in-use clone is always younger than the per-turn stall timeout, so a peer subject's
-  // active tab is never closed; only a genuinely-leaked tab (an aborted tool whose finally never ran) is.
-  const reapStale = async (maxAgeMs = 120000) => { let n = 0; const now = Date.now(); for (const [p, born] of [...clones]) { if (!p.isClosed() && now - born > maxAgeMs) { try { await p.close(); n++; } catch (e) {} } } return n; };
+  // CHECK #1 (after each worker): reap a STALE clone — open longer than ANY tool call could legitimately run.
+  // Concurrency-SAFE because the threshold is set ABOVE the whole-run abort (V3_LLM_TOOL_RUN_TIMEOUT_MS +
+  // margin): a tool call is killed by that abort, so an in-use clone is ALWAYS younger than the threshold and
+  // a peer subject's active tab can never be reaped (adversarial verify: the prior "younger than the 60s
+  // STALL timeout" premise was wrong — a stall timeout doesn't bound a progressing in-process CDP handler).
+  // Only a genuinely-orphaned tab (an aborted tool whose finally never fired) ages past it. (The per-call
+  // finally is the prompt cleanup; this + the post-all sweep + browser.close are the backstops.)
+  const reapStale = async (maxAgeMs = reapAgeMs) => { let n = 0; const now = Date.now(); for (const [p, born] of [...clones]) { if (!p.isClosed() && now - born > maxAgeMs) { try { await p.close(); n++; } catch (e) {} } } return n; };
   // CHECK #2 (after ALL workers, no subject still running): close every remaining clone tab.
   const sweep = async () => { let n = 0; for (const p of [...clones.keys()]) { if (!p.isClosed()) { try { await p.close(); n++; } catch (e) {} } } return n; };
   return { browser, page, freshClone, reapStale, sweep, openCloneCount: () => { let n = 0; for (const p of clones.keys()) if (!p.isClosed()) n++; return n; } };
@@ -161,10 +165,11 @@ async function orchestrate(collect, drive, opts = {}) {
         const adapter = require('./llm-agent-adapter.js');
         const cdpTools = require('./cdp-tools.js');
         const turl = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
-        toolSession = await openToolSession(turl, opts.executablePath).catch(() => null);
+        const reapAgeMs = (Number(opts.llmToolRunTimeoutMs) || 300000) + 30000; // strictly above the whole-run abort
+        toolSession = await openToolSession(turl, opts.executablePath, reapAgeMs).catch(() => null);
         const server = toolSession ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
         if (server) {
-          toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, Number(opts.llmToolConcurrency) || 4); // V3_LLM_TOOL_CONCURRENCY (default 4) bounds concurrent live tool sessions/tabs
+          toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, Number(opts.llmToolConcurrency) || 4); // V3_LLM_TOOL_CONCURRENCY (default 4) bounds concurrent SUBJECTS (≈ tabs; a turn may open >1 clone briefly)
           llmRunAgent = adapter.makeRunAgent({
             transport: adapter.makeClaudeSdkTransport({
               ...opts.llmTransportConfig, mcpServers: { cdp: server }, allowedTools: ['mcp__cdp__*'],
@@ -202,4 +207,4 @@ async function orchestrate(collect, drive, opts = {}) {
   return { candidates, plan, experiments, claimProposals, bundle, built, planErrors };
 }
 
-module.exports = { orchestrate };
+module.exports = { orchestrate, openToolSession };

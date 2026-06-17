@@ -115,7 +115,36 @@ test('set_state_and_capture: an unreachable state is reported stateReached:false
     const r = await setStateAndCapture(page, { targetXpath: XP.realh, state: 'checked' }, { freshClone });
     assert.equal(r.stateReached, false);
     assert.ok(/did not reproduce/.test(r.note || ''), 'the unreached state is called out so the model cannot infer a pass');
+    // a TEXT input has no "checked" state — the old `'checked' in el` prototype trap falsely reported reached
+    const txt = await setStateAndCapture(page, { targetXpath: XP.lbl, state: 'checked' }, { freshClone });
+    assert.equal(txt.stateReached, false, 'a text input has no checked state ⇒ not reproduced (no prototype-trap false positive)');
   });
+});
+
+test('mutating tools REFUSE when no fresh clone is supplied (never touch the shared page)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const r = await observeStateAfterActivation(page, { targetXpath: XP.reveal }, {}); // ctx with no freshClone
+    assert.ok(/fresh clone unavailable/.test(r.error || ''), 'refuses rather than mutating the shared page');
+    const statusText = await page.evaluate(() => document.getElementById('status').textContent.trim());
+    assert.equal(statusText, '', 'the shared page was NOT mutated');
+  });
+});
+
+test('reapStale is concurrency-safe: spares a clone younger than the threshold, reaps an older one (must-fix regression)', { skip: !chromeOK, concurrency: false }, async () => {
+  const { openToolSession } = require('../lib/orchestrator.js');
+  // threshold 60ms: a "young" in-use clone (< 60ms) is NEVER reaped; only a clone aged past it is.
+  const session = await openToolSession(FX, CHROME, 60);
+  try {
+    const oldClone = await session.freshClone();
+    await new Promise((r) => setTimeout(r, 120)); // oldClone is now > 60ms (a leaked tab)
+    const youngClone = await session.freshClone(); // 0ms — stands in for a PEER's in-use tab
+    const reaped = await session.reapStale();      // default threshold = the 60ms passed above
+    assert.equal(reaped, 1, 'exactly the stale clone is reaped');
+    assert.equal(oldClone.isClosed(), true, 'the stale (leaked) clone is closed');
+    assert.equal(youngClone.isClosed(), false, 'the young (in-use) clone is SPARED — never reap a peer\'s active tab');
+    // the production threshold sits above the whole-run abort, so an in-use clone can never age into the reap window.
+    assert.equal(await session.reapStale(330000), 0, 'with the production threshold nothing in-flight is reaped');
+  } finally { await session.browser.close(); }
 });
 
 test('probe_screen_reader_after_action: activating the Apply button voices the live-region update (4.1.3)', { skip: !chromeOK, concurrency: false }, async () => {
