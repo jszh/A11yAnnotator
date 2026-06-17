@@ -987,10 +987,29 @@ async function runKeyboardActivation(page, request) {
   o.keyboardReachableInState = reached; o.reachedForActivation = reached;
   let activatedByEnter = false, activatedBySpace = false, navigated = false;
   page.once('framenavigated', () => { navigated = true; });
+  // ROBUSTNESS: activating a LINK (`<a href>` / role=link) by Enter triggers the browser's DEFAULT
+  // navigation. For an absolute EXTERNAL href that loads a real page over the network — stalling this
+  // probe (seen as a 30-75s case-timeout on ACT cases whose links point at gutenberg.org / w3.org) and
+  // leaving the page on the wrong document. Install a capture-phase guard on the link that RECORDS the
+  // navigation intent and `preventDefault`s the actual load: the link is still observed as operable
+  // (`navigated`), we just never leave the page. Same-document/programmatic navigations are unaffected.
+  const targetIsLink = info.role === 'link' || info.tag === 'A';
   if (reached) {
+    if (targetIsLink) {
+      await page.evaluate((m) => {
+        const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return;
+        window.__v3navIntent = false;
+        window.__v3navGuard = (e) => { if (e.target === el || (el.contains && el.contains(e.target))) { window.__v3navIntent = true; if (e.cancelable) e.preventDefault(); } };
+        document.addEventListener('click', window.__v3navGuard, true);
+      }, marker).catch(() => {});
+    }
     const before = await observeC4(page, marker);
     await page.keyboard.press('Enter'); await H.settle(page, 60);
     const afterEnter = await observeC4(page, marker);
+    if (targetIsLink) {
+      const navIntent = await page.evaluate(() => { const v = window.__v3navIntent === true; if (window.__v3navGuard) { document.removeEventListener('click', window.__v3navGuard, true); window.__v3navGuard = null; } return v; }, marker).catch(() => false);
+      if (navIntent) navigated = true; // the link's default navigation fired; we blocked the external load
+    }
     activatedByEnter = navigated || c4changed(before, afterEnter);
     if (!navigated) {
       await H.realKeyboardReach(page, marker);

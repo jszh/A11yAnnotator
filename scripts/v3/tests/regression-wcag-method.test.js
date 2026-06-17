@@ -192,6 +192,22 @@ test('B6 CORRECT-GUARD: a referenced PLAIN HINT (not error-styled) is NOT mistak
 });
 
 // =====================================================================================
+// B7 — keyboard-activation (2.1.1) must not WANDER OFF-PAGE. Activating an external <a href> by Enter
+// loads a real external page (network stall + the probe ends up on the wrong document). FIX:
+// exp-runners.js runKeyboardActivation installs a capture-phase guard that records the navigation intent
+// and preventDefaults the actual load — the link is still observed operable without leaving the page.
+// =====================================================================================
+test('B7 ROBUSTNESS: activating an external link records activation but does NOT navigate off-page', guard, async () => {
+  await withPage('b7-external-link-nav.html', async (page) => {
+    const before = page.url();
+    const r = await run(page, 'keyboard-activation', "//a[@id='ext']");
+    assert.equal(page.url(), before, 'the probe stayed on the fixture (did NOT load the external href)');
+    assert.equal(r.outcome.contractKeysAllOperated, true, 'the link is still observed as keyboard-operable');
+    assert.equal(r.measurement.navigated, true, 'navigation INTENT was recorded (the load was blocked, not the detection)');
+  });
+});
+
+// =====================================================================================
 // B3 — 4.1.3 status-message rule (browser). (audit §B3)
 // FIX: scripts/v3/lib/status-detector.js — :55 selector (button-only) widen to other activatable controls;
 //      :24/:57 maxTriggers=12 cap raise/record; :91-105 add a disclosure/tab exclusion (skip when the
