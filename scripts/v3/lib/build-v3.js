@@ -485,7 +485,10 @@ function buildV3(bundle, opts = {}) {
         provisionalMode: opts.provisionalMode === 'gated' ? 'gated' : 'ungated',
         runLlm: !!(bundle.llm || bundle.judgments),
         runInstruments: !!bundle.instruments,
-        checkers: [...new Set(checkerFindings.map((f) => f.source))].sort(), // ['axe'] now; ['axe','checker'] once IBM (C1) is wired
+        checkers: [...new Set(checkerFindings.map((f) => f.source))].sort(), // 'axe' (C0) and/or 'checker' (IBM, C1)
+        // C1: surface that an opt-in IBM run was requested but could not contribute (package/CDN absent), so
+        // a skipped external checker is visible in the summary rather than indistinguishable from "ran clean".
+        ...(bundle.checkerFindings && bundle.checkerFindings.checkerUnavailable ? { checkerUnavailable: String(bundle.checkerFindings.checkerUnavailable) } : {}),
       },
     },
   };

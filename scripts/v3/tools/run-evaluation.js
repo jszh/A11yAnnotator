@@ -37,12 +37,16 @@ const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponen
   // INSTRUMENT lane (Harness 3.3, B): opt-in shadow VSR/keyboard findings. Independent of the LLM lane —
   // no API key, no cost — so it can run on its own (V3_INSTRUMENTS=1) for the annotation-input corpus.
   const runInstruments = process.env.V3_INSTRUMENTS === '1';
+  // EXTERNAL CHECKER lane (Harness 3.3, C1): opt-in IBM Equal Access. INERT unless V3_CHECKER=1 AND the
+  // `accessibility-checker` package is installed — it fetches its rulepack from a CDN at runtime, so it is
+  // never auto-run (records checkerUnavailable when absent).
+  const runChecker = process.env.V3_CHECKER === '1';
 
   const { candidates, plan, experiments, claimProposals, bundle, built } = await orchestrate(collect, drive, {
     resolveUrl, now: Date.now(),
     attestationKey: attest.loadKey({}),
     artifactVerifier: attest.makeDiskArtifactVerifier(ROOT),
-    runLlm, runAgent, captureVision: runLlm, gold, runInstruments,
+    runLlm, runAgent, captureVision: runLlm, gold, runInstruments, runChecker,
     provisionalMode: process.env.V3_PROVISIONAL === 'gated' ? 'gated' : 'ungated',
   });
   const w = (name, obj) => fs.writeFileSync(path.join(outDir, name), JSON.stringify(obj, null, 2));

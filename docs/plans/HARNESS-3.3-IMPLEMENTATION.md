@@ -1,8 +1,34 @@
 # Harness 3.3 — reconciled implementation plan
 
-**Status:** implementation-ready. Reconciles [HARNESS-3.3-PLAN.md](HARNESS-3.3-PLAN.md) against the
+**Status: IMPLEMENTED (all stages 0–4).** Reconciles [HARNESS-3.3-PLAN.md](HARNESS-3.3-PLAN.md) against the
 committed code at `23bc4c9`, after verifying every claim the plan makes about runner authority, the
 contrast clear path, the axe integration, the identity gate, and the orchestrator/CLI wiring.
+
+**Implementation status (commits):**
+
+| Stage | What | Commit | Gap-markers |
+|---|---|---|---|
+| 0 | C0 axe surfacing | `e66c996` | — |
+| 1 | B: CLI evidence visibility (`V3_INSTRUMENTS`, `instruments.json`, `evidenceMode`) | `4f649ab` | — |
+| 2 | A1 (contrast) + A3 (trap) + A2+D (form errors + submit vision) | `4f649ab` | B2, L5, B4×3 → guards |
+| 3 | A4 (status) + A5 (order) + E (triage) + F (2.5.8/2.5.3) | `7a9dac1` | B1×2, B3×3 → guards |
+| 4 | C1 IBM (inert/opt-in: normalize + `V3_CHECKER` + `checkerUnavailable`) | _this commit_ | — |
+
+All 10 WCAG gap-markers in `regression-wcag-method.test.js` are now permanent guards; the suite runs
+**0 todo, 0 fail**. The saved-corpus run remains **inert/on-hold** (gated by `V3_LLM` / `V3_INSTRUMENTS`
+/ `V3_CHECKER`); no stage auto-triggers it.
+
+**Reconciliation refined during implementation:** A5 was planned as "quarantine OR replace"; the B1
+acceptance tests require the **adjacent-inversion replacement** (`delta≥1`) *and* the quarantine, so A5
+does **both** — high-recall within-column detection, every finding marked `review:true`/`calibrated:false`.
+C1 (IBM) is implemented as an **inert integration layer** (pure normalizer + lazy runner that emits
+`checkerUnavailable` when `accessibility-checker` is absent), matching the on-hold-corpus posture rather
+than installing the CDN-fetching engine now; activation needs `npm i accessibility-checker` + `V3_CHECKER=1`.
+
+---
+
+## Original reconciled plan (pre-implementation)
+
 
 This document supersedes the *sequencing and conflict* sections of the original plan. The original plan's
 analysis (workstream rationale, WCAG alignment, gold-run protocol) still stands; this file records what

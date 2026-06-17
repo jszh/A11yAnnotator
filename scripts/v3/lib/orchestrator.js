@@ -60,8 +60,23 @@ async function orchestrate(collect, drive, opts = {}) {
   // NON-AUTHORITATIVE and identity-stamped; never an obligation disposition (no tie-break — §2). Only
   // attached when axe actually ran (a missing sentinel ⇒ no axe signal, not "axe clean").
   const axeSurf = require('./axe-surface.js').surfaceAxeFindings(collect);
-  if (axeSurf.ran) {
-    bundle.checkerFindings = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, source: 'axe', ran: true, findings: axeSurf.findings };
+  const checkerFindings = axeSurf.ran ? [...axeSurf.findings] : [];
+  const engines = []; if (axeSurf.ran) engines.push('axe');
+  let checkerUnavailable;
+  // C1 (Harness 3.3): IBM Equal Access as a live cross-signal — OPT-IN (opts.runChecker) and INERT
+  // otherwise. runIbmForUrl lazy-requires accessibility-checker and returns checkerUnavailable if the
+  // package/network is absent, so a skipped IBM run is RECORDED on the artifact (it never silently
+  // vanishes). IBM findings (1.4.12/2.5.3 hard + 1.4.1/1.3.3 priors) merge into the one checkerFindings
+  // artifact alongside axe; each finding carries its own source, so the lanes stay distinguishable.
+  if (opts.runChecker && opts.resolveUrl) {
+    const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
+    const r = await require('./checker-ibm.js').runIbmForUrl(url, { executablePath: opts.executablePath, label: collect.file }).catch((e) => ({ checkerUnavailable: true, reason: e && e.message }));
+    if (r && r.ran) { checkerFindings.push(...r.findings); engines.push('ibm'); }
+    else checkerUnavailable = (r && r.reason) || 'IBM unavailable';
+  }
+  if (engines.length || checkerUnavailable) {
+    bundle.checkerFindings = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, engines, ran: engines.length > 0, findings: checkerFindings };
+    if (checkerUnavailable) bundle.checkerFindings.checkerUnavailable = checkerUnavailable;
   }
   // the trusted orchestrator finalizes + attests the run-manifest binding every artifact hash and the
   // observed page identity (plan Rule 17; audit V3R4-H7). The observed identity is the RUNNER's own
