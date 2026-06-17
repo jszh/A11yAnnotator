@@ -135,6 +135,18 @@ test('B5 CORRECT-GUARD: the same fg/bg with NO glyph effect (genuine 4.43:1) IS 
   assert.equal(r.outcome.thresholdFailed, true); // guards against an over-broad fix that abstains on all near-threshold text
 });
 
+test('B5 GUARD: pure-symbol text is non-language (1.4.3 inapplicable); worded/numeric low-contrast still fails', guard, async () => {
+  // ACT afw4f7 Passed Example 6: "----====++++..." conveys nothing in a human language ⇒ exempt.
+  const sym = await withPage('b5-contrast-nonlanguage.html', (p) => run(p, 'text-contrast-pixel', "//*[@id='symbols']"));
+  assert.equal(sym.outcome.notExemptText, false, 'a pure-symbol run is exempt ⇒ no BARRIER');
+  // GUARD (no over-exemption): letters AND digits both express meaning at the same 3.66:1 — still flagged.
+  for (const id of ['worded', 'numeric']) {
+    const r = await withPage('b5-contrast-nonlanguage.html', (p) => run(p, 'text-contrast-pixel', `//*[@id='${id}']`));
+    assert.equal(r.outcome.notExemptText, true, `${id}: worded/numeric text is NOT exempt`);
+    assert.equal(r.outcome.thresholdFailed, true, `${id}: 3.66:1 worded/numeric text still fails the threshold`);
+  }
+});
+
 test('B5 GUARD: text in a DISABLED context is 1.4.3-inapplicable (notExemptText:false); enabled low-contrast still barriers', guard, async () => {
   // disabled fieldset ancestor, aria-disabled group ancestor, and a label NAMING a disabled widget — all exempt.
   for (const id of ['lbl_fieldset', 'lbl_aria', 'lbl_target']) {

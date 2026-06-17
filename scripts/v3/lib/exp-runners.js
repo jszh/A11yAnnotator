@@ -205,10 +205,16 @@ function measureContrast(marker) {
   const disabled = el.disabled === true || el.getAttribute('aria-disabled') === 'true'
     || el.closest('[disabled],[aria-disabled="true"]') != null || labelsDisabledWidget();
   const ariaHidden = el.closest('[aria-hidden="true"]') != null;
+  // 1.4.3 does NOT apply to text that does not express anything in a human language (ACT afw4f7 Passed
+  // Example 6: a run of pure symbols/punctuation, e.g. "----====++++___***%%%@@@"). Decorative, not
+  // meaningful text. Sound + narrow: exempt ONLY when the element's OWN text has NO Unicode letter or
+  // number in ANY script — so a price/number/CJK/any worded run is still checked (no false clear).
+  let ownText = ''; for (const n of el.childNodes) if (n.nodeType === 3) ownText += n.textContent;
+  const expressesLanguage = /[\p{L}\p{N}]/u.test(ownText);
   return {
     isTextNode: ownsText, textRendersVisible: visible && ownsText,
     foregroundResolved, backgroundResolved, backdropIsSolidUniform, contrastComputable,
-    sizeClassResolved: sizePx > 0, notExemptText: !disabled && !ariaHidden,
+    sizeClassResolved: sizePx > 0, notExemptText: !disabled && !ariaHidden && expressesLanguage,
     ratio, threshold,
     bgColor: bg ? { r: Math.round(bg.r), g: Math.round(bg.g), b: Math.round(bg.b) } : null, // the backdrop the RATIO used
     fgColor: effFgColor, // the composited FOREGROUND the ratio used (vs rendered glyph ink)
