@@ -116,7 +116,7 @@ test('B2 CORRECT-GUARD: a 17/channel disagreement (just past the tolerance) is R
 });
 
 // =====================================================================================
-// B5 — 1.4.3 false barriers from ACT afw4f7 (audit §B5; docs/analysis/V3-ACT-WORKLIST.md).
+// B5 — 1.4.3 false barriers from ACT afw4f7 (audit §B5; docs/analysis/act-benchmark/V3-ACT-WORKLIST.md).
 // FIX (exp-runners.js measureContrast): (1) a text-shadow / -webkit-text-stroke GLYPH EFFECT is part of the
 //   rendered glyph and can PROVIDE contrast (a white shadow halo lifts a 4.43:1 case to an ACT PASS); the
 //   flat fg/bg model cannot account for it ⇒ contrastComputable:false (abstain → the vision rubric, which

@@ -3,7 +3,7 @@
 // Builder worklist from the ACT-subset run: the cases the COMBINED harness (v3 ∪ axe) gets WRONG today.
 //   • BOTH-FAIL (union FN) — ACT-failed, neither v3 nor axe flagged ⇒ build capability to CATCH (FN→TP).
 //   • V3-FP — ACT-not-failed, v3 flagged ⇒ ELIMINATE the false barrier (abstain).
-// Writes act-subset/worklist.json + docs/analysis/V3-ACT-WORKLIST.md. Reproducible from raw.json.
+// Writes act-subset/worklist.json + docs/analysis/act-benchmark/V3-ACT-WORKLIST.md. Reproducible from raw.json.
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const raw = require('./upstream-evidence/v3-act-subset/raw.json');
@@ -93,8 +93,8 @@ md.push('`file://$PWD/eval/checker-comparison/act-subset/<localPath>`.\n');
 md.push('> Note: a scoped run overwrites `upstream-evidence/v3-act-subset/{raw,summary}.json` with just that');
 md.push('> rule. Re-run the full suite (`--limit=0`, drop `--rule`) to restore the complete numbers, then');
 md.push('> `node eval/checker-comparison/build-worklist.js` to regenerate this list.');
-fs.writeFileSync(path.join(ROOT, 'docs/analysis/V3-ACT-WORKLIST.md'), md.join('\n') + '\n');
+fs.writeFileSync(path.join(ROOT, 'docs/analysis/act-benchmark/V3-ACT-WORKLIST.md'), md.join('\n') + '\n');
 console.log(`worklist: ${bothFail.length} BOTH-FAIL + ${v3FP.length} v3-FP`);
 console.log('BOTH-FAIL by SC:', JSON.stringify(grp(bothFail)));
 console.log('  1.4.3 both-fail by backdrop:', JSON.stringify(bothFail.filter(r=>r.sc.includes('1.4.3')).reduce((m,r)=>{m[r.contrastKind]=(m[r.contrastKind]||0)+1;return m;},{})));
-console.log('wrote act-subset/worklist.json + docs/analysis/V3-ACT-WORKLIST.md');
+console.log('wrote act-subset/worklist.json + docs/analysis/act-benchmark/V3-ACT-WORKLIST.md');

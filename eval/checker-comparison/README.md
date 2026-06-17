@@ -5,7 +5,7 @@ web accessibility checkers SUPPLEMENT or SUPERSEDE axe-core and our harness?**
 
 This folder is self-contained and reproducible: one runner, pinned engine versions, and the raw +
 aggregated result outputs. The narrative analysis report lives at
-[docs/analysis/CHECKER-COMPARISON.md](../../docs/analysis/CHECKER-COMPARISON.md).
+[docs/analysis/checker-comparison/CHECKER-COMPARISON.md](../../docs/analysis/checker-comparison/CHECKER-COMPARISON.md).
 
 ## Engines under test (all permissive-licensed)
 

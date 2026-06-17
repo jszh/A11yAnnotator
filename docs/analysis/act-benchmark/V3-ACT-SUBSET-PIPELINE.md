@@ -236,4 +236,4 @@ cleanly.
 - `eval/checker-comparison/build-sc-subset.js` → `act-subset/{subset.json, manifest.json, pages/}`
 - `eval/checker-comparison/run-v3-act-suite.js --subset --local --axe` →
   `upstream-evidence/v3-act-subset/{raw.json, summary.json}` (`summary.lanes` = the per-SC table above)
-- Engines/versions and the broader 5-tool comparison: [CHECKER-COMPARISON.md](CHECKER-COMPARISON.md).
+- Engines/versions and the broader 5-tool comparison: [CHECKER-COMPARISON.md](../checker-comparison/CHECKER-COMPARISON.md).

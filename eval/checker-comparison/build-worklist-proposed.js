@@ -6,7 +6,7 @@
 //   • V3-FP — ACT-not-failed, v3 flagged ⇒ ELIMINATE the false barrier (abstain).
 // Highest-value rows are on the 4 DRAFT-ONLY SCs (2.4.6, 2.1.2, 2.4.10, 3.3.1) — the first ACT signal we
 // have on them. Caveat: draft rules + their `expected` are UNSTABLE upstream; treat as pipeline-polish signal.
-// Writes act-subset/worklist-proposed.json + docs/analysis/V3-ACT-WORKLIST-V2.md. Reproducible from raw.json.
+// Writes act-subset/worklist-proposed.json + docs/analysis/act-benchmark/V3-ACT-WORKLIST-V2.md. Reproducible from raw.json.
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..', '..');
 const raw = require('./upstream-evidence/v3-act-subset-proposed/raw.json');
@@ -115,10 +115,10 @@ md.push('case in a browser via `file://$PWD/eval/checker-comparison/act-subset/<
 md.push('> Note: a scoped run overwrites `upstream-evidence/v3-act-subset-proposed/{raw,summary}.json` with just');
 md.push('> that rule. Re-run the full draft suite (`--proposed --limit=0`, drop `--rule`) to restore complete');
 md.push('> numbers, then `node eval/checker-comparison/build-worklist-proposed.js` to regenerate this list.');
-fs.writeFileSync(path.join(ROOT, 'docs/analysis/V3-ACT-WORKLIST-V2.md'), md.join('\n') + '\n');
+fs.writeFileSync(path.join(ROOT, 'docs/analysis/act-benchmark/V3-ACT-WORKLIST-V2.md'), md.join('\n') + '\n');
 
 console.log(`worklist v2 (draft-only): ${bothFail.length} BOTH-FAIL + ${v3FP.length} v3-FP over ${dec.length} draft cases`);
 console.log('BOTH-FAIL by SC:', JSON.stringify(grp(bothFail)));
 console.log('  draft-only-SC BOTH-FAIL:', JSON.stringify(grp(bothFail.filter((r) => r.draftOnlySc))));
 console.log('V3-FP by SC:', JSON.stringify(grp(v3FP)));
-console.log('wrote act-subset/worklist-proposed.json + docs/analysis/V3-ACT-WORKLIST-V2.md');
+console.log('wrote act-subset/worklist-proposed.json + docs/analysis/act-benchmark/V3-ACT-WORKLIST-V2.md');
