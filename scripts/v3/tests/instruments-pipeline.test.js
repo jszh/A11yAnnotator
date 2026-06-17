@@ -11,6 +11,8 @@ const path = require('node:path');
 const { buildV3 } = require('../lib/build-v3.js');
 const { orchestrate } = require('../lib/orchestrator.js');
 const { CHROME } = require('../lib/run-experiments.js');
+const { runInstruments } = require('../lib/run-instruments.js');
+const puppeteer = require('puppeteer');
 
 const scope = { actionTargetRef: 'node:b1', state: 'fresh-load', action: 'tab-to', environment: 'headless-chromium' };
 const FULL = { targetIsFocusable: true, keyboardReachableInState: true, realKeyboardFocus: true, hydrationReady: true, focusDependentIndicator: true, obviouslyVisible: true, stableIndicatorAbsence: true, modeCompletenessProven: true };
@@ -60,4 +62,19 @@ test('orchestrate(runInstruments): instruments run on the page and surface as no
   assert.ok(built.results.instrumentFindings.some((f) => f.kind === 'no-accessible-name'), 'the 4.1.2 no-name finding is present');
   // instruments do not publish authoritative claims
   assert.equal(built.results.summary.authoritative, 0, 'instrument findings never publish authoritative');
+});
+
+test('runInstruments (#21): a native alert() raised on a safe click is captured (not silently auto-dismissed)', { skip: !chromeOK, concurrency: false }, async () => {
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  let res;
+  try {
+    const page = await browser.newPage();
+    await page.goto('file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-native-dialog.html'), { waitUntil: 'load' });
+    res = await runInstruments(page, {});
+  } finally { await browser.close(); }
+  const dlg = res.findings.filter((f) => f.detector === 'native-dialog');
+  assert.equal(dlg.length, 1, 'the native alert() raised when the Save button is clicked is captured');
+  assert.equal(dlg[0].sc, '4.1.3');
+  assert.equal(dlg[0].review, true, 'a native dialog is a review-tier signal, not a decided barrier');
+  assert.ok(/native alert\(\) dialog/.test(dlg[0].detail));
 });

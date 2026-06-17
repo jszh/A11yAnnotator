@@ -9,7 +9,7 @@
 // keyboard traps (2.1.2), and VSR navigation traps. All were adversarially hardened for soundness.
 const { collectVsrTranscript } = require('./vsr-collect.js');
 const { analyzeTranscript } = require('./vsr-analysis.js');
-const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps } = require('./kbd-graph.js');
+const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFocusRejection } = require('./kbd-graph.js');
 const { vsrNavigationIntegrity } = require('./vsr-graph.js');
 const { detectStatusMessages } = require('./status-detector.js');
 
@@ -20,6 +20,34 @@ const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
 async function runInstruments(page, opts = {}) {
   const findings = [];
   const add = (detector, list) => { for (const f of (list || [])) { const row = { detector, sc: f.sc || '', kind: f.kind, xpath: f.xpath || null, detail: f.detail || '', review: !!f.review }; if (f.calibrated === false) row.calibrated = false; findings.push(row); } };
+
+  // #21 NATIVE DIALOG capture: Puppeteer auto-DISMISSES native alert()/confirm()/prompt() when no listener
+  // is attached, so a page that surfaces validation/confirmation text via a native dialog goes invisible to
+  // the DOM observers (3.3.1/3.3.3) and is unannounced in the ARIA model (4.1.3). We listen, RECORD the
+  // message+type, then dismiss so the instrument run continues. These fire during the action-driving
+  // instruments below (status-detector clicks); captured page-level.
+  const nativeDialogs = [];
+  const onDialog = async (d) => { try { nativeDialogs.push({ type: d.type(), len: (d.message() || '').length }); } finally { try { await d.dismiss(); } catch (e) {} } };
+  page.on('dialog', onDialog);
+  // #22 ariaNotify SPY: element.ariaNotify()/document.ariaNotify() delivers an AT announcement with NO DOM
+  // footprint — invisible to the mutation-based status detector. We wrap it (where the UA exposes it) so a
+  // genuine announcement is CREDITED, not false-flagged as a 4.1.3 barrier. NOTE: the project Chrome build
+  // already ships these as functions, so this spy is LIVE here (the typeof guards keep it inert only on a UA
+  // that lacks the API); the sentinel + try/catch make it safe and non-double-wrapping (adversarial verify #5).
+  await page.evaluate(() => {
+    if (window.__v3ariaNotify) return; window.__v3ariaNotify = [];
+    const rec = (msg) => { try { window.__v3ariaNotify.push({ len: String(msg == null ? '' : msg).length }); } catch (e) {} };
+    try {
+      if (typeof Element !== 'undefined' && Element.prototype && typeof Element.prototype.ariaNotify === 'function') {
+        const orig = Element.prototype.ariaNotify;
+        Element.prototype.ariaNotify = function (msg, opts) { rec(msg); return orig.call(this, msg, opts); };
+      }
+      if (typeof document !== 'undefined' && typeof document.ariaNotify === 'function') {
+        const od = document.ariaNotify.bind(document);
+        document.ariaNotify = (msg, opts) => { rec(msg); return od(msg, opts); };
+      }
+    } catch (e) {}
+  }).catch(() => {});
 
   // VSR transcript → reading order (1.3.2) + announcement-vs-meaning (4.1.2)
   const transcript = await collectVsrTranscript(page, opts).catch(() => null);
@@ -42,6 +70,10 @@ async function runInstruments(page, opts = {}) {
   // detector above cannot see these (no region; its escape probe runs before the async refocus fires).
   const selfTraps = await detectFocusRetentionTraps(page).catch(() => null);
   if (selfTraps) add('keyboard-trap', selfTraps.traps.map((t) => ({ sc: t.sc, kind: 'keyboard-trap-self-refocus', xpath: t.xpath, detail: 'confirmed keyboard trap: this focusable re-grabs its own focus on blur, so Tab and Shift+Tab cannot move focus off it' })));
+  // focus-rejection (2.1.1/2.4.7, F55): a control that removes its OWN focus the instant it receives it —
+  // the inverse of a self-refocus trap (focus can never rest on it, so it can't be operated or shown).
+  const rej = await detectFocusRejection(page).catch(() => null);
+  if (rej) add('focus-rejection', rej.rejections.map((r) => ({ sc: r.sc, kind: 'focus-rejected-on-receipt', xpath: r.xpath, detail: `this control removes its own keyboard focus the moment it receives it (F55 onfocus→blur)${r.inlineHandler ? ' [inline onfocus/onblur handler]' : ''}; a keyboard user cannot operate it and no focus indicator can ever show (also 2.4.7)` })));
   // VSR navigation traps (reading-cursor cannot advance/retreat)
   const vt = await vsrNavigationIntegrity(page, opts).catch(() => null);
   if (vt) add('vsr-trap', vt.traps);
@@ -50,6 +82,14 @@ async function runInstruments(page, opts = {}) {
   // demonstrably appeared without a live region and without focus moving to it).
   const status = await detectStatusMessages(page, opts).catch(() => null);
   if (status) add('status-message', status.findings);
+
+  // #21 emit: a native dialog raised during interaction delivers text outside the DOM/ARIA model (review).
+  page.off('dialog', onDialog);
+  add('native-dialog', nativeDialogs.map((d) => ({ sc: '4.1.3', kind: 'native-dialog', xpath: null, detail: `a native ${d.type}() dialog was raised during interaction (message length ${d.len}); its text is delivered outside the DOM and the ARIA live-region model`, review: true })));
+  // #22 emit: a genuine ariaNotify announcement was observed (forward-looking; only fires on a UA that
+  // ships the API). Recorded so a future status-detector can CREDIT it rather than false-flag 4.1.3.
+  const ariaNotices = await page.evaluate(() => (window.__v3ariaNotify || []).length).catch(() => 0);
+  if (ariaNotices > 0) add('aria-notify', [{ sc: '4.1.3', kind: 'aria-notify-announced', xpath: null, detail: `the page made ${ariaNotices} ariaNotify() announcement(s) — a DOM-invisible AT announcement (credit, not a barrier)`, review: true }]);
 
   return { findings };
 }

@@ -6,7 +6,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps } = require('../lib/kbd-graph.js');
+const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFocusRejection } = require('../lib/kbd-graph.js');
 
 // ---- pure unit ----
 test('tab-order: a focusable element tabbed last but positioned visually first is flagged (2.4.3)', () => {
@@ -90,4 +90,21 @@ test('self-refocus trap CORRECT-GUARD: a normal page + sibling-progression bounc
   const res = await retentionTraps('fx-v3-self-refocus-ok.html');
   assert.equal(res.traps.length, 0, 'no false positive: nothing refocuses ITSELF (sibling progression goes to a DIFFERENT element)');
   assert.ok(res.focusableCount >= 5, 'the guard page has multiple focusables (the trap requires >=2, so this exercises the real path)');
+});
+
+// ---- focus-rejection (2.1.1/2.4.7, F55) — the inverse of a self-refocus trap (coverage #15) ----
+async function focusRejection(fixture) {
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try { const page = await browser.newPage(); await page.goto(fx(fixture), { waitUntil: 'load' }); return await detectFocusRejection(page); }
+  finally { await browser.close(); }
+}
+
+test('focus-rejection (#15): sync AND async onfocus→blur are flagged; a normal control and a benign redirect are NOT', { skip: !chromeOK, concurrency: false }, async () => {
+  const res = await focusRejection('fx-v3-focus-rejection.html');
+  const xpaths = res.rejections.map((r) => r.xpath).sort();
+  assert.deepEqual(xpaths, ['/html/body/a[1]', '/html/body/input[1]'], 'exactly the sync <a onfocus=blur> and async setTimeout-blur <input> reject focus');
+  assert.ok(res.rejections.every((r) => r.sc === '2.1.1'), 'flagged at 2.1.1 (also notes 2.4.7)');
+  assert.ok(res.rejections.find((r) => r.xpath === '/html/body/a[1]').inlineHandler === true, 'the inline onfocus handler is noted');
+  // negatives: ok-button, the redirect pair (focus lands on another control, not body), and ok-input are NOT flagged.
+  assert.ok(!xpaths.includes('/html/body/button[1]') && !xpaths.includes('/html/body/input[2]'), 'a normal button and a benign focus redirect are not false-flagged');
 });

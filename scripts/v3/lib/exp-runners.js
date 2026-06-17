@@ -995,29 +995,44 @@ async function runKeyboardActivation(page, request) {
   // (`navigated`), we just never leave the page. Same-document/programmatic navigations are unaffected.
   const targetIsLink = info.role === 'link' || info.tag === 'A';
   if (reached) {
-    if (targetIsLink) {
-      await page.evaluate((m) => {
-        const el = document.querySelector(`[data-v3-target="${m}"]`); if (!el) return;
-        window.__v3navIntent = false;
-        window.__v3navGuard = (e) => { if (e.target === el || (el.contains && el.contains(e.target))) { window.__v3navIntent = true; if (e.cancelable) e.preventDefault(); } };
-        document.addEventListener('click', window.__v3navGuard, true);
-      }, marker).catch(() => {});
-    }
+    // Guard the Enter activation against LEAVING/DUPLICATING the page: (a) a capture-phase click guard on a
+    // LINK records + preventDefaults its default navigation (covers external href AND target=_blank, whose
+    // new-tab load is the click's default action); (b) a window.open STUB catches any control whose handler
+    // explicitly opens a popup (#20 residual — preventDefault does NOT stop an explicit window.open() call).
+    // Both RECORD operability so the control still reads as activated; both are restored after the probe.
+    await page.evaluate((m, isLink) => {
+      window.__v3navIntent = false; window.__v3openIntent = false;
+      if (isLink) {
+        const el = document.querySelector(`[data-v3-target="${m}"]`);
+        if (el) { window.__v3navGuard = (e) => { if (e.target === el || (el.contains && el.contains(e.target))) { window.__v3navIntent = true; if (e.cancelable) e.preventDefault(); } }; document.addEventListener('click', window.__v3navGuard, true); }
+      }
+      window.__v3openOrig = window.open;
+      try { window.open = function () { window.__v3openIntent = true; return null; }; } catch (e) {}
+    }, marker, targetIsLink).catch(() => {});
     const before = await observeC4(page, marker);
     await page.keyboard.press('Enter'); await H.settle(page, 60);
     const afterEnter = await observeC4(page, marker);
-    if (targetIsLink) {
-      const navIntent = await page.evaluate(() => { const v = window.__v3navIntent === true; if (window.__v3navGuard) { document.removeEventListener('click', window.__v3navGuard, true); window.__v3navGuard = null; } return v; }, marker).catch(() => false);
-      if (navIntent) navigated = true; // the link's default navigation fired; we blocked the external load
-    }
+    const intents = await page.evaluate(() => {
+      const nav = window.__v3navIntent === true, open = window.__v3openIntent === true;
+      if (window.__v3navGuard) { document.removeEventListener('click', window.__v3navGuard, true); window.__v3navGuard = null; }
+      window.__v3openIntent = false; // reset so a SPACE-side window.open can be detected separately (the stub stays installed)
+      return { nav, open };
+    }).catch(() => ({ nav: false, open: false }));
+    if (intents.nav || intents.open) navigated = true; // default navigation OR a window.open popup fired on Enter; we blocked the external load/tab
     activatedByEnter = navigated || c4changed(before, afterEnter);
     if (!navigated) {
       await H.realKeyboardReach(page, marker);
       const b2 = await observeC4(page, marker);
       await page.keyboard.press('Space'); await H.settle(page, 60);
       const afterSpace = await observeC4(page, marker);
-      activatedBySpace = c4changed(b2, afterSpace);
+      // the window.open stub is STILL installed (it must cover Space too — a custom role=button often opens
+      // a popup on Space): a Space-triggered popup is blocked AND counts as operability (adversarial verify
+      // #6 — restoring before Space let a real popup escape and produced a false 2.1.1 barrier).
+      const spaceOpen = await page.evaluate(() => window.__v3openIntent === true).catch(() => false);
+      activatedBySpace = c4changed(b2, afterSpace) || spaceOpen;
     }
+    // restore the real window.open (the stub was installed for the Enter+Space probes above).
+    await page.evaluate(() => { if (window.__v3openOrig) { try { window.open = window.__v3openOrig; } catch (e) {} window.__v3openOrig = null; } }).catch(() => {});
   }
   // contract per control: checkbox/radio/switch ⇒ Space; link ⇒ Enter; a NATIVE button/input ⇒
   // either key (browser-guaranteed operability; one observed activation suffices, and off-board

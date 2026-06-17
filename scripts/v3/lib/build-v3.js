@@ -407,6 +407,19 @@ function buildV3(bundle, opts = {}) {
   // `option` is deliberately EXCLUDED — an empty <option> (placeholder / spacer / reset) is a routine,
   // non-barrier pattern that axe itself has no per-option name rule for; flagging it would be noise.
   const NAME_REQ_SC = { image: '1.1.1', button: '4.1.2', link: '4.1.2', checkbox: '4.1.2', radio: '4.1.2', switch: '4.1.2', tab: '4.1.2', menuitem: '4.1.2', menuitemcheckbox: '4.1.2', menuitemradio: '4.1.2', textbox: '4.1.2', combobox: '4.1.2', listbox: '4.1.2', searchbox: '4.1.2', spinbutton: '4.1.2', slider: '4.1.2', DisclosureTriangle: '4.1.2', heading: '1.3.1' };
+  // coverage round 2 — detectors over the round-2 collection signals (structure.pageIds / fieldsets,
+  // per-element event-listener inventory + cursor). All SHADOW, same contract as above.
+  const collStruct = (bundle.collect && bundle.collect.structure) || {};
+  const pageIds = collStruct.pageIds && typeof collStruct.pageIds === 'object' ? collStruct.pageIds : null;
+  // a SIZE-CAPPED id map (the collector caps at 4000) cannot soundly DISPROVE an idref — a valid id past
+  // the cap would read as dangling. Skip #16 then (fail-safe: no false barrier on huge pages).
+  const idMapCapped = pageIds ? Object.keys(pageIds).length >= 4000 : false;
+  const NATIVE_INTERACTIVE_TAGS = new Set(['a', 'button', 'input', 'select', 'textarea', 'summary', 'option', 'label', 'details']);
+  // a genuine "fake button" carries NO explicit role (or a presentational one); an element with an explicit
+  // role — interactive OR structural (list/group/navigation/row…) — is excluded, because a structural role
+  // marks a CONTAINER (a common event-DELEGATION root), which would otherwise false-flag (adversarial verify).
+  const KO_OK_ROLES = new Set(['presentation', 'none', 'generic']);
+  const POINTER_TYPES = ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'dblclick'];
   const deterministicSignals = [];
   for (const el of (bundle.collect && bundle.collect.elements) || []) {
     if (!el || typeof el !== 'object') continue;
@@ -425,6 +438,47 @@ function buildV3(bundle, opts = {}) {
     const reqSc = typeof el.axRole === 'string' ? NAME_REQ_SC[el.axRole] : undefined;
     if (reqSc && el.inTree === true && typeof el.axName === 'string' && el.axName.trim() === '') {
       deterministicSignals.push({ source: 'deterministic', detector: 'ax-name-presence', sc: reqSc, xpath: el.xpath || null, kind: 'empty-accessible-name', detail: `${el.axRole} is exposed in the accessibility tree but its accessible name is empty`, authoritative: false, shadow: true });
+    }
+    // coverage #16: a DANGLING aria-labelledby/aria-describedby (references an id ABSENT from the page) is
+    // a broken programmatic relationship. Resolved against the collector's static id map (skipped when the
+    // map is missing or size-capped — cannot disprove an idref then). A broken NAME ref → 4.1.2; a broken
+    // DESCRIPTION ref → 1.3.1. An idref that resolves-but-empty is NOT flagged (the axe name family + the
+    // ax-name-presence detector already own the resulting empty-name case) — only a genuinely absent id.
+    if (pageIds && !idMapCapped) {
+      for (const [attr, sc, attrName] of [['ariaLabelledby', '4.1.2', 'aria-labelledby'], ['ariaDescribedby', '1.3.1', 'aria-describedby']]) {
+        const raw = el[attr];
+        if (typeof raw === 'string' && raw.trim()) {
+          const ids = raw.trim().split(/\s+/).filter(Boolean);
+          const missing = ids.filter((id) => !Object.prototype.hasOwnProperty.call(pageIds, id));
+          if (missing.length) deterministicSignals.push({ source: 'deterministic', detector: 'dangling-idref', sc, xpath: el.xpath || null, kind: 'dangling-idref', detail: `${attrName} references ${missing.length === ids.length ? 'no existing element' : 'a missing element'} (absent id${missing.length > 1 ? 's' : ''}: ${missing.slice(0, 5).join(', ')})`, authoritative: false, shadow: true });
+        }
+      }
+    }
+    // coverage #14: a KEYBOARD-ORPHAN — wired clickable by JS (a pointer-activation listener the static
+    // DOM snapshot can't see) but NOT keyboard-operable. REVIEW-TIER + conservative: requires cursor:pointer
+    // (author intent to be clickable) and excludes focusable elements, native interactives, interactive
+    // roles, and elements with a key handler — so event-delegation roots and real widgets don't trip it
+    // (F54/F59). A prior to verify against live keyboard reachability, not a decided barrier.
+    const tagLc = typeof el.tag === 'string' ? el.tag.toLowerCase() : '';
+    const roleOk = !el.roleAttr || (typeof el.roleAttr === 'string' && KO_OK_ROLES.has(el.roleAttr)); // no role, or a purely-presentational one
+    if (el.pointerActivationListener === true && el.focusable !== true && el.keyListener !== true && el.cursor === 'pointer'
+        && !NATIVE_INTERACTIVE_TAGS.has(tagLc) && roleOk) {
+      const ptr = (Array.isArray(el.listenerTypes) ? el.listenerTypes : []).filter((t) => POINTER_TYPES.includes(t));
+      deterministicSignals.push({ source: 'deterministic', detector: 'keyboard-orphan', sc: '2.1.1', xpath: el.xpath || null, kind: 'pointer-only-handler', detail: `<${tagLc}> has pointer-activation listener(s) [${ptr.join(', ')}] and cursor:pointer but is not keyboard-operable (not focusable, no key handler, no interactive role) — verify keyboard reachability`, review: true, authoritative: false, shadow: true });
+    }
+  }
+  // coverage #12 (group-label/fieldset, F82/H71): an EXPLICIT group container (<fieldset> / role=group /
+  // role=radiogroup) that owns ≥2 form controls but carries NO accessible group name (no <legend> text, no
+  // aria-label, no RESOLVED aria-labelledby) cannot tell AT users what the grouped fields belong to. Sound
+  // + low-FP: only explicit containers with multiple controls — implicit name-grouped radios (FP-prone)
+  // are left to a rubric. 3.3.2 (the grouped-fields label obligation). One finding per nameless group.
+  for (const g of (Array.isArray(collStruct.fieldsets) ? collStruct.fieldsets : [])) {
+    if (!g || typeof g !== 'object') continue;
+    const named = !!((g.hasLegend && typeof g.legendText === 'string' && g.legendText.trim())
+      || (typeof g.ariaLabel === 'string' && g.ariaLabel.trim())
+      || (typeof g.labelledbyText === 'string' && g.labelledbyText.trim()));
+    if (!named && (g.controlCount | 0) >= 2) {
+      deterministicSignals.push({ source: 'deterministic', detector: 'group-label', sc: '3.3.2', xpath: g.xpath || null, kind: 'group-without-accessible-name', detail: `<${g.tag}${g.role ? ` role=${g.role}` : ''}> groups ${g.controlCount} form controls but has no accessible group name (no legend text, aria-label, or resolved aria-labelledby)`, authoritative: false, shadow: true });
     }
   }
   // (No page-title deterministic signal: an empty/whitespace <title> is already surfaced by axe

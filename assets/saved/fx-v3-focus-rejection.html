@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>F55 focus-rejection fixture</title></head>
+<body>
+  <!-- SYNCHRONOUS rejection: onfocus blurs immediately (classic F55). Should be FLAGGED. -->
+  <a id="sync-reject" href="#x" onfocus="this.blur()">sync reject</a>
+
+  <!-- ASYNCHRONOUS rejection: a setTimeout blurs shortly after focus. Should be FLAGGED. -->
+  <input id="async-reject" type="text" onfocus="var i=this;setTimeout(function(){i.blur();},10)">
+
+  <!-- NEGATIVE: a normal focusable that keeps focus. Should NOT be flagged. -->
+  <button id="ok-button">ok</button>
+
+  <!-- NEGATIVE: a benign focus REDIRECT — focus moves to another control (not body). Should NOT be flagged. -->
+  <input id="redirect-src" onfocus="document.getElementById('redirect-dst').focus()">
+  <input id="redirect-dst" type="text">
+
+  <!-- NEGATIVE: a plain focusable input that holds focus. -->
+  <input id="ok-input" type="text">
+</body>
+</html>

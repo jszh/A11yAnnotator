@@ -95,6 +95,47 @@ test('axe-surface: tag→SC + allow-list edge cases', () => {
   assert.equal(isSurfaced('1.3.1'), true);
 });
 
+// ===== coverage round 2 =====
+
+test('axe-surface (#10): a per-rule allow-listed rule does NOT leak an out-of-scope tag (obsolete 4.1.1)', () => {
+  // button-name carries wcag412; a hypothetical/legacy build could also tag it wcag411 (removed in WCAG 2.2).
+  // The per-rule gate must surface 4.1.2 but DROP 4.1.1 — only ALLOWLIST_SCS may ride an allow-listed rule.
+  const collect = { axeRan: true, axe: [axeViolation('button-name', ['wcag411', 'wcag412'], ['button'])] };
+  const findings = surfaceAxeFindings(collect).findings;
+  assert.deepEqual(findings.map((f) => f.sc).sort(), ['4.1.2']);
+  assert.ok(!findings.some((f) => f.sc === '4.1.1'), 'obsolete 4.1.1 is not surfaced');
+});
+
+test('axe-surface (#8): link-in-text-block surfaces under 1.4.1 via the per-rule allow-list (F73 use-of-color)', () => {
+  const collect = { axeRan: true, axe: [axeViolation('link-in-text-block', ['wcag141'], ['a.inline'])] };
+  const findings = surfaceAxeFindings(collect).findings;
+  assert.deepEqual(findings.map((f) => `${f.ruleId}@${f.sc}`), ['link-in-text-block@1.4.1']);
+  assert.equal(findings[0].review, false, 'F73 is a decided 1.4.1 finding, not advisory');
+});
+
+test('axe-surface (#6): advisory best-practice rules surface review-tier; genuine ones stay decided', () => {
+  const collect = { axeRan: true, axe: [
+    axeViolation('heading-order', [], ['h3']),       // advisory structure prior ⇒ 1.3.1 review:true
+    axeViolation('landmark-unique', [], ['nav']),    // advisory ⇒ 1.3.1 review:true
+    axeViolation('region', [], ['div']),             // advisory ⇒ 1.3.1 review:true
+    axeViolation('tabindex', [], ['#x']),            // advisory focus-order ⇒ 2.4.3 review:true
+    axeViolation('aria-allowed-role', [], ['#y']),   // advisory ⇒ 4.1.2 review:true
+    axeViolation('image-redundant-alt', [], ['img']),// advisory ⇒ 1.1.1 review:true
+    axeViolation('empty-heading', [], ['h2']),       // GENUINE ⇒ 1.3.1 review:false
+    axeViolation('presentation-role-conflict', [], ['img']), // GENUINE ⇒ 1.1.1 review:false
+    axeViolation('frame-tested', [], ['iframe']),    // best-practice NOT mapped ⇒ dropped
+  ] };
+  const findings = surfaceAxeFindings(collect).findings;
+  const by = (id) => findings.find((f) => f.ruleId === id);
+  assert.equal(by('heading-order').sc, '1.3.1'); assert.equal(by('heading-order').review, true);
+  assert.equal(by('tabindex').sc, '2.4.3'); assert.equal(by('tabindex').review, true);
+  assert.equal(by('aria-allowed-role').sc, '4.1.2'); assert.equal(by('aria-allowed-role').review, true);
+  assert.equal(by('image-redundant-alt').sc, '1.1.1'); assert.equal(by('image-redundant-alt').review, true);
+  assert.equal(by('empty-heading').review, false, 'an empty heading is a genuine 1.3.1 barrier, not advisory');
+  assert.equal(by('presentation-role-conflict').review, true, 'axe fires this on non-decorative/non-image elements too (ACT 46ca7f), so it is an advisory prior, not a decided 1.1.1');
+  assert.ok(!by('frame-tested'), 'an unmapped best-practice rule is still dropped');
+});
+
 // ===== build-v3 consumption =====
 const scope = { actionTargetRef: 'node:b1', state: 'fresh-load', action: 'tab-to', environment: 'headless-chromium' };
 const FULL = { targetIsFocusable: true, keyboardReachableInState: true, realKeyboardFocus: true, hydrationReady: true, focusDependentIndicator: true, obviouslyVisible: true, stableIndicatorAbsence: true, modeCompletenessProven: true };
@@ -194,6 +235,72 @@ test('build: deterministicSignals (F) — ax-name-presence fires on an EXPOSED n
   const names = r.results.deterministicSignals.filter((s) => s.detector === 'ax-name-presence');
   assert.ok(names.every((s) => s.authoritative === false && s.shadow === true && s.kind === 'empty-accessible-name'));
   assert.deepEqual(names.map((s) => `${s.sc}:${s.xpath}`).sort(), ['1.1.1:/img', '1.3.1:/hd', '4.1.2:/btn', '4.1.2:/sum']);
+});
+
+test('build: deterministicSignals (#16) — dangling aria-labelledby/describedby resolved against structure.pageIds', () => {
+  const bundle = baseBundle();
+  bundle.collect.structure = { pageIds: { 'real': 5, 'desc-ok': 3 } };
+  bundle.collect.elements = [
+    { xpath: 'node:b1', focusable: true },
+    { xpath: '/lb-dangle', ariaLabelledby: 'gone' },               // 4.1.2 dangling name ref
+    { xpath: '/lb-partial', ariaLabelledby: 'real missing2' },     // 4.1.2 (one of two ids absent)
+    { xpath: '/db-dangle', ariaDescribedby: 'nope' },              // 1.3.1 dangling description ref
+    { xpath: '/lb-ok', ariaLabelledby: 'real' },                   // resolves ⇒ NO signal
+    { xpath: '/db-ok', ariaDescribedby: 'desc-ok' },               // resolves ⇒ NO signal
+  ];
+  const r = buildV3(bundle);
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  const idref = r.results.deterministicSignals.filter((s) => s.detector === 'dangling-idref');
+  assert.ok(idref.every((s) => s.authoritative === false && s.shadow === true && s.kind === 'dangling-idref'));
+  assert.deepEqual(idref.map((s) => `${s.sc}:${s.xpath}`).sort(), ['1.3.1:/db-dangle', '4.1.2:/lb-dangle', '4.1.2:/lb-partial']);
+});
+
+test('build: deterministicSignals (#16) — a SIZE-CAPPED id map disables dangling detection (no false barrier)', () => {
+  const bundle = baseBundle();
+  const big = {}; for (let i = 0; i < 4000; i++) big['id' + i] = 1; // capped — cannot disprove an idref
+  bundle.collect.structure = { pageIds: big };
+  bundle.collect.elements = [{ xpath: 'node:b1', focusable: true }, { xpath: '/x', ariaLabelledby: 'definitely-absent' }];
+  const r = buildV3(bundle);
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  assert.equal(r.results.deterministicSignals.filter((s) => s.detector === 'dangling-idref').length, 0);
+});
+
+test('build: deterministicSignals (#14) — keyboard-orphan is review-tier and conservative', () => {
+  const bundle = baseBundle();
+  bundle.collect.elements = [
+    { xpath: 'node:b1', focusable: true },
+    { xpath: '/orphan', tag: 'div', focusable: false, keyListener: false, cursor: 'pointer', pointerActivationListener: true, listenerTypes: ['click'] }, // FLAG (2.1.1, review)
+    { xpath: '/focusable', tag: 'div', focusable: true, cursor: 'pointer', pointerActivationListener: true, listenerTypes: ['click'] },                  // focusable ⇒ NO signal
+    { xpath: '/has-key', tag: 'div', focusable: false, keyListener: true, cursor: 'pointer', pointerActivationListener: true, listenerTypes: ['click', 'keydown'] }, // has key handler ⇒ NO signal
+    { xpath: '/no-cursor', tag: 'div', focusable: false, keyListener: false, cursor: 'auto', pointerActivationListener: true, listenerTypes: ['click'] }, // not cursor:pointer (likely delegation) ⇒ NO signal
+    { xpath: '/native', tag: 'button', focusable: false, keyListener: false, cursor: 'pointer', pointerActivationListener: true, listenerTypes: ['click'] }, // native interactive ⇒ NO signal
+    { xpath: '/role', tag: 'div', roleAttr: 'button', focusable: false, keyListener: false, cursor: 'pointer', pointerActivationListener: true, listenerTypes: ['click'] }, // interactive role ⇒ NO signal
+    { xpath: '/delegation', tag: 'ul', roleAttr: 'list', focusable: false, keyListener: false, cursor: 'pointer', pointerActivationListener: true, listenerTypes: ['click'] }, // structural role (delegation container) ⇒ NO signal
+    { xpath: '/presentational', tag: 'div', roleAttr: 'presentation', focusable: false, keyListener: false, cursor: 'pointer', pointerActivationListener: true, listenerTypes: ['click'] }, // a fake button marked presentational ⇒ FLAG
+  ];
+  const r = buildV3(bundle);
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  const orphans = r.results.deterministicSignals.filter((s) => s.detector === 'keyboard-orphan');
+  assert.deepEqual(orphans.map((s) => s.xpath).sort(), ['/orphan', '/presentational'], 'flags the roleless + presentational fake buttons; excludes the role=list delegation container');
+  assert.ok(orphans.every((s) => s.sc === '2.1.1' && s.review === true), 'keyboard-orphan is a review-tier 2.1.1 prior, not a decided barrier');
+});
+
+test('build: deterministicSignals (#12) — group-label fires on a nameless multi-control group only', () => {
+  const bundle = baseBundle();
+  bundle.collect.structure = { fieldsets: [
+    { xpath: '/fs-nolegend', tag: 'fieldset', hasLegend: false, legendText: '', ariaLabel: '', labelledbyText: '', controlCount: 3 }, // FLAG (3.3.2)
+    { xpath: '/fs-emptylegend', tag: 'fieldset', hasLegend: true, legendText: '', ariaLabel: '', labelledbyText: '', controlCount: 2 }, // empty legend ⇒ FLAG
+    { xpath: '/fs-legend', tag: 'fieldset', hasLegend: true, legendText: 'Contact', controlCount: 2 },          // named ⇒ NO signal
+    { xpath: '/grp-arialabel', tag: 'div', role: 'group', ariaLabel: 'Shipping', controlCount: 4 },             // aria-label ⇒ NO signal
+    { xpath: '/grp-labelledby', tag: 'div', role: 'radiogroup', labelledbyText: 'Size', controlCount: 3 },      // resolved labelledby ⇒ NO signal
+    { xpath: '/fs-onecontrol', tag: 'fieldset', hasLegend: false, controlCount: 1 },                            // <2 controls ⇒ NO signal
+  ] };
+  bundle.collect.elements = [{ xpath: 'node:b1', focusable: true }];
+  const r = buildV3(bundle);
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  const grp = r.results.deterministicSignals.filter((s) => s.detector === 'group-label');
+  assert.ok(grp.every((s) => s.sc === '3.3.2' && s.authoritative === false && s.shadow === true && s.kind === 'group-without-accessible-name'));
+  assert.deepEqual(grp.map((s) => s.xpath).sort(), ['/fs-emptylegend', '/fs-nolegend']);
 });
 
 test('build: a malformed checkerFindings artifact is REFUSED (findings must be an array)', () => {

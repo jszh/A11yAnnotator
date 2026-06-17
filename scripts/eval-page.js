@@ -190,12 +190,48 @@ function parseRGB(s) {
         tag: r.tagName.toLowerCase(), ariaLive: r.getAttribute('aria-live'), role: r.getAttribute('role'),
         empty: (r.textContent || '').trim().length === 0,
       }));
+      const xpathOf = (el) => {
+        if (!el || el.nodeType !== 1) return null;
+        const parts = [];
+        for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+          let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++;
+          parts.unshift(n.tagName.toLowerCase() + '[' + i + ']');
+        }
+        return '/' + parts.join('/');
+      };
+      // coverage #16 (dangling-IDREF): page-wide id → trimmed-text-LENGTH, so build-v3 can resolve
+      // aria-labelledby/aria-describedby IDREFs deterministically without live-DOM access (a dangling
+      // ref ⇒ id absent from this map; an empty target ⇒ length 0). Capped to bound the artifact.
+      const pageIds = {}; { let n = 0; for (const e of document.querySelectorAll('[id]')) { const id = e.getAttribute('id'); if (!id || Object.prototype.hasOwnProperty.call(pageIds, id)) continue; pageIds[id] = (e.textContent || '').trim().length; if (++n >= 4000) break; } }
+      // coverage #12 (group-label/fieldset, F82/H71): every <fieldset> / role=group|radiogroup, with
+      // whether it carries an accessible GROUP NAME (a non-empty <legend>, aria-label, or a RESOLVED
+      // aria-labelledby) and how many form controls it owns. build-v3 flags a group that owns ≥2 controls
+      // but has NO accessible name. (Implicit radio-name grouping without a container is FP-prone and is
+      // left to a rubric — only an EXPLICIT group container is judged here.)
+      const grpSel = 'fieldset,[role=group],[role=radiogroup]';
+      const ctlSel = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]),select,textarea,[role=checkbox],[role=radio],[role=switch],[role=spinbutton],[role=combobox],[role=listbox],[role=textbox],[role=slider]';
+      const fieldsets = [...document.querySelectorAll(grpSel)].filter(g => !inConsent(g)).slice(0, 60).map(g => {
+        const legend = g.tagName.toLowerCase() === 'fieldset' ? g.querySelector(':scope > legend') : null;
+        const legendText = legend ? (legend.textContent || '').trim() : '';
+        const ariaLabel = (g.getAttribute('aria-label') || '').trim();
+        const lb = g.getAttribute('aria-labelledby');
+        const labelledbyText = lb ? lb.split(/\s+/).map(id => { const t = document.getElementById(id); return t ? (t.textContent || '').trim() : ''; }).join(' ').trim() : '';
+        // count only DIRECT controls — a control whose NEAREST group ancestor is g (not a nested inner
+        // group). Otherwise a nameless STRUCTURING wrapper around legended inner fieldsets would false-fire
+        // the group-label detector (adversarial verify #2).
+        const controlCount = [...g.querySelectorAll(ctlSel)].filter(c => c.closest(grpSel) === g).length;
+        return {
+          xpath: xpathOf(g), tag: g.tagName.toLowerCase(), role: g.getAttribute('role') || null,
+          hasLegend: !!legend, legendText: legendText.slice(0, 80), ariaLabel: ariaLabel.slice(0, 80),
+          labelledbyText: labelledbyText.slice(0, 80), controlCount,
+        };
+      });
       return {
         title: document.title, lang: document.documentElement.getAttribute('lang') || null,
         headings, landmarkCount: landmarks.length, landmarks: landmarks.slice(0, 40),
         hasMain: landmarks.some(l => l.tag === 'main' || l.role === 'main'),
         hasNav: landmarks.some(l => l.tag === 'nav' || l.role === 'navigation'),
-        listStyleNone, liveRegions,
+        listStyleNone, liveRegions, pageIds, fieldsets,
       };
     });
 
@@ -397,7 +433,7 @@ function parseRGB(s) {
           box: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) },
           color: cs.color, ownBg: cs.backgroundColor, ownBgImage: cs.backgroundImage,
           effBg, effBgImage, bgWalkCrossedOverlay, textInChildDiffColor,
-          display: cs.display, inSentence, inlineCandidate: cs.display === 'inline', uaControl, transformed, clipped, cornerRadius, squareFits, targetNeighbors,
+          display: cs.display, cursor: cs.cursor, inSentence, inlineCandidate: cs.display === 'inline', uaControl, transformed, clipped, cornerRadius, squareFits, targetNeighbors,
           states, tabindexEffective, roleOverridesNative, obscured,
           fontSize: cs.fontSize, fontWeight: cs.fontWeight,
           outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, outlineColor: cs.outlineColor,
@@ -453,6 +489,17 @@ function parseRGB(s) {
           returnByValue: false,
         });
         if (ev.result && ev.result.objectId) {
+          // coverage #23/#14: the element's OWN event listeners. Pointer-activation handlers added via
+          // addEventListener are invisible to the static DOM snapshot (which only sees inline on* attrs),
+          // so a keyboard-orphan (a div wired clickable by JS) cannot be seen without this. DOMDebugger
+          // needs the runtime objectId; best-effort (catch ⇒ field simply absent, never a false negative).
+          try {
+            const elr = await cdp.send('DOMDebugger.getEventListeners', { objectId: ev.result.objectId, depth: 0 });
+            const types = [...new Set((elr.listeners || []).map(l => String(l.type)))];
+            rec.listenerTypes = types;
+            rec.pointerActivationListener = types.some(t => ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'dblclick'].includes(t));
+            rec.keyListener = types.some(t => ['keydown', 'keyup', 'keypress'].includes(t));
+          } catch (e) { /* getEventListeners unavailable for this node — leave the listener fields unset */ }
           const { node } = await cdp.send('DOM.describeNode', { objectId: ev.result.objectId });
           if (node) {
             const { nodes } = await cdp.send('Accessibility.getAXNodeAndAncestors', { backendNodeId: node.backendNodeId });
@@ -465,7 +512,7 @@ function parseRGB(s) {
               // ax-name-presence detector (build-v3.js, fires only on empty-STRING) unreachable on real
               // data. Downstream label-in-name checks gate on `trim().length > 0`, so '' behaves like null
               // there (no label-in-name) — only the empty-vs-unresolved distinction is restored.
-              rec.axName = ax.name && ax.name.value != null ? String(ax.name.value) : null;
+              rec.axName = A.coerceAxName(ax.name && ax.name.value); // '' (resolved-empty) vs null (unresolved) — see coerceAxName / review #43
               // T12: a video/audio that can't load offline yields the browser's
               // fallback string as the AX name — flag it as NOT author-supplied.
               if (A.isMediaErrorName(rec.axName)) { rec.mediaErrorName = true; rec.axNameAuthorSupplied = false; }

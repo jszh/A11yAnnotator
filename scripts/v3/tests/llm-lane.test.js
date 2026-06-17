@@ -286,6 +286,41 @@ test('adversarial MED: precomputeSignals does NOT crash on a malformed element (
   assert.doesNotThrow(() => llmAdj.precomputeSignals(null, 'keyboard-operability'));
 });
 
+test('#44: precomputeSignals carries the contrast UNCERTAINTY reason when the deterministic runner abstained', () => {
+  // complex-backdrop element: runner could not compute a sound ratio — the agent must be TOLD why.
+  const unsure = llmAdj.precomputeSignals({ xpath: 'x', color: 'rgb(0,0,0)', effBg: 'rgb(0,0,0)', contrastReliable: false, needsPixelContrast: true, contrastUnreliableReason: 'background-image gradient behind text', contrastThreshold: 4.5 }, 'color-and-visual-text');
+  assert.equal(unsure.contrast.computable, false, 'no sound ratio computed');
+  assert.equal(unsure.contrast.reliable, false);
+  assert.equal(unsure.contrast.uncertainReason, 'background-image gradient behind text', 'the WHY is passed through, not a bare null');
+  assert.equal(unsure.contrast.needsPixelContrast, true);
+  // a reliable flat-backdrop element: the ratio IS handed over and there is NO uncertainty reason.
+  const sure = llmAdj.precomputeSignals({ xpath: 'y', color: 'rgb(0,0,0)', effBg: 'rgb(255,255,255)', contrastReliable: true, contrastSolid: 21, contrastThreshold: 4.5 }, 'color-and-visual-text');
+  assert.equal(sure.contrast.computable, true);
+  assert.equal(sure.contrast.ratio, 21);
+  assert.equal(sure.contrast.uncertainReason, undefined, 'a computed ratio carries no abstention reason');
+  // a missing reason still yields a generic explanation (never a bare absence).
+  const generic = llmAdj.precomputeSignals({ xpath: 'z', contrastReliable: false }, 'color-and-visual-text');
+  assert.equal(generic.contrast.computable, false);
+  assert.ok(/could not be reduced to two flat colors/.test(generic.contrast.uncertainReason), 'a default abstention reason is always present');
+});
+
+test('#44/adequacy-routing: name-role-state signals carry the deterministic name-PRESENCE result (absence ≠ pass)', () => {
+  // empty resolved name ⇒ the adequacy rubric must be told the name is ABSENT (so it returns REPRODUCED).
+  const empty = llmAdj.precomputeSignals({ xpath: 'x', axName: '' }, 'name-role-state');
+  assert.equal(empty.accessibleName.present, false);
+  assert.equal(empty.accessibleName.resolved, true, 'resolved-empty is distinct from unresolved');
+  assert.ok(/absence IS the barrier/.test(empty.accessibleName.uncertainReason), 'the rubric is told an empty name is the barrier');
+  // a real name ⇒ present, no uncertainty (judge adequacy).
+  const named = llmAdj.precomputeSignals({ xpath: 'y', axName: 'Close dialog' }, 'name-role-state');
+  assert.equal(named.accessibleName.present, true);
+  assert.equal(named.accessibleName.uncertainReason, undefined);
+  // unresolved (null) ⇒ flagged as uncertain, not absent.
+  const unres = llmAdj.precomputeSignals({ xpath: 'z', axName: null }, 'name-role-state');
+  assert.equal(unres.accessibleName.present, false);
+  assert.equal(unres.accessibleName.resolved, false);
+  assert.ok(/could not be resolved/.test(unres.accessibleName.uncertainReason));
+});
+
 test('adversarial LOW: a contradictory BARRIER+INAPPLICABLE record is not double-counted across directions', () => {
   const results = { claims: [], shadowObservations: [{ source: 'llm', mechanism: 'llm-agent', sc: '1.1.1', observationScope: scope('x'), wouldBe: { observationOutcome: 'BARRIER_OBSERVED', wcagApplicability: 'INAPPLICABLE' } }] };
   const gold = [{ xpath: 'x', sc: '1.1.1', goldOutcome: 'BARRIER_OBSERVED' }];

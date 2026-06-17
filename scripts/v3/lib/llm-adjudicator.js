@@ -159,6 +159,33 @@ function precomputeSignals(element, skill) {
     const fg = A.parseRGB(element.fg), bg = A.parseRGB(element.bg);
     if (fg && bg) s.contrastRatio = A.contrastRatio([fg.r, fg.g, fg.b], [bg.r, bg.g, bg.b]);
   }
+  // #44 UNCERTAINTY PROPAGATION: the deterministic CONTRAST runner's verdict — and, crucially, WHY it
+  // abstained — must reach the agent, not a bare absence. A complex-backdrop element reaches a rubric
+  // PRECISELY because the runner could not reduce the backdrop to two flat colors; handing it neither a
+  // ratio nor a reason invites the agent to mistake "no deterministic finding" for "passes". So always
+  // surface reliability + the abstention reason. Real collected elements carry color/effBg +
+  // contrastReliable/contrastUnreliableReason/needsPixelContrast/contrastSolid (the older fg/bg branch
+  // above was dead on real records — they use color/effBg — which is exactly how this gap hid).
+  if (skill === 'color-and-visual-text' || element.contrastReliable != null || element.needsPixelContrast != null || element.contrastSolid != null || element.contrastUnreliableReason != null) {
+    const reliable = element.contrastReliable === true;
+    let ratio = Number.isFinite(s.contrastRatio) ? s.contrastRatio : undefined;
+    if (ratio == null && reliable && Number.isFinite(element.contrastSolid)) ratio = element.contrastSolid;
+    if (ratio == null && reliable && typeof element.color === 'string' && typeof element.effBg === 'string') {
+      const fg = A.parseRGB(element.color), bg = A.parseRGB(element.effBg);
+      if (fg && bg) ratio = A.contrastRatio([fg.r, fg.g, fg.b], [bg.r, bg.g, bg.b]);
+    }
+    s.contrast = {
+      ratio,
+      computable: ratio != null,
+      reliable,
+      threshold: Number.isFinite(element.contrastThreshold) ? element.contrastThreshold : (Number.isFinite(s.contrastThreshold) ? s.contrastThreshold : undefined),
+      needsPixelContrast: element.needsPixelContrast === true,
+      // present IFF the runner could not produce a sound ratio — the explicit "why I abstained" the agent needs:
+      uncertainReason: ratio == null
+        ? (element.contrastUnreliableReason || 'the backdrop could not be reduced to two flat colors (gradient / image / overlay / semi-transparency), so a sound contrast ratio is not computable — judge readability from the pixels')
+        : undefined,
+    };
+  }
   if (skill === 'focus-visibility' && element.focusStats) {
     s.focusRing = A.focusRingDecision({ realTabSpatial: element.focusStats });
   }
@@ -167,6 +194,21 @@ function precomputeSignals(element, skill) {
       role: element.role, tabindex: element.tabindex, reachedByTab: element.reachedByTab,
       respondedToSyntheticKey: element.respondedToSyntheticKey, respondsToArrows: element.respondsToArrows, focusable: element.focusable,
     });
+  }
+  // #44 / adversarial verify #7: for name-role-state, surface the deterministic NAME-PRESENCE result. The
+  // ax-name-presence detector is a SHADOW signal (not a CLAIM), so an empty-name 4.1.2 obligation still
+  // reaches the (now 4.1.2-owning) adequacy rubric — which must NOT mistake an ABSENT name for an adequate
+  // one. Hand it the presence result + the explicit "absence IS the barrier" reading so it can't false-clear.
+  if (skill === 'name-role-state') {
+    const an = typeof element.axName === 'string' ? element.axName : null;
+    s.accessibleName = {
+      value: an,
+      present: !!(an && an.trim().length > 0),
+      resolved: an !== null, // null ⇒ CDP did not resolve a name (uncertain), distinct from '' (resolved-empty)
+      uncertainReason: (an !== null && an.trim() === '')
+        ? 'the deterministic name-presence detector found an EMPTY accessible name — that absence IS the barrier (judge REPRODUCED); only judge adequacy when a name is present'
+        : (an === null ? 'the accessible name could not be resolved deterministically — judge presence/adequacy from the evidence' : undefined),
+    };
   }
   s.boxMin = num(element.box && typeof element.box === 'object' ? Math.min(element.box.w, element.box.h) : undefined);
   return s;
@@ -184,7 +226,10 @@ function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
     `Claim family (bind your verdict to this): ${subject.claimFamily}`,
     '--- rubric ---',
     rubric,
-    '--- pre-computed deterministic signals (do not re-derive) ---',
+    // #44: tell the agent how to READ the deterministic signals — an `uncertainReason` is WHY a checker
+    // abstained, and an absent signal/ratio means "could not decide", never "passes". (Atomic rubrics
+    // additionally carry this in their "Interpreting the deterministic evidence" section.)
+    '--- pre-computed deterministic signals (do not re-derive; a signal\'s `uncertainReason` says WHY a checker abstained — an ABSENT signal or ratio means it could NOT decide, NOT that the page passes) ---',
     JSON.stringify(signals),
     '--- VSR announcement (realistic accessible name) ---',
     transcriptExcerpt ? JSON.stringify(transcriptExcerpt) : '(none)',

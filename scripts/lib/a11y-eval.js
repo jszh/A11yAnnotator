@@ -305,6 +305,16 @@ const CONSENT_SELECTORS = [
   '[aria-label*="cookie" i][role="dialog"]', '[aria-label*="consent" i][role="dialog"]', '[id*="gdpr" i]',
 ];
 
+// COERCE a CDP-derived accessible name to v3's convention: an empty RESOLVED name stays '' (the element
+// IS exposed in the AX tree with a name property that resolved to empty — a name-PRESENCE barrier the
+// ax-name-presence detector fires on), distinct from null (no name property / CDP did not resolve one,
+// which is "uncertain" and never barriers). The naive `value || null` conflates them, which made the
+// detector DEAD on real data (coverage review #43). Read every CDP `name.value` through this so the
+// empty-vs-unresolved distinction can never silently regress, and unit-test the helper directly.
+function coerceAxName(nameValue) {
+  return nameValue != null ? String(nameValue) : null;
+}
+
 module.exports = {
   relLuminance, contrastRatio, parseRGB,
   isLargeText, contrastThresholdFor, LARGE_NORMAL_PX, LARGE_BOLD_PX,
@@ -313,5 +323,6 @@ module.exports = {
   isMediaErrorName, isBlankFrame,
   isRovingTabindexItem, keyboardOperabilitySignal, COMPOSITE_ROLES,
   focusRingDecision, focusSpatialVerdict,
+  coerceAxName,
   CONSENT_SELECTORS,
 };

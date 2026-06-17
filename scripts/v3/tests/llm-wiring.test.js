@@ -179,11 +179,11 @@ test('partition: selectSubjects skips SCs an atomic rubric OWNS, keeps rubric-le
   const collect = { elements: [{ xpath: '/img' }, { xpath: '/btn' }] };
   const ledger = [
     { xpath: '/img', sc: '1.1.1', claimFamily: 'non-text-content', autoPartial: true }, // OWNED by alt-text-adequacy-v0
-    { xpath: '/btn', sc: '4.1.2', claimFamily: 'name-role-value', autoPartial: true },   // rubric-less → agent is the filler
+    { xpath: '/btn', sc: '2.1.1', claimFamily: 'keyboard-operable', autoPartial: true },  // rubric-less → agent is the filler (4.1.2 is now owned by accessible-name-adequacy-v0)
   ];
   const subs = llmAdj.selectSubjects(collect, ledger, { ownedScs });
   assert.ok(!subs.some((s) => s.sc === '1.1.1'), 'the whole-obligation agent does NOT fire on a cell the rubric owns');
-  assert.ok(subs.some((s) => s.sc === '4.1.2'), 'the agent IS the fallback on a rubric-less SC (one of 2.1.1/1.4.3/4.1.2/2.1.2)');
+  assert.ok(subs.some((s) => s.sc === '2.1.1'), 'the agent IS the fallback on a rubric-less SC (one of 2.1.1/2.1.2 — 1.4.1/1.4.3/4.1.2 are now rubric-owned)');
 });
 
 test('partition: agent + rubric select DISJOINT (xpath,sc) cells over one ledger — the tie-break can never fire on agreement', () => {

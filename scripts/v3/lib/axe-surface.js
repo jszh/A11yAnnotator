@@ -33,13 +33,50 @@ const AXE_SURFACED_RULES = Object.freeze(new Set([
   'nested-interactive', 'aria-hidden-focus',
   // required owned/context (1.3.1 — redundant with the wholesale set, listed for intent/robustness)
   'aria-required-children', 'aria-required-parent', 'td-headers-attr',
+  // use-of-color (1.4.1, coverage item #8) — F73: a link distinguishable from its surrounding text-block
+  // ONLY by colour. axe tags it `wcag141`; we surface it per-rule so 1.4.1 is NOT opened wholesale.
+  'link-in-text-block',
 ]));
 
+// ALLOWLIST_SCS (coverage item #10): the ONLY SCs a per-rule-allow-listed rule may surface. The per-rule
+// gate previously emitted a rule under EVERY wcag tag it carried, so a rule tagged with an out-of-scope
+// SC (e.g. the obsolete `wcag411`/4.1.1, removed in WCAG 2.2) would leak that SC into the finding set.
+// (In the bundled axe build no allow-listed rule currently carries `wcag411`, so the leak is latent —
+// this is a defensive guard against a future rule, not a live bug.) These are the four SCs the allow-list
+// legitimately evidences: 4.1.2 (name/aria), 2.4.4 (link-name's purpose limb), 1.3.1 (required owned/
+// context, td-headers), 1.4.1 (link-in-text-block). Anything else an allow-listed rule tags is dropped.
+const ALLOWLIST_SCS = Object.freeze(new Set(['4.1.2', '2.4.4', '1.3.1', '1.4.1']));
+
 // (3) BEST-PRACTICE rules carry NO `/^wcag\d/` tag, so eval-page.js retains an EMPTY `wcag` array for
-// them and tag-based surfacing alone drops them. Map the ruleId → the SC the rule actually evidences.
+// them and tag-based surfacing alone drops them. Map the ruleId → { sc, review } (coverage item #6):
+//   • review:false — the rule decides a genuine SC barrier (an empty heading, a role/decoration conflict).
+//   • review:true  — the rule is an ADVISORY structure/navigation best-practice that is NOT a strict SC
+//     failure (skipped heading level, non-unique landmark, content outside a region, positive tabindex).
+//     Surfacing these as review-tier priors mirrors the axe-`incomplete` tier: a prior to weigh, never a
+//     decided barrier. (Only SCs in the harness universe are mapped; 2.4.3 rides the triage queue.)
 const BEST_PRACTICE_RULE_SC = Object.freeze({
-  'presentation-role-conflict': '1.1.1', // 46ca7f — decorative marking conflicts with a global ARIA attr
-  'empty-heading': '1.3.1',              // ffd0e9 — semantic heading with no accessible name (ARIA §5.2.8)
+  // 46ca7f — a decorative role=presentation/none in conflict with focusability/a global ARIA attr. axe's
+  // matcher fires on ANY implicit-role element (li/nav/div/heading…), but ACT 46ca7f maps to 1.1.1 ONLY
+  // for decorative NON-TEXT content; for text/non-decorative content it is not a WCAG failure at all. So
+  // this is an ADVISORY prior (review:true), NOT a decided 1.1.1 barrier (adversarial verify #2).
+  'presentation-role-conflict': { sc: '1.1.1', review: true },
+  'empty-heading':              { sc: '1.3.1', review: false }, // ffd0e9 — semantic heading with no accessible name (ARIA §5.2.8)
+  // advisory structure priors (1.3.1 info-relationships) — real signals, not strict failures:
+  'heading-order':              { sc: '1.3.1', review: true },  // a skipped heading level (G141 is advisory)
+  'landmark-unique':            { sc: '1.3.1', review: true },  // two landmarks share role+name
+  'landmark-one-main':          { sc: '1.3.1', review: true },  // page lacks a single main landmark
+  'region':                     { sc: '1.3.1', review: true },  // content sits outside any landmark
+  'page-has-heading-one':       { sc: '1.3.1', review: true },  // no level-1 heading
+  'empty-table-header':         { sc: '1.3.1', review: true },  // a <th>/role=columnheader with no text
+  'scope-attr-valid':           { sc: '1.3.1', review: true },  // a scope= value that is not row/col(group)
+  // advisory name/role priors (4.1.2):
+  'aria-allowed-role':          { sc: '4.1.2', review: true },  // an explicit role not allowed on the element
+  'aria-dialog-name':           { sc: '4.1.2', review: true },  // a dialog/alertdialog with no accessible name
+  'aria-treeitem-name':         { sc: '4.1.2', review: true },  // a treeitem with no accessible name
+  // advisory non-text prior (1.1.1):
+  'image-redundant-alt':        { sc: '1.1.1', review: true },  // alt text duplicates adjacent visible text
+  // advisory focus-order prior (2.4.3 — rides the triage queue):
+  'tabindex':                   { sc: '2.4.3', review: true },  // a positive tabindex disturbs focus order
 });
 
 // axe carries its SC binding in the violation's own WCAG TAGS (e.g. 'wcag131'); level/version tags
@@ -47,16 +84,24 @@ const BEST_PRACTICE_RULE_SC = Object.freeze({
 const wcagTagToSc = (t) => { const m = /^wcag(\d)(\d)(\d+)$/.exec(String(t)); return m ? `${m[1]}.${m[2]}.${m[3]}` : null; };
 const isSurfaced = (sc) => AXE_SURFACED_SCS.has(sc) || AXE_SURFACED_PREFIXES.some((p) => sc.startsWith(p));
 
-// The surfaced SC set for one axe finding (violation or incomplete). A rule on the per-rule allow-list
-// surfaces under ALL of its WCAG SCs; otherwise only its wholesale-allow-listed SCs surface; a
-// best-practice rule with no wcag tag falls back to its ruleId→SC mapping.
+// The surfaced SC set for one axe finding (violation or incomplete). A wholesale-tagged SC surfaces if
+// `isSurfaced`; an allow-listed rule additionally surfaces its in-scope `ALLOWLIST_SCS` tags (so 4.1.2 is
+// consumed without opening the noisy family) — but a tag OUTSIDE both gates (e.g. obsolete 4.1.1) is
+// dropped (#10). A best-practice rule with no wcag tag falls back to its ruleId→{sc} mapping (#6).
 function surfacedScsFor(v) {
   const ruleId = String(v.id || '');
   const tagScs = [...new Set((Array.isArray(v.wcag) ? v.wcag : []).map(wcagTagToSc).filter(Boolean))];
   const ruleAllowed = AXE_SURFACED_RULES.has(ruleId);
-  let scs = tagScs.filter((sc) => ruleAllowed || isSurfaced(sc));
-  if (!scs.length && Object.prototype.hasOwnProperty.call(BEST_PRACTICE_RULE_SC, ruleId)) scs = [BEST_PRACTICE_RULE_SC[ruleId]];
+  let scs = tagScs.filter((sc) => isSurfaced(sc) || (ruleAllowed && ALLOWLIST_SCS.has(sc)));
+  if (!scs.length && Object.prototype.hasOwnProperty.call(BEST_PRACTICE_RULE_SC, ruleId)) scs = [BEST_PRACTICE_RULE_SC[ruleId].sc];
   return [...new Set(scs)];
+}
+
+// Whether a surfaced finding is an ADVISORY best-practice prior (review-tier even when axe calls it a
+// hard violation) — only the best-practice rules flagged `review:true` above.
+function bestPracticeIsReview(ruleId) {
+  const bp = BEST_PRACTICE_RULE_SC[ruleId];
+  return !!(bp && bp.review === true);
 }
 
 // Map `collect.axe` (violations) + `collect.axeIncomplete` (needs-review) — the eval-page.js shape
@@ -85,6 +130,8 @@ function surfaceAxeFindings(collect) {
       const impact = v.impact != null ? String(v.impact) : '';
       const scs = surfacedScsFor(v);
       if (!scs.length) continue; // finding carries no surfaced SC → not surfaced
+      // an advisory best-practice rule is review-tier even when axe reports it as a hard violation (#6).
+      const effReview = review || bestPracticeIsReview(ruleId);
       const nodes = Array.isArray(v.nodes) && v.nodes.length ? v.nodes : [null];
       for (const sc of scs) {
         for (const n of nodes) {
@@ -92,7 +139,7 @@ function surfaceAxeFindings(collect) {
           const key = `${ruleId}::${sc}::${target || ''}::${kind}`;
           if (seen.has(key)) continue;
           seen.add(key);
-          findings.push({ source: 'axe', detector: `axe:${ruleId}`, ruleId, sc, impact, kind, xpath: target, review });
+          findings.push({ source: 'axe', detector: `axe:${ruleId}`, ruleId, sc, impact, kind, xpath: target, review: effReview });
         }
       }
     }
@@ -102,4 +149,4 @@ function surfaceAxeFindings(collect) {
   return { ran: true, findings };
 }
 
-module.exports = { surfaceAxeFindings, surfacedScsFor, wcagTagToSc, isSurfaced, AXE_SURFACED_SCS, AXE_SURFACED_PREFIXES, AXE_SURFACED_RULES, BEST_PRACTICE_RULE_SC };
+module.exports = { surfaceAxeFindings, surfacedScsFor, bestPracticeIsReview, wcagTagToSc, isSurfaced, AXE_SURFACED_SCS, AXE_SURFACED_PREFIXES, AXE_SURFACED_RULES, ALLOWLIST_SCS, BEST_PRACTICE_RULE_SC };

@@ -210,7 +210,10 @@ async function detectKeyboardTraps(page, opts = {}) {
 // mutual-bounce variants (Failed 3-5: focus hops btn1<->btn2, never returning to the SAME element) are
 // deliberately NOT flagged — they are empirically indistinguishable from the rule's PASSED bounce
 // examples (e.g. Passed Example 7) by focus behaviour, so flagging them would be unsound.
-const REFOCUS_SETTLE_MS = 140; // cover an async onblur/onfocusout refocus (e.g. setTimeout(…, 10)) + margin
+const REFOCUS_SETTLE_MS = 180; // cover an async onblur/onfocusout refocus (setTimeout / chained rAF) + margin
+// (raised 140→180 in coverage round 2: a chained-timer/rAF refocus can exceed 140ms, and the tighter
+// margin made the forward-walk candidate scan flaky under heavy concurrent-Chrome load — a wider settle
+// is a pure robustness margin, it does not change which elements are CONFIRMED traps.)
 const RETENTION_CAP = 60;      // bound the candidate scan on large pages (offline instrument lane)
 const settleMs = (page, ms) => page.evaluate((t) => new Promise((r) => setTimeout(r, t)), ms);
 
@@ -281,4 +284,47 @@ async function detectFocusRetentionTraps(page, opts = {}) {
   return { traps, focusableCount: focs.length, coverageTruncated: focs.length > RETENTION_CAP, candidates: [...candIds] };
 }
 
-module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL };
+// F55 (coverage #15): the INVERSE of a self-refocus trap — an element that REMOVES its own focus the
+// instant it receives it (onfocus="this.blur()", or a script that blurs on focus). It "reads as
+// non-focusable": focus() never rests on it and focus lands back on <body>, so a keyboard user can never
+// operate it (2.1.1) and no focus indicator can ever show (2.4.7). SOUND BY CONSTRUCTION: only genuinely
+// FOCUSABLE_SEL candidates are probed; a candidate is flagged ONLY when, across TWO attempts, focus()
+// fails to rest on it AND lands specifically on <body> (an ACTIVE removal). A benign focus REDIRECT to a
+// different control lands focus elsewhere (not body) and is NOT flagged; a sync OR async blur both caught
+// (the post-settle read covers setTimeout(blur)).
+async function detectFocusRejection(page, opts = {}) {
+  const focs = await page.evaluate(tagFocusables, FOCUSABLE_SEL).catch(() => []);
+  if (!Array.isArray(focs) || !focs.length) return { rejections: [], focusableCount: (focs || []).length };
+  const scan = focs.slice(0, RETENTION_CAP);
+  const focusBody = () => page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } });
+  const tryFocus = (id) => page.evaluate((i) => {
+    const el = document.querySelector(`[data-v3-foc="${i}"]`);
+    if (!el) return null;
+    if (el.disabled || el.getAttribute('aria-disabled') === 'true') return { skip: true };
+    const inlineHandler = !!(el.getAttribute('onfocus') || el.getAttribute('onblur') || el.getAttribute('onfocusout'));
+    el.focus();
+    return { skip: false, inlineHandler };
+  }, id).catch(() => null);
+  const readFocus = (id) => page.evaluate((i) => {
+    const el = document.querySelector(`[data-v3-foc="${i}"]`);
+    if (!el) return null;
+    return { took: document.activeElement === el || el.contains(document.activeElement), onBody: document.activeElement === document.body };
+  }, id).catch(() => null);
+  const rejections = [];
+  for (const f of scan) {
+    await focusBody();
+    const a = await tryFocus(f.id);
+    if (!a || a.skip) continue;
+    await settleMs(page, REFOCUS_SETTLE_MS);          // let a same-tick async blur land (setTimeout F55)
+    const s1 = await readFocus(f.id);
+    if (!s1 || s1.took || !s1.onBody) continue;       // rests on element ⇒ fine; landed elsewhere ⇒ redirect, not F55
+    await focusBody();                                 // confirm with a second independent attempt
+    await tryFocus(f.id);
+    await settleMs(page, REFOCUS_SETTLE_MS);
+    const s2 = await readFocus(f.id);
+    if (s2 && !s2.took && s2.onBody) rejections.push({ sc: '2.1.1', xpath: f.xpath, tag: f.tag, label: f.label, inlineHandler: !!a.inlineHandler });
+  }
+  return { rejections, focusableCount: focs.length, coverageTruncated: focs.length > RETENTION_CAP };
+}
+
+module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFocusRejection, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL };
