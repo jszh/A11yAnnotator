@@ -384,6 +384,85 @@ async function computeContrastRatio(page, args) {
 }
 
 // ============================================================================================
+// resolve_part_color — READ-ONLY: for a NON-TEXT part the model points at (a screenshot pixel), return the
+// CSS used-colours of the element there (color/background/border/outline/SVG fill+stroke) AND the RENDERED
+// pixel at the same point AND a divergence flag. MANDATORY both-values rule (exp-runners V3R4-H1): the
+// CSS-resolved colour can false-clear (white text over a white SVG resolves the black body → fake 21:1); a
+// divergence over tolerance must surface as INCONCLUSIVE, never silently resolve to the computed value.
+// 1.4.11 (the harness has NO deterministic 1.4.11 runner) / 1.4.1. Raw RGBA + flags, never a ratio/verdict.
+async function resolvePartColor(page, args) {
+  const A = require('../../lib/a11y-eval.js');
+  const { x, y } = args || {};
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return { error: 'x,y (screenshot coordinates) required' };
+  const cssInfo = await page.evaluate((px, py) => {
+    const el = document.elementFromPoint(px, py);
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    return { part: el.tagName.toLowerCase(), color: cs.color, backgroundColor: cs.backgroundColor, borderTopColor: cs.borderTopColor, outlineColor: cs.outlineColor, fill: cs.fill, stroke: cs.stroke };
+  }, x, y).catch(() => null);
+  if (!cssInfo) return { error: 'no element at the given point' };
+  // rendered pixel: screenshot a 5x5 clip at the point, decode the centre via an in-page canvas (the data
+  // URI is same-origin, so getImageData is allowed) — no PNG-decoder dependency needed.
+  const clip = { x: Math.max(0, Math.round(x) - 2), y: Math.max(0, Math.round(y) - 2), width: 5, height: 5 };
+  const shot = await page.screenshot({ encoding: 'base64', clip }).catch(() => null);
+  let renderedPixelRGBA = null;
+  if (shot) {
+    renderedPixelRGBA = await page.evaluate(async (b64) => {
+      try {
+        const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+        const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+        const d = ctx.getImageData(Math.floor(img.width / 2), Math.floor(img.height / 2), 1, 1).data;
+        return { r: d[0], g: d[1], b: d[2], a: d[3] };
+      } catch (e) { return null; }
+    }, shot).catch(() => null);
+  }
+  let divergence = null;
+  if (renderedPixelRGBA) { const cc = A.parseRGB(cssInfo.color); if (cc) { const dist = Math.hypot(cc.r - renderedPixelRGBA.r, cc.g - renderedPixelRGBA.g, cc.b - renderedPixelRGBA.b); divergence = { distFromComputedColor: +dist.toFixed(1), divergent: dist > 40 }; } }
+  return { ...cssInfo, renderedPixelRGBA, cssVsRenderedDivergence: divergence, note: 'BOTH the CSS used-colour AND the rendered pixel are returned; if cssVsRenderedDivergence.divergent is true the CSS colour is misleading (it false-clears) — treat the colour as INCONCLUSIVE rather than trusting the computed value.' };
+}
+
+// ============================================================================================
+// resolve_destination — fetches a SAME-ORIGIN link's settled destination in an isolated, read-only incognito
+// GET, returning a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph). NO "equivalent"/"same"
+// verdict — that IS the 2.4.4 judgment the model is graded on, so computing it here would launder the
+// conclusion. SAME-ORIGIN ONLY (http(s) same origin, or file:// same directory for the local mirror):
+// following arbitrary external hrefs is SSRF/exfil surface and breaks the saved-dataset determinism. GET only,
+// depth 0, never the audited session/cookies.
+async function resolveDestination(page, args) {
+  const { linkXpath } = args || {};
+  if (typeof linkXpath !== 'string' || !linkXpath) return { error: 'linkXpath required' };
+  const info = await page.evaluate((xp) => {
+    const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+    if (!el) return { found: false };
+    const a = (el.closest && el.closest('a[href]')) || el;
+    return { found: true, href: a.href || null, pageUrl: location.href };
+  }, linkXpath).catch(() => null);
+  if (!info || !info.found) return { error: 'link not found' };
+  if (!info.href) return { error: 'no href on the target' };
+  let target, base;
+  try { target = new URL(info.href); base = new URL(info.pageUrl); } catch (e) { return { refused: 'unparseable-url' }; }
+  if (!/^https?:$/.test(target.protocol) && target.protocol !== 'file:') return { refused: 'non-http-or-file' };
+  const dir = (u) => u.pathname.slice(0, u.pathname.lastIndexOf('/') + 1);
+  const sameOrigin = target.protocol === 'file:' ? (base.protocol === 'file:' && dir(target) === dir(base)) : (target.origin === base.origin);
+  if (!sameOrigin) return { refused: 'cross-origin', destinationOrigin: target.origin };
+  const browser = page.browser();
+  let ctx = null, p = null;
+  try {
+    ctx = browser.createBrowserContext ? await browser.createBrowserContext() : await browser.createIncognitoBrowserContext();
+    p = await ctx.newPage();
+    const resp = await p.goto(target.href, { waitUntil: 'load', timeout: 15000 }).catch(() => null);
+    const fp = await p.evaluate(() => {
+      const m = document.querySelector('main') || document.body;
+      const para = m && m.querySelector('p');
+      return { title: document.title, h1: (document.querySelector('h1') || {}).textContent || null, mainFirstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null };
+    }).catch(() => ({}));
+    return { finalUrl: p.url().slice(0, 300), httpStatus: resp ? resp.status() : null, title: (fp.title || '').slice(0, 200), h1: fp.h1 ? String(fp.h1).trim().slice(0, 160) : null, mainFirstParagraph: fp.mainFirstParagraph || null, note: 'raw destination fingerprint (same-origin only); the model judges "same purpose?" — this tool never returns equivalent/same/different.' };
+  } catch (e) { return { error: String(e && e.message || e).slice(0, 200) }; }
+  finally { try { if (p) await p.close(); } catch (e) {} try { if (ctx && ctx.close) await ctx.close(); } catch (e) {} }
+}
+
+// ============================================================================================
 // SDK binding — wrap the raw tool functions as an in-process MCP server over the live page `session`.
 // `session` = { page, freshClone:()=>Promise<page> }. Lazy-imports the SDK (ESM) + zod. Each tool returns
 // the JSON-stringified OBJECTIVE result as MCP text content — never a verdict.
@@ -411,8 +490,12 @@ async function buildCdpToolServer(session) {
       { transform: z.enum(['grayscale', 'protanopia', 'deuteranopia', 'tritanopia', 'forced-colors', 'no-author-css']), targetXpath: z.string().optional() }, (a) => wrap(renderWithOverrides, a)),
     tool('compute_contrast_ratio', 'Read-only: the WCAG contrast ratio for TWO flat used-colours the model chooses (e.g. an in-text link colour vs the surrounding text colour — G183 for 1.4.1). Returns colorA/colorB/contrastRatio/threshold/passes from CSSOM. REFUSES (inconclusive) translucent/unparseable colours — it never sweeps a photo/gradient. `passes` is a mechanical compare, not a verdict.',
       { nodeAXpath: z.string(), nodeBXpath: z.string(), threshold: z.number().optional() }, (a) => wrap(computeContrastRatio, a)),
+    tool('resolve_part_color', 'Read-only: for a NON-TEXT part at a screenshot pixel (x,y) — a border/indicator/SVG fill — return the CSS used-colours there AND the RENDERED pixel AND a divergence flag (1.4.11/1.4.1). ALWAYS returns both: if cssVsRenderedDivergence.divergent the CSS colour is misleading (it false-clears) — treat as INCONCLUSIVE. Raw RGBA + flags, never a ratio or verdict.',
+      { x: z.number(), y: z.number() }, (a) => wrap(resolvePartColor, a)),
+    tool('resolve_destination', 'Read-only: follow a SAME-ORIGIN link (by xpath) in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph) — for 2.4.4 (do two same-named links go to different destinations). NEVER returns same/equivalent/different — that is your judgment. Cross-origin/non-http links are refused.',
+      { linkXpath: z.string() }, (a) => wrap(resolveDestination, a)),
   ];
   return createSdkMcpServer({ name: 'cdp', version: '1.0.0', tools });
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, buildCdpToolServer, resolveXpath };
+module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, buildCdpToolServer, resolveXpath };

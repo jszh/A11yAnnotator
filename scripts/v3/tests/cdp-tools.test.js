@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { CHROME } = require('../lib/run-experiments.js');
-const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio } = require('../lib/cdp-tools.js');
+const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination } = require('../lib/cdp-tools.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — cdp-tools e2e SKIPPED');
@@ -24,6 +24,8 @@ const XP = {
   focusbtn: '/html[1]/body[1]/button[2]',
   chk: '/html[1]/body[1]/input[2]',
   graytext: '/html[1]/body[1]/span[2]',
+  destlink: '/html[1]/body[1]/a[1]',
+  extlink: '/html[1]/body[1]/a[2]',
 };
 
 // ONE shared browser for the whole file (not one per test) — fewer parallel Chrome instances under the full
@@ -163,5 +165,30 @@ test('compute_contrast_ratio: WCAG ratio for two flat used-colours (G183); refus
     assert.equal(typeof r.passes, 'boolean');
     const miss = await computeContrastRatio(page, { nodeAXpath: '/html[1]/body[1]/nope[9]', nodeBXpath: XP.realh });
     assert.ok(miss.error, 'a missing node yields an error, not a fabricated ratio');
+  });
+});
+
+test('resolve_part_color: returns BOTH the CSS used-colour AND the rendered pixel + a divergence flag (1.4.11)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const c = await page.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; const r = el.getBoundingClientRect(); return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) }; }, XP.graytext);
+    const r = await resolvePartColor(page, { x: c.x, y: c.y });
+    assert.ok(!r.error, `ran: ${r.error || 'ok'}`);
+    assert.ok(/rgb/.test(r.color), 'the CSS used-colour is returned');
+    assert.ok(r.renderedPixelRGBA && Number.isFinite(r.renderedPixelRGBA.r), 'the RENDERED pixel is also returned (the false-clear guard)');
+    assert.equal(typeof r.cssVsRenderedDivergence.divergent, 'boolean', 'a divergence flag is always present');
+    assert.ok(!('contrastRatio' in r) && !('verdict' in r), 'raw RGBA + flags only — no ratio, no verdict');
+  });
+});
+
+test('resolve_destination: same-origin link returns a raw fingerprint; cross-origin is refused; no verdict (2.4.4)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const r = await resolveDestination(page, { linkXpath: XP.destlink });
+    assert.ok(!r.error, `resolved: ${r.error || 'ok'}`);
+    assert.ok(/fx-v3-cdp-dest\.html/.test(r.finalUrl), 'followed the same-origin link');
+    assert.equal(r.title, 'Pricing details');
+    assert.equal(r.h1, 'Pricing details');
+    assert.ok(!('equivalent' in r) && !('same' in r) && !('verdict' in r), 'raw fingerprint only — the "same purpose?" call stays with the model');
+    const ext = await resolveDestination(page, { linkXpath: XP.extlink });
+    assert.equal(ext.refused, 'cross-origin', 'an external (cross-origin) link is refused, not fetched (SSRF guard)');
   });
 });
