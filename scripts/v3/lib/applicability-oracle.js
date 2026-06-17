@@ -43,6 +43,7 @@ const FAMILIES = Object.freeze({
   //      decide. Enumerated so the authored atomic rubrics REACH a prompt (audit D12-1) and become
   //      auto-PARTIAL the LLM fills provisionally. Strict role/page predicates ⇒ minimal fixtures unaffected.
   'non-text-content':        Object.freeze({ sc: '1.1.1', skills: ['name-role-state'] }),                 // alt adequacy (img)
+  'images-of-text':          Object.freeze({ sc: '1.4.5', skills: ['color-and-visual-text'] }),           // image renders text that should be real text (img) — LLM-judged
   'link-purpose':            Object.freeze({ sc: '2.4.4', skills: ['name-role-state'] }),                 // link purpose (link)
   'heading-descriptive':     Object.freeze({ sc: '2.4.6', skills: ['page-structure'] }),                  // heading descriptiveness
   'error-suggestion':        Object.freeze({ sc: '3.3.3', skills: ['forms-instructions-errors'] }),       // error suggestion (form field)
@@ -119,7 +120,7 @@ function familiesFor(el) {
   if (el.box != null && interactive) { fams.push('target-size-minimum'); fams.push('target-size-enhanced'); } // 2.5.8 + 2.5.5
   if (WIDGET_ROLE.test(role) && factHasText(el) && typeof el.axName === 'string' && el.axName.trim().length > 0) fams.push('label-in-name'); // 2.5.3
   // MEANING-call families (3.2) — role-precise so they fire only on real img/link/heading/form elements.
-  if (IMG_ROLE.test(role)) fams.push('non-text-content');                                 // 1.1.1
+  if (IMG_ROLE.test(role)) { fams.push('non-text-content'); fams.push('images-of-text'); } // 1.1.1 alt + 1.4.5 images-of-text (both LLM-judged)
   if (role === 'link') fams.push('link-purpose');                                          // 2.4.4
   if (HEADING_ROLE.test(role)) fams.push('heading-descriptive');                           // 2.4.6
   if (el.isFormField === true || FORMFIELD_ROLE.test(role)) fams.push('error-suggestion'); // 3.3.3 (alongside field-label/error-identification)

@@ -146,6 +146,21 @@ test('R5R-H1: native controls (roleAttr:null) enumerate name-role-value via samp
   assert.ok(coverage.expectedFamilies(btn).has('name-role-value'), 'coverage registry agrees on native widget role');
 });
 
+// ─────────── 1.4.5 images-of-text wiring (LLM-judged, parallel to 1.1.1 non-text-content) ───────────
+test('1.4.5: an image enumerates an images-of-text obligation (oracle + coverage agree, Rule 16)', () => {
+  const img = { xpath: '/html/body/img[1]', tag: 'img', roleAttr: null, sampledRole: 'img', axRole: 'img', box: { x: 0, y: 0, width: 200, height: 60 } };
+  const fams = oracle.familiesFor(img);
+  assert.ok(fams.includes('images-of-text'), 'an img owes images-of-text (1.4.5)');
+  assert.ok(fams.includes('non-text-content'), 'an img still owes non-text-content (1.1.1)');
+  assert.deepEqual(oracle.applicableScsFor(img), ['1.1.1', '1.4.5'], 'an img is applicable to 1.1.1 + 1.4.5');
+  assert.equal(oracle.scForFamily('images-of-text'), '1.4.5');
+  // Rule 16 cross-check: the independently-authored coverage registry must agree (else a drift is a gap).
+  assert.ok(coverage.expectedFamilies(img).has('images-of-text'), 'coverage registry agrees an img owes images-of-text');
+  assert.equal(coverage.coverageErrors({ elements: [img] }).length, 0, 'no Rule-16 coverage gap');
+  // a NON-image must NOT accrue a 1.4.5 obligation (no over-enumeration).
+  assert.ok(!oracle.familiesFor({ xpath: '/p', text: 'hello' }).includes('images-of-text'), 'plain text is not an image-of-text');
+});
+
 // ─────────── R5R-L1 (response-audit): an all-unrun signed run produces a clean manifest ───────────
 test('R5R-L1: an empty (all-unrun) run records the collector identity, not a fail-closed null', () => {
   // the orchestrator passes collect.pageDigest when there are NO results (nothing to publish, nothing

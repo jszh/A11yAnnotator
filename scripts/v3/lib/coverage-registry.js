@@ -43,7 +43,7 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'pointer-target', when: (el) => el.box != null && (el.focusable === true || WIDGET_ROLE.test(factRole(el))), families: ['target-size-minimum', 'target-size-enhanced'] }),
   Object.freeze({ id: 'labelled-control', when: (el) => WIDGET_ROLE.test(factRole(el)) && factHasText(el) && typeof el.axName === 'string' && el.axName.trim().length > 0, families: ['label-in-name'] }),
   // Harness 3.2 meaning-call families — predicates re-declared to match the oracle exactly (Rule 16).
-  Object.freeze({ id: 'image', when: (el) => IMG_ROLE.test(factRole(el)), families: ['non-text-content'] }),
+  Object.freeze({ id: 'image', when: (el) => IMG_ROLE.test(factRole(el)), families: ['non-text-content', 'images-of-text'] }),
   Object.freeze({ id: 'link', when: (el) => factRole(el) === 'link', families: ['link-purpose'] }),
   Object.freeze({ id: 'heading', when: (el) => HEADING_ROLE.test(factRole(el)), families: ['heading-descriptive'] }),
   Object.freeze({ id: 'form-field-suggestion', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['error-suggestion'] }),
