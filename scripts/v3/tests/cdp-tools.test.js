@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { CHROME } = require('../lib/run-experiments.js');
-const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions } = require('../lib/cdp-tools.js');
+const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText } = require('../lib/cdp-tools.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — cdp-tools e2e SKIPPED');
@@ -235,5 +235,27 @@ test('compare_named_regions: a red vs blue chart half is measured perceptibly di
     const pair = r.pairs[0];
     assert.ok(pair.deltaE > 11 && pair.perceptiblyDistinct === true, 'the two halves are perceptibly distinct');
     assert.ok(!r.pairs.some((p) => 'contrastRatio' in p || 'verdict' in p), 'derived deltaE only — no contrast ratio, no verdict');
+  });
+});
+
+test('ocr_image_text: returns recognised text + lines (objective, no verdict); errors degrade to INCONCLUSIVE, not empty', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    // STUB the sidecar — deterministic, no Python in the unit test
+    const okOcr = { available: () => true, recognize: async () => ({ text: 'Real heading', lines: [{ text: 'Real heading', score: 0.99, box: [[0, 0], [10, 0], [10, 5], [0, 5]] }] }) };
+    const r = await ocrImageText(page, { targetXpath: XP.realh }, { ocr: okOcr });
+    assert.equal(r.text, 'Real heading');
+    assert.equal(r.lineCount, 1);
+    assert.equal(r.lines[0].score, 0.99);
+    assert.ok(!('verdict' in r) && !('passes' in r) && !('isImageOfText' in r) && !('al;tMatches' in r), 'objective reading only — the model judges, the tool does not');
+    // no sidecar configured ⇒ INCONCLUSIVE error, never a crash or a fabricated empty read
+    const u = await ocrImageText(page, { targetXpath: XP.realh }, {});
+    assert.ok(/ocr-unavailable/.test(u.error || ''), 'absent sidecar ⇒ {error}, treated as INCONCLUSIVE');
+    // a sidecar runtime error ⇒ {error} + an INCONCLUSIVE note (NOT empty text the model could read as "no text")
+    const errOcr = { available: () => true, recognize: async () => ({ error: 'ocr-call-timeout' }) };
+    const e = await ocrImageText(page, { targetXpath: XP.realh }, { ocr: errOcr });
+    assert.ok(/timeout/.test(e.error || '') && /INCONCLUSIVE/.test(e.note || ''), 'a runtime error surfaces as error+INCONCLUSIVE, never a silent empty string');
+    // an explicit rect also works (no xpath)
+    const rect = await ocrImageText(page, { x: 0, y: 0, width: 40, height: 20 }, { ocr: okOcr });
+    assert.equal(rect.text, 'Real heading', 'an explicit x/y/width/height rect is accepted');
   });
 });

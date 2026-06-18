@@ -42,7 +42,10 @@ async function openToolSession(url, executablePath, reapAgeMs = 330000) {
   const reapStale = async (maxAgeMs = reapAgeMs) => { let n = 0; const now = Date.now(); for (const [p, born] of [...clones]) { if (!p.isClosed() && now - born > maxAgeMs) { try { await p.close(); n++; } catch (e) {} } } return n; };
   // CHECK #2 (after ALL workers, no subject still running): close every remaining clone tab.
   const sweep = async () => { let n = 0; for (const p of [...clones.keys()]) { if (!p.isClosed()) { try { await p.close(); n++; } catch (e) {} } } return n; };
-  return { browser, page, freshClone, reapStale, sweep, openCloneCount: () => { let n = 0; for (const p of clones.keys()) if (!p.isClosed()) n++; return n; } };
+  // The PP-OCRv6 sidecar handle for ocr_image_text — LAZY (the Python process spawns on the first recognise,
+  // not here) and isolated to its own venv; closed alongside the browser so no sidecar process leaks.
+  const ocr = require('./ocr-sidecar.js').makeOcrSidecar();
+  return { browser, page, freshClone, reapStale, sweep, ocr, openCloneCount: () => { let n = 0; for (const p of clones.keys()) if (!p.isClosed()) n++; return n; } };
 }
 
 // collect, drive: baseline artifacts. opts.resolveUrl(request)->url; opts.now is a caller-supplied
@@ -200,7 +203,9 @@ async function orchestrate(collect, drive, opts = {}) {
       // aborted mid-call whose finally didn't fire). Normally 0 — the per-call finally already closed them.
       if (toolSession) { const leaked = await toolSession.sweep(); if (leaked) console.error(`[v3-tools] swept ${leaked} leaked clone tab(s) after the run`); }
     } finally {
-      // ultimate catch-all: closing the browser drops the base page + any tab that survived both checks.
+      // ultimate catch-all: closing the browser drops the base page + any tab that survived both checks,
+      // and the OCR sidecar kills its isolated Python process so no helper leaks past the run.
+      if (toolSession && toolSession.ocr) { try { await toolSession.ocr.close(); } catch (e) {} }
       if (toolSession && toolSession.browser) { try { await toolSession.browser.close(); } catch (e) {} }
     }
   }

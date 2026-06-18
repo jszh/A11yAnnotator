@@ -515,6 +515,32 @@ async function compareNamedRegions(page, args) {
 }
 
 // ============================================================================================
+// ocr_image_text — READ-ONLY: OCR a crop of the live page via the PP-OCRv6 sidecar (ctx.ocr). Returns the
+// RECOGNISED text + per-line boxes + confidences — an objective reading of the RENDERED pixels: images-of-text
+// (1.4.5), a wordmark/label the vision pass can't resolve, or comparing rendered text to the alt/accessible
+// name. NEVER a verdict (the model interprets); empty text on a low-res crop ≠ "no text" (use request_hi_res_crop
+// first). Degrades to {error} when the sidecar isn't set up — the model treats that as INCONCLUSIVE, not a pass.
+async function ocrImageText(page, args, ctx) {
+  const { targetXpath, x, y, width, height } = args || {};
+  if (!ctx || !ctx.ocr || (ctx.ocr.available && !ctx.ocr.available())) return { error: 'ocr-unavailable — PP-OCRv6 sidecar not configured (scripts/v3/ocr/.venv); treat as INCONCLUSIVE, not empty' };
+  let clip = null;
+  if (typeof targetXpath === 'string' && targetXpath) {
+    const box = await page.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { x: Math.max(0, r.x), y: Math.max(0, r.y), w: r.width, h: r.height }; }, targetXpath).catch(() => null);
+    if (!box || !(box.w > 0 && box.h > 0)) return { error: 'target not found or zero-size' };
+    clip = { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.w), height: Math.round(box.h) };
+  } else if ([x, y, width, height].every((v) => Number.isFinite(v)) && width > 0 && height > 0) {
+    clip = { x: Math.round(x), y: Math.round(y), width: Math.round(width), height: Math.round(height) };
+  } else {
+    return { error: 'provide targetXpath OR an explicit x/y/width/height rect' };
+  }
+  const b64 = await page.screenshot({ encoding: 'base64', clip }).catch(() => null);
+  if (!b64) return { error: 'capture failed' };
+  const r = await ctx.ocr.recognize(b64);
+  if (r.error) return { error: r.error, note: 'OCR could not run — do NOT infer the crop is empty; treat as INCONCLUSIVE.' };
+  return { text: r.text || '', lines: r.lines || [], lineCount: (r.lines || []).length, note: 'PP-OCRv6 recognised text + per-line boxes/confidence — an objective reading of the rendered pixels. Empty text ≠ "no text" on a low-res crop (try request_hi_res_crop first). NEVER a verdict.' };
+}
+
+// ============================================================================================
 // SDK binding — wrap the raw tool functions as an in-process MCP server over the live page `session`.
 // `session` = { page, freshClone:()=>Promise<page> }. Lazy-imports the SDK (ESM) + zod. Each tool returns
 // the JSON-stringified OBJECTIVE result as MCP text content — never a verdict.
@@ -523,7 +549,7 @@ async function buildCdpToolServer(session) {
   const { tool, createSdkMcpServer } = await import('@anthropic-ai/claude-agent-sdk');
   const { z } = await import('zod');
   const page = session.page;
-  const ctx = { freshClone: session.freshClone };
+  const ctx = { freshClone: session.freshClone, ocr: session.ocr };
   const wrap = (fn, args) => fn(page, args, ctx).then((r) => ({ content: [{ type: 'text', text: JSON.stringify(r) }] })).catch((e) => ({ content: [{ type: 'text', text: JSON.stringify({ error: String(e && e.message || e) }) }], isError: true }));
   const tools = [
     tool('query_ax_node', 'Read-only: resolve a node (by xpath OR by a screenshot pixel x/y) to its live accessibility facts — role, role source, heading level, name provenance (nameFrom), aria-labelledby/describedby IDREF resolve status, required states, focusability, aria-hidden. Returns raw facts, NEVER a pass/fail.',
@@ -548,8 +574,10 @@ async function buildCdpToolServer(session) {
       { linkXpath: z.string() }, (a) => wrap(resolveDestination, a)),
     tool('compare_named_regions', 'Read-only: for an image/chart, given >=2 named regions (each {name,x,y,w,h} as fractions 0-1 of the element), return each region dominant colour + the perceptual deltaE + perceptiblyDistinct between them (1.1.1 F13 — a colour-encoded distinction the alt omits). Derived measure only — never raw pixels, never a contrast ratio, never a verdict.',
       { targetXpath: z.string(), regions: z.array(z.object({ name: z.string(), x: z.number(), y: z.number(), w: z.number(), h: z.number() })) }, (a) => wrap(compareNamedRegions, a)),
+    tool('ocr_image_text', 'Read-only: OCR a crop of the page — an element (targetXpath) OR an explicit x/y/width/height rect — via PP-OCRv6 and return the recognised text + per-line boxes + confidences. For images-of-text (1.4.5), a wordmark/label the vision pass cannot read, or comparing rendered text to the alt/accessible name. Objective reading of the pixels, NEVER a verdict; empty text on a low-res crop does NOT mean "no text" (use request_hi_res_crop first). Returns {error} when the OCR sidecar is not set up — treat as INCONCLUSIVE.',
+      { targetXpath: z.string().optional(), x: z.number().optional(), y: z.number().optional(), width: z.number().optional(), height: z.number().optional() }, (a) => wrap(ocrImageText, a)),
   ];
   return createSdkMcpServer({ name: 'cdp', version: '1.0.0', tools });
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, buildCdpToolServer, resolveXpath };
+module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText, buildCdpToolServer, resolveXpath };
