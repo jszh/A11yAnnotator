@@ -51,9 +51,24 @@ function toAnthropicContent(messages) {
     : { type: 'text', text: (b && b.text) || '' });
 }
 
+// Keep the trace TEXTUAL. Several CDP tools return full base64 PNGs INSIDE their result JSON (set_state_and_capture,
+// request_hi_res_crop, render_with_overrides, …); those pixels already live in llm-vision.json by opaque id, so they
+// must NOT bloat (megabytes/turn) or leak into the reasoning trace. Elide any long base64 run + cap each block.
+const TRACE_BLOCK_CAP = 20000;
+function elideBase64(s) {
+  return typeof s === 'string'
+    ? s.replace(/[A-Za-z0-9+/]{512,}={0,2}/g, (m) => `<base64 ${m.length} chars elided>`).slice(0, TRACE_BLOCK_CAP)
+    : s;
+}
+function scrubTraceContent(content) {
+  if (typeof content === 'string') return elideBase64(content);
+  if (Array.isArray(content)) return content.map((b) => (b && b.type === 'text' && typeof b.text === 'string') ? { ...b, text: elideBase64(b.text) } : (b && typeof b === 'object' ? { type: b.type } : b));
+  return content;
+}
+
 // Compact, JSON-serializable view of ONE SDK stream message for the full-trace log (offline analysis). Captures
 // exactly what the transport otherwise DROPS: model thinking, tool_use (name+input), tool_result (the objective
-// JSON a CDP tool returned), and the final result's usage/cost — alongside the assistant text.
+// JSON a CDP tool returned, pixels elided), and the final result's usage/cost — alongside the assistant text.
 function summarizeSdkMessage(msg) {
   if (!msg || typeof msg !== 'object') return { type: 'unknown' };
   const t = msg.type;
@@ -61,11 +76,11 @@ function summarizeSdkMessage(msg) {
     const content = (msg.message && Array.isArray(msg.message.content)) ? msg.message.content : [];
     const blocks = content.map((b) => {
       if (!b || typeof b !== 'object') return { kind: 'other' };
-      if (b.type === 'text') return { kind: 'text', text: String(b.text || '') };
-      if (b.type === 'thinking') return { kind: 'thinking', text: String(b.thinking || '') };
+      if (b.type === 'text') return { kind: 'text', text: elideBase64(String(b.text || '')) };
+      if (b.type === 'thinking') return { kind: 'thinking', text: elideBase64(String(b.thinking || '')) };
       if (b.type === 'redacted_thinking') return { kind: 'thinking', redacted: true };
       if (b.type === 'tool_use') return { kind: 'tool_use', id: b.id, name: b.name, input: b.input };
-      if (b.type === 'tool_result') return { kind: 'tool_result', toolUseId: b.tool_use_id, isError: !!b.is_error, content: b.content };
+      if (b.type === 'tool_result') return { kind: 'tool_result', toolUseId: b.tool_use_id, isError: !!b.is_error, content: scrubTraceContent(b.content) };
       return { kind: b.type || 'other' };
     });
     return { type: t, role: (msg.message && msg.message.role) || t, blocks };

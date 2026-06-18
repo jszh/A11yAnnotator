@@ -112,6 +112,21 @@ test('allocator: close() rejects parked waiters and refuses new acquires', async
   await a.release();                                        // releasing the live lease must not throw
 });
 
+test('allocator: onWaitStart/onWaitEnd stay BALANCED even when close() rejects a parked waiter', async () => {
+  const { newPage } = mockFactory();
+  let starts = 0, ends = 0;
+  const alloc = createTabAllocator({ newPage, maxTabs: 1, onWaitStart: () => starts++, onWaitEnd: () => ends++ });
+  const a = await alloc.acquire();
+  const parked = alloc.acquire();                          // parks → onWaitStart fires
+  await tick();
+  alloc.close();                                           // rejects the parked waiter → must still emit onWaitEnd
+  await assert.rejects(() => parked, /closed/);
+  assert.equal(starts, 1, 'onWaitStart fired once');
+  assert.equal(ends, 1, 'onWaitEnd fired once too — balanced despite the close-rejection (no leaked in-flight count)');
+  assert.ok(alloc.stats().waitMsTotal >= 0, 'the parked time is credited');
+  await a.release();
+});
+
 test('allocator: withTab() releases even when the body throws or its deadline fires', async () => {
   const { newPage, pages } = mockFactory();
   const alloc = createTabAllocator({ newPage, maxTabs: 1 });

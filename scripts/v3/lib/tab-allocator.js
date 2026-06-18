@@ -65,7 +65,8 @@ function createTabAllocator(opts = {}) {
       queuedTotal++;
       if (onWaitStart) { try { onWaitStart(); } catch (e) {} }
       // Park until releaseSlot() dequeues us; it ALREADY took the slot on our behalf, so we do not take it again.
-      await new Promise((resolve, reject) => waiters.push({ resolve, reject }));
+      // Carry t0 so close() can emit a symmetric onWaitEnd if it rejects us before we're ever granted.
+      await new Promise((resolve, reject) => waiters.push({ resolve, reject, t0 }));
       if (closed) { releaseSlot(); throw new Error('tab-allocator: closed while queued'); }
     }
     const waitMs = parked ? (Date.now() - t0) : 0;
@@ -99,7 +100,15 @@ function createTabAllocator(opts = {}) {
   function close() {
     if (closed) return;
     closed = true;
-    while (waiters.length) { const w = waiters.shift(); try { w.reject(new Error('tab-allocator: closed while queued')); } catch (e) {} }
+    while (waiters.length) {
+      const w = waiters.shift();
+      // a waiter rejected here was parked but NEVER granted — emit the symmetric onWaitEnd + credit its parked
+      // time so onWaitStart/onWaitEnd stay balanced and waitMsTotal isn't under-counted (callback-contract parity).
+      const waitMs = Math.max(0, Date.now() - (w.t0 || Date.now()));
+      waitMsTotal += waitMs;
+      if (onWaitEnd) { try { onWaitEnd(waitMs); } catch (e) {} }
+      try { w.reject(new Error('tab-allocator: closed while queued')); } catch (e) {}
+    }
   }
 
   const stats = () => ({ cap, inUse, peak, granted, queued: queuedTotal, waiting: waiters.length, waitMsTotal, openFailures, closed });

@@ -143,6 +143,22 @@ test('sdk transport: makeRunAgent attaches the full trace to the parsed verdict 
   assert.ok(blocks.find((b) => b.kind === 'tool_result'), 'the tool response is recorded for analysis');
 });
 
+test('sdk transport: trace ELIDES base64 screenshots from tool_result content (pixels stay in llm-vision, never the trace)', async () => {
+  const bigB64 = 'iVBORw0KGgoAAAANSUhEUg' + 'A'.repeat(2000); // a long base64-looking run, like a CDP screenshot
+  const queryImpl = async function* () {
+    yield { type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', id: 'tu', name: 'mcp__cdp__set_state_and_capture', input: { xpath: '/x' } }] } };
+    yield { type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'tu', is_error: false, content: [{ type: 'text', text: JSON.stringify({ stateReached: 'focus', screenshots: { before: bigB64, after: bigB64 } }) }] }] } };
+    yield { type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: '{"verdict":"NOT REPRODUCED"}' }] } };
+    yield { type: 'result', subtype: 'success' };
+  };
+  const events = [];
+  await makeClaudeSdkTransport({ queryImpl, oauthToken: 'tok' })({ messages: [{ role: 'user', content: [] }] }, { onTrace: (e) => events.push(e) });
+  const trJson = JSON.stringify(events);
+  assert.ok(!trJson.includes(bigB64), 'the raw base64 PNG is NOT in the trace');
+  assert.match(trJson, /base64 \d+ chars elided/, 'long base64 is replaced with a placeholder');
+  assert.match(trJson, /stateReached/, 'the objective non-pixel fields are preserved for analysis');
+});
+
 test('sdk transport: passes reasoning effort to query() options (default medium; overridable; omitted when null)', async () => {
   let seen = null;
   const queryImpl = async function* (args) { seen = args.options; yield { type: 'assistant', message: { content: [{ type: 'text', text: VERDICT }] } }; yield { type: 'result', subtype: 'success' }; };

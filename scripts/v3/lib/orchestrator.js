@@ -77,7 +77,9 @@ async function orchestrate(collect, drive, opts = {}) {
   experiments.startedAt = now;
   // per-ELEMENT experiment durations ride a side channel (wall-clock is run-dependent ⇒ kept OUT of the hashed
   // experiments artifact, exactly like applicabilityObservations). Fold into the timings collector, then drop.
-  for (const st of (experiments.stepTimings || [])) timings.element(st.candidateId, 'experiment', st.durationMs);
+  // key per-element by the bare xpath so a single element's experiment time + LLM time (folded below, also by
+  // targetXpath) collate under ONE key in timings.elements — candidateId would put them in disjoint namespaces.
+  for (const st of (experiments.stepTimings || [])) timings.element(st.targetXpath, 'experiment', st.durationMs);
   delete experiments.stepTimings;
   // the INDEPENDENT applicability observation (Rule 15) is produced by the runner pass but lives in
   // its OWN stage artifact (a different producer than the experiment outcome) — pull it out so the

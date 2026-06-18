@@ -441,7 +441,7 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
         await lease.release();                                // close the page + free the tab slot (next FIFO waiter)
         const realMs = Date.now() - aStart;
         runBudget.reconcile(grant, realMs);                   // release the reservation, book the real cost
-        stepTimings.push({ candidateId: request.candidateId, experimentId: request.experimentId, attempt, durationMs: realMs });
+        stepTimings.push({ candidateId: request.candidateId, targetXpath: request.targetXpath, experimentId: request.experimentId, attempt, durationMs: realMs });
         if (outcome.ok) { out.result = outcome.value; produced = true; }
         else if (outcome.timeout) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `wall-clock budget ${wall}ms exceeded (mutationRisk:${cost.mutationRisk})` }); break; }
         else if (attempt >= cost.retries) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String((outcome.error && outcome.error.message) || outcome.error || 'unknown').slice(0, 200) }); }
