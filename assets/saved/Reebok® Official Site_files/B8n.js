@@ -1,1 +1,0 @@
-(function(){"use strict";const i={CUSTOM_EMAIL_LEAD_EVENTS:({email:n})=>{var t,e;try{(e=(t=window.triggermail)==null?void 0:t.attentive)==null||e.capturePopupEmail(n,!0)}catch{}}};window.__attentive_client_cfg=i})();

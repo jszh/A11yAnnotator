@@ -1,1 +1,0 @@
-!(function(b,c,d,f,g){(f=b.createElement(c)),(g=b.getElementsByTagName(c)[0]),(f.async=1),(f.src=d),g.parentNode.insertBefore(f,g);})(document,"script","//cdn.raygun.io/raygun4js/raygun.min.js");

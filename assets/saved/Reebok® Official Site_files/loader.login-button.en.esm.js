@@ -1,2 +1,0 @@
-import"./client.login-button_QveSEW_K.en.esm.js";import"./chunk.shopHub_DIdFBtCE.esm.js";import"./chunk.logging_DNWM39Ll.esm.js";import"./chunk.purify-es_BC89wVQR.esm.js";import"./chunk.booleanQueryParam_poFkigiW.esm.js";import"./chunk.storageManager_BKV_8i9J.esm.js";import"./chunk.shop-login-default_Bpn1LRzs.en.esm.js";import"./chunk.index_BKL65HAy.esm.js";import"./chunk.email_C0UJX2L1.esm.js";import"./chunk.shop-status-indicator_K36O-0dX.esm.js";
-//# sourceMappingURL=loader.login-button.en.esm.js.map
