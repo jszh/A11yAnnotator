@@ -17,7 +17,8 @@ const collect = () => ({
 const drive = () => ({ elements: [{ xpath: 'b', focusIndicator: { present: true } }] });
 
 test('applicableScs derivation maps role/evidence to the obligation set', () => {
-  assert.deepEqual(cg.applicableScsFor({ focusable: true, role: 'button', hasText: true }), ['1.4.3', '2.1.1', '2.4.7', '4.1.2']);
+  // coverage audit: a widget (button) now also owes 1.4.11 non-text-contrast (UI-component boundary).
+  assert.deepEqual(cg.applicableScsFor({ focusable: true, role: 'button', hasText: true }), ['1.4.11', '1.4.3', '2.1.1', '2.4.7', '4.1.2']);
   assert.deepEqual(cg.applicableScsFor({ focusable: false, hasText: true }), ['1.4.3']);
 });
 

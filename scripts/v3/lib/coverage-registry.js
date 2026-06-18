@@ -33,7 +33,7 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'focusable', when: (el) => el.focusable === true, families: ['focus-indicator-visible', 'keyboard-operable'] }),
   Object.freeze({ id: 'has-text', when: (el) => factHasText(el), families: ['text-contrast'] }),
   Object.freeze({ id: 'widget-role', when: (el) => WIDGET_ROLE.test(factRole(el)), families: ['name-role-value'] }),
-  Object.freeze({ id: 'focusable-in-modal', when: (el) => el.focusable === true && el.inModal === true, families: ['no-keyboard-trap'] }),
+  Object.freeze({ id: 'focusable-trap-risk', when: (el) => el.focusable === true && (el.inModal === true || el.focusRisk === true), families: ['no-keyboard-trap'] }),
   Object.freeze({ id: 'focusable-under-overlay', when: (el) => el.focusable === true && el.underOverlay === true, families: ['focus-not-obscured'] }),
   Object.freeze({ id: 'form-field', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['field-label', 'error-identification'] }),
   Object.freeze({ id: 'hover-content', when: (el) => el.hasHoverContent === true, families: ['hover-content'] }),
@@ -41,12 +41,17 @@ const SURFACES = Object.freeze([
   // drift between the two is caught (Rule 16). A rendered pointer target owes the target-size SCs; a
   // widget with a visible label AND a computed accessible name owes label-in-name.
   Object.freeze({ id: 'pointer-target', when: (el) => el.box != null && (el.focusable === true || WIDGET_ROLE.test(factRole(el))), families: ['target-size-minimum', 'target-size-enhanced'] }),
-  Object.freeze({ id: 'labelled-control', when: (el) => WIDGET_ROLE.test(factRole(el)) && factHasText(el) && typeof el.axName === 'string' && el.axName.trim().length > 0, families: ['label-in-name'] }),
+  Object.freeze({ id: 'labelled-control', when: (el) => WIDGET_ROLE.test(factRole(el)) && typeof el.axName === 'string' && el.axName.trim().length > 0, families: ['label-in-name'] }),
   // Harness 3.2 meaning-call families — predicates re-declared to match the oracle exactly (Rule 16).
-  Object.freeze({ id: 'image', when: (el) => IMG_ROLE.test(factRole(el)), families: ['non-text-content', 'images-of-text'] }),
+  Object.freeze({ id: 'image', when: (el) => IMG_ROLE.test(factRole(el)) || el.isImage === true, families: ['non-text-content', 'images-of-text'] }),
   Object.freeze({ id: 'link', when: (el) => factRole(el) === 'link', families: ['link-purpose'] }),
   Object.freeze({ id: 'heading', when: (el) => HEADING_ROLE.test(factRole(el)), families: ['heading-descriptive'] }),
   Object.freeze({ id: 'form-field-suggestion', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['error-suggestion'] }),
+  // Coverage-audit broadenings — re-declared to match the oracle's new branches exactly (Rule 16).
+  Object.freeze({ id: 'named-iframe', when: (el) => el.tag === 'iframe' && typeof el.axName === 'string' && el.axName.trim().length > 0, families: ['name-role-value'] }),
+  Object.freeze({ id: 'non-text-contrast', when: (el) => WIDGET_ROLE.test(factRole(el)) || el.isImage === true, families: ['non-text-contrast'] }),
+  Object.freeze({ id: 'heading-label', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)) || (el.tag === 'label' && factHasText(el)), families: ['heading-descriptive'] }),
+  Object.freeze({ id: 'use-of-color', when: (el) => factRole(el) === 'link' || el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['use-of-color'] }),
 ]);
 
 // The families this registry requires for one element (independent of the oracle).
@@ -82,6 +87,9 @@ function coverageErrors(collect, familiesFor = oracle.familiesFor) {
   if (collect && collect.structure && typeof collect.structure === 'object') {
     const obls = oracle.deriveObligations(collect);
     if (!obls.some((o) => o.claimFamily === 'info-relationships')) E.push('coverage gap: page carries a structure slot but no page-level info-relationships obligation was enumerated (Rule 16)');
+    // coverage audit: the same structure slot must yield page-level section-headings (2.4.10) + focus-order (2.4.3).
+    if (!obls.some((o) => o.claimFamily === 'section-headings')) E.push('coverage gap: page carries a structure slot but no page-level section-headings (2.4.10) obligation was enumerated (Rule 16)');
+    if (!obls.some((o) => o.claimFamily === 'focus-order-meaning')) E.push('coverage gap: page carries a structure slot but no page-level focus-order-meaning (2.4.3) obligation was enumerated (Rule 16)');
   }
   return E;
 }

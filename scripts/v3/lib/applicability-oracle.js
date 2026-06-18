@@ -48,6 +48,12 @@ const FAMILIES = Object.freeze({
   'heading-descriptive':     Object.freeze({ sc: '2.4.6', skills: ['page-structure'] }),                  // heading descriptiveness
   'error-suggestion':        Object.freeze({ sc: '3.3.3', skills: ['forms-instructions-errors'] }),       // error suggestion (form field)
   'info-relationships':      Object.freeze({ sc: '1.3.1', skills: ['grouping-and-reading-order'] }),      // info+relationships (page-level)
+  // Coverage-audit broadenings: families that un-orphan already-authored rubrics (1.4.1/1.4.11/2.4.3) and
+  // close the 2.4.10 gap. None has a deterministic decider — all are LLM-rubric / agent judged, non-authoritative.
+  'use-of-color':            Object.freeze({ sc: '1.4.1', skills: ['color-and-visual-text'] }),           // 1.4.1 (rubric use-of-color-v0) — link/field color-cue
+  'non-text-contrast':       Object.freeze({ sc: '1.4.11', skills: ['color-and-visual-text'] }),          // 1.4.11 (rubric non-text-contrast-v0) — widget/graphic
+  'focus-order-meaning':     Object.freeze({ sc: '2.4.3', skills: ['focus-management'] }),                // 2.4.3 (rubric focus-order-meaning-v0) — page-level
+  'section-headings':        Object.freeze({ sc: '2.4.10', skills: ['page-structure'] }),                 // 2.4.10 (rubric section-headings-v0) — page-level (AAA, fill stays non-authoritative)
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
@@ -60,6 +66,9 @@ const PAGE_REFLOW_XPATH = '/page-level::reflow';
 const PAGE_TITLE_XPATH = '/page-level::title';
 // page-level pseudo-element for the info-and-relationships obligation (3.2, 1.3.1).
 const PAGE_INFOREL_XPATH = '/page-level::info-relationships';
+// page-level pseudo-elements (coverage audit): section-headings (2.4.10) + focus-order meaning (2.4.3).
+const PAGE_SECTIONHEADINGS_XPATH = '/page-level::section-headings';
+const PAGE_FOCUSORDER_XPATH = '/page-level::focus-order';
 // The page's title slot, read from EITHER the synthetic `collect.page` convention OR the real
 // collector's `collect.structure` (eval-page.js emits page-level facts under `structure`). Presence of
 // the slot — even an empty title — means this is a titled-document context that owes a 2.4.2 obligation.
@@ -105,10 +114,20 @@ function familiesFor(el) {
   if (el.focusable === true) { fams.push('focus-indicator-visible'); fams.push('keyboard-operable'); }
   if (factHasText(el)) fams.push('text-contrast');
   if (WIDGET_ROLE.test(role)) fams.push('name-role-value');
+  // 4.1.2 NAMED-IFRAME facet (coverage audit): a named <iframe> owes name-role-value so the rubric can judge
+  // name/purpose equivalence (ACT 4b1c6c) — a name-role question v3's widget-only gate missed and that axe
+  // does NOT decide in v3. The OTHER 4.1.2 facet — ARIA-attribute VALIDITY (aria-* prohibited on a generic
+  // element, ACT kb1m8s) — is deliberately NOT enumerated here: it floods on real pages (aria-* is ubiquitous)
+  // AND the accessible-name-adequacy rubric judges the wrong question (the name IS adequate; the attribute is
+  // prohibited). axe's aria-prohibited-attr owns it → routed via the axe-checker disposition lane, not the oracle.
+  if (el.tag === 'iframe' && typeof el.axName === 'string' && el.axName.trim().length > 0) fams.push('name-role-value');
+  // 1.4.11 NON-TEXT CONTRAST (coverage audit — un-orphans non-text-contrast-v0): UI components (widgets) and
+  // graphical objects (img/svg/canvas) owe it. No deterministic 1.4.11 runner exists ⇒ rubric-judged.
+  if (WIDGET_ROLE.test(role) || el.isImage === true) fams.push('non-text-contrast');
   // RISK-GATED families: a focusable element carries a trap obligation only inside a focus-trapping
   // region, and an obscuration obligation only when the page has an overlay/sticky/consent layer that
   // could cover it — so plain controls don't accrue obligations for risks their page doesn't present.
-  if (el.focusable === true && el.inModal === true) fams.push('no-keyboard-trap');                 // C5
+  if (el.focusable === true && (el.inModal === true || el.focusRisk === true)) fams.push('no-keyboard-trap'); // C5 (coverage audit: focusRisk widens the inModal-only gate to non-modal traps)
   if (el.focusable === true && el.underOverlay === true) fams.push('focus-not-obscured');           // C7
   if (el.isFormField === true || FORMFIELD_ROLE.test(role)) { fams.push('field-label'); fams.push('error-identification'); } // C6: label (3.3.2) + error id (3.3.1)
   if (el.hasHoverContent === true) fams.push('hover-content');                                       // C9
@@ -118,11 +137,17 @@ function familiesFor(el) {
   //      these never fire there — only real collector records carry them. ----
   const interactive = el.focusable === true || WIDGET_ROLE.test(role);
   if (el.box != null && interactive) { fams.push('target-size-minimum'); fams.push('target-size-enhanced'); } // 2.5.8 + 2.5.5
-  if (WIDGET_ROLE.test(role) && factHasText(el) && typeof el.axName === 'string' && el.axName.trim().length > 0) fams.push('label-in-name'); // 2.5.3
+  if (WIDGET_ROLE.test(role) && typeof el.axName === 'string' && el.axName.trim().length > 0) fams.push('label-in-name'); // 2.5.3 (axName non-empty already proves a name — factHasText was redundant)
   // MEANING-call families (3.2) — role-precise so they fire only on real img/link/heading/form elements.
-  if (IMG_ROLE.test(role)) { fams.push('non-text-content'); fams.push('images-of-text'); } // 1.1.1 alt + 1.4.5 images-of-text (both LLM-judged)
+  if (IMG_ROLE.test(role) || el.isImage === true) { fams.push('non-text-content'); fams.push('images-of-text'); } // 1.1.1 alt + 1.4.5 (incl. role=none/svg/canvas graphics — the mis-marked-decorative case)
   if (role === 'link') fams.push('link-purpose');                                          // 2.4.4
-  if (HEADING_ROLE.test(role)) fams.push('heading-descriptive');                           // 2.4.6
+  if (HEADING_ROLE.test(role)) fams.push('heading-descriptive');                           // 2.4.6 (heading facet)
+  // 2.4.6 LABEL facet (coverage audit): a form field / <label> owes heading-descriptive too — the v0 rubric
+  // judges BOTH heading AND label descriptiveness (ACT cc0f0a). The heading-only gate missed labels.
+  if (el.isFormField === true || FORMFIELD_ROLE.test(role) || (el.tag === 'label' && factHasText(el))) fams.push('heading-descriptive');
+  // 1.4.1 USE OF COLOR (coverage audit — un-orphans use-of-color-v0): links and form fields are the clearest
+  // color-cue surfaces (link distinguished by colour alone; field state by colour). Rubric self-abstains otherwise.
+  if (role === 'link' || el.isFormField === true || FORMFIELD_ROLE.test(role)) fams.push('use-of-color');
   if (el.isFormField === true || FORMFIELD_ROLE.test(role)) fams.push('error-suggestion'); // 3.3.3 (alongside field-label/error-identification)
   return [...new Set(fams)];
 }
@@ -152,6 +177,11 @@ function deriveObligations(collect) {
   if (collect && collect.structure && typeof collect.structure === 'object') {
     const f = FAMILIES['info-relationships'];
     out.push({ obligationId: oblId(PAGE_INFOREL_XPATH, f.sc, 'info-relationships'), xpath: PAGE_INFOREL_XPATH, sc: f.sc, claimFamily: 'info-relationships' });
+    // Coverage audit — page-level 2.4.10 section-headings + 2.4.3 focus-order, same structure-slot gate as 1.3.1.
+    const sh = FAMILIES['section-headings'];
+    out.push({ obligationId: oblId(PAGE_SECTIONHEADINGS_XPATH, sh.sc, 'section-headings'), xpath: PAGE_SECTIONHEADINGS_XPATH, sc: sh.sc, claimFamily: 'section-headings' });
+    const fo = FAMILIES['focus-order-meaning'];
+    out.push({ obligationId: oblId(PAGE_FOCUSORDER_XPATH, fo.sc, 'focus-order-meaning'), xpath: PAGE_FOCUSORDER_XPATH, sc: fo.sc, claimFamily: 'focus-order-meaning' });
   }
   return out;
 }
@@ -204,7 +234,8 @@ function skillsForFamily(claimFamily) { return (FAMILIES[claimFamily] && FAMILIE
 function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[claimFamily].sc; }
 
 module.exports = {
-  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, IMG_ROLE, HEADING_ROLE, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, PAGE_INFOREL_XPATH, pageTitleSlotPresent,
+  FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, IMG_ROLE, HEADING_ROLE, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, PAGE_INFOREL_XPATH,
+  PAGE_SECTIONHEADINGS_XPATH, PAGE_FOCUSORDER_XPATH, pageTitleSlotPresent,
   isEvaluable, familiesFor, deriveObligations, oblId,
   applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily, factHasText, factRole,
 };

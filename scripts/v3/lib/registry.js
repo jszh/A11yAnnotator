@@ -16,7 +16,7 @@ const V = require('./v3-schema.js');
 
 // SCs whose CLEARING relies on accessibility support (Rule 12): a clear is meaningful only
 // relative to a declared AT baseline. Visual/in-browser SCs are AT-INDEPENDENT (false).
-const AT_DEPENDENT_CLEAR = new Set(['1.1.1', '4.1.2', '4.1.3', '1.3.1', '1.3.2', '2.4.4', '2.4.6', '2.5.3', '3.3.1', '3.3.2', '3.3.3']);
+const AT_DEPENDENT_CLEAR = new Set(['1.1.1', '4.1.2', '4.1.3', '1.3.1', '1.3.2', '2.4.4', '2.4.6', '2.4.10', '2.5.3', '3.3.1', '3.3.2', '3.3.3']);
 
 // EXPLICIT, reasoned entries. Everything else is auto-filled `open-scope-never-clearable` below,
 // so default-closed is COMPLETE and explicit — never an accidental omission.

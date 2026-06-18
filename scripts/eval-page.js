@@ -447,6 +447,9 @@ function parseRGB(s) {
           isInteractive: interactiveTags.includes(tag) || interactiveRoles.includes(roleAttr) || (r.getAttribute('tabindex') !== null && +r.getAttribute('tabindex') >= 0) || r.hasAttribute('onclick'),
           isFormField: formTags.includes(tag) || formRoles.includes(roleAttr),
           isImage: tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img',
+          // 2.1.2 focus-trap risk (coverage audit) — parity with act-page-collect so the widened gate fires on real pages too.
+          focusRisk: r.hasAttribute('onblur') || r.hasAttribute('onfocus') || r.hasAttribute('onfocusout')
+            || !!r.closest('[role=dialog],dialog,[aria-modal=true],[role=menu],[role=listbox],[role=grid],[role=tablist],[class*=modal i],[class*=overlay i],[class*=dialog i],[class*=popup i],[class*=lightbox i]'),
         };
       }, el.xpath, out.uaDefaults).catch(e => ({ _err: e.message }));
 

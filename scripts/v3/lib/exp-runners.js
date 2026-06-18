@@ -848,11 +848,13 @@ async function runKeyboardTrapEscape(page, request) {
   // budget over-abstained (flipped a valid CLEAR to INCONCLUSIVE) at ≥13 in-region focusables, because a
   // well-behaved large region needs more than 12 Tabs to step past every focusable and exit. Floor at 12.
   const BUDGET = Math.max(12, regionInfo.focusableCount + 4);
+  const TRAP_REFOCUS_SETTLE_MS = 180; // == kbd-graph REFOCUS_SETTLE_MS: covers a setTimeout/rAF async refocus + margin
   // forward Tab escape (re-reach first)
   let tabEscapes = false, cycledBackToStart = false, lost = false;
   for (let i = 0; i < BUDGET; i++) {
     await page.keyboard.press('Tab');
-    const s = await page.evaluate(probe, marker);
+    await H.settle(page, TRAP_REFOCUS_SETTLE_MS); // let an async onblur/onfocusout self-refocus land BEFORE reading — a
+    const s = await page.evaluate(probe, marker); // synchronous read sees focus on the next sibling and FALSE-CLEARS the trap
     if (!s.inDoc) { lost = true; break; }
     if (!s.inRegion) { tabEscapes = true; break; }
     if (s.isTarget && i > 0) { cycledBackToStart = true; break; }
@@ -862,6 +864,7 @@ async function runKeyboardTrapEscape(page, request) {
   await H.realKeyboardReach(page, marker);
   for (let i = 0; i < BUDGET; i++) {
     await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift');
+    await H.settle(page, TRAP_REFOCUS_SETTLE_MS); // same async-refocus settle on the backward sweep
     const s = await page.evaluate(probe, marker);
     if (!s.inDoc) { lost = true; break; }
     if (!s.inRegion) { shiftEscapes = true; break; }

@@ -136,6 +136,9 @@ function buildV3(bundle, opts = {}) {
     // 2.4.2 runner can bind evidence (today the lane is LLM-provisional only).
     if (xpath === oracle.PAGE_TITLE_XPATH) return fam === 'page-title' && oracle.pageTitleSlotPresent(bundle.collect);
     if (xpath === oracle.PAGE_INFOREL_XPATH) return fam === 'info-relationships' && !!(bundle.collect && bundle.collect.structure);
+    // page-level 2.4.10 section-headings + 2.4.3 focus-order (coverage audit) — same structure-slot gate as 1.3.1.
+    if (xpath === oracle.PAGE_SECTIONHEADINGS_XPATH) return fam === 'section-headings' && !!(bundle.collect && bundle.collect.structure);
+    if (xpath === oracle.PAGE_FOCUSORDER_XPATH) return fam === 'focus-order-meaning' && !!(bundle.collect && bundle.collect.structure);
     const el = collectByXpath[xpath];
     return !!el && oracle.familiesFor(el).includes(fam);
   };
@@ -256,6 +259,27 @@ function buildV3(bundle, opts = {}) {
     return { ...o, authorityState: a.state, mayPublish: false }; // an llm obs never publishes — annotation only
   };
   const annotationObs = [...lres.shadowObservations, ...jres.shadowObservations].map(stampAuthority);
+  // COVERAGE AUDIT — promote a CONFIRMED deterministic keyboard trap (the settle-aware kbd-graph instrument,
+  // adversarially hardened, ~0 false-positive) to a 2.1.2 PROVISIONAL BARRIER on its auto-PARTIAL obligation.
+  // The escape EXPERIMENT cannot affirmatively prove an ASYNC self-refocus trap (it abstains ⇒ auto-PARTIAL after
+  // the false-clear settle-fix); the detector can. Only CONFIRMED traps (kind keyboard-trap / -self-refocus, never
+  // a review/directional finding), and the §5b fill below still only touches an ENUMERATED, NON-deterministic
+  // (auto-PARTIAL) obligation — a valid experiment PARTIAL is never overridden. These obs fill the LEDGER but do
+  // NOT join annotationObs (the LLM annotation/gold-scoring view stays LLM-only).
+  const trapObs = [];
+  if (bundle.instruments && Array.isArray(bundle.instruments.findings)) {
+    for (const f of bundle.instruments.findings) {
+      if (!f || f.sc !== '2.1.2' || f.review || !f.xpath) continue;
+      if (f.kind !== 'keyboard-trap' && f.kind !== 'keyboard-trap-self-refocus') continue;
+      trapObs.push(stampAuthority({
+        sc: '2.1.2', claimFamily: 'no-keyboard-trap',
+        observationScope: { actionTargetRef: f.xpath, state: 'keyboard-trap-probe', action: 'tab-cycle', environment: 'headless-chromium' },
+        wouldBe: { observationOutcome: 'BARRIER_OBSERVED' },
+        source: 'instrument', mechanism: 'kbd-trap:' + String(f.detector || 'keyboard-trap'),
+        confidence: 'high', rationaleRef: null, evidenceRefs: [],
+      }));
+    }
+  }
 
   // (5) INDEPENDENT obligation reconciliation: enumerate from the COLLECTOR (atomic per family);
   //     every obligation gets exactly one disposition. Authoritative CLAIMs clear; shadow
@@ -291,7 +315,7 @@ function buildV3(bundle, opts = {}) {
   const scoreCache = Object.create(null);
   const scoreMech = (mech) => { if (!Object.prototype.hasOwnProperty.call(scoreCache, mech)) scoreCache[mech] = metrics.scoreMechanism(scoringView, gold || [], mech, opts.provisionOpts || {}); return scoreCache[mech]; };
   const obsByObl = Object.create(null);
-  for (const o of annotationObs) {
+  for (const o of [...annotationObs, ...trapObs]) { // trapObs fill the ledger alongside the LLM obs (but not the scoring view)
     const oid = oracle.oblId(o.observationScope && o.observationScope.actionTargetRef, o.sc, o.claimFamily);
     (obsByObl[oid] = obsByObl[oid] || []).push(o);
   }

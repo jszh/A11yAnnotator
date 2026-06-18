@@ -28,7 +28,7 @@ const SKILL_SCS = {
   'dynamic-announcement': ['4.1.3'],
   'reflow-and-pointer-affordances': ['1.4.10', '2.5.8', '1.4.13', '2.5.5'],
   'forms-instructions-errors': ['3.3.1', '3.3.2', '3.3.3', '1.3.1'],
-  'page-structure': ['2.4.2', '2.4.6', '1.3.1'],
+  'page-structure': ['2.4.2', '2.4.6', '1.3.1', '2.4.10'],
   'grouping-and-reading-order': ['1.3.1', '1.3.2', '2.4.3'],
 };
 
@@ -36,7 +36,7 @@ const SKILL_SCS = {
 // aggregated into the summary too (the audit: 128 reproduced page-skill verdicts).
 const PAGE_SKILLS = ['page-structure', 'grouping-and-reading-order', 'reflow'];
 const PAGE_SKILL_SCS = {
-  'page-structure': ['2.4.2', '2.4.6', '1.3.1'],
+  'page-structure': ['2.4.2', '2.4.6', '1.3.1', '2.4.10'],
   'grouping-and-reading-order': ['1.3.1', '1.3.2', '2.4.3'],
   'reflow': ['1.4.10'],
 };
@@ -46,7 +46,7 @@ const SC_LEVEL = {
   '1.4.3': 'AA', '1.4.11': 'AA', '1.4.1': 'A', '1.4.5': 'AA',
   '2.1.1': 'A', '2.1.2': 'A', '2.4.3': 'A', '2.4.11': 'AA', '2.4.7': 'AA', '2.4.13': 'AAA',
   '4.1.3': 'AA', '1.4.10': 'AA', '2.5.8': 'AA', '1.4.13': 'AA', '2.5.5': 'AAA',
-  '3.3.1': 'A', '3.3.2': 'A', '3.3.3': 'AA', '2.4.2': 'A', '2.4.6': 'AA', '1.3.1': 'A', '1.3.2': 'A',
+  '3.3.1': 'A', '3.3.2': 'A', '3.3.3': 'AA', '2.4.2': 'A', '2.4.6': 'AA', '1.3.1': 'A', '1.3.2': 'A', '2.4.10': 'AAA',
 };
 
 // Pull the first WCAG SC code out of an `sc` field that may read "1.4.3 Contrast".
