@@ -26,7 +26,10 @@ function contrastRatio(rgb1, rgb2) {
 function parseRGB(s) {
   const m = (s || '').match(/rgba?\(([^)]+)\)/);
   if (!m) return null;
-  const p = m[1].split(',').map(x => parseFloat(x.trim()));
+  // split on commas OR whitespace OR the modern "/ alpha" separator (rgb(0 0 0 / .5)); reject a NaN leak
+  // (e.g. a space-separated value that the old comma-only split mangled into NaN).
+  const p = m[1].split(/[\s,/]+/).map((x) => parseFloat(x)).filter((n) => !Number.isNaN(n));
+  if (p.length < 3) return null;
   return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
 }
 

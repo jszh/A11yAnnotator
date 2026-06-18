@@ -381,8 +381,11 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
     // it drives (focus/hover/viewport/form/CDP) is ALREADY isolated per request. That makes the request loop
     // safe to run on N tab-copies concurrently (V3_EXPERIMENT_CONCURRENCY). Determinism is preserved by:
     //   (1) runPool writes each outcome into a FIXED slot keyed by request index — completion order is
-    //       irrelevant; the serial merge below assembles results[]/unrun[] in REQUEST order, so the signed
-    //       evidence + attestation replay are byte-identical to the old serial loop;
+    //       irrelevant; the serial merge below assembles results[]/unrun[] in REQUEST order. At concurrency 1
+    //       (the default V3_EXPERIMENT_CONCURRENCY) the signed evidence + attestation replay are byte-identical
+    //       to the old serial loop. At concurrency >1, ORDER + dispositions stay identical, but if the run hits
+    //       the wall-clock budget the WHICH-requests-deferred set can differ (timing-dependent) — bounded by the
+    //       reservation guard so the cap is never overshot, and every request still gets exactly one disposition;
     //   (2) the budget RESERVATION guard (reserve/reconcile) — concurrent attempts cannot overshoot the cap;
     //   (3) page-per-attempt is untouched, so no two requests ever share a DOM / CDP session.
     // At concurrency 1 (the default) there is never an outstanding reservation and requests run one-at-a-time,

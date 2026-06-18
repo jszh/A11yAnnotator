@@ -219,11 +219,15 @@ function parseRGB(s) {
         // count only DIRECT controls — a control whose NEAREST group ancestor is g (not a nested inner
         // group). Otherwise a nameless STRUCTURING wrapper around legended inner fieldsets would false-fire
         // the group-label detector (adversarial verify #2).
-        const controlCount = [...g.querySelectorAll(ctlSel)].filter(c => c.closest(grpSel) === g).length;
+        const directControls = [...g.querySelectorAll(ctlSel)].filter(c => c.closest(grpSel) === g);
+        const controlCount = directControls.length;
+        // how many of the direct controls are radio/checkbox — a group NAME is the primary way AT users learn
+        // what such CHOICES belong to (a group of individually-labeled text fields is less name-dependent).
+        const radioCheckboxCount = directControls.filter(c => { const t = (c.getAttribute('type') || '').toLowerCase(), r = (c.getAttribute('role') || '').toLowerCase(); return t === 'radio' || t === 'checkbox' || r === 'radio' || r === 'checkbox'; }).length;
         return {
           xpath: xpathOf(g), tag: g.tagName.toLowerCase(), role: g.getAttribute('role') || null,
           hasLegend: !!legend, legendText: legendText.slice(0, 80), ariaLabel: ariaLabel.slice(0, 80),
-          labelledbyText: labelledbyText.slice(0, 80), controlCount,
+          labelledbyText: labelledbyText.slice(0, 80), controlCount, radioCheckboxCount,
         };
       });
       return {

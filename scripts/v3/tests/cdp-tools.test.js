@@ -32,6 +32,10 @@ const XP = {
   toggle: '/html[1]/body[1]/button[4]',   // reveals a display:none node
   hiddenrow: '/html[1]/body[1]/div[4]',
   chkrole: '/html[1]/body[1]/input[3]',   // native checkbox with redundant role=checkbox
+  oklchtext: '/html[1]/body[1]/span[3]',  // wide-gamut oklch() colour
+  occtarget: '/html[1]/body[1]/div[5]',   // covered by occcover
+  occcover: '/html[1]/body[1]/div[6]',
+  translborder: '/html[1]/body[1]/span[4]', // translucent border
 };
 
 // ONE shared browser for the whole file (not one per test) — fewer parallel Chrome instances under the full
@@ -137,13 +141,14 @@ test('mutating tools REFUSE when no fresh clone is supplied (never touch the sha
 
 test('reapStale is concurrency-safe: spares a clone younger than the threshold, reaps an older one (must-fix regression)', { skip: !chromeOK, concurrency: false }, async () => {
   const { openToolSession } = require('../lib/orchestrator.js');
-  // threshold 60ms: a "young" in-use clone (< 60ms) is NEVER reaped; only a clone aged past it is.
-  const session = await openToolSession(FX, CHROME, 60);
+  // threshold 500ms (generous vs clone-load latency so it's not flaky under suite load): a "young" in-use clone
+  // is NEVER reaped; only a clone explicitly aged past the threshold is.
+  const session = await openToolSession(FX, CHROME, 500);
   try {
     const oldClone = await session.freshClone();
-    await new Promise((r) => setTimeout(r, 120)); // oldClone is now > 60ms (a leaked tab)
-    const youngClone = await session.freshClone(); // 0ms — stands in for a PEER's in-use tab
-    const reaped = await session.reapStale();      // default threshold = the 60ms passed above
+    await new Promise((r) => setTimeout(r, 900)); // oldClone is now > 500ms (a leaked tab)
+    const youngClone = await session.freshClone(); // freshly created — stands in for a PEER's in-use tab
+    const reaped = await session.reapStale();      // default threshold = the 500ms passed above
     assert.equal(reaped, 1, 'exactly the stale clone is reaped');
     assert.equal(oldClone.isClosed(), true, 'the stale (leaked) clone is closed');
     assert.equal(youngClone.isClosed(), false, 'the young (in-use) clone is SPARED — never reap a peer\'s active tab');
@@ -213,6 +218,13 @@ test('resolve_part_color: returns BOTH the CSS used-colour AND the rendered pixe
     assert.equal(typeof r.cssVsRenderedDivergence.divergent, 'boolean', 'a divergence flag is always present');
     assert.ok(typeof r.cssVsRenderedDivergence.sourceProperty === 'string', 'the matched CSS property is surfaced (diff is vs the part colour, not always cs.color)');
     assert.ok(!('contrastRatio' in r) && !('verdict' in r), 'raw RGBA + flags only — no ratio, no verdict');
+    // a translucent border: the rendered pixel may best-match an OPAQUE property, but translucentPart must
+    // still fire (ANY translucent painting prop ⇒ the flat used-colour is unreliable ⇒ trust the pixel).
+    const tbc = await page.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; const b = el.getBoundingClientRect(); return { x: Math.round(b.x + 3), y: Math.round(b.y + b.height / 2) }; }, XP.translborder);
+    const tb = await resolvePartColor(page, { x: tbc.x, y: tbc.y });
+    assert.equal(tb.translucentPart, true, 'a translucent border sets translucentPart even if the pixel best-matches an opaque property');
+    assert.equal(tb.usedColourReliable, false, 'translucency ⇒ the CSS used-colour is unreliable; trust the rendered pixel');
+    assert.ok(tb.renderedPixelRGBA && Number.isFinite(tb.renderedPixelRGBA.r), 'the rendered pixel is still always returned');
   });
 });
 
@@ -311,5 +323,59 @@ test('ocr_image_text: returns recognised text + lines (objective, no verdict); e
     // an explicit rect also works (no xpath)
     const rect = await ocrImageText(page, { x: 0, y: 0, width: 40, height: 20 }, { ocr: okOcr });
     assert.equal(rect.text, 'Real heading', 'an explicit x/y/width/height rect is accepted');
+    // low-confidence lines are flagged (the under-read / non-Latin signal) ⇒ INCONCLUSIVE, never "no text"
+    const lowOcr = { available: () => true, recognize: async () => ({ text: 'blur', lines: [{ text: 'blur', score: 0.3, box: [] }] }) };
+    const low = await ocrImageText(page, { targetXpath: XP.realh }, { ocr: lowOcr });
+    assert.equal(low.lowConfidenceLineCount, 1, 'a sub-0.6 line is flagged low-confidence');
+    assert.ok(low.minLineScore < 0.6, 'minLineScore surfaced');
+  });
+});
+
+// ---- deferred-item regressions ----
+test('compute_contrast_ratio: a wide-gamut oklch() colour resolves to sRGB (not refused as unparseable)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const r = await computeContrastRatio(page, { nodeAXpath: XP.oklchtext, nodeBXpath: XP.realh });
+    assert.ok(!('inconclusive' in r) || r.inconclusive !== 'unparseable-color', 'oklch is normalised, not rejected');
+    assert.ok(Number.isFinite(r.contrastRatio) && typeof r.passes === 'boolean', 'a real ratio + passes is produced');
+  });
+});
+
+test('measure_geometry_live: occludedElements lists a sibling painting on top (1.4.13); viewportWidth uses a clone', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page, freshClone) => {
+    const r = await measureGeometryLive(page, { targetXpath: XP.occtarget });
+    assert.ok(Array.isArray(r.occludedElements) && r.occludedElements.length >= 1, 'the covering sibling is detected as occluding');
+    assert.equal(r.stateUsed, 'as-loaded(shared-page)', 'no viewportWidth ⇒ read-only on the shared page');
+    const sw = await page.evaluate(() => window.innerWidth);
+    const v = await measureGeometryLive(page, { targetXpath: XP.realh, viewportWidth: 320 }, { freshClone });
+    assert.ok(/viewport-320px\(clone\)/.test(v.stateUsed), 'viewportWidth re-measures on a clone');
+    assert.equal(await page.evaluate(() => window.innerWidth), sw, 'the SHARED page viewport is unchanged (clone only)');
+  });
+});
+
+test('render_with_overrides: an unresolvable targetXpath errors (no silent full-viewport fallback)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const r = await renderWithOverrides(page, { transform: 'grayscale', targetXpath: '/html[1]/body[1]/nope[9]' }, { freshClone: async () => { const p = await sharedBrowser.newPage(); await p.goto(FX, { waitUntil: 'load' }); return p; } });
+    assert.ok(/not found or zero-size/.test(r.error || ''), 'a bad target errors, never a full-viewport shot mistaken for the element');
+  });
+});
+
+test('resolve_destination: single-link reports redirect timing; linkXpaths[] returns a byte-equality grid (fd3a94 set test)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const one = await resolveDestination(page, { linkXpath: XP.destlink });
+    assert.ok('instantRedirect' in one && 'redirectDelayMs' in one, 'single-link carries redirect-timing fields');
+    const set = await resolveDestination(page, { linkXpaths: [XP.destlink, XP.destlink] });
+    assert.equal(set.fingerprints.length, 2, 'the set is resolved');
+    assert.equal(set.equality.titleEqual, true, 'two resolves of the same link are byte-equal on title');
+    assert.equal(set.equality.h1Equal, true);
+    assert.ok(!('verdict' in set.equality) && !('same' in set.equality), 'byte-equality grid only — never a same/different verdict');
+  });
+});
+
+test('observe_state_after_activation: activationKind classifies in-page vs navigating-link (isSafe awareness)', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page, freshClone) => {
+    const btn = await observeStateAfterActivation(page, { targetXpath: XP.reveal }, { freshClone });
+    assert.equal(btn.activationKind, 'in-page', 'a plain reveal button is in-page');
+    const link = await observeStateAfterActivation(page, { targetXpath: XP.destlink }, { freshClone });
+    assert.equal(link.activationKind, 'navigating-link', 'a real href is flagged as navigating (the delta may be a page change)');
   });
 });

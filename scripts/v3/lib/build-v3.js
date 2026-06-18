@@ -450,7 +450,13 @@ function buildV3(bundle, opts = {}) {
         if (typeof raw === 'string' && raw.trim()) {
           const ids = raw.trim().split(/\s+/).filter(Boolean);
           const missing = ids.filter((id) => !Object.prototype.hasOwnProperty.call(pageIds, id));
-          if (missing.length) deterministicSignals.push({ source: 'deterministic', detector: 'dangling-idref', sc, xpath: el.xpath || null, kind: 'dangling-idref', detail: `${attrName} references ${missing.length === ids.length ? 'no existing element' : 'a missing element'} (absent id${missing.length > 1 ? 's' : ''}: ${missing.slice(0, 5).join(', ')})`, authoritative: false, shadow: true });
+          if (missing.length) {
+            // ALL tokens absent ⇒ the name/description resolves to NOTHING (the strong 4.1.2/1.3.1 signal).
+            // PARTIAL (some tokens resolve) ⇒ the accessible name STILL computes from the resolving tokens, so a
+            // missing token is a precision risk, not a decided gap — downgrade to review-tier (precision fix).
+            const allMissing = missing.length === ids.length;
+            deterministicSignals.push({ source: 'deterministic', detector: 'dangling-idref', sc, xpath: el.xpath || null, kind: 'dangling-idref', detail: `${attrName} references ${allMissing ? 'no existing element' : 'a missing element (others resolve)'} (absent id${missing.length > 1 ? 's' : ''}: ${missing.slice(0, 5).join(', ')})`, ...(allMissing ? {} : { review: true }), authoritative: false, shadow: true });
+          }
         }
       }
     }
@@ -478,7 +484,13 @@ function buildV3(bundle, opts = {}) {
       || (typeof g.ariaLabel === 'string' && g.ariaLabel.trim())
       || (typeof g.labelledbyText === 'string' && g.labelledbyText.trim()));
     if (!named && (g.controlCount | 0) >= 2) {
-      deterministicSignals.push({ source: 'deterministic', detector: 'group-label', sc: '3.3.2', xpath: g.xpath || null, kind: 'group-without-accessible-name', detail: `<${g.tag}${g.role ? ` role=${g.role}` : ''}> groups ${g.controlCount} form controls but has no accessible group name (no legend text, aria-label, or resolved aria-labelledby)`, authoritative: false, shadow: true });
+      // The STRONG (decided-ish) signal is narrowed to PREDOMINANTLY radio/checkbox groups, where a group name is
+      // the primary way AT users learn what the choices belong to. A group of individually-labeled fields (text
+      // inputs etc.) is downgraded to review-tier — its per-field labels may already suffice. (radioCheckboxCount
+      // absent in pre-existing evidence ⇒ 0 ⇒ review-tier, the conservative default.)
+      const rcb = g.radioCheckboxCount | 0;
+      const predominantlyChoice = rcb >= 2 && rcb * 2 >= (g.controlCount | 0);
+      deterministicSignals.push({ source: 'deterministic', detector: 'group-label', sc: '3.3.2', xpath: g.xpath || null, kind: 'group-without-accessible-name', detail: `<${g.tag}${g.role ? ` role=${g.role}` : ''}> groups ${g.controlCount} form controls (${rcb} radio/checkbox) but has no accessible group name (no legend text, aria-label, or resolved aria-labelledby)`, ...(predominantlyChoice ? {} : { review: true }), authoritative: false, shadow: true });
     }
   }
   // (No page-title deterministic signal: an empty/whitespace <title> is already surfaced by axe

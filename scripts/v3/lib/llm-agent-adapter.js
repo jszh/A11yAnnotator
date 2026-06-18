@@ -115,9 +115,14 @@ function makeClaudeSdkTransport(opts = {}) {
     const useModel = (request && request.model) || model || 'claude-sonnet-4-6';
     async function* input() { yield { type: 'user', parent_tool_use_id: null, message: { role: 'user', content } }; }
 
+    // ONE deadline for the WHOLE sequence (hoisted before the retry loop): each attempt gets the REMAINING
+    // budget, so total wall-clock can't reach (maxRetries+1)×runTimeoutMs by re-arming the timer per retry.
+    const deadline = Date.now() + runTimeoutMs;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) return null; // whole-run budget exhausted before this attempt
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), runTimeoutMs);
+      const timer = setTimeout(() => ctrl.abort(), remaining);
       let text = '', overloaded = false;
       try {
         const env = { ...process.env, CLAUDE_CODE_OAUTH_TOKEN: oauthToken || process.env.CLAUDE_CODE_OAUTH_TOKEN || '', CLAUDE_ASYNC_AGENT_STALL_TIMEOUT_MS: String(perTurnTimeoutMs) };

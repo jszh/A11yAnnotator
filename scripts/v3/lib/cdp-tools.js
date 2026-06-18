@@ -133,7 +133,16 @@ async function observeStateAfterActivation(page, args, ctx) {
       const tgt = document.evaluate(xp, document, null, 9, null).singleNodeValue;
       const r = tgt ? tgt.getBoundingClientRect() : null;
       const tgtPerceivable = !!(tgt && _vis(tgt) && r && r.width > 0 && r.height > 0);
-      return { url: location.href, active: _xp(document.activeElement), texts: [...texts], tgtPerceivable };
+      // isSafe awareness: classify the control so the model knows the after-delta may be a navigation/submit/
+      // download (a leaving/destructive action), not just an in-page reveal. The clone contains it regardless.
+      let activationKind = 'in-page';
+      if (tgt) {
+        const a = tgt.closest && tgt.closest('a[href]'); const href = a && a.getAttribute('href');
+        if (a && a.hasAttribute('download')) activationKind = 'download-link';
+        else if (href && !href.startsWith('#')) activationKind = 'navigating-link';
+        else if (tgt.type === 'submit' || tgt.type === 'reset' || (tgt.tagName === 'INPUT' && tgt.type === 'submit') || (tgt.tagName === 'BUTTON' && tgt.closest('form') && (tgt.type === 'submit' || !tgt.type))) activationKind = 'form-submit';
+      }
+      return { url: location.href, active: _xp(document.activeElement), texts: [...texts], tgtPerceivable, activationKind };
     }, targetXpath);
     if (!before.tgtPerceivable) return { refused: 'target-not-perceivable', reason: 'the control is hidden / zero-size on a fresh load — a user could not activate it (isPerceivable gate)' };
 
@@ -189,6 +198,7 @@ async function observeStateAfterActivation(page, args, ctx) {
     return {
       activeElementChanged: before.active !== after.active,
       activeElementAfter: after.active,
+      activationKind: before.activationKind, // in-page | navigating-link | download-link | form-submit (isSafe awareness)
       focusMovedToChange: after.focusMovedToChange, // focus landed INSIDE newly-revealed content (vs elsewhere)
       urlChanged: before.url !== after.url,
       navigated: navigated || navIntent,
@@ -341,13 +351,35 @@ async function probeScreenReaderAfterAction(page, args, ctx) {
 // (1.4.13 occlusion; 1.4.10 sub-element overflow). Raw measured numbers; marks an ambiguous case rather than
 // inventing a value; never pass/fail. (For a popup that only exists on hover/focus, drive the state with
 // set_state_and_capture first; for a non-collected viewport width, that's a clone op — out of this tool.)
-async function measureGeometryLive(page, args) {
-  const { targetXpath, otherXpath } = args || {};
+async function measureGeometryLive(page, args, ctx) {
+  const { targetXpath, otherXpath, viewportWidth } = args || {};
   if (typeof targetXpath !== 'string' || !targetXpath) return { error: 'targetXpath required' };
-  const r = await page.evaluate((xp, oxp) => {
+  // For a non-collected viewport width (1.4.10 reflow), run on a CLONE with setViewport — NEVER resize the
+  // SHARED page (that would corrupt concurrent peers). With no viewportWidth, stay read-only on the shared page.
+  const useClone = Number.isFinite(viewportWidth) && viewportWidth > 0 && ctx && typeof ctx.freshClone === 'function';
+  const live = useClone ? await ctx.freshClone() : page;
+  try {
+    if (useClone) { await live.setViewport({ width: Math.round(viewportWidth), height: 900, deviceScaleFactor: 1 }).catch(() => {}); await new Promise((r) => setTimeout(r, 140)); }
+  const r = await live.evaluate((xp, oxp) => {
     const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
     if (!el) return { found: false };
     const b = el.getBoundingClientRect();
+    // occlusion hit-test (1.4.13 Dismissible): sample a grid inside the target box; any element painting ABOVE
+    // the target (topmost-first stack, and not the target's own ancestor/descendant) occludes it. Raw boxes —
+    // the model applies the decorative/whitespace exception.
+    const occ = new Map(), GX = 4, GY = 4;
+    for (let i = 1; i <= GX; i++) for (let j = 1; j <= GY; j++) {
+      const px = b.left + (b.width * i) / (GX + 1), py = b.top + (b.height * j) / (GY + 1);
+      if (px < 0 || py < 0 || px >= window.innerWidth || py >= window.innerHeight) continue;
+      const stack = document.elementsFromPoint(px, py);
+      const ti = stack.findIndex((e) => e === el || el.contains(e) || e.contains(el));
+      for (let k = 0; k < (ti < 0 ? stack.length : ti); k++) {
+        const o = stack[k]; if (o === el || el.contains(o) || o.contains(el) || occ.has(o)) continue;
+        const ob = o.getBoundingClientRect();
+        occ.set(o, { tag: o.tagName.toLowerCase(), role: o.getAttribute('role') || null, box: { x: Math.round(ob.x), y: Math.round(ob.y), w: Math.round(ob.width), h: Math.round(ob.height) } });
+      }
+    }
+    const occludedElements = [...occ.values()].slice(0, 8);
     const overflowsH = el.scrollWidth > el.clientWidth + 2;
     let culprit = null;
     // content-right edge must account for a left border / horizontal scroll offset, else it mis-fires.
@@ -375,11 +407,12 @@ async function measureGeometryLive(page, args) {
       else overlap = { available: false, reason: 'otherXpath not found' };
     }
     const ambiguous = b.width < 6 || b.height < 6;
-    return { found: true, box: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, overflowsHorizontally: overflowsH, overflowPx: Math.max(0, el.scrollWidth - el.clientWidth), overflowCulprit: culprit, overlap, viewportWidthUsed: window.innerWidth, ambiguous, ambiguityReason: ambiguous ? 'degenerate box (<6px)' : undefined };
+    return { found: true, box: { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, overflowsHorizontally: overflowsH, overflowPx: Math.max(0, el.scrollWidth - el.clientWidth), overflowCulprit: culprit, overlap, occludedElements, viewportWidthUsed: window.innerWidth, ambiguous, ambiguityReason: ambiguous ? 'degenerate box (<6px)' : undefined };
   }, targetXpath, otherXpath || null).catch(() => null);
-  if (!r) return { error: 'measurement failed' };
-  if (!r.found) return { error: 'target not found' };
-  return { ...r, targetXpath, stateUsed: 'as-loaded(shared-page)' }; // echo the subject + the state the numbers were measured in
+    if (!r) return { error: 'measurement failed' };
+    if (!r.found) return { error: 'target not found' };
+    return { ...r, targetXpath, stateUsed: useClone ? `viewport-${Math.round(viewportWidth)}px(clone)` : 'as-loaded(shared-page)' }; // echo the subject + the state the numbers were measured in
+  } finally { if (useClone) { try { await live.close(); } catch (e) {} } }
 }
 
 // ============================================================================================
@@ -428,7 +461,10 @@ async function renderWithOverrides(page, args, ctx) {
     let clip;
     if (typeof targetXpath === 'string' && targetXpath) {
       const meta = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { x: Math.max(0, r.x), y: Math.max(0, r.y), w: r.width, h: r.height }; }, targetXpath).catch(() => null);
-      if (meta && meta.w > 0 && meta.h > 0) clip = { x: Math.round(meta.x), y: Math.round(meta.y), width: Math.round(meta.w), height: Math.round(meta.h) };
+      // a targetXpath was given but didn't resolve ⇒ ERROR (never silently fall back to a full-viewport shot,
+      // which the model would mistake for the requested element). Full-viewport is reserved for the no-target case.
+      if (!meta || !(meta.w > 0 && meta.h > 0)) return { error: 'target not found or zero-size', transform };
+      clip = { x: Math.round(meta.x), y: Math.round(meta.y), width: Math.round(meta.w), height: Math.round(meta.h) };
     }
     const screenshot = await live.screenshot({ encoding: 'base64', ...(clip ? { clip } : {}) }).catch(() => null);
     if (!screenshot) return { error: 'capture failed', transform };
@@ -447,7 +483,15 @@ async function computeContrastRatio(page, args) {
   const { nodeAXpath, nodeBXpath, threshold } = args || {};
   if (typeof nodeAXpath !== 'string' || typeof nodeBXpath !== 'string') return { error: 'nodeAXpath and nodeBXpath required (the two flat colour sources to compare)' };
   const cols = await page.evaluate((xa, xb) => {
-    const used = (xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; return el ? getComputedStyle(el).color : null; };
+    // Normalise ANY CSS colour (incl. wide-gamut oklch()/color(srgb ...)) to sRGB rgba by painting it to a 1×1
+    // canvas and reading the pixel back — so parseRGB never chokes on a syntax it doesn't recognise. Alpha is
+    // preserved (the translucency refusal still fires on a<1).
+    const used = (xp) => {
+      const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+      if (!el) return null;
+      const c = getComputedStyle(el).color;
+      try { const cv = document.createElement('canvas'); cv.width = cv.height = 1; const cx = cv.getContext('2d'); cx.fillStyle = c; cx.fillRect(0, 0, 1, 1); const d = cx.getImageData(0, 0, 1, 1).data; return `rgba(${d[0]}, ${d[1]}, ${d[2]}, ${(d[3] / 255).toFixed(3)})`; } catch (e) { return c; }
+    };
     return { a: used(xa), b: used(xb) };
   }, nodeAXpath, nodeBXpath).catch(() => null);
   if (!cols || !cols.a || !cols.b) return { error: 'one or both nodes not found' };
@@ -476,7 +520,18 @@ async function resolvePartColor(page, args) {
     const el = document.elementFromPoint(px, py);
     if (!el) return null;
     const cs = getComputedStyle(el);
-    return { part: el.tagName.toLowerCase(), color: cs.color, backgroundColor: cs.backgroundColor, borderTopColor: cs.borderTopColor, outlineColor: cs.outlineColor, fill: cs.fill, stroke: cs.stroke };
+    const pc = (sel) => { const p = getComputedStyle(el, sel); return (p && p.content && p.content !== 'none' && p.content !== 'normal') ? { color: p.color, backgroundColor: p.backgroundColor } : null; };
+    return {
+      part: el.tagName.toLowerCase(),
+      color: cs.color, backgroundColor: cs.backgroundColor, borderTopColor: cs.borderTopColor, outlineColor: cs.outlineColor, fill: cs.fill, stroke: cs.stroke,
+      // reliability flags: a gradient / filter / opacity<1 means NO single flat used-colour is sound — the
+      // rendered pixel is the only truth. Pseudo-element (::before/::after) colours often ARE the visible indicator.
+      hasGradient: /gradient/i.test(cs.backgroundImage || ''),
+      hasBackgroundImage: !!(cs.backgroundImage && cs.backgroundImage !== 'none'),
+      hasFilter: !!((cs.filter && cs.filter !== 'none') || (cs.backdropFilter && cs.backdropFilter !== 'none')),
+      opacity: parseFloat(cs.opacity),
+      pseudo: { before: pc('::before'), after: pc('::after') },
+    };
   }, x, y).catch(() => null);
   if (!cssInfo) return { error: 'no element at the given point' };
   // rendered pixel: screenshot a 5x5 clip at the point, decode the centre via an in-page canvas (the data
@@ -512,7 +567,16 @@ async function resolvePartColor(page, args) {
     }
     if (best) divergence = { sourceProperty: best.prop, distFromSourceColor: +best.dist.toFixed(1), divergent: best.dist > 40 };
   }
-  return { ...cssInfo, renderedPixelRGBA, cssVsRenderedDivergence: divergence, note: 'BOTH the CSS used-colours AND the rendered pixel are returned; cssVsRenderedDivergence.sourceProperty is the used-colour the pixel best matches. If divergent is true, NO CSS used-colour explains the rendered pixel (the CSS is misleading / it false-clears) — treat the colour as INCONCLUSIVE.' };
+  // A translucent matched part-colour can't be reduced to a sound flat value; a gradient/filter/opacity<1 means
+  // no single used-colour is reliable. Either ⇒ usedColourReliable:false ⇒ the model should trust ONLY the
+  // rendered pixel and treat the CSS used-colour as INCONCLUSIVE.
+  // ANY translucent painting property makes the flat-colour resolution unreliable — a translucent border/fill
+  // composites with the backdrop, so the rendered pixel often best-matches a DIFFERENT (opaque) property than
+  // the translucent one. So flag translucency across ALL painting props (0<a<1), not just the matched one.
+  const PAINT_PROPS = ['color', 'backgroundColor', 'borderTopColor', 'outlineColor', 'fill', 'stroke'];
+  const translucentPart = PAINT_PROPS.some((k) => { const c = A.parseRGB(cssInfo[k]); return !!(c && c.a != null && c.a > 0 && c.a < 1); });
+  const usedColourReliable = !(cssInfo.hasGradient || cssInfo.hasFilter || (Number.isFinite(cssInfo.opacity) && cssInfo.opacity < 1) || translucentPart);
+  return { ...cssInfo, renderedPixelRGBA, cssVsRenderedDivergence: divergence, translucentPart, usedColourReliable, note: 'BOTH the CSS used-colours AND the rendered pixel are returned. sourceProperty is the used-colour the pixel best matches. If divergent, NO used-colour explains the pixel (CSS misleads). If usedColourReliable is false (gradient/filter/opacity<1/translucent) OR translucentPart, trust ONLY the rendered pixel and treat the CSS colour as INCONCLUSIVE. pseudo.before/after carry ::before/::after colours when those pseudo-elements paint the indicator.' };
 }
 
 // ============================================================================================
@@ -523,56 +587,56 @@ async function resolvePartColor(page, args) {
 // following arbitrary external hrefs is SSRF/exfil surface and breaks the saved-dataset determinism. GET only,
 // depth 0, never the audited session/cookies.
 async function resolveDestination(page, args) {
-  const { linkXpath } = args || {};
-  if (typeof linkXpath !== 'string' || !linkXpath) return { error: 'linkXpath required' };
-  const info = await page.evaluate((xp) => {
-    const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
-    if (!el) return { found: false };
-    const a = (el.closest && el.closest('a[href]')) || el;
-    return { found: true, href: a.href || null, pageUrl: location.href };
-  }, linkXpath).catch(() => null);
-  if (!info || !info.found) return { error: 'link not found' };
-  if (!info.href) return { error: 'no href on the target' };
-  let target, base;
-  try { target = new URL(info.href); base = new URL(info.pageUrl); } catch (e) { return { refused: 'unparseable-url' }; }
-  if (!/^https?:$/.test(target.protocol) && target.protocol !== 'file:') return { refused: 'non-http-or-file' };
+  const { linkXpath, linkXpaths } = args || {};
+  const xpaths = (Array.isArray(linkXpaths) && linkXpaths.length) ? linkXpaths : (typeof linkXpath === 'string' && linkXpath ? [linkXpath] : []);
+  if (!xpaths.length) return { error: 'linkXpath (string) or linkXpaths (array) required' };
   const dir = (u) => u.pathname.slice(0, u.pathname.lastIndexOf('/') + 1);
-  const sameOrigin = target.protocol === 'file:' ? (base.protocol === 'file:' && dir(target) === dir(base)) : (target.origin === base.origin);
-  if (!sameOrigin) return { refused: 'cross-origin', destinationOrigin: target.origin };
   const browser = page.browser();
-  let ctx = null, p = null;
-  try {
-    ctx = browser.createBrowserContext ? await browser.createBrowserContext() : await browser.createIncognitoBrowserContext();
-    p = await ctx.newPage();
-    // PRE-FLIGHT same-origin guard (SSRF / tracking): abort any request to a foreign origin BEFORE it leaves the
-    // machine — so a 3xx redirect to another origin never even fires the outbound GET. The post-goto check below
-    // is then only defense-in-depth. We only need the main document; a cross-origin sub-resource is both
-    // irrelevant to the fingerprint and exactly the leak we refuse.
-    await p.setRequestInterception(true).catch(() => {});
-    p.on('request', (req) => {
-      let ok = false;
-      try {
-        const u = new URL(req.url());
-        if (u.protocol === 'data:' || u.protocol === 'about:' || u.protocol === 'blob:') ok = true;
-        else if (target.protocol === 'file:') ok = (u.protocol === 'file:' && dir(u) === dir(target));
-        else ok = (u.origin === target.origin);
-      } catch (e) { ok = false; }
-      if (ok) req.continue().catch(() => {}); else req.abort().catch(() => {});
-    });
-    const resp = await p.goto(target.href, { waitUntil: 'load', timeout: 15000 }).catch(() => null);
-    // REDIRECT GUARD (adversarial verify): the static-href check only validated the LINK; a 3xx can land on
-    // ANOTHER origin. Re-validate the SETTLED url — refuse rather than fingerprint a foreign origin (SSRF).
-    let finalU = null; try { finalU = new URL(p.url()); } catch (e) {}
-    const finalSameOrigin = finalU && (target.protocol === 'file:' ? (finalU.protocol === 'file:' && dir(finalU) === dir(base)) : (finalU.origin === base.origin));
-    if (!finalSameOrigin) return { refused: 'cross-origin-redirect', finalOrigin: finalU ? finalU.origin : null };
-    const fp = await p.evaluate(() => {
-      const m = document.querySelector('main') || document.body;
-      const para = m && m.querySelector('p');
-      return { title: document.title, h1: (document.querySelector('h1') || {}).textContent || null, mainFirstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null };
-    }).catch(() => ({}));
-    return { finalUrl: p.url().slice(0, 300), httpStatus: resp ? resp.status() : null, title: (fp.title || '').slice(0, 200), h1: fp.h1 ? String(fp.h1).trim().slice(0, 160) : null, mainFirstParagraph: fp.mainFirstParagraph || null, note: 'raw destination fingerprint (same-origin only); the model judges "same purpose?" — this tool never returns equivalent/same/different.' };
-  } catch (e) { return { error: String(e && e.message || e).slice(0, 200) }; }
-  finally { try { if (p) await p.close(); } catch (e) {} try { if (ctx && ctx.close) await ctx.close(); } catch (e) {} }
+  // resolve ONE link xpath → a raw fingerprint (+ redirect timing), or {refused}/{error}. SSRF pre-flight +
+  // settled-origin re-check unchanged. ACT fd3a94: only redirects that happen INSTANTLY (a 3xx, or meta-refresh
+  // delay 0) count toward the link-purpose set; a delayed meta-refresh fingerprints the INTERSTITIAL page.
+  const resolveOne = async (xp) => {
+    const info = await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return { found: false }; const a = (el.closest && el.closest('a[href]')) || el; return { found: true, href: a.href || null, pageUrl: location.href }; }, xp).catch(() => null);
+    if (!info || !info.found) return { linkXpath: xp, error: 'link not found' };
+    if (!info.href) return { linkXpath: xp, error: 'no href on the target' };
+    let target, base;
+    try { target = new URL(info.href); base = new URL(info.pageUrl); } catch (e) { return { linkXpath: xp, refused: 'unparseable-url' }; }
+    if (!/^https?:$/.test(target.protocol) && target.protocol !== 'file:') return { linkXpath: xp, refused: 'non-http-or-file' };
+    const sameOrigin = target.protocol === 'file:' ? (base.protocol === 'file:' && dir(target) === dir(base)) : (target.origin === base.origin);
+    if (!sameOrigin) return { linkXpath: xp, refused: 'cross-origin', destinationOrigin: target.origin };
+    let bctx = null, p = null;
+    try {
+      bctx = browser.createBrowserContext ? await browser.createBrowserContext() : await browser.createIncognitoBrowserContext();
+      p = await bctx.newPage();
+      await p.setRequestInterception(true).catch(() => {});
+      p.on('request', (req) => {
+        let ok = false;
+        try { const u = new URL(req.url()); if (u.protocol === 'data:' || u.protocol === 'about:' || u.protocol === 'blob:') ok = true; else if (target.protocol === 'file:') ok = (u.protocol === 'file:' && dir(u) === dir(target)); else ok = (u.origin === target.origin); } catch (e) { ok = false; }
+        if (ok) req.continue().catch(() => {}); else req.abort().catch(() => {});
+      });
+      const resp = await p.goto(target.href, { waitUntil: 'load', timeout: 15000 }).catch(() => null);
+      let finalU = null; try { finalU = new URL(p.url()); } catch (e) {}
+      const finalSameOrigin = finalU && (target.protocol === 'file:' ? (finalU.protocol === 'file:' && dir(finalU) === dir(base)) : (finalU.origin === base.origin));
+      if (!finalSameOrigin) return { linkXpath: xp, refused: 'cross-origin-redirect', finalOrigin: finalU ? finalU.origin : null };
+      const httpChain = (() => { try { return resp ? resp.request().redirectChain().length : 0; } catch (e) { return 0; } })();
+      const meta = await p.evaluate(() => { const m = document.querySelector('meta[http-equiv="refresh" i]'); if (!m) return null; const c = (m.getAttribute('content') || '').trim(); const mm = c.match(/^(\d+(?:\.\d+)?)\s*(?:;|$)/); return mm ? { delay: parseFloat(mm[1]) } : null; }).catch(() => null);
+      let instantRedirect = httpChain > 0, redirectDelayMs = httpChain > 0 ? 0 : null, interstitial = false;
+      if (meta) { redirectDelayMs = Math.round(meta.delay * 1000); instantRedirect = httpChain > 0 || meta.delay === 0; interstitial = meta.delay > 0; }
+      const fp = await p.evaluate(() => { const m = document.querySelector('main') || document.body; const para = m && m.querySelector('p'); return { title: document.title, h1: (document.querySelector('h1') || {}).textContent || null, mainFirstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null }; }).catch(() => ({}));
+      return { linkXpath: xp, finalUrl: p.url().slice(0, 300), httpStatus: resp ? resp.status() : null, title: (fp.title || '').slice(0, 200), h1: fp.h1 ? String(fp.h1).trim().slice(0, 160) : null, mainFirstParagraph: fp.mainFirstParagraph || null, instantRedirect, redirectDelayMs, ...(interstitial ? { interstitialPage: true } : {}) };
+    } catch (e) { return { linkXpath: xp, error: String(e && e.message || e).slice(0, 200) }; }
+    finally { try { if (p) await p.close(); } catch (e) {} try { if (bctx && bctx.close) await bctx.close(); } catch (e) {} }
+  };
+  if (xpaths.length === 1) {
+    const { linkXpath: _lx, ...rest } = await resolveOne(xpaths[0]);
+    return { ...rest, note: 'raw destination fingerprint (same-origin only); instantRedirect=true only for a 3xx or meta-refresh delay 0 (ACT fd3a94 — only instant redirects count); a delayed redirect sets interstitialPage (the fingerprint is the PRE-redirect page). The model judges "same purpose?" — never equivalent/same/different.' };
+  }
+  // sibling-set (fd3a94 is a SET test): resolve each + a per-field string-EQUALITY grid (no same/different verdict).
+  const fingerprints = [];
+  for (const xp of xpaths.slice(0, 8)) fingerprints.push(await resolveOne(xp));
+  const ok = fingerprints.filter((f) => f && !f.error && !f.refused);
+  const eqOf = (field) => ok.length >= 2 && ok.every((f) => f[field] === ok[0][field]);
+  return { fingerprints, equality: { finalUrlEqual: eqOf('finalUrl'), titleEqual: eqOf('title'), h1Equal: eqOf('h1'), mainFirstParagraphEqual: eqOf('mainFirstParagraph') }, note: 'each link resolved to a raw fingerprint (+ redirect timing) + a per-field byte-EQUALITY grid across the resolved set (fd3a94 is a SET test). Equality is string-equality only — the model judges "same purpose?".' };
 }
 
 // ============================================================================================
@@ -689,7 +753,11 @@ async function ocrImageText(page, args, ctx) {
   if (!b64) return { error: 'capture failed' };
   const r = await ctx.ocr.recognize(b64);
   if (r.error) return { error: r.error, note: 'OCR could not run — do NOT infer the crop is empty; treat as INCONCLUSIVE.' };
-  return { text: r.text || '', lines: r.lines || [], lineCount: (r.lines || []).length, engine: (ctx.ocr && ctx.ocr.engine && ctx.ocr.engine()) || null, ...(clampedToViewport ? { clampedToViewport: true } : {}), note: 'recognised text + per-line boxes/confidence (PP-OCRv6) — an objective reading of the rendered pixels. Empty text ≠ "no text" on a low-res crop (try request_hi_res_crop first). NEVER a verdict.' };
+  const lines = r.lines || [];
+  const scored = lines.map((l) => (typeof l.score === 'number' ? l.score : null)).filter((s) => s != null);
+  const minLineScore = scored.length ? +Math.min(...scored).toFixed(3) : null;
+  const lowConfidenceLineCount = lines.filter((l) => typeof l.score === 'number' && l.score < 0.6).length;
+  return { text: r.text || '', lines, lineCount: lines.length, minLineScore, lowConfidenceLineCount, engine: (ctx.ocr && ctx.ocr.engine && ctx.ocr.engine()) || null, ...(clampedToViewport ? { clampedToViewport: true } : {}), note: 'recognised text + PER-LINE boxes/confidence (PP-OCRv6 is a 50-language unified model; confidence is per-LINE, not per-glyph). Empty text OR a low minLineScore/low-confidence lines ≠ "no text" — treat a low-confidence read as INCONCLUSIVE (try request_hi_res_crop). NEVER a verdict.' };
 }
 
 // ============================================================================================
@@ -712,18 +780,18 @@ async function buildCdpToolServer(session) {
       { targetXpath: z.string(), state: z.enum(['focus', 'hover', 'checked', 'open', 'expanded', 'placeholder-shown']) }, (a) => wrap(setStateAndCapture, a)),
     tool('probe_screen_reader_after_action', 'Mutating (FRESH clone): run a screen reader, clear its log, activate ONE control (by xpath), settle, and return the VERBATIM spoken-phrase queue. Returns BOTH the full announcements queue AND liveRegionAnnouncements (the polite/assertive subset — the ONLY 4.1.3-relevant phrases; focus/change-of-context phrases are excluded by 4.1.3). emptyQueue/noLiveRegionAnnouncement flag a genuine silence; an instrument failure returns {error,probeFailed:true} instead (never a fake emptyQueue). Raw phrases, never an adequacy/announced verdict.',
       { triggerXpath: z.string() }, (a) => wrap(probeScreenReaderAfterAction, a)),
-    tool('measure_geometry_live', 'Read-only: measured geometry for an element — bounding box, horizontal overflow (scrollWidth vs clientWidth) + the overflow culprit, and (if otherXpath is given) the overlap area/fraction and gap between the two boxes (1.4.13 occlusion, 1.4.10 sub-element overflow). Raw numbers only; marks ambiguous (degenerate) boxes instead of inventing a value; never a pass/fail.',
-      { targetXpath: z.string(), otherXpath: z.string().optional() }, (a) => wrap(measureGeometryLive, a)),
+    tool('measure_geometry_live', 'Read-only on the shared page (unless viewportWidth is given): box, horizontal overflow + culprit, occludedElements[] (what paints on top of the target — 1.4.13 Dismissible), and (if otherXpath) overlapFractionOfTarget/OfOther + gapX/gapY between the two boxes. Pass viewportWidth to re-measure on a CLONE at that width (1.4.10 reflow) — stateUsed echoes which. Raw numbers; marks degenerate boxes ambiguous; never a pass/fail.',
+      { targetXpath: z.string(), otherXpath: z.string().optional(), viewportWidth: z.number().optional() }, (a) => wrap(measureGeometryLive, a)),
     tool('request_hi_res_crop', 'Mutating (FRESH clone): re-raster ONE element at a higher DEVICE scale (2-4x, NOT page zoom) and return the PNG + the actual scale + CSS-pixel and device-pixel sizes. Use when a small wordmark/chart label is unreadable in the 1x crop (1.1.1/1.4.5). Covers the whole element. If the result is still illegible, return PARTIAL — never invent text.',
       { targetXpath: z.string(), scale: z.number().optional() }, (a) => wrap(requestHiResCrop, a)),
     tool('render_with_overrides', 'Mutating (FRESH clone): re-render under ONE transform (grayscale|protanopia|deuteranopia|tritanopia|forced-colors|no-author-css) and return the screenshot (whole element if targetXpath given, else viewport). For 1.4.1 (which colour cue is load-bearing after grayscale/CVD) and forced-colors survival. Judge from pixels; never assert a numeric ratio from a transformed image.',
       { transform: z.enum(['grayscale', 'protanopia', 'deuteranopia', 'tritanopia', 'forced-colors', 'no-author-css']), targetXpath: z.string().optional() }, (a) => wrap(renderWithOverrides, a)),
     tool('compute_contrast_ratio', 'Read-only: the WCAG contrast ratio for TWO flat used-colours the model chooses (e.g. an in-text link colour vs the surrounding text colour — G183 for 1.4.1). Returns colorA/colorB/contrastRatio/threshold/passes from CSSOM. REFUSES (inconclusive) translucent/unparseable colours — it never sweeps a photo/gradient. `passes` is a mechanical compare, not a verdict.',
       { nodeAXpath: z.string(), nodeBXpath: z.string(), threshold: z.number().optional() }, (a) => wrap(computeContrastRatio, a)),
-    tool('resolve_part_color', 'Read-only: for a NON-TEXT part at a screenshot pixel (x,y) — a border/indicator/SVG fill — return the CSS used-colours there AND the RENDERED pixel AND a divergence flag (1.4.11/1.4.1). ALWAYS returns both: if cssVsRenderedDivergence.divergent the CSS colour is misleading (it false-clears) — treat as INCONCLUSIVE. Raw RGBA + flags, never a ratio or verdict.',
+    tool('resolve_part_color', 'Read-only: for a NON-TEXT part at a screenshot pixel (x,y) — a border/indicator/SVG fill — return the CSS used-colours (incl. ::before/::after pseudo) AND the RENDERED pixel AND cssVsRenderedDivergence (sourceProperty = the used-colour the pixel best matches). usedColourReliable is false when a gradient/filter/opacity<1/translucent part means no single flat colour is sound ⇒ trust ONLY the rendered pixel. If divergent, no used-colour explains the pixel ⇒ INCONCLUSIVE. Raw RGBA + flags, never a ratio/verdict.',
       { x: z.number(), y: z.number() }, (a) => wrap(resolvePartColor, a)),
-    tool('resolve_destination', 'Read-only: follow a SAME-ORIGIN link (by xpath) in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph) — for 2.4.4 (do two same-named links go to different destinations). NEVER returns same/equivalent/different — that is your judgment. Cross-origin/non-http links are refused.',
-      { linkXpath: z.string() }, (a) => wrap(resolveDestination, a)),
+    tool('resolve_destination', 'Read-only: follow a SAME-ORIGIN link in an isolated incognito GET and return a RAW fingerprint (finalUrl/httpStatus/title/h1/mainFirstParagraph + instantRedirect/redirectDelayMs/interstitialPage) — for 2.4.4. Pass linkXpaths[] (the SET of same-named links — fd3a94 is a set test) to resolve all in one call + get a per-field byte-EQUALITY grid. instantRedirect is true only for a 3xx or meta-refresh delay-0 (only instant redirects count). NEVER same/equivalent/different — your judgment. Cross-origin/non-http refused.',
+      { linkXpath: z.string().optional(), linkXpaths: z.array(z.string()).optional() }, (a) => wrap(resolveDestination, a)),
     tool('compare_named_regions', 'Read-only: for an image/chart, given >=2 named regions (each {name,x,y,w,h} as fractions 0-1 of the element), return each region MEAN colour (+ colorSpread; high ⇒ multi-coloured, mean unrepresentative) and the perceptual ΔE2000 + luminanceDelta + perceptiblyDistinct between them (1.1.1 F13 — a colour-encoded distinction the alt omits). Derived measure only — never raw pixels, never a contrast ratio, never a verdict.',
       { targetXpath: z.string(), regions: z.array(z.object({ name: z.string(), x: z.number(), y: z.number(), w: z.number(), h: z.number() })) }, (a) => wrap(compareNamedRegions, a)),
     tool('ocr_image_text', 'Read-only: OCR a crop of the page — an element (targetXpath) OR an explicit x/y/width/height rect — via PP-OCRv6 and return the recognised text + per-line boxes + confidences. For images-of-text (1.4.5), a wordmark/label the vision pass cannot read, or comparing rendered text to the alt/accessible name. Objective reading of the pixels, NEVER a verdict; empty text on a low-res crop does NOT mean "no text" (use request_hi_res_crop first). Returns {error} when the OCR sidecar is not set up — treat as INCONCLUSIVE.',
