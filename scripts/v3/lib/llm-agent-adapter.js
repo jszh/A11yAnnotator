@@ -7,6 +7,7 @@
 // adapter is unit-testable with a mock (no network); the production transport is a thin `fetch` to the
 // Anthropic Messages API, keyed from the environment (the key lives in .env — never committed).
 const { V2_9_VERDICTS } = require('./llm-adjudicator.js');
+const LIMITS = require('./limits.js'); // LLM-lane budget DEFAULTS (tier C)
 
 // Extract the FIRST BALANCED top-level {...} JSON object (respecting string literals + escapes). A greedy
 // /\{[\s\S]*\}/ over-captures to the LAST '}', so any trailing brace (a markdown fence, a CSS snippet, a
@@ -52,7 +53,7 @@ function toAnthropicContent(messages) {
 
 // Build a runAgent from a transport. transport(request) -> { content: [{type:'text', text}] } (or throws).
 // model defaults to a vision-capable Claude. A transport error/timeout returns null (producer drops it).
-function makeRunAgent({ transport, model = 'claude-opus-4-8', maxTokens = 1024 } = {}) {
+function makeRunAgent({ transport, model = 'claude-opus-4-8', maxTokens = LIMITS.llm.maxTokens } = {}) {
   if (typeof transport !== 'function') throw new Error('makeRunAgent: a transport function is required');
   return async function runAgent(messages, _subject) {
     const request = { model, max_tokens: maxTokens, messages: [{ role: 'user', content: toAnthropicContent(messages) }] };
@@ -65,7 +66,7 @@ function makeRunAgent({ transport, model = 'claude-opus-4-8', maxTokens = 1024 }
 
 // Production transport: POST to the Anthropic Messages API. `fetchImpl` is injectable (defaults to the
 // global fetch). Returns null on a non-OK response so the producer degrades rather than throwing.
-function makeAnthropicTransport({ apiKey, fetchImpl, baseUrl = 'https://api.anthropic.com/v1/messages', version = '2023-06-01', timeoutMs = 60000 } = {}) {
+function makeAnthropicTransport({ apiKey, fetchImpl, baseUrl = 'https://api.anthropic.com/v1/messages', version = '2023-06-01', timeoutMs = LIMITS.llm.httpTimeoutMs } = {}) {
   const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
   if (!apiKey) throw new Error('makeAnthropicTransport: apiKey required (set V3_LLM_KEY / ANTHROPIC_API_KEY in .env)');
   if (!f) throw new Error('makeAnthropicTransport: no fetch available');
@@ -93,9 +94,9 @@ function makeAnthropicTransport({ apiKey, fetchImpl, baseUrl = 'https://api.anth
 function makeClaudeSdkTransport(opts = {}) {
   const {
     queryImpl = null, oauthToken, model,
-    perTurnTimeoutMs = 60000, runTimeoutMs = 120000,
-    settingSources = [], maxTurns = 1, allowedTools = [], mcpServers = null,
-    maxRetries = 4, baseBackoffMs = 1000, maxBackoffMs = 30000,
+    perTurnTimeoutMs = LIMITS.llm.perTurnTimeoutMs, runTimeoutMs = LIMITS.llm.runTimeoutMs,
+    settingSources = [], maxTurns = LIMITS.llm.maxTurns, allowedTools = [], mcpServers = null,
+    maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
   } = opts;
   let _query = queryImpl;
   const getQuery = async () => {

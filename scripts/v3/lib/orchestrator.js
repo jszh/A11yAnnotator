@@ -8,6 +8,7 @@
 const cg = require('./candidate-generator.js');
 const sch = require('./scheduler.js');
 const run = require('./run-experiments.js');
+const LIMITS = require('./limits.js'); // concurrency + tool-session budget DEFAULTS (tier D)
 const { proposeClaims } = require('./proposer.js');
 const { buildV3 } = require('./build-v3.js');
 const manifest = require('./manifest.js');
@@ -16,7 +17,7 @@ const agentPlanner = require('./agent-planner.js');
 // PHASE 2 tool session: a live browser at the page URL + a fresh-clone factory, threaded to the in-process
 // CDP tool server so the judge can drive the page mid-reasoning. One page per RUN serves every subject (the
 // tools take xpath/coordinate args); mutating tools clone. Lazy puppeteer require (only when tools are on).
-async function openToolSession(url, executablePath, reapAgeMs = 330000) {
+async function openToolSession(url, executablePath, reapAgeMs = LIMITS.concurrency.reapAgeFallbackMs) {
   const puppeteer = require('puppeteer');
   const CHROME = executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
@@ -174,15 +175,15 @@ async function orchestrate(collect, drive, opts = {}) {
         const adapter = require('./llm-agent-adapter.js');
         const cdpTools = require('./cdp-tools.js');
         const turl = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
-        const reapAgeMs = (Number(opts.llmToolRunTimeoutMs) || 300000) + 30000; // strictly above the whole-run abort
+        const reapAgeMs = (Number(opts.llmToolRunTimeoutMs) || LIMITS.llm.toolRunTimeoutMs) + LIMITS.concurrency.reapAgeMarginMs; // strictly above the whole-run abort
         toolSession = await openToolSession(turl, opts.executablePath, reapAgeMs).catch(() => null);
         const server = toolSession ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
         if (server) {
-          toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, Number(opts.llmToolConcurrency) || 4); // V3_LLM_TOOL_CONCURRENCY (default 4) bounds concurrent SUBJECTS (≈ tabs; a turn may open >1 clone briefly)
+          toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, Number(opts.llmToolConcurrency) || LIMITS.concurrency.llmTool); // V3_LLM_TOOL_CONCURRENCY (default 4) bounds concurrent SUBJECTS (≈ tabs; a turn may open >1 clone briefly)
           llmRunAgent = adapter.makeRunAgent({
             transport: adapter.makeClaudeSdkTransport({
               ...opts.llmTransportConfig, mcpServers: { cdp: server }, allowedTools: ['mcp__cdp__*'],
-              maxTurns: opts.llmToolMaxTurns || 3, runTimeoutMs: opts.llmToolRunTimeoutMs || 300000,
+              maxTurns: opts.llmToolMaxTurns || LIMITS.llm.toolMaxTurns, runTimeoutMs: opts.llmToolRunTimeoutMs || LIMITS.llm.toolRunTimeoutMs,
             }),
             model: opts.llmTransportConfig.model,
           });

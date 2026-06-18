@@ -6,11 +6,12 @@
 'use strict';
 
 const cat = require('./catalog.js');
+const LIMITS = require('./limits.js'); // scheduling budget default (tier B)
 
 const norm = (x) => String(x).replace(/\s+/g, '');
 
 // Schedule automatic (Level 1/2) requests; emit Level 3 + budget-deferred as escalations.
-function schedulePlan(candidatesArtifact, { maxAutomatic = Infinity } = {}) {
+function schedulePlan(candidatesArtifact, { maxAutomatic = LIMITS.scheduling.maxAutomatic } = {}) {
   const requests = [];
   const escalations = [];
   const seen = new Set();

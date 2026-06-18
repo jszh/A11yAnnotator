@@ -7,8 +7,9 @@
 // Navigation Order, reduced to a sound gross-jump flag). Forward AND backward (Shift+Tab) sequences are
 // collected so a later trap/consistency check can compare directions.
 const { visualOrderDivergence } = require('./order-check.js');
+const LIMITS = require('./limits.js'); // instrument caps (tier F)
 
-const REACH_SAFETY_CAP = 2000; // anti-pathology only; the normal stop is a wrap (matches realKeyboardReach)
+const REACH_SAFETY_CAP = LIMITS.instruments.reachSafetyCap; // anti-pathology only; the normal stop is a wrap (matches realKeyboardReach)
 
 // In-page: identify the active element with a stable per-call WeakSet (cycle detection), and read its
 // xpath + document-relative rect + a short label. Returns a sentinel for body/null (ring boundary).
@@ -166,7 +167,7 @@ async function detectKeyboardTraps(page, opts = {}) {
 
   const candidates = [];
   for (const reg of regions) {
-    const budget = reg.focusableCount + 3; // enough to escape a well-behaved region; a trap cycles forever
+    const budget = reg.focusableCount + LIMITS.instruments.escapeBudgetMargin; // enough to escape a well-behaved region; a trap cycles forever
     const fwd = await probeDirectionalEscape(page, reg.id, budget, false);
     const bwd = await probeDirectionalEscape(page, reg.id, budget, true);
     let escEscapes = false, closeEscapes = false;

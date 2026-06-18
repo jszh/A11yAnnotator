@@ -27,6 +27,7 @@ const puppeteer = require('puppeteer');
 const { orchestrate } = require('../../scripts/v3/lib/orchestrator.js');
 const { CATALOG } = require('../../scripts/v3/lib/catalog.js');
 const { makeRunAgent, makeClaudeSdkTransport } = require('../../scripts/v3/lib/llm-agent-adapter.js');
+const LIMITS = require('../../scripts/v3/lib/limits.js'); // budget/concurrency/ACT DEFAULTS (tiers C/D)
 
 // SINGLE LLM ACTIVATION GATE (shared with run-evaluation.js): V3_LLM=1 turns the judge ON via the Claude
 // Code SUBSCRIPTION (Agent SDK + CLAUDE_CODE_OAUTH_TOKEN — no metered key; .env never committed). Unset/0 =
@@ -38,8 +39,8 @@ const LLM_ON = process.env.V3_LLM === '1';
 const LLM_TRANSPORT_CONFIG = LLM_ON ? {
   oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
   model: process.env.V3_LLM_MODEL || 'claude-sonnet-4-6',
-  perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || 60000),
-  runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || 120000),
+  perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || LIMITS.llm.perTurnTimeoutMs),
+  runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || LIMITS.llm.runTimeoutMs),
 } : undefined;
 const LLM_AGENT = LLM_ON ? makeRunAgent({ transport: makeClaudeSdkTransport(LLM_TRANSPORT_CONFIG), model: LLM_TRANSPORT_CONFIG.model }) : null;
 const LLM_TOOLS = LLM_ON && process.env.V3_LLM_TOOLS === '1';
@@ -68,8 +69,8 @@ const LIMIT = Number(arg('limit', process.env.ACT_LIMIT || 20));
 const RULE = arg('rule', process.env.ACT_RULE || null);
 const SC = arg('sc', process.env.ACT_SC || null);
 const STRATIFIED = !!arg('stratified', process.env.ACT_STRATIFIED === '1' ? true : null);
-const MAX_AUTO = Number(arg('max-auto', process.env.V3_ACT_MAX_AUTO || 16));
-const ELEMENT_CAP = Number(arg('element-cap', process.env.V3_ACT_ELEMENT_CAP || 80));
+const MAX_AUTO = Number(arg('max-auto', process.env.V3_ACT_MAX_AUTO || LIMITS.act.maxAuto));
+const ELEMENT_CAP = Number(arg('element-cap', process.env.V3_ACT_ELEMENT_CAP || LIMITS.act.elementCap));
 const DETERMINISTIC_SCS = new Set(Object.values(CATALOG.experiments).map((e) => e.sc));
 const SUMMARIZE_ONLY = !!arg('summarize-only', false);
 const SUBSET = !!arg('subset', false);
@@ -79,7 +80,7 @@ const PROPOSED = !!arg('proposed', false); // include non-approved (draft) ACT r
 // --resume: skip testcases already in OUT/raw.json (append the remainder). --case-timeout: per-case wall clock
 // (a hung page/orchestrate becomes rec.error and the run moves on, instead of stalling the whole suite).
 const RESUME = !!arg('resume', false);
-const CASE_TIMEOUT = Number(arg('case-timeout', process.env.V3_ACT_CASE_TIMEOUT || 90000));
+const CASE_TIMEOUT = Number(arg('case-timeout', process.env.V3_ACT_CASE_TIMEOUT || LIMITS.act.caseTimeoutMs));
 const DRAFT_ONLY = !!arg('draft-only', false); // run ONLY the non-approved (draft) cases (implies proposed inclusion)
 const OUT_NAME = arg('out', null);             // override the output subdir (e.g. a rerun dir for diffing)
 const OUT = path.join(__dirname, 'upstream-evidence',
@@ -486,12 +487,12 @@ async function main() {
         runLlm: LLM_ON,
         runAgent: LLM_ON ? LLM_AGENT : undefined,
         captureVision: LLM_ON,
-        experimentConcurrency: Math.min(6, Math.max(1, +(process.env.V3_EXPERIMENT_CONCURRENCY || 1))), // DETERMINISTIC lane: default 1 = byte-identical serial; opt into parallel tab-copies, hard cap 6
-        llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || 10),
+        experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, Math.max(1, +(process.env.V3_EXPERIMENT_CONCURRENCY || LIMITS.concurrency.experiment))), // DETERMINISTIC lane: default 1 = byte-identical serial; opt into parallel tab-copies, hard cap 6
+        llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || LIMITS.concurrency.llm),
         llmTools: LLM_TOOLS, llmTransportConfig: LLM_TRANSPORT_CONFIG, // PHASE 2 live CDP tools
-        llmToolConcurrency: +(process.env.V3_LLM_TOOL_CONCURRENCY || 4),
-        llmToolMaxTurns: +(process.env.V3_LLM_TOOL_MAX_TURNS || 3),
-        llmToolRunTimeoutMs: +(process.env.V3_LLM_TOOL_RUN_TIMEOUT_MS || 300000),
+        llmToolConcurrency: +(process.env.V3_LLM_TOOL_CONCURRENCY || LIMITS.concurrency.llmTool),
+        llmToolMaxTurns: +(process.env.V3_LLM_TOOL_MAX_TURNS || LIMITS.llm.toolMaxTurns),
+        llmToolRunTimeoutMs: +(process.env.V3_LLM_TOOL_RUN_TIMEOUT_MS || LIMITS.llm.toolRunTimeoutMs),
       });
       if (!built.ok) {
         rec.error = `v3 build refused: ${built.errors.slice(0, 8).join('; ')}`;

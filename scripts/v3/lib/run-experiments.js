@@ -26,7 +26,7 @@ const MAX_TAB = 60; // legacy constant (kept for export stability); reach no lon
 // TikTok 33), so a fixed 60-cap manufactured false "unreachable" verdicts (audit V3R6-MAXTAB). The cap
 // below is ONLY a guard against a pathologically growing / never-wrapping focus order — never the normal
 // stop condition, which is a WRAP (focus revisiting an already-seen node ⇒ the whole ring was walked).
-const REACH_SAFETY_CAP = 2000;
+const REACH_SAFETY_CAP = require('./limits.js').experiment.reachSafetyCap;
 const CLIP_PAD = 10; // include an outline-offset ring that renders outside the border box
 
 // In-page: resolve an element by xpath and tag it so we can recognise focus landing on it.

@@ -23,6 +23,7 @@
 // so we avoid the server.js prefix-match state-drop hazard, §5.2.0 port hazard) and retain the original
 // `rawPhrase`/`rawName` so a genuine role/state divergence is still inspectable.
 const fs = require('fs');
+const LIMITS = require('./limits.js'); // VSR instrument deadlines/caps (tier F)
 
 // Roles that READ THEIR TEXT as the announced name (nameFrom:contents / text). For these, an empty CDP
 // axName means "fall back to textContent", NOT "no accessible name". LANDMARKS + containers
@@ -62,7 +63,7 @@ async function correctNamesViaCdp(page, result, opts = {}) {
   if (!cdp) return result;
   try {
     await cdp.send('Accessibility.enable').catch(() => {});
-    const deadline = Date.now() + (Number.isFinite(opts.cdpDeadlineMs) ? opts.cdpDeadlineMs : 15000);
+    const deadline = Date.now() + (Number.isFinite(opts.cdpDeadlineMs) ? opts.cdpDeadlineMs : LIMITS.instruments.vsrCdpDeadlineMs);
     for (const step of result.steps) {
       step.rawPhrase = step.phrase; step.rawName = step.name; step.axName = null;
       if (step.boundary || !step.xpath) continue;
@@ -112,8 +113,8 @@ const ROLE_LEAD = '^(heading|navigation|link|button|textbox|searchbox|checkbox|r
 async function collectVsrTranscript(page, opts = {}) {
   const ok = await ensureVsr(page);
   if (!ok) return { ok: false, reason: 'vsr-injection-failed', steps: [], totalSteps: 0, reachedEnd: false, stoppedEarly: false, wrapped: false, stuckXpath: null };
-  const cap = Number.isFinite(opts.maxSteps) ? opts.maxSteps : 6000;
-  const deadlineMs = Number.isFinite(opts.deadlineMs) ? opts.deadlineMs : 30000;
+  const cap = Number.isFinite(opts.maxSteps) ? opts.maxSteps : LIMITS.instruments.vsrMaxSteps;
+  const deadlineMs = Number.isFinite(opts.deadlineMs) ? opts.deadlineMs : LIMITS.instruments.vsrWalkDeadlineMs;
   const result = await page.evaluate(async (cap, deadlineMs, ROLE_SRC) => {
     const ROLE_RE = new RegExp(ROLE_SRC, 'i');
     const vsr = window.__vsr;

@@ -9,6 +9,8 @@
 // is driven in its OWN page.evaluate so a navigating control cannot discard the findings already
 // collected (it just ends the sweep). Non-authoritative shadow signal (memory: vsr-is-harness-instrument).
 
+const LIMITS = require('./limits.js'); // status-detector probe cap (tier F)
+
 // the in-page positional XPath helper, shared by both passes.
 const XPATH_FN = `function getXPath(e){
   if(!e||!e.tagName) return '';
@@ -25,7 +27,7 @@ const XPATH_FN = `function getXPath(e){
 // PRE-RENDERED node (addedCount=0) is invisible to it (audit B3). That class is NOT covered here; the
 // returned `coverageMode:'insertion-only'` makes the limitation explicit rather than silently complete.
 async function detectStatusMessages(page, opts = {}) {
-  const maxTriggers = Number.isFinite(opts.maxTriggers) ? opts.maxTriggers : 25; // A4: ≥12 (the old cap truncated coverage)
+  const maxTriggers = Number.isFinite(opts.maxTriggers) ? opts.maxTriggers : LIMITS.instruments.statusMaxTriggers; // A4: ≥12 (the old cap truncated coverage)
   const settleMs = Number.isFinite(opts.settleMs) ? opts.settleMs : 300;
   const minTextLen = Number.isFinite(opts.minTextLen) ? opts.minTextLen : 3;
 

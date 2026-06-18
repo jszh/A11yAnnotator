@@ -8,15 +8,16 @@
 // dropped or allowed to clear (Rule 7 / audit V3-H6).
 'use strict';
 
+const LIMITS = require('./limits.js'); // budget DEFAULTS are centralized in limits.js (tier A); logic stays here.
 // conservative defaults; an experiment overrides via its catalog `cost` block.
-const DEFAULT_COST = Object.freeze({ maxWallClockMs: 20000, retries: 1, mutationRisk: 'low' });
+const DEFAULT_COST = Object.freeze({ maxWallClockMs: LIMITS.experiment.defaultWallClockMs, retries: LIMITS.experiment.defaultRetries, mutationRisk: LIMITS.experiment.defaultMutationRisk });
 const RISK_CLASSES = Object.freeze(['none', 'low', 'high']);
 // HARD upper bounds: clamping only the LOWER bound let a catalog entry (or an attacker who can supply a
 // catalog) request retries:1e6 / maxWallClockMs:1e9, multiplying the per-request run-budget overshoot
 // without limit (gap-fill red-team). All real catalog entries are ≤30000ms / 1 retry, so these caps are
 // generous headroom, not a functional constraint — they bound only the pathological tail.
-const MAX_WALL_CLOCK_MS = 120000;
-const MAX_RETRIES = 5;
+const MAX_WALL_CLOCK_MS = LIMITS.experiment.maxWallClockMs;
+const MAX_RETRIES = LIMITS.experiment.maxRetries;
 
 // the effective cost class for an experiment (catalog `cost` ∪ defaults), validated/clamped BOTH ends.
 function costFor(exp) {
@@ -33,7 +34,7 @@ function costFor(exp) {
 // overshoot the cap (the user's chosen policy). reconcile() releases the reservation and books the REAL cost.
 // At concurrency 1 there is never an outstanding reservation between attempts, so remaining()/exceeded()/the
 // deferred-set are BYTE-IDENTICAL to the pre-reservation serial behaviour.
-function makeRunBudget({ maxRunWallClockMs = 10 * 60 * 1000 } = {}) {
+function makeRunBudget({ maxRunWallClockMs = LIMITS.experiment.runWallClockMs } = {}) {
   let spent = 0, reserved = 0;
   return {
     add(ms) { spent += Math.max(0, ms || 0); },

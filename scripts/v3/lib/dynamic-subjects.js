@@ -32,8 +32,9 @@ function fingerprintOf(subject) {
 // runs (gap-fill red-team). These caps are generous for legitimate discovery (a dialog rarely reveals
 // >256 focusable subjects) yet bound the blowup; a breach is a FAIL-CLOSED error (the builder refuses),
 // enforced BEFORE expansion so the pathological expansion never materializes.
-const MAX_SUBJECTS_PER_RESULT = 256;
-const MAX_TOTAL_SUBJECTS = 1024;
+const LIMITS = require('./limits.js'); // discovery DoS backstops (tier E)
+const MAX_SUBJECTS_PER_RESULT = LIMITS.discovery.maxSubjectsPerResult;
+const MAX_TOTAL_SUBJECTS = LIMITS.discovery.maxTotalSubjects;
 
 // Expand the obligations contributed by dynamically-discovered subjects across all experiment results.
 // Returns { obligations[], subjects[], errors[] }. A malformed/unprovenanced/forged-fingerprint subject

@@ -12,6 +12,7 @@ const { orchestrate } = require('../lib/orchestrator.js');
 const attest = require('../lib/attestation.js');
 const { loadGold } = require('../lib/gold-loader.js');
 const adapter = require('../lib/llm-agent-adapter.js');
+const LIMITS = require('../lib/limits.js'); // budget/concurrency DEFAULTS (tiers C/D)
 
 const [collectPath, drivePath, outDir, baseUrl] = process.argv.slice(2);
 if (!collectPath || !drivePath || !outDir) { console.error('usage: run-evaluation.js <collect.json> <drive.json> <out-dir> [pageBaseUrl]'); process.exit(2); }
@@ -42,8 +43,8 @@ const resolveUrl = () => (baseUrl ? assetUrlUnder(baseUrl, collect.file) : asset
   const llmTransportConfig = runLlm ? {
     oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
     model: process.env.V3_LLM_MODEL || 'claude-sonnet-4-6',
-    perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || 60000),
-    runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || 120000),
+    perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || LIMITS.llm.perTurnTimeoutMs),
+    runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || LIMITS.llm.runTimeoutMs),
   } : undefined;
   const runAgent = runLlm ? adapter.makeRunAgent({ transport: adapter.makeClaudeSdkTransport(llmTransportConfig), model: llmTransportConfig.model }) : null;
   const llmTools = runLlm && process.env.V3_LLM_TOOLS === '1';
@@ -61,12 +62,12 @@ const resolveUrl = () => (baseUrl ? assetUrlUnder(baseUrl, collect.file) : asset
     attestationKey: attest.loadKey({}),
     artifactVerifier: attest.makeDiskArtifactVerifier(ROOT),
     runLlm, runAgent, captureVision: runLlm, gold, runInstruments, runChecker,
-    experimentConcurrency: Math.min(6, Math.max(1, +(process.env.V3_EXPERIMENT_CONCURRENCY || 1))), // DETERMINISTIC lane: default 1 = byte-identical serial; opt into parallel tab-copies, hard cap 6
-    llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || 10), // bounded judge concurrency (429-backoff is the real governor)
+    experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, Math.max(1, +(process.env.V3_EXPERIMENT_CONCURRENCY || LIMITS.concurrency.experiment))), // DETERMINISTIC lane: default 1 = byte-identical serial; opt into parallel tab-copies, hard cap 6
+    llmConcurrency: +(process.env.V3_LLM_CONCURRENCY || LIMITS.concurrency.llm), // bounded judge concurrency (429-backoff is the real governor)
     llmTools, llmTransportConfig, // PHASE 2: live CDP tool session (opt-in V3_LLM_TOOLS)
-    llmToolConcurrency: +(process.env.V3_LLM_TOOL_CONCURRENCY || 4), // bounds concurrent live tool sessions/tabs
-    llmToolMaxTurns: +(process.env.V3_LLM_TOOL_MAX_TURNS || 3),
-    llmToolRunTimeoutMs: +(process.env.V3_LLM_TOOL_RUN_TIMEOUT_MS || 300000),
+    llmToolConcurrency: +(process.env.V3_LLM_TOOL_CONCURRENCY || LIMITS.concurrency.llmTool), // bounds concurrent live tool sessions/tabs
+    llmToolMaxTurns: +(process.env.V3_LLM_TOOL_MAX_TURNS || LIMITS.llm.toolMaxTurns),
+    llmToolRunTimeoutMs: +(process.env.V3_LLM_TOOL_RUN_TIMEOUT_MS || LIMITS.llm.toolRunTimeoutMs),
     provisionalMode: process.env.V3_PROVISIONAL === 'gated' ? 'gated' : 'ungated',
   });
   const w = (name, obj) => fs.writeFileSync(path.join(outDir, name), JSON.stringify(obj, null, 2));
