@@ -78,23 +78,23 @@ All FIXED in `859b1ac` unless noted. **Adversarial** = result of Phase-3 attempt
 
 ---
 
-## 3. Deferred — consciously NOT fixed this pass (lower priority)
+## 3. Deferred items — NOW ALL FIXED (follow-up pass, commit `b85f931`)
 
-These are real (mostly med/low spec-deviations & doc-hygiene) but were de-prioritized below the
-criticals/highs. None is a soundness hole; each degrades *coverage* or *contract honesty* only, and the
-verdict stays shadow regardless. Recorded here so the auditor sees the full scope, not a silent partial.
+The med/low items below were de-prioritized in the first pass (none was a soundness hole). They have since
+been **mapped (6 mappers), fixed, and adversarially examined (6 verifiers — 1 must-fix found + fixed)**.
+Rails preserved. **Adversarial** = the result of trying to break each follow-up fix.
 
-| Finding | Sev | Why deferred |
-|---|---|---|
-| `resolve_destination` `instantRedirect`/`redirectDelayMs` (ACT fd3a94 instant-only); compare-sibling-set mode | med/low | The SSRF leak (the security half) is fixed; the redirect-timing + set-comparison are 2.4.4 *coverage*, additive |
-| `resolve_part_color` full spec'd contract (cascade reuse, pseudo/SVG, opacity/gradient/filter flags, bbox gate, translucency refusal) | med | The load-bearing false-clear half (`sourceProperty`) is fixed; the rest is contract breadth |
-| `measure_geometry` `occludedElements[]` hit-test; `viewportWidth` emulation for the 1.4.10 non-320 use | med | Additive 1.4.13/1.4.10 modes; the occlusion *numbers* are now correct |
-| `render_with_overrides` error on unresolvable `targetXpath` (vs full-viewport fallback) | med | Robustness nicety; not a soundness/coverage gap |
-| round-2 detector precision: `dangling-IDREF` all-tokens-missing; `group-label` radio/checkbox-narrowing | low | Shadow-only precision; review-tier already |
-| `ocr` per-glyph confidence; language config | low | Per-line confidence + Latin coverage are adequate for the shadow sharpener |
-| arch: hoist a single retry deadline (no leak; backstops hold) | low | Downgraded by the review itself; bounded |
-| `compute_contrast` wide-gamut (`oklch`/`color(srgb)`) resolve-to-sRGB | low | Currently refused as inconclusive (sound, just narrower) |
-| **Doc-hygiene:** stale 1.4.5 `render_with_overrides` rows; align §4.10/§4.11/§4.12 with shipped behavior; scope the PARALLELISM "byte-identical" claim to concurrency-1 | low | Doc-only; tracked for a doc pass |
+| Finding | Sev | Fix | Adversarial |
+|---|---|---|---|
+| `resolve_destination` `instantRedirect`/`redirectDelayMs` (ACT fd3a94 instant-only); compare-sibling-set | med/low | `instantRedirect`/`redirectDelayMs`/`interstitialPage` (3xx via `redirectChain` or meta-refresh delay-0) + `linkXpaths[]` set mode with a byte-EQUALITY grid; SSRF pre-flight preserved in both modes | **HOLDS** — fd3a94 semantics correct; SSRF re-proven in single + batch |
+| `resolve_part_color` full contract (pseudo, opacity/gradient/filter flags, translucency refusal) | med | `::before`/`::after` colours + `hasGradient`/`hasFilter`/opacity + `translucentPart` ⇒ `usedColourReliable` | **must-fix found** — `translucentPart` missed a translucent border that renders closer to the opaque bg (matched-prop-only). Fixed: flag if ANY painting prop is translucent. +test |
+| `measure_geometry` `occludedElements[]`; `viewportWidth` 1.4.10 | med | `occludedElements[]` hit-test (ancestor/descendant-excluded); `viewportWidth` CLONE path (no-arg path stays read-only on the shared page) | HOLDS — occluder vs descendant correct; shared viewport proven unchanged |
+| `render_with_overrides` error on unresolvable `targetXpath` | med | returns `{error}` instead of a silent full-viewport shot | HOLDS |
+| round-2 detector precision: `dangling-IDREF`; `group-label` | low | `dangling-IDREF` strong only when ALL tokens missing (partial → review); `group-label` strong only for predominantly radio/checkbox (collector emits `radioCheckboxCount`) | HOLDS — shadow-tier preserved |
+| `ocr` per-glyph confidence; language config | low | `minLineScore`/`lowConfidenceLineCount` flags (under-read ⇒ INCONCLUSIVE); honest per-LINE + 50-lang note | HOLDS |
+| arch: hoist a single retry deadline | low | one deadline before the loop; each attempt gets the remaining budget | HOLDS — total wall-clock bounded by `runTimeoutMs` |
+| `compute_contrast` wide-gamut `oklch`/`color(srgb)` | low | normalise to sRGB via a 1×1 canvas before parse (alpha preserved ⇒ translucency still refused) + `parseRGB` NaN/space-syntax hardening | HOLDS — oklch resolves; comma form unchanged |
+| **Doc-hygiene:** stale 1.4.5 `render_with_overrides` rows; PARALLELISM byte-identical scope | low | rows updated to the shipped tool (1.4.1/forced-colors, closed enum, no 1.4.5/resize); byte-identical claim scoped to concurrency-1 | N/A (doc) |
 
 ---
 
