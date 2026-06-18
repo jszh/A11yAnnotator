@@ -1,0 +1,3 @@
+- When building or fixing a runner: run the deterministic probe and screenshot the fixture in the relevant state (focus/hover/tab), (before and after states if necessary). Read it, judge it yourself, and confirm vision + runner + test assertion all agree. If they diverge, investigate rather than ship the green test.
+- When vision model disagrees with code, inspect the code first. If the disagreement reason is not apparent, ask Gemini 3.5 flash model to help. The API key is in .env.
+- Running the full testing suite takes a while, so make it a background task.

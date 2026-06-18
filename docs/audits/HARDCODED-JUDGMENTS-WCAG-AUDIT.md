@@ -161,6 +161,33 @@ numbers/rules are the harness's own, unvalidated against the (on-hold) gold set.
   the LLM/vision lane), never `errorNotIdentified=true`; and drop `reddish()` + the `ERR_TEXT`-wins
   precedence from the identification decision entirely (color is not a valid 3.3.1 signal).
 
+### B5. 1.4.3 glyph-effect blind spot — hard-fails text whose `text-shadow` it cannot measure  — **CONFIRMED (ACT pilot) · severity MEDIUM**
+[exp-runners.js `measureContrast` ~:160](scripts/v3/lib/exp-runners.js#L160) · surfaced by [V3-ACT-PILOT.md](../analysis/V3-ACT-PILOT.md)
+- **What:** the contrast runner measures the CSS foreground + the rendered *backdrop*, but is blind to
+  `text-shadow` / `-webkit-text-stroke`, which are part of the rendered *glyph*. On the W3C ACT pass case
+  (`#000` on `#737373`, white `text-shadow` 0 0 3px), it reports ratio **4.4288 < 4.5 → `thresholdFailed`**,
+  identical to the haloless control — a **false barrier** (measured + screenshot-confirmed). This is the
+  glyph-side analogue of B2's backdrop-side bug; A1's `worstContrast` fixed the backdrop side only.
+- **No tool *decides* this — it is a build-where-tools-can't case.** axe / IBM / HTML_CodeSniffer return
+  `review` (incomplete) — they **punt to a human**, they do not pass it. So "match axe" would only mean
+  "stop false-barriering"; it would not decide the case. v3 has **already built** the lane that decides it:
+  the [`contrast-over-complex-backdrop`](../../scripts/v3/llm-rubrics/contrast-over-complex-backdrop-v0.md)
+  vision rubric explicitly credits "a solid text-shadow / scrim / outline that lifts the text off the
+  backdrop." The defect is that the deterministic runner's false BARRIER (authoritative-eligible) **preempts**
+  that lane.
+- **Fix (minimum):** in `measureContrast`, set not-`contrastComputable` (⇒ INCONCLUSIVE → auto-PARTIAL) when
+  `cs.textShadow !== 'none'` or `-webkit-text-stroke-width > 0`, so the obligation **hands off to the vision
+  rubric** instead of hard-failing. Symmetric/sound (a contrast-*reducing* shadow is equally mis-measured);
+  guard over-breadth with the no-effect control (a genuine 4.43:1 must still fail).
+- **Fix (higher value — the differentiator):** the rendered-pixel path already identifies the exact glyph
+  pixels and samples the rendered backdrop ([`analyzeBackdrop`](../../scripts/v3/lib/exp-runners.js#L229)).
+  Add one original-glyph screenshot and read luminance at those pixels to measure the *rendered glyph ink*
+  vs the backdrop — letting the **deterministic** lane decide shadowed/stroked/composited text that no static
+  tool can. Emit a decided verdict only on a clear worst-case; else abstain (never a false clear).
+- **Not a runner bug (collector artifact):** the *other* 7 ACT `1.4.3` "false barriers" are `18pt` large
+  text (a valid ≥3:1 pass) mis-fed by the lightweight ACT adapter — the production runner classifies 18pt
+  as large and clears it (verified locally). Fix the ACT adapter's size-class extraction, not the runner.
+
 ---
 
 ## C. Policy / statistical tolerances — arbitrary specific values (not WCAG)
@@ -313,6 +340,81 @@ actually manufactures **false barriers** on localized pages); and the Section-D 
 (conflated two budgets and missed the runner's role-only false-clear). **What it got right:** B2's warned-of
 false clear is real and reproduced, and all §A constants are exact.
 
-Raw fixtures and transcripts: `/tmp/a11y-verify/L1…L6/` (incl. `L2/SHOT_falseclear_normal.png`, the
-exhaustive n=3/4 permutation sweeps, and the multilingual 3.3.1 forms). The reproduction drivers I re-ran by
-hand are `/tmp/a11y-verify/MY-b2-recheck.js` and `MY-b4-recheck.js`.
+**Preserved as a regression suite.** The decisive fixtures are committed at
+[`scripts/v3/tests/fixtures/wcag-method/`](../../scripts/v3/tests/fixtures/wcag-method/) and driven through
+the real runner code by [`scripts/v3/tests/regression-wcag-method.test.js`](../../scripts/v3/tests/regression-wcag-method.test.js)
+(23 cases, all green — `node --test scripts/v3/tests/regression-wcag-method.test.js`). Each gap is a
+**KNOWN-GAP** assertion that locks the current (wrong) behavior, so when a gap is fixed its test fails on
+purpose and forces the assertion to be flipped to the WCAG-correct value — the gaps stay tracked, not
+silently closed. The §A constants and the correct paths (true-positive status, English error, role=dialog
+trap, APG modal) are **CORRECT-GUARD** assertions that catch any regression in the parts that are right.
+See [the fixtures README](../../scripts/v3/tests/fixtures/wcag-method/README.md) for the fixture→finding map.
+
+Full exploratory transcripts (incl. `SHOT_falseclear_normal.png`, the exhaustive n=3/4 permutation sweeps,
+and the by-hand reproduction drivers `MY-b2-recheck.js` / `MY-b4-recheck.js`) remain under `/tmp/a11y-verify/`.
+
+---
+
+## I. Fix map — where the builder changes the code
+
+Each confirmed gap has a `todo`-marked regression test that fails until the fix lands (the test's `todo`
+reason names the same location). All are **non-authoritative** instruments, so none of these is a
+correctness emergency — they are accuracy fixes for shadow/PROVISIONAL signals.
+
+| Gap | File:line | Current (wrong) | Change |
+|---|---|---|---|
+| **B1** order divergence | [order-check.js:64](scripts/v3/lib/order-check.js#L64), [:68](scripts/v3/lib/order-check.js#L68) | `JUMP = max(3, round(0.25n))` + strict `(prevRank − r) > JUMP` | Flag any within-column backward step (`delta ≥ 1`), or adopt BAGEL's FuncSet-entry-multiplicity test (§5.1.1). Keep the column/container guards. |
+| **B2** contrast ratio source | [exp-runners.js ~:271](scripts/v3/lib/exp-runners.js#L271-L272) (`runTextContrastPixel`) | ratio computed against `a.bgColor` (CSS center sample) while `pixelAgrees ≤16` tolerates a 16/ch render mismatch | When the `pixelAgrees` gap > 0, recompute the ratio against `analyzeBackdrop`'s rendered mean (`px.r/g/b`); only clear if *that* ratio also passes. |
+| **B3** disclosure FP | [status-detector.js:91-105](scripts/v3/lib/status-detector.js#L91-L105) | flags any inserted text not in a live region | Skip when the inserted node is inside the trigger's `aria-controls` target while `aria-expanded` toggles true, or is `role=tabpanel` for the trigger's tab. |
+| **B3** coverage cap | [status-detector.js:24](scripts/v3/lib/status-detector.js#L24), [:57](scripts/v3/lib/status-detector.js#L57) | `maxTriggers=12` + `.slice(0, maxTriggers)` | Raise/derive the cap; when truncating, **record** the dropped count so "0 findings" ≠ "fully scanned." |
+| **B3** trigger selector | [status-detector.js:55](scripts/v3/lib/status-detector.js#L55) | `button,[role=button],input[type=button]` only | Widen to other activatable controls (links w/o href, checkboxes, `role=tab/menuitem`…), keeping the `isSafe` navigation guards. |
+| **B4** error identification | [exp-runners.js:393-395](scripts/v3/lib/exp-runners.js#L393-L395), [:460](scripts/v3/lib/exp-runners.js#L460) (`probeFormError`) | English-only `ERR_TEXT` + `reddish()` decide identification | Drop `reddish()` and the `ERR_TEXT`-wins precedence from the decision; treat a surfaced, field-associated message as **INCONCLUSIVE** (defer to LLM/vision), never `errorNotIdentified=true`. |
+| **B5** contrast glyph effect | [exp-runners.js ~:160](scripts/v3/lib/exp-runners.js#L160) (`measureContrast`) | hard-fails text with a `text-shadow` it can't measure (preempts the vision lane that handles it) | **Min:** abstain when `text-shadow`/`-webkit-text-stroke` present (INCONCLUSIVE → hands off to the `contrast-over-complex-backdrop` vision rubric). **Build:** extend the rendered-pixel path to read the glyph ink and **decide** it. Separately fix the ACT adapter's `font-size`/size-class extraction (collector, not runner). |
+| **§D** trap region anchor | [exp-runners.js:733](scripts/v3/lib/exp-runners.js#L733) (`keyboard-trap-escape`) | role-only `closest('[role=dialog],…') \|\| el` | `region = el.closest(TRAP_REGION_SEL) \|\| el` using `kbd-graph`'s class-aware [`TRAP_REGION_SEL`](scripts/v3/lib/kbd-graph.js#L83). |
+| **§D** trap escape budget | [exp-runners.js:749](scripts/v3/lib/exp-runners.js#L749) | fixed `BUDGET=12` ⇒ valid CLEAR→INCONCLUSIVE at ≥13 focusables | Derive the budget from the in-region focusable count (as `kbd-graph` does: `focusableCount+3`). |
+
+---
+
+## J. Residual uncertainties — what these fixes (and tests) still cannot settle
+
+The fixes above remove the *measured* defects, but several questions are **not determinable** from WCAG or
+by a deterministic instrument — the tests are written to respect this (e.g. asserting `≥ 1` where the count
+is fix-dependent), and these are the honest limits the builder should not paper over:
+
+1. **B1 — the right order algorithm is a design choice, not a WCAG quantity.** WCAG 1.3.2/2.4.3 fix *no*
+   numeric threshold, so "how far out of order is a violation" has no ground-truth value. A `delta ≥ 1`
+   rule flags every backward step (a full reversal → many findings); BAGEL's FuncSet-multiplicity flags
+   differently. The B1 todo tests therefore assert **`≥ 1`** (the violation must be *detected*), not an
+   exact count — the count is the builder's to define and cannot be derived.
+2. **B1 — the column model itself is heuristic.** Even a corrected threshold inherits the x-overlap
+   "column" clustering, which has no notion of semantic/DOM source order. Whether a given *cross-column*
+   reading order is "correct" (newspaper Z-order, RTL, masonry) **cannot be decided from geometry alone** —
+   it needs the intended reading sequence, which only the author/DOM-source or a semantic model supplies.
+3. **B3 — "status message vs. primary content" is semantic and not fully decidable.** The
+   `aria-expanded`/`role=tabpanel` exclusion covers the common disclosure/tab patterns, but a custom JS
+   widget that reveals primary content with **no ARIA relationship** is indistinguishable, by markup alone,
+   from an un-announced status. The fix shrinks the false-positive surface; it cannot eliminate it. The
+   widened selector (B3) likewise raises new judgment calls (does a checkbox toggle's inserted text count?),
+   so the non-button todo asserts **`≥ 1`**, not a fixed number.
+4. **B2 — a "uniform" backdrop mean still hides a worst-case envelope.** Computing the ratio against the
+   *rendered mean* fixes the SVG/canvas mis-resolution, but WCAG contrast is governed by the **worst** pixel,
+   not the average. A backdrop varying under `range ≤ 12` can still average above threshold while its
+   darkest region is just below — a smaller, but non-zero, residual false-clear envelope that the `range`
+   tolerance cannot close without per-pixel worst-case evaluation.
+5. **B4 — the deterministic lane cannot decide 3.3.1 adequacy at all.** "Is this surfaced text a genuine,
+   sufficient identification of *this* error?" is an NLP/semantic judgment. The fix makes the runner
+   *abstain* (INCONCLUSIVE) on surfaced messages rather than guess — correct, but it means the deterministic
+   lane **decides fewer cases** and leans on the (capped, non-authoritative) LLM lane for the hard ones.
+   The tests can only assert "not false-barriered," not "correctly cleared."
+6. **§D — fixing the trap anchor does not close the LOTUS coverage gap.** The region-selector fix recovers
+   role-less traps for 2.1.2 (Non-Dismissable), but **Non-Init-In, Non-Init-Out, and Non-Containment** (3 of
+   the paper's 4 classes) need a different instrument that does not exist; their absence is not testable as a
+   "gap in a runner," only documented as out-of-scope.
+7. **Determinism / environment.** The browser tests assert *boolean* outcomes (not the exact 4.542 ratio or
+   pixel counts), because rendering can shift by a unit across Chrome versions / DPR. The booleans were
+   stable across two machines here, but a future Chrome could move a boundary case; if a guard ever flaps,
+   re-measure before assuming a code regression (the §H discipline).
+8. **Whether to fix at all is a product call, not a WCAG one.** Every gap here is contained to
+   non-authoritative lanes (shadow / barrier-only / `calibrated:false`), so none changes a published verdict
+   today. The audit quantifies the accuracy cost; the decision to spend effort on shadow-instrument accuracy
+   vs. leave the `todo`s standing is outside what the evidence can decide.
