@@ -13,30 +13,48 @@ const { proposeClaims } = require('./proposer.js');
 const { buildV3 } = require('./build-v3.js');
 const manifest = require('./manifest.js');
 const { makeTimings } = require('./timings.js'); // per-stage + per-element wall-clock → bundle.timings (non-hashed)
+const { createTabAllocator } = require('./tab-allocator.js'); // ONE shared browser pool for EVERY lane
 const agentPlanner = require('./agent-planner.js');
 
 // PHASE 2 tool session: a live browser at the page URL + a fresh-clone factory, threaded to the in-process
 // CDP tool server so the judge can drive the page mid-reasoning. One page per RUN serves every subject (the
 // tools take xpath/coordinate args); mutating tools clone. Lazy puppeteer require (only when tools are on).
-async function openToolSession(url, executablePath, reapAgeMs = LIMITS.concurrency.reapAgeFallbackMs) {
-  const puppeteer = require('puppeteer');
-  const CHROME = executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+async function openToolSession(url, opts = {}) {
+  const reapAgeMs = Number.isFinite(opts.reapAgeMs) ? opts.reapAgeMs : LIMITS.concurrency.reapAgeFallbackMs;
+  const alloc = opts.tabAllocator || null;
   // Pin to the COLLECTOR viewport (eval-page/drive-page/vision-capture all use 1280×900). The frozen crops the
   // model reasons over are 1280×900, so coordinate-keyed tools (query_ax_node x/y, resolve_part_color x/y) must
   // resolve the model's screenshot pixels against the SAME reflow — not the Puppeteer default 800×600.
   const COLLECTOR_VP = { width: 1280, height: 900, deviceScaleFactor: 1 };
-  const page = await browser.newPage();
+  // ALL tool tabs (base + clones) come from ONE source: the shared allocator (global cap + FIFO + timer-pause)
+  // when a pool is provided, else an OWN browser (legacy/direct callers). acquirePage() → { page, release };
+  // release frees the allocator slot (or closes the own tab). Clone queue-wait is ACCUMULATED so the SDK transport
+  // can credit it back to the deadline (a tool parked waiting for a tab shouldn't burn the model's budget).
+  let ownBrowser = null, ownsBrowser = false, cloneWaitMs = 0;
+  let acquirePage;
+  if (alloc) {
+    acquirePage = async () => { const lease = await alloc.acquire(); cloneWaitMs += (Number(lease.waitMs) || 0); return { page: lease.page, release: lease.release }; };
+  } else {
+    const puppeteer = require('puppeteer');
+    const CHROME = opts.executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    ownBrowser = opts.browser || await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    ownsBrowser = !opts.browser;
+    acquirePage = async () => { const p = await ownBrowser.newPage(); return { page: p, release: async () => { try { await p.close(); } catch (e) {} } }; };
+  }
+  const baseLease = await acquirePage();
+  const page = baseLease.page;
   await page.setViewport(COLLECTOR_VP).catch(() => {});
   await page.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {});
   // Track every clone tab so leaks can be swept. Mutating tools close their own clone in a `finally`
-  // (per-call cleanup, finer than per-subject); the close listener keeps this map = currently-open clones.
-  const clones = new Map(); // page -> bornMs
+  // (per-call cleanup, finer than per-subject); the close listener keeps this map = currently-open clones AND
+  // routes a tool's own page.close() through the lease's release so the shared allocator slot is always freed.
+  const clones = new Map(); // page -> { bornMs, release }
   const freshClone = async () => {
-    const p = await browser.newPage();
+    const lease = await acquirePage();
+    const p = lease.page;
     await p.setViewport(COLLECTOR_VP).catch(() => {}); // same collector viewport as the base page (coordinate-frame parity)
-    clones.set(p, Date.now());
-    p.once('close', () => clones.delete(p));
+    clones.set(p, { bornMs: Date.now(), release: lease.release });
+    p.once('close', () => { clones.delete(p); lease.release(); }); // a tool's own page.close() still frees the slot
     await p.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {});
     return p;
   };
@@ -47,13 +65,16 @@ async function openToolSession(url, executablePath, reapAgeMs = LIMITS.concurren
   // STALL timeout" premise was wrong — a stall timeout doesn't bound a progressing in-process CDP handler).
   // Only a genuinely-orphaned tab (an aborted tool whose finally never fired) ages past it. (The per-call
   // finally is the prompt cleanup; this + the post-all sweep + browser.close are the backstops.)
-  const reapStale = async (maxAgeMs = reapAgeMs) => { let n = 0; const now = Date.now(); for (const [p, born] of [...clones]) { if (!p.isClosed() && now - born > maxAgeMs) { try { await p.close(); n++; } catch (e) {} } } return n; };
-  // CHECK #2 (after ALL workers, no subject still running): close every remaining clone tab.
-  const sweep = async () => { let n = 0; for (const p of [...clones.keys()]) { if (!p.isClosed()) { try { await p.close(); n++; } catch (e) {} } } return n; };
+  const reapStale = async (maxAgeMs = reapAgeMs) => { let n = 0; const now = Date.now(); for (const [p, info] of [...clones]) { if (!p.isClosed() && now - info.bornMs > maxAgeMs) { try { await info.release(); n++; } catch (e) {} } } return n; };
+  // CHECK #2 (after ALL workers, no subject still running): release every remaining clone tab (frees its slot).
+  const sweep = async () => { let n = 0; for (const [p, info] of [...clones]) { if (!p.isClosed()) { try { await info.release(); n++; } catch (e) {} } } return n; };
   // The PP-OCRv6 sidecar handle for ocr_image_text — LAZY (the Python process spawns on the first recognise,
-  // not here) and isolated to its own venv; closed alongside the browser so no sidecar process leaks.
+  // not here) and isolated to its own venv; closed alongside the session so no sidecar process leaks.
   const ocr = require('./ocr-sidecar.js').makeOcrSidecar();
-  return { browser, page, freshClone, reapStale, sweep, ocr, openCloneCount: () => { let n = 0; for (const p of clones.keys()) if (!p.isClosed()) n++; return n; } };
+  // Session teardown: release the base-page lease (frees its slot; the shared browser stays for the run) and close
+  // an OWN browser only if we launched one. extraDeadlineMs() feeds the transport's queue-wait credit-back.
+  const close = async () => { try { await baseLease.release(); } catch (e) {} if (ownsBrowser && ownBrowser) { try { await ownBrowser.close(); } catch (e) {} } };
+  return { browser: ownBrowser, page, freshClone, reapStale, sweep, ocr, close, extraDeadlineMs: () => cloneWaitMs, openCloneCount: () => { let n = 0; for (const p of clones.keys()) if (!p.isClosed()) n++; return n; } };
 }
 
 // collect, drive: baseline artifacts. opts.resolveUrl(request)->url; opts.now is a caller-supplied
@@ -61,6 +82,16 @@ async function openToolSession(url, executablePath, reapAgeMs = LIMITS.concurren
 async function orchestrate(collect, drive, opts = {}) {
   const now = Number.isFinite(opts.now) ? opts.now : (Number.isFinite(collect.collectedAt) ? collect.collectedAt + 1 : 1);
   const timings = makeTimings(); // ONE collector threaded through the run; snapshotted into bundle.timings at the end
+  // ONE browser pool for EVERY lane (experiment, vision, instruments, IBM checker, LLM tools). A multi-page driver
+  // injects a shared browser+allocator (page parallelism) ⇒ we don't own/close them; otherwise we own one + close
+  // it in the finally. This collapses the former PER-LANE browsers into a single shared, globally-capped pool.
+  // Ownership is PER-RESOURCE (mirrors run-experiments runPlan): a caller can inject just one half and we still
+  // close only the half we created — injecting one but treating ownership as all-or-nothing would orphan the other.
+  const ownsBrowser = !opts.browser;
+  const ownsAlloc = !opts.tabAllocator;
+  const browser = opts.browser || await require('puppeteer').launch({ executablePath: opts.executablePath || run.CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const tabAllocator = opts.tabAllocator || createTabAllocator({ browser, maxTabs: opts.maxTabs });
+  try {
   cg.annotateApplicableScs(collect);
   const candidates = cg.generateCandidates(collect, drive);
   const autoPlan = sch.schedulePlan(candidates, { maxAutomatic: opts.maxAutomatic });
@@ -73,7 +104,7 @@ async function orchestrate(collect, drive, opts = {}) {
   // builder can verify lineage at the publish boundary. The key comes from opts or the trusted
   // authority config (__trust) — never the bundle. Absent a key, evidence is unsigned ⇒ shadow-only.
   const attestationKey = opts.attestationKey || (opts.authority && opts.authority.__trust && opts.authority.__trust.attestationKey) || null;
-  const experiments = await timings.stage('experiments', () => run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey, budgetOpts: opts.budgetOpts, experimentConcurrency: opts.experimentConcurrency, maxTabs: opts.maxTabs, browser: opts.browser, tabAllocator: opts.tabAllocator }));
+  const experiments = await timings.stage('experiments', () => run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey, budgetOpts: opts.budgetOpts, experimentConcurrency: opts.experimentConcurrency, maxTabs: opts.maxTabs, browser, tabAllocator }));
   experiments.startedAt = now;
   // per-ELEMENT experiment durations ride a side channel (wall-clock is run-dependent ⇒ kept OUT of the hashed
   // experiments artifact, exactly like applicabilityObservations). Fold into the timings collector, then drop.
@@ -100,7 +131,7 @@ async function orchestrate(collect, drive, opts = {}) {
   if (opts.runInstruments && opts.resolveUrl) {
     const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
     const inst = await timings.stage('instruments', () => require('./run-instruments.js')
-      .runInstrumentsForUrl(url, { executablePath: opts.executablePath, file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest })
+      .runInstrumentsForUrl(url, { executablePath: opts.executablePath, browser, tabAllocator, file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest })
       .catch(() => ({ file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, findings: [] })));
     bundle.instruments = inst;
   }
@@ -120,7 +151,7 @@ async function orchestrate(collect, drive, opts = {}) {
   // artifact alongside axe; each finding carries its own source, so the lanes stay distinguishable.
   if (opts.runChecker && opts.resolveUrl) {
     const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
-    const r = await timings.stage('checker-ibm', () => require('./checker-ibm.js').runIbmForUrl(url, { executablePath: opts.executablePath, label: collect.file }).catch((e) => ({ checkerUnavailable: true, reason: e && e.message })));
+    const r = await timings.stage('checker-ibm', () => require('./checker-ibm.js').runIbmForUrl(url, { executablePath: opts.executablePath, browser, tabAllocator, label: collect.file }).catch((e) => ({ checkerUnavailable: true, reason: e && e.message })));
     if (r && r.ran) { checkerFindings.push(...r.findings); engines.push('ibm'); }
     else checkerUnavailable = (r && r.reason) || 'IBM unavailable';
   }
@@ -170,7 +201,7 @@ async function orchestrate(collect, drive, opts = {}) {
       const xps = [...new Set(allSubs.map((s) => s.xpath))];
       const statePlan = vc.buildStatePlan(allSubs); // focus/hover state-before/after pairs for the dynamic-state rubrics (audit #1 bridge)
       const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
-      visionByXpath = await timings.stage('vision', () => vc.captureVisionForUrl(url, xps, { executablePath: opts.executablePath, statePlan }).catch(() => ({})));
+      visionByXpath = await timings.stage('vision', () => vc.captureVisionForUrl(url, xps, { executablePath: opts.executablePath, browser, tabAllocator, statePlan }).catch(() => ({})));
     }
     // PHASE 2 (opt-in V3_LLM_TOOLS): give the judge a LIVE in-process CDP tool session so it can activate
     // controls / resolve nodes mid-reasoning. The tools take xpath/coordinate args ⇒ ONE server over the
@@ -184,7 +215,8 @@ async function orchestrate(collect, drive, opts = {}) {
         const cdpTools = require('./cdp-tools.js');
         const turl = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
         const reapAgeMs = (Number(opts.llmToolRunTimeoutMs) || LIMITS.llm.toolRunTimeoutMs) + LIMITS.concurrency.reapAgeMarginMs; // strictly above the whole-run abort
-        toolSession = await openToolSession(turl, opts.executablePath, reapAgeMs).catch(() => null);
+        // the tool session draws its base page + clones from the SHARED pool (same browser+allocator as every lane).
+        toolSession = await openToolSession(turl, { executablePath: opts.executablePath, reapAgeMs, browser, tabAllocator }).catch(() => null);
         const server = toolSession ? await cdpTools.buildCdpToolServer(toolSession).catch(() => null) : null;
         if (server) {
           toolConcurrency = Math.min(Number(opts.llmConcurrency) || 1, Number(opts.llmToolConcurrency) || LIMITS.concurrency.llmTool); // V3_LLM_TOOL_CONCURRENCY (default 4) bounds concurrent SUBJECTS (≈ tabs; a turn may open >1 clone briefly)
@@ -192,6 +224,7 @@ async function orchestrate(collect, drive, opts = {}) {
             transport: adapter.makeClaudeSdkTransport({
               ...opts.llmTransportConfig, mcpServers: { cdp: server }, allowedTools: ['mcp__cdp__*'],
               maxTurns: opts.llmToolMaxTurns || LIMITS.llm.toolMaxTurns, runTimeoutMs: opts.llmToolRunTimeoutMs || LIMITS.llm.toolRunTimeoutMs,
+              getExtraDeadlineMs: toolSession.extraDeadlineMs, // credit tab-queue wait back to the deadline (timer-pause)
             }),
             model: opts.llmTransportConfig.model,
           });
@@ -226,16 +259,18 @@ async function orchestrate(collect, drive, opts = {}) {
       // aborted mid-call whose finally didn't fire). Normally 0 — the per-call finally already closed them.
       if (toolSession) { const leaked = await toolSession.sweep(); if (leaked) console.error(`[v3-tools] swept ${leaked} leaked clone tab(s) after the run`); }
     } finally {
-      // ultimate catch-all: closing the browser drops the base page + any tab that survived both checks,
-      // and the OCR sidecar kills its isolated Python process so no helper leaks past the run.
+      // tool-session teardown: stop the OCR sidecar (kills its isolated Python process) and release the base-page
+      // lease (frees its slot) + close an own browser only if the session launched one. The SHARED run browser is
+      // closed by orchestrate's OUTER finally below — any clone that survived both checks dies with it.
       if (toolSession && toolSession.ocr) { try { await toolSession.ocr.close(); } catch (e) {} }
-      if (toolSession && toolSession.browser) { try { await toolSession.browser.close(); } catch (e) {} }
+      if (toolSession && toolSession.close) { try { await toolSession.close(); } catch (e) {} }
     }
   }
   // per-stage + per-element wall-clock breakdown (NON-authoritative, NOT hashed — like judgments/instruments):
   // where the page's time went, and which element/obligation was slow. Written to timings.json by run-evaluation.
   bundle.timings = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, ...timings.snapshot() };
   return { candidates, plan, experiments, claimProposals, bundle, built, planErrors };
+  } finally { if (ownsAlloc) tabAllocator.close(); if (ownsBrowser) await browser.close().catch(() => {}); }
 }
 
 module.exports = { orchestrate, openToolSession };

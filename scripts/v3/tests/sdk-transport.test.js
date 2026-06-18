@@ -87,6 +87,23 @@ test('sdk transport: whole-run timeout aborts and degrades to null (no throw)', 
   assert.equal(res, null);
 });
 
+test('sdk transport: getExtraDeadlineMs CREDITS tab-queue wait back to the deadline (tool-lane timer-pause)', async () => {
+  // a query that takes ~200ms, abortable. With runTimeoutMs=60 it would normally abort and degrade to null; but
+  // crediting 400ms of (simulated) tab-queue wait extends the EFFECTIVE deadline past 200ms, so it survives.
+  const racingQuery = () => async function* (args) {
+    const sig = args.options.abortController.signal;
+    let aborted = false;
+    await new Promise((resolve) => { const t = setTimeout(resolve, 200); sig.addEventListener('abort', () => { aborted = true; clearTimeout(t); resolve(); }); });
+    if (aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+    yield { type: 'assistant', message: { content: [{ type: 'text', text: VERDICT }] } };
+    yield { type: 'result', subtype: 'success' };
+  };
+  const noCredit = await makeClaudeSdkTransport({ queryImpl: racingQuery(), oauthToken: 'tok', runTimeoutMs: 60 })({ messages: [{ role: 'user', content: [] }] });
+  assert.equal(noCredit, null, 'without credit, the ~200ms call exceeds the 60ms deadline → aborted → null');
+  const withCredit = await makeClaudeSdkTransport({ queryImpl: racingQuery(), oauthToken: 'tok', runTimeoutMs: 60, getExtraDeadlineMs: () => 400 })({ messages: [{ role: 'user', content: [] }] });
+  assert.ok(withCredit && /NOT REPRODUCED/.test(withCredit.content[0].text), 'crediting 400ms of queue-wait keeps the call alive past 200ms (queue-wait not charged to the model budget)');
+});
+
 test('sdk transport: a fatal (non-overload) error with no text ⇒ null', async () => {
   const queryImpl = async function* () { throw new Error('boom'); };
   const res = await makeClaudeSdkTransport({ queryImpl, oauthToken: 'tok' })({ messages: [{ role: 'user', content: [] }] });

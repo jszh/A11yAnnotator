@@ -10,6 +10,7 @@ const fs = require('node:fs');
 const { runPagesParallel } = require('../lib/run-pages.js');
 const { orchestrate } = require('../lib/orchestrator.js');
 const { CHROME } = require('../lib/run-experiments.js');
+const { createTabAllocator } = require('../lib/tab-allocator.js');
 const { assetFileUrl } = require('../../lib/asset-paths.js');
 
 const chromeOK = fs.existsSync(CHROME);
@@ -41,4 +42,35 @@ test('runPagesParallel: a page in the shared pool yields the SAME dispositions a
   const sharedOut = results[0].out;
   assert.deepEqual(sharedOut.built.results.summary, soloOut.built.results.summary, 'shared-pool dispositions match the solo run (sharing changes throughput, not verdicts)');
   assert.equal(sharedOut.experiments.results.length, soloOut.experiments.results.length, 'same number of produced results');
+});
+
+test('orchestrate: the INSTRUMENT lane shares the injected allocator (one pool for every lane) and releases', { skip: !chromeOK, concurrency: false }, async () => {
+  const puppeteer = require('puppeteer');
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const alloc = createTabAllocator({ browser, maxTabs: 3 });
+  try {
+    const spec = specOf('inst');
+    // runInstruments ON ⇒ the experiment lane AND the instrument lane both draw tabs from the ONE injected pool.
+    const out = await orchestrate(spec.collect, spec.drive, { resolveUrl: spec.resolveUrl, now: 2000, browser, tabAllocator: alloc, runInstruments: true });
+    assert.equal(out.built.ok, true, JSON.stringify(out.built.errors));
+    assert.ok(out.bundle.instruments, 'the instrument lane actually ran');
+    const s = alloc.stats();
+    assert.ok(s.granted >= 2, 'experiment + instrument lanes BOTH acquired from the single injected allocator (no separate browser)');
+    assert.equal(s.inUse, 0, 'every lane released its tabs — nothing leaked into the shared pool');
+    assert.ok(s.peak <= 3, 'the shared cap held across lanes');
+  } finally { alloc.close(); await browser.close().catch(() => {}); }
+});
+
+test('orchestrate: PARTIAL pool injection (browser only, no allocator) completes and leaves the INJECTED browser open', { skip: !chromeOK, concurrency: false }, async () => {
+  // per-resource ownership: orchestrate owns the allocator it created (closes it) but must NOT close the injected
+  // browser. Regression guard for the partial-injection leak (ownership was once all-or-nothing).
+  const puppeteer = require('puppeteer');
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const spec = specOf('partial');
+    const out = await orchestrate(spec.collect, spec.drive, { resolveUrl: spec.resolveUrl, now: 2000, browser }); // browser injected, allocator NOT
+    assert.equal(out.built.ok, true, JSON.stringify(out.built.errors));
+    const p = await browser.newPage();                      // throws if orchestrate wrongly closed the injected browser
+    await p.close();
+  } finally { await browser.close().catch(() => {}); }
 });

@@ -140,6 +140,7 @@ function makeClaudeSdkTransport(opts = {}) {
     settingSources = [], maxTurns = LIMITS.llm.maxTurns, allowedTools = [], mcpServers = null,
     maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
     effort = 'medium', // reasoning/thinking depth: SDK EffortLevel ('low'|'medium'|'high'|'xhigh'|'max'). Sonnet → medium.
+    getExtraDeadlineMs = null, // tool path: () => accumulated tab-queue wait, SUBTRACTED from the deadline (timer-pause)
   } = opts;
   let _query = queryImpl;
   const getQuery = async () => {
@@ -162,12 +163,19 @@ function makeClaudeSdkTransport(opts = {}) {
 
     // ONE deadline for the WHOLE sequence (hoisted before the retry loop): each attempt gets the REMAINING
     // budget, so total wall-clock can't reach (maxRetries+1)×runTimeoutMs by re-arming the timer per retry.
+    // getExtraDeadlineMs (a live tool session's ACCUMULATED tab-queue wait) is SUBTRACTED from the deadline so time
+    // a tool spent PARKED waiting for a shared tab is never charged to the model's budget — timer-pause-while-queued
+    // extended to the tool lane. The single-shot path (no tool session) keeps the exact prior setTimeout behavior.
     const deadline = Date.now() + runTimeoutMs;
+    const dueAt = () => deadline + (getExtraDeadlineMs ? (Number(getExtraDeadlineMs()) || 0) : 0);
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const remaining = deadline - Date.now();
-      if (remaining <= 0) return null; // whole-run budget exhausted before this attempt
+      if (dueAt() - Date.now() <= 0) return null; // whole-run budget (excluding queue-wait) exhausted before this attempt
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), remaining);
+      // tool path POLLS so mid-call clone-waits keep extending the effective deadline; single-shot keeps one timer.
+      let timer = null, guard = null;
+      if (getExtraDeadlineMs) { guard = setInterval(() => { if (Date.now() >= dueAt()) ctrl.abort(); }, Math.max(5, Math.min(250, Math.floor(runTimeoutMs / 8)))); if (guard.unref) guard.unref(); }
+      else { timer = setTimeout(() => ctrl.abort(), deadline - Date.now()); }
+      const clearGuards = () => { if (timer) clearTimeout(timer); if (guard) clearInterval(guard); };
       let text = '', overloaded = false;
       try {
         const env = { ...process.env, CLAUDE_CODE_OAUTH_TOKEN: oauthToken || process.env.CLAUDE_CODE_OAUTH_TOKEN || '', CLAUDE_ASYNC_AGENT_STALL_TIMEOUT_MS: String(perTurnTimeoutMs) };
@@ -185,9 +193,9 @@ function makeClaudeSdkTransport(opts = {}) {
           }
         }
       } catch (e) {
-        if (ctrl.signal.aborted) { clearTimeout(timer); return null; } // whole-run timeout ⇒ degrade
+        if (ctrl.signal.aborted) { clearGuards(); return null; } // whole-run timeout ⇒ degrade
         if (isOverloaded(e)) overloaded = true; // else: fall through to degrade below
-      } finally { clearTimeout(timer); }
+      } finally { clearGuards(); }
 
       if (text && !overloaded) return { content: [{ type: 'text', text }] };
       if (overloaded && attempt < maxRetries) { await sleep(backoffMs(attempt)); continue; }

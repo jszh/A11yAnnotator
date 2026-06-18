@@ -90,19 +90,14 @@ async function runIbm(page, opts = {}) {
 
 // URL entry point (fresh browser), mirroring runInstrumentsForUrl. Returns the identity-stamped result.
 async function runIbmForUrl(url, opts = {}) {
-  let checker;
-  try { checker = require('accessibility-checker'); }
+  try { require('accessibility-checker'); }
   catch (e) { return { checkerUnavailable: true, reason: 'accessibility-checker not installed' }; }
-  const puppeteer = require('puppeteer');
-  const CHROME = opts.executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
-    || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-  try {
-    const page = await browser.newPage();
+  // shares the run's ONE browser pool (opts.tabAllocator / opts.browser) when given; else launches its own.
+  const { withLanePage } = require('./page-lease.js');
+  return withLanePage(opts, async (page) => {
     await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
-    const r = await runIbm(page, opts);
-    return r;
-  } finally { await browser.close(); }
+    return runIbm(page, opts);
+  });
 }
 
 module.exports = { normalizeIbmFindings, buildRule2Sc, runIbm, runIbmForUrl, IBM_HARD_SCS, IBM_PRIOR_SCS };

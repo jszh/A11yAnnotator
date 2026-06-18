@@ -260,18 +260,16 @@ async function captureStateVision(page, plan, opts = {}) {
 // `opts.statePlan` (xpath -> transition) is given, also drives those transitions and folds the resulting
 // state pairs into the static map — ONE page load for both (audit #1: the state-pair bridge).
 async function captureVisionForUrl(url, xpaths, opts = {}) {
-  const puppeteer = require('puppeteer');
-  const CHROME = opts.executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH
-    || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-  try {
-    const page = await browser.newPage();
+  // shares the run's ONE browser pool (opts.tabAllocator / opts.browser) when given; else launches its own.
+  // Acquire-before-work ⇒ a queued tab's wait is NOT charged to the goto/capture deadlines (timer-pause).
+  const { withLanePage } = require('./page-lease.js');
+  return withLanePage(opts, async (page) => {
     await page.setViewport({ width: opts.width || 1280, height: opts.height || 900 });
     await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
     const stat = await captureVision(page, xpaths, opts);          // static crops first (no page mutation)
     const pairs = opts.statePlan ? await captureStateVision(page, opts.statePlan, opts) : {}; // then driven pairs
     return mergeVision(stat, pairs);
-  } finally { await browser.close(); }
+  });
 }
 
 module.exports = { captureVision, captureStateVision, captureVisionForUrl, mergeVision, buildStatePlan, STATE_TRANSITIONS };

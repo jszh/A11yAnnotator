@@ -144,7 +144,7 @@ test('reapStale is concurrency-safe: spares a clone younger than the threshold, 
   const { openToolSession } = require('../lib/orchestrator.js');
   // threshold 500ms (generous vs clone-load latency so it's not flaky under suite load): a "young" in-use clone
   // is NEVER reaped; only a clone explicitly aged past the threshold is.
-  const session = await openToolSession(FX, CHROME, 500);
+  const session = await openToolSession(FX, { executablePath: CHROME, reapAgeMs: 500 });
   try {
     const oldClone = await session.freshClone();
     await new Promise((r) => setTimeout(r, 900)); // oldClone is now > 500ms (a leaked tab)

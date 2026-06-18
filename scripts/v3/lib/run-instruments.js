@@ -97,14 +97,13 @@ async function runInstruments(page, opts = {}) {
 // Load a URL in a fresh browser and run the instruments. The instruments artifact carries the run
 // identity so a downstream consumer can bind it to the page (non-authoritative, so not hashed).
 async function runInstrumentsForUrl(url, opts = {}) {
-  const puppeteer = require('puppeteer');
-  const browser = await puppeteer.launch({ executablePath: opts.executablePath || CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-  try {
-    const page = await browser.newPage();
+  // shares the run's ONE browser pool (opts.tabAllocator / opts.browser) when given; else launches its own.
+  const { withLanePage } = require('./page-lease.js');
+  return withLanePage(opts, async (page) => {
     await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
     const res = await runInstruments(page, opts);
     return { file: opts.file || url, runId: opts.runId || null, pageDigest: opts.pageDigest || null, ...res };
-  } finally { await browser.close(); }
+  });
 }
 
 module.exports = { runInstruments, runInstrumentsForUrl, CHROME };
