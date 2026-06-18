@@ -73,7 +73,7 @@ async function orchestrate(collect, drive, opts = {}) {
   // builder can verify lineage at the publish boundary. The key comes from opts or the trusted
   // authority config (__trust) — never the bundle. Absent a key, evidence is unsigned ⇒ shadow-only.
   const attestationKey = opts.attestationKey || (opts.authority && opts.authority.__trust && opts.authority.__trust.attestationKey) || null;
-  const experiments = await timings.stage('experiments', () => run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey, budgetOpts: opts.budgetOpts, experimentConcurrency: opts.experimentConcurrency, maxTabs: opts.maxTabs }));
+  const experiments = await timings.stage('experiments', () => run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey, budgetOpts: opts.budgetOpts, experimentConcurrency: opts.experimentConcurrency, maxTabs: opts.maxTabs, browser: opts.browser, tabAllocator: opts.tabAllocator }));
   experiments.startedAt = now;
   // per-ELEMENT experiment durations ride a side channel (wall-clock is run-dependent ⇒ kept OUT of the hashed
   // experiments artifact, exactly like applicabilityObservations). Fold into the timings collector, then drop.

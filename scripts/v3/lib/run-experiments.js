@@ -344,7 +344,7 @@ function finalize(request, outcome, measurement, completed) {
 // Run a plan against a page-URL resolver. resolveUrl(request) -> a URL (file:// or http://).
 // Every request gets exactly ONE disposition: a typed result, or an explicit `unrun` record
 // (skipped/failed/deferred) — nothing disappears silently (audit V3-H6).
-async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationKey = null, budgetOpts = {}, experimentConcurrency = 1, maxTabs } = {}) {
+async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationKey = null, budgetOpts = {}, experimentConcurrency = 1, maxTabs, browser: injectedBrowser = null, tabAllocator: injectedAlloc = null } = {}) {
   // dispatch table: focus runner here + the C1/C3–C9 runners (lazy require breaks the module cycle).
   const RUNNERS = Object.assign({ 'focus-visual-retry': runFocusVisualRetry }, require('./exp-runners.js').RUNNERS);
   // the ONE audited order-preserving worker pool (shared with the LLM lane); lazy require avoids a cycle.
@@ -353,10 +353,14 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
   // real `V3_ATTEST_KEY` run signs its evidence, not only the injected-key test path.
   const key = attestationKey || attest.loadKey({});
   const runBudget = budget.makeRunBudget(budgetOpts); // run-level wall-clock cap (plan Rule 8)
-  const browser = await puppeteer.launch({ executablePath, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-  // EVERY tab for this plan flows through ONE allocator (the single chokepoint: cap + FIFO + timer-pause). At the
-  // default experimentConcurrency it never queues; the cap matters once many pages share an allocator (PHASE 2).
-  const alloc = createTabAllocator({ browser, maxTabs });
+  // PAGE-LEVEL PARALLELISM: a driver can inject ONE shared browser + ONE shared allocator across many concurrent
+  // pages (so the cap bounds tabs GLOBALLY, not per-page). When injected we DON'T own them — the driver closes
+  // them. Default (no injection) = own a browser + allocator and close both, byte-identical to the prior lifecycle.
+  const ownsBrowser = !injectedBrowser;
+  const browser = injectedBrowser || await puppeteer.launch({ executablePath, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  // EVERY tab for this plan flows through ONE allocator (the single chokepoint: cap + FIFO + timer-pause).
+  const ownsAlloc = !injectedAlloc;
+  const alloc = injectedAlloc || createTabAllocator({ browser, maxTabs });
   const results = [];
   const unrun = [];
   const stepTimings = []; // per-attempt REAL durations (non-attested: wall-clock is run-dependent — kept OUT of the hashed experiments artifact, surfaced via a side channel like applicabilityObservations)
@@ -456,7 +460,7 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
       if (slot.result) results.push(slot.result);
       for (const u of slot.unrun) unrun.push(u);
     });
-  } finally { alloc.close(); await browser.close().catch(() => {}); }
+  } finally { if (ownsAlloc) alloc.close(); if (ownsBrowser) await browser.close().catch(() => {}); }
   return {
     file: plan.file, runId: plan.runId, pageDigest: plan.pageDigest,
     catalogVersion: '3.0.0-phase0',
