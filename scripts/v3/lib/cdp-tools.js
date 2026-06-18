@@ -56,10 +56,13 @@ async function queryAxNode(page, args) {
     const STATE_ATTRS = ['aria-checked', 'aria-expanded', 'aria-pressed', 'aria-selected'];
     let requiredStatesPresent, requiredStatesMissing;
     if (!isCoordPath && resolvedXpath) {
-      const live = await page.evaluate((xp, attrs) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; const present = {}; for (const a of attrs) present[a] = el.hasAttribute(a); return { present, explicitRole: el.getAttribute('role') }; }, resolvedXpath, STATE_ATTRS).catch(() => null);
+      const live = await page.evaluate((xp, attrs) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; const present = {}; for (const a of attrs) present[a] = el.hasAttribute(a); const nativeConveys = (el.tagName === 'INPUT' && (el.type === 'checkbox' || el.type === 'radio')) || el.tagName === 'DETAILS' || el.tagName === 'OPTION' || el.tagName === 'SELECT'; return { present, explicitRole: el.getAttribute('role'), nativeConveys }; }, resolvedXpath, STATE_ATTRS).catch(() => null);
       if (live) {
         requiredStatesPresent = STATE_ATTRS.filter((a) => live.present[a]).map((a) => a.replace('aria-', ''));
-        const need = live.explicitRole ? (ROLE_REQUIRES[role] || []) : []; // only an EXPLICIT aria role must author its state
+        // flag a missing required state ONLY for an EXPLICIT aria widget that does NOT natively convey the state
+        // (a native checkbox/radio/details/option conveys it regardless of a redundant role); look up by the
+        // RESOLVED computed role (not the raw attribute string, which may be a token list).
+        const need = (live.explicitRole && !live.nativeConveys) ? (ROLE_REQUIRES[role] || []) : [];
         requiredStatesMissing = need.filter((a) => !live.present[a]).map((a) => a.replace('aria-', ''));
       } else { requiredStatesPresent = []; requiredStatesMissing = null; }
     } else {

@@ -31,6 +31,7 @@ const XP = {
   injectlive: '/html[1]/body[1]/button[3]', // injects a NEW role=status with its message
   toggle: '/html[1]/body[1]/button[4]',   // reveals a display:none node
   hiddenrow: '/html[1]/body[1]/div[4]',
+  chkrole: '/html[1]/body[1]/input[3]',   // native checkbox with redundant role=checkbox
 };
 
 // ONE shared browser for the whole file (not one per test) — fewer parallel Chrome instances under the full
@@ -231,6 +232,8 @@ test('query_ax_node: an aria role=checkbox with no aria-checked reports required
     assert.deepEqual(aria.requiredStatesPresent, [], 'no author state attribute is present');
     const native = await queryAxNode(page, { targetXpath: XP.chk });
     assert.deepEqual(native.requiredStatesMissing, [], 'a NATIVE <input type=checkbox> conveys its state natively ⇒ nothing missing');
+    const redundant = await queryAxNode(page, { targetXpath: XP.chkrole });
+    assert.deepEqual(redundant.requiredStatesMissing, [], 'a native checkbox with a REDUNDANT role=checkbox still conveys state natively ⇒ not flagged');
   });
 });
 
