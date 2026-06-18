@@ -359,7 +359,28 @@ async function runTextContrastPixel(page, request) {
       o.thresholdMet = renderedRatio >= a.threshold;
       o.thresholdFailed = renderedRatio < a.threshold;
     }
-    // non-uniform backdrop (either channel) or instability ⇒ neither met nor failed ⇒ INCONCLUSIVE
+    // WORST-CASE BARRIER over a genuinely NON-UNIFORM backdrop (Tier-0 #2, LLM-routing analysis): the
+    // uniform-gated `contrastComputable` above abstains on a split/gradient/photo backdrop (afw4f7: "Black hole
+    // sun" #555 on a near-black photo ⇒ ~1.7:1; it dead-ended into the LLM, which false-cleared). But 1.4.3
+    // requires EVERY text run to meet contrast, so when the WORST rendered region under the glyphs fails by a
+    // CLEAR margin that is a SOUND barrier even without uniformity — the catalog's BARRIER_OBSERVED already does
+    // NOT require backdropIsSolidUniform (only the CLEAR path does). GUARDS: (1) `!pixelUniform` — fire ONLY for a
+    // genuinely non-uniform RENDERED backdrop (a photo/gradient), NOT a uniform backdrop that merely disagrees
+    // with the CSS base by >16/channel (the B2 unknown-painter case, which must stay an abstention); (2) the fg +
+    // bg must be resolved (an opaque resolved fg is backdrop-independent). We NEVER relax a CLEAR on a non-uniform
+    // backdrop (a "might pass" stays INCONCLUSIVE → the rubric); only a clear FAIL is promoted.
+    if (!o.thresholdFailed && !o.thresholdMet && o.measurementStable && !pixelUniform
+        && a.foregroundResolved && a.backgroundResolved && a.fgColor && backdrop && Number.isFinite(a.threshold)) {
+      const worst = worstContrast(a.fgColor, backdrop);
+      // a ≥0.5 margin below threshold guards against a few anti-aliased boundary pixels at the worst extreme
+      // (analyzeBackdrop hides the glyph fill, so it measures the BACKDROP; p05/p95 are robust to stray pixels).
+      if (Number.isFinite(worst) && worst <= a.threshold - 0.5) {
+        o.contrastComputable = true; // computable FOR A FAIL: the worst rendered region is measured and fails
+        o.thresholdFailed = true;
+        renderedRatio = worst;
+      }
+    }
+    // non-uniform backdrop that does NOT clearly fail, or instability ⇒ neither met nor failed ⇒ INCONCLUSIVE
   }
   const valid = !!(a && b && o.textRendersVisible && o.measurementStable);
   return mk(request, 'text-contrast-pixel', '1.4.3', { ...o, hydrationReady }, { isTextNode: o.isTextNode, textRendersVisible: o.textRendersVisible, sizeClassResolved: o.sizeClassResolved }, { action: 'measure-contrast', valid, measurement: { ratio: renderedRatio, threshold: a && a.threshold, pixelUniform, pixelAgrees, range: backdrop && backdrop.range } });

@@ -54,10 +54,17 @@ const FAMILIES = Object.freeze({
   'non-text-contrast':       Object.freeze({ sc: '1.4.11', skills: ['color-and-visual-text'] }),          // 1.4.11 (rubric non-text-contrast-v0) — widget/graphic
   'focus-order-meaning':     Object.freeze({ sc: '2.4.3', skills: ['focus-management'] }),                // 2.4.3 (rubric focus-order-meaning-v0) — page-level
   'section-headings':        Object.freeze({ sc: '2.4.10', skills: ['page-structure'] }),                 // 2.4.10 (rubric section-headings-v0) — page-level (AAA, fill stays non-authoritative)
+  'status-message':          Object.freeze({ sc: '4.1.3', skills: ['dynamic-announcement'] }),            // 4.1.3 (Item 11, rubric status-message-v0) — element-level on a live region; un-deads the status-detector + CDP tools
+  'meaningful-sequence':     Object.freeze({ sc: '1.3.2', skills: ['grouping-and-reading-order'] }),      // 1.3.2 (Item 14c, rubric sequence-meaning-v0) — page-level, gated on a vsr reading-order divergence
+  'media-alternatives':      Object.freeze({ sc: '1.2.2', skills: ['media-alternatives'] }),             // 1.2.2 (Item 10, rubric media-alternatives-v0) — a <video> owes captions; presence+plausibility, abstain on sync
+  'motion-control':          Object.freeze({ sc: '2.2.2', skills: ['timing-and-motion'] }),              // 2.2.2 (Item 14d, rubric motion-control-v0) — auto-moving >5s/looping/autoplay content owes a pause/stop
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
 const FORMFIELD_ROLE = /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$/;
+// 4.1.2 COMPOSITE container roles (Item 12): a relational name-role-value obligation axe abstains on. EXCLUDES
+// bare group/region (no name/state obligation, floods every app page) — only roles that owe a name + child states.
+const COMPOSITE_ROLE = /^(menu|menubar|tree|treegrid|grid|tablist|listbox|radiogroup)$/;
 const IMG_ROLE = /^(img|image|figure)$/;   // 3.2 non-text-content (1.1.1)
 const HEADING_ROLE = /^heading$/;          // 3.2 heading-descriptive (2.4.6)
 // page-level pseudo-element for the page-scoped reflow obligation (C8).
@@ -69,6 +76,9 @@ const PAGE_INFOREL_XPATH = '/page-level::info-relationships';
 // page-level pseudo-elements (coverage audit): section-headings (2.4.10) + focus-order meaning (2.4.3).
 const PAGE_SECTIONHEADINGS_XPATH = '/page-level::section-headings';
 const PAGE_FOCUSORDER_XPATH = '/page-level::focus-order';
+// page-level pseudo-element for 1.3.2 meaningful sequence (Item 14c) — enumerated ONLY when the vsr detector
+// reports a visual-vs-source reading-order divergence (gated in build-v3, not on every multi-column page).
+const PAGE_MEANINGFUL_SEQUENCE_XPATH = '/page-level::meaningful-sequence';
 // The page's title slot, read from EITHER the synthetic `collect.page` convention OR the real
 // collector's `collect.structure` (eval-page.js emits page-level facts under `structure`). Presence of
 // the slot — even an empty title — means this is a titled-document context that owes a 2.4.2 obligation.
@@ -121,6 +131,24 @@ function familiesFor(el) {
   // AND the accessible-name-adequacy rubric judges the wrong question (the name IS adequate; the attribute is
   // prohibited). axe's aria-prohibited-attr owns it → routed via the axe-checker disposition lane, not the oracle.
   if (el.tag === 'iframe' && typeof el.axName === 'string' && el.axName.trim().length > 0) fams.push('name-role-value');
+  // 4.1.2 COMPOSITE widgets (Item 12): a container role owes name-role-value — does it expose the right role + a
+  // meaningful name, do its children carry required states (selected/expanded/checked/level). axe abstains on this
+  // semantics; states/axStates are surfaced into the name-role-state precompute. bare group/region are excluded above.
+  if (COMPOSITE_ROLE.test(role) && !WIDGET_ROLE.test(role)) fams.push('name-role-value');
+  // 4.1.3 STATUS MESSAGES (Item 11): a live-region container owes a status-message obligation — is a status change
+  // announced to AT without moving focus. The insertion-only status-detector can't decide the un-hide case and
+  // names no trigger; this routes the residue to the rubric (+ the observe_state_after_activation /
+  // probe_screen_reader_after_action CDP tools when enabled). "absence ≠ pass": a detector that found no insertion
+  // is NOT a clear (the un-hide case is exactly what it misses).
+  if (el.liveRegion === true) fams.push('status-message');
+  // 1.2.x TIME-BASED MEDIA (Item 10): a <video> owes a captions alternative (1.2.2) — does an adequate captions
+  // track exist (presence + plausibility; sync/quality are not judgeable from a static crop → abstain). No checker
+  // decides caption ADEQUACY. "absence ≠ pass": a present-but-empty <track> must NOT read as "has captions".
+  if (el.tag === 'video') fams.push('media-alternatives');
+  // 2.2.2 PAUSE/STOP/HIDE (Item 14d): auto-MOVING content (a looping/>5s CSS animation, <marquee>, or autoplay
+  // media) owes a pause/stop/hide mechanism. Gated on the collected auto-motion signal (NOT brief/sub-5s decorative
+  // animation). Whether a usable pause EXISTS and whether the motion is essential/loading is the rubric's judgment.
+  if (el.autoMotion === true) fams.push('motion-control');
   // 1.4.11 NON-TEXT CONTRAST (coverage audit — un-orphans non-text-contrast-v0): UI components (widgets) and
   // graphical objects (img/svg/canvas) owe it. No deterministic 1.4.11 runner exists ⇒ rubric-judged.
   if (WIDGET_ROLE.test(role) || el.isImage === true) fams.push('non-text-contrast');
@@ -235,7 +263,7 @@ function scForFamily(claimFamily) { return FAMILIES[claimFamily] && FAMILIES[cla
 
 module.exports = {
   FAMILIES, WIDGET_ROLE, FORMFIELD_ROLE, IMG_ROLE, HEADING_ROLE, PAGE_REFLOW_XPATH, PAGE_TITLE_XPATH, PAGE_INFOREL_XPATH,
-  PAGE_SECTIONHEADINGS_XPATH, PAGE_FOCUSORDER_XPATH, pageTitleSlotPresent,
+  PAGE_SECTIONHEADINGS_XPATH, PAGE_FOCUSORDER_XPATH, PAGE_MEANINGFUL_SEQUENCE_XPATH, pageTitleSlotPresent,
   isEvaluable, familiesFor, deriveObligations, oblId,
   applicableScsFor, enumerationErrors, outOfScopeElements, skillsForFamily, scForFamily, factHasText, factRole,
 };

@@ -36,6 +36,15 @@ test('C3 text-contrast-pixel: clear / barrier / inconclusive incl. rgba, gradien
   assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[6]/span']), null, 'colour animation ⇒ inconclusive (unstable)');
 });
 
+// Tier-0 #2 (LLM-routing analysis): the WORST-CASE barrier over a NON-UNIFORM backdrop whose background-COLOR
+// is an opaque resolved solid (so the rendered backdrop varies but a sound worst extreme exists). Mirrors the
+// real ACT afw4f7/41afaa9b "#555 on black + photo" case that previously dead-ended into the LLM and false-cleared.
+test('C3 worst-case barrier over a non-uniform resolved-opaque backdrop (afw4f7 analog); no false barrier when worst passes', { skip: !chromeOK, concurrency: false }, async () => {
+  const { byXp } = await run('text-contrast-pixel', 'fx-v3-c3-worstcase.html', ['/html/body/div[1]/span', '/html/body/div[2]/span']);
+  assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[1]/span']), 'BARRIER_OBSERVED', 'grey #555 over the black part of a non-uniform backdrop ⇒ worst-case BARRIER (was a dead-end → LLM false-clear)');
+  assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[2]/span']), null, 'white text staying ~14:1 across a near-black non-uniform backdrop ⇒ INCONCLUSIVE, NOT a false barrier (margin guard)');
+});
+
 test('C6 field-label-probe: clear / placeholder-barrier / sr-only / title / unassociated / dangling', { skip: !chromeOK, concurrency: false }, async () => {
   const { byXp } = await run('field-label-probe', 'fx-v3-c6-fields.html', ['/html/body/div[1]/input', '/html/body/div[2]/input', '/html/body/div[3]/input', '/html/body/div[4]/input', '/html/body/div[5]/input', '/html/body/div[6]/input']);
   assert.equal(dir('field-label-probe', byXp['/html/body/div[1]/input']), 'NO_BARRIER_OBSERVED', 'associated visible label clears');

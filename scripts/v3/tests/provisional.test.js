@@ -188,6 +188,21 @@ test('○-tier: a pointer target enumerates target-size obligations; the LLM fil
   assert.equal(row.cleared, true);
 });
 
+test('7c geometry: a CLEAR target-size verdict fills 2.5.8 deterministically (PROVISIONAL); needs-judgment stays auto-PARTIAL → LLM', () => {
+  const collect = { ...ID, collectedAt: 1, elements: [
+    { xpath: '/pass', box: { x: 0, y: 0, w: 40, h: 40, squareFits: true }, targetOpts: { squareFits: true }, role: 'button', isInteractive: true, focusable: true },
+    { xpath: '/fail', box: { x: 0, y: 0, w: 18, h: 18 }, targetOpts: { neighbors: [{ x: 16, y: 0, w: 100, h: 18 }] }, role: 'button', isInteractive: true, focusable: true },
+    { xpath: '/judge', box: { x: 0, y: 0, w: 20, h: 20 }, role: 'button', isInteractive: true, focusable: true }, // no neighbour geometry ⇒ needs-judgment
+  ] };
+  const b = withPipeline({ collect, experiments: { ...ID, catalogVersion: '3.0.0-phase0', startedAt: 2, results: [] }, claimProposals: { ...ID, proposals: [] } });
+  const r = buildV3(reseal(b), { authority: promoted([]) });
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  const row = (xp) => r.results.obligationLedger.find((o) => o.xpath === xp && o.sc === '2.5.8' && o.claimFamily === 'target-size-minimum');
+  assert.equal(row('/pass').disposition, 'PROVISIONAL'); assert.equal(row('/pass').cleared, true, 'a densely-hit-tested 40x40 pass clears deterministically');
+  assert.equal(row('/fail').disposition, 'PROVISIONAL'); assert.equal(row('/fail').cleared, false, 'an 18x18 whose 24px circle hits a neighbour is a deterministic barrier');
+  assert.equal(row('/judge').disposition, 'PARTIAL'); assert.equal(row('/judge').autoPartial, true, 'needs-judgment (no neighbour geometry) is left to the LLM');
+});
+
 test('○-tier: a page with a title slot enumerates the page-level 2.4.2 page-title obligation', () => {
   const collect = { ...ID, collectedAt: 1, structure: { title: 'My Page' }, elements: [{ xpath: 'node:b1', focusable: true }] };
   const obls = oracle.deriveObligations(collect);

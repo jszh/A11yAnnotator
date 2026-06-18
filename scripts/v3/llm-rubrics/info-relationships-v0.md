@@ -11,6 +11,14 @@ visionEvidence: [viewport]
 headings, lists, tables, groups) and a viewport screenshot. JUDGE whether relationships conveyed VISUALLY
 are ALSO programmatically determinable. DEFER where a deterministic CLAIM exists.
 
+**Interpreting the deterministic evidence.** `signals.structure` carries `headings[]` ({tag, role, level, text,
+offscreen}) and `tables[]` — each table has `{rowCount, thCount, tdCount, hasCaption, captionText, headers[] ({id,
+scope, text}), tdHeaderSamples[] ({cell, headers[], resolved[]}), tdWithHeaders, danglingIdref, headerWithNoDataCell,
+looksLikeDataTable}`. Use these for the header-association call: `danglingIdref`/`headerWithNoDataCell` are positive
+broken-association smells; `tdHeaderSamples[].resolved` shows which header text each `headers=` IDREF actually points
+to (judge whether that is the RIGHT header for the cell). `looksLikeDataTable:false` ⇒ likely a layout table (not in
+scope). An ABSENT signal is "could not determine", never "passes".
+
 **Judge:** does a relationship a sighted user perceives (a visual heading, a list, a table's
 row/column association, a group/fieldset, an emphasis that carries meaning) have a programmatic
 equivalent? A visually-bold "heading" that is a plain `<div>` IS a barrier; a visual list marked up as a

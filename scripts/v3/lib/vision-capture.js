@@ -17,6 +17,7 @@
 // load, so `runAdjudication` stays pure over `visionByXpath`.
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const { nsXPath } = require('./xpath-ns.js'); // namespace-agnostic resolve (Tier-0 #1) — fixes SVG/MathML subjects
 
 // SC → the per-element transition whose before/after a rubric for that SC needs. Exported so the
 // orchestrator + a pure test share it. Form SCs drive a 'submit' (page-mutating ⇒ reload-isolated).
@@ -48,7 +49,8 @@ async function captureVision(page, xpaths, opts = {}) {
     finally { if (cur && cur.width) await page.setViewport(cur).catch(() => {}); }
   }
 
-  for (const xp of xpaths) {
+  for (const xpRaw of xpaths) {
+    const xp = nsXPath(xpRaw); // SVG/MathML-aware xpath for in-page document.evaluate; xpRaw stays the output key
     // scroll the target into view first — on a real page most sampled elements are BELOW THE FOLD, so
     // without this their element-crop is skipped (off-viewport) and the LLM gets no pixels (probe finding
     // on the corpus). scrollIntoView centres it; getBoundingClientRect is then viewport-relative and clips.
@@ -83,7 +85,7 @@ async function captureVision(page, xpaths, opts = {}) {
     if (viewport320 && want.has('viewport-320')) frames['viewport-320'] = viewport320;
     const clean = {};
     for (const [k, v] of Object.entries(frames)) if (typeof v === 'string' && v.length) clean[k] = v;
-    if (Object.keys(clean).length) out[xp] = clean;
+    if (Object.keys(clean).length) out[xpRaw] = clean;
   }
   return out;
 }
@@ -193,8 +195,9 @@ async function captureStateVision(page, plan, opts = {}) {
     const after = await shot(unionFormClip(r0, r1, pad)); if (!str(after)) return null;
     return { 'state-before': before, 'state-after': after };
   };
-  for (const [xp, transition] of entries) {
-    if (transition === 'submit') { const pair = await captureSubmitPair(xp); if (pair) out[xp] = pair; continue; }
+  for (const [xpRaw, transition] of entries) {
+    const xp = nsXPath(xpRaw); // SVG/MathML-aware xpath for the in-page resolves below; xpRaw stays the key
+    if (transition === 'submit') { const pair = await captureSubmitPair(xp); if (pair) out[xpRaw] = pair; continue; }
     await parkPointer(); // RESET to a guaranteed-idle pointer BEFORE the before-frame (kills cross-subject hover leak)
     // a true IDLE before-state: blur whatever is focused, then bring the target into view.
     await page.evaluate((x) => { try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {} const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } } }, xp).catch(() => {});
@@ -217,7 +220,7 @@ async function captureStateVision(page, plan, opts = {}) {
       before = await shot(clip);
       if (!str(before)) continue;
       await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.focus) { try { el.focus({ preventScroll: true }); } catch (e) { try { el.focus(); } catch (_) {} } } }, xp).catch(() => {});
-      const nodeId = await nodeIdFor(xp);
+      const nodeId = await nodeIdFor(xpRaw); // CDP DOM.performSearch path — unchanged (uses the raw collector xpath)
       let forced = false;
       if (nodeId) { try { await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['focus', 'focus-visible'] }); forced = true; } catch (e) {} }
       await sleep(60);
@@ -249,7 +252,7 @@ async function captureStateVision(page, plan, opts = {}) {
       after = await shot(clip);
       await parkPointer();
     }
-    if (str(after)) out[xp] = { 'state-before': before, 'state-after': after };
+    if (str(after)) out[xpRaw] = { 'state-before': before, 'state-after': after };
   }
   try { if (cdp) await cdp.detach(); } catch (e) {}
   return out;

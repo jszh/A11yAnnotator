@@ -45,6 +45,7 @@ const ROOT = path.join(__dirname, '..');
 // REAL collector↔driver pair, not a forged one (documented limit, RESULT-CONTRACT.md).
 // page-location resolution is centralized in scripts/lib/asset-paths.js (one place to relocate fixtures).
 const { assetPath, assetUrlUnder } = require('./lib/asset-paths.js');
+const { collectTables } = require('./v3/lib/collect-tables.js'); // Tier-0 #4: per-<table> relationship facts for 1.3.1
 function pageDigest(file) {
   try { return 'sha256:' + crypto.createHash('sha256').update(fs.readFileSync(assetPath(file))).digest('hex'); }
   catch (e) { return null; }
@@ -240,6 +241,9 @@ function parseRGB(s) {
         listStyleNone, liveRegions, pageIds, fieldsets,
       };
     });
+    // Tier-0 #4: per-<table> relationship facts (shared self-contained extractor); folded into structure for the
+    // 1.3.1 info-relationships JUDGMENT. Read-only; degrades to [] on any failure.
+    try { out.structure.tables = await page.evaluate(collectTables); } catch (e) { out.structure.tables = []; }
 
     // ---- axe (CACHED full run) ----
     try {
@@ -295,6 +299,43 @@ function parseRGB(s) {
         const r = document.evaluate(xp, document, null, 9, null).singleNodeValue;
         if (!r) return null;
         const cs = getComputedStyle(r); const b = r.getBoundingClientRect();
+        // ITEM 9 (parity with act-page-collect): 1.4.13 content-on-hover + 2.4.11 focus-not-obscured. Memoize the
+        // page-level overlay list + tooltip ids on `window` (this evaluate runs per-element on the SAME page, so it
+        // is computed ONCE). underOverlay: a top-anchored wide/tall sticky/fixed overlay a focusable can scroll
+        // under (the oracle additionally gates on focusable). hasHoverContent: controls/describes a tooltip/popover
+        // (popovertarget / aria-describedby|aria-controls → [role=tooltip]/[popover]); native `title` is EXEMPT.
+        if (!window.__v3ovl) {
+          const ov = [];
+          for (const o of document.querySelectorAll('body *')) {
+            const ocs = getComputedStyle(o);
+            if ((ocs.position === 'fixed' || ocs.position === 'sticky') && ocs.display !== 'none' && ocs.visibility !== 'hidden' && parseFloat(ocs.opacity) !== 0) {
+              const orc = o.getBoundingClientRect();
+              if (orc.width >= window.innerWidth * 0.5 && orc.height >= 16 && orc.top <= 8) ov.push({ top: orc.top, bottom: orc.bottom, left: orc.left, right: orc.right });
+            }
+          }
+          const tt = new Set(); for (const t of document.querySelectorAll('[role=tooltip],[popover]')) if (t.id) tt.add(t.id);
+          window.__v3ovl = ov; window.__v3tt = tt;
+        }
+        const underOverlay = window.__v3ovl.some((ov) => b.x < ov.right && b.x + b.width > ov.left && b.y >= ov.bottom - 2);
+        let hasHoverContent = r.hasAttribute('popovertarget');
+        if (!hasHoverContent) for (const a of ['aria-describedby', 'aria-controls']) { const v = r.getAttribute(a); if (v) { for (const id of v.split(/\s+/)) if (window.__v3tt.has(id)) { hasHoverContent = true; break; } } if (hasHoverContent) break; }
+        // Item 11 (4.1.3 parity): a status/live-region container.
+        const _alive = (r.getAttribute('aria-live') || '').toLowerCase();
+        const liveRegion = _alive === 'polite' || _alive === 'assertive' || /^(status|alert|log|progressbar|marquee|timer)$/.test(r.getAttribute('role') || '');
+        // Item 14d (2.2.2 parity): looping/>5s CSS animation, <marquee>, or autoplay media without controls.
+        const autoMotion = r.tagName.toLowerCase() === 'marquee'
+          || (cs.animationName && cs.animationName !== 'none' && (cs.animationIterationCount === 'infinite' || parseFloat(cs.animationDuration) > 5))
+          || ((r.tagName.toLowerCase() === 'video' || r.tagName.toLowerCase() === 'audio') && r.hasAttribute('autoplay') && !r.hasAttribute('controls'));
+        // Item 10 (1.2.x media parity): a <video>/<audio> + its <track> children.
+        const _mtag = r.tagName.toLowerCase();
+        const isMedia = _mtag === 'video' || _mtag === 'audio';
+        let mediaInfo = null;
+        if (isMedia) {
+          const tracks = [...r.querySelectorAll('track')];
+          const kinds = tracks.map((t) => (t.getAttribute('kind') || 'subtitles').toLowerCase());
+          const cap = tracks.find((t) => /^(captions|subtitles)$/.test((t.getAttribute('kind') || 'subtitles').toLowerCase()));
+          mediaInfo = { mediaTag: _mtag, hasControls: r.hasAttribute('controls'), trackKinds: kinds, hasCaptionsTrack: !!cap, captionsTrackEmpty: !!cap && !(cap.getAttribute('src') || '').trim(), hasDescriptionsTrack: kinds.includes('descriptions') };
+        }
         // effective background: walk ancestors until an opaque bg is found.
         // T11: if the walk crosses a positioned/transformed/overlaid ancestor the
         // chosen bg may NOT be what the element visually sits on (cards, overlays,
@@ -402,6 +443,19 @@ function parseRGB(s) {
         const tabindexEffective = tiAttr !== null ? +tiAttr : (['a', 'button', 'input', 'select', 'textarea', 'summary'].includes(tag) && !r.disabled ? 0 : null);
         const nativeInteractive = ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'].includes(tag);
         const roleOverridesNative = nativeInteractive && !!roleAttr;
+        // DECORATIVE-MARKING conflict (Tier-0 #5, e88epe — parity with act-page-collect): an image removed from the
+        // a11y tree (aria-hidden on self/ancestor / role=presentation|none / empty alt) that still RENDERS meaningful
+        // pixels is the barrier the adequacy rubric kept missing (it saw the author alt + a logo crop and cleared).
+        const _ariaHidden = r.getAttribute('aria-hidden') === 'true' || !!r.closest('[aria-hidden="true"]');
+        const _presentational = roleAttr === 'presentation' || roleAttr === 'none';
+        const _emptyAlt = tag === 'img' && r.getAttribute('alt') === '';
+        const removedFromA11yTree = _ariaHidden || _presentational || _emptyAlt;
+        const hiddenMechanism = _ariaHidden ? 'aria-hidden' : _presentational ? ('role-' + roleAttr) : _emptyAlt ? 'empty-alt' : null;
+        const ariaHiddenWithName = _ariaHidden && (((r.getAttribute('alt') || '') + ' ' + (r.getAttribute('aria-label') || '') + ' ' + (r.getAttribute('title') || '')).trim().length > 0);
+        const renderedMeaningful = (tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img') && b.width >= 8 && b.height >= 8;
+        // COMPLEX-IMAGE hint (Item 7b, parity): a data-bearing image (figure / role=figure / aria-describedby) owes
+        // long-description-completeness; a bare logo/icon gets alt-adequacy only.
+        const complexImageHint = (tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img') && (!!r.closest('figure') || roleAttr === 'figure' || r.hasAttribute('aria-describedby'));
         let obscured = false;
         if (b.width > 0 && b.height > 0) {
           const hx = Math.min(innerWidth - 1, Math.max(0, b.x + b.width / 2)), hy = Math.min(innerHeight - 1, Math.max(0, b.y + b.height / 2));
@@ -442,7 +496,7 @@ function parseRGB(s) {
         const formRoles = ['textbox', 'combobox', 'checkbox', 'radio', 'switch', 'slider', 'spinbutton', 'searchbox'];
         return {
           tag, roleAttr, ariaLabel: r.getAttribute('aria-label'), ariaLabelledby: r.getAttribute('aria-labelledby'),
-          ariaDescribedby: r.getAttribute('aria-describedby'), alt: r.getAttribute('alt'),
+          ariaDescribedby: r.getAttribute('aria-describedby'), alt: r.getAttribute('alt'), href: r.getAttribute('href'), // href: Item 14a (2.4.4 same-name index)
           title: r.getAttribute('title'), placeholder: r.getAttribute('placeholder'),
           required: r.hasAttribute('required') || r.getAttribute('aria-required') === 'true',
           ariaInvalid: r.getAttribute('aria-invalid'),
@@ -459,6 +513,12 @@ function parseRGB(s) {
           isInteractive: interactiveTags.includes(tag) || interactiveRoles.includes(roleAttr) || (r.getAttribute('tabindex') !== null && +r.getAttribute('tabindex') >= 0) || r.hasAttribute('onclick'),
           isFormField: formTags.includes(tag) || formRoles.includes(roleAttr),
           isImage: tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img',
+          removedFromA11yTree, hiddenMechanism, ariaHiddenWithName, renderedMeaningful, // Tier-0 #5 (e88epe)
+          complexImageHint, // Item 7b: gate long-description-completeness to data-bearing images
+          underOverlay, hasHoverContent, // Item 9: un-dead 2.4.11 focus-not-obscured + 1.4.13 content-on-hover
+          liveRegion, // Item 11: 4.1.3 status-message family
+          isMedia, mediaInfo, // Item 10: 1.2.x media family
+          autoMotion, // Item 14d: 2.2.2 motion-control family
           // 2.1.2 focus-trap risk (coverage audit) — parity with act-page-collect so the widened gate fires on real pages too.
           focusRisk: r.hasAttribute('onblur') || r.hasAttribute('onfocus') || r.hasAttribute('onfocusout')
             || !!r.closest('[role=dialog],dialog,[aria-modal=true],[role=menu],[role=listbox],[role=grid],[role=tablist],[class*=modal i],[class*=overlay i],[class*=dialog i],[class*=popup i],[class*=lightbox i]'),

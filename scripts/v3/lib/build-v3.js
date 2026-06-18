@@ -129,6 +129,10 @@ function buildV3(bundle, opts = {}) {
   const collectByXpath = {};
   for (const el of (bundle.collect && bundle.collect.elements) || []) if (el && el.xpath) collectByXpath[el.xpath] = el;
   const pageReflowApplicable = !!(bundle.collect && bundle.collect.page && bundle.collect.page.reflowApplicable === true);
+  // 1.3.2 (Item 14c): the vsr detector's visual-vs-source reading-order divergence is the page-level signal that
+  // gates the meaningful-sequence family (NOT every multi-column page).
+  const pageHasReorder = !!(bundle.instruments && Array.isArray(bundle.instruments.findings)
+    && bundle.instruments.findings.some((f) => f && f.sc === '1.3.2' && (f.kind === 'reading-order' || /reorder|sequence/i.test(String(f.kind || '')))));
   const oracleCorroborates = (xpath, fam) => {
     if (!fam) return false;
     if (xpath === oracle.PAGE_REFLOW_XPATH) return fam === 'reflow-no-hscroll' && pageReflowApplicable;
@@ -139,6 +143,7 @@ function buildV3(bundle, opts = {}) {
     // page-level 2.4.10 section-headings + 2.4.3 focus-order (coverage audit) — same structure-slot gate as 1.3.1.
     if (xpath === oracle.PAGE_SECTIONHEADINGS_XPATH) return fam === 'section-headings' && !!(bundle.collect && bundle.collect.structure);
     if (xpath === oracle.PAGE_FOCUSORDER_XPATH) return fam === 'focus-order-meaning' && !!(bundle.collect && bundle.collect.structure);
+    if (xpath === oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH) return fam === 'meaningful-sequence' && pageHasReorder; // Item 14c
     const el = collectByXpath[xpath];
     return !!el && oracle.familiesFor(el).includes(fam);
   };
@@ -311,6 +316,26 @@ function buildV3(bundle, opts = {}) {
     }
   }
 
+  // 7c (route-by-facet GEOMETRY, LLM-routing analysis): a CLEAR target-size verdict (evalTargetSize pass/fail) is
+  // an exact geometric measurement — promote it from the shadow `target-size-geometry` signal (below) to a
+  // PROVISIONAL disposition that FILLS the 2.5.8 obligation, so the LLM judges ONLY the genuinely ambiguous
+  // (needs-judgment: rounded/transformed/clipped/no-neighbour-geometry) case. A `pass` is a POSITIVE proof
+  // (squareFits densely hit-tested) or a sound exception; a `fail` is <24 with a 24px circle hitting a neighbour.
+  // 2.5.5 enhanced (44px) is a different threshold evalTargetSize does NOT compute ⇒ left to the LLM unchanged.
+  const targetSizeObs = [];
+  for (const el of (bundle.collect.elements || [])) {
+    if (!el || !el.box || typeof el.xpath !== 'string' || !el.xpath) continue;
+    const ts = A.evalTargetSize(el.box, el.targetOpts || {});
+    if (ts.verdict !== 'pass' && ts.verdict !== 'fail') continue; // needs-judgment ⇒ stays auto-PARTIAL → LLM
+    targetSizeObs.push(stampAuthority({
+      sc: '2.5.8', claimFamily: 'target-size-minimum',
+      observationScope: { actionTargetRef: el.xpath, state: 'static-dom', action: 'inspect', environment: 'headless-chromium' },
+      wouldBe: { observationOutcome: ts.verdict === 'fail' ? 'BARRIER_OBSERVED' : 'NO_BARRIER_OBSERVED' },
+      source: 'target-size-geometry', mechanism: 'geometry:evalTargetSize',
+      confidence: 'high', rationaleRef: null, evidenceRefs: [],
+    }));
+  }
+
   // (5) INDEPENDENT obligation reconciliation: enumerate from the COLLECTOR (atomic per family);
   //     every obligation gets exactly one disposition. Authoritative CLAIMs clear; shadow
   //     observations and unsupported proposals are PARTIAL (shadow flagged); un-proposed ⇒ auto.
@@ -347,7 +372,14 @@ function buildV3(bundle, opts = {}) {
     seenChk.add(id);
     checkerObligations.push({ obligationId: id, xpath: f.xpath, sc: f.sc, claimFamily: family });
   }
-  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations];
+  // 1.3.2 MEANINGFUL SEQUENCE (Item 14c): enumerate a PAGE-LEVEL meaning-vs-mechanics obligation ONLY when the vsr
+  // detector found a visual-vs-source reorder (gated, never on every page). Page-level, auto-PARTIAL → sequence-meaning-v0.
+  const sequenceObligations = [];
+  if (pageHasReorder) {
+    const sid = oracle.oblId(oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH, '1.3.2', 'meaningful-sequence');
+    if (!existingOblIds.has(sid)) sequenceObligations.push({ obligationId: sid, xpath: oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH, sc: '1.3.2', claimFamily: 'meaningful-sequence' });
+  }
+  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...sequenceObligations];
   const dispositions = [];
   for (const c of claims) dispositions.push({
     obligationId: oracle.oblId(c._target, c._sc, c._family), kind: 'CLAIM',
@@ -370,7 +402,7 @@ function buildV3(bundle, opts = {}) {
   const scoreCache = Object.create(null);
   const scoreMech = (mech) => { if (!Object.prototype.hasOwnProperty.call(scoreCache, mech)) scoreCache[mech] = metrics.scoreMechanism(scoringView, gold || [], mech, opts.provisionOpts || {}); return scoreCache[mech]; };
   const obsByObl = Object.create(null);
-  for (const o of [...annotationObs, ...trapObs, ...axeObs]) { // trap + axe obs fill the ledger alongside the LLM obs (but not the scoring view)
+  for (const o of [...annotationObs, ...trapObs, ...axeObs, ...targetSizeObs]) { // trap + axe + target-size obs fill the ledger alongside the LLM obs (but not the scoring view)
     const oid = oracle.oblId(o.observationScope && o.observationScope.actionTargetRef, o.sc, o.claimFamily);
     (obsByObl[oid] = obsByObl[oid] || []).push(o);
   }

@@ -123,6 +123,7 @@ function processLlm(llmArt, opts = {}) {
 function selectSubjects(collect, ledger, { onlyAutoPartial = true, ownedScs } = {}) {
   const elByXpath = {};
   for (const el of (collect && collect.elements) || []) if (el && el.xpath) elByXpath[el.xpath] = el;
+  const structure = (collect && collect.structure) || null; // page facts threaded to page-structure subjects (Tier-0 #3)
   const owned = ownedScs instanceof Set ? ownedScs : new Set(ownedScs || []);
   const rows = (ledger || []).filter((r) => (onlyAutoPartial ? r.autoPartial : true) && !owned.has(r.sc));
   // collapse (xpath, sc, family) obligations to (xpath, skill) judging subjects.
@@ -133,11 +134,30 @@ function selectSubjects(collect, ledger, { onlyAutoPartial = true, ownedScs } = 
       const key = `${r.xpath}::${skill}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      subjects.push({ xpath: r.xpath, skill, sc: r.sc, claimFamily: r.claimFamily, element: elByXpath[r.xpath] || { xpath: r.xpath } });
+      const baseEl = elByXpath[r.xpath] || { xpath: r.xpath };
+      const element = (structure && PAGE_STRUCTURE_SKILLS.has(skill)) ? { ...baseEl, __pageStructure: structure } : baseEl;
+      subjects.push({ xpath: r.xpath, skill, sc: r.sc, claimFamily: r.claimFamily, element });
     }
   }
   return subjects;
 }
+
+// PAGE-LEVEL skills whose subject needs the whole-page structure (title/headings/landmarks/tables) threaded —
+// a page-level synthetic xpath has no element, and per-element precompute is blind to page structure (Tier-0 #3).
+const PAGE_STRUCTURE_SKILLS = new Set(['page-structure', 'grouping-and-reading-order']);
+
+// PER-FACET RUBRIC GATING (Item 7, route-by-facet): some rubrics share an SC with a deterministic owner or apply
+// to only a SUB-facet of the element type their SC enumerates. A gate returning false skips creating that
+// (element, rubric) subject — keeping a settled-by-a-runner facet (computable contrast) or a wrong-facet image
+// (a logo for long-description) out of the LLM lane. Element-level rubrics only; a missing element ⇒ skip (safe).
+const RUBRIC_GATE = {
+  // 7a: the complex-backdrop 1.4.3 rubric is for a NON-flat backdrop ONLY — a reliably COMPUTABLE ratio is owned
+  // by the deterministic text-contrast-pixel runner (Tier-0 #2). Route only when the runner abstained.
+  'contrast-over-complex-backdrop-v0': (el) => !!el && el.contrastReliable !== true,
+  // 7b: long-description-completeness is for genuinely data-bearing images (figure / role=figure / aria-describedby);
+  // a logo/icon gets alt-text-adequacy only (long-desc on a simple logo was UNCERTAIN noise on 2/3 of them).
+  'long-description-completeness-v0': (el) => !!el && el.complexImageHint === true,
+};
 
 // v2.9 PURE SIGNAL PRE-COMPUTE (3.1 §3): reuse a11y-eval verbatim where the inputs exist on the
 // element facts, so the agent reasons over the SAME deterministic measures v2.9 surfaced — never
@@ -180,6 +200,10 @@ function precomputeSignals(element, skill) {
       reliable,
       threshold: Number.isFinite(element.contrastThreshold) ? element.contrastThreshold : (Number.isFinite(s.contrastThreshold) ? s.contrastThreshold : undefined),
       needsPixelContrast: element.needsPixelContrast === true,
+      // INTERIM MITIGATION (Tier-0 #2): hand the LITERAL foreground colour the runner resolved, so when the
+      // pixel runner abstained (irreducible photo backdrop) and this still reaches vision, the model cannot
+      // invent "light/white text" and clear — afw4f7 #2 hallucinated the fg as white over a #555-on-black case.
+      fg: typeof element.color === 'string' ? element.color : (typeof element.fg === 'string' ? element.fg : undefined),
       // present IFF the runner could not produce a sound ratio — the explicit "why I abstained" the agent needs:
       uncertainReason: ratio == null
         ? (element.contrastUnreliableReason || 'the backdrop could not be reduced to two flat colors (gradient / image / overlay / semi-transparency), so a sound contrast ratio is not computable — judge readability from the pixels')
@@ -209,6 +233,112 @@ function precomputeSignals(element, skill) {
         ? 'the deterministic name-presence detector found an EMPTY accessible name — that absence IS the barrier (judge REPRODUCED); only judge adequacy when a name is present'
         : (an === null ? 'the accessible name could not be resolved deterministically — judge presence/adequacy from the evidence' : undefined),
     };
+    // DECORATIVE-MARKING conflict (Tier-0 #5, e88epe): a rendered-meaningful image marked decorative / removed
+    // from the a11y tree is the barrier the adequacy rubric kept missing — it saw the author alt ("W3C logo") +
+    // a logo crop and cleared. Hand it the hidden-mechanism so it judges the PIXELS, not the (AT-unspoken) name.
+    if (element.removedFromA11yTree === true || element.ariaHiddenWithName === true) {
+      s.decorativeMarking = {
+        removedFromA11yTree: element.removedFromA11yTree === true,
+        hiddenMechanism: element.hiddenMechanism || (element.ariaHiddenWithName ? 'aria-hidden' : null),
+        renderedMeaningful: element.renderedMeaningful === true,
+        ariaHiddenWithName: element.ariaHiddenWithName === true,
+        uncertainReason: 'this image is marked decorative / removed from the accessibility tree (' + (element.hiddenMechanism || 'aria-hidden') + '), so AT NEVER announces its author name — if the PIXELS carry meaningful content, a non-sighted user is denied it (judge REPRODUCED from the crop, NOT the hidden name)',
+      };
+    }
+    // Item 14a (2.4.4 in-context): surface the OTHER links sharing this link's accessible name + their destinations,
+    // so the rubric can judge whether identically-named links resolve to DIFFERENT places (a 2.4.4 barrier).
+    if (Array.isArray(element.__sameNameLinks) && element.__sameNameLinks.length) {
+      const dests = new Set(element.__sameNameLinks.map((l) => l.href || '').filter(Boolean));
+      s.sameNameLinks = {
+        count: element.__sameNameLinks.length,
+        peers: element.__sameNameLinks,
+        distinctDestinations: dests.size,
+        uncertainReason: 'other links on this page share this name — if any resolve to a DIFFERENT destination, the link purpose is NOT clear from the name alone (2.4.4 in context). Destinations shown are raw hrefs; equivalence is your judgment',
+      };
+    }
+    // Item 12 (composite name-role-state): surface the already-collected states/axStates bundle so the rubric can
+    // judge whether a container exposes its required child states (selected/expanded/checked/level). axStates is the
+    // authoritative CDP-computed set (eval-page); states is the DOM-attribute fallback. Absent ⇒ rubric self-abstains.
+    if (element.axStates || element.states) {
+      const st = element.axStates || element.states;
+      const kept = {};
+      for (const k of ['checked', 'expanded', 'pressed', 'selected', 'disabled', 'current', 'level', 'required', 'invalid', 'haspopup', 'readonly']) {
+        if (st[k] !== undefined && st[k] !== null) kept[k] = st[k];
+      }
+      if (Object.keys(kept).length) s.states = kept;
+    }
+    // Item 13 (scrutiny hint, not a presumed barrier): a native control that OVERRIDES its role (<button role=link>,
+    // <a role=button>) — verify the announced role matches its actual behavior. Many overrides are benign.
+    if (element.roleOverridesNative === true) {
+      s.roleScrutiny = {
+        overridesNativeRole: true, nativeTag: element.tag || null, roleAttr: element.roleAttr || null,
+        uncertainReason: 'this control overrides its native role — verify the ANNOUNCED role matches its actual behavior; treat as SCRUTINY, not a presumed barrier (many overrides are benign)',
+      };
+    }
+  }
+  // Item 13: surface a field's placeholder into the forms/field-label signals — flag the placeholder-as-SOLE-label
+  // smell (the placeholder disappears on input), without auto-failing a placeholder used ALONGSIDE a real label.
+  if (skill === 'forms-instructions-errors' && typeof element.placeholder === 'string' && element.placeholder.trim().length > 0) {
+    const hasName = typeof element.axName === 'string' && element.axName.trim().length > 0 && element.axName.trim() !== element.placeholder.trim();
+    s.placeholder = {
+      value: element.placeholder,
+      isOnlyLabelSource: !hasName,
+      uncertainReason: hasName ? undefined : 'the placeholder may be the field\'s ONLY label source — it disappears on input and is not a reliable label (3.3.2). Confirm a persistent visible/programmatic label exists',
+    };
+  }
+  // Item 10 (1.2.x media): surface the collected media facts so the rubric judges captions PRESENCE + plausibility
+  // (sync/quality are not statically judgeable → abstain). "absence ≠ pass": a present-but-EMPTY track is not captions.
+  if (skill === 'media-alternatives' && element.mediaInfo && typeof element.mediaInfo === 'object') {
+    const m = element.mediaInfo;
+    s.media = {
+      mediaTag: m.mediaTag || null,
+      hasCaptionsTrack: m.hasCaptionsTrack === true,
+      captionsTrackEmpty: m.captionsTrackEmpty === true,
+      hasDescriptionsTrack: m.hasDescriptionsTrack === true,
+      trackKinds: Array.isArray(m.trackKinds) ? m.trackKinds : [],
+      mediaErrorName: element.mediaErrorName === true,
+      uncertainReason: 'judge whether an ADEQUATE captions alternative exists: a <track kind=captions> that is PRESENT but EMPTY (no src) is NOT captions (absence ≠ pass); caption SYNC/quality cannot be judged from a static frame ⇒ return PARTIAL on those',
+    };
+  }
+  // PAGE-STRUCTURE / READING-ORDER provisioning (Tier-0 #3): the page-level rubrics (2.4.2 title, 2.4.6/2.4.10
+  // headings, 1.3.1 relationships) bind to a SYNTHETIC xpath with NO element, and the off-screen b49b2e heading
+  // is omitted from the viewport crop — so without this branch the model gets an EMPTY stub and judged "a plain
+  // span" / "no title supplied". Surface the threaded page structure + the subject heading's own role/level/text/
+  // offscreen so an off-viewport heading is still judgeable. `__pageStructure` is attached by selectRubricSubjects.
+  if (skill === 'page-structure' || skill === 'grouping-and-reading-order') {
+    const struct = element.__pageStructure || null;
+    if (struct) {
+      if (skill === 'page-structure') {
+        const t = typeof struct.title === 'string' ? struct.title : '';
+        s.pageTitle = { value: t || null, present: t.trim().length > 0 };
+      }
+      s.structure = {
+        title: typeof struct.title === 'string' ? struct.title : null,
+        lang: struct.lang || null,
+        headings: Array.isArray(struct.headings) ? struct.headings.slice(0, 60) : [],
+        landmarks: Array.isArray(struct.landmarks) ? struct.landmarks.slice(0, 40) : undefined,
+        tables: Array.isArray(struct.tables) ? struct.tables : undefined, // Tier-0 #4 (when collected)
+      };
+    }
+    // the SUBJECT heading itself (b49b2e): surface role/level/text + offscreen so the off-viewport heading the
+    // crop omits is judgeable as a heading, not "a plain span". Reads the element's own collected facts.
+    const tag = typeof element.tag === 'string' ? element.tag.toLowerCase() : '';
+    const role = element.roleAttr || element.role || element.axRole || '';
+    if (/(^|\s)heading(\s|$)/i.test(role) || /^h[1-6]$/.test(tag)) {
+      const lvl = Number.isFinite(element.ariaLevel) ? element.ariaLevel
+        : (element.axStates && Number.isFinite(element.axStates.level) ? element.axStates.level
+          : (/^h([1-6])$/.test(tag) ? Number(tag[1]) : undefined));
+      const box = element.box && typeof element.box === 'object' ? element.box : null;
+      const bw = box ? (box.width != null ? box.width : box.w) : null;
+      const bh = box ? (box.height != null ? box.height : box.h) : null;
+      const isOffscreen = !!(box && ((Number.isFinite(box.x) && box.x <= -1000) || (Number.isFinite(box.y) && box.y <= -1000) || (Number(bw) <= 1 && Number(bh) <= 1)));
+      s.heading = {
+        text: typeof element.text === 'string' && element.text ? element.text : (typeof element.axName === 'string' ? element.axName : null),
+        role: role || 'heading',
+        ariaLevel: Number.isFinite(lvl) ? lvl : undefined,
+        isOffscreen,
+      };
+    }
   }
   s.boxMin = num(element.box && typeof element.box === 'object' ? Math.min(element.box.w, element.box.h) : undefined);
   return s;
@@ -396,6 +526,25 @@ const mapToRubricVerdict = (v29) => RUBRIC_VERDICT_FROM_V29[v29] || null;
 function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true } = {}) {
   const elByXpath = {};
   for (const el of (collect && collect.elements) || []) if (el && el.xpath) elByXpath[el.xpath] = el;
+  const structure = (collect && collect.structure) || null; // page facts threaded to page-structure subjects (Tier-0 #3)
+  // Item 14a (2.4.4 in-context, set-not-element): a per-page index of links sharing an accessible name. A
+  // link-purpose subject is handed the OTHER same-named links + their destinations so the rubric can judge whether
+  // identically-named links go to DIFFERENT places (ACT fd3a94) — the equivalence call a single-element view misses.
+  const linksByName = {};
+  for (const el of (collect && collect.elements) || []) {
+    if (!el || !el.xpath) continue;
+    if ((el.axRole || el.sampledRole || el.roleAttr) !== 'link') continue;
+    const nm = (typeof el.axName === 'string' && el.axName.trim()) || (typeof el.text === 'string' && el.text.trim()) || '';
+    if (!nm) continue;
+    const k = nm.toLowerCase();
+    (linksByName[k] = linksByName[k] || []).push({ xpath: el.xpath, name: nm, href: el.href || null });
+  }
+  const sameNameLinksFor = (el) => {
+    const nm = (typeof el.axName === 'string' && el.axName.trim()) || (typeof el.text === 'string' && el.text.trim()) || '';
+    if (!nm) return null;
+    const peers = (linksByName[nm.toLowerCase()] || []).filter((l) => l.xpath !== el.xpath);
+    return peers.length ? peers.slice(0, 12) : null;
+  };
   const bySc = {};
   for (const r of Object.values(rubrics || {})) if (r && r.sc) (bySc[r.sc] = bySc[r.sc] || []).push(r);
   const rows = (ledger || []).filter((r) => (onlyAutoPartial ? r.autoPartial : true));
@@ -404,8 +553,18 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
   for (const row of rows) for (const rub of (bySc[row.sc] || [])) {
     const key = `${row.xpath}::${rub.id}`;
     if (seen.has(key)) continue;
+    const baseEl = elByXpath[row.xpath] || { xpath: row.xpath };
+    const gate = RUBRIC_GATE[rub.id]; // per-facet gating (Item 7): skip a rubric that is not this element's facet
+    if (gate && !gate(baseEl)) continue;
     seen.add(key);
-    subjects.push({ xpath: row.xpath, sc: row.sc, claimFamily: row.claimFamily, rubricId: rub.id, rubric: rub, skill: rub.skill || null, element: elByXpath[row.xpath] || { xpath: row.xpath } });
+    // attach per-subject evidence via a SHALLOW COPY (never mutate the shared collect.elements record): the
+    // whole-page structure for page-structure/grouping rubrics (__pageStructure), and the same-named link set for
+    // the in-context link-purpose rubric (__sameNameLinks). precomputeSignals reads these.
+    const extra = {};
+    if (structure && PAGE_STRUCTURE_SKILLS.has(rub.skill || '')) extra.__pageStructure = structure;
+    if (rub.id === 'link-purpose-v0') { const peers = sameNameLinksFor(baseEl); if (peers) extra.__sameNameLinks = peers; }
+    const element = Object.keys(extra).length ? { ...baseEl, ...extra } : baseEl;
+    subjects.push({ xpath: row.xpath, sc: row.sc, claimFamily: row.claimFamily, rubricId: rub.id, rubric: rub, skill: rub.skill || null, element });
   }
   return subjects;
 }

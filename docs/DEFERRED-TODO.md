@@ -92,3 +92,35 @@ IDENTITY, not by xpath string:
   identity. (Store BOTH on the node — `cssTarget` is already emitted by `axe-surface.js` for debugging.)
 - Clean up the attribute after the axe run (or accept it's ephemeral in the headless page).
 - Verify on a real corpus `collect` artifact (confirm a promoted disposition appears) before relying on it.
+
+## D. Dynamic-subject DISCOVERY experiment for disclosure / tab / carousel reveal (Item 14b of the LLM-routing analysis)
+**Deferred 2026-06-18** while executing the LLM Routing & Failure Analysis. The other Tier-2 lanes shipped; this
+one is a LARGE new mutating runner whose entire payoff is gated on the on-hold LLM + CDP tools, so a partial
+version would add inert/dead code (the exact "already-computed facts dead-end" anti-pattern the report flags).
+
+**Problem.** A subject that exists ONLY after activation — 2.4.10 sections injected by a disclosure, a 1.1.1
+carousel-panel image, 1.4.3 text revealed by an "expand" — is invisible to `deriveObligations`, which enumerates
+only from the RESTING `collect.elements`. Post-activation subjects can enter only via `dynamicSubjects`
+(`dynamic-subjects.js` `expandDiscovered`, Rule 13, content-addressed-fingerprint gated, capped by
+`MAX_SUBJECTS_PER_RESULT`/`MAX_TOTAL_SUBJECTS`) — but NO producer emits disclosure/tab/carousel reveals. The
+consumption machinery exists; the EMISSION does not.
+
+**Why it's a runner, not a wiring task.** `STATE_TRANSITIONS` (vision-capture.js) is **SC-keyed** (`2.4.7→focus`,
+`1.4.13→hover`, `3.3.1→submit`), but a reveal is **element-behavior-keyed** (a control with `aria-expanded` /
+`aria-controls`, a `<details><summary>`, a `[role=tab]`, a carousel "next") and affects MANY SCs at once — so the
+reveal cannot be expressed as an SC→transition entry. It needs a dedicated discovery experiment.
+
+**Design.**
+- A new mutating experiment (fresh-clone isolation, mirroring `vision-capture.js`'s reload isolation + the
+  keyboard-trap runner's mutation discipline): find reveal controls (`[aria-expanded]`+`[aria-controls]`,
+  `details>summary`, `[role=tab]`, carousel controls), activate ONE per subject, diff the DOM, and emit each
+  newly-rendered obligation-bearing node as a `dynamicSubject` with `viaAction` provenance + a content-addressed
+  fingerprint (so `expandDiscovered` reconciles it like any other and fails closed on a forged fingerprint).
+- Bound hard: per-control activation budget, the existing `MAX_SUBJECTS_PER_RESULT`/`MAX_TOTAL_SUBJECTS` caps, and
+  combinatorial-blowup guard (don't activate every control on a large app page — cap + prioritize).
+- Evidence path: allow `set_state_and_capture` (cdp-tools.js, already built) for states OUTSIDE the frozen
+  STATE_TRANSITIONS table when tools are enabled, so a discovered subject gets a before/after crop.
+- **Fail-closed:** an unreached state must NOT read as "no barrier" — `stateReached`/`textVisible` gate the
+  verdict; a not-reproduced reveal stays auto-PARTIAL, never a clear. Shadow/canary; never auto-trigger the corpus.
+- Verify with a disclosure/tab/carousel fixture: confirm the revealed node appears as a `dynamicSubject` and
+  reconciles, before relying on it.

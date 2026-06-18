@@ -49,6 +49,14 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'form-field-suggestion', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['error-suggestion'] }),
   // Coverage-audit broadenings — re-declared to match the oracle's new branches exactly (Rule 16).
   Object.freeze({ id: 'named-iframe', when: (el) => el.tag === 'iframe' && typeof el.axName === 'string' && el.axName.trim().length > 0, families: ['name-role-value'] }),
+  // Item 12 — composite container roles owe name-role-value (re-declared to match the oracle's COMPOSITE_ROLE gate, Rule 16).
+  Object.freeze({ id: 'composite-role', when: (el) => /^(menu|menubar|tree|treegrid|grid|tablist|listbox|radiogroup)$/.test(factRole(el)) && !WIDGET_ROLE.test(factRole(el)), families: ['name-role-value'] }),
+  // Item 11 — a live region owes a status-message (4.1.3) obligation (re-declared to match the oracle, Rule 16).
+  Object.freeze({ id: 'live-region', when: (el) => el.liveRegion === true, families: ['status-message'] }),
+  // Item 10 — a <video> owes a captions alternative (1.2.2) obligation (re-declared to match the oracle, Rule 16).
+  Object.freeze({ id: 'media-video', when: (el) => el.tag === 'video', families: ['media-alternatives'] }),
+  // Item 14d — auto-moving content owes a motion-control (2.2.2) obligation (re-declared to match the oracle, Rule 16).
+  Object.freeze({ id: 'auto-motion', when: (el) => el.autoMotion === true, families: ['motion-control'] }),
   Object.freeze({ id: 'non-text-contrast', when: (el) => WIDGET_ROLE.test(factRole(el)) || el.isImage === true, families: ['non-text-contrast'] }),
   Object.freeze({ id: 'heading-label', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)) || (el.tag === 'label' && factHasText(el)), families: ['heading-descriptive'] }),
   Object.freeze({ id: 'use-of-color', when: (el) => factRole(el) === 'link' || el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['use-of-color'] }),

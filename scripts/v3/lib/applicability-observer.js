@@ -13,6 +13,8 @@
 // and are not cross-checked; making the observation a MANDATORY bundle stage is the next increment.
 'use strict';
 
+const { nsXPath } = require('./xpath-ns.js'); // namespace-agnostic resolve (Tier-0 #1) — SVG/MathML subjects
+
 // in-page: resolve an element by xpath and compute its structural applicability facts independently.
 function observeFacts(xpath) {
   const r = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
@@ -54,7 +56,7 @@ async function observeApplicability(page, xpaths) {
   for (const xpath of xpaths) {
     if (!xpath || seen.has(xpath)) continue;
     seen.add(xpath);
-    const facts = await page.evaluate(observeFacts, xpath).catch(() => null);
+    const facts = await page.evaluate(observeFacts, nsXPath(xpath)).catch(() => null); // SVG/MathML-aware; key stays raw
     if (facts) observations.push({ xpath, facts });
   }
   return observations;

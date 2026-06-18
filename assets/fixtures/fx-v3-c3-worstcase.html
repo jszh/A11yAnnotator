@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>C3 worst-case barrier over a non-uniform but RESOLVED-opaque backdrop</title></head>
+<body>
+  <!-- div[1] BARRIER: an opaque background-color (#000 ⇒ backgroundResolved=true) with a gradient image that
+       makes the RENDERED backdrop non-uniform (black on the left, white on the right). #555 text fails on the
+       black portion (~1.7:1). The uniform-gated path abstains (pixelUniform=false); the worst-case path
+       promotes a BARRIER because the worst rendered region under the glyphs fails by a clear margin. Mirrors
+       the real ACT afw4f7/41afaa9b "#555 on black + photo" case. -->
+  <div style="background-color:#000;background-image:linear-gradient(90deg, rgba(255,255,255,0) 0 55%, #fff 100%);padding:10px">
+    <span style="color:#555">Worst-case fails: grey text over the black part of a non-uniform backdrop</span>
+  </div>
+  <!-- div[2] GUARD (no false barrier): opaque #000 bg + a subtle #000->#222 gradient (non-uniform) but WHITE
+       text stays ~14:1 at the worst extreme. The worst-case path must NOT fire (worst > threshold-0.5), and the
+       backdrop is non-uniform so it cannot CLEAR either ⇒ INCONCLUSIVE. -->
+  <div style="background-color:#000;background-image:linear-gradient(90deg, #000 0 55%, #222 100%);padding:10px">
+    <span style="color:#fff">Worst-case passes: white text stays high-contrast across a near-black backdrop</span>
+  </div>
+</body></html>

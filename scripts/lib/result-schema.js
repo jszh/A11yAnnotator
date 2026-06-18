@@ -9,6 +9,8 @@ const SKILLS = [
   'name-role-state', 'color-and-visual-text', 'keyboard-operability', 'focus-management',
   'focus-visibility', 'dynamic-announcement', 'reflow-and-pointer-affordances',
   'forms-instructions-errors', 'page-structure', 'grouping-and-reading-order',
+  'media-alternatives', // Item 10 (1.2.x time-based-media alternatives)
+  'timing-and-motion', // Item 14d (2.2.2 pause/stop/hide moving content)
 ];
 
 // Dynamic (driver-exercised) skills — a definite verdict here on a notFound element is illegal.
@@ -30,6 +32,8 @@ const SKILL_SCS = {
   'forms-instructions-errors': ['3.3.1', '3.3.2', '3.3.3', '1.3.1'],
   'page-structure': ['2.4.2', '2.4.6', '1.3.1', '2.4.10'],
   'grouping-and-reading-order': ['1.3.1', '1.3.2', '2.4.3'],
+  'media-alternatives': ['1.2.2', '1.2.1'], // Item 10: captions (1.2.2) + audio/video-only alternative (1.2.1)
+  'timing-and-motion': ['2.2.2'], // Item 14d: pause/stop/hide auto-moving content
 };
 
 // Page-level skills live in results.pageSkills (not per element). They MUST be
@@ -47,6 +51,7 @@ const SC_LEVEL = {
   '2.1.1': 'A', '2.1.2': 'A', '2.4.3': 'A', '2.4.11': 'AA', '2.4.7': 'AA', '2.4.13': 'AAA',
   '4.1.3': 'AA', '1.4.10': 'AA', '2.5.8': 'AA', '1.4.13': 'AA', '2.5.5': 'AAA',
   '3.3.1': 'A', '3.3.2': 'A', '3.3.3': 'AA', '2.4.2': 'A', '2.4.6': 'AA', '1.3.1': 'A', '1.3.2': 'A', '2.4.10': 'AAA',
+  '1.2.2': 'A', '1.2.1': 'A', '2.2.2': 'A', // Item 10 media captions/alternative + Item 14d pause-stop-hide
 };
 
 // Pull the first WCAG SC code out of an `sc` field that may read "1.4.3 Contrast".
