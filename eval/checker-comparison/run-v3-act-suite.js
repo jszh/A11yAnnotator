@@ -526,7 +526,11 @@ async function main() {
     // flag-based lanes (coverage view): v3 (deterministic), axe (scanner), and their union.
     const v3Flag = (rec.observations || []).some((o) => o.outcome === 'BARRIER_OBSERVED');
     const axeFlag = !!(AXE && rec.axe && Array.isArray(rec.axe.violations) && rec.axe.violations.some((v) => tc.sc.includes(v.sc)));
-    rec.v3Flag = v3Flag; rec.axeFlag = axeFlag;
+    // axe's INCOMPLETE (needs-review) lane was collected but never consulted, so a case axe flagged FOR REVIEW
+    // (e.g. aria-prohibited-attr, frame-title-unique) read as "axe silent" in bothFail. Record it as a SEPARATE
+    // review signal — NOT folded into axeFlag (review is not a decided barrier; folding it would over-flag).
+    const axeReview = !!(AXE && rec.axe && Array.isArray(rec.axe.incomplete) && rec.axe.incomplete.some((v) => tc.sc.includes(v.sc)));
+    rec.v3Flag = v3Flag; rec.axeFlag = axeFlag; rec.axeReview = axeReview;
     // COVERAGE view: all lanes scored over the WHOLE subset (a lane that structurally doesn't attempt an SC
     // scores it as uncovered, not "out of scope") — so v3-deterministic's gaps on its non-catalog SCs and
     // axe's fill-in are both visible on one denominator. (summary.v3 above keeps the catalog-only view.)

@@ -45,6 +45,10 @@ function generateCandidates(collect, drive) {
   };
   for (const el of (collect && collect.elements) || []) {
     if (!el || !el.xpath) continue;
+    // an IN-FRAME element (coverage audit, iframe traversal) carries a NAMESPACED xpath a top-doc experiment
+    // cannot drive (document.evaluate would throw). Skip experiment candidates for it — its obligations still
+    // enumerate (deriveObligations) and reach the non-driving agent/LLM lane as auto-PARTIAL.
+    if (el.inFrame === true) continue;
     const d = driveByXpath[el.xpath] || {};
     const baselineFocus = d.focusIndicator;
     const indeterminate = !baselineFocus || baselineFocus.present == null || baselineFocus.cropInvalid === true;

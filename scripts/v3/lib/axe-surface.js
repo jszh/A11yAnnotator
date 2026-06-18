@@ -136,10 +136,14 @@ function surfaceAxeFindings(collect) {
       for (const sc of scs) {
         for (const n of nodes) {
           const target = n && Array.isArray(n.target) ? n.target.join(' ') : (n && n.target != null ? String(n.target) : null);
+          // PREFER the v3 xpath the collector resolved at collection time (n.xpath) so build-v3 can match the
+          // finding to an obligation by xpath (the axe-promotion). Falls back to the raw CSS target when absent
+          // (older collector output / a node the collector couldn't resolve) — then it stays a shadow-only signal.
+          const xpath = (n && typeof n.xpath === 'string' && n.xpath) || target;
           const key = `${ruleId}::${sc}::${target || ''}::${kind}`;
           if (seen.has(key)) continue;
           seen.add(key);
-          findings.push({ source: 'axe', detector: `axe:${ruleId}`, ruleId, sc, impact, kind, xpath: target, review: effReview });
+          findings.push({ source: 'axe', detector: `axe:${ruleId}`, ruleId, sc, impact, kind, xpath, cssTarget: target, review: effReview });
         }
       }
     }

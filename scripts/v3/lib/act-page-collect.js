@@ -157,6 +157,52 @@ async function collectActPage(page, opts = {}) {
         hasHoverContent: false,
       });
     }
+    // IFRAME TRAVERSAL (coverage audit, akn7bn 2.1.1): descend ONE level into SAME-ORIGIN iframes and collect
+    // their interactive content with a NAMESPACED xpath (`<iframeXpath>>>/<in-frame xpath>`) + inFrame:true.
+    // Cross-origin frames throw on contentDocument → skipped. The namespaced xpath is opaque-but-stable for the
+    // obligation id; downstream resolution degrades safely (vision page.evaluate is .catch-guarded; the candidate
+    // generator skips experiment candidates for inFrame elements), so an in-frame subject reaches the agent lane
+    // (2.1.1 keyboard-operable) without a top-doc experiment ever trying to drive an unresolvable xpath.
+    function xpathOfInDoc(e, doc) {
+      if (!e || !e.tagName) return '';
+      if (e === doc.documentElement) return '/html';
+      if (e === doc.body) return '/html/body';
+      const tag = e.tagName.toLowerCase();
+      let idx = 1;
+      for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++;
+      return xpathOfInDoc(e.parentElement, doc) + '/' + tag + '[' + idx + ']';
+    }
+    for (const frame of document.querySelectorAll('iframe, frame')) {
+      if (els.length >= cap) break;
+      let fdoc = null;
+      try { fdoc = frame.contentDocument; } catch (e) { fdoc = null; } // cross-origin SecurityError → skip
+      if (!fdoc || !fdoc.body) continue;
+      const prefix = xpathOf(frame) + '>>';
+      for (const el of fdoc.querySelectorAll('body *')) {
+        if (els.length >= cap) break;
+        if (!visible(el)) continue;
+        const tag = el.tagName.toLowerCase();
+        const roleAttr = el.getAttribute('role') || '';
+        const type = el.getAttribute('type') || '';
+        const href = el.getAttribute('href') || '';
+        const text = textOf(el).slice(0, 240);
+        const sampledRole = roleAttr || nativeRoleInPage(tag, type, href);
+        const focusable = focusableByMarkup(el);
+        const isFormField = fieldLike(el);
+        const isImage = tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img' || (tag === 'input' && type === 'image');
+        if (!focusable && !isFormField && !sampledRole && !text && !isImage) continue;
+        const box = el.getBoundingClientRect();
+        els.push({
+          xpath: prefix + xpathOfInDoc(el, fdoc), inFrame: true,
+          text, hasText: text.length > 0, focusable,
+          isInteractive: focusable || /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/.test(sampledRole),
+          isFormField, isImage, ariaAttrs: el.getAttributeNames().filter((n) => n.indexOf('aria-') === 0),
+          roleAttr, sampledRole, axRole: sampledRole, axName: labelledText(el), tag, type,
+          box: { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.width), height: Math.round(box.height) },
+          inModal: false, focusRisk: false, underOverlay: false, hasHoverContent: false,
+        });
+      }
+    }
     return {
       title: document.title || '',
       lang: document.documentElement.getAttribute('lang') || '',
@@ -164,6 +210,32 @@ async function collectActPage(page, opts = {}) {
       reflowApplicable: false,
     };
   }, elementCap);
+
+  // OPT-IN axe run (axe-promotion): inject axe + resolve each finding node's CSS target to the SAME v3 xpath
+  // scheme this collector uses (the xpathOf below is byte-identical to the inventory's), so build-v3 can match an
+  // axe violation to its obligation exactly. read-only; any failure degrades to axeRan:false (never throws).
+  let axeData = null;
+  if (opts.runAxe && opts.axePath) {
+    try {
+      await page.addScriptTag({ path: opts.axePath });
+      axeData = await page.evaluate(async () => {
+        function xpathOf(e) {
+          if (!e || !e.tagName) return '';
+          if (e === document.documentElement) return '/html';
+          if (e === document.body) return '/html/body';
+          const tag = e.tagName.toLowerCase();
+          let idx = 1;
+          for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++;
+          return xpathOf(e.parentElement) + '/' + tag + '[' + idx + ']';
+        }
+        const resolveXpath = (target) => { try { const sel = Array.isArray(target) ? target[target.length - 1] : target; const el = sel ? document.querySelector(sel) : null; return el ? xpathOf(el) : null; } catch (e) { return null; } };
+        const cfg = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }, resultTypes: ['violations', 'incomplete'] };
+        const r = await axe.run(document, cfg);
+        const map = (arr) => (arr || []).map((v) => ({ id: v.id, impact: v.impact, wcag: (v.tags || []).filter((t) => /^wcag\d/.test(t)), nodes: (v.nodes || []).map((n) => ({ target: n.target, xpath: resolveXpath(n.target) })) }));
+        return { violations: map(r.violations), incomplete: map(r.incomplete) };
+      }).catch(() => null);
+    } catch (e) { axeData = null; }
+  }
 
   return {
     file: opts.file || `act:${url}`,
@@ -175,6 +247,9 @@ async function collectActPage(page, opts = {}) {
     elementCount: (data.elements || []).length,
     page: { reflowApplicable: !!data.reflowApplicable },
     structure: { title: data.title || '', lang: data.lang || '' },
+    axe: axeData ? axeData.violations : [],
+    axeIncomplete: axeData ? axeData.incomplete : [],
+    axeRan: !!axeData,
   };
 }
 

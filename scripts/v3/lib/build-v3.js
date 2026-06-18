@@ -280,6 +280,36 @@ function buildV3(bundle, opts = {}) {
       }));
     }
   }
+  // AXE-PROMOTION (coverage audit — user-approved EXPAND of [[harness-3-3-checker-decision]]): promote axe's
+  // DECIDED violations on its CLOSED deterministic sub-domains (name/alt PRESENCE, structural relations) from
+  // the shadow checkerFinding lane to a PROVISIONAL BARRIER on the matching obligation. axe owns these facets
+  // precisely (route-by-FACET: presence/validity = deterministic). The §5b fill only touches an ENUMERATED
+  // auto-PARTIAL obligation — a catalog/CLAIM disposition is NEVER overridden (tie-break), and a colliding LLM
+  // clear loses to axe's barrier (barrier-dominates). incomplete/review stays a checker-uncertainty HINT (below),
+  // never a fill. The axe node carries the v3 XPATH (resolved per-collector at collection time) so it matches by
+  // xpath; an axe finding whose xpath matches no enumerated obligation simply doesn't fill (stays a shadow signal).
+  const AXE_SC_FAMILY = { '4.1.2': 'name-role-value', '1.1.1': 'non-text-content', '2.4.4': 'link-purpose', '1.4.1': 'use-of-color' };
+  // ONLY document-title (2.4.2) remaps to a page-level obligation — a MISSING title is genuinely a page-level
+  // barrier. 1.3.1 is deliberately NOT remapped: axe's 1.3.1 violations are ELEMENT-specific (a td-headers cell,
+  // a list-structure node) and blanketing any one onto the single page-level info-relationships obligation
+  // over-fires; those stay shadow checker signals. element-level SCs above match by their own xpath.
+  const AXE_PAGE_LEVEL = { '2.4.2': [oracle.PAGE_TITLE_XPATH, 'page-title'] };
+  const axeObs = [];
+  if (bundle.checkerFindings && Array.isArray(bundle.checkerFindings.findings)) {
+    for (const f of bundle.checkerFindings.findings) {
+      if (!f || f.source !== 'axe' || f.kind !== 'violation' || f.review) continue; // DECIDED hard violations only
+      let xpath = f.xpath, family = AXE_SC_FAMILY[f.sc];
+      if (!family && Object.prototype.hasOwnProperty.call(AXE_PAGE_LEVEL, f.sc)) { xpath = AXE_PAGE_LEVEL[f.sc][0]; family = AXE_PAGE_LEVEL[f.sc][1]; }
+      if (!family || !xpath) continue;
+      axeObs.push(stampAuthority({
+        sc: f.sc, claimFamily: family,
+        observationScope: { actionTargetRef: xpath, state: 'static-dom', action: 'inspect', environment: 'headless-chromium' },
+        wouldBe: { observationOutcome: 'BARRIER_OBSERVED' },
+        source: 'axe-checker', mechanism: 'axe:' + String(f.ruleId || 'rule'),
+        confidence: 'high', rationaleRef: null, evidenceRefs: [],
+      }));
+    }
+  }
 
   // (5) INDEPENDENT obligation reconciliation: enumerate from the COLLECTOR (atomic per family);
   //     every obligation gets exactly one disposition. Authoritative CLAIMs clear; shadow
@@ -315,7 +345,7 @@ function buildV3(bundle, opts = {}) {
   const scoreCache = Object.create(null);
   const scoreMech = (mech) => { if (!Object.prototype.hasOwnProperty.call(scoreCache, mech)) scoreCache[mech] = metrics.scoreMechanism(scoringView, gold || [], mech, opts.provisionOpts || {}); return scoreCache[mech]; };
   const obsByObl = Object.create(null);
-  for (const o of [...annotationObs, ...trapObs]) { // trapObs fill the ledger alongside the LLM obs (but not the scoring view)
+  for (const o of [...annotationObs, ...trapObs, ...axeObs]) { // trap + axe obs fill the ledger alongside the LLM obs (but not the scoring view)
     const oid = oracle.oblId(o.observationScope && o.observationScope.actionTargetRef, o.sc, o.claimFamily);
     (obsByObl[oid] = obsByObl[oid] || []).push(o);
   }
