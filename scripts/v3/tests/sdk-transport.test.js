@@ -104,3 +104,52 @@ test('sdk transport: never leaks a metered key into the child env (passes OAuth 
   assert.ok(seenEnv && !('ANTHROPIC_API_KEY' in seenEnv), 'the metered key is stripped from the child env');
   assert.equal(seenEnv.CLAUDE_CODE_OAUTH_TOKEN, 'oauth-tok');
 });
+
+// a multi-turn stream: thinking + a tool_use, then the tool_result (as a 'user' msg), then the final verdict + result.
+function multiTurnQuery() {
+  return async function* () {
+    yield { type: 'assistant', message: { role: 'assistant', content: [
+      { type: 'thinking', thinking: 'check the contrast first' },
+      { type: 'tool_use', id: 'tu_1', name: 'mcp__cdp__compute_contrast', input: { xpath: '/html/body/a' } },
+    ] } };
+    yield { type: 'user', message: { role: 'user', content: [
+      { type: 'tool_result', tool_use_id: 'tu_1', is_error: false, content: [{ type: 'text', text: '{"ratio":3.1}' }] },
+    ] } };
+    yield { type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: '{"verdict":"REPRODUCED","confidence":"high"}' }] } };
+    yield { type: 'result', subtype: 'success', is_error: false, num_turns: 2, usage: { input_tokens: 100, output_tokens: 50 }, total_cost_usd: 0.01 };
+  };
+}
+
+test('sdk transport: onTrace captures the FULL turn-by-turn trace (thinking, tool_use, tool_result, result usage)', async () => {
+  const events = [];
+  const transport = makeClaudeSdkTransport({ queryImpl: multiTurnQuery(), oauthToken: 'tok' });
+  const res = await transport({ messages: [{ role: 'user', content: [] }] }, { onTrace: (e) => events.push(e) });
+  assert.match(res.content[0].text, /REPRODUCED/, 'still returns the assistant verdict text');
+  const kinds = events.flatMap((e) => (e.blocks ? e.blocks.map((b) => b.kind) : [e.type]));
+  assert.ok(kinds.includes('thinking'), 'thinking captured (was dropped)');
+  assert.ok(kinds.includes('tool_use'), 'tool CALL captured (was dropped)');
+  assert.ok(kinds.includes('tool_result'), 'tool RESPONSE captured (was dropped)');
+  const result = events.find((e) => e.type === 'result');
+  assert.ok(result && result.usage && result.usage.output_tokens === 50, 'result usage captured');
+});
+
+test('sdk transport: makeRunAgent attaches the full trace to the parsed verdict (out.trace)', async () => {
+  const runAgent = makeRunAgent({ transport: makeClaudeSdkTransport({ queryImpl: multiTurnQuery(), oauthToken: 'tok' }), model: 'm' });
+  const out = await runAgent([{ text: 'judge this' }], { xpath: '/html/body/a' });
+  assert.equal(out.verdict, 'REPRODUCED');
+  assert.ok(Array.isArray(out.trace) && out.trace.length >= 4, 'the full trace rides the verdict object');
+  const blocks = out.trace.flatMap((e) => e.blocks || []);
+  assert.equal(blocks.find((b) => b.kind === 'tool_use').name, 'mcp__cdp__compute_contrast', 'the tool name + args are recorded');
+  assert.ok(blocks.find((b) => b.kind === 'tool_result'), 'the tool response is recorded for analysis');
+});
+
+test('sdk transport: passes reasoning effort to query() options (default medium; overridable; omitted when null)', async () => {
+  let seen = null;
+  const queryImpl = async function* (args) { seen = args.options; yield { type: 'assistant', message: { content: [{ type: 'text', text: VERDICT }] } }; yield { type: 'result', subtype: 'success' }; };
+  await makeClaudeSdkTransport({ queryImpl, oauthToken: 'tok' })({ messages: [{ role: 'user', content: [] }] });
+  assert.equal(seen.effort, 'medium', 'sonnet judge defaults to medium reasoning effort');
+  await makeClaudeSdkTransport({ queryImpl, oauthToken: 'tok', effort: 'high' })({ messages: [{ role: 'user', content: [] }] });
+  assert.equal(seen.effort, 'high', 'effort is overridable');
+  await makeClaudeSdkTransport({ queryImpl, oauthToken: 'tok', effort: null })({ messages: [{ role: 'user', content: [] }] });
+  assert.ok(!('effort' in seen), 'a null effort sends NO effort key (never undefined) to the SDK');
+});

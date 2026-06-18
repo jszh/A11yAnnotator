@@ -4,18 +4,17 @@
 // (opts.X ?? LIMITS.<tier>.X) — so this is a pure config KNOB-PANEL with NO logic. The budget LOGIC stays
 // where it lives (budget.js makeRunBudget/withDeadline; the SDK transport in llm-agent-adapter.js); only the
 // numbers' HOME moves here. Values are UNCHANGED from where they were inlined — this is behavior-preserving.
-//
-// (The gold-calibration n≥149 is a statistical SAMPLE-SIZE threshold, NOT a budget — deliberately excluded.)
+
 const LIMITS = Object.freeze({
   // ── A. Formal cost budgets (budget.js · Rule 8 "bounded cost"). Exhaustion ⇒ an explicit unrun/deferred
   //       record, never a silent drop or a false clear. ─────────────────────────────────────────────────
   experiment: Object.freeze({
-    defaultWallClockMs: 20000,        // one attempt of one runner (DEFAULT_COST.maxWallClockMs)
-    maxWallClockMs: 120000,           // hard clamp on a catalog-supplied wall (MAX_WALL_CLOCK_MS)
+    defaultWallClockMs: 45000,        // one attempt of one runner (DEFAULT_COST.maxWallClockMs)
+    maxWallClockMs: 150000,           // hard clamp on a catalog-supplied wall (MAX_WALL_CLOCK_MS)
     defaultRetries: 1,                // DEFAULT_COST.retries
     maxRetries: 5,                    // hard clamp on catalog retries (MAX_RETRIES)
     defaultMutationRisk: 'low',       // DEFAULT_COST.mutationRisk
-    runWallClockMs: 10 * 60 * 1000,   // shared run-level pool across a page (makeRunBudget default)
+    runWallClockMs: 10 * 60 * 1000,   // anti-runaway PAGE CEILING (makeRunBudget default); per-item walls are the real budget — only a page's TAIL past this ceiling defers
     reachSafetyCap: 2000,             // anti-pathology Tab-press cap for the reachability walk (run-experiments)
   }),
 
@@ -26,7 +25,7 @@ const LIMITS = Object.freeze({
 
   // ── C. LLM-lane budgets (llm-agent-adapter.js + the entry points). The LLM analog of the run pool. ─────
   llm: Object.freeze({
-    maxTokens: 200000,                  // per model call (makeRunAgent) — the token budget
+    maxTokens: 32000,                  // per model call (makeRunAgent) — the token budget
     // (model NAMES are config, not budgets — they stay inline in the adapter / entry points)
     httpTimeoutMs: 60000,             // makeAnthropicTransport timeoutMs (dormant API-key path)
     perTurnTimeoutMs: 60000,          // SDK per-turn stall timeout
@@ -47,6 +46,9 @@ const LIMITS = Object.freeze({
     llmTool: 4,                       // V3_LLM_TOOL_CONCURRENCY default (≈ concurrent tool tabs)
     reapAgeMarginMs: 30000,           // tool-tab reap age = toolRunTimeoutMs + this (strictly above the abort)
     reapAgeFallbackMs: 330000,        // openToolSession reapAge default when no run timeout is supplied
+    maxTabs: 50,                      // CENTRAL tab allocator cap: hard ceiling on CONCURRENTLY-OPEN tabs across
+                                      // all lanes/pages (V3_MAX_TABS). Memory-bound default; a CPU-bound workload
+                                      // (many heavy pages painting at once) should lower it toward core count.
   }),
 
   // ── D′. ACT-suite knobs (eval/checker-comparison/run-v3-act-suite.js). ──────────────────────────────────

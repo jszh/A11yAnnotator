@@ -12,6 +12,7 @@ const LIMITS = require('./limits.js'); // concurrency + tool-session budget DEFA
 const { proposeClaims } = require('./proposer.js');
 const { buildV3 } = require('./build-v3.js');
 const manifest = require('./manifest.js');
+const { makeTimings } = require('./timings.js'); // per-stage + per-element wall-clock → bundle.timings (non-hashed)
 const agentPlanner = require('./agent-planner.js');
 
 // PHASE 2 tool session: a live browser at the page URL + a fresh-clone factory, threaded to the in-process
@@ -59,6 +60,7 @@ async function openToolSession(url, executablePath, reapAgeMs = LIMITS.concurren
 // timestamp (the runner stamps freshness). Returns every stage artifact + the gated result.
 async function orchestrate(collect, drive, opts = {}) {
   const now = Number.isFinite(opts.now) ? opts.now : (Number.isFinite(collect.collectedAt) ? collect.collectedAt + 1 : 1);
+  const timings = makeTimings(); // ONE collector threaded through the run; snapshotted into bundle.timings at the end
   cg.annotateApplicableScs(collect);
   const candidates = cg.generateCandidates(collect, drive);
   const autoPlan = sch.schedulePlan(candidates, { maxAutomatic: opts.maxAutomatic });
@@ -71,8 +73,12 @@ async function orchestrate(collect, drive, opts = {}) {
   // builder can verify lineage at the publish boundary. The key comes from opts or the trusted
   // authority config (__trust) — never the bundle. Absent a key, evidence is unsigned ⇒ shadow-only.
   const attestationKey = opts.attestationKey || (opts.authority && opts.authority.__trust && opts.authority.__trust.attestationKey) || null;
-  const experiments = await run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey, budgetOpts: opts.budgetOpts, experimentConcurrency: opts.experimentConcurrency });
+  const experiments = await timings.stage('experiments', () => run.runPlan(plan, { resolveUrl: opts.resolveUrl, executablePath: opts.executablePath, attestationKey, budgetOpts: opts.budgetOpts, experimentConcurrency: opts.experimentConcurrency, maxTabs: opts.maxTabs }));
   experiments.startedAt = now;
+  // per-ELEMENT experiment durations ride a side channel (wall-clock is run-dependent ⇒ kept OUT of the hashed
+  // experiments artifact, exactly like applicabilityObservations). Fold into the timings collector, then drop.
+  for (const st of (experiments.stepTimings || [])) timings.element(st.candidateId, 'experiment', st.durationMs);
+  delete experiments.stepTimings;
   // the INDEPENDENT applicability observation (Rule 15) is produced by the runner pass but lives in
   // its OWN stage artifact (a different producer than the experiment outcome) — pull it out so the
   // experiments stage stays the outcome record and the manifest hashes applicability separately.
@@ -91,9 +97,9 @@ async function orchestrate(collect, drive, opts = {}) {
   // authoritative; they are recorded for offline scoring against the hand-labeled ground truth.
   if (opts.runInstruments && opts.resolveUrl) {
     const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
-    const inst = await require('./run-instruments.js')
+    const inst = await timings.stage('instruments', () => require('./run-instruments.js')
       .runInstrumentsForUrl(url, { executablePath: opts.executablePath, file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest })
-      .catch(() => ({ file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, findings: [] }));
+      .catch(() => ({ file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, findings: [] })));
     bundle.instruments = inst;
   }
   // CHECKER FINDINGS stage — C0 (Harness 3.3): surface axe's already-decided coverage from the
@@ -112,7 +118,7 @@ async function orchestrate(collect, drive, opts = {}) {
   // artifact alongside axe; each finding carries its own source, so the lanes stay distinguishable.
   if (opts.runChecker && opts.resolveUrl) {
     const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
-    const r = await require('./checker-ibm.js').runIbmForUrl(url, { executablePath: opts.executablePath, label: collect.file }).catch((e) => ({ checkerUnavailable: true, reason: e && e.message }));
+    const r = await timings.stage('checker-ibm', () => require('./checker-ibm.js').runIbmForUrl(url, { executablePath: opts.executablePath, label: collect.file }).catch((e) => ({ checkerUnavailable: true, reason: e && e.message })));
     if (r && r.ran) { checkerFindings.push(...r.findings); engines.push('ibm'); }
     else checkerUnavailable = (r && r.reason) || 'IBM unavailable';
   }
@@ -136,7 +142,7 @@ async function orchestrate(collect, drive, opts = {}) {
   });
   // build opts threaded to BOTH passes so provisionalMode/gold take effect on the LLM-attached re-gate.
   const buildOpts = { authority: opts.authority, attestationKey: opts.attestationKey, artifactVerifier: opts.artifactVerifier, provisionalMode: opts.provisionalMode, gold: opts.gold, provisionOpts: opts.provisionOpts };
-  let built = buildV3(bundle, buildOpts);
+  let built = timings.stageSync('build', () => buildV3(bundle, buildOpts));
   // LLM EVIDENCE LANE (Harness 3.1 §2/§3; 3.2 rubrics+vision) — opt-in, offline, and INERT unless an
   // agent is injected (the default runAgent refuses, so no run can accidentally hit an API). Two-pass:
   // the preliminary build gives the obligation ledger, from which we select the auto-PARTIAL subjects to
@@ -162,7 +168,7 @@ async function orchestrate(collect, drive, opts = {}) {
       const xps = [...new Set(allSubs.map((s) => s.xpath))];
       const statePlan = vc.buildStatePlan(allSubs); // focus/hover state-before/after pairs for the dynamic-state rubrics (audit #1 bridge)
       const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
-      visionByXpath = await vc.captureVisionForUrl(url, xps, { executablePath: opts.executablePath, statePlan }).catch(() => ({}));
+      visionByXpath = await timings.stage('vision', () => vc.captureVisionForUrl(url, xps, { executablePath: opts.executablePath, statePlan }).catch(() => ({})));
     }
     // PHASE 2 (opt-in V3_LLM_TOOLS): give the judge a LIVE in-process CDP tool session so it can activate
     // controls / resolve nodes mid-reasoning. The tools take xpath/coordinate args ⇒ ONE server over the
@@ -196,16 +202,24 @@ async function orchestrate(collect, drive, opts = {}) {
         // CHECK #1 (after each worker/subject): reap any stale leaked clone tab (concurrency-safe).
         afterEach: toolSession ? () => toolSession.reapStale() : undefined,
       };
-      const adj = await llmAdj.runAdjudication(agentSubjects, pOpts).catch(() => null);                 // → bundle.llm
-      const rub = await llmAdj.runRubricJudgments(rubricSubjects, pOpts).catch(() => null);             // → bundle.judgments
+      const adj = await timings.stage('llm-adjudication', () => llmAdj.runAdjudication(agentSubjects, pOpts).catch(() => null));   // → bundle.llm
+      const rub = await timings.stage('llm-rubric', () => llmAdj.runRubricJudgments(rubricSubjects, pOpts).catch(() => null));    // → bundle.judgments
       let changed = false;
       if (adj && adj.llm && adj.llm.verdicts.length) { bundle.llm = adj.llm; bundle.llmRationale = adj.llmRationale; changed = true; }
       if (rub && rub.judgments && rub.judgments.judgments.length) { bundle.judgments = rub.judgments; changed = true; }
+      // FULL LLM TRACE (non-authoritative, NOT hashed): merge both producers' turn-by-turn traces and fold each
+      // subject's latency into the timings collector keyed by element. Does NOT set `changed` — a trace never
+      // affects the ledger/build, it is recorded purely for offline analysis.
+      const llmTraces = [...((adj && adj.llmTrace && adj.llmTrace.traces) || []), ...((rub && rub.llmTrace && rub.llmTrace.traces) || [])];
+      if (llmTraces.length) {
+        bundle.llmTrace = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, traces: llmTraces };
+        for (const tr of llmTraces) if (Number.isFinite(tr.latencyMs)) timings.element(tr.targetXpath, 'llm', tr.latencyMs);
+      }
       // merge the crops both producers captured (dedup by id) into one llmVision side artifact.
       const seen = new Set(); const images = [];
       for (const im of [...((adj && adj.llmVision && adj.llmVision.images) || []), ...((rub && rub.llmVision && rub.llmVision.images) || [])]) if (!seen.has(im.id)) { seen.add(im.id); images.push(im); }
       if (images.length) { bundle.llmVision = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, images }; changed = true; }
-      if (changed) built = buildV3(bundle, buildOpts);
+      if (changed) built = timings.stageSync('build-llm', () => buildV3(bundle, buildOpts));
       // CHECK #2 (after ALL workers, no subject still running): sweep any clone tab left open (e.g. a tool
       // aborted mid-call whose finally didn't fire). Normally 0 — the per-call finally already closed them.
       if (toolSession) { const leaked = await toolSession.sweep(); if (leaked) console.error(`[v3-tools] swept ${leaked} leaked clone tab(s) after the run`); }
@@ -216,6 +230,9 @@ async function orchestrate(collect, drive, opts = {}) {
       if (toolSession && toolSession.browser) { try { await toolSession.browser.close(); } catch (e) {} }
     }
   }
+  // per-stage + per-element wall-clock breakdown (NON-authoritative, NOT hashed — like judgments/instruments):
+  // where the page's time went, and which element/obligation was slow. Written to timings.json by run-evaluation.
+  bundle.timings = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, ...timings.snapshot() };
   return { candidates, plan, experiments, claimProposals, bundle, built, planErrors };
 }
 

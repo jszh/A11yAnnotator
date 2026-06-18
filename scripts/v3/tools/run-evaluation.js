@@ -43,6 +43,7 @@ const resolveUrl = () => (baseUrl ? assetUrlUnder(baseUrl, collect.file) : asset
   const llmTransportConfig = runLlm ? {
     oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
     model: process.env.V3_LLM_MODEL || 'claude-sonnet-4-6',
+    effort: process.env.V3_LLM_EFFORT || 'medium', // reasoning depth; sonnet → medium (config, not a budget)
     perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || LIMITS.llm.perTurnTimeoutMs),
     runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || LIMITS.llm.runTimeoutMs),
   } : undefined;
@@ -83,11 +84,13 @@ const resolveUrl = () => (baseUrl ? assetUrlUnder(baseUrl, collect.file) : asset
   // not hashed, identity-bound. Present whenever the collector ran axe (collect.axeRan).
   if (bundle.checkerFindings) w('checker-findings.json', bundle.checkerFindings);
   if (bundle.instruments) w('instruments.json', bundle.instruments); // B: shadow VSR/keyboard findings (V3_INSTRUMENTS)
+  if (bundle.timings) w('timings.json', bundle.timings); // per-stage + per-element wall-clock (non-authoritative, not hashed)
   if (built.ok && built.results.triageCandidates && built.results.triageCandidates.length) w('triage-candidates.json', built.results.triageCandidates); // E: non-ledger semantic review queue
   // LLM evidence-lane artifacts (only present when the lane ran): non-authoritative, not hashed.
   if (bundle.llm) w('llm.json', bundle.llm);
   if (bundle.judgments) w('judgments.json', bundle.judgments);
   if (bundle.llmRationale) w('llm-rationale.json', bundle.llmRationale);
+  if (bundle.llmTrace) w('llm-trace.json', bundle.llmTrace); // full reasoning/tool trace (non-authoritative, not hashed)
   if (bundle.llmVision) w('llm-vision.json', bundle.llmVision);
   if (!built.ok) {
     console.error(`REFUSED: ${built.errors.length} gate violation(s):`);

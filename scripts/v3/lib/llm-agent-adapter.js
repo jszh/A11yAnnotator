@@ -51,16 +51,43 @@ function toAnthropicContent(messages) {
     : { type: 'text', text: (b && b.text) || '' });
 }
 
-// Build a runAgent from a transport. transport(request) -> { content: [{type:'text', text}] } (or throws).
-// model defaults to a vision-capable Claude. A transport error/timeout returns null (producer drops it).
+// Compact, JSON-serializable view of ONE SDK stream message for the full-trace log (offline analysis). Captures
+// exactly what the transport otherwise DROPS: model thinking, tool_use (name+input), tool_result (the objective
+// JSON a CDP tool returned), and the final result's usage/cost — alongside the assistant text.
+function summarizeSdkMessage(msg) {
+  if (!msg || typeof msg !== 'object') return { type: 'unknown' };
+  const t = msg.type;
+  if (t === 'assistant' || t === 'user') {
+    const content = (msg.message && Array.isArray(msg.message.content)) ? msg.message.content : [];
+    const blocks = content.map((b) => {
+      if (!b || typeof b !== 'object') return { kind: 'other' };
+      if (b.type === 'text') return { kind: 'text', text: String(b.text || '') };
+      if (b.type === 'thinking') return { kind: 'thinking', text: String(b.thinking || '') };
+      if (b.type === 'redacted_thinking') return { kind: 'thinking', redacted: true };
+      if (b.type === 'tool_use') return { kind: 'tool_use', id: b.id, name: b.name, input: b.input };
+      if (b.type === 'tool_result') return { kind: 'tool_result', toolUseId: b.tool_use_id, isError: !!b.is_error, content: b.content };
+      return { kind: b.type || 'other' };
+    });
+    return { type: t, role: (msg.message && msg.message.role) || t, blocks };
+  }
+  if (t === 'result') return { type: 'result', subtype: msg.subtype, isError: !!msg.is_error, numTurns: msg.num_turns, usage: msg.usage, totalCostUsd: msg.total_cost_usd };
+  return { type: t || 'unknown' };
+}
+
+// Build a runAgent from a transport. transport(request, { onTrace }) -> { content: [{type:'text', text}] } (or throws).
+// model defaults to a vision-capable Claude. A transport error/timeout returns null (producer drops it). When the
+// transport reports a turn-by-turn trace via onTrace, it is attached as `out.trace` (the adjudicator lifts it).
 function makeRunAgent({ transport, model = 'claude-opus-4-8', maxTokens = LIMITS.llm.maxTokens } = {}) {
   if (typeof transport !== 'function') throw new Error('makeRunAgent: a transport function is required');
   return async function runAgent(messages, _subject) {
     const request = { model, max_tokens: maxTokens, messages: [{ role: 'user', content: toAnthropicContent(messages) }] };
+    const trace = [];
     let res;
-    try { res = await transport(request); } catch (e) { return null; }
+    try { res = await transport(request, { onTrace: (e) => { if (e) trace.push(e); } }); } catch (e) { return null; }
     const text = res && Array.isArray(res.content) ? res.content.filter((c) => c && c.type === 'text').map((c) => c.text).join('\n') : (typeof res === 'string' ? res : null);
-    return parseAgentReply(text);
+    const parsed = parseAgentReply(text);
+    if (parsed && trace.length) parsed.trace = trace; // full reasoning/tool trace → surfaced into llm-trace.json
+    return parsed;
   };
 }
 
@@ -97,6 +124,7 @@ function makeClaudeSdkTransport(opts = {}) {
     perTurnTimeoutMs = LIMITS.llm.perTurnTimeoutMs, runTimeoutMs = LIMITS.llm.runTimeoutMs,
     settingSources = [], maxTurns = LIMITS.llm.maxTurns, allowedTools = [], mcpServers = null,
     maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
+    effort = 'medium', // reasoning/thinking depth: SDK EffortLevel ('low'|'medium'|'high'|'xhigh'|'max'). Sonnet → medium.
   } = opts;
   let _query = queryImpl;
   const getQuery = async () => {
@@ -109,7 +137,8 @@ function makeClaudeSdkTransport(opts = {}) {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const backoffMs = (attempt) => Math.min(maxBackoffMs, baseBackoffMs * (2 ** attempt)) + Math.floor(Math.random() * 500);
 
-  return async function transport(request) {
+  return async function transport(request, callOpts) {
+    const onTrace = callOpts && typeof callOpts.onTrace === 'function' ? callOpts.onTrace : null;
     const q = await getQuery();
     if (typeof q !== 'function') return null;
     const content = (request && request.messages && request.messages[0] && request.messages[0].content) || [];
@@ -130,7 +159,9 @@ function makeClaudeSdkTransport(opts = {}) {
         delete env.ANTHROPIC_API_KEY; delete env.ANTHROPIC_AUTH_TOKEN; // never let a metered key into the child
         const options = { maxTurns, allowedTools, settingSources, model: useModel, abortController: ctrl, env };
         if (mcpServers) options.mcpServers = mcpServers;
+        if (effort) options.effort = effort; // SDK guides thinking depth by effort (works with adaptive thinking)
         for await (const msg of q({ prompt: input(), options })) {
+          if (onTrace) { try { onTrace(summarizeSdkMessage(msg)); } catch (e) {} } // FULL trace: text/thinking/tool_use/tool_result/result
           if (msg && msg.type === 'assistant') {
             const tt = (msg.message && Array.isArray(msg.message.content) ? msg.message.content : []).filter((b) => b && b.type === 'text').map((b) => b.text).join('\n');
             if (tt) text += (text ? '\n' : '') + tt;

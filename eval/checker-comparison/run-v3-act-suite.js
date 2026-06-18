@@ -39,6 +39,7 @@ const LLM_ON = process.env.V3_LLM === '1';
 const LLM_TRANSPORT_CONFIG = LLM_ON ? {
   oauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN,
   model: process.env.V3_LLM_MODEL || 'claude-sonnet-4-6',
+  effort: process.env.V3_LLM_EFFORT || 'medium', // reasoning depth; sonnet → medium (config, not a budget)
   perTurnTimeoutMs: +(process.env.V3_LLM_TURN_TIMEOUT_MS || LIMITS.llm.perTurnTimeoutMs),
   runTimeoutMs: +(process.env.V3_LLM_RUN_TIMEOUT_MS || LIMITS.llm.runTimeoutMs),
 } : undefined;

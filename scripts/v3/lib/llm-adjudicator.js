@@ -308,6 +308,7 @@ async function runAdjudication(subjects, opts = {}) {
   const scope = (xpath) => ({ actionTargetRef: xpath, state: opts.state || 'fresh-load', action: opts.action || 'inspect', environment: opts.environment || 'headless-chromium' });
   const verdicts = [];
   const rationales = [];
+  const traces = [];       // → the side llmTrace artifact: full reasoning/tool trace + per-subject latency (analysis)
   const visionImages = []; // → the side llmVision artifact (crops, never in results)
   const concurrency = Math.max(1, Number(opts.llmConcurrency) || 1);
   // a malformed budget (exceeded() that throws) must not crash the producer — degrade to "run".
@@ -327,15 +328,18 @@ async function runAdjudication(subjects, opts = {}) {
       if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.skill}:${i}:${state}`, state, data, mediaType: 'image/png' });
     }
     const messages = buildMessages(subj, signals, transcriptExcerpt, frames, { rubric: rubricText });
-    let out;
+    let out; const t0 = Date.now();
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }
-    return { subj, frames, out, signals, transcriptExcerpt };
+    const latencyMs = Date.now() - t0;
+    return { subj, frames, out, signals, transcriptExcerpt, latencyMs };
   }, stop, opts.afterEach);
   // PHASE B (sequential, IN SUBJECT ORDER): assemble surviving verdicts — dense verdictId, no orphan crops.
   let n = 0;
   for (const c of computed) {
     if (!c) continue; // budget-stopped (not run) or task error
-    const { subj, frames, out, signals, transcriptExcerpt } = c;
+    const { subj, frames, out, signals, transcriptExcerpt, latencyMs } = c;
+    // TRACE every judged subject (even one whose verdict is dropped — the reasoning shows WHY it failed).
+    if (out && Array.isArray(out.trace) && out.trace.length) traces.push({ sc: subj.sc, targetXpath: subj.xpath, skill: subj.skill, verdict: out.verdict || null, latencyMs, trace: out.trace });
     if (!out || !V2_9_VERDICTS.includes(out.verdict)) continue; // a malformed agent reply is dropped, never guessed
     // the verdict survived → NOW persist its frames (no orphan crops for dropped verdicts).
     for (const f of frames) visionImages.push({ id: f.id, xpath: subj.xpath, state: f.state, mediaType: f.mediaType, data: f.data });
@@ -364,6 +368,7 @@ async function runAdjudication(subjects, opts = {}) {
   return {
     llm: { ...id, model: opts.model || null, promptHash: (opts.llmRubrics && opts.llmRubrics.promptHash) || opts.promptHash || null, verdicts },
     llmRationale: { ...id, rationales },
+    llmTrace: { ...id, traces }, // full turn-by-turn reasoning/tool trace + per-subject latency (non-authoritative, not hashed)
     // crops live HERE (a side artifact, like llmRationale) — referenced by opaque id in evidenceRefs;
     // binary can't pass the strict text scanner, so it NEVER rides results. Empty unless vision was supplied.
     llmVision: { ...id, images: visionImages },
@@ -411,6 +416,7 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
   const transcriptByXpath = opts.transcriptByXpath || {};
   const scope = (xpath) => ({ actionTargetRef: xpath, state: opts.state || 'fresh-load', action: opts.action || 'inspect', environment: opts.environment || 'headless-chromium' });
   const judgments = [];
+  const traces = [];
   const visionImages = [];
   const concurrency = Math.max(1, Number(opts.llmConcurrency) || 1);
   const stop = () => { if (budget && typeof budget.exceeded === 'function') { try { return budget.exceeded(); } catch (e) { return false; } } return false; };
@@ -431,13 +437,15 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     // than judge BLIND. Missing declared evidence ⇒ the obligation simply stays auto-PARTIAL (honest "could not decide").
     if (declaredVision.length && frames.length < declaredVision.length) return null;
     const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text });
-    let out;
+    let out; const t0 = Date.now();
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }
-    return { subj, i, frames, out };
+    const latencyMs = Date.now() - t0;
+    return { subj, i, frames, out, latencyMs };
   }, stop, opts.afterEach);
   for (const c of computed) {
     if (!c) continue; // abstained / budget-stopped / task error
-    const { subj, i, frames, out } = c;
+    const { subj, i, frames, out, latencyMs } = c;
+    if (out && Array.isArray(out.trace) && out.trace.length) traces.push({ sc: subj.sc, targetXpath: subj.xpath, rubricRef: subj.rubricId, verdict: out.verdict || null, latencyMs, trace: out.trace });
     if (!out || !V2_9_VERDICTS.includes(out.verdict)) continue;
     const verdict = mapToRubricVerdict(out.verdict);
     if (!verdict) continue;
@@ -452,7 +460,7 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
       reasoning: oneSentence(out.reasoning) || oneSentence(out.basis),
     });
   }
-  return { judgments: { ...id, judgments }, llmVision: { ...id, images: visionImages } };
+  return { judgments: { ...id, judgments }, llmTrace: { ...id, traces }, llmVision: { ...id, images: visionImages } };
 }
 
 module.exports = {

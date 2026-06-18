@@ -14,6 +14,7 @@
 const puppeteer = require('puppeteer');
 const attest = require('./attestation.js');
 const budget = require('./budget.js');
+const { createTabAllocator } = require('./tab-allocator.js'); // single tab chokepoint (cap + FIFO + timer-pause)
 const cat = require('./catalog.js');
 const observer = require('./applicability-observer.js');
 
@@ -343,7 +344,7 @@ function finalize(request, outcome, measurement, completed) {
 // Run a plan against a page-URL resolver. resolveUrl(request) -> a URL (file:// or http://).
 // Every request gets exactly ONE disposition: a typed result, or an explicit `unrun` record
 // (skipped/failed/deferred) — nothing disappears silently (audit V3-H6).
-async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationKey = null, budgetOpts = {}, experimentConcurrency = 1 } = {}) {
+async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationKey = null, budgetOpts = {}, experimentConcurrency = 1, maxTabs } = {}) {
   // dispatch table: focus runner here + the C1/C3–C9 runners (lazy require breaks the module cycle).
   const RUNNERS = Object.assign({ 'focus-visual-retry': runFocusVisualRetry }, require('./exp-runners.js').RUNNERS);
   // the ONE audited order-preserving worker pool (shared with the LLM lane); lazy require avoids a cycle.
@@ -353,8 +354,12 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
   const key = attestationKey || attest.loadKey({});
   const runBudget = budget.makeRunBudget(budgetOpts); // run-level wall-clock cap (plan Rule 8)
   const browser = await puppeteer.launch({ executablePath, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  // EVERY tab for this plan flows through ONE allocator (the single chokepoint: cap + FIFO + timer-pause). At the
+  // default experimentConcurrency it never queues; the cap matters once many pages share an allocator (PHASE 2).
+  const alloc = createTabAllocator({ browser, maxTabs });
   const results = [];
   const unrun = [];
+  const stepTimings = []; // per-attempt REAL durations (non-attested: wall-clock is run-dependent — kept OUT of the hashed experiments artifact, surfaced via a side channel like applicabilityObservations)
   let environment = 'headless-chromium';
   // A real run that holds the trust-anchor key ATTESTS each result: the runner signs the lineage —
   // including the page identity it INDEPENDENTLY OBSERVED (a sha256 of the actually-loaded resource,
@@ -372,9 +377,10 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
       const reqs = (plan && plan.requests) || [];
       const targets = [...new Set(reqs.map((r) => r.targetXpath).filter((x) => x && x !== '/page-level::reflow'))];
       if (targets.length && reqs[0]) {
-        const op = await browser.newPage();
+        const opLease = await alloc.acquire();
+        const op = opLease.page;
         try { await op.goto(resolveUrl(reqs[0]), { waitUntil: 'load', timeout: 15000 }); applicabilityObservations = await observer.observeApplicability(op, targets); }
-        finally { await op.close().catch(() => {}); }
+        finally { await opLease.release(); }
       }
     } catch (e) { /* best-effort; absence ⇒ the builder falls back to family-level corroboration */ }
     // Each request is self-contained and opens its OWN fresh page per attempt (Rule 3) — so the in-page state
@@ -398,19 +404,27 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
         out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: 'experiment has no registered runner' });
         return out;
       }
-      // BUDGET (plan Rule 8): once the run-level wall-clock cap is hit, defer the rest — never run unbounded.
-      if (runBudget.exceeded()) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock budget (${runBudget.max}ms) exhausted` }); return out; }
+      // BUDGET (plan Rule 8): runBudget is the anti-runaway PAGE CEILING (not a per-item squeezer). Once the
+      // page ceiling is reached, defer the rest — never run unbounded — but a STARTED item always gets its FULL wall.
+      if (runBudget.exceeded()) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock ceiling (${runBudget.max}ms) reached` }); return out; }
       const cost = budget.costFor(RUNNERS[request.experimentId] && cat.getExperiment(request.experimentId));
       let produced = false;
       for (let attempt = 0; attempt <= cost.retries && !produced; attempt++) {
-        // Recompute the per-attempt wall against the RUN-level remaining budget; RESERVE it up front so
-        // concurrent workers can't double-spend the cap, then RECONCILE to the REAL cost after. Reserving +
-        // reconciling per-attempt (not once after the retry loop) is the overshoot fix, extended to parallel.
-        const wall = Math.min(cost.maxWallClockMs, runBudget.remaining());
-        if (wall <= 0) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock budget (${runBudget.max}ms) exhausted before attempt ${attempt}` }); break; }
+        // PER-ITEM WALL: each attempt gets the experiment's FULL wall (cost.maxWallClockMs) — it is NEVER
+        // squeezed by what sibling items on the page already spent. Re-check the page ceiling per attempt (a
+        // concurrent worker may have just reached it), RESERVE the full wall so parallel workers can't overshoot
+        // the ceiling, then RECONCILE the REAL cost after. Only the TAIL of items past the ceiling defers.
+        if (runBudget.exceeded()) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `run wall-clock ceiling (${runBudget.max}ms) reached before attempt ${attempt}` }); break; }
+        const wall = cost.maxWallClockMs;
+        // ACQUIRE the tab BEFORE the wall-clock starts: a parked acquire (FIFO full) IS the pause — queue-wait
+        // is never charged to the per-item wall or the page ceiling (timer-pause-while-queued). Acquire failure
+        // (e.g. the browser died) becomes a `failed` disposition so nothing disappears silently (audit V3-H6).
+        let lease;
+        try { lease = await alloc.acquire(); }
+        catch (e) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: `tab acquire failed: ${String((e && e.message) || e).slice(0, 120)}` }); break; }
+        const page = lease.page;                              // FRESH isolated page per attempt (Rule 3)
         const grant = runBudget.reserve(wall);
-        const aStart = Date.now();
-        const page = await browser.newPage();                 // FRESH isolated page per attempt (Rule 3)
+        const aStart = Date.now();                            // the per-item wall starts only NOW (tab in hand)
         const outcome = await budget.withDeadline(async () => {
           // independently digest the resource the browser ACTUALLY loaded — the navigation response
           // body RAW BYTES (the SAME byte domain the collector hashes, audit V3R4). The attestation
@@ -420,8 +434,10 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
           const observedPageDigest = body != null ? attest.pageDigestOf(body) : null;
           return sign(await runner(page, req), observedPageDigest);
         }, Math.max(1, wall)).catch((e) => ({ ok: false, error: e }));
-        await page.close().catch(() => {});                   // abort any work still pending past the deadline
-        runBudget.reconcile(grant, Date.now() - aStart);      // release the reservation, book the real cost
+        await lease.release();                                // close the page + free the tab slot (next FIFO waiter)
+        const realMs = Date.now() - aStart;
+        runBudget.reconcile(grant, realMs);                   // release the reservation, book the real cost
+        stepTimings.push({ candidateId: request.candidateId, experimentId: request.experimentId, attempt, durationMs: realMs });
         if (outcome.ok) { out.result = outcome.value; produced = true; }
         else if (outcome.timeout) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'deferred', reason: `wall-clock budget ${wall}ms exceeded (mutationRisk:${cost.mutationRisk})` }); break; }
         else if (attempt >= cost.retries) { out.unrun.push({ candidateId: request.candidateId, experimentId: request.experimentId, status: 'failed', reason: String((outcome.error && outcome.error.message) || outcome.error || 'unknown').slice(0, 200) }); }
@@ -440,7 +456,7 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
       if (slot.result) results.push(slot.result);
       for (const u of slot.unrun) unrun.push(u);
     });
-  } finally { await browser.close().catch(() => {}); }
+  } finally { alloc.close(); await browser.close().catch(() => {}); }
   return {
     file: plan.file, runId: plan.runId, pageDigest: plan.pageDigest,
     catalogVersion: '3.0.0-phase0',
@@ -449,6 +465,7 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
     results,
     unrun,
     applicabilityObservations, // pulled into a separate `applicability` artifact by the orchestrator
+    stepTimings,               // per-attempt REAL durations — pulled out + deleted before hashing (non-attested)
   };
 }
 

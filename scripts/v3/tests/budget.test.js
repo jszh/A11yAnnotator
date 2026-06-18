@@ -6,7 +6,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const budget = require('../lib/budget.js');
+const LIMITS = require('../lib/limits.js'); // assert defaults against the single source of truth (survives tuning)
 const cat = require('../lib/catalog.js');
+const DEF = { maxWallClockMs: LIMITS.experiment.defaultWallClockMs, retries: LIMITS.experiment.defaultRetries, mutationRisk: LIMITS.experiment.defaultMutationRisk };
 const { runPlan, CHROME } = require('../lib/run-experiments.js');
 const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
@@ -14,9 +16,9 @@ const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — budget Chrome test SKIPPED');
 
 test('costFor: defaults, catalog override, and clamping of invalid values', () => {
-  assert.deepEqual(budget.costFor(null), { maxWallClockMs: 20000, retries: 1, mutationRisk: 'low' });
+  assert.deepEqual(budget.costFor(null), DEF);
   assert.deepEqual(budget.costFor({ cost: { maxWallClockMs: 5000, retries: 0, mutationRisk: 'high' } }), { maxWallClockMs: 5000, retries: 0, mutationRisk: 'high' });
-  assert.deepEqual(budget.costFor({ cost: { maxWallClockMs: -1, retries: -3, mutationRisk: 'bogus' } }), { maxWallClockMs: 20000, retries: 1, mutationRisk: 'low' }, 'invalid cost clamps to defaults');
+  assert.deepEqual(budget.costFor({ cost: { maxWallClockMs: -1, retries: -3, mutationRisk: 'bogus' } }), DEF, 'invalid cost clamps to defaults');
 });
 
 // gap-fill red-team: clamping only the LOWER bound let a catalog (or an attacker who supplies one)
