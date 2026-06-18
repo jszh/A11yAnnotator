@@ -38,7 +38,7 @@ const { CHROME } = require('../lib/run-experiments.js');
 const puppeteer = require('puppeteer');
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — vsr-graph e2e SKIPPED');
-const fxUrl = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-vsr-semantic.html');
+const fxUrl = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-vsr-semantic.html');
 
 test('vsr-graph e2e: a healthy page has no VSR trap — forward reaches end, backward reaches start', { skip: !chromeOK, concurrency: false }, async () => {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });

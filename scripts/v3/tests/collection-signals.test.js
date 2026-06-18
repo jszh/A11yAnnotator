@@ -51,7 +51,7 @@ const XPATHS = {
 
 function runCollector() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'coll-sig-'));
-  const savedDir = path.join(tmp, 'assets', 'saved');
+  const savedDir = path.join(tmp, 'assets', 'saved'); // the collector (eval-page.js) loads from /assets/saved/ under A11Y_BASE — the temp fixture must live there
   fs.mkdirSync(savedDir, { recursive: true });
   fs.writeFileSync(path.join(savedDir, 'fx.html'), FIXTURE);
   const xpathsFile = path.join(tmp, 'xpaths.json');

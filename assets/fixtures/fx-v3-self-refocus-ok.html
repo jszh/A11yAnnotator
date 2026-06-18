@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>self-refocus correct-guards (no trap)</title></head>
+<body>
+  <!-- CORRECT-GUARDS for detectFocusRetentionTraps — none of these may be flagged. -->
+
+  <!-- (a) a normal page: focus moves freely off every element. -->
+  <a href="#">Link 1</a>
+  <button>Plain button</button>
+
+  <!-- (b) ACT 80af7b Passed Example 7: onblur moves focus to a DIFFERENT sibling (next/previous), not to
+       itself — focus never returns to the SAME element, so it is NOT a self-refocus trap (and is
+       empirically indistinguishable from the rule's passed bounce examples). -->
+  <button onblur="setTimeout(() => this.nextElementSibling.focus(), 10)">Button A</button>
+  <button onblur="setTimeout(() => this.previousElementSibling.focus(), 10)">Button B</button>
+  <button>Button C</button>
+</body></html>

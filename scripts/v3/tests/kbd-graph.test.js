@@ -28,7 +28,7 @@ const { CHROME } = require('../lib/run-experiments.js');
 const puppeteer = require('puppeteer');
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — kbd-graph e2e SKIPPED');
-const fx = (name) => 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', name);
+const fx = (name) => 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', name);
 
 async function tabOrder(fixture) {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });

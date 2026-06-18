@@ -221,7 +221,7 @@ test('R2-L2: authority readiness inherited via the prototype chain does not prom
 });
 
 // ============================ measurement probes (real Chrome) ============================
-const R2 = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-focus-r2.html');
+const R2 = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-focus-r2.html');
 const r2Plan = {
   ...id, _startedAt: 1000,
   requests: [
@@ -259,7 +259,7 @@ test('R2-F3/F4: a ::after ring with large inset and a 12px-offset outline are CO
   assert.equal(off.focusDependentIndicator, true, 'a 12px-offset ring is captured by the dynamic clip');
 });
 
-const ADV = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-focus-adversarial.html');
+const ADV = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-focus-adversarial.html');
 const advPlan = {
   ...id, _startedAt: 1000,
   requests: [

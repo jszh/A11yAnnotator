@@ -43,8 +43,11 @@ const ROOT = path.join(__dirname, '..');
 // unreadable (then the digest gate is inert; identity/run/freshness still apply). NOTE: a
 // fully-fabricating agent that writes BOTH artifacts can echo any digest — this binds the
 // REAL collector↔driver pair, not a forged one (documented limit, RESULT-CONTRACT.md).
+// A page loads from assets/saved/ (the real-page corpus) OR assets/fixtures/ (the tracked synthetic test
+// fixtures) — prefer fixtures when the file lives there in the repo, else the corpus dir.
+const assetDirFor = (file) => fs.existsSync(path.join(ROOT, 'assets', 'fixtures', file)) ? 'fixtures' : 'saved';
 function pageDigest(file) {
-  try { return 'sha256:' + crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'assets/saved', file))).digest('hex'); }
+  try { return 'sha256:' + crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'assets', assetDirFor(file), file))).digest('hex'); }
   catch (e) { return null; }
 }
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -115,7 +118,7 @@ function parseRGB(s) {
     const cdp = await page.createCDPSession();
     await cdp.send('Accessibility.enable');
 
-    const url = BASE + '/assets/saved/' + encodeURIComponent(FILE) + '?offline=1' + (NOSCRIPT ? '&noscript=1' : '');
+    const url = BASE + '/assets/' + assetDirFor(FILE) + '/' + encodeURIComponent(FILE) + '?offline=1' + (NOSCRIPT ? '&noscript=1' : '');
     await page.goto(url, { waitUntil: 'load', timeout: 45000 }).catch(e => { out.problems.push('goto: ' + e.message); });
     if (SETTLE) await new Promise(r => setTimeout(r, SETTLE));
 

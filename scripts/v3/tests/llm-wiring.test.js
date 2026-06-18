@@ -125,7 +125,7 @@ const { orchestrate } = require('../lib/orchestrator.js');
 const { CHROME } = require('../lib/run-experiments.js');
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — llm-wiring orchestrator e2e SKIPPED');
-const FXV = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-vision.html');
+const FXV = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-vision.html');
 
 test('orchestrate(runLlm): captures vision + runs BOTH producers; a rubric judgment fills a PROVISIONAL (D11-1/D12-1)', { skip: !chromeOK, concurrency: false }, async () => {
   // the img (#hero, empty alt) yields a 1.1.1 obligation the alt-text rubric judges; xpath matches the fixture.

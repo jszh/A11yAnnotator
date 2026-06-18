@@ -57,7 +57,7 @@ test('runIbm: INERT when accessibility-checker is absent → checkerUnavailable 
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — checker-ibm orchestrate e2e SKIPPED');
-const FIXTURE = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-focus.html');
+const FIXTURE = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-focus.html');
 
 test('orchestrate(runChecker): an unavailable IBM is RECORDED (checkerUnavailable), never silently skipped', { skip: !chromeOK, concurrency: false }, async () => {
   const collect = { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', collectedAt: 1000, elements: [] };

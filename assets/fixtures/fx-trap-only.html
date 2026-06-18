@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>trap only</title></head><body>
+<!-- R22-H1: the ENTIRE page is the trap. The two controls are the only focusables,
+     so the cycle covers every focusable (totalFocusables === seenAll.size). The old
+     `totalFocusables > seenAll.size` gate could never fire here; the boundary-sentinel
+     probe must still detect that focus cannot leave. -->
+<button id="a">Trap A</button><button id="b">Trap B</button>
+<script>
+var a=document.getElementById('a'),b=document.getElementById('b');
+[a,b].forEach(function(el){el.addEventListener('keydown',function(e){
+  if(e.key==='Tab'){e.preventDefault();(document.activeElement===a?b:a).focus();}
+});});
+</script></body></html>

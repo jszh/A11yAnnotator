@@ -323,7 +323,7 @@ test('gate: a checkerFindings artifact bound to the WRONG page is REFUSED', () =
 // ===== orchestrate wiring (Chrome) =====
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — checker-findings orchestrate e2e SKIPPED');
-const FIXTURE = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'saved', 'fx-v3-focus.html');
+const FIXTURE = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-focus.html');
 
 test('orchestrate: axe surfaced from collect.axe is attached, identity-bound, and surfaced (allow-list only)', { skip: !chromeOK, concurrency: false }, async () => {
   const collect = { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', collectedAt: 1000,

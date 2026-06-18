@@ -21,7 +21,10 @@ const drive = JSON.parse(fs.readFileSync(drivePath, 'utf8'));
 fs.mkdirSync(outDir, { recursive: true });
 
 const ROOT = path.join(__dirname, '..', '..', '..');
-const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/saved/${encodeURIComponent(collect.file)}` : 'file://' + path.join(ROOT, 'assets', 'saved', collect.file));
+// Pages load from assets/saved/ (the real-page corpus) OR assets/fixtures/ (the tracked synthetic test
+// fixtures) — prefer the fixtures dir when the file lives there, else the corpus dir.
+const pageDir = fs.existsSync(path.join(ROOT, 'assets', 'fixtures', collect.file)) ? 'fixtures' : 'saved';
+const resolveUrl = () => (baseUrl ? `${baseUrl}/assets/${pageDir}/${encodeURIComponent(collect.file)}` : 'file://' + path.join(ROOT, 'assets', pageDir, collect.file));
 
 (async () => {
   // exercise the REAL trust path (audit V3R4-H5): the runner signs evidence with V3_ATTEST_KEY from
