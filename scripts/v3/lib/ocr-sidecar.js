@@ -21,7 +21,7 @@ function makeOcrSidecar(opts = {}) {
   const startupTimeoutMs = opts.startupTimeoutMs || +(process.env.V3_OCR_STARTUP_TIMEOUT_MS || 180000);
   const callTimeoutMs = opts.callTimeoutMs || +(process.env.V3_OCR_CALL_TIMEOUT_MS || 30000);
 
-  let proc = null, ready = null, dead = false, buf = '', seq = 0;
+  let proc = null, ready = null, dead = false, buf = '', seq = 0, engineName = null;
   const pending = new Map(); // id -> { resolve, timer }
 
   const available = () => fs.existsSync(python) && fs.existsSync(script);
@@ -44,6 +44,7 @@ function makeOcrSidecar(opts = {}) {
           let msg; try { msg = JSON.parse(line); } catch (e) { continue; }
           if (!settled && msg.ready !== undefined) { // the startup readiness line
             settled = true; clearTimeout(startupTimer);
+            if (msg.engine) engineName = String(msg.engine); // the RESOLVED engine name (provenance for the model)
             if (msg.ready) resolve({ ok: true });
             else { dead = true; resolve({ ok: false, error: msg.error || 'ocr-engine-load-failed' }); }
             continue;
@@ -62,6 +63,7 @@ function makeOcrSidecar(opts = {}) {
 
   return {
     available,
+    engine: () => engineName, // the resolved engine name from the sidecar ready line (null until warm)
     async recognize(imageB64) {
       const r = await start();
       if (!r.ok || dead || !proc) return { error: r.error || 'ocr-unavailable' };

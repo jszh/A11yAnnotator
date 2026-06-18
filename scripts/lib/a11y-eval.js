@@ -13,10 +13,15 @@ function relLuminance([r, g, b]) {
   const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 }
-function contrastRatio(rgb1, rgb2) {
+// Unrounded ratio — use this for any THRESHOLD comparison. WCAG "Understanding 1.4.3" is explicit: "Do not
+// round contrast ratios up", so 2.998 must NOT pass 3:1. `contrastRatio` keeps the 2-dp DISPLAY value.
+function contrastRatioRaw(rgb1, rgb2) {
   const a = relLuminance(rgb1), b = relLuminance(rgb2);
   const hi = Math.max(a, b), lo = Math.min(a, b);
-  return +((hi + 0.05) / (lo + 0.05)).toFixed(2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+function contrastRatio(rgb1, rgb2) {
+  return +contrastRatioRaw(rgb1, rgb2).toFixed(2);
 }
 function parseRGB(s) {
   const m = (s || '').match(/rgba?\(([^)]+)\)/);
@@ -316,7 +321,7 @@ function coerceAxName(nameValue) {
 }
 
 module.exports = {
-  relLuminance, contrastRatio, parseRGB,
+  relLuminance, contrastRatio, contrastRatioRaw, parseRGB,
   isLargeText, contrastThresholdFor, LARGE_NORMAL_PX, LARGE_BOLD_PX,
   evalTargetSize, TARGET_MIN,
   isVsrNoisePhrase, meaningfulAnnouncement,

@@ -19,19 +19,21 @@ def _eprint(*a):
     print(*a, file=sys.stderr, flush=True)
 
 def _load_engine():
-    """Construct a PaddleOCR engine pinned to PP-OCRv6, degrading gracefully across 3.x API shapes."""
+    """Construct a PaddleOCR engine pinned to PP-OCRv6, degrading gracefully across 3.x API shapes.
+    Returns (engine, label) where label REFLECTS what actually loaded — never a hardcoded literal that
+    would silently lie if a future pin drops PP-OCRv6 and the kwarg falls back to the default models."""
     from paddleocr import PaddleOCR
-    # The doc-orientation / unwarping / textline-orientation sub-models are document-scan features we don't
-    # want for a UI crop — disable them for speed + determinism. Pin PP-OCRv6 when the kwarg is supported.
+    import paddleocr as _pkg
+    pkg = getattr(_pkg, "__version__", "?")
     common = dict(use_doc_orientation_classify=False, use_doc_unwarping=False, use_textline_orientation=False)
-    for kwargs in ({**common, "ocr_version": "PP-OCRv6"}, common, {"ocr_version": "PP-OCRv6"}, {}):
+    attempts = [({**common, "ocr_version": "PP-OCRv6"}, "PP-OCRv6"), (common, "default"), ({"ocr_version": "PP-OCRv6"}, "PP-OCRv6"), ({}, "default")]
+    for kwargs, label in attempts:
         try:
-            return PaddleOCR(**kwargs)
+            return PaddleOCR(**kwargs), f"{label} (paddleocr {pkg})"
         except (TypeError, ValueError) as e:
             _eprint(f"[ocr_sidecar] PaddleOCR({kwargs}) rejected: {e}")
             continue
-    # last resort — let any remaining error propagate so startup fails loudly
-    return PaddleOCR()
+    return PaddleOCR(), f"default (paddleocr {pkg})"
 
 def _to_ndarray(image_b64):
     import numpy as np
@@ -103,13 +105,13 @@ def _warmup(engine):
 
 def main():
     try:
-        engine = _load_engine()
+        engine, engine_label = _load_engine()
         _warmup(engine)
     except Exception as e:
         print(json.dumps({"ready": False, "error": f"engine-load-failed: {e}"}), flush=True)
         _eprint(traceback.format_exc())
         return 1
-    print(json.dumps({"ready": True, "engine": "PP-OCRv6"}), flush=True)
+    print(json.dumps({"ready": True, "engine": engine_label}), flush=True)
     for raw in sys.stdin:
         raw = raw.strip()
         if not raw:

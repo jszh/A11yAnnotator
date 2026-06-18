@@ -20,13 +20,19 @@ async function openToolSession(url, executablePath, reapAgeMs = 330000) {
   const puppeteer = require('puppeteer');
   const CHROME = executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  // Pin to the COLLECTOR viewport (eval-page/drive-page/vision-capture all use 1280×900). The frozen crops the
+  // model reasons over are 1280×900, so coordinate-keyed tools (query_ax_node x/y, resolve_part_color x/y) must
+  // resolve the model's screenshot pixels against the SAME reflow — not the Puppeteer default 800×600.
+  const COLLECTOR_VP = { width: 1280, height: 900, deviceScaleFactor: 1 };
   const page = await browser.newPage();
+  await page.setViewport(COLLECTOR_VP).catch(() => {});
   await page.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {});
   // Track every clone tab so leaks can be swept. Mutating tools close their own clone in a `finally`
   // (per-call cleanup, finer than per-subject); the close listener keeps this map = currently-open clones.
   const clones = new Map(); // page -> bornMs
   const freshClone = async () => {
     const p = await browser.newPage();
+    await p.setViewport(COLLECTOR_VP).catch(() => {}); // same collector viewport as the base page (coordinate-frame parity)
     clones.set(p, Date.now());
     p.once('close', () => clones.delete(p));
     await p.goto(url, { waitUntil: 'load', timeout: 30000 }).catch(() => {});

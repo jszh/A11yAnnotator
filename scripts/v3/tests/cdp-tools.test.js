@@ -27,6 +27,10 @@ const XP = {
   destlink: '/html[1]/body[1]/a[1]',
   extlink: '/html[1]/body[1]/a[2]',
   chart: '/html[1]/body[1]/div[2]',
+  ariacheck: '/html[1]/body[1]/div[3]',   // role=checkbox, no aria-checked
+  injectlive: '/html[1]/body[1]/button[3]', // injects a NEW role=status with its message
+  toggle: '/html[1]/body[1]/button[4]',   // reveals a display:none node
+  hiddenrow: '/html[1]/body[1]/div[4]',
 };
 
 // ONE shared browser for the whole file (not one per test) — fewer parallel Chrome instances under the full
@@ -206,7 +210,52 @@ test('resolve_part_color: returns BOTH the CSS used-colour AND the rendered pixe
     assert.ok(/rgb/.test(r.color), 'the CSS used-colour is returned');
     assert.ok(r.renderedPixelRGBA && Number.isFinite(r.renderedPixelRGBA.r), 'the RENDERED pixel is also returned (the false-clear guard)');
     assert.equal(typeof r.cssVsRenderedDivergence.divergent, 'boolean', 'a divergence flag is always present');
+    assert.ok(typeof r.cssVsRenderedDivergence.sourceProperty === 'string', 'the matched CSS property is surfaced (diff is vs the part colour, not always cs.color)');
     assert.ok(!('contrastRatio' in r) && !('verdict' in r), 'raw RGBA + flags only — no ratio, no verdict');
+  });
+});
+
+test('compute_contrast_ratio: passes is computed on the UNROUNDED ratio (WCAG do-not-round; 2.998 ≠ pass 3:1)', () => {
+  const A = require('../../lib/a11y-eval.js');
+  // black vs rgb(89,89,89): true ratio ≈ 2.998 (a real FAIL) — but rounds to 3.00.
+  const raw = A.contrastRatioRaw([0, 0, 0], [89, 89, 89]);
+  assert.ok(raw < 3, `unrounded ratio is below 3:1 (${raw})`);
+  assert.equal(A.contrastRatio([0, 0, 0], [89, 89, 89]), 3, 'the DISPLAY value still rounds to 3.00');
+  assert.equal(raw >= 3, false, 'a passes gate on the unrounded ratio correctly FAILS at 2.998');
+});
+
+test('query_ax_node: an aria role=checkbox with no aria-checked reports requiredStatesMissing (F68/4e8ab6); a native checkbox does NOT', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const aria = await queryAxNode(page, { targetXpath: XP.ariacheck });
+    assert.deepEqual(aria.requiredStatesMissing, ['checked'], 'explicit role=checkbox without aria-checked ⇒ the required state is missing');
+    assert.deepEqual(aria.requiredStatesPresent, [], 'no author state attribute is present');
+    const native = await queryAxNode(page, { targetXpath: XP.chk });
+    assert.deepEqual(native.requiredStatesMissing, [], 'a NATIVE <input type=checkbox> conveys its state natively ⇒ nothing missing');
+  });
+});
+
+test('query_ax_node: nameFrom emits only the CONTRIBUTING source, not every candidate slot', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page) => {
+    const r = await queryAxNode(page, { targetXpath: XP.realh }); // a contents-named heading
+    assert.ok(r.nameFrom.length <= 1, `at most one contributing source (got ${JSON.stringify(r.nameFrom)})`);
+    assert.ok(!r.nameFrom.includes('attribute') || r.nameFrom.length === 1, 'no fabricated extra slots');
+  });
+});
+
+test('observe_state_after_activation: classifies visibilityCause + honors the 4.1.3 live-region pre-existence rule', { skip: !chromeOK, concurrency: false }, async () => {
+  await withPage(async (page, freshClone) => {
+    // pre-existing role=status filled by the button ⇒ a clean 4.1.3 announcement
+    const pre = await observeStateAfterActivation(page, { targetXpath: XP.reveal }, { freshClone });
+    assert.equal(pre.anyNewTextInLiveRegion, true, 'text into a PRE-EXISTING live region counts (4.1.3)');
+    // a button that INJECTS a new role=status with its message ⇒ NOT a reliable announcement
+    const inj = await observeStateAfterActivation(page, { targetXpath: XP.injectlive }, { freshClone });
+    assert.equal(inj.newVisibleTextCount >= 1, true, 'the injected text is seen');
+    assert.equal(inj.anyNewTextInLiveRegion, false, 'a region CREATED with its message is NOT a clean 4.1.3 announcement');
+    assert.equal(inj.anyNewTextInNewLiveRegion, true, 'but it is surfaced as text-in-a-NEW-live-region (INCONCLUSIVE)');
+    assert.ok(inj.newlyVisibleNodes.some((n) => n.visibilityCause === 'inserted'), 'an injected node is classified inserted');
+    // a toggled-visible (display:none → block) pre-existing node ⇒ visibilityCause 'display', not 'inserted'
+    const tog = await observeStateAfterActivation(page, { targetXpath: XP.toggle }, { freshClone });
+    assert.ok(tog.newlyVisibleNodes.some((n) => n.visibilityCause === 'display'), 'an un-hidden (display) node is classified by HOW it became visible');
   });
 });
 
@@ -233,8 +282,10 @@ test('compare_named_regions: a red vs blue chart half is measured perceptibly di
     const left = r.regionColors.find((c) => c.name === 'left'), right = r.regionColors.find((c) => c.name === 'right');
     assert.ok(left.r > left.b && right.b > right.r, 'left sampled red-dominant, right blue-dominant');
     const pair = r.pairs[0];
-    assert.ok(pair.deltaE > 11 && pair.perceptiblyDistinct === true, 'the two halves are perceptibly distinct');
-    assert.ok(!r.pairs.some((p) => 'contrastRatio' in p || 'verdict' in p), 'derived deltaE only — no contrast ratio, no verdict');
+    assert.ok(pair.deltaE2000 > 11 && pair.perceptiblyDistinct === true, 'the two halves are perceptibly distinct (ΔE2000)');
+    assert.ok(Number.isFinite(pair.luminanceDelta), 'a luminanceDelta is reported');
+    assert.ok(r.regionColors.every((c) => Number.isFinite(c.colorSpread)), 'each region reports its colorSpread (uniformity)');
+    assert.ok(!r.pairs.some((p) => 'contrastRatio' in p || 'verdict' in p || 'deltaE' in p), 'derived ΔE2000 only — no contrast ratio, no verdict, no bare CIE76 deltaE');
   });
 });
 
