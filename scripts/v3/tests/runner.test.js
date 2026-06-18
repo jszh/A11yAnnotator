@@ -8,11 +8,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { runPlan, CHROME } = require('../lib/run-experiments.js');
 const { buildV3 } = require('../lib/build-v3.js');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — v3 runner suite SKIPPED');
 
-const FIXTURE = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-focus.html');
+const FIXTURE = assetFileUrl('fx-v3-focus.html');
 const plan = {
   file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', _startedAt: 1000,
   requests: [

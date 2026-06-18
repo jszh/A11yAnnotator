@@ -11,10 +11,11 @@ const path = require('node:path');
 const puppeteer = require('puppeteer');
 const { CHROME } = require('../lib/run-experiments.js');
 const { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText } = require('../lib/cdp-tools.js');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — cdp-tools e2e SKIPPED');
-const FX = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-cdp-tools.html');
+const FX = assetFileUrl('fx-v3-cdp-tools.html');
 const XP = {
   realh: '/html[1]/body[1]/h2[1]',
   fakeh: '/html[1]/body[1]/p[1]',

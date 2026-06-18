@@ -35,11 +35,10 @@ const A = require('./lib/a11y-eval.js'); // shared pure helpers (see HARNESS-ISS
 const ROOT = path.join(__dirname, '..');
 // R2.9-D: sha256 of the served page SOURCE — must MATCH the collector's pageDigest in
 // build-results, so a stale drive from a changed page version is rejected (see eval-page.js).
-// A page loads from assets/saved/ (the real-page corpus) OR assets/fixtures/ (the tracked synthetic test
-// fixtures) — prefer fixtures when the file lives there in the repo, else the corpus dir.
-const assetDirFor = (file) => fs.existsSync(path.join(ROOT, 'assets', 'fixtures', file)) ? 'fixtures' : 'saved';
+// page-location resolution is centralized in scripts/lib/asset-paths.js (one place to relocate fixtures).
+const { assetPath, assetUrlUnder } = require('./lib/asset-paths.js');
 function pageDigest(file) {
-  try { return 'sha256:' + crypto.createHash('sha256').update(fs.readFileSync(path.join(ROOT, 'assets', assetDirFor(file), file))).digest('hex'); }
+  try { return 'sha256:' + crypto.createHash('sha256').update(fs.readFileSync(assetPath(file))).digest('hex'); }
   catch (e) { return null; }
 }
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -104,7 +103,7 @@ function loadXpaths() {
       try { if (guardNav && req.isNavigationRequest() && req.frame() === page.mainFrame()) req.abort('aborted'); else req.continue(); }
       catch (e) { try { req.continue(); } catch (_) {} }
     });
-    const mkUrl = (ns) => BASE + '/assets/' + assetDirFor(FILE) + '/' + encodeURIComponent(FILE) + '?offline=1' + (ns ? '&noscript=1' : '');
+    const mkUrl = (ns) => assetUrlUnder(BASE, FILE) + '?offline=1' + (ns ? '&noscript=1' : '');
     let serveNoscript = NOSCRIPT;
     let url = mkUrl(serveNoscript);
 

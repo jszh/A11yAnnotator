@@ -19,6 +19,7 @@
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
+const { assetUrlUnder } = require('./lib/asset-paths.js'); // centralized page-location resolution
 
 const ROOT = path.join(__dirname, '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -75,7 +76,7 @@ function contrast(rgb1, rgb2) {
       try { const cdp = await page.createCDPSession(); await cdp.send('Emulation.setEmulatedMedia', { features }); out.emulatedMedia = features; }
       catch (e) { out.emulatedMediaError = e.message; }
     }
-    const url = BASE + '/assets/saved/' + encodeURIComponent(FILE) + '?offline=1' + (NOSCRIPT ? '&noscript=1' : '');
+    const url = assetUrlUnder(BASE, FILE) + '?offline=1' + (NOSCRIPT ? '&noscript=1' : '');
     await page.goto(url, { waitUntil: WAIT, timeout: 45000 }).catch(e => { out.gotoError = e.message; });
     if (ZOOM !== 1) await page.evaluate(z => { document.body.style.zoom = z; }, ZOOM);
     if (SETTLE) await new Promise(r => setTimeout(r, SETTLE));

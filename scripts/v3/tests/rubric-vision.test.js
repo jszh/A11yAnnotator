@@ -15,6 +15,7 @@ const llmAdj = require('../lib/llm-adjudicator.js');
 const { buildV3 } = require('../lib/build-v3.js');
 const { CHROME } = require('../lib/run-experiments.js');
 const { withPipeline, reseal, promoted } = require('./helpers.js');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 const ID = { file: 'p', runId: 'R', pageDigest: 'sha256:d' };
 const scope = (xpath) => ({ actionTargetRef: xpath, state: 'fresh-load', action: 'inspect', environment: 'headless-chromium' });
@@ -128,13 +129,13 @@ test('the bridge output is CONSUMED: a focus rubric handed state-before/after em
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — vision-capture e2e SKIPPED');
-const FX = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-vsr-semantic.html');
+const FX = assetFileUrl('fx-v3-vsr-semantic.html');
 
 test('captureStateVision e2e: focus forces a ring delta; an indicator-less control does not; hover reveals content', { skip: !chromeOK, concurrency: false }, async () => {
   const puppeteer = require('puppeteer');
   const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   try {
-    const fx = (n) => 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', n);
+    const fx = assetFileUrl;
     // FOCUS: #real (button[1]) gains a :focus ring; #none (button[2]) has outline:none → no delta.
     const pf = await b.newPage(); await pf.setViewport({ width: 800, height: 400 }); await pf.goto(fx('fx-v3-focus.html'), { waitUntil: 'load' });
     const f = await captureStateVision(pf, { '/html/body/button[1]': 'focus', '/html/body/button[2]': 'focus' });
@@ -156,7 +157,7 @@ test('captureStateVision e2e: form-submit pairs capture pristine→error (3.3.1/
   const puppeteer = require('puppeteer');
   const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   try {
-    const fx = (n) => 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', n);
+    const fx = assetFileUrl;
     const p = await b.newPage(); await p.setViewport({ width: 800, height: 600 }); await p.goto(fx('fx-v3-submit-pair.html'), { waitUntil: 'load' });
     const isPng = (d) => Buffer.from(d, 'base64').slice(0, 8).toString('hex') === '89504e470d0a1a0a';
     const e1 = '/html/body/form[1]/input[1]', e2 = '/html/body/form[2]/input[1]';
@@ -233,7 +234,7 @@ test('adversarial LOW: mergeVision ignores array inputs', () => {
   assert.deepEqual(mergeVision({ '/x': { v: 'A' } }, [1, 2]), { '/x': { v: 'A' } });
 });
 
-const FXV = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-vision.html');
+const FXV = assetFileUrl('fx-v3-vision.html');
 test('captureVision (corpus probe regressions): scrolls a below-fold element in; skips a degenerate <6px box', { skip: !chromeOK, concurrency: false }, async () => {
   const puppeteer = require('puppeteer');
   const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
@@ -249,7 +250,7 @@ test('captureStateVision e2e: a prior hover does NOT contaminate the next subjec
   const puppeteer = require('puppeteer');
   const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   try {
-    const fx = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-hover-adv.html');
+    const fx = assetFileUrl('fx-v3-hover-adv.html');
     const near = '/html/body/button[1]', far = '/html/body/button[2]'; // far renders its tooltip bottom-right; corner #div is a fixed top-left hover trap
     const p1 = await b.newPage(); await p1.setViewport({ width: 1000, height: 700 }); await p1.goto(fx, { waitUntil: 'load' });
     const solo = await captureStateVision(p1, { [near]: 'hover' });

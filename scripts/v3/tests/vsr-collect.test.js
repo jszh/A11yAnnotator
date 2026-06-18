@@ -14,7 +14,7 @@ const { CHROME } = require('../lib/run-experiments.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — v3 VSR-collect suite SKIPPED');
-const fx = (name) => 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', name);
+const { assetFileUrl: fx } = require('../../lib/asset-paths.js');
 
 async function transcribe(fixture, opts) {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });

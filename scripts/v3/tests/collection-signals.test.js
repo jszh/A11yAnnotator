@@ -17,6 +17,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const A = require('../../lib/a11y-eval.js');
+const { CORPUS } = require('../../lib/asset-paths.js');
 
 const REPO = path.join(__dirname, '..', '..', '..');
 const EVAL = path.join(REPO, 'scripts', 'eval-page.js');
@@ -51,7 +52,7 @@ const XPATHS = {
 
 function runCollector() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'coll-sig-'));
-  const savedDir = path.join(tmp, 'assets', 'saved'); // the collector (eval-page.js) loads from /assets/saved/ under A11Y_BASE — the temp fixture must live there
+  const savedDir = path.join(tmp, 'assets', CORPUS); // the collector loads a not-in-repo file from the CORPUS dir under A11Y_BASE — the temp fixture must live there
   fs.mkdirSync(savedDir, { recursive: true });
   fs.writeFileSync(path.join(savedDir, 'fx.html'), FIXTURE);
   const xpathsFile = path.join(tmp, 'xpaths.json');

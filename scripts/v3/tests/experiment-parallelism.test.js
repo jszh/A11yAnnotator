@@ -12,9 +12,10 @@ const path = require('node:path');
 const budget = require('../lib/budget.js');
 const { runPool } = require('../lib/llm-adjudicator.js');
 const { runPlan, CHROME } = require('../lib/run-experiments.js');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 const chromeOK = fs.existsSync(CHROME);
-const FX = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-focus.html');
+const FX = assetFileUrl('fx-v3-focus.html');
 if (!chromeOK) console.log('# Chrome not found — experiment-parallelism Chrome tests SKIPPED');
 
 // ---- (1) budget reservation guard — no Chrome ----

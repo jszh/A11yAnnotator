@@ -9,6 +9,7 @@ const { proposeClaims, directionForFocusVisible } = require('../lib/proposer.js'
 const { orchestrate } = require('../lib/orchestrator.js');
 const { buildV3 } = require('../lib/build-v3.js');
 const { CHROME } = require('../lib/run-experiments.js');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — v3 orchestrate suite SKIPPED');
@@ -36,7 +37,7 @@ test('replay determinism: building twice over a frozen bundle yields identical r
   assert.deepEqual(buildV3(bundle).results, buildV3(bundle).results);
 });
 
-const FIXTURE_PATH = path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-focus.html');
+const FIXTURE_PATH = assetPath('fx-v3-focus.html');
 const FIXTURE = 'file://' + FIXTURE_PATH;
 // the runner binds the digest of the resource it ACTUALLY loaded (audit V3R4-C1); the collector's
 // declared pageDigest must equal that for a promoted clear to publish — so compute the real digest.

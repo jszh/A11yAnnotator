@@ -8,6 +8,7 @@ const path = require('node:path');
 const budget = require('../lib/budget.js');
 const cat = require('../lib/catalog.js');
 const { runPlan, CHROME } = require('../lib/run-experiments.js');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — budget Chrome test SKIPPED');
@@ -52,7 +53,7 @@ test('withDeadline: resolves success, timeout, and error without hanging', async
 });
 
 test('runPlan: a tiny run budget DEFERS rather than silently dropping (Rule 8 + Rule 7)', { skip: !chromeOK, concurrency: false }, async () => {
-  const fx = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-focus.html');
+  const fx = assetFileUrl('fx-v3-focus.html');
   const plan = { file: 'fx', runId: 'R', pageDigest: 'sha256:x', _startedAt: 1, requests: [
     { candidateId: 'c0', experimentId: 'focus-visual-retry', targetXpath: '/html/body/button[1]', sc: '2.4.7' },
     { candidateId: 'c1', experimentId: 'focus-visual-retry', targetXpath: '/html/body/button[2]', sc: '2.4.7' },

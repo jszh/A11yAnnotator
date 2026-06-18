@@ -11,6 +11,7 @@ const path = require('node:path');
 const { normalizeIbmFindings, buildRule2Sc, runIbm } = require('../lib/checker-ibm.js');
 const { orchestrate } = require('../lib/orchestrator.js');
 const { CHROME } = require('../lib/run-experiments.js');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 test('normalizeIbmFindings: 1.4.12/2.5.3 FAIL→hard, POTENTIAL→review; 1.4.1/1.3.3 priors; 1.3.1/2.4.6/PASS dropped', () => {
   const rule2sc = { r_spacing: ['1.4.12'], r_label: ['2.5.3'], r_color: ['1.4.1'], r_sensory: ['1.3.3'], r_info: ['1.3.1'], r_head: ['2.4.6'], r_potential: ['1.4.12'] };
@@ -57,7 +58,7 @@ test('runIbm: INERT when accessibility-checker is absent → checkerUnavailable 
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — checker-ibm orchestrate e2e SKIPPED');
-const FIXTURE = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-focus.html');
+const FIXTURE = assetFileUrl('fx-v3-focus.html');
 
 test('orchestrate(runChecker): an unavailable IBM is RECORDED (checkerUnavailable), never silently skipped', { skip: !chromeOK, concurrency: false }, async () => {
   const collect = { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', collectedAt: 1000, elements: [] };

@@ -13,6 +13,7 @@ const { orchestrate } = require('../lib/orchestrator.js');
 const { CHROME } = require('../lib/run-experiments.js');
 const { runInstruments } = require('../lib/run-instruments.js');
 const puppeteer = require('puppeteer');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 const scope = { actionTargetRef: 'node:b1', state: 'fresh-load', action: 'tab-to', environment: 'headless-chromium' };
 const FULL = { targetIsFocusable: true, keyboardReachableInState: true, realKeyboardFocus: true, hydrationReady: true, focusDependentIndicator: true, obviouslyVisible: true, stableIndicatorAbsence: true, modeCompletenessProven: true };
@@ -48,7 +49,7 @@ test('build: a malformed instruments artifact is REFUSED (findings must be an ar
 // ---- end-to-end (Chrome) ----
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — instruments-pipeline e2e SKIPPED');
-const FX = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-vsr-analysis.html');
+const FX = assetFileUrl('fx-v3-vsr-analysis.html');
 
 test('orchestrate(runInstruments): instruments run on the page and surface as non-authoritative findings', { skip: !chromeOK, concurrency: false }, async () => {
   const collect = { file: 'fx-v3-vsr-analysis.html', runId: 'R', pageDigest: 'sha256:fx', collectedAt: 1000, elements: [] };
@@ -69,7 +70,7 @@ test('runInstruments (#21): a native alert() raised on a safe click is captured 
   let res;
   try {
     const page = await browser.newPage();
-    await page.goto('file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-native-dialog.html'), { waitUntil: 'load' });
+    await page.goto(assetFileUrl('fx-v3-native-dialog.html'), { waitUntil: 'load' });
     res = await runInstruments(page, {});
   } finally { await browser.close(); }
   const dlg = res.findings.filter((f) => f.detector === 'native-dialog');

@@ -7,6 +7,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { analyzeTranscript, readingOrderFindings, meaningFindings } = require('../lib/vsr-analysis.js');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 // ---- pure-function units (deterministic, no browser) ----
 const step = (o) => ({ index: 0, xpath: '/x', tag: 'a', phrase: '', role: '', name: '', states: '', boundary: null, rect: { x: 0, y: 0, w: 50, h: 20 }, visibleText: '', interactive: false, ...o });
@@ -56,7 +57,7 @@ const { collectVsrTranscript } = require('../lib/vsr-collect.js');
 const puppeteer = require('puppeteer');
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — vsr-analysis e2e SKIPPED');
-const fxUrl = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-vsr-analysis.html');
+const fxUrl = assetFileUrl('fx-v3-vsr-analysis.html');
 
 test('vsr-analysis e2e: real no-name icon button is a barrier; misplaced link flags reading order', { skip: !chromeOK, concurrency: false }, async () => {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });

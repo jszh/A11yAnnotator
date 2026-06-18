@@ -15,7 +15,7 @@ const { withPipeline, promoted } = require('./helpers.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — v3 experiments suite SKIPPED');
-const fx = (name) => 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', name);
+const { assetFileUrl: fx } = require('../../lib/asset-paths.js');
 
 // run one fixture: returns { [targetXpath]: direction } and the raw results by xpath.
 async function run(experimentId, fixture, xpaths) {

@@ -14,7 +14,7 @@ const { CHROME } = require('../lib/run-experiments.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — v3 status-detector suite SKIPPED');
-const fx = (n) => 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', n);
+const { assetFileUrl: fx } = require('../../lib/asset-paths.js');
 
 async function withPage(fixture, fn) {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });

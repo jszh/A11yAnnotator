@@ -16,7 +16,7 @@ const { vsrNavigationIntegrity } = require('../lib/vsr-graph.js');
 
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — adversarial-instruments suite SKIPPED');
-const fx = (name) => 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', name);
+const { assetFileUrl: fx } = require('../../lib/asset-paths.js');
 async function withPage(fixture, fn) {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   try { const page = await browser.newPage(); await page.goto(fx(fixture), { waitUntil: 'load' }); return await fn(page); }

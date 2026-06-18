@@ -13,6 +13,7 @@ const adapter = require('../lib/llm-agent-adapter.js');
 const oracle = require('../lib/applicability-oracle.js');
 const { buildV3 } = require('../lib/build-v3.js');
 const { withPipeline, reseal, promoted } = require('./helpers.js');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 const ID = { file: 'p', runId: 'R', pageDigest: 'sha256:d' };
 const scope = (xpath) => ({ actionTargetRef: xpath, state: 'fresh-load', action: 'inspect', environment: 'headless-chromium' });
@@ -125,7 +126,7 @@ const { orchestrate } = require('../lib/orchestrator.js');
 const { CHROME } = require('../lib/run-experiments.js');
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — llm-wiring orchestrator e2e SKIPPED');
-const FXV = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-vision.html');
+const FXV = assetFileUrl('fx-v3-vision.html');
 
 test('orchestrate(runLlm): captures vision + runs BOTH producers; a rubric judgment fills a PROVISIONAL (D11-1/D12-1)', { skip: !chromeOK, concurrency: false }, async () => {
   // the img (#hero, empty alt) yields a 1.1.1 obligation the alt-text rubric judges; xpath matches the fixture.

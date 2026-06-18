@@ -14,6 +14,7 @@ const { buildV3 } = require('../lib/build-v3.js');
 const { crossArtifactErrors } = require('../lib/cross-artifact.js');
 const { orchestrate } = require('../lib/orchestrator.js');
 const { CHROME } = require('../lib/run-experiments.js');
+const { assetFileUrl, assetPath } = require('../../lib/asset-paths.js');
 
 // a violation in the eval-page.js out.axe shape: { id, impact, help, wcag:[tag…], nodes:[{target,html}] }
 const axeViolation = (id, wcag, targets, impact = 'serious') =>
@@ -323,7 +324,7 @@ test('gate: a checkerFindings artifact bound to the WRONG page is REFUSED', () =
 // ===== orchestrate wiring (Chrome) =====
 const chromeOK = fs.existsSync(CHROME);
 if (!chromeOK) console.log('# Chrome not found — checker-findings orchestrate e2e SKIPPED');
-const FIXTURE = 'file://' + path.join(__dirname, '..', '..', '..', 'assets', 'fixtures', 'fx-v3-focus.html');
+const FIXTURE = assetFileUrl('fx-v3-focus.html');
 
 test('orchestrate: axe surfaced from collect.axe is attached, identity-bound, and surfaced (allow-list only)', { skip: !chromeOK, concurrency: false }, async () => {
   const collect = { file: 'fx-v3-focus.html', runId: 'R', pageDigest: 'sha256:fx', collectedAt: 1000,

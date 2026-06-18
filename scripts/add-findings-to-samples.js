@@ -9,6 +9,7 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
+const { assetUrlUnder } = require('./lib/asset-paths.js'); // centralized page-location resolution
 
 const ROOT = path.join(__dirname, '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -79,7 +80,7 @@ const GETXPATH = `function getXPath(e){if(!e||!e.tagName)return '';if(e===docume
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 });
     page.on('pageerror', () => {});
-    const url = BASE + '/assets/saved/' + encodeURIComponent(file);
+    const url = assetUrlUnder(BASE, file);
     try { await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }); } catch (e) {}
     await new Promise(r => setTimeout(r, 1800));
     for (const t of byFile[file]) {
