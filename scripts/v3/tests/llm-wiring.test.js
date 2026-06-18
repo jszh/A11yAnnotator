@@ -78,6 +78,21 @@ test('end-to-end: a rubric judgment fills its obligation as a PROVISIONAL via ll
   assert.equal(row.provisional.mechanism, 'llm-rubric:alt-text-adequacy-v0', 'the authored rubric IS the mechanism');
 });
 
+// REGRESSION (real-run bug): orchestrate attaches a NON-hashed `llmTrace` side artifact to the bundle BEFORE the
+// LLM-attached re-build (and `timings` after). A real SDK run produces a trace, so bundle.llmTrace is set; the
+// mock-agent tests never set it, so the schema's KNOWN_STAGES gap ("unknown stage llmTrace") refused EVERY real
+// re-gate (built.ok=false ⇒ the PROVISIONAL fill silently vanished). The build must accept these side artifacts.
+test('a bundle carrying the non-hashed llmTrace + timings side artifacts builds (regression: real-run re-gate)', () => {
+  const collect = { ...ID, collectedAt: 1, elements: [{ xpath: '/img', role: 'img' }] };
+  const b = withPipeline({ collect, experiments: { ...ID, catalogVersion: '3.0.0-phase0', startedAt: 2, results: [] }, claimProposals: { ...ID, proposals: [] } });
+  b.judgments = { ...ID, judgments: [{ judgmentId: 'jud:alt:0', sc: '1.1.1', claimFamily: 'non-text-content', targetXpath: '/img', observationScope: scope('/img'), rubricRef: 'alt-text-adequacy-v0', verdict: 'LIKELY_BARRIER', confidence: 'high' }] };
+  b.llmTrace = { ...ID, traces: [{ sc: '1.1.1', targetXpath: '/img', rubricRef: 'alt-text-adequacy-v0', verdict: 'REPRODUCED', latencyMs: 1234, trace: [{ type: 'result', usage: { input_tokens: 10, output_tokens: 20 } }] }] };
+  b.timings = { ...ID, totalStageMs: 42, stages: { 'llm-rubric': { ms: 42, count: 1 } }, elements: {} };
+  const r = buildV3(reseal(b), { authority: promoted([]) });
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+  assert.equal(r.results.obligationLedger.find((o) => o.sc === '1.1.1').disposition, 'PROVISIONAL', 'the PROVISIONAL fill survives WITH a trace attached');
+});
+
 // ============================ the injectable multimodal adapter ============================
 test('parseAgentReply: extracts the strict-JSON verdict from prose; fails closed on a bad verdict', () => {
   assert.equal(adapter.parseAgentReply('Here is my answer:\n```json\n{"verdict":"NOT REPRODUCED","confidence":"high","summary":"ok","reasoning":"because","evidenceRefs":[]}\n```').verdict, 'NOT REPRODUCED');

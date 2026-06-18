@@ -42,7 +42,7 @@ const LIMITS = Object.freeze({
   concurrency: Object.freeze({
     experiment: 5,                    // V3_EXPERIMENT_CONCURRENCY default (1 = byte-identical serial)
     experimentCap: 6,                 // hard ceiling on V3_EXPERIMENT_CONCURRENCY
-    llm: 10,                          // V3_LLM_CONCURRENCY default (429-backoff is the real governor)
+    llm: 40,                          // V3_LLM_CONCURRENCY default (429-backoff is the real governor)
     llmTool: 4,                       // V3_LLM_TOOL_CONCURRENCY default (≈ concurrent tool tabs)
     reapAgeMarginMs: 30000,           // tool-tab reap age = toolRunTimeoutMs + this (strictly above the abort)
     reapAgeFallbackMs: 330000,        // openToolSession reapAge default when no run timeout is supplied

@@ -225,9 +225,13 @@ async function orchestrate(collect, drive, opts = {}) {
               ...opts.llmTransportConfig, mcpServers: { cdp: server }, allowedTools: ['mcp__cdp__*'],
               maxTurns: opts.llmToolMaxTurns || LIMITS.llm.toolMaxTurns, runTimeoutMs: opts.llmToolRunTimeoutMs || LIMITS.llm.toolRunTimeoutMs,
               getExtraDeadlineMs: toolSession.extraDeadlineMs, // credit tab-queue wait back to the deadline (timer-pause)
+              // onTraceSink rides ...llmTransportConfig ⇒ this multi-turn tool transport feeds the SAME token telemetry.
             }),
             model: opts.llmTransportConfig.model,
           });
+          // The tool agent is built HERE (it needs the live server + session), so the caller's single-shot wrapper
+          // (global LLM semaphore + inflight tracking) can't reach it unless we apply it. Keep BOTH paths under one cap.
+          if (typeof opts.wrapAgent === 'function') llmRunAgent = opts.wrapAgent(llmRunAgent);
         }
       }
       const pOpts = {

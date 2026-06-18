@@ -141,6 +141,9 @@ function makeClaudeSdkTransport(opts = {}) {
     maxRetries = LIMITS.llm.maxRetries, baseBackoffMs = LIMITS.llm.baseBackoffMs, maxBackoffMs = LIMITS.llm.maxBackoffMs,
     effort = 'medium', // reasoning/thinking depth: SDK EffortLevel ('low'|'medium'|'high'|'xhigh'|'max'). Sonnet → medium.
     getExtraDeadlineMs = null, // tool path: () => accumulated tab-queue wait, SUBTRACTED from the deadline (timer-pause)
+    onTraceSink = null, // PERSISTENT trace sink (token/usage telemetry) — fires for EVERY message, independent of the
+    // per-call callOpts.onTrace (which builds the verdict's trace). Lives on the config so it rides `...llmTransportConfig`
+    // into the tool transport orchestrate builds internally — keeping a tools-on run's token telemetry honest too.
   } = opts;
   let _query = queryImpl;
   const getQuery = async () => {
@@ -184,7 +187,9 @@ function makeClaudeSdkTransport(opts = {}) {
         if (mcpServers) options.mcpServers = mcpServers;
         if (effort) options.effort = effort; // SDK guides thinking depth by effort (works with adaptive thinking)
         for await (const msg of q({ prompt: input(), options })) {
-          if (onTrace) { try { onTrace(summarizeSdkMessage(msg)); } catch (e) {} } // FULL trace: text/thinking/tool_use/tool_result/result
+          if (onTrace || onTraceSink) { const ev = summarizeSdkMessage(msg); // FULL trace: text/thinking/tool_use/tool_result/result
+            if (onTrace) { try { onTrace(ev); } catch (e) {} }            // per-call sink → the verdict's attached trace
+            if (onTraceSink) { try { onTraceSink(ev); } catch (e) {} } }  // persistent sink → live token/usage telemetry
           if (msg && msg.type === 'assistant') {
             const tt = (msg.message && Array.isArray(msg.message.content) ? msg.message.content : []).filter((b) => b && b.type === 'text').map((b) => b.text).join('\n');
             if (tt) text += (text ? '\n' : '') + tt;

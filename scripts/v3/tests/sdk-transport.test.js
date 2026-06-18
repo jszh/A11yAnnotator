@@ -150,6 +150,24 @@ test('sdk transport: onTrace captures the FULL turn-by-turn trace (thinking, too
   assert.ok(result && result.usage && result.usage.output_tokens === 50, 'result usage captured');
 });
 
+test('sdk transport: onTraceSink (persistent config sink) captures every message incl. result usage — fires with NO per-call onTrace, crash-isolated', async () => {
+  // The tool path builds its transport INSIDE orchestrate from llmTransportConfig; the runner only contributes the
+  // config, never a per-call onTrace. So a persistent sink ON THE CONFIG is what keeps tools-on token telemetry alive.
+  const sink1 = [];
+  await makeClaudeSdkTransport({ queryImpl: multiTurnQuery(), oauthToken: 'tok', onTraceSink: (e) => sink1.push(e) })({ messages: [{ role: 'user', content: [] }] });
+  const r1 = sink1.find((e) => e.type === 'result');
+  assert.ok(r1 && r1.usage && r1.usage.output_tokens === 50, 'persistent sink captured result usage (token telemetry) with no per-call onTrace');
+  assert.ok(sink1.some((e) => (e.blocks || []).some((b) => b.kind === 'tool_use')), 'persistent sink sees the WHOLE stream, not just the result');
+  // both sinks fire independently when both are supplied (per-call → verdict trace; persistent → live telemetry).
+  const sink2 = [], perCall = [];
+  await makeClaudeSdkTransport({ queryImpl: multiTurnQuery(), oauthToken: 'tok', onTraceSink: (e) => sink2.push(e) })({ messages: [{ role: 'user', content: [] }] }, { onTrace: (e) => perCall.push(e) });
+  assert.equal(sink2.length, perCall.length, 'both sinks receive the same events');
+  assert.ok(sink2.length >= 4);
+  // a throwing telemetry sink must never break the transport (best-effort).
+  const res = await makeClaudeSdkTransport({ queryImpl: multiTurnQuery(), oauthToken: 'tok', onTraceSink: () => { throw new Error('sink boom'); } })({ messages: [{ role: 'user', content: [] }] });
+  assert.match(res.content[0].text, /REPRODUCED/, 'a throwing telemetry sink does not break the transport');
+});
+
 test('sdk transport: makeRunAgent attaches the full trace to the parsed verdict (out.trace)', async () => {
   const runAgent = makeRunAgent({ transport: makeClaudeSdkTransport({ queryImpl: multiTurnQuery(), oauthToken: 'tok' }), model: 'm' });
   const out = await runAgent([{ text: 'judge this' }], { xpath: '/html/body/a' });
