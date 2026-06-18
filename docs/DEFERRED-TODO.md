@@ -11,8 +11,16 @@ a deterministic pixel-contrast runner).
 
 ---
 
-## A. Checker-uncertainty → LLM obligation (generalize `incomplete` for ALL checkers)
-**Approved 2026-06-18.** Today a checker "needs-review" finding (axe `incomplete`, IBM `potentialviolation`/
+## A. Checker-uncertainty → LLM obligation (generalize `incomplete` for ALL checkers) — ✅ DONE 2026-06-18
+**Implemented** (axe lane; IBM follows the same path when wired). build-v3.js enumerates a checker obligation
+from each axe `incomplete` whose SC is in `CHECKER_UNCERTAINTY_FAMILY` (deduped vs static, real-v3-xpath only,
+auto-PARTIAL → LLM-reachable); `aria-prohibited-attr` added to axe-surface's allowlist; the adjudicator threads
+a `checkerHint` into the prompt (orchestrator builds `checkerHintsByXpath`); run-fn-llm enables axe. Verified:
+over-enum 0 new obligations on Amazon/LinkedIn (common SC 1.4.3 already enumerated → deduped); kb1m8s
+`aria-prohibited-attr` → a 4.1.2 auto-PARTIAL obligation; adversarial review cleared (1 latent cross-frame-xpath
+bug found + fixed). Open follow-on: IBM review tier through the same path.
+
+**Original design (for reference):** Today a checker "needs-review" finding (axe `incomplete`, IBM `potentialviolation`/
 review, etc.) is surfaced as a NON-authoritative shadow `checkerFinding` and goes no further (`axe-surface.js`
 emits `kind:'incomplete', review:true`; nothing consumes it). **Decision: treat every checker `incomplete`
 as a first-class reason to ENUMERATE an obligation and route it to the LLM**, carrying the checker's own
@@ -59,8 +67,16 @@ Design:
   (B) catches what *no* deterministic producer even saw. Connects to the analysis doc's "whole classes of
   elements are invisible to the collector".
 
-## C. eval-page axe-parity via DOM-identity tagging (answer to "support both CSS selector + xpath")
-**Approved 2026-06-18 (the axe-promotion's deferred corpus half).** The axe-promotion fires only where the
+## C. eval-page axe-parity via DOM-identity tagging (answer to "support both CSS selector + xpath") — ✅ DONE 2026-06-18
+**Implemented.** eval-page.js tags each obligation node with `data-v3-xp` before the axe run; the axe evaluate
+resolves each finding's CSS target to its node and reads `data-v3-xp`, so axe findings carry the dataset xpath
+by identity (scheme-agnostic). Verified: a foreign-scheme (`/html[1]/body[1]/…`) tagged node round-trips to the
+correct xpath. Adversarial review found + fixed a latent cross-frame mis-resolution (a depth>1 axe target now
+returns null → degrades to a shadow `cssTarget`, never mis-attributes to a wrong top-level node). Open follow-on:
+inject axe into same-origin CHILD frames so the axe lane actually tests in-frame content the v3 collector now
+collects (see the iframe note below) + verify a promoted disposition on a real corpus artifact.
+
+**Original context (for reference):** The axe-promotion fires only where the
 collector resolves axe's CSS-selector targets to the v3 xpath. `act-page-collect.js` does this (byte-identical
 xpathOf); `eval-page.js` does NOT, because its element xpaths are EXTERNAL (`loadXpaths()` from the saved
 dataset) so the scheme can't be guessed. Worst case today = a safe no-op (axe stays shadow on the corpus, no

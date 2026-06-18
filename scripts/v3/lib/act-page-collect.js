@@ -228,7 +228,10 @@ async function collectActPage(page, opts = {}) {
           for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++;
           return xpathOf(e.parentElement) + '/' + tag + '[' + idx + ']';
         }
-        const resolveXpath = (target) => { try { const sel = Array.isArray(target) ? target[target.length - 1] : target; const el = sel ? document.querySelector(sel) : null; return el ? xpathOf(el) : null; } catch (e) { return null; } };
+        // GUARD (adversarial review): axe `target` is a per-frame array; a depth>1 target is a CHILD-frame node whose
+        // last selector, querySelected against the TOP document, would miss or mis-resolve to a different top-level
+        // node → wrong xpath. Return null for cross-frame targets (degrade to a shadow signal, never mis-attribute).
+        const resolveXpath = (target) => { try { if (Array.isArray(target) && target.length > 1) return null; const sel = Array.isArray(target) ? target[0] : target; const el = sel ? document.querySelector(sel) : null; return el ? xpathOf(el) : null; } catch (e) { return null; } };
         const cfg = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }, resultTypes: ['violations', 'incomplete'] };
         const r = await axe.run(document, cfg);
         const map = (arr) => (arr || []).map((v) => ({ id: v.id, impact: v.impact, wcag: (v.tags || []).filter((t) => /^wcag\d/.test(t)), nodes: (v.nodes || []).map((n) => ({ target: n.target, xpath: resolveXpath(n.target) })) }));

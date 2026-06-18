@@ -41,6 +41,7 @@ function arg(name, def = null) {
 const CHROME = process.env.CHROME_PATH || process.env.PUPPETEER_EXECUTABLE_PATH
   || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const SUBSET_DIR = path.join(__dirname, 'act-subset');
+const AXE_PATH = process.env.AXE_PATH || path.join(REPO_ROOT, 'axe.min.js'); // axe injected at collection → axe-promotion + checker-uncertainty
 const LIMIT = Number(arg('limit', 0));                 // 0 = all
 const SC = arg('sc', null);
 const PAGE_CONC = Number(arg('pages', 4));             // pages orchestrated at once
@@ -245,6 +246,7 @@ async function main() {
         try {
           collect = normalizeCollectRoles(await collectActPage(lease.page, {
             url: urlFor(tc), elementCap: ELEMENT_CAP, file: `act:${tc.testcaseId}`, runId, sourceUrl: tc.url,
+            runAxe: true, axePath: AXE_PATH, // surface axe → the axe-promotion (decided) + checker-uncertainty obligations (incomplete)
           }));
         } finally { await lease.release(); }
         tel.workers[wid].phase = 'orchestrate';

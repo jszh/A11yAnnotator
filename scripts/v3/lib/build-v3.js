@@ -300,7 +300,7 @@ function buildV3(bundle, opts = {}) {
       if (!f || f.source !== 'axe' || f.kind !== 'violation' || f.review) continue; // DECIDED hard violations only
       let xpath = f.xpath, family = AXE_SC_FAMILY[f.sc];
       if (!family && Object.prototype.hasOwnProperty.call(AXE_PAGE_LEVEL, f.sc)) { xpath = AXE_PAGE_LEVEL[f.sc][0]; family = AXE_PAGE_LEVEL[f.sc][1]; }
-      if (!family || !xpath) continue;
+      if (!family || !xpath || xpath[0] !== '/') continue; // a CSS-selector fallback xpath can't match a v3 obligation — skip
       axeObs.push(stampAuthority({
         sc: f.sc, claimFamily: family,
         observationScope: { actionTargetRef: xpath, state: 'static-dom', action: 'inspect', environment: 'headless-chromium' },
@@ -322,7 +322,32 @@ function buildV3(bundle, opts = {}) {
   if (dyn.errors.length) { for (const m of dyn.errors) E(`dynamic-subject: ${m}`); return { ok: false, errors, results: null }; }
   const dynById = new Set(staticObligations.map((o) => o.obligationId));
   const dynamicObligations = dyn.obligations.filter((o) => !dynById.has(o.obligationId)); // a discovered subject that is already a static obligation isn't double-counted
-  const obligations = [...staticObligations, ...dynamicObligations];
+  // CHECKER-UNCERTAINTY obligations (DEFERRED-TODO item A): a checker's INCOMPLETE / needs-review finding (axe
+  // today; IBM later) is a first-class reason to ENUMERATE an obligation and route it to the LLM — a checker
+  // that couldn't decide means "look harder", never a clear ([[checker-uncertainty-to-llm]]). Only element-keyed,
+  // rubric-judged SCs (map below); deduped against the static/dynamic set (an already-enumerated obligation just
+  // keeps its row — the adjudicator threads the hint either way). NON-authoritative: these only ever land
+  // auto-PARTIAL → an LLM PROVISIONAL fill. (The oracle Rule-15 corroboration gate applies to authoritative
+  // CLAIMs, not PROVISIONAL fills — build-v3:182 — so an obligation the oracle didn't statically derive is fine.)
+  const CHECKER_UNCERTAINTY_FAMILY = {
+    '4.1.2': 'name-role-value', '1.1.1': 'non-text-content', '1.4.5': 'images-of-text', '2.4.4': 'link-purpose',
+    '2.4.6': 'heading-descriptive', '1.4.1': 'use-of-color', '1.4.11': 'non-text-contrast', '1.4.3': 'text-contrast', '2.5.3': 'label-in-name',
+  };
+  const existingOblIds = new Set([...staticObligations, ...dynamicObligations].map((o) => o.obligationId));
+  const checkerObligations = [];
+  const seenChk = new Set();
+  for (const f of ((bundle.checkerFindings && bundle.checkerFindings.findings) || [])) {
+    if (!f || f.kind !== 'incomplete' || !f.xpath || f.xpath[0] !== '/') continue; // needs-review findings with a REAL v3 xpath only
+    // (an axe finding whose target didn't resolve to a v3 xpath falls back to a raw CSS selector — that is a
+    // PHANTOM obligation key the LLM can't crop/resolve; skip it. a decided violation is promoted below.)
+    const family = CHECKER_UNCERTAINTY_FAMILY[f.sc];
+    if (!family) continue;
+    const id = oracle.oblId(f.xpath, f.sc, family);
+    if (existingOblIds.has(id) || seenChk.has(id)) continue;
+    seenChk.add(id);
+    checkerObligations.push({ obligationId: id, xpath: f.xpath, sc: f.sc, claimFamily: family });
+  }
+  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations];
   const dispositions = [];
   for (const c of claims) dispositions.push({
     obligationId: oracle.oblId(c._target, c._sc, c._family), kind: 'CLAIM',

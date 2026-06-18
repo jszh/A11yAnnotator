@@ -231,6 +231,10 @@ function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
     // additionally carry this in their "Interpreting the deterministic evidence" section.)
     '--- pre-computed deterministic signals (do not re-derive; a signal\'s `uncertainReason` says WHY a checker abstained — an ABSENT signal or ratio means it could NOT decide, NOT that the page passes) ---',
     JSON.stringify(signals),
+    // CHECKER-UNCERTAINTY hint (DEFERRED-TODO A): an external checker (axe/IBM) ran a rule here and returned
+    // NEEDS-REVIEW (it could not decide). That is exactly why this obligation reached you — investigate the
+    // checker's specific concern; "needs review" is NEVER a pass (absence ≠ pass).
+    ...(opts.checkerHint ? ['--- external-checker cross-signal (flagged this for REVIEW — could not auto-decide) ---', JSON.stringify(opts.checkerHint)] : []),
     '--- VSR announcement (realistic accessible name) ---',
     transcriptExcerpt ? JSON.stringify(transcriptExcerpt) : '(none)',
     '--- output ---',
@@ -302,6 +306,7 @@ async function runAdjudication(subjects, opts = {}) {
   const id = { file: opts.file || null, runId: opts.runId || null, pageDigest: opts.pageDigest || null };
   const transcriptByXpath = opts.transcriptByXpath || {};
   const visionByXpath = opts.visionByXpath || {}; // xpath -> { 'element-crop': base64, 'state-before': base64, ... }
+  const checkerHintsByXpath = opts.checkerHintsByXpath || {}; // xpath -> [{ sc, checker, rule, note }] (DEFERRED-TODO A)
   // rubric source: the loader's { skills:{[skill]:{text,visionEvidence}} } OR a plain { skill: text } map.
   const rubricsBySkill = (opts.llmRubrics && opts.llmRubrics.skills) || opts.rubrics || {};
   const getRubric = (skill) => { const r = rubricsBySkill[skill]; if (!r) return { text: null, visionEvidence: [] }; if (typeof r === 'string') return { text: r, visionEvidence: [] }; return { text: r.text || null, visionEvidence: Array.isArray(r.visionEvidence) ? r.visionEvidence : [] }; };
@@ -327,7 +332,8 @@ async function runAdjudication(subjects, opts = {}) {
       const data = avail[state];
       if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.skill}:${i}:${state}`, state, data, mediaType: 'image/png' });
     }
-    const messages = buildMessages(subj, signals, transcriptExcerpt, frames, { rubric: rubricText });
+    const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
+    const messages = buildMessages(subj, signals, transcriptExcerpt, frames, { rubric: rubricText, checkerHint });
     let out; const t0 = Date.now();
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }
     const latencyMs = Date.now() - t0;
@@ -414,6 +420,7 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
   const id = { file: opts.file || null, runId: opts.runId || null, pageDigest: opts.pageDigest || null };
   const visionByXpath = opts.visionByXpath || {};
   const transcriptByXpath = opts.transcriptByXpath || {};
+  const checkerHintsByXpath = opts.checkerHintsByXpath || {}; // xpath -> [{ sc, checker, rule, note }] (DEFERRED-TODO A)
   const scope = (xpath) => ({ actionTargetRef: xpath, state: opts.state || 'fresh-load', action: opts.action || 'inspect', environment: opts.environment || 'headless-chromium' });
   const judgments = [];
   const traces = [];
@@ -436,7 +443,8 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     // transition isn't driven yet (the form-submit pair for 3.3.1/3.3.3 is not produced) — ABSTAIN rather
     // than judge BLIND. Missing declared evidence ⇒ the obligation simply stays auto-PARTIAL (honest "could not decide").
     if (declaredVision.length && frames.length < declaredVision.length) return null;
-    const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text });
+    const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
+    const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text, checkerHint });
     let out; const t0 = Date.now();
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }
     const latencyMs = Date.now() - t0;

@@ -234,9 +234,17 @@ async function orchestrate(collect, drive, opts = {}) {
           if (typeof opts.wrapAgent === 'function') llmRunAgent = opts.wrapAgent(llmRunAgent);
         }
       }
+      // CHECKER-UNCERTAINTY hints (DEFERRED-TODO A): xpath -> [{sc, checker, rule, note}] from the INCOMPLETE
+      // findings, so the adjudicator threads "axe flagged <rule> for review here" into the matching subject's
+      // prompt (the obligation reached the LLM precisely because a checker couldn't decide).
+      const checkerHintsByXpath = {};
+      for (const f of ((bundle.checkerFindings && bundle.checkerFindings.findings) || [])) {
+        if (!f || f.kind !== 'incomplete' || !f.xpath) continue;
+        (checkerHintsByXpath[f.xpath] = checkerHintsByXpath[f.xpath] || []).push({ sc: f.sc, checker: f.source || 'checker', rule: f.ruleId || f.detector || 'rule', note: 'flagged for REVIEW — investigate this specific concern; needs-review is never a pass' });
+      }
       const pOpts = {
         runAgent: llmRunAgent, budget: opts.llmBudget, model: opts.llmModel, llmRubrics, llmConcurrency: toolConcurrency,
-        transcriptByXpath: opts.transcriptByXpath, visionByXpath: visionByXpath || {},
+        transcriptByXpath: opts.transcriptByXpath, visionByXpath: visionByXpath || {}, checkerHintsByXpath,
         file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest,
         // CHECK #1 (after each worker/subject): reap any stale leaked clone tab (concurrency-safe).
         afterEach: toolSession ? () => toolSession.reapStale() : undefined,

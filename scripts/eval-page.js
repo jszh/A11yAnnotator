@@ -243,6 +243,12 @@ function parseRGB(s) {
 
     // ---- axe (CACHED full run) ----
     try {
+      // AXE-PARITY (DEFERRED-TODO item C): eval-page's element xpaths are EXTERNAL (loadXpaths), so the scheme
+      // can't be matched by string. TAG each obligation element's node with its v3 xpath, then the axe run maps
+      // its CSS-selector targets back to that xpath by DOM-node IDENTITY (scheme-agnostic) — so build-v3's
+      // axe-promotion matches an axe violation to its obligation. (SVG-namespaced nodes won't tag until the
+      // separate SVG-xpath fix — DEFERRED-TODO/analysis — lands; non-SVG works today.)
+      try { await page.evaluate((xps) => { for (const xp of xps) { try { const n = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (n && n.setAttribute) n.setAttribute('data-v3-xp', xp); } catch (e) {} } }, elements.map((e) => e.xpath)); } catch (e) {}
       await page.addScriptTag({ path: path.join(ROOT, 'axe.min.js') });
       const axeOut = await page.evaluate(async () => {
         const cfg = {
@@ -251,9 +257,15 @@ function parseRGB(s) {
           resultTypes: ['violations', 'incomplete'], // incomplete = axe's needs-review priors (surfaced as review-tier, never a decision)
         };
         const r = await axe.run(document, cfg);
+        // GUARD (adversarial review): axe `target` is a per-frame-boundary array; a depth>1 target is a node in a
+        // CHILD frame, and querySelecting its last selector against the TOP document would miss OR mis-resolve to a
+        // DIFFERENT top-level node with the same selector → a wrong-but-plausible xpath. Return null for cross-frame
+        // targets (degrade to a shadow cssTarget signal, never mis-attribute). The identity match is exact only for
+        // single-frame (depth-1) targets — which is all the corpus produces today (axe is injected top-frame-only).
+        const xpOf = (target) => { try { if (Array.isArray(target) && target.length > 1) return null; const sel = Array.isArray(target) ? target[0] : target; const el = sel ? document.querySelector(sel) : null; return el && el.getAttribute ? el.getAttribute('data-v3-xp') : null; } catch (e) { return null; } };
         const map = (arr) => (arr || []).map(v => ({
           id: v.id, impact: v.impact, help: v.help, wcag: (v.tags || []).filter(t => /^wcag\d/.test(t)),
-          nodes: v.nodes.map(n => ({ target: n.target, html: (n.html || '').slice(0, 160) })),
+          nodes: v.nodes.map(n => ({ target: n.target, xpath: xpOf(n.target), html: (n.html || '').slice(0, 160) })),
         }));
         return { violations: map(r.violations), incomplete: map(r.incomplete) };
       });

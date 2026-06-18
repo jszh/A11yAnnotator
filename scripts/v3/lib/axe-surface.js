@@ -30,7 +30,7 @@ const AXE_SURFACED_RULES = Object.freeze(new Set([
   'summary-name', 'frame-title', 'aria-command-name',
   // aria-validity (4.1.2)
   'aria-required-attr', 'aria-allowed-attr', 'aria-valid-attr', 'aria-roles', 'aria-valid-attr-value',
-  'nested-interactive', 'aria-hidden-focus',
+  'nested-interactive', 'aria-hidden-focus', 'aria-prohibited-attr',
   // required owned/context (1.3.1 — redundant with the wholesale set, listed for intent/robustness)
   'aria-required-children', 'aria-required-parent', 'td-headers-attr',
   // use-of-color (1.4.1, coverage item #8) — F73: a link distinguishable from its surrounding text-block
