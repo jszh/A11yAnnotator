@@ -187,11 +187,33 @@ async function orchestrate(collect, drive, opts = {}) {
     const llmRubrics = opts.llmRubrics || require('./rubric-loader.js').loadRubrics();
     const ledger = built.results.obligationLedger;
     const onlyAutoPartial = opts.llmOnlyAutoPartial !== false;
+    // S5 (RCA R5): annotate elements with the DETERMINISTIC keyboard-trap result (the actual Tab/Shift+Tab/Esc
+    // walk — experiment lane and/or kbd instruments) so the 2.1.x precompute hands the agent a CONFIRMED-trap
+    // signal, not just the focusRisk heuristic. A confirmed 2.1.2 BARRIER observation at/around an element xpath
+    // is positive evidence focus cannot escape; absence falls back to the heuristic reasoning (never asserted as
+    // "checked + clean"). Cheap xpath-prefix match (the finding xpath may be the trapping element OR its region).
+    const trapBarrierXpaths = ((built.results && built.results.shadowObservations) || [])
+      .filter((o) => o && o.sc === '2.1.2' && o.source === 'deterministic' && o.wouldBe && o.wouldBe.observationOutcome === 'BARRIER_OBSERVED')
+      .map((o) => (o.observationScope && o.observationScope.actionTargetRef)).filter(Boolean);
+    if (trapBarrierXpaths.length) {
+      for (const el of collect.elements || []) {
+        if (!el || !el.xpath) continue;
+        el.deterministicTrapConfirmed = trapBarrierXpaths.some((tx) => el.xpath === tx || el.xpath.startsWith(tx + '/') || tx.startsWith(el.xpath + '/'));
+      }
+    }
     // PARTITION: the SCs an atomic rubric covers are OWNED by the rubric producer; the whole-obligation
     // agent runs only on the rubric-less SCs, so the two never co-fire on one cell (no duplicate eval).
     const ownedScs = new Set(Object.values(llmRubrics.rubrics || {}).filter((r) => r && r.sc).map((r) => r.sc));
-    const agentSubjects = llmAdj.selectSubjects(collect, ledger, { onlyAutoPartial, ownedScs });          // llm-agent (rubric-less SCs only)
-    const rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial }); // llm-rubric:<id> (per SC)
+    let agentSubjects = llmAdj.selectSubjects(collect, ledger, { onlyAutoPartial, ownedScs });          // llm-agent (rubric-less SCs only)
+    let rubricSubjects = llmAdj.selectRubricSubjects(collect, ledger, llmRubrics.rubrics, { onlyAutoPartial }); // llm-rubric:<id> (per SC)
+    // EVAL SCOPE GATE (opt-in): restrict the LLM to the SC(s) we have ground truth for. ACT ground truth is
+    // PER-SC — a testcase only tells us pass/fail/inapplicable for its OWN rule's SC, not the page's other SCs.
+    // Judging off-target obligations is both unscoreable (no GT) and wasted LLM/tool/vision spend. A Set of SC
+    // strings (opts.restrictScs) keeps only matching subjects; absent ⇒ judge everything (production behaviour).
+    if (opts.restrictScs instanceof Set && opts.restrictScs.size) {
+      agentSubjects = agentSubjects.filter((s) => opts.restrictScs.has(s.sc));
+      rubricSubjects = rubricSubjects.filter((s) => opts.restrictScs.has(s.sc));
+    }
     // VISION (audit D11-1): use a caller-supplied map, else CAPTURE it (browser) for the union of subject
     // xpaths — so the adjudicator stays a pure function over visionByXpath but a real run gets real pixels.
     let visionByXpath = opts.visionByXpath || null;
@@ -244,6 +266,9 @@ async function orchestrate(collect, drive, opts = {}) {
       }
       const pOpts = {
         runAgent: llmRunAgent, budget: opts.llmBudget, model: opts.llmModel, llmRubrics, llmConcurrency: toolConcurrency,
+        // tools are TRULY live iff the tool agent replaced the single-shot one (server built) — gates the prompt's
+        // tool-guidance block so the judge is told about tools ONLY when it can actually call them.
+        toolsEnabled: llmRunAgent !== opts.runAgent,
         transcriptByXpath: opts.transcriptByXpath, visionByXpath: visionByXpath || {}, checkerHintsByXpath,
         file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest,
         // CHECK #1 (after each worker/subject): reap any stale leaked clone tab (concurrency-safe).

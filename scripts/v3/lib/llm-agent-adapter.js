@@ -183,7 +183,11 @@ function makeClaudeSdkTransport(opts = {}) {
       try {
         const env = { ...process.env, CLAUDE_CODE_OAUTH_TOKEN: oauthToken || process.env.CLAUDE_CODE_OAUTH_TOKEN || '', CLAUDE_ASYNC_AGENT_STALL_TIMEOUT_MS: String(perTurnTimeoutMs) };
         delete env.ANTHROPIC_API_KEY; delete env.ANTHROPIC_AUTH_TOKEN; // never let a metered key into the child
-        const options = { maxTurns, allowedTools, settingSources, model: useModel, abortController: ctrl, env };
+        // tools:[] DISABLES every built-in Claude Code tool (Bash, ToolSearch/deferred-loader, Read/Edit/…). The
+        // judge's ONLY tools are the cdp MCP server (when present, gated by allowedTools 'mcp__cdp__*'). Without
+        // this the smoke run showed the judge burning turns on ToolSearch (thinking the cdp tools were deferred —
+        // "No matching deferred tools found") and even running Bash; allowedTools alone is NOT exclusive of built-ins.
+        const options = { maxTurns, allowedTools, settingSources, model: useModel, abortController: ctrl, env, tools: [] };
         if (mcpServers) options.mcpServers = mcpServers;
         if (effort) options.effort = effort; // SDK guides thinking depth by effort (works with adaptive thinking)
         for await (const msg of q({ prompt: input(), options })) {

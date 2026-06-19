@@ -44,7 +44,10 @@ const SUBSET_DIR = path.join(__dirname, 'act-subset');
 const AXE_PATH = process.env.AXE_PATH || path.join(REPO_ROOT, 'axe.min.js'); // axe injected at collection → axe-promotion + checker-uncertainty
 const LIMIT = Number(arg('limit', 0));                 // 0 = all
 const SC = arg('sc', null);
-const PAGE_CONC = Number(arg('pages', 4));             // pages orchestrated at once
+const REACHES_LLM = !!arg('reaches-llm', false);       // run the REACHES-LLM set (recall on failed + SPECIFICITY on passed/inapplicable) instead of bothFail
+const RESTRICT_SC = REACHES_LLM || !!arg('restrict-sc', false); // judge ONLY the case's GT'd SC — ACT ground truth is per-SC (off-target verdicts are unscoreable + wasted spend)
+const PAGE_CONC = Number(arg('pages', 8));             // pages orchestrated at once (default = cores-2 headroom; was 4 —
+                                                      // too few to feed the global LLM cap once tools cap per-page conc)
 // LLM concurrency is governed by limits.js — NOT a hand-picked number. Page-parallelism multiplies per-page
 // concurrency, so the GLOBAL in-flight cap is set to (and clamped at) LIMITS.concurrency.llm: the single LLM
 // restriction the whole harness honors. An override may only go LOWER, never above the limit (clamp pattern from
@@ -85,6 +88,23 @@ function loadFnCases() {
   return out;
 }
 
+// REACHES-LLM set: every DECIDED case the deterministic stack did NOT settle (`!axeFlag && !v3Flag`), so its
+// target-SC obligation stays auto-PARTIAL and REACHES the LLM. Drawn from the proposed SUPERSET raw (approved +
+// draft). `failed` ⇒ recall; `passed`/`inapplicable` ⇒ SPECIFICITY (a flagged barrier on the target SC = a false
+// positive). failed-reaches = 66 here, matching the bothFail FN set exactly.
+function loadReachesLlmCases() {
+  const RAW = path.join(REPO_ROOT, 'eval/checker-comparison/upstream-evidence/v3-act-subset-proposed/raw.json');
+  const raw = JSON.parse(fs.readFileSync(RAW, 'utf8'));
+  const out = [];
+  for (const r of raw) {
+    if (r.error || r.axeFlag || r.v3Flag) continue;          // decided by axe/v3 ⇒ does NOT reach the LLM on its SC
+    const localPath = path.join('pages', r.ruleId, r.testcaseId + '.html');
+    if (!fs.existsSync(path.join(SUBSET_DIR, localPath))) continue; // fixture must be present locally
+    out.push({ ruleId: r.ruleId, ruleName: r.ruleName, testcaseId: r.testcaseId, expected: r.expected, sc: r.sc, localPath, url: r.url, draft: r.approved === false });
+  }
+  return out;
+}
+
 const urlFor = (tc) => 'file://' + path.join(SUBSET_DIR, tc.localPath);
 
 // ============================ live telemetry ============================
@@ -97,7 +117,7 @@ const tel = {
   total: 0,
   workers: {},     // workerId -> { idx, ruleId, sc, expected, phase, startedAt }
   inflight: {},    // callId  -> { xpath, sc, skill, startedAt }
-  llm: { calls: 0, done: 0, results: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreateTokens: 0, costUsd: 0 },
+  llm: { calls: 0, done: 0, results: 0, peakInFlight: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreateTokens: 0, costUsd: 0 },
   tabs: {},        // allocator.stats()
   mem: {},
   tally: { caught: 0, missedAgree: 0, uncertain: 0, noVerdict: 0, noObligation: 0, error: 0 },
@@ -137,6 +157,8 @@ const wrapAgent = (agent) => (messages, subject) => sem.run(async () => {
   const id = ++callSeq;
   tel.inflight[id] = { xpath: (subject && subject.xpath) || null, sc: (subject && subject.sc) || null, skill: (subject && (subject.skill || subject.rubricId)) || null, startedAt: Date.now() };
   tel.llm.calls++;
+  const nIn = Object.keys(tel.inflight).length;        // LLM-concurrency high-water mark (real peak parallel calls)
+  if (nIn > tel.llm.peakInFlight) tel.llm.peakInFlight = nIn;
   try { return await agent(messages, subject); }
   finally { delete tel.inflight[id]; tel.llm.done++; }
 });
@@ -177,6 +199,11 @@ function scoreCase(tc, out) {
   else outcome = 'uncertain';
   rec.outcome = outcome;
   rec.llmFlag = outcome === 'caught';
+  // POLARITY (ACT GT is per-SC): on a `failed` case a flagged barrier is a TRUE POSITIVE (recall); on a
+  // `passed`/`inapplicable` case the SAME flag is a FALSE POSITIVE (the LLM invented a barrier the GT denies).
+  rec.polarity = tc.expected === 'failed' ? 'recall' : 'specificity';
+  rec.correct = rec.polarity === 'recall' ? (outcome === 'caught') : (outcome !== 'caught');
+  rec.falsePositive = rec.polarity === 'specificity' && outcome === 'caught';
 
   // surface the actual verdicts + rationale so the run is auditable
   const rats = (bundle.llmRationale && bundle.llmRationale.rationales) || [];
@@ -197,7 +224,7 @@ function scoreCase(tc, out) {
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   fs.mkdirSync(path.join(OUT, 'traces'), { recursive: true });
-  let cases = loadFnCases();
+  let cases = REACHES_LLM ? loadReachesLlmCases() : loadFnCases();
   if (SC) cases = cases.filter((c) => (c.sc || []).includes(SC));
   if (Number.isFinite(LIMIT) && LIMIT > 0) cases = cases.slice(0, LIMIT);
   tel.total = cases.length;
@@ -255,6 +282,7 @@ async function main() {
           resolveUrl: () => urlFor(tc),
           executablePath: CHROME, browser, tabAllocator: alloc, maxTabs: MAX_TABS,
           now: collect.collectedAt + 2,
+          restrictScs: RESTRICT_SC ? new Set(tc.sc || []) : undefined, // judge ONLY the case's GT'd SC (ACT GT is per-SC)
           maxAutomatic: Number.isFinite(MAX_AUTO) ? MAX_AUTO : Infinity,
           experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),
           runLlm: true, runAgent, captureVision: VISION, wrapAgent, // wrapAgent → the tool agent shares the global cap + telemetry
@@ -300,32 +328,46 @@ async function main() {
 function summarize(results) {
   const tally = { caught: 0, missedAgree: 0, uncertain: 0, noVerdict: 0, noObligation: 0, error: 0 };
   const bySc = {};
+  const byExpected = {}; // expected -> outcome counts
   for (const r of results) {
     tally[r.outcome] = (tally[r.outcome] || 0) + 1;
+    const e = r.expected || 'unknown';
+    const be = byExpected[e] || (byExpected[e] = { n: 0, caught: 0, missedAgree: 0, uncertain: 0, noVerdict: 0, noObligation: 0, error: 0 });
+    be.n++; be[r.outcome] = (be[r.outcome] || 0) + 1;
     for (const sc of (r.sc || [])) {
-      bySc[sc] = bySc[sc] || { total: 0, caught: 0, missedAgree: 0, uncertain: 0, noVerdict: 0, noObligation: 0, error: 0 };
+      bySc[sc] = bySc[sc] || { total: 0, expected: e, caught: 0, missedAgree: 0, uncertain: 0, noVerdict: 0, noObligation: 0, error: 0 };
       bySc[sc].total++; bySc[sc][r.outcome] = (bySc[sc][r.outcome] || 0) + 1;
     }
   }
   const n = results.length;
-  return { generatedAt: new Date().toISOString(), n, model: MODEL, vision: VISION, tools: TOOLS, tally,
+  // POLARITY metrics: recall on `failed`; false-positive rate on `passed`+`inapplicable` (specificity).
+  const recallCases = results.filter((r) => r.polarity === 'recall');
+  const specCases = results.filter((r) => r.polarity === 'specificity');
+  const recallCaught = recallCases.filter((r) => r.outcome === 'caught').length;
+  const falsePos = specCases.filter((r) => r.falsePositive).length;
+  return { generatedAt: new Date().toISOString(), n, model: MODEL, vision: VISION, tools: TOOLS,
+    reachesLlm: REACHES_LLM, restrictSc: RESTRICT_SC, tally, byExpected,
+    recall: { failedN: recallCases.length, caught: recallCaught, recallRate: recallCases.length ? +(recallCaught / recallCases.length).toFixed(3) : null },
+    specificity: { n: specCases.length, falsePositive: falsePos, falsePositiveRate: specCases.length ? +(falsePos / specCases.length).toFixed(3) : null },
     caughtRate: n ? +(tally.caught / n).toFixed(3) : null, bySc };
 }
 
 function printSummary(results) {
   const s = summarize(results);
-  console.log('\n================= FN × LLM results =================');
-  console.log(`cases: ${s.n}  |  model ${s.model}  vision=${s.vision} tools=${s.tools}`);
-  console.log(`  CAUGHT (LLM flagged barrier axe+v3 missed): ${s.tally.caught}  (${(100 * (s.caughtRate || 0)).toFixed(0)}%)`);
-  console.log(`  missed/agree (LLM also said OK):            ${s.tally.missedAgree}`);
-  console.log(`  uncertain (PARTIAL/UNCERTAIN/N-A):          ${s.tally.uncertain}`);
-  console.log(`  no verdict (asked, abstained):              ${s.tally.noVerdict}`);
-  console.log(`  no obligation (SC never raised for LLM):    ${s.tally.noObligation}`);
-  console.log(`  error:                                      ${s.tally.error}`);
-  console.log('\n  by SC:  sc        n  caught  agree  uncert  noVerd  noOblig  err');
+  console.log('\n================= LLM eval results (recall + specificity) =================');
+  console.log(`cases: ${s.n}  |  model ${s.model}  vision=${s.vision} tools=${s.tools}  restrictSC=${s.restrictSc}  reachesLLM=${s.reachesLlm}`);
+  console.log('\n  RECALL — expected=failed (a flagged barrier is a TRUE POSITIVE):');
+  console.log(`    failed cases reaching the LLM: ${s.recall.failedN}  |  caught: ${s.recall.caught}  =  ${s.recall.recallRate != null ? (100 * s.recall.recallRate).toFixed(0) + '%' : '-'} recall`);
+  console.log('\n  SPECIFICITY — expected=passed/inapplicable (a flagged barrier is a FALSE POSITIVE):');
+  console.log(`    specificity cases: ${s.specificity.n}  |  false positives: ${s.specificity.falsePositive}  =  ${s.specificity.falsePositiveRate != null ? (100 * s.specificity.falsePositiveRate).toFixed(1) + '%' : '-'} FP rate`);
+  for (const e of ['passed', 'inapplicable']) { const b = s.byExpected[e]; if (b) console.log(`      ${e.padEnd(13)} n=${String(b.n).padStart(3)}  FP(flagged)=${String(b.caught).padStart(3)}  clearedOK=${String(b.missedAgree).padStart(3)}  uncertain=${String(b.uncertain).padStart(3)}  noVerdict=${String(b.noVerdict).padStart(3)}  noObligation=${String(b.noObligation).padStart(3)}`); }
+  console.log('\n  by SC (FP = flagged where GT says pass/inapplicable; * = recall SC):');
+  console.log('    sc        exp           n  caught/FP  agree  uncert  noVerd  noOblig');
   for (const [sc, b] of Object.entries(s.bySc).sort()) {
-    console.log(`         ${sc.padEnd(8)} ${String(b.total).padStart(2)}   ${String(b.caught).padStart(4)}  ${String(b.missedAgree).padStart(5)}  ${String(b.uncertain).padStart(6)}  ${String(b.noVerdict).padStart(6)}  ${String(b.noObligation).padStart(7)}  ${String(b.error).padStart(3)}`);
+    console.log(`    ${sc.padEnd(8)} ${String(b.expected).padEnd(13)} ${String(b.total).padStart(2)}   ${String(b.caught).padStart(7)}  ${String(b.missedAgree).padStart(5)}  ${String(b.uncertain).padStart(6)}  ${String(b.noVerdict).padStart(6)}  ${String(b.noObligation).padStart(7)}`);
   }
+  console.log(`\n  raw outcome tally: ${JSON.stringify(s.tally)}`);
+  console.log(`  resource peak: parallel LLM ${tel.llm.peakInFlight}/${GLOBAL_LLM}  |  tabs ${(tel.tabs && tel.tabs.peak) || '?'}/${MAX_TABS}  |  pages=${PAGE_CONC} perPageLLM=${TOOLS ? Math.min(LLM_CONC, LIMITS.concurrency.llmTool) : LLM_CONC}`);
   console.log(`\nwrote ${path.join(OUT, 'results.json')} + summary.json + llm-trace.json`);
 }
 

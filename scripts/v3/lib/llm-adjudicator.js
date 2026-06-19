@@ -18,6 +18,7 @@
 const V = require('./v3-schema.js');
 const A = require('../../lib/a11y-eval.js');
 const oracle = require('./applicability-oracle.js');
+const { toolsForSubject, renderToolGuidance } = require('./cdp-tool-catalog.js');
 
 const MECHANISM = 'llm-agent';
 const V2_9_VERDICTS = ['REPRODUCED', 'NOT REPRODUCED', 'PARTIAL', 'N/A'];
@@ -166,7 +167,11 @@ function precomputeSignals(element, skill) {
   element = element || {}; // the `= {}` default only fires on undefined; a malformed `null` must not crash
   const s = {};
   const num = (v) => (Number.isFinite(v) ? v : undefined);
-  if (skill === 'color-and-visual-text' && element.box && typeof element.box === 'object') {
+  // S7 (RCA R7): target-size is a 2.5.x GEOMETRY check — it belongs to the pointer/target-size skill, NOT the
+  // contrast skill. Attaching it to `color-and-visual-text` contaminated the contrast/complex-backdrop judgment
+  // (evalTargetSize's "zero-size/hidden — not a rendered target" verdict bled into the 1.4.3 call, afw4f7) AND
+  // starved the actual target-size rubric of its signal. Gate it to the reflow-and-pointer-affordances skill.
+  if (skill === 'reflow-and-pointer-affordances' && element.box && typeof element.box === 'object') {
     s.targetSize = A.evalTargetSize(element.box, element.targetOpts || {});
   }
   if (element.fontPx != null) {
@@ -218,6 +223,38 @@ function precomputeSignals(element, skill) {
       role: element.role, tabindex: element.tabindex, reachedByTab: element.reachedByTab,
       respondedToSyntheticKey: element.respondedToSyntheticKey, respondsToArrows: element.respondsToArrows, focusable: element.focusable,
     });
+    // S5 (RCA R5): the 2.1.2 no-keyboard-trap judgment needs the trap-RISK context. A trap means focus is
+    // RETAINED (cannot Tab/Shift+Tab/Esc out). Absent a focus-trapping region or inline focus handler, a normal
+    // focusable is almost never a trap — surface this so the rubric does not invent one from operability alone.
+    const trapRisk = element.focusRisk === true || element.inModal === true;
+    const detTrap = element.deterministicTrapConfirmed === true; // S5: a real Tab/Shift+Tab/Esc walk confirmed a trap here
+    s.keyboardTrapContext = {
+      inTrapRiskRegion: trapRisk,
+      deterministicTrapConfirmed: detTrap,
+      uncertainReason: detTrap
+        ? 'a DETERMINISTIC keyboard-trap check (real Tab/Shift+Tab/Esc walk) CONFIRMED that focus cannot escape this element/region — this IS a 2.1.2 keyboard trap (REPRODUCED).'
+        : (trapRisk
+            ? 'this control sits in a focus-trapping region (modal/menu/listbox/grid) or carries an inline focus handler — a 2.1.2 trap is PLAUSIBLE here, but the deterministic walk did NOT confirm one; flag a barrier ONLY if you can confirm focus cannot be moved away by Tab / Shift+Tab / Esc (a state-and-capture or screen-reader probe can verify)'
+            : 'the deterministic trap walk confirmed no trap here AND no focus-trapping region or inline focus handler was detected — a standard focusable that can be Tabbed past is NOT a keyboard trap; do NOT flag 2.1.2 from mere operability/focusability'),
+    };
+    // #4 (RCA R4): a focusable CONTAINER role is not necessarily an operable CONTROL. Instead of a hard-coded
+    // oracle role-denylist (which risks suppressing a real custom widget — an FN), hand the agent the facts and
+    // let it judge applicability: a container that merely holds its own controls, or is a focusable scroll region,
+    // owes NO 2.1.1 operation barrier; only an element that IS meant to be key-operated, yet cannot be, is a barrier.
+    const kbRole = String(element.cdpRole || element.role || element.axRole || element.sampledRole || '').toLowerCase();
+    const CONTAINER_ROLE = /^(region|group|document|application|navigation|complementary|banner|contentinfo|article|toolbar|tabpanel|main|grid|tablist|tree|listbox|menu|menubar)$/;
+    if (CONTAINER_ROLE.test(kbRole)) {
+      s.focusableContainer = {
+        role: kbRole,
+        ownsInteractiveDescendants: element.ownsInteractiveDescendants === true,
+        hasKeyHandler: element.hasKeyHandler === true,
+        uncertainReason: 'this focusable element is a CONTAINER role (' + kbRole + '), NOT necessarily an operable widget. A container that is merely in the tab order — a labelled group holding its OWN controls (ownsInteractiveDescendants=' + (element.ownsInteractiveDescendants === true) + '), or a focusable scroll region — carries NO 2.1.1 OPERATION barrier: judge NOT REPRODUCED / N/A. Flag 2.1.1 ONLY if this element is itself meant to be operated by keyboard (custom-widget behaviour — hasKeyHandler=' + (element.hasKeyHandler === true) + ') yet cannot be operated. Do NOT flag merely because a container is focusable.',
+      };
+    }
+  }
+  // S7 (RCA R7, 0va7u6): an <svg> rendering LIVE <text> is not an image of text — clear 1.4.5 for it.
+  if (element.svgLiveText === true) {
+    s.svgLiveText = { value: true, uncertainReason: 'this <svg> renders LIVE <text>/<tspan> — its text is REAL and machine-readable (not flattened pixels), so it is NOT an image of text and carries NO 1.4.5 barrier (judge NOT REPRODUCED for the images-of-text concern)' };
   }
   // #44 / adversarial verify #7: for name-role-state, surface the deterministic NAME-PRESENCE result. The
   // ax-name-presence detector is a SHADOW signal (not a CLAIM), so an empty-name 4.1.2 obligation still
@@ -225,35 +262,61 @@ function precomputeSignals(element, skill) {
   // one. Hand it the presence result + the explicit "absence IS the barrier" reading so it can't false-clear.
   if (skill === 'name-role-state') {
     const an = typeof element.axName === 'string' ? element.axName : null;
+    // S2 (RCA R2): the "absence IS the barrier" steer must be ROLE-GATED. An empty name is a barrier ONLY for
+    // roles that REQUIRE a name (interactive widgets — and a nameless LINK genuinely fails 2.4.4/4.1.2). A
+    // COMPOSITE CONTAINER (menu/tablist/group/region…) usually does NOT require a name, so an empty name there
+    // is normally fine — flag only on multiplicity (multiple same-role containers needing disambiguation). The
+    // previous all-roles steer drove the composite-empty-name FP storm (menu/tablist flagged at high confidence).
+    const role = String(element.cdpRole || element.role || element.axRole || element.sampledRole || '').toLowerCase(); // S1/S2: prefer the AUTHORITATIVE CDP-computed role over the heuristic sampledRole
+    const NAME_REQUIRING = /^(button|link|menuitem|menuitemcheckbox|menuitemradio|checkbox|radio|switch|tab|combobox|textbox|searchbox|slider|spinbutton|option|treeitem)$/;
+    const COMPOSITE_CONTAINER = /^(menu|menubar|tablist|tree|treegrid|grid|listbox|radiogroup|group|region|toolbar|navigation|tabpanel|dialog)$/;
+    const emptyName = an !== null && an.trim() === '';
     s.accessibleName = {
       value: an,
       present: !!(an && an.trim().length > 0),
       resolved: an !== null, // null ⇒ CDP did not resolve a name (uncertain), distinct from '' (resolved-empty)
-      uncertainReason: (an !== null && an.trim() === '')
-        ? 'the deterministic name-presence detector found an EMPTY accessible name — that absence IS the barrier (judge REPRODUCED); only judge adequacy when a name is present'
-        : (an === null ? 'the accessible name could not be resolved deterministically — judge presence/adequacy from the evidence' : undefined),
+      uncertainReason: !emptyName
+        ? (an === null ? 'the accessible name could not be resolved deterministically — judge presence/adequacy from the evidence' : undefined)
+        : (NAME_REQUIRING.test(role)
+            ? 'the deterministic name-presence detector found an EMPTY accessible name on a control whose role (' + role + ') REQUIRES a name — that absence IS the barrier (judge REPRODUCED); only judge adequacy when a name is present'
+            : (COMPOSITE_CONTAINER.test(role)
+                ? 'this is a nameless ' + role + ' CONTAINER — most container roles do NOT require an accessible name, so an empty name is USUALLY NOT a barrier; flag one ONLY if the role genuinely needs a name here (e.g. MULTIPLE same-role containers coexist and must be told apart), otherwise NOT a barrier'
+                : 'the accessible name is empty — judge from the evidence whether this element\'s role actually requires a name (an absent name is NOT an automatic barrier for non-widget roles)')),
     };
     // DECORATIVE-MARKING conflict (Tier-0 #5, e88epe): a rendered-meaningful image marked decorative / removed
     // from the a11y tree is the barrier the adequacy rubric kept missing — it saw the author alt ("W3C logo") +
     // a logo crop and cleared. Hand it the hidden-mechanism so it judges the PIXELS, not the (AT-unspoken) name.
-    if (element.removedFromA11yTree === true || element.ariaHiddenWithName === true) {
+    // #3: CDP `!inTree` SECONDARY trigger — Chrome computed this image as OUT of the a11y tree by a mechanism the
+    // three DOM heuristics (aria-hidden / role=none / empty-alt) MISS (e.g. an inert/role-none ancestor, or an
+    // aria-hidden set via JS property). Guarded: only a VISIBLE image, and NOT ignored merely for an active
+    // modal / inert subtree (those are CORRECTLY removed — flagging them would FP). Adds recall, no over-flag.
+    const cdpRemoved = element.inTree === false && element.isImage === true && element.renderedVisible === true && element.ignoredByModal !== true;
+    if (element.removedFromA11yTree === true || element.ariaHiddenWithName === true || cdpRemoved) {
       s.decorativeMarking = {
-        removedFromA11yTree: element.removedFromA11yTree === true,
-        hiddenMechanism: element.hiddenMechanism || (element.ariaHiddenWithName ? 'aria-hidden' : null),
-        renderedMeaningful: element.renderedMeaningful === true,
+        removedFromA11yTree: element.removedFromA11yTree === true || cdpRemoved,
+        hiddenMechanism: element.hiddenMechanism || (cdpRemoved ? 'ax-ignored (Chrome removed it from the a11y tree by a mechanism other than aria-hidden/role-none/empty-alt)' : (element.ariaHiddenWithName ? 'aria-hidden' : null)),
+        renderedVisible: element.renderedVisible === true, // S3 (R3): SIZE/visibility ONLY — NOT a meaningfulness signal
+        nearbyText: element.nearbyText || null,            // S3 (R3): the adjacent text, for the REDUNDANCY judgment
         ariaHiddenWithName: element.ariaHiddenWithName === true,
-        uncertainReason: 'this image is marked decorative / removed from the accessibility tree (' + (element.hiddenMechanism || 'aria-hidden') + '), so AT NEVER announces its author name — if the PIXELS carry meaningful content, a non-sighted user is denied it (judge REPRODUCED from the crop, NOT the hidden name)',
+        uncertainReason: 'this image is REMOVED from the accessibility tree (' + (element.hiddenMechanism || 'aria-hidden') + '), so AT never announces it. Decide from the CROP + nearbyText whether the image carries INFORMATION a non-sighted user is DENIED: (a) if its content is REDUNDANT with the adjacent text (nearbyText), or it is purely decorative (a spacer / flourish / background / illustrative photo adding no information), then removing it is CORRECT — NOT a barrier; (b) if it conveys UNIQUE meaning absent from the surrounding text (a logo/wordmark identifying the page, a chart, an informative diagram, or text baked into the image), hiding it IS a barrier (REPRODUCED). `renderedVisible` only means the image has a non-trivial SIZE — it does NOT mean the image is meaningful; do not flag from size alone.',
       };
     }
     // Item 14a (2.4.4 in-context): surface the OTHER links sharing this link's accessible name + their destinations,
     // so the rubric can judge whether identically-named links resolve to DIFFERENT places (a 2.4.4 barrier).
     if (Array.isArray(element.__sameNameLinks) && element.__sameNameLinks.length) {
-      const dests = new Set(element.__sameNameLinks.map((l) => l.href || '').filter(Boolean));
+      // RAW hrefs only — NOT settled destinations. A redirect / meta-refresh / SPA route can make identical raw
+      // hrefs resolve to DIFFERENT places (and different hrefs to the same place), so this count must NEVER be
+      // read as "destinations match → clear" (the FN-run false-clear: two same-named links, distinctRawHrefs=1,
+      // cleared at high confidence on fd3a94). Settled resolution is the resolve_destination tool's job.
+      // include THIS link's own href in the set (peers exclude self) so the count reflects the WHOLE same-named
+      // set: 1 ⇒ every same-named link shares a raw href (still not safe — could diverge via redirect); ≥2 ⇒ the
+      // same-named links point at DIFFERENT raw hrefs (a strong 2.4.4 smell). The old peers-only count was ~useless.
+      const rawHrefs = new Set([element.href, ...element.__sameNameLinks.map((l) => l.href)].map((h) => h || '').filter(Boolean));
       s.sameNameLinks = {
         count: element.__sameNameLinks.length,
         peers: element.__sameNameLinks,
-        distinctDestinations: dests.size,
-        uncertainReason: 'other links on this page share this name — if any resolve to a DIFFERENT destination, the link purpose is NOT clear from the name alone (2.4.4 in context). Destinations shown are raw hrefs; equivalence is your judgment',
+        distinctRawHrefs: rawHrefs.size,
+        uncertainReason: 'other links on this page share this name — 2.4.4 fails if any resolve to a DIFFERENT destination. The values shown are RAW hrefs, NOT settled destinations: identical raw hrefs can still diverge (redirect/meta-refresh/SPA route) and different raw hrefs can be equivalent, so distinctRawHrefs is NOT sufficient to clear. If a tool is available, call resolve_destination on the SET of same-named links to compare SETTLED destinations; otherwise, if you cannot confirm the destinations are truly equivalent, return PARTIAL — never a confident clear on raw-href equality alone',
       };
     }
     // Item 12 (composite name-role-state): surface the already-collected states/axStates bundle so the rubric can
@@ -367,6 +430,10 @@ function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
     ...(opts.checkerHint ? ['--- external-checker cross-signal (flagged this for REVIEW — could not auto-decide) ---', JSON.stringify(opts.checkerHint)] : []),
     '--- VSR announcement (realistic accessible name) ---',
     transcriptExcerpt ? JSON.stringify(transcriptExcerpt) : '(none)',
+    // LIVE TOOLS (only when the orchestrator actually built the CDP server): inject the tools RELEVANT to this
+    // subject's SC, each with params + when-to-use + a directive to call them when the evidence is insufficient.
+    // Without this the model was offered tools but never told it had them ⇒ 0 tool calls (the FN×LLM finding).
+    ...(opts.toolsEnabled ? (() => { const g = renderToolGuidance(toolsForSubject(subject.sc, subject.skill)); return g ? [g] : []; })() : []),
     '--- output ---',
     'Return STRICT JSON: {"verdict": "REPRODUCED"|"NOT REPRODUCED"|"PARTIAL"|"N/A", "confidence":"low"|"medium"|"high", "summary": string, "reasoning": string, "evidenceRefs": string[]}.',
     'REPRODUCED = a barrier is present; NOT REPRODUCED = no barrier; PARTIAL = cannot decide; N/A = abstain (do NOT use for "out of scope" — that is the oracle\'s job).',
@@ -463,7 +530,7 @@ async function runAdjudication(subjects, opts = {}) {
       if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.skill}:${i}:${state}`, state, data, mediaType: 'image/png' });
     }
     const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
-    const messages = buildMessages(subj, signals, transcriptExcerpt, frames, { rubric: rubricText, checkerHint });
+    const messages = buildMessages(subj, signals, transcriptExcerpt, frames, { rubric: rubricText, checkerHint, toolsEnabled: opts.toolsEnabled });
     let out; const t0 = Date.now();
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }
     const latencyMs = Date.now() - t0;
@@ -603,7 +670,7 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     // than judge BLIND. Missing declared evidence ⇒ the obligation simply stays auto-PARTIAL (honest "could not decide").
     if (declaredVision.length && frames.length < declaredVision.length) return null;
     const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
-    const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text, checkerHint });
+    const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text, checkerHint, toolsEnabled: opts.toolsEnabled });
     let out; const t0 = Date.now();
     try { out = await runAgent(messages, subj); } catch (e) { out = null; }
     const latencyMs = Date.now() - t0;

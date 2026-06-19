@@ -177,10 +177,24 @@ function parseRGB(s) {
       // H4: exclude nodes inside a consent container we neutralised — display:none does
       // NOT stop querySelectorAll from returning them, so filter by ancestry explicitly.
       const inConsent = el => !!(el.closest && el.closest('[data-a11yeval-consent-hidden]'));
+      const xpathOf = (el) => {  // hoisted ABOVE the heading map (#2): a const arrow is in the TDZ until here
+        if (!el || el.nodeType !== 1) return null;
+        const parts = [];
+        for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+          let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++;
+          parts.unshift(n.tagName.toLowerCase() + '[' + i + ']');
+        }
+        return '/' + parts.join('/');
+      };
       const headings = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6,[role=heading]')].filter(h => !inConsent(h)).map(h => ({
         tag: h.tagName.toLowerCase(),
         level: h.getAttribute('aria-level') || (/^H([1-6])$/.test(h.tagName) ? h.tagName[1] : null),
         text: txt(h), empty: txt(h).length === 0,
+        xpath: xpathOf(h),  // #2 parity: so the CDP pass below can source the authoritative accessible name
+        // S7 (RCA R7) parity: heading accessible NAME + aria-hidden. `name` is a heuristic FALLBACK here —
+        // overwritten by the CDP-computed name below (so an <img alt> heading no longer reads as '').
+        name: (h.getAttribute('aria-label') || txt(h)),
+        ariaHidden: h.getAttribute('aria-hidden') === 'true' || !!h.closest('[aria-hidden="true"]'),
       }));
       const lmSel = 'header,nav,main,aside,footer,[role=banner],[role=navigation],[role=main],[role=complementary],[role=contentinfo],[role=search],[role=region],[role=form]';
       const landmarks = [...document.querySelectorAll(lmSel)].filter(l => !inConsent(l)).map(l => ({
@@ -193,15 +207,6 @@ function parseRGB(s) {
         tag: r.tagName.toLowerCase(), ariaLive: r.getAttribute('aria-live'), role: r.getAttribute('role'),
         empty: (r.textContent || '').trim().length === 0,
       }));
-      const xpathOf = (el) => {
-        if (!el || el.nodeType !== 1) return null;
-        const parts = [];
-        for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
-          let i = 1; for (let s = n.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === n.tagName) i++;
-          parts.unshift(n.tagName.toLowerCase() + '[' + i + ']');
-        }
-        return '/' + parts.join('/');
-      };
       // coverage #16 (dangling-IDREF): page-wide id → trimmed-text-LENGTH, so build-v3 can resolve
       // aria-labelledby/aria-describedby IDREFs deterministically without live-DOM access (a dangling
       // ref ⇒ id absent from this map; an empty target ⇒ length 0). Capped to bound the artifact.
@@ -244,6 +249,22 @@ function parseRGB(s) {
     // Tier-0 #4: per-<table> relationship facts (shared self-contained extractor); folded into structure for the
     // 1.3.1 info-relationships JUDGMENT. Read-only; degrades to [] on any failure.
     try { out.structure.tables = await page.evaluate(collectTables); } catch (e) { out.structure.tables = []; }
+    // #2 parity: source heading accessible NAMES from the CDP-computed AX node (same machinery as the element
+    // loop below) — the in-page heuristic returns '' for an <h2><img alt="Foo"></h2> heading; CDP gives "Foo".
+    // Falls back to the heuristic name when a node can't resolve. Mirrors act-page-collect.js's heading CDP pass.
+    for (const h of (out.structure.headings || [])) {
+      if (!h || !h.xpath) continue;
+      try {
+        const ev = await cdp.send('Runtime.evaluate', { expression: `(function(){var r=document.evaluate(${JSON.stringify(h.xpath)},document,null,9,null);return r.singleNodeValue;})()`, returnByValue: false });
+        if (!ev || !ev.result || !ev.result.objectId) continue;
+        const { node } = await cdp.send('DOM.describeNode', { objectId: ev.result.objectId });
+        if (!node) continue;
+        const { nodes } = await cdp.send('Accessibility.getAXNodeAndAncestors', { backendNodeId: node.backendNodeId });
+        const ax = nodes && nodes[0];
+        const nm = ax && ax.name && ax.name.value;
+        if (typeof nm === 'string') h.name = nm;
+      } catch (e) { /* keep the heuristic name */ }
+    }
 
     // ---- axe (CACHED full run) ----
     try {
@@ -452,7 +473,18 @@ function parseRGB(s) {
         const removedFromA11yTree = _ariaHidden || _presentational || _emptyAlt;
         const hiddenMechanism = _ariaHidden ? 'aria-hidden' : _presentational ? ('role-' + roleAttr) : _emptyAlt ? 'empty-alt' : null;
         const ariaHiddenWithName = _ariaHidden && (((r.getAttribute('alt') || '') + ' ' + (r.getAttribute('aria-label') || '') + ' ' + (r.getAttribute('title') || '')).trim().length > 0);
-        const renderedMeaningful = (tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img') && b.width >= 8 && b.height >= 8;
+        const _isImg = (tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img');
+        const svgLiveText = tag === 'svg' && !!r.querySelector('text, tspan') && (r.textContent || '').trim().length > 0; // S7 (R7, 0va7u6) parity
+        const renderedVisible = _isImg && b.width >= 8 && b.height >= 8; // S3 (R3): SIZE/visibility only — not "meaningful" (parity with act-page-collect)
+        // S3 (RCA R3): nearby text for the REDUNDANCY judgment (parity). Redundant-with-adjacent-text ⇒ decorative; unique ⇒ barrier if removed.
+        const _txt = (e) => (e && (e.innerText || e.textContent) || '').replace(/\s+/g, ' ').trim();
+        const nearbyText = !_isImg ? undefined : (function () {
+          const bits = [];
+          const fig = r.closest('figure'); if (fig) { const cap = fig.querySelector('figcaption'); if (cap) bits.push(_txt(cap)); }
+          if (r.parentElement) bits.push(_txt(r.parentElement));
+          for (const sib of [r.previousElementSibling, r.nextElementSibling]) if (sib) bits.push(_txt(sib));
+          return [...new Set(bits.filter(Boolean))].join(' | ').replace(/\s+/g, ' ').trim().slice(0, 300) || undefined;
+        })();
         // COMPLEX-IMAGE hint (Item 7b, parity): a data-bearing image (figure / role=figure / aria-describedby) owes
         // long-description-completeness; a bare logo/icon gets alt-adequacy only.
         const complexImageHint = (tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img') && (!!r.closest('figure') || roleAttr === 'figure' || r.hasAttribute('aria-describedby'));
@@ -511,9 +543,12 @@ function parseRGB(s) {
           outlineStyle: cs.outlineStyle, outlineWidth: cs.outlineWidth, outlineColor: cs.outlineColor,
           boxShadow: cs.boxShadow,
           isInteractive: interactiveTags.includes(tag) || interactiveRoles.includes(roleAttr) || (r.getAttribute('tabindex') !== null && +r.getAttribute('tabindex') >= 0) || r.hasAttribute('onclick'),
+          // #4 parity: passive-container-vs-operable-control facts for the 2.1.1 judgment.
+          ownsInteractiveDescendants: !!r.querySelector('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"]),[role=button],[role=link],[role=menuitem],[role=checkbox],[role=switch],[role=tab],[role=radio]'),
+          hasKeyHandler: r.hasAttribute('onkeydown') || r.hasAttribute('onkeyup') || r.hasAttribute('onkeypress'),
           isFormField: formTags.includes(tag) || formRoles.includes(roleAttr),
           isImage: tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img',
-          removedFromA11yTree, hiddenMechanism, ariaHiddenWithName, renderedMeaningful, // Tier-0 #5 (e88epe)
+          removedFromA11yTree, hiddenMechanism, ariaHiddenWithName, renderedVisible, nearbyText, svgLiveText, // Tier-0 #5 (e88epe) + S3 (R3) + S7 (R7)
           complexImageHint, // Item 7b: gate long-description-completeness to data-bearing images
           underOverlay, hasHoverContent, // Item 9: un-dead 2.4.11 focus-not-obscured + 1.4.13 content-on-hover
           liveRegion, // Item 11: 4.1.3 status-message family
@@ -598,6 +633,7 @@ function parseRGB(s) {
               // fallback string as the AX name — flag it as NOT author-supplied.
               if (A.isMediaErrorName(rec.axName)) { rec.mediaErrorName = true; rec.axNameAuthorSupplied = false; }
               rec.inTree = !ax.ignored;
+              rec.ignoredByModal = (ax.ignoredReasons || []).some(r => r && (r.name === 'activeModalDialog' || r.name === 'inertSubtree')); // #3 guard parity
               rec.focusable = getProp('focusable') || false;
               rec.ignoredReasons = (ax.ignoredReasons || []).map(r => r.name);
               // H7: authoritative AX states from the computed accessibility node.

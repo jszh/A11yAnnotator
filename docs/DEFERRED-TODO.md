@@ -124,3 +124,34 @@ reveal cannot be expressed as an SC→transition entry. It needs a dedicated dis
   verdict; a not-reproduced reveal stays auto-PARTIAL, never a clear. Shadow/canary; never auto-trigger the corpus.
 - Verify with a disclosure/tab/carousel fixture: confirm the revealed node appears as a `dynamicSubject` and
   reconciles, before relying on it.
+
+## E. Reduce page-level 1.3.1 / 2.4.10 over-enumeration noise WITHOUT suppressing the "absence-is-the-barrier" cases (RCA R6 / proposed-fix S6)
+**Deferred 2026-06-18** after the reaches-LLM RCA. The reaches-LLM run showed the page-level info-relationships
+(1.3.1) / section-headings (2.4.10) / focus-order (2.4.3) obligation is enumerated whenever a `structure` slot
+exists (`applicability-oracle.js` `deriveObligations`, the `collect.structure` gate), so on a near-empty / minimal
+page the LLM is handed an obligation it can only abstain on (`spec-abstain`, ~8 cases — e.g. bc4a75). The obvious
+fix — **gate enumeration on structure CONTENT presence** (`structure.headings?.length || structure.tables?.length
+|| landmarks`) — was **adversarially shown to be UNSAFE and is NOT to be implemented as such.**
+
+**Why the obvious gate is wrong (the adversarial result).** For 1.3.1 (programmatic-vs-visual divergence) and
+2.4.10 (heading absence), the **ABSENCE of structure IS the barrier**. Gating on structure-presence suppresses the
+obligation exactly when it is needed:
+- **`d0f69e` is a real TP that the gate would turn into an FN** — a data grid built entirely from ARIA roles
+  (`<div role="grid">…<div role="row">…`) with **no `<table>` and no heading**. `collectTables()` only matches
+  `<table>`, so `structure.tables` is `[]`; there are no headings → all three gate signals empty → the obligation
+  would never be enumerated, and the genuine 1.3.1 barrier (header cells not programmatically associated) is lost.
+  Repro: `eval/checker-comparison/act-subset/pages/d0f69e/7ab8f027dde4ee91a2b45b52a61cff442ec676d8.html` (GT=failed).
+- The canonical 2.4.10 failure (substantive multi-section content shipping ZERO headings) and the 1.3.1
+  fake-heading-`<div>` failure are *all* empty-structure pages — the gate would silence every one.
+- The over-enumeration it targets is **harmless**: the LLM returns a non-authoritative PARTIAL/N-A on a near-empty
+  page; nothing is mis-scored. Repro of the (benign) noise:
+  `eval/checker-comparison/act-subset/pages/bc4a75/874032cb82216878366f02dd2d98e6c8047a1612.html`.
+
+**Acceptable direction (if pursued).** Do NOT gate on the presence of the structures whose *absence* is the
+barrier. Instead gate on **page SUBSTANCE** — enumerate when the page has any substantive non-repeated CONTENT
+(e.g. total visible body text above a small threshold, or ≥1 content landmark with text), so a genuinely trivial
+page (a single control, a blank harness page) is skipped while every content-bearing page — headed or not — still
+owes 1.3.1/2.4.10. Also broaden `collectTables`/landmark detection to ARIA `role=grid|table|treegrid|list` so
+ARIA-only structure is seen at all. Verify against BOTH repros above (d0f69e must still enumerate+flag; bc4a75 may
+drop) before relying on it. Low priority — the benefit (less abstain noise) is small and the downside (lost true
+barriers) is severe.

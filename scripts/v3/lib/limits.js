@@ -43,7 +43,10 @@ const LIMITS = Object.freeze({
     experiment: 5,                    // V3_EXPERIMENT_CONCURRENCY default (1 = byte-identical serial)
     experimentCap: 6,                 // hard ceiling on V3_EXPERIMENT_CONCURRENCY
     llm: 40,                          // V3_LLM_CONCURRENCY default (429-backoff is the real governor)
-    llmTool: 4,                       // V3_LLM_TOOL_CONCURRENCY default (≈ concurrent tool tabs)
+    llmTool: 8,                       // V3_LLM_TOOL_CONCURRENCY — with tools ON this is the PER-PAGE LLM concurrency
+                                      // (orchestrator min(llmConcurrency, llmTool)); at 4 it starved the global llm=40
+                                      // cap (a tools-ON FN run peaked ~16 in-flight, tabs 9/50, 0 tab contention). 8
+                                      // lets PAGE_CONC×8 reach the global 40 cap. ≈ concurrent tool tabs (maxTabs heads it).
     reapAgeMarginMs: 30000,           // tool-tab reap age = toolRunTimeoutMs + this (strictly above the abort)
     reapAgeFallbackMs: 330000,        // openToolSession reapAge default when no run timeout is supplied
     maxTabs: 50,                      // CENTRAL tab allocator cap: hard ceiling on CONCURRENTLY-OPEN tabs across

@@ -122,6 +122,15 @@ test('sdk transport: never leaks a metered key into the child env (passes OAuth 
   assert.equal(seenEnv.CLAUDE_CODE_OAUTH_TOKEN, 'oauth-tok');
 });
 
+test('sdk transport: DISABLES all built-in tools (tools:[]) so the judge only ever has the cdp MCP server', async () => {
+  let seenOpts = null;
+  const queryImpl = async function* (args) { seenOpts = args.options; yield { type: 'assistant', message: { content: [{ type: 'text', text: VERDICT }] } }; yield { type: 'result', subtype: 'success' }; };
+  await makeClaudeSdkTransport({ queryImpl, oauthToken: 'tok', allowedTools: ['mcp__cdp__*'] })({ messages: [{ role: 'user', content: [] }] });
+  // tools:[] removes Bash / ToolSearch / Read / Edit … — the judge cannot run shell or burn turns on the
+  // deferred-tool loader; its ONLY callable tools are the cdp MCP server (gated by allowedTools).
+  assert.deepEqual(seenOpts.tools, [], 'built-in tools must be disabled (tools:[])');
+});
+
 // a multi-turn stream: thinking + a tool_use, then the tool_result (as a 'user' msg), then the final verdict + result.
 function multiTurnQuery() {
   return async function* () {

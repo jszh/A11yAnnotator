@@ -24,6 +24,13 @@ to the content it introduces (visible in the `viewport`). Two failure modes:
 
 **WCAG soundness caveats:**
 - 2.4.6 is about DESCRIPTIVENESS, not presence (missing heading/label is 1.3.1/3.3.2, not here).
+- Judge descriptiveness against the heading's ACCESSIBLE NAME (`structure.headings[].name`) when it differs
+  from the rendered text (an `<img alt>` heading, an `aria-label`), not the bare `textContent`. A heading that
+  is `ariaHidden:true` (removed from the a11y tree) does NOT organize content for AT — but do not fault its
+  *descriptiveness* here (that is a 1.3.1/2.4.10 concern).
+- Calibrate to PLAIN failures: flag only a clearly generic/misleading heading ("More", "Section", "Untitled"
+  over substantive unique content). A reasonable topical heading is NOT a barrier merely because a more
+  specific wording exists — do not over-flag on stylistic preference.
 - A terse-but-unique-and-clear heading is fine; do not demand verbosity.
 - The MISMATCH call REQUIRES seeing the introduced content: if the `viewport` does not show enough of the
   content under the heading to judge whether it matches, return PARTIAL — do not infer a mismatch from the

@@ -30,7 +30,10 @@ const { factHasText, factRole } = oracle;
 
 // SURFACE → required families. Each `when` reads ONLY raw collector facts (never a runner outcome).
 const SURFACES = Object.freeze([
-  Object.freeze({ id: 'focusable', when: (el) => el.focusable === true, families: ['focus-indicator-visible', 'keyboard-operable'] }),
+  Object.freeze({ id: 'focusable', when: (el) => el.focusable === true, families: ['focus-indicator-visible'] }),
+  // S4 (RCA R4) — keyboard-operable is owed by every focusable EXCEPT a bare iframe/frame container (its CONTENTS
+  // own 2.1.1); re-declared here independently to match the oracle's new gate (Rule 16).
+  Object.freeze({ id: 'keyboard-operable', when: (el) => el.focusable === true && el.tag !== 'iframe' && el.tag !== 'frame', families: ['keyboard-operable'] }),
   Object.freeze({ id: 'has-text', when: (el) => factHasText(el), families: ['text-contrast'] }),
   Object.freeze({ id: 'widget-role', when: (el) => WIDGET_ROLE.test(factRole(el)), families: ['name-role-value'] }),
   Object.freeze({ id: 'focusable-trap-risk', when: (el) => el.focusable === true && (el.inModal === true || el.focusRisk === true), families: ['no-keyboard-trap'] }),

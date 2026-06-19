@@ -85,7 +85,10 @@ async function collectActPage(page, opts = {}) {
       const role = el.getAttribute('role') || '';
       return ['input', 'select', 'textarea'].includes(tag) || /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$/.test(role);
     }
-    function labelledText(el) {
+    // ROLES whose accessible NAME may come from the element's own CONTENTS (ARIA "name from author/contents").
+    // Gated so a region/group/textbox/combobox is NOT spuriously named by descendant text.
+    const NFC_ROLES = /^(button|link|menuitem|menuitemcheckbox|menuitemradio|option|tab|treeitem|checkbox|radio|switch|heading|cell|gridcell|columnheader|rowheader|row|tooltip)$/;
+    function labelledText(el, role) {
       const bits = [];
       const aria = el.getAttribute('aria-label');
       if (aria) bits.push(aria);
@@ -103,7 +106,23 @@ async function collectActPage(page, opts = {}) {
       if (alt) bits.push(alt);
       const title = el.getAttribute('title');
       if (title) bits.push(title);
-      return bits.join(' ').replace(/\s+/g, ' ').trim();
+      // S1 (RCA R1): an AUTHOR name (aria-label/labelledby/label/alt/title) WINS and is returned as-is — never
+      // append contents (no "Save Delete permanently" frankenname). ONLY when there is no author name do we fall
+      // back to NAME-FROM-CONTENTS (or, for push-button inputs, the `value`), and ONLY for roles that take it.
+      // This mirrors Chrome's computed accname (verified: <a>Workshop</a>→"Workshop", <button>New file</button>→
+      // "New file", <svg><a><text>Go→"Go", but role=menu/region/textbox stay ""), fixing the empty-name FP storm
+      // without the textOf-everywhere pitfalls. The previous attribute-only name is what made text-named controls
+      // read as present:false and trip the "absence IS the barrier" steer.
+      const authored = bits.join(' ').replace(/\s+/g, ' ').trim();
+      if (authored) return authored;
+      // push-button inputs take their name from `value`. The UA-DEFAULT name for a VALUELESS submit/reset
+      // ("Submit"/"Reset", which is LOCALE-specific) is supplied by the authoritative CDP name on the common
+      // path — this degraded fallback deliberately does NOT hard-code English default strings.
+      if (el.tagName === 'INPUT' && /^(submit|reset|button)$/i.test(el.getAttribute('type') || '')) {
+        return (el.getAttribute('value') || '').replace(/\s+/g, ' ').trim();
+      }
+      if (NFC_ROLES.test(role || '')) return textOf(el);
+      return '';
     }
     // ITEM 9 — un-dead the 1.4.13 (content-on-hover) + 2.4.11 (focus-not-obscured) families (rubrics + state-pair
     // captures already exist; only these two collector fields were hardcoded false). Computed ONCE per page:
@@ -143,11 +162,19 @@ async function collectActPage(page, opts = {}) {
       const focusable = focusableByMarkup(el);
       const isFormField = fieldLike(el);
       const isInteractive = focusable || /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/.test(sampledRole);
+      // #4: facts for the "passive focusable CONTAINER vs operable control" judgment (2.1.1). A focusable element
+      // with a container role that holds its OWN controls (or is just a focusable scroll region) owes no 2.1.1
+      // operation barrier; the LLM decides applicability from these + the role (no hard-coded role denylist).
+      const ownsInteractiveDescendants = focusable ? !!el.querySelector('a[href],button,input,select,textarea,[tabindex]:not([tabindex="-1"]),[role=button],[role=link],[role=menuitem],[role=checkbox],[role=switch],[role=tab],[role=radio]') : undefined;
+      const hasKeyHandler = focusable ? (el.hasAttribute('onkeydown') || el.hasAttribute('onkeyup') || el.hasAttribute('onkeypress')) : undefined;
       // GRAPHIC surface (parity with eval-page.js:449 `isImage`): an <img>/<svg>/<canvas>/role=img or
       // input[type=image] owes the non-text-content (1.1.1) / images-of-text (1.4.5) / non-text-contrast
       // (1.4.11) families EVEN when role-stripped (role="none"/"presentation") — that's exactly the mis-marked
       // decorative case. Kept by the inclusion filter so a role=none graphic still enumerates.
       const isImage = tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img' || (tag === 'input' && type === 'image');
+      // S7 (RCA R7, 0va7u6): an <svg> that renders LIVE <text>/<tspan> is NOT an image-of-text — that text is real
+      // and accessible, so it owes NO 1.4.5 (images-of-text) obligation. Surfaced so the rubric clears it.
+      const svgLiveText = tag === 'svg' && !!el.querySelector('text, tspan') && (el.textContent || '').trim().length > 0;
       // FOCUS-TRAP RISK (coverage audit, 2.1.2): a focusable element carries a keyboard-trap obligation when it
       // is inside a focus-trapping REGION (the kbd-graph TRAP_REGION_SEL) OR carries an inline focus handler
       // (onblur/onfocus/onfocusout — the self-refocus-trap signal). Widens the old inModal-only gate WITHOUT
@@ -171,7 +198,18 @@ async function collectActPage(page, opts = {}) {
       const hiddenMechanism = ariaHidden ? 'aria-hidden' : presentational ? ('role-' + roleAttr) : emptyAlt ? 'empty-alt' : null;
       const authorName = ((altAttr || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('title') || '')).trim();
       const ariaHiddenWithName = ariaHidden && authorName.length > 0;
-      const renderedMeaningful = isImage && box.width >= 8 && box.height >= 8;
+      const renderedVisible = isImage && box.width >= 8 && box.height >= 8; // S3 (R3): SIZE/visibility only — NOT "meaningful" (a decorative photo and a meaningful logo both pass this)
+      // S3 (RCA R3): NEARBY TEXT for the REDUNDANCY judgment. Pixel content cannot separate a decorative photo
+      // from a meaningful logo (the photo often has MORE pixels). The real discriminator is whether the image's
+      // information is REDUNDANT with adjacent text (→ correctly decorative) or UNIQUE (→ a barrier if removed
+      // from the tree). Hand the rubric the surrounding text so it can judge redundancy, not just the pixels.
+      const nearbyText = !isImage ? undefined : (function () {
+        const bits = [];
+        const fig = el.closest('figure'); if (fig) { const cap = fig.querySelector('figcaption'); if (cap) bits.push(textOf(cap)); }
+        if (el.parentElement) bits.push(textOf(el.parentElement));
+        for (const sib of [el.previousElementSibling, el.nextElementSibling]) if (sib) bits.push(textOf(sib));
+        return [...new Set(bits.filter(Boolean))].join(' | ').replace(/\s+/g, ' ').trim().slice(0, 300) || undefined;
+      })();
       // COMPLEX-IMAGE hint (Item 7b): a genuinely data-bearing image (in a <figure>, role=figure, or carrying an
       // aria-describedby long-description pointer) owes the long-description-completeness rubric; a bare logo/icon
       // gets alt-adequacy only (long-desc on a simple logo is UNCERTAIN noise).
@@ -203,17 +241,18 @@ async function collectActPage(page, opts = {}) {
       if (!focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion) continue;
       els.push({
         xpath: xpathOf(el),
+        // (axName below is computed by labelledText(el, sampledRole) — name-from-contents gated by role)
         text,
         hasText: text.length > 0,
         focusable,
-        isInteractive,
+        isInteractive, ownsInteractiveDescendants, hasKeyHandler,
         isFormField,
         isImage,
         ariaAttrs,
         roleAttr,
         sampledRole,
         axRole: sampledRole,
-        axName: labelledText(el),
+        axName: labelledText(el, sampledRole),
         tag,
         type,
         href: href || null, // Item 14a: destination for the 2.4.4 same-name-link in-context index
@@ -224,7 +263,7 @@ async function collectActPage(page, opts = {}) {
         focusRisk,
         removedFromA11yTree,
         hiddenMechanism,
-        renderedMeaningful,
+        renderedVisible, nearbyText, svgLiveText,
         ariaHiddenWithName,
         complexImageHint,
         // Item 13 (cheap scrutiny signals, parity with eval-page): a native control that overrides its role
@@ -279,7 +318,7 @@ async function collectActPage(page, opts = {}) {
           text, hasText: text.length > 0, focusable,
           isInteractive: focusable || /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/.test(sampledRole),
           isFormField, isImage, ariaAttrs: el.getAttributeNames().filter((n) => n.indexOf('aria-') === 0),
-          roleAttr, sampledRole, axRole: sampledRole, axName: labelledText(el), tag, type,
+          roleAttr, sampledRole, axRole: sampledRole, axName: labelledText(el, sampledRole), tag, type,
           box: { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.width), height: Math.round(box.height) },
           inModal: false, focusRisk: false, underOverlay: false, hasHoverContent: false,
         });
@@ -295,6 +334,11 @@ async function collectActPage(page, opts = {}) {
         tag: tg, role: h.getAttribute('role') || (/^h[1-6]$/.test(tg) ? 'heading' : null),
         level: h.getAttribute('aria-level') ? Number(h.getAttribute('aria-level')) : (/^h([1-6])$/.test(tg) ? Number(tg[1]) : null),
         text: (h.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+        // S7 (RCA R7): a heading's accessible NAME (may differ from textContent — an <img alt> heading, an
+        // aria-label) and whether it is aria-hidden (announced to AT? if hidden it does NOT organize content).
+        xpath: xpathOf(h),                 // S7/#2: so the CDP pass can source the heading's authoritative accessible name
+        name: labelledText(h, 'heading'),  // heuristic fallback; overwritten by the CDP name below
+        ariaHidden: h.getAttribute('aria-hidden') === 'true' || !!h.closest('[aria-hidden="true"]'),
         offscreen: b.x <= -1000 || b.y <= -1000 || (b.width <= 1 && b.height <= 1),
       };
     });
@@ -309,6 +353,48 @@ async function collectActPage(page, opts = {}) {
       reflowApplicable: false,
     };
   }, elementCap);
+
+  // ── CDP ACCESSIBLE-NAME / ROLE / TREE-MEMBERSHIP pass ────────────────────────────────────────────────────
+  // The in-page labelledText is a HEURISTIC re-implementation of Chrome's accessible-name algorithm; it has
+  // needed patch after patch (name-from-contents, SVG anchors, submit/reset UA-defaults) and would keep leaking
+  // (cell names, aria-labelledby chains over hidden subtrees, locale-specific defaults). Source the
+  // AUTHORITATIVE name + role + a11y-tree membership from Chrome's COMPUTED AX node — exactly as eval-page.js
+  // (:586-600) — so the common path has ZERO hand-coded accname rules. The heuristic axName survives only as a
+  // degraded FALLBACK when a node cannot be resolved (e.g. a cross-origin frame's contentDocument is null). Uses
+  // the same `>>`-frame descent as query_ax_node (S4). Never throws — CDP failure leaves every heuristic value.
+  try {
+    const cdp = await page.target().createCDPSession();
+    await cdp.send('Accessibility.enable').catch(() => {});
+    await cdp.send('DOM.getDocument', { depth: -1 }).catch(() => {});
+    const resolveAx = async (xpath) => {
+      if (typeof xpath !== 'string' || !xpath) return null;
+      const ev = await cdp.send('Runtime.evaluate', { expression: `(function(){var parts=${JSON.stringify(xpath)}.split('>>');var doc=document,n=null;for(var i=0;i<parts.length;i++){if(!doc)return null;var r=doc.evaluate(parts[i],doc,null,9,null);n=r.singleNodeValue;if(!n)return null;if(i<parts.length-1){try{doc=n.contentDocument;}catch(e){return null;}}}return n;})()`, returnByValue: false }).catch(() => null);
+      if (!ev || !ev.result || !ev.result.objectId) return null;
+      const dn = await cdp.send('DOM.describeNode', { objectId: ev.result.objectId }).catch(() => null);
+      const backendNodeId = dn && dn.node && dn.node.backendNodeId;
+      if (!backendNodeId) return null;
+      const r = await cdp.send('Accessibility.getAXNodeAndAncestors', { backendNodeId }).catch(() => null);
+      return (r && r.nodes && r.nodes[0]) || null;
+    };
+    for (const el of data.elements || []) {
+      const ax = await resolveAx(el.xpath);
+      if (!ax) continue;                                 // unresolved ⇒ keep the heuristic axName (degraded fallback)
+      const nm = ax.name && ax.name.value;
+      if (typeof nm === 'string') el.axName = nm;         // AUTHORITATIVE; '' is a real resolved-empty name
+      if (ax.role && ax.role.value) el.cdpRole = ax.role.value; // authoritative computed role (S2 role gate prefers this)
+      el.inTree = !ax.ignored;
+      el.ignoredByModal = (ax.ignoredReasons || []).some((r) => r && (r.name === 'activeModalDialog' || r.name === 'inertSubtree')); // #3 guard
+    }
+    // #2: a heading's accessible NAME (used by 2.4.6/2.4.10) — source it authoritatively too (the heuristic
+    // returns '' for an <h2><img alt="Foo"></h2> heading; CDP gives "Foo").
+    for (const h of data.headings || []) {
+      if (!h || !h.xpath) continue;
+      const ax = await resolveAx(h.xpath);
+      const nm = ax && ax.name && ax.name.value;
+      if (typeof nm === 'string') h.name = nm;
+    }
+    await cdp.detach().catch(() => {});
+  } catch (e) { /* CDP unavailable ⇒ the page keeps its heuristic axNames (never throws) */ }
 
   // Tier-0 #4: per-<table> relationship facts (separate evaluate so the self-contained extractor is shared with
   // eval-page.js). Read-only; any failure degrades to [] (never throws).

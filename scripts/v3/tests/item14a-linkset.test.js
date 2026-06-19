@@ -17,7 +17,9 @@ test('same-named links are handed to the link-purpose subject with their distinc
   const sig = precomputeSignals(sub.element, 'name-role-state');
   assert.equal(sig.sameNameLinks.count, 1, 'a2 shares the "Contact Us" name');
   assert.equal(sig.sameNameLinks.peers[0].href, '/support');
-  assert.equal(sig.sameNameLinks.distinctDestinations, 1);
+  // distinctRawHrefs spans the WHOLE same-named set incl. self: /contact + /support ⇒ 2 (they diverge → a 2.4.4 smell).
+  assert.equal(sig.sameNameLinks.distinctRawHrefs, 2);
+  assert.equal(sig.sameNameLinks.distinctDestinations, undefined, 'the misleading raw-href "destinations" field is gone');
 });
 
 test('a uniquely-named link gets NO sameNameLinks signal', () => {

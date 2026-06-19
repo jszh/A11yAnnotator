@@ -121,7 +121,13 @@ function familiesFor(el) {
   const fams = [];
   if (!el) return fams;
   const role = factRole(el);
-  if (el.focusable === true) { fams.push('focus-indicator-visible'); fams.push('keyboard-operable'); }
+  if (el.focusable === true) {
+    fams.push('focus-indicator-visible');
+    // S4 (RCA R4): a bare <iframe>/<frame> is focusable but is NOT itself a keyboard-OPERABLE control — its
+    // CONTENTS own 2.1.1. Enumerating keyboard-operable on the container only yields an unjudgeable abstain/FP
+    // (the akn7bn iframe). The frame's inner focusables carry keyboard-operable on their own.
+    if (el.tag !== 'iframe' && el.tag !== 'frame') fams.push('keyboard-operable');
+  }
   if (factHasText(el)) fams.push('text-contrast');
   if (WIDGET_ROLE.test(role)) fams.push('name-role-value');
   // 4.1.2 NAMED-IFRAME facet (coverage audit): a named <iframe> owes name-role-value so the rubric can judge

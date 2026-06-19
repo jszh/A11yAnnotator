@@ -335,17 +335,22 @@ test('#44: precomputeSignals carries the contrast UNCERTAINTY reason when the de
 });
 
 test('#44/adequacy-routing: name-role-state signals carry the deterministic name-PRESENCE result (absence ≠ pass)', () => {
-  // empty resolved name ⇒ the adequacy rubric must be told the name is ABSENT (so it returns REPRODUCED).
-  const empty = llmAdj.precomputeSignals({ xpath: 'x', axName: '' }, 'name-role-state');
+  // S2 (RCA R2): an empty resolved name on a NAME-REQUIRING widget ⇒ told the absence IS the barrier (REPRODUCED).
+  const empty = llmAdj.precomputeSignals({ xpath: 'x', axName: '', role: 'button' }, 'name-role-state');
   assert.equal(empty.accessibleName.present, false);
   assert.equal(empty.accessibleName.resolved, true, 'resolved-empty is distinct from unresolved');
-  assert.ok(/absence IS the barrier/.test(empty.accessibleName.uncertainReason), 'the rubric is told an empty name is the barrier');
+  assert.ok(/absence IS the barrier/.test(empty.accessibleName.uncertainReason), 'a nameless WIDGET is told the absence is the barrier');
+  // S2: an empty name on a COMPOSITE CONTAINER (menu/tablist/group) is NOT auto-flagged — that drove the FP storm.
+  const container = llmAdj.precomputeSignals({ xpath: 'm', axName: '', role: 'menu' }, 'name-role-state');
+  assert.equal(container.accessibleName.present, false);
+  assert.ok(!/absence IS the barrier/.test(container.accessibleName.uncertainReason), 'a nameless container is NOT auto-flagged a barrier');
+  assert.ok(/USUALLY NOT a barrier|container/i.test(container.accessibleName.uncertainReason), 'the container reading is surfaced');
   // a real name ⇒ present, no uncertainty (judge adequacy).
-  const named = llmAdj.precomputeSignals({ xpath: 'y', axName: 'Close dialog' }, 'name-role-state');
+  const named = llmAdj.precomputeSignals({ xpath: 'y', axName: 'Close dialog', role: 'button' }, 'name-role-state');
   assert.equal(named.accessibleName.present, true);
   assert.equal(named.accessibleName.uncertainReason, undefined);
   // unresolved (null) ⇒ flagged as uncertain, not absent.
-  const unres = llmAdj.precomputeSignals({ xpath: 'z', axName: null }, 'name-role-state');
+  const unres = llmAdj.precomputeSignals({ xpath: 'z', axName: null, role: 'button' }, 'name-role-state');
   assert.equal(unres.accessibleName.present, false);
   assert.equal(unres.accessibleName.resolved, false);
   assert.ok(/could not be resolved/.test(unres.accessibleName.uncertainReason));

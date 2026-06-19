@@ -41,6 +41,9 @@ element's role/accessible name as context.
   present a block of textual content — judge what the image is FOR.
 - When it is genuinely ambiguous whether the rendered text is a logo/essential case vs. avoidable
   text-as-image, return PARTIAL rather than over-flagging.
+- If the `svgLiveText` signal is present (an `<svg>` rendering live `<text>`/`<tspan>`), the text is REAL and
+  machine-readable, NOT flattened pixels — it is NOT an image of text and carries no 1.4.5 barrier (NOT
+  REPRODUCED). 1.4.5 targets text BAKED INTO a raster/painted image, not accessible vector text.
 
 **Output:** STRICT JSON `{verdict, confidence, summary, reasoning, evidenceRefs}`. verdict ∈
 {REPRODUCED (barrier — meaningful text presented as an image that could be real text), NOT REPRODUCED

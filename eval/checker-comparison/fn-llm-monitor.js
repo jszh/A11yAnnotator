@@ -18,9 +18,34 @@ const fmtN = (n) => { n = Number(n) || 0; if (n >= 1e6) return (n / 1e6).toFixed
 const fmtMs = (ms) => { ms = Number(ms) || 0; const s = Math.floor(ms / 1000); if (s < 60) return s + 's'; const m = Math.floor(s / 60); return `${m}m${String(s % 60).padStart(2, '0')}s`; };
 const bar = (frac, width) => { frac = Math.max(0, Math.min(1, frac || 0)); const f = Math.round(frac * width); return '█'.repeat(f) + '░'.repeat(width - f); };
 const shortXp = (xp) => { if (!xp) return '—'; return xp.length > 34 ? '…' + xp.slice(-33) : xp; };
-const OUTCOME_C = { caught: 'green', missedAgree: 'yellow', uncertain: 'magenta', noVerdict: 'gray', noObligation: 'gray', error: 'red' };
+const OUTCOME_C = { caught: 'cyan', missedAgree: 'green', uncertain: 'magenta', noVerdict: 'gray', noObligation: 'gray', error: 'red' };
+// display labels: the raw outcomes are FN-era ('caught'/'missedAgree'); show polarity-neutral names. `caught` =
+// the LLM RAISED a barrier (a TP on a failed case, an FP on a pass/NA case); `missedAgree` = the LLM CLEARED it.
+const OUTCOME_LABEL = { caught: 'flagged', missedAgree: 'cleared', uncertain: 'uncertain', noVerdict: 'noVerdict', noObligation: 'noOblig', error: 'err' };
+const pct = (x) => (x == null ? '—' : (100 * x).toFixed(0) + '%');
 
-function render(t) {
+// Confusion matrix from the live per-case results.json (status.json's tally lacks polarity, so it can't split
+// `caught` into TP vs FP). ACT GT is per-SC: on a `failed` case a flagged barrier is a TRUE POSITIVE; on a
+// `passed`/`inapplicable` case the SAME flag is a FALSE POSITIVE. A case is `recall` polarity iff expected=failed.
+function confusionFrom(results) {
+  const c = { tp: 0, fp: 0, tn: 0, fn: 0, err: 0, n: 0 };
+  for (const r of (results || [])) {
+    if (!r) continue;
+    if (r.outcome === 'error') { c.err++; continue; }
+    c.n++;
+    const recall = r.polarity ? r.polarity === 'recall' : r.expected === 'failed';
+    const flagged = r.outcome === 'caught';
+    if (recall) { if (flagged) c.tp++; else c.fn++; }
+    else { if (flagged) c.fp++; else c.tn++; }
+  }
+  c.recall = (c.tp + c.fn) ? c.tp / (c.tp + c.fn) : null;       // failed cases the LLM caught
+  c.fpRate = (c.fp + c.tn) ? c.fp / (c.fp + c.tn) : null;        // pass/NA cases the LLM wrongly flagged
+  c.specificity = (c.fp + c.tn) ? c.tn / (c.fp + c.tn) : null;   // = 1 - fpRate
+  c.precision = (c.tp + c.fp) ? c.tp / (c.tp + c.fp) : null;     // of all flags, the share that are real
+  return c;
+}
+
+function render(t, conf) {
   const L = [];
   const now = Date.now();
   const elapsed = t.elapsedMs || (t.startedAt ? now - t.startedAt : 0);
@@ -36,8 +61,18 @@ function render(t) {
   const eta = done && total > done ? (elapsed / done) * (total - done) : 0;
   L.push(`  ${clr('bold', 'progress')}  ${bar(frac, 28)} ${done}/${total} ${clr('gray', `(${(100 * frac).toFixed(0)}%)`)}  ${done && total > done ? clr('gray', 'ETA ' + fmtMs(eta)) : ''}`);
   const ta = t.tally || {};
-  L.push(`            ${clr('green', '✓caught ' + (ta.caught || 0))}   ${clr('yellow', 'agree ' + (ta.missedAgree || 0))}   ${clr('magenta', 'uncertain ' + (ta.uncertain || 0))}   ${clr('gray', 'noVerdict ' + (ta.noVerdict || 0))}   ${clr('gray', 'noOblig ' + (ta.noObligation || 0))}   ${clr('red', 'err ' + (ta.error || 0))}`);
+  L.push(`            ${clr('cyan', 'flagged ' + (ta.caught || 0))}   ${clr('green', 'cleared ' + (ta.missedAgree || 0))}   ${clr('magenta', 'uncertain ' + (ta.uncertain || 0))}   ${clr('gray', 'noVerdict ' + (ta.noVerdict || 0))}   ${clr('gray', 'noOblig ' + (ta.noObligation || 0))}   ${clr('red', 'err ' + (ta.error || 0))}`);
   L.push('');
+
+  // confusion matrix (TP/FP/TN/FN) — from results.json (scored on each case's GT'd SC)
+  if (conf && conf.n) {
+    L.push(`  ${clr('bold', 'confusion')} ${clr('gray', '(scored on each case GT-SC; n=' + conf.n + (conf.err ? ', err ' + conf.err : '') + ')')}`);
+    L.push(clr('gray', '                  flagged-barrier   no-flag'));
+    L.push(`    ${clr('gray', 'GT fail   ')}     ${clr('green', 'TP ' + String(conf.tp).padStart(3))}        ${clr('red', 'FN ' + String(conf.fn).padStart(3))}    ${clr('gray', '│')} recall    ${clr('cyan', pct(conf.recall))}`);
+    L.push(`    ${clr('gray', 'GT pass/NA')}     ${clr('red', 'FP ' + String(conf.fp).padStart(3))}        ${clr('green', 'TN ' + String(conf.tn).padStart(3))}    ${clr('gray', '│')} FP-rate   ${clr(conf.fpRate > 0.15 ? 'red' : 'cyan', pct(conf.fpRate))}`);
+    L.push(`    ${' '.repeat(39)}${clr('gray', '│')} precision ${clr('cyan', pct(conf.precision))}   ${clr('gray', 'specificity ' + pct(conf.specificity))}`);
+    L.push('');
+  }
 
   // tokens + tabs + memory
   const llm = t.llm || {};
@@ -73,18 +108,21 @@ function render(t) {
   // recent completions
   L.push(`  ${clr('bold', 'recent')}`);
   for (const r of (t.recent || []).slice(0, 6)) {
-    L.push(`    ${clr(OUTCOME_C[r.outcome] || 'reset', (r.outcome || '').padEnd(12))} ${String(r.ruleId || '').padEnd(8)} ${clr('gray', 'sc ' + (r.sc || ''))} ${clr('gray', fmtMs(r.ms))}`);
+    L.push(`    ${clr(OUTCOME_C[r.outcome] || 'reset', (OUTCOME_LABEL[r.outcome] || r.outcome || '').padEnd(12))} ${String(r.ruleId || '').padEnd(8)} ${clr('gray', 'sc ' + (r.sc || ''))} ${clr('gray', fmtMs(r.ms))}`);
   }
   if (t.phase === 'done') L.push('\n  ' + clr('green', '● run complete'));
   L.push(clr('gray', '\n  (ctrl-c to exit monitor; the run keeps going)'));
   return L.join('\n');
 }
 
+const RESULTS = path.join(path.dirname(STATUS), 'results.json');
+let lastConf = null; // cache so a mid-write results.json parse failure doesn't blank the matrix
 function tick() {
   let frame;
   try {
     const t = JSON.parse(fs.readFileSync(STATUS, 'utf8'));
-    frame = render(t);
+    try { lastConf = confusionFrom(JSON.parse(fs.readFileSync(RESULTS, 'utf8'))); } catch (e) { /* keep lastConf */ }
+    frame = render(t, lastConf);
   } catch (e) {
     frame = clr('yellow', `  waiting for ${path.relative(process.cwd(), STATUS)} …`) + clr('gray', '\n  (start the run: node run-fn-llm.js)');
   }

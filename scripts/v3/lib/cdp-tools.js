@@ -34,7 +34,10 @@ async function queryAxNode(page, args) {
       const { backendNodeId: b } = await cdp.send('DOM.getNodeForLocation', { x: Math.round(x), y: Math.round(y), includeUserAgentShadowDOM: false }).catch(() => ({}));
       backendNodeId = b || null;
     } else if (typeof targetXpath === 'string' && targetXpath) {
-      const ev = await cdp.send('Runtime.evaluate', { expression: `(function(){var r=document.evaluate(${JSON.stringify(targetXpath)},document,null,9,null);return r.singleNodeValue;})()`, returnByValue: false }).catch(() => ({}));
+      // S4 (RCA R4): resolve a `>>`-pathed node by DESCENDING into same-origin iframes (frame contentDocument).
+      // A cross-origin frame yields contentDocument:null ⇒ the node stays unresolved (an honest abstain, never a
+      // mis-resolution). This un-deads the akn7bn cluster where in-frame `<a>`/button nodes returned "not found".
+      const ev = await cdp.send('Runtime.evaluate', { expression: `(function(){var parts=${JSON.stringify(targetXpath)}.split('>>');var doc=document,el=null;for(var i=0;i<parts.length;i++){if(!doc)return null;var r=doc.evaluate(parts[i],doc,null,9,null);el=r.singleNodeValue;if(!el)return null;if(i<parts.length-1){try{doc=el.contentDocument;}catch(e){return null;}}}return el;})()`, returnByValue: false }).catch(() => ({}));
       if (ev && ev.result && ev.result.objectId) { const { node } = await cdp.send('DOM.describeNode', { objectId: ev.result.objectId }).catch(() => ({})); backendNodeId = node ? node.backendNodeId : null; }
     }
     if (!backendNodeId) return { resolved: false, reason: 'node not found at the given xpath/coordinate' };
@@ -97,6 +100,10 @@ async function queryAxNode(page, args) {
       requiredStatesPresent,
       requiredStatesMissing,
       ignoredReasons: (ax.ignoredReasons || []).map((r) => r && r.name).filter(Boolean),
+      // S4 (RCA R4): a node IGNORED only because a modal dialog is open reports role:'none' / inTree:false — that
+      // is NOT an authored role strip. Flag it so the judge does not misread a fully-operable control (a button
+      // behind/beside an auto-opened <dialog>) as semantically neutralised (the akn7bn FP).
+      ignoredByActiveModal: (ax.ignoredReasons || []).some((r) => r && (r.name === 'activeModalDialog' || r.name === 'inertSubtree')),
     };
   } finally { try { await cdp.detach(); } catch (e) {} }
 }
@@ -761,6 +768,50 @@ async function ocrImageText(page, args, ctx) {
 }
 
 // ============================================================================================
+// capture_full_page — the WHOLE scrollable document (below the fold included), the one gap the FN×LLM run
+// surfaced: a viewport-only crop hides whether an OFF-VIEWPORT heading/element exists and WHERE it sits
+// relative to content (does an h1 introduce the prose, or sit over the nav/TOC? — the 2.4.10 false-clears).
+// Runs on a FRESH clone because a fullPage screenshot resizes/scrolls; the target box is reported in PAGE
+// coordinates (origin = document top, measured at scrollY=0). Returns PIXELS + geometry, NEVER a verdict.
+async function captureFullPage(page, args, ctx) {
+  const { targetXpath } = args || {};
+  if (!ctx || typeof ctx.freshClone !== 'function') return { error: 'fresh clone unavailable — this screenshot tool refuses to resize the shared page' };
+  const live = await ctx.freshClone();
+  try {
+    const info = await live.evaluate((xp) => {
+      try { window.scrollTo(0, 0); } catch (e) {}
+      const doc = document.documentElement;
+      const pageSize = { w: Math.max(doc.scrollWidth, window.innerWidth), h: Math.max(doc.scrollHeight, window.innerHeight) };
+      const viewport = { w: window.innerWidth, h: window.innerHeight };
+      let target = null;
+      if (xp) {
+        const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+        if (el && el.getBoundingClientRect) {
+          const r = el.getBoundingClientRect(); // scrollY==0 ⇒ r.y IS the absolute document Y (raw — may be NEGATIVE
+          // for an off-screen-above visually-hidden element; do NOT clamp, the sign is the signal)
+          const offDocument = r.y < 0 || r.x < 0 || r.y > pageSize.h || r.x > pageSize.w;
+          target = {
+            box: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) },
+            tag: (el.tagName || '').toLowerCase(), role: el.getAttribute && el.getAttribute('role') || null,
+            text: (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120),
+            inViewport: r.y < window.innerHeight && (r.y + r.height) > 0 && r.x < window.innerWidth && (r.x + r.width) > 0,
+            offDocument, // positioned OUTSIDE the document bounds (e.g. top:-9999px) ⇒ visually hidden, not in the captured pixels
+            verticalPositionPct: pageSize.h ? Math.round(100 * (r.y / pageSize.h)) : null,
+          };
+        }
+      }
+      return { pageSize, viewport, target, hadTarget: !!xp };
+    }, targetXpath || null).catch(() => null);
+    if (!info) return { error: 'page introspection failed' };
+    if (info.hadTarget && !info.target) return { error: 'target not found' };
+    const screenshot = await live.screenshot({ encoding: 'base64', fullPage: true }).catch(() => null);
+    if (!screenshot) return { error: 'capture failed' };
+    return { screenshot, fullPage: true, pageSize: info.pageSize, viewport: info.viewport, target: info.target,
+      note: 'the WHOLE scrollable document (below the fold included). A target box is in PAGE coordinates (origin = document top); a NEGATIVE y or offDocument:true means the element is positioned OUTSIDE the document (e.g. top:-9999px → visually hidden) and is NOT in the captured pixels. Use to confirm an off-viewport element exists and judge WHERE it sits relative to surrounding content — never infer a barrier from position alone.' };
+  } finally { try { await live.close(); } catch (e) {} }
+}
+
+// ============================================================================================
 // SDK binding — wrap the raw tool functions as an in-process MCP server over the live page `session`.
 // `session` = { page, freshClone:()=>Promise<page> }. Lazy-imports the SDK (ESM) + zod. Each tool returns
 // the JSON-stringified OBJECTIVE result as MCP text content — never a verdict.
@@ -796,8 +847,10 @@ async function buildCdpToolServer(session) {
       { targetXpath: z.string(), regions: z.array(z.object({ name: z.string(), x: z.number(), y: z.number(), w: z.number(), h: z.number() })) }, (a) => wrap(compareNamedRegions, a)),
     tool('ocr_image_text', 'Read-only: OCR a crop of the page — an element (targetXpath) OR an explicit x/y/width/height rect — via PP-OCRv6 and return the recognised text + per-line boxes + confidences. For images-of-text (1.4.5), a wordmark/label the vision pass cannot read, or comparing rendered text to the alt/accessible name. Objective reading of the pixels, NEVER a verdict; empty text on a low-res crop does NOT mean "no text" (use request_hi_res_crop first). Returns {error} when the OCR sidecar is not set up — treat as INCONCLUSIVE.',
       { targetXpath: z.string().optional(), x: z.number().optional(), y: z.number().optional(), width: z.number().optional(), height: z.number().optional() }, (a) => wrap(ocrImageText, a)),
+    tool('capture_full_page', 'Mutating (FRESH clone): a screenshot of the WHOLE scrollable document — beyond the viewport / below the fold. Optional targetXpath additionally returns that element\'s box in PAGE coordinates (origin = document top) + tag/role/text + verticalPositionPct + inViewport. Use to confirm an OFF-VIEWPORT heading/element exists and judge WHERE it sits relative to content (does an h1 introduce the prose or sit over the nav/TOC? — 2.4.10/2.4.6/1.3.1). Returns PIXELS + geometry, never a verdict; never infer a barrier from position alone.',
+      { targetXpath: z.string().optional() }, (a) => wrap(captureFullPage, a)),
   ];
   return createSdkMcpServer({ name: 'cdp', version: '1.0.0', tools });
 }
 
-module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText, buildCdpToolServer };
+module.exports = { queryAxNode, observeStateAfterActivation, setStateAndCapture, probeScreenReaderAfterAction, measureGeometryLive, requestHiResCrop, renderWithOverrides, computeContrastRatio, resolvePartColor, resolveDestination, compareNamedRegions, ocrImageText, captureFullPage, buildCdpToolServer };

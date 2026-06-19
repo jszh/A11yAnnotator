@@ -29,6 +29,14 @@ call a checker cannot make: **is the page's non-repeated / main content introduc
 - **No heading at all** for substantive content (the document organizes content but ships zero `h1-h6`/
   `role=heading` over the main content).
 - **Headings only over repeated/boilerplate regions** (nav/footer) while the unique main content is unheaded.
+- **A heading is in the tree but not perceivable IN PLACE** — an entry in `structure.headings[]` is a
+  PROGRAMMATIC fact only; it does NOT prove the heading visibly introduces the content. A heading that is
+  **visually hidden** (off-screen `top:-9999px`/clip) or that **sits over the nav/TOC** leaves the visible
+  content section unheaded for a sighted user. **Do NOT clear 2.4.10 on the strength of a descriptive heading
+  STRING in the signal** (that was a real false-clear: a descriptive `h1` text was trusted while the `h1` was
+  positioned off-screen). Confirm from the `viewport` that a heading visibly marks the section's start; if the
+  heading is off-viewport, call `capture_full_page` and check `offDocument`/`verticalPositionPct`/`inViewport`
+  — an off-document or nav-only heading does not organize the visible content (descriptiveness is irrelevant here).
 
 **WCAG soundness caveats:**
 - 2.4.10 is **AAA** and is about *presence/organization*, not descriptiveness or markup correctness.
