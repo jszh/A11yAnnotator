@@ -60,7 +60,8 @@ const ELEMENT_CAP = Number(arg('element-cap', LIMITS.act.elementCap));
 const RUN_WALL = Number(arg('run-wall-ms', LIMITS.act.runWallClockMs)); // experiment-lane wall-clock budget per page (defers the tail by TIME, not count)
 const VISION = arg('no-vision', false) ? false : true;
 const TOOLS = !!arg('tools', false);
-const OUT = path.join(REPO_ROOT, 'results', 'fn-llm');
+const CASES_FILE = arg('cases', null);                 // --cases=<file>: restrict to a whitespace-separated testcaseId list (subset eval; composes with --sc/--limit)
+const OUT = path.join(REPO_ROOT, 'results', arg('out', null) || 'fn-llm'); // --out=<name>: write to results/<name> instead of results/fn-llm (don't clobber a baseline)
 const STATUS_EVERY_MS = 500;
 
 const MODEL = process.env.V3_LLM_MODEL || 'claude-sonnet-4-6';
@@ -194,7 +195,12 @@ function scoreCase(tc, out) {
   const nVerdicts = agentInScope.length + rubricInScope.length;
 
   let outcome;
-  if (barrierAgent.length || barrierRubric.length) outcome = 'caught';
+  // CREDIT a deterministic in-scope barrier: the harness CAUGHT it via a runner/checker (the obligation was filled
+  // deterministically and correctly subtracted from the LLM lane), so it is a true catch — NOT a noObligation FN.
+  // Without this, the LLM-only scorer penalized the harness for a barrier it actually found (the contrast/keyboard
+  // runner cases that show v3Barrier:true but produce no LLM verdict because the obligation was already disposed).
+  if (rec.v3Barrier) outcome = 'caught';
+  else if (barrierAgent.length || barrierRubric.length) outcome = 'caught';
   else if (nVerdicts === 0) outcome = rec.inScopeAutoPartial > 0 ? 'noVerdict' : 'noObligation';
   else if (okAgent.length || okRubric.length) outcome = 'missedAgree';
   else outcome = 'uncertain';
@@ -227,6 +233,12 @@ async function main() {
   fs.mkdirSync(path.join(OUT, 'traces'), { recursive: true });
   let cases = REACHES_LLM ? loadReachesLlmCases() : loadFnCases();
   if (SC) cases = cases.filter((c) => (c.sc || []).includes(SC));
+  if (CASES_FILE) {
+    const ids = new Set(fs.readFileSync(CASES_FILE, 'utf8').split(/\s+/).filter(Boolean));
+    const before = cases.length;
+    cases = cases.filter((c) => ids.has(c.testcaseId));
+    console.log(`--cases ${path.basename(CASES_FILE)}: ${ids.size} ids → ${cases.length} matched (of ${before})`);
+  }
   if (Number.isFinite(LIMIT) && LIMIT > 0) cases = cases.slice(0, LIMIT);
   tel.total = cases.length;
   tel.config.fnTotal = cases.length;

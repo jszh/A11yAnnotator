@@ -20,6 +20,14 @@ bare red border, a color-only cue, or a silent rejection with no textual descrip
 the error. (3.3.3 error SUGGESTION owns whether a fix is offered; do NOT re-litigate that here — a
 message that identifies but does not suggest still passes 3.3.1.)
 
+**AMBIGUOUS-FIELD failure mode (do not false-clear this):** if the error text names only a field TYPE / generic
+label that is **shared by two or more fields** on the form, so the user cannot tell WHICH instance is in error,
+the error is NOT identified for that field → **REPRODUCED**. For example, when two fields on the form share the
+same label (e.g. two fields both labelled "Address"), a message that repeats only that shared label without
+indicating which instance fails to identify the specific erroring field. A message is adequate only if it
+points to the specific field (by a unique label, position, or programmatic association), not a label
+duplicated elsewhere on the form.
+
 **Evidence handed to you:** the before/after crop of the field+error region (`state-before`,
 `state-after`), the textual error/validation message that was shown, and the field type.
 

@@ -15,12 +15,17 @@ call a checker cannot make: **is the page's non-repeated / main content introduc
 **Scope — read carefully so you do NOT double-judge 1.4.11/1.3.1/2.4.6:**
 - This is **2.4.10 Section Headings (AAA)**: *used to organize content* → the substantive content blocks of
   the page are introduced by headings. The failure is **structural absence**: a distinct section of
-  non-repeated content has NO heading marking its start (ACT 047fe0 — content with no heading; or a page
+  non-repeated content has NO heading marking its start (content with no heading; or a page
   whose only heading sits over the repeated navigation, leaving the main content unheaded).
 - Do **NOT** judge here (other rubrics own these):
   - whether a styled `<strong>`/`<div>` that *looks* like a heading is correctly marked up → that is **1.3.1**
-    `info-relationships` (programmatic-vs-visual divergence). If the only issue is a visual heading that
-    isn't a real heading element, DEFER (PARTIAL) — 1.3.1 owns it.
+    `info-relationships` (programmatic-vs-visual divergence). **BUT** for 2.4.10 the question is whether the
+    content section has an a11y-tree-exposed heading AT ALL: if the ONLY thing introducing a section is a
+    visual-only `<strong>`/styled `<div>` (no real `h1-h6`/`role=heading`), or the heading element is
+    **removed from the a11y tree** (`aria-hidden=true`), then *for AT users the section is UNHEADED* →
+    **REPRODUCED** (the 1.3.1 markup defect and the 2.4.10 absence co-exist; do not hide the 2.4.10 failure
+    behind 1.3.1). Only **DEFER (PARTIAL)** to 1.3.1 when a REAL a11y-tree heading DOES introduce the section
+    and the only open question is a subtler markup nuance.
   - whether an existing heading's *text is descriptive* → that is **2.4.6** `heading-descriptive`.
   - heading *contrast / legibility* → 1.4.3 / 1.4.11.
 
@@ -40,8 +45,12 @@ call a checker cannot make: **is the page's non-repeated / main content introduc
 
 **WCAG soundness caveats:**
 - 2.4.10 is **AAA** and is about *presence/organization*, not descriptiveness or markup correctness.
-- Short single-purpose pages (one form, one search box) may legitimately need no section headings — if the
-  page has no distinct multi-section content, return **N/A** (not a barrier).
+- **PRECONDITION — multiple sections (apply this FIRST).** 2.4.10 applies only when the content is divided into
+  MULTIPLE distinct sections/topics. A SINGLE continuous block of content — one article body, one chapter, one
+  prose passage, one form, one search box — is ONE section and legitimately needs no section heading: return
+  **N/A** (NOT a barrier), *even if it has no heading at all*. Only return REPRODUCED when there are 2+ distinct
+  content sections a sighted user would perceive and at least one is not introduced by an (a11y-tree) heading. Do
+  not fault a one-topic page for lacking a heading.
 - If the `viewport` does not show enough of the content structure to tell whether a section lacks a heading,
   return **PARTIAL** — do not infer absence from the heading list alone when the layout is unclear.
 - A CLAIM/deterministic structure result, if present, takes precedence — DEFER to it.

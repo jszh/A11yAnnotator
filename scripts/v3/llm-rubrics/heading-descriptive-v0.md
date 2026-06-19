@@ -12,15 +12,28 @@ tree and labels and a viewport screenshot. (Heading PRESENCE / nesting is a stru
 judge DESCRIPTIVENESS, a meaning call no runner can make.) DEFER where a CLAIM exists.
 
 **Judge:** do the headings and form labels DESCRIBE their topic/purpose? A heading "Section 2" or a label
-"Field" is non-descriptive; "Shipping address" is descriptive. Judge the text's informativeness relative
-to the content it introduces (visible in the `viewport`). Two failure modes:
+"Field" is non-descriptive; "Phone number" is descriptive. Judge the text's informativeness relative
+to the content it introduces (visible in the `viewport`). Failure modes:
 - **Vague / generic:** "Section 2", "More", "Untitled", "Field" — says nothing about the topic.
 - **Specific but MISMATCHED:** a heading that reads as a clear topic in isolation but does NOT describe the
   content it actually labels — e.g. a heading "Weather" over a paragraph about the shop's opening hours, or
   "Pricing" over a block of testimonials. Descriptiveness is judged RELATIVE TO THE CONTENT the heading
   introduces (visible in the `viewport`), not the heading's standalone plausibility. A heading that
-  misdirects the reader about what follows IS a barrier (ACT b49b2e). Read the content beneath/beside the
+  misdirects the reader about what follows IS a barrier. Read the content beneath/beside the
   heading and confirm the heading actually announces it.
+- **LABEL that doesn't describe the field's expected input:** for a FORM-FIELD label, descriptiveness means
+  the label tells the user what to ENTER / what the control does. Non-descriptive labels include: a label that
+  names an unrelated object or a generic concept rather than the field's purpose; a label assembled in the WRONG
+  ORDER (e.g. a reversed `aria-labelledby` that concatenates its referenced tokens out of sequence) so the
+  resulting name misreads the field; and the SAME label repeated on two or more fields of DIFFERENT purpose
+  where the label alone (NOT its surrounding legend/group heading) does not distinguish them — a user navigating
+  field-by-field hears the identical label twice and cannot tell which is which. Each is NON-descriptive →
+  **REPRODUCED**. Judge the label against what the field expects, visible in the `viewport`; do not clear a
+  label just because the single word is a real word, and for a repeated label judge whether IT — not its
+  container — distinguishes the field. You do NOT need to know the field's exact expected value to flag a label
+  that names an unrelated UI object or concept (e.g. a navigation/menu word on a free-text input): such a label
+  fails ON ITS FACE → **REPRODUCED**, not PARTIAL/UNCERTAIN. Reserve PARTIAL only for a label that plausibly
+  COULD describe the field but whose target/content you cannot see.
 
 **WCAG soundness caveats:**
 - 2.4.6 is about DESCRIPTIVENESS, not presence (missing heading/label is 1.3.1/3.3.2, not here).

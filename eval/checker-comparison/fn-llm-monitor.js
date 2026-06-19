@@ -79,7 +79,15 @@ function render(t, conf) {
   const totalTok = (llm.inputTokens || 0) + (llm.outputTokens || 0) + (llm.cacheReadTokens || 0) + (llm.cacheCreateTokens || 0);
   L.push(`  ${clr('bold', 'LLM')}     calls ${llm.done || 0}/${llm.calls || 0} ${clr('cyan', '(' + (llm.inFlightNow || 0) + ' in flight)')}   tok ${clr('cyan', fmtN(totalTok))} ${clr('gray', `(out ${fmtN(llm.outputTokens)} · in ${fmtN(llm.inputTokens)} · cache ${fmtN((llm.cacheReadTokens || 0) + (llm.cacheCreateTokens || 0))})`)}   ${llm.costUsd ? clr('yellow', '~$' + llm.costUsd.toFixed(2)) : ''}`);
   const tb = t.tabs || {};
-  L.push(`  ${clr('bold', 'tabs')}    in-use ${clr('cyan', (tb.inUse || 0) + '/' + (cfg.maxTabs || '?'))}   peak ${tb.peak || 0}   queued ${clr(tb.queued ? 'yellow' : 'gray', tb.queued || 0)}   granted ${tb.granted || 0}   openFail ${tb.openFailures || 0}`);
+  // Two DIFFERENT numbers the old line conflated under one "queued": `waiting` is the INSTANTANEOUS queue depth
+  // (acquires parked RIGHT NOW — the live contention signal, yellow when >0); `queued`/`waitMsTotal` are LIFETIME
+  // cumulative totals (how many acquires EVER parked + their summed wait). Render them apart, the cumulative pair
+  // dim, so a one-off startup park (all pages grabbing their first tabs at once and momentarily hitting the cap)
+  // can never read as "a tab is stuck waiting now". (fields from tab-allocator.js stats())
+  const waitingNow = tb.waiting || 0;
+  const parkedMs = tb.waitMsTotal ? (tb.waitMsTotal < 1000 ? tb.waitMsTotal + 'ms' : fmtMs(tb.waitMsTotal)) : null;
+  const queuedTotal = clr('gray', `queued-total ${tb.queued || 0}${parkedMs ? ` (${parkedMs} parked)` : ''}`);
+  L.push(`  ${clr('bold', 'tabs')}    in-use ${clr('cyan', (tb.inUse || 0) + '/' + (cfg.maxTabs || '?'))}   peak ${tb.peak || 0}   waiting ${clr(waitingNow ? 'yellow' : 'gray', waitingNow)}   ${queuedTotal}   granted ${tb.granted || 0}   openFail ${tb.openFailures || 0}`);
   const m = t.mem || {};
   const chrome = m.chromeRssMb == null ? clr('gray', 'n/a') : clr(m.chromeRssMb > 6000 ? 'red' : 'cyan', m.chromeRssMb.toFixed(0) + 'MB');
   L.push(`  ${clr('bold', 'mem')}     chrome-tree ${chrome}   node ${(m.nodeRssMb || 0).toFixed(0)}MB   sys ${clr((m.sysPct || 0) > 90 ? 'red' : 'gray', (m.sysUsedMb || 0) + '/' + (m.sysTotalMb || 0) + 'MB ' + (m.sysPct || 0) + '%')}`);

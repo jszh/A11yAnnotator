@@ -11,21 +11,22 @@ visionEvidence: [viewport]
 the FIRST `<title>` element, which is what the browser uses) and a viewport screenshot. Whether a title
 EXISTS is mechanical; you JUDGE whether it DESCRIBES this page's topic or purpose.
 
-**Judge:** does the page title describe what THIS page is about, as shown in the viewport (its `<h1>` /
-main heading / visible content)? Compare the title against the page's actual topic. Barriers:
-- **Empty / boilerplate:** an empty title, or a generic stand-in ("Untitled", "Home", "Document") that
-  identifies nothing, IS a barrier.
-- **Topic mismatch:** a title that names a DIFFERENT subject than the page's content — e.g. a title
-  "Apple harvesting season" over a page about clementines, or an effective first-of-several title that is
-  a placeholder ("First title is incorrect") while the real content is something else — IS a barrier. The
-  title must match the page you are looking at, not merely be a well-formed phrase.
-- **Generic site/org name on a purposeful page:** when the page has a SPECIFIC purpose (a search-results
-  page, an article, a product) but the title is only the bare site or organisation name (e.g. a
-  "Search results for …" page titled just "University of Arkham"), it does NOT identify this page's topic
-  → barrier. (A bare site name CAN be adequate for the site's actual front/landing page — judge relative
-  to the content shown.)
-A title that names the page's subject (optionally plus the site) and matches the visible topic is NOT a
-barrier.
+**Judge — this rubric owns title PRESENCE + non-contradiction, NOT descriptive quality.** The SC facet under
+test requires a NON-EMPTY title; whether a present title is richly descriptive is a stricter, separate facet
+you must NOT adjudicate here. Flag a barrier ONLY in these two cases:
+- **Empty / default placeholder:** an empty/whitespace title, or a literal SYSTEM/EDITOR DEFAULT that stands
+  in for "no title was set" — exactly "Untitled", "Untitled Document", "New Tab", "Document", or an
+  un-substituted template token (`{{title}}`, `%TITLE%`). Treat ONLY these literal defaults as placeholders. A
+  non-empty title that names *something* — even a plain, generic, or boilerplate-sounding phrase that reads like
+  sample copy — is NOT a placeholder and PASSES. The non-empty-title facet under test does not judge whether the
+  wording is a *good* title, so do NOT call a real, non-empty phrase a "placeholder" merely because it is
+  generic or unspecific.
+- **Topic CONTRADICTION:** a non-empty title that names a DIFFERENT, unrelated subject than the page's visible
+  content — the title actively MISDIRECTS (names one topic while the page is plainly about another) → barrier.
+**NOT a barrier (clear these — NOT REPRODUCED):** any non-empty title that names *something* and does not
+contradict the content — INCLUDING a generic-but-real phrase, a bare site/org name, or a terse non-specific
+title. "Could the title be MORE descriptive / more specific" is a separate, stricter facet that is out of
+scope here: do NOT escalate a present, non-contradicting title to a barrier on descriptiveness grounds.
 
 **Evidence handed to you:** the effective title string and the `viewport` — read the page's REAL topic
 from the viewport (the `<h1>`, main heading, or dominant visible content) and compare.

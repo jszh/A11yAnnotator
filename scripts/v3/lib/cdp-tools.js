@@ -598,6 +598,14 @@ async function resolveDestination(page, args) {
   const xpaths = (Array.isArray(linkXpaths) && linkXpaths.length) ? linkXpaths : (typeof linkXpath === 'string' && linkXpath ? [linkXpath] : []);
   if (!xpaths.length) return { error: 'linkXpath (string) or linkXpaths (array) required' };
   const dir = (u) => u.pathname.slice(0, u.pathname.lastIndexOf('/') + 1);
+  // file:// "same origin" for the OFFLINE local mirror: a BOUNDED common-ancestor sandbox, NOT same-directory.
+  // Corpus links cross sibling dirs (e.g. ../_assets/…), so same-directory wrongly refused them as "cross-origin"
+  // (the 2.4.4 resolver FN + the set-equality FP). Allow a file:// target under the base file's ancestor walked up
+  // ROOT_DEPTH levels — which STILL refuses arbitrary local files (…/etc/passwd) outside the corpus tree. SSRF
+  // stays closed; the offline corpus opens. (http(s) is unchanged: strict same-origin.)
+  const ROOT_DEPTH = 3;
+  const ancestorDir = (pathname, up) => { let d = pathname.slice(0, pathname.lastIndexOf('/') + 1); for (let i = 0; i < up; i++) { const t = d.replace(/\/+$/, ''); const cut = t.lastIndexOf('/'); d = cut > 0 ? t.slice(0, cut + 1) : '/'; } return d; };
+  const sameLocalRoot = (t, b) => { const root = ancestorDir(b.pathname, ROOT_DEPTH); return root.length > 1 && t.pathname.startsWith(root); };
   const browser = page.browser();
   // resolve ONE link xpath → a raw fingerprint (+ redirect timing), or {refused}/{error}. SSRF pre-flight +
   // settled-origin re-check unchanged. ACT fd3a94: only redirects that happen INSTANTLY (a 3xx, or meta-refresh
@@ -609,7 +617,7 @@ async function resolveDestination(page, args) {
     let target, base;
     try { target = new URL(info.href); base = new URL(info.pageUrl); } catch (e) { return { linkXpath: xp, refused: 'unparseable-url' }; }
     if (!/^https?:$/.test(target.protocol) && target.protocol !== 'file:') return { linkXpath: xp, refused: 'non-http-or-file' };
-    const sameOrigin = target.protocol === 'file:' ? (base.protocol === 'file:' && dir(target) === dir(base)) : (target.origin === base.origin);
+    const sameOrigin = target.protocol === 'file:' ? (base.protocol === 'file:' && sameLocalRoot(target, base)) : (target.origin === base.origin);
     if (!sameOrigin) return { linkXpath: xp, refused: 'cross-origin', destinationOrigin: target.origin };
     let bctx = null, p = null;
     try {
@@ -618,12 +626,12 @@ async function resolveDestination(page, args) {
       await p.setRequestInterception(true).catch(() => {});
       p.on('request', (req) => {
         let ok = false;
-        try { const u = new URL(req.url()); if (u.protocol === 'data:' || u.protocol === 'about:' || u.protocol === 'blob:') ok = true; else if (target.protocol === 'file:') ok = (u.protocol === 'file:' && dir(u) === dir(target)); else ok = (u.origin === target.origin); } catch (e) { ok = false; }
+        try { const u = new URL(req.url()); if (u.protocol === 'data:' || u.protocol === 'about:' || u.protocol === 'blob:') ok = true; else if (target.protocol === 'file:') ok = (u.protocol === 'file:' && sameLocalRoot(u, base)); else ok = (u.origin === target.origin); } catch (e) { ok = false; }
         if (ok) req.continue().catch(() => {}); else req.abort().catch(() => {});
       });
       const resp = await p.goto(target.href, { waitUntil: 'load', timeout: 15000 }).catch(() => null);
       let finalU = null; try { finalU = new URL(p.url()); } catch (e) {}
-      const finalSameOrigin = finalU && (target.protocol === 'file:' ? (finalU.protocol === 'file:' && dir(finalU) === dir(base)) : (finalU.origin === base.origin));
+      const finalSameOrigin = finalU && (target.protocol === 'file:' ? (finalU.protocol === 'file:' && sameLocalRoot(finalU, base)) : (finalU.origin === base.origin));
       if (!finalSameOrigin) return { linkXpath: xp, refused: 'cross-origin-redirect', finalOrigin: finalU ? finalU.origin : null };
       const httpChain = (() => { try { return resp ? resp.request().redirectChain().length : 0; } catch (e) { return 0; } })();
       const meta = await p.evaluate(() => { const m = document.querySelector('meta[http-equiv="refresh" i]'); if (!m) return null; const c = (m.getAttribute('content') || '').trim(); const mm = c.match(/^(\d+(?:\.\d+)?)\s*(?:;|$)/); return mm ? { delay: parseFloat(mm[1]) } : null; }).catch(() => null);
@@ -642,8 +650,10 @@ async function resolveDestination(page, args) {
   const fingerprints = [];
   for (const xp of xpaths.slice(0, 8)) fingerprints.push(await resolveOne(xp));
   const ok = fingerprints.filter((f) => f && !f.error && !f.refused);
-  const eqOf = (field) => ok.length >= 2 && ok.every((f) => f[field] === ok[0][field]);
-  return { fingerprints, equality: { finalUrlEqual: eqOf('finalUrl'), titleEqual: eqOf('title'), h1Equal: eqOf('h1'), mainFirstParagraphEqual: eqOf('mainFirstParagraph') }, note: 'each link resolved to a raw fingerprint (+ redirect timing) + a per-field byte-EQUALITY grid across the resolved set (fd3a94 is a SET test). Equality is string-equality only — the model judges "same purpose?".' };
+  // null (NOT false) when fewer than 2 links resolved — "could not compare". The model must NOT read an unresolved
+  // set as "destinations differ" (that defaulted finalUrlEqual:false and produced a 2.4.4 false positive).
+  const eqOf = (field) => ok.length >= 2 ? ok.every((f) => f[field] === ok[0][field]) : null;
+  return { fingerprints, resolvedCount: ok.length, equality: { finalUrlEqual: eqOf('finalUrl'), titleEqual: eqOf('title'), h1Equal: eqOf('h1'), mainFirstParagraphEqual: eqOf('mainFirstParagraph') }, note: 'each link resolved to a raw fingerprint (+ redirect timing) + a per-field byte-EQUALITY grid across the resolved set. Equality is string-equality only (the model judges "same purpose?"); an equality field is null when fewer than 2 links resolved (could not compare — NOT "different").' };
 }
 
 // ============================================================================================

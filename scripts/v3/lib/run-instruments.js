@@ -9,7 +9,7 @@
 // keyboard traps (2.1.2), and VSR navigation traps. All were adversarially hardened for soundness.
 const { collectVsrTranscript } = require('./vsr-collect.js');
 const { analyzeTranscript } = require('./vsr-analysis.js');
-const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFocusRejection } = require('./kbd-graph.js');
+const { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection } = require('./kbd-graph.js');
 const { vsrNavigationIntegrity } = require('./vsr-graph.js');
 const { detectStatusMessages } = require('./status-detector.js');
 
@@ -70,6 +70,12 @@ async function runInstruments(page, opts = {}) {
   // detector above cannot see these (no region; its escape probe runs before the async refocus fires).
   const selfTraps = await detectFocusRetentionTraps(page).catch(() => null);
   if (selfTraps) add('keyboard-trap', selfTraps.traps.map((t) => ({ sc: t.sc, kind: 'keyboard-trap-self-refocus', xpath: t.xpath, detail: 'confirmed keyboard trap: this focusable re-grabs its own focus on blur, so Tab and Shift+Tab cannot move focus off it' })));
+  // fixed-set CONFINEMENT traps (2.1.2): focus mutual-bounces among a small fixed set it can never LEAVE by
+  // Tab/Shift+Tab/Esc — the region + self-refocus detectors miss these (no region; focus DOES move, just never out).
+  const confine = await detectFixedSetConfinementTraps(page).catch(() => null);
+  // emit the already-promoted `keyboard-trap` kind (build-v3 promotes that + self-refocus to a 2.1.2 barrier);
+  // `detector` keeps the mechanism string distinct (kbd-trap:confinement) for audit.
+  if (confine) add('keyboard-trap', (confine.traps || []).map((t) => ({ sc: t.sc, kind: 'keyboard-trap', detector: 'confinement', xpath: t.xpath, detail: `confirmed keyboard trap: focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape` })));
   // focus-rejection (2.1.1/2.4.7, F55): a control that removes its OWN focus the instant it receives it —
   // the inverse of a self-refocus trap (focus can never rest on it, so it can't be operated or shown).
   const rej = await detectFocusRejection(page).catch(() => null);

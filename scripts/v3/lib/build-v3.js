@@ -372,6 +372,22 @@ function buildV3(bundle, opts = {}) {
     seenChk.add(id);
     checkerObligations.push({ obligationId: id, xpath: f.xpath, sc: f.sc, claimFamily: family });
   }
+  // AXE-DECIDED obligations (RCA: a DROPPED decided barrier): the axeObs above promote a hard axe violation to
+  // a BARRIER, but §5b only FILLS an ENUMERATED obligation — and the oracle DELIBERATELY does not enumerate the
+  // ARIA-validity facet of 4.1.2 (applicability-oracle.js:139 — aria-prohibited-attr floods, aria-hidden-focus
+  // targets the aria-hidden CONTAINER not the focusable child). So the axe-decided BARRIER had no obligation to
+  // land on and was silently dropped (e.g. ACT kb1m8s). MINT one per axeObs whose key isn't already enumerated,
+  // so the settled ARIA-legality fact fills as a PROVISIONAL barrier rather than vanishing. Deduped against the
+  // static/dynamic/checker set; the §5b fill still never overrides a deterministic CLAIM/PARTIAL on the same key.
+  const axeDecidedObligations = [];
+  const seenAxe = new Set();
+  for (const o of axeObs) {
+    const xpath = o.observationScope && o.observationScope.actionTargetRef;
+    const id = oracle.oblId(xpath, o.sc, o.claimFamily);
+    if (existingOblIds.has(id) || seenChk.has(id) || seenAxe.has(id)) continue;
+    seenAxe.add(id);
+    axeDecidedObligations.push({ obligationId: id, xpath, sc: o.sc, claimFamily: o.claimFamily });
+  }
   // 1.3.2 MEANINGFUL SEQUENCE (Item 14c): enumerate a PAGE-LEVEL meaning-vs-mechanics obligation ONLY when the vsr
   // detector found a visual-vs-source reorder (gated, never on every page). Page-level, auto-PARTIAL → sequence-meaning-v0.
   const sequenceObligations = [];
@@ -379,7 +395,7 @@ function buildV3(bundle, opts = {}) {
     const sid = oracle.oblId(oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH, '1.3.2', 'meaningful-sequence');
     if (!existingOblIds.has(sid)) sequenceObligations.push({ obligationId: sid, xpath: oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH, sc: '1.3.2', claimFamily: 'meaningful-sequence' });
   }
-  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...sequenceObligations];
+  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...sequenceObligations];
   const dispositions = [];
   for (const c of claims) dispositions.push({
     obligationId: oracle.oblId(c._target, c._sc, c._family), kind: 'CLAIM',

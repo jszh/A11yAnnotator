@@ -26,15 +26,15 @@ deterministic runner already disposed this obligation, DEFER — you are only ha
   photo that adds no information beyond mood — e.g. a fireworks photo next to "Happy New Year!"), then
   removing it from the tree is CORRECT → **NOT a barrier**; **(b)** if it conveys UNIQUE meaning absent
   from the surrounding text — a logo/wordmark that IDENTIFIES the page, an informative diagram/chart, or
-  TEXT baked into the image — then hiding it IS a barrier (ACT e88epe: an `aria-hidden`/`alt=""` W3C logo
-  that is the page's brand identity → REPRODUCED). Do NOT flag a removed-from-tree image merely because it
+  TEXT baked into the image — then hiding it IS a barrier (e.g. a brand logo/wordmark that identifies the
+  page, or text-bearing artwork, removed from the a11y tree → REPRODUCED). Do NOT flag a removed-from-tree image merely because it
   renders visible pixels — `renderedVisible` is size-only, not a meaningfulness signal.
 - **Incorrect / MISMATCHED (compare the name to the PIXELS):** a non-empty, plausible-sounding alt that
   names the WRONG thing IS a barrier — the alternative is *incorrect*, not just missing. Look at the
   `element-crop` and decide whether the accessible name actually describes what the image DEPICTS. If the
-  image visibly shows one thing but the name says another — e.g. alt "ERCIM logo" on an image rendering
-  the **W3C** logo, `aria-label="W3C"` on an SVG that draws the **HTML5** logo, or `aria-label="HTML 5
-  logo"` on a canvas painting the **W3C** logo — the text alternative misinforms the AT user → barrier.
+  image visibly shows one thing but the name says another — e.g. an alt naming one organisation's logo on an
+  image that renders a DIFFERENT organisation's logo, or an `aria-label` naming one product's mark on an SVG/
+  canvas that draws another's — the text alternative misinforms the AT user → barrier.
   This applies to `img alt`, `svg`/`canvas`/`role=img` accessible names alike: judge rendered content vs
   name, not the name's plausibility in isolation.
 - **Wrong purpose for a functional image:** a linked/iconed control's name must convey the ACTION (where

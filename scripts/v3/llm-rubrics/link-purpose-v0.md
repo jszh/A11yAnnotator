@@ -17,15 +17,35 @@ A bare "click here" / "read more" / "learn more" / "more" / "details" with no di
 barrier; a link whose name (or name+context) names its destination is NOT. This applies to a `<div
 role=link>` / `<span role=link>` exactly as to an `<a>` — judge the accessible name + context, not the tag.
 
-Two failure modes:
-- **Generic-in-context:** a vague name ("More", "Read more") whose surrounding sentence/heading/list still
-  does not say where it goes — e.g. "More" followed only by "This product consists of several web pages"
-  (ACT 5effbb). The context restates the topic but never resolves the link's DESTINATION ⇒ barrier.
+**What "context" means for 2.4.4 (read carefully — this is where false-clears happen).** Per WCAG, the only
+context that counts is **programmatically-determined / ENCLOSING** context: the link's own accessible name PLUS
+text in the same enclosing sentence/paragraph, the same list item, the same table cell (or its row/column
+header), or content programmatically associated via `aria-describedby`/`aria-labelledby`. A heading, label, or
+styled paragraph that merely sits **visually near or above** the link but is **NOT an ancestor of the link** is
+NOT programmatic context and does NOT resolve the purpose. The classic false-clear: a list of links whose names
+are only file formats, sitting under a styled paragraph that names the subject — but that subject paragraph is
+a *preceding sibling*, not an ancestor of each link, so the purpose is NOT determinable in context ⇒ **barrier**.
+Do not credit a non-enclosing heading/paragraph as if it disambiguated the link.
+
+**OPERATIONAL TEST (apply literally).** The enclosing context is the text INSIDE THE SAME paragraph / list-item /
+table-cell element that CONTAINS the link. If the link sits alone in its own block (e.g. `<p><a>…</a></p>`, or a
+table cell holding only the link) and the descriptive text is in a SEPARATE, preceding paragraph / sibling cell,
+that text is **NOT** enclosing — the link's only context is its own name. A sibling data cell (`<td>`) is not
+the link's cell and is not a header cell, so it does not count either. Do not treat a preceding-sibling sentence
+as if it were the link's enclosing sentence just because it is the nearest prose in reading order.
+
+Three failure modes:
+- **Format-only / action-only name:** a name that states only a FORMAT (a file-format token) or a bare
+  ACTION ("Download", "Read more", "More", "Details") whose ENCLOSING context does not name the destination
+  subject ⇒ barrier. (If the enclosing sentence/list-item itself names the subject — e.g. "Download the annual
+  report" — that is fine.)
+- **Generic-in-context:** a vague name ("More", "Read more") whose enclosing sentence/list item still does not
+  say where it goes — the context restates the topic but never resolves the link's DESTINATION ⇒ barrier.
 - **Identical names, DIFFERENT purpose:** two or more links with the SAME accessible name in the same
-  context that go to DIFFERENT destinations / serve DIFFERENT purposes (ACT fd3a94) — e.g. two "contact
-  us" links, one to a chat page and one to a phone page; two "ACT rules" links to different sites. If the
-  `surrounding-region` shows a sibling link with the same name pointing elsewhere, the shared name fails to
-  distinguish them ⇒ barrier. (Same name to the SAME destination is fine — that is not a failure.)
+  context that go to DIFFERENT destinations / serve DIFFERENT purposes — e.g. two same-named links pointing to
+  unrelated pages. If the `surrounding-region` (or the handed sibling-link list) shows a same-named link
+  pointing elsewhere, the shared name fails to distinguish them ⇒ barrier. (Same name to the SAME destination
+  is fine — not a failure.)
 
 **Evidence handed to you:** the accessible name, the surrounding text (`element-crop`,
 `surrounding-region`), whether the name is generic, and — when present — sibling links sharing this name

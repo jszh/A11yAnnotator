@@ -285,6 +285,105 @@ async function detectFocusRetentionTraps(page, opts = {}) {
   return { traps, focusableCount: focs.length, coverageTruncated: focs.length > RETENTION_CAP, candidates: [...candIds] };
 }
 
+// ── MUTUAL-BOUNCE / FIXED-SET CONFINEMENT keyboard trap (WCAG 2.1.2) — the live-JS complement to the two
+// detectors above ──────────────────────────────────────────────────────────────────────────────────────
+// detectFocusRetentionTraps only flags a self-refocus (focus returns to the SAME element) and deliberately
+// skips the mutual-bounce variants (ACT 80af7b Failed 3-5: focus hops btn1↔btn2↔…, never the SAME element)
+// because they are indistinguishable from the rule's PASSED bounce examples by the self-return test ALONE.
+// The distinguishing signal the rule actually turns on is whether focus can ever LEAVE the bounce set: a
+// PASSED bounce (e.g. Passed Ex7's sibling progression) eventually steps OUT of the set, and a legitimate
+// modal that traps focus still RELEASES on Escape — both let the user out. A 2.1.2 trap does not: with the
+// page handlers ACTIVE, focus stays confined to one small fixed set S under Tab AND Shift+Tab AND Escape,
+// and a focusable demonstrably OUTSIDE S is never reached. We measure exactly that on the live page.
+//
+// SOUND BY CONSTRUCTION: a set S is CONFIRMED only when ALL hold — |S| >= 2 (a genuine bounce, not a lone
+// stuck element, which the self-refocus detector owns); at least one focusable lies OUTSIDE S (so escape is
+// genuinely blocked, not "nowhere else to go"); a long forward sweep (>= CONFINE_WINDOW presses, bounded by
+// REACH_SAFETY_CAP) never leaves S; an independent extended Shift+Tab sweep also never leaves S; and pressing
+// Escape, after settling, still leaves focus inside S (an ESCAPABLE modal fails here — Escape moves focus out
+// of S or dissolves the set, so it is NOT flagged). Fail-closed: any probe step that cannot run abandons the
+// candidate (no false NO_BARRIER is ever asserted from here — the caller's other outcomes stand).
+const CONFINE_MULTIPLE = 4;    // a fixed set is "confined" only after Tab cycles through it >= this many times over
+const CONFINE_FLOOR = 16;      // …but never fewer than this many presses (a legit ring must get a fair chance to exit)
+const escSettle = REFOCUS_SETTLE_MS; // Escape may trigger an async close/refocus — settle before reading, like the rest
+
+async function detectFixedSetConfinementTraps(page, opts = {}) {
+  const focs = await page.evaluate(tagFocusables, FOCUSABLE_SEL).catch(() => []);
+  // need >= 3 focusables: a confining set of >= 2 PLUS at least one element outside it that focus cannot reach.
+  if (!Array.isArray(focs) || focs.length < 3) return { traps: [], focusableCount: (focs || []).length };
+  const cap = Number.isFinite(opts.safetyCap) ? opts.safetyCap : REACH_SAFETY_CAP;
+  const byId = new Map(focs.map((f) => [f.id, f]));
+  const total = focs.length;
+
+  // forward sweep from <body> with handlers ACTIVE: record the SETTLED active id at each Tab (so an async
+  // refocus has landed before we read). Bounded by CONFINE_WINDOW (and REACH_SAFETY_CAP) so a pathological
+  // page cannot run away. The visited SEQUENCE is the evidence; the distinct set is the confinement candidate.
+  const window = Math.min(cap, Math.max(CONFINE_FLOOR, total * CONFINE_MULTIPLE));
+  async function sweep(backward, budget) {
+    await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } }).catch(() => null);
+    const seq = [];
+    for (let i = 0; i < budget; i++) {
+      if (backward) { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
+      else { await page.keyboard.press('Tab'); }
+      await settleMs(page, REFOCUS_SETTLE_MS);
+      const cur = await page.evaluate(activeFocId).catch(() => null);
+      if (cur === null) return null;                 // probe failed mid-sweep ⇒ fail-closed (abandon candidate)
+      seq.push(cur);
+    }
+    return seq;
+  }
+  const fwdSeq = await sweep(false, window);
+  if (!fwdSeq) return { traps: [], focusableCount: total, undetermined: true };
+
+  // the confinement candidate is the distinct set of REAL elements (drop body/sentinel '' entries) that the
+  // forward sweep settled on AFTER it had a chance to start cycling — we take the tail half so a clean ring's
+  // one-time pass through every element is not mistaken for a confined set. >= 2 distinct, < total focusables.
+  const tail = fwdSeq.slice(Math.floor(fwdSeq.length / 2)).filter((id) => id && byId.has(id));
+  const S = new Set(tail);
+  if (S.size < 2 || S.size >= total) return { traps: [], focusableCount: total };
+  // the WHOLE forward window must have stayed inside S once it entered (a legit ring would have left it) —
+  // i.e. every settled focus from the first time we were in S onward is still in S.
+  const firstInS = fwdSeq.findIndex((id) => S.has(id));
+  if (firstInS < 0) return { traps: [], focusableCount: total };
+  const fwdConfined = fwdSeq.slice(firstInS).every((id) => S.has(id));
+  if (!fwdConfined) return { traps: [], focusableCount: total };
+
+  // an independent extended Shift+Tab sweep must ALSO never leave S (a one-way bounce is not a hard trap —
+  // the user can still escape backward; that case is left to the directional reporting in detectKeyboardTraps).
+  const bwdSeq = await sweep(true, window);
+  if (!bwdSeq) return { traps: [], focusableCount: total, undetermined: true };
+  const bwdTail = bwdSeq.filter((id) => id && byId.has(id));
+  if (!bwdTail.length || !bwdTail.every((id) => S.has(id))) return { traps: [], focusableCount: total };
+
+  // ESCAPE route check (CRITICAL false-positive guard): drive focus into S, press Escape, settle, and confirm
+  // focus is STILL inside S. A legitimate modal that traps focus but releases on Escape moves focus OUT of S
+  // (or dissolves the set), so escEscapes = true ⇒ NOT a 2.1.2 barrier and we do not flag it.
+  const entered = await page.evaluate((id) => { const el = document.querySelector(`[data-v3-foc="${id}"]`); if (el) { el.focus(); return document.activeElement === el; } return false; }, [...S][0]).catch(() => null);
+  if (entered === null) return { traps: [], focusableCount: total, undetermined: true };
+  let escEscapes = false;
+  if (entered) {
+    await page.keyboard.press('Escape');
+    await settleMs(page, escSettle);
+    const after = await page.evaluate(activeFocId).catch(() => null);
+    if (after === null) return { traps: [], focusableCount: total, undetermined: true };
+    escEscapes = !S.has(after);                      // focus left S (or set element gone) ⇒ Escape is a way out
+  } else {
+    return { traps: [], focusableCount: total, undetermined: true }; // could not enter S ⇒ fail-closed
+  }
+  if (escEscapes) return { traps: [], focusableCount: total };       // escapable ⇒ not a barrier
+
+  // CONFIRMED: focus is confined to a small fixed set S it cannot leave by Tab, Shift+Tab, or Escape, while a
+  // focusable outside S is never reached. Report the set (the entry element anchors the finding's xpath).
+  const members = [...S].map((id) => byId.get(id)).filter(Boolean);
+  const anchor = members[0];
+  return {
+    traps: [{ sc: '2.1.2', xpath: anchor.xpath, tag: anchor.tag, label: anchor.label,
+      memberXpaths: members.map((m) => m.xpath), setSize: S.size,
+      deterministicTrapConfirmed: true }],
+    focusableCount: total, candidateSet: members.map((m) => m.xpath),
+  };
+}
+
 // F55 (coverage #15): the INVERSE of a self-refocus trap — an element that REMOVES its own focus the
 // instant it receives it (onfocus="this.blur()", or a script that blurs on focus). It "reads as
 // non-focusable": focus() never rests on it and focus lands back on <body>, so a keyboard user can never
@@ -328,4 +427,4 @@ async function detectFocusRejection(page, opts = {}) {
   return { rejections, focusableCount: focs.length, coverageTruncated: focs.length > RETENTION_CAP };
 }
 
-module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFocusRejection, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL };
+module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL };

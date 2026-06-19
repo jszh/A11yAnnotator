@@ -177,7 +177,12 @@ function familiesFor(el) {
   if (el.box != null && interactive) { fams.push('target-size-minimum'); fams.push('target-size-enhanced'); } // 2.5.8 + 2.5.5
   if (WIDGET_ROLE.test(role) && typeof el.axName === 'string' && el.axName.trim().length > 0) fams.push('label-in-name'); // 2.5.3 (axName non-empty already proves a name — factHasText was redundant)
   // MEANING-call families (3.2) — role-precise so they fire only on real img/link/heading/form elements.
-  if (IMG_ROLE.test(role) || el.isImage === true) { fams.push('non-text-content'); fams.push('images-of-text'); } // 1.1.1 alt + 1.4.5 (incl. role=none/svg/canvas graphics — the mis-marked-decorative case)
+  // 1.1.1 alt + 1.4.5: owed only for an image that is IN the a11y tree. A graphic REMOVED from the tree
+  // (aria-hidden=true, role=presentation/none, alt="") is intentionally decorative and owes no text alternative
+  // (ACT inapplicable — e.g. an aria-hidden role=img logo). Gate on the collector's removedFromA11yTree fact so a
+  // bare/decorative svg/canvas/role=img is not enumerated. (A decorative image conveying UNIQUE meaning despite
+  // being hidden is still caught by the alt-text-adequacy decorative-marking signal, not by minting an obligation here.)
+  if ((IMG_ROLE.test(role) || el.isImage === true) && el.removedFromA11yTree !== true) { fams.push('non-text-content'); fams.push('images-of-text'); }
   // TT gap G2 (TT 7.C, 1.1.1): a CSS background-image conveying INFORMATION owes a text alternative. Routed to the
   // SAME non-text-content family + alt-text-adequacy rubric as an <img> (it is non-text content owing an alt). NOT
   // images-of-text/non-text-contrast (those need an actual graphic element). Gated on the collector's hard signal.

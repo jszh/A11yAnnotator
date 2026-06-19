@@ -46,11 +46,11 @@ equivalent? A visually-bold "heading" that is a plain `<div>` IS a barrier; a vi
 real list is NOT. Common failure patterns:
 - **Visual heading not marked up:** text that LOOKS like a section heading (larger/bolder, introduces the
   content below it) but is a plain `<div>`/`<span>`/`<strong>` with no heading role — a sighted reader
-  perceives the section break, AT users do not (ACT 047fe0 / H69). The same applies to a heading that is
+  perceives the section break, AT users do not (technique H69). The same applies to a heading that is
   only *styled* large (e.g. `<strong style="font-size:18pt">`) standing in for an `<h1>`.
 - **Broken table header association:** a data table whose column/row HEADER cells do not actually associate
   with the data cells a sighted user reads under/beside them — e.g. a header column with NO data cell in
-  its column, or `headers=`/`scope` wiring that leaves a header orphaned (ACT d0f69e). The visual
+  its column, or `headers=`/`scope` wiring that leaves a header orphaned. The visual
   row/column grid implies an association the markup does not deliver ⇒ barrier. (A genuine LAYOUT table
   that conveys no data relationships is not in scope — judge whether the grid actually carries data.)
 - **List not marked up (TT 10.D):** a run of items a sighted reader perceives as a list — bullet/number

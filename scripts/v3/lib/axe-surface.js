@@ -28,9 +28,14 @@ const AXE_SURFACED_RULES = Object.freeze(new Set([
   // name-presence (4.1.2 limb)
   'button-name', 'link-name', 'label', 'select-name', 'aria-input-field-name', 'aria-toggle-field-name',
   'summary-name', 'frame-title', 'aria-command-name',
-  // aria-validity (4.1.2)
+  // aria-validity (4.1.2) — settled ARIA-legality facts axe decides deterministically, so the LLM lane is
+  // never asked to re-judge them. `aria-hidden-focus` = a focusable element inside an aria-hidden=true
+  // subtree (the element is removed from the a11y tree yet still tabbable → a name/role/value barrier);
+  // `aria-prohibited-attr` = an aria-* attr the element's role forbids; `aria-braille-equivalent` = an
+  // aria-braillelabel/brailleroledescription with no non-braille label/roledescription to back it (RCA: all
+  // three carry axe's `wcag412` tag and promote to a decided 4.1.2 barrier via AXE_SC_FAMILY in build-v3).
   'aria-required-attr', 'aria-allowed-attr', 'aria-valid-attr', 'aria-roles', 'aria-valid-attr-value',
-  'nested-interactive', 'aria-hidden-focus', 'aria-prohibited-attr',
+  'nested-interactive', 'aria-hidden-focus', 'aria-prohibited-attr', 'aria-braille-equivalent',
   // required owned/context (1.3.1 — redundant with the wholesale set, listed for intent/robustness)
   'aria-required-children', 'aria-required-parent', 'td-headers-attr',
   // use-of-color (1.4.1, coverage item #8) — F73: a link distinguishable from its surrounding text-block
