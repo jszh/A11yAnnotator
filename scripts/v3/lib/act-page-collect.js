@@ -325,6 +325,14 @@ async function collectActPage(page, opts = {}) {
       // S7 (RCA R7, 0va7u6): an <svg> that renders LIVE <text>/<tspan> is NOT an image-of-text — that text is real
       // and accessible, so it owes NO 1.4.5 (images-of-text) obligation. Surfaced so the rubric clears it.
       const svgLiveText = tag === 'svg' && !!el.querySelector('text, tspan') && (el.textContent || '').trim().length > 0;
+      // 7d6734 (1.1.1 FP): the rule's subject is the SVG element WITH an explicit role + name. When the root <svg>
+      // is itself UNNAMED (no aria-label/labelledby, no DIRECT child <title>) but wraps a named graphics DESCENDANT
+      // (e.g. <svg><circle role="graphics-symbol" aria-label="1 circle">), the named descendant carries the meaning
+      // — a child <title> propagates to the root's name, but a named descendant ELEMENT does not. So the root owes
+      // no 1.1.1 alt of its own; flag it so the oracle does NOT enumerate non-text-content/images-of-text on the root.
+      const svgNamedDescendant = tag === 'svg'
+        && !(el.hasAttribute('aria-label') || el.hasAttribute('aria-labelledby') || !!el.querySelector(':scope > title'))
+        && !!el.querySelector('[aria-label]:not([aria-label=""]), [aria-labelledby], [role] > title');
       // FOCUS-TRAP RISK (coverage audit, 2.1.2): a focusable element carries a keyboard-trap obligation when it
       // is inside a focus-trapping REGION (the kbd-graph TRAP_REGION_SEL) OR carries an inline focus handler
       // (onblur/onfocus/onfocusout — the self-refocus-trap signal). Widens the old inModal-only gate WITHOUT
@@ -446,7 +454,7 @@ async function collectActPage(page, opts = {}) {
         focusRisk,
         removedFromA11yTree,
         hiddenMechanism,
-        renderedVisible, nearbyText, svgLiveText,
+        renderedVisible, nearbyText, svgLiveText, svgNamedDescendant,
         ariaHiddenWithName,
         complexImageHint,
         // Item 13 (cheap scrutiny signals, parity with eval-page): a native control that overrides its role

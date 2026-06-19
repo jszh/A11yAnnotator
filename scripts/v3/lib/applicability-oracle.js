@@ -182,7 +182,7 @@ function familiesFor(el) {
   // (ACT inapplicable — e.g. an aria-hidden role=img logo). Gate on the collector's removedFromA11yTree fact so a
   // bare/decorative svg/canvas/role=img is not enumerated. (A decorative image conveying UNIQUE meaning despite
   // being hidden is still caught by the alt-text-adequacy decorative-marking signal, not by minting an obligation here.)
-  if ((IMG_ROLE.test(role) || el.isImage === true) && el.removedFromA11yTree !== true) { fams.push('non-text-content'); fams.push('images-of-text'); }
+  if ((IMG_ROLE.test(role) || el.isImage === true) && el.removedFromA11yTree !== true && el.svgNamedDescendant !== true) { fams.push('non-text-content'); fams.push('images-of-text'); }
   // TT gap G2 (TT 7.C): a CSS background-image conveying INFORMATION owes a text alternative — the SAME
   // non-text-content family + alt-text-adequacy rubric as an <img> (1.1.1). It ALSO owes images-of-text (1.4.5):
   // a background-image can render TEXT-AS-IMAGE (e.g. a textimage.jpg); the images-of-text rubric judges that and

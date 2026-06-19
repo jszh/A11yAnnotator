@@ -48,7 +48,7 @@ const SURFACES = Object.freeze([
   // Harness 3.2 meaning-call families — predicates re-declared to match the oracle exactly (Rule 16).
   // Sync with applicability-oracle: an image REMOVED from the a11y tree (aria-hidden / role=presentation / alt="")
   // owes no 1.1.1 alt obligation (ACT inapplicable for an aria-hidden role=img), so the surface excludes it too.
-  Object.freeze({ id: 'image', when: (el) => (IMG_ROLE.test(factRole(el)) || el.isImage === true) && el.removedFromA11yTree !== true, families: ['non-text-content', 'images-of-text'] }),
+  Object.freeze({ id: 'image', when: (el) => (IMG_ROLE.test(factRole(el)) || el.isImage === true) && el.removedFromA11yTree !== true && el.svgNamedDescendant !== true, families: ['non-text-content', 'images-of-text'] }),
   Object.freeze({ id: 'link', when: (el) => factRole(el) === 'link', families: ['link-purpose'] }),
   Object.freeze({ id: 'heading', when: (el) => HEADING_ROLE.test(factRole(el)), families: ['heading-descriptive'] }),
   Object.freeze({ id: 'form-field-suggestion', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['error-suggestion'] }),
