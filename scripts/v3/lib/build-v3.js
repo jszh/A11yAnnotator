@@ -346,7 +346,11 @@ function buildV3(bundle, opts = {}) {
   // dropped, deduped against the oracle/checker set, and never overrides a deterministic CLAIM/PARTIAL.
   const DET_BARRIER = [
     { flag: 'iframeTabExcluded', sc: '2.1.1', claimFamily: 'keyboard-operable', mechanism: 'iframe-excluded-from-tab' },
-    { flag: 'focusableInAriaHidden', sc: '4.1.2', claimFamily: 'name-role-value', mechanism: 'focusable-in-aria-hidden' },
+    // NOTE: `focusableInAriaHidden` is deliberately NOT a deterministic barrier. The generalization check (all 581 ACT
+    // cases) proved it UNSOUND for 6cfa84: the PASSED example (a focus-sentinel <a> off-screen in aria-hidden that
+    // redirects focus on receipt) is STATICALLY IDENTICAL to the FAILED example — they differ only in dynamic onfocus
+    // behaviour, which a static scan cannot observe. A deterministic detector here over-fits the one failed fixture and
+    // FPs the rule's own passed example. 6cfa84 needs the DYNAMIC LLM-with-tools lane (drive focus, observe redirect).
     { flag: 'prohibitedAriaAttr', sc: '4.1.2', claimFamily: 'name-role-value', mechanism: 'prohibited-aria-attr' },
   ];
   const detBarrierObs = [];

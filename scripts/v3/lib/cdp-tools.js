@@ -615,9 +615,23 @@ async function resolveDestination(page, args) {
   // settled-origin re-check unchanged. ACT fd3a94: only redirects that happen INSTANTLY (a 3xx, or meta-refresh
   // delay 0) count toward the link-purpose set; a delayed meta-refresh fingerprints the INTERSTITIAL page.
   const resolveOne = async (xp) => {
-    const info = await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (!el) return { found: false }; const a = (el.closest && el.closest('a[href]')) || el; return { found: true, href: a.href || null, pageUrl: location.href }; }, xp).catch(() => null);
+    const info = await page.evaluate((x) => {
+      const el = document.evaluate(x, document, null, 9, null).singleNodeValue;
+      if (!el) return { found: false };
+      const a = (el.closest && el.closest('a[href]')) || el;
+      let href = a.href || null;
+      // #11: a JS-navigation link (span/div role=link with no href) carries its destination in an onclick string
+      // literal (location='…' / location.href=… / window.open(…)). Extract it and RESOLVE against the page URL so a
+      // relative/root path becomes absolute (query string preserved) — then it fingerprints like any anchor link.
+      if (!href) {
+        const oc = (el.getAttribute && el.getAttribute('onclick')) || (a.getAttribute && a.getAttribute('onclick')) || '';
+        const m = oc.match(/(?:location\.href|location\.assign|location\.replace|location|window\.open)\s*(?:=|\()\s*['"]([^'"]+)['"]/i);
+        if (m) { try { href = new URL(m[1], location.href).href; } catch (e) { /* unresolvable → falls through to the no-target error */ } }
+      }
+      return { found: true, href, pageUrl: location.href };
+    }, xp).catch(() => null);
     if (!info || !info.found) return { linkXpath: xp, error: 'link not found' };
-    if (!info.href) return { linkXpath: xp, error: 'no href on the target' };
+    if (!info.href) return { linkXpath: xp, error: 'no href or onclick-nav target on the link' };
     let target, base;
     try { target = new URL(info.href); base = new URL(info.pageUrl); } catch (e) { return { linkXpath: xp, refused: 'unparseable-url' }; }
     if (!/^https?:$/.test(target.protocol) && target.protocol !== 'file:') return { linkXpath: xp, refused: 'non-http-or-file' };

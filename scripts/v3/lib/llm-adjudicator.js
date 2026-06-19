@@ -331,12 +331,31 @@ function precomputeSignals(element, skill) {
       // include THIS link's own href in the set (peers exclude self) so the count reflects the WHOLE same-named
       // set: 1 ⇒ every same-named link shares a raw href (still not safe — could diverge via redirect); ≥2 ⇒ the
       // same-named links point at DIFFERENT raw hrefs (a strong 2.4.4 smell). The old peers-only count was ~useless.
-      const rawHrefs = new Set([element.href, ...element.__sameNameLinks.map((l) => l.href)].map((h) => h || '').filter(Boolean));
+      const rawHrefs = new Set([element.href || element.jsHref, ...element.__sameNameLinks.map((l) => l.href)].map((h) => h || '').filter(Boolean));
       s.sameNameLinks = {
         count: element.__sameNameLinks.length,
         peers: element.__sameNameLinks,
         distinctRawHrefs: rawHrefs.size,
         uncertainReason: 'other links on this page share this name — 2.4.4 fails if any resolve to a DIFFERENT destination. The values shown are RAW hrefs, NOT settled destinations: identical raw hrefs can still diverge (redirect/meta-refresh/SPA route) and different raw hrefs can be equivalent, so distinctRawHrefs is NOT sufficient to clear. If a tool is available, call resolve_destination on the SET of same-named links to compare SETTLED destinations; otherwise, if you cannot confirm the destinations are truly equivalent, return PARTIAL — never a confident clear on raw-href equality alone',
+      };
+    }
+    // #12 (2.4.4 enclosing context): the link's PROGRAMMATICALLY-DETERMINED context is the text of its NEAREST block
+    // ancestor (collector `enclosingBlockText`), NOT the flattened vision neighbourhood. A link ALONE in its block
+    // (blockText == its own name) has NO enclosing context beyond its name — descriptive prose in a SEPARATE sibling
+    // block is not enclosing. This EXPLICIT signal must be preferred over the surrounding-region crop, which leaks a
+    // preceding paragraph and lets the rubric falsely "read" context the AT user never gets programmatically.
+    if (typeof element.enclosingBlockText === 'string' && (element.axRole === 'link' || element.roleAttr === 'link' || element.tag === 'a')) {
+      const ownName = ((typeof element.axName === 'string' && element.axName) || element.text || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const block = element.enclosingBlockText.replace(/\s+/g, ' ').trim();
+      const blockLc = block.toLowerCase();
+      // alone-in-block: the block text IS just the name (modulo punctuation/whitespace) ⇒ no disambiguating context.
+      const aloneInBlock = !block || blockLc === ownName || (!!ownName && blockLc.replace(ownName, '').replace(/[^a-z0-9]+/g, '').length === 0);
+      s.enclosingContext = {
+        blockText: block.slice(0, 200),
+        linkAloneInBlock: aloneInBlock,
+        uncertainReason: aloneInBlock
+          ? 'this link is ALONE in its enclosing block (paragraph/list-item/cell) — its programmatically-determined CONTEXT is ONLY its own name. Any descriptive prose in a SEPARATE sibling block is NOT enclosing context for 2.4.4, and the vision crop showing nearby text must NOT be read as link context. If the name alone (a generic/format/action word) does not identify the link purpose, that is a 2.4.4 barrier — do not clear on neighbouring text the link does not programmatically own.'
+          : 'this link sits within enclosing block text that MAY disambiguate it — judge whether the name TOGETHER WITH this enclosing-block context identifies the link purpose.',
       };
     }
     // Item 12 (composite name-role-state): surface the already-collected states/axStates bundle so the rubric can
@@ -639,7 +658,9 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
     const nm = (typeof el.axName === 'string' && el.axName.trim()) || (typeof el.text === 'string' && el.text.trim()) || '';
     if (!nm) continue;
     const k = nm.toLowerCase();
-    (linksByName[k] = linksByName[k] || []).push({ xpath: el.xpath, name: nm, href: el.href || null });
+    // #11: a JS-nav link (span/div role=link with onclick="location='…'") carries its destination in `jsHref`, not
+    // href — fall back so same-named JS-links are destination-compared like anchor links (and resolve_destination follows it).
+    (linksByName[k] = linksByName[k] || []).push({ xpath: el.xpath, name: nm, href: el.href || el.jsHref || null });
   }
   const sameNameLinksFor = (el) => {
     const nm = (typeof el.axName === 'string' && el.axName.trim()) || (typeof el.text === 'string' && el.text.trim()) || '';

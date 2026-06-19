@@ -251,12 +251,29 @@ async function collectActPage(page, opts = {}) {
     //  (2) aria-roledescription on a GENERIC element (bare div/span, no explicit role) — generic cannot be re-described;
     //  (3) a BRAILLE property with no backing regular property — aria-braillelabel without aria-label/aria-labelledby,
     //      or aria-brailleroledescription without aria-roledescription (a braille equivalent is meaningless alone).
+    // aria-roledescription (and aria-label) are PROHIBITED on the generic + structural roles below (ARIA 1.2). Match
+    // the RULE, not one fixture: an EXPLICIT role in this set, OR — when no explicit role — a tag whose IMPLICIT role
+    // is one of them. (Generalized from a div/span-only gate, which would have missed <p>/<em>/<strong>/<code>/… etc.)
+    const _PROHIB_RD_ROLE = new Set(['generic', 'none', 'presentation', 'paragraph', 'emphasis', 'strong', 'code', 'deletion', 'insertion', 'subscript', 'superscript', 'caption', 'term']);
+    const _PROHIB_RD_TAG = new Set(['div', 'span', 'p', 'em', 'strong', 'b', 'i', 's', 'u', 'small', 'mark', 'q', 'cite', 'dfn', 'abbr', 'code', 'samp', 'kbd', 'var', 'sub', 'sup', 'del', 'ins', 'time', 'data', 'caption']);
+    // does the element get an accessible name FROM ITS CONTENT? (name-from-content role + non-empty text). A braille
+    // property is backed by aria-label/labelledby OR such a content name — so this exempts the validly-backed case.
+    const _NFC_ROLE = new Set(['heading', 'button', 'link', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'radio', 'checkbox', 'switch', 'tab', 'treeitem', 'gridcell', 'cell', 'columnheader', 'rowheader', 'tooltip', 'row']);
+    const _hasContentName = (el, roleAttr) => {
+      const r = (roleAttr || '').toLowerCase();
+      const t = el.tagName.toLowerCase();
+      const implicitNFC = /^(h[1-6]|button|summary|td|th|caption|option|legend|dt)$/.test(t) || (t === 'a' && el.hasAttribute('href'));
+      return (r ? _NFC_ROLE.has(r) : implicitNFC) && (el.textContent || '').trim().length > 0;
+    };
     const _prohibitedAriaAttr = (el, roleAttr) => {
       const names = el.getAttributeNames(); const has = (a) => names.includes(a);
       if ((roleAttr === 'none' || roleAttr === 'presentation') &&
           names.some((n) => _GLOBAL_ARIA.has(n) && (n !== 'aria-hidden' || el.getAttribute('aria-hidden') !== 'true'))) return true;
-      if (has('aria-roledescription') && !roleAttr && /^(div|span)$/i.test(el.tagName)) return true;
-      if (has('aria-braillelabel') && !has('aria-label') && !has('aria-labelledby')) return true;
+      if (has('aria-roledescription')) { const r = (roleAttr || '').toLowerCase(); if (r ? _PROHIB_RD_ROLE.has(r) : _PROHIB_RD_TAG.has(el.tagName.toLowerCase())) return true; }
+      // a braille property is UNBACKED only if the element has NO accessible name from ANY source. aria-braillelabel
+      // backs aria-label/labelledby OR a NAME-FROM-CONTENT name (heading/button/link/… with text) — generalization
+      // check caught the FP: <div role=heading aria-braillelabel> "I ❤ Bananas" is validly backed by its content.
+      if (has('aria-braillelabel') && !has('aria-label') && !has('aria-labelledby') && !_hasContentName(el, roleAttr)) return true;
       if (has('aria-brailleroledescription') && !has('aria-roledescription')) return true;
       return false;
     };
@@ -308,6 +325,15 @@ async function collectActPage(page, opts = {}) {
       const href = el.getAttribute('href') || '';
       const text = textOf(el).slice(0, 240);
       const sampledRole = roleAttr || nativeRoleInPage(tag, type, href);
+      // #11 (2.4.4 JS-nav links): a span/div role=link can navigate via onclick="location='…'" with NO href. Extract
+      // the static nav TARGET from ANY common literal-string nav idiom (location / location.href / .assign / .replace /
+      // window.open) so a same-named JS-link SET can be destination-compared. A computed onclick (no string literal)
+      // yields null — never a false signal. General over the nav idioms, not tied to one fixture's exact string.
+      const jsHref = (function () { const oc = el.getAttribute('onclick') || ''; const m = oc.match(/(?:location\.href|location\.assign|location\.replace|location|window\.open)\s*(?:=|\()\s*['"]([^'"]+)['"]/i); return m ? m[1] : null; })();
+      // #12 (2.4.4 enclosing context): text of the link's NEAREST block ancestor — WCAG "programmatically determined
+      // link context". A link ALONE in its block (blockText == its own name) has NO enclosing context beyond its name;
+      // a preceding-SIBLING block is not enclosing. General block-ancestor set, not one fixture's structure.
+      const enclosingBlockText = (sampledRole === 'link' || tag === 'a') ? (function () { const bl = el.closest('p,li,td,th,dd,dt,figcaption,blockquote,caption,section,article,aside,header,footer,main,nav,details,form,fieldset'); return bl ? (bl.innerText || bl.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300) : null; })() : undefined;
       const box = el.getBoundingClientRect();
       const focusable = focusableByMarkup(el);
       const isFormField = fieldLike(el);
@@ -447,6 +473,7 @@ async function collectActPage(page, opts = {}) {
         tag,
         type,
         href: href || null, // Item 14a: destination for the 2.4.4 same-name-link in-context index
+        jsHref, enclosingBlockText, // #11 onclick-nav target + #12 enclosing-block context (2.4.4)
         // heading level for the page-structure precompute branch (Tier-0 #3): aria-level wins, else h1-h6 tag.
         ariaLevel: el.getAttribute('aria-level') ? Number(el.getAttribute('aria-level')) : (/^h[1-6]$/.test(tag) ? Number(tag[1]) : null),
         box: { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.width), height: Math.round(box.height) },
