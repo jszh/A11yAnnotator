@@ -72,6 +72,7 @@ const SC = arg('sc', process.env.ACT_SC || null);
 const STRATIFIED = !!arg('stratified', process.env.ACT_STRATIFIED === '1' ? true : null);
 const MAX_AUTO = Number(arg('max-auto', process.env.V3_ACT_MAX_AUTO || LIMITS.act.maxAuto));
 const ELEMENT_CAP = Number(arg('element-cap', process.env.V3_ACT_ELEMENT_CAP || LIMITS.act.elementCap));
+const RUN_WALL = Number(arg('run-wall-ms', process.env.V3_ACT_RUN_WALL_MS || LIMITS.act.runWallClockMs)); // experiment-lane wall-clock budget (TIME cap, not count)
 const DETERMINISTIC_SCS = new Set(Object.values(CATALOG.experiments).map((e) => e.sc));
 const SUMMARIZE_ONLY = !!arg('summarize-only', false);
 const SUBSET = !!arg('subset', false);
@@ -485,6 +486,7 @@ async function main() {
         executablePath: CHROME,
         now: collect.collectedAt + 2,
         maxAutomatic: Number.isFinite(MAX_AUTO) ? MAX_AUTO : Infinity,
+        budgetOpts: { maxRunWallClockMs: RUN_WALL }, // deterministic lane bounded by TIME (2 min), not count
         runLlm: LLM_ON,
         runAgent: LLM_ON ? LLM_AGENT : undefined,
         captureVision: LLM_ON,

@@ -30,7 +30,10 @@ function nativeRole(tag, type, href) {
   return '';
 }
 
-// Navigate + extract. `opts`: { url, elementCap=80, file, runId, sourceUrl, pageDigest, settleMs=250, now }.
+// Navigate + extract. `opts`: { url, elementCap=80, file, runId, sourceUrl, pageDigest, settleMs=250, now,
+//   xpaths }. `xpaths` (optional): a PRE-SELECTED element subset (saved pages) — when given, collect EXACTLY those
+//   top-document elements (no body scan, no inclusion filter, no element cap, no visibility filter); the 80-cap
+//   then does not apply and `collect.coverage.subset` is true.
 // Returns the collect artifact (file/sourceUrl/runId/pageDigest/collectedAt/elements/...).
 async function collectActPage(page, opts = {}) {
   const url = opts.url;
@@ -39,7 +42,7 @@ async function collectActPage(page, opts = {}) {
   await new Promise((r) => setTimeout(r, Number.isFinite(opts.settleMs) ? opts.settleMs : 250));
   const collectedAt = Number.isFinite(opts.now) ? opts.now : Date.now();
   const pageDigest = opts.pageDigest || digestForUrl(opts.sourceUrl || url);
-  const data = await page.evaluate((cap) => {
+  const data = await page.evaluate((cap, subsetXpaths) => {
     function nativeRoleInPage(tag, type, href) {
       tag = String(tag || '').toLowerCase();
       type = String(type || '').toLowerCase();
@@ -200,9 +203,26 @@ async function collectActPage(page, opts = {}) {
       return false;
     };
     const els = [];
-    for (const el of document.querySelectorAll('body *')) {
-      if (els.length >= cap) break;
-      if (!visible(el)) continue;
+    // PRE-SELECTED SUBSET (saved pages): when the caller passes an explicit xpath list, collect EXACTLY those
+    // elements — no `body *` scan, no inclusion filter, no element cap, no visibility filter (the inventory already
+    // chose them deliberately, mirroring eval-page.js's loadXpaths model). This makes the 80-cap moot for saved-page
+    // runs: the subset IS the selection. (Cross-frame `>>` xpaths don't resolve via document.evaluate ⇒ dropped here;
+    // top-document xpaths are the saved-page case.)
+    const _subset = (Array.isArray(subsetXpaths) && subsetXpaths.length)
+      ? subsetXpaths.map((xp) => { try { return document.evaluate(xp, document, null, 9, null).singleNodeValue; } catch (e) { return null; } }).filter(Boolean)
+      : null;
+    // EN C.9.6.2 "full pages" disclosure: a hard element cap means anything past it is invisible to EVERY v3 lane
+    // (deterministic + LLM), so a page-clear is really "clear within the first `cap` elements", NOT a full-page
+    // claim. Record whether the cap actually TRUNCATED the scan + the total DOM size, so the builder can disclose it
+    // (a barrier planted past the cap would otherwise read as a false clear — the harness's cardinal sin). A subset
+    // run is by definition NOT truncated — the subset is the complete selection.
+    const _domTotal = document.querySelectorAll('body *').length;
+    let _cappedOut = false;
+    for (const el of (_subset || document.querySelectorAll('body *'))) {
+      if (!_subset) {
+        if (els.length >= cap) { _cappedOut = true; break; }
+        if (!visible(el)) continue;
+      }
       const tag = el.tagName.toLowerCase();
       const roleAttr = el.getAttribute('role') || '';
       const type = el.getAttribute('type') || '';
@@ -316,7 +336,7 @@ async function collectActPage(page, opts = {}) {
       // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative — tightened, token-based
       // detection via the shared `_isCaptchaEl` (R2 G3-1: no longer a bare substring; title only on an iframe).
       const isCaptcha = _isCaptchaEl(el);
-      if (!focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha) continue;
+      if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha) continue; // a pre-selected subset element is always included
       els.push({
         xpath: xpathOf(el),
         // (axName below is computed by labelledText(el, sampledRole) — name-from-contents gated by role)
@@ -372,14 +392,14 @@ async function collectActPage(page, opts = {}) {
       for (let s = e.previousElementSibling; s; s = s.previousElementSibling) if (s.tagName === e.tagName) idx++;
       return xpathOfInDoc(e.parentElement, doc) + '/' + tag + '[' + idx + ']';
     }
-    for (const frame of document.querySelectorAll('iframe, frame')) {
-      if (els.length >= cap) break;
+    for (const frame of (_subset ? [] : document.querySelectorAll('iframe, frame'))) { // subset = explicit selection; skip auto-traversal
+      if (els.length >= cap) { _cappedOut = true; break; }
       let fdoc = null;
       try { fdoc = frame.contentDocument; } catch (e) { fdoc = null; } // cross-origin SecurityError → skip
       if (!fdoc || !fdoc.body) continue;
       const prefix = xpathOf(frame) + '>>';
       for (const el of fdoc.querySelectorAll('body *')) {
-        if (els.length >= cap) break;
+        if (els.length >= cap) { _cappedOut = true; break; }
         if (!visible(el)) continue;
         const tag = el.tagName.toLowerCase();
         const roleAttr = el.getAttribute('role') || '';
@@ -435,8 +455,11 @@ async function collectActPage(page, opts = {}) {
       landmarks,
       elements: els,
       reflowApplicable: false,
+      truncated: _subset ? false : _cappedOut,   // EN C.9.6.2: the cap stopped the scan before the DOM was exhausted (a subset is never truncated)
+      domElementCount: _subset ? _subset.length : _domTotal, // subset ⇒ the subset IS the complete element population
+      subset: !!_subset,            // collected from a pre-selected xpath list (the 80-cap did not apply)
     };
-  }, elementCap);
+  }, elementCap, Array.isArray(opts.xpaths) ? opts.xpaths : null);
 
   // ── CDP ACCESSIBLE-NAME / ROLE / TREE-MEMBERSHIP pass ────────────────────────────────────────────────────
   // The in-page labelledText is a HEURISTIC re-implementation of Chrome's accessible-name algorithm; it has
@@ -523,6 +546,10 @@ async function collectActPage(page, opts = {}) {
     collectedAt,
     elements: data.elements || [],
     elementCount: (data.elements || []).length,
+    // EN C.9.6.2 "full pages" coverage disclosure: when the element cap truncated the scan, a page-clear covers
+    // ONLY the collected prefix — a barrier past the cap is unseen by every v3 lane. Surfaced so the builder can
+    // flag the page-clear as PARTIAL-COVERAGE rather than a full-page conformance claim. `cap` is the configured cap.
+    coverage: { truncated: !!data.truncated, collected: (data.elements || []).length, domElementCount: data.domElementCount || null, cap: elementCap, subset: !!data.subset },
     page: { reflowApplicable: !!data.reflowApplicable },
     structure: { title: data.title || '', lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [], lists: lists || [] },
     axe: axeData ? axeData.violations : [],

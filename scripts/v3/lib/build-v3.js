@@ -643,6 +643,13 @@ function buildV3(bundle, opts = {}) {
     obligationLedger: ledger,
     elementSkillSummaries: aggregates,
     outOfScope,
+    // EN C.9.6.2 "full pages" disclosure: when the collector's element cap TRUNCATED the scan, a page-clear covers
+    // only the collected prefix — a barrier past the cap is unseen by EVERY lane. Surface it so a clear is never read
+    // as a full-page conformance claim (the harness's "never a false clear" rail, at PAGE scope). Absent collect.coverage ⇒ untruncated.
+    coverage: (bundle.collect && bundle.collect.coverage && bundle.collect.coverage.truncated)
+      ? { truncated: true, collected: bundle.collect.coverage.collected, domElementCount: bundle.collect.coverage.domElementCount, cap: bundle.collect.coverage.cap,
+          note: 'element cap truncated collection — a clear covers only the first N collected elements; a barrier past the cap is NOT excluded (EN C.9.6.2 full-pages)' }
+      : { truncated: false },
     dynamicSubjects: dyn.subjects, // post-action discoveries, expanded + reconciled (Rule 13)
     adjudicationRecommendations, // DERIVED view over the un-promoted source:'llm' shadow obs (3.1 unify)
     instrumentFindings, // non-authoritative VSR/keyboard instrument signals (shadow until gold-calibrated)
@@ -665,6 +672,7 @@ function buildV3(bundle, opts = {}) {
       barriersObserved: claims.filter((c) => c.observationOutcome === 'BARRIER_OBSERVED').length,
       cleared: claims.filter((c) => c.observationOutcome === 'NO_BARRIER_OBSERVED' || c.wcagApplicability === 'INAPPLICABLE').length,
       outOfScopeElements: outOfScope.length,
+      coverageTruncated: !!(bundle.collect && bundle.collect.coverage && bundle.collect.coverage.truncated), // EN C.9.6.2 full-pages
       dynamicSubjects: dyn.subjects.length,
       adjudicationRecommendations: adjudicationRecommendations.length,
       instrumentFindings: instrumentFindings.length,

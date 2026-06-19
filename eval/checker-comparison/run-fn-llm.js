@@ -57,6 +57,7 @@ const LLM_CONC = Math.min(LIMITS.concurrency.llm, Math.max(1, Number(arg('llm-co
 const MAX_TABS = Math.min(LIMITS.concurrency.maxTabs, Math.max(1, Number(arg('max-tabs', LIMITS.concurrency.maxTabs))));
 const MAX_AUTO = Number(arg('max-auto', LIMITS.act.maxAuto));
 const ELEMENT_CAP = Number(arg('element-cap', LIMITS.act.elementCap));
+const RUN_WALL = Number(arg('run-wall-ms', LIMITS.act.runWallClockMs)); // experiment-lane wall-clock budget per page (defers the tail by TIME, not count)
 const VISION = arg('no-vision', false) ? false : true;
 const TOOLS = !!arg('tools', false);
 const OUT = path.join(REPO_ROOT, 'results', 'fn-llm');
@@ -284,6 +285,8 @@ async function main() {
           now: collect.collectedAt + 2,
           restrictScs: RESTRICT_SC ? new Set(tc.sc || []) : undefined, // judge ONLY the case's GT'd SC (ACT GT is per-SC)
           maxAutomatic: Number.isFinite(MAX_AUTO) ? MAX_AUTO : Infinity,
+          budgetOpts: { maxRunWallClockMs: RUN_WALL }, // deterministic lane bounded by TIME (2 min), not count — run as many real runners as fit, defer the tail to the LLM lane
+
           experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),
           runLlm: true, runAgent, captureVision: VISION, wrapAgent, // wrapAgent → the tool agent shares the global cap + telemetry
           llmConcurrency: LLM_CONC,

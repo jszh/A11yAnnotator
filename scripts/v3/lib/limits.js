@@ -54,11 +54,16 @@ const LIMITS = Object.freeze({
                                       // (many heavy pages painting at once) should lower it toward core count.
   }),
 
-  // ── D′. ACT-suite knobs (eval/checker-comparison/run-v3-act-suite.js). ──────────────────────────────────
+  // ── D′. ACT-suite knobs (eval/checker-comparison/run-v3-act-suite.js + run-fn-llm.js). ──────────────────
   act: Object.freeze({
-    maxAuto: 16,                      // V3_ACT_MAX_AUTO — auto-scheduled candidates per case
-    elementCap: 80,                   // V3_ACT_ELEMENT_CAP
-    caseTimeoutMs: 90000,             // V3_ACT_CASE_TIMEOUT — per-case page.goto deadline
+    // The deterministic experiment lane is now bounded by TIME, not COUNT: `maxAuto` is effectively uncapped (run
+    // every applicable candidate) and `runWallClockMs` defers the tail once the lane has spent 2 min. So a large
+    // page runs as many real trigger-and-observe runners as fit in 2 min, then the rest fall to auto-PARTIAL → LLM
+    // (instead of an arbitrary first-16). The entry points pass `budgetOpts.maxRunWallClockMs = runWallClockMs`.
+    maxAuto: 100000,                  // V3_ACT_MAX_AUTO — was 16; large = "no count cap" (the time budget governs)
+    runWallClockMs: 120000,           // experiment-lane wall-clock budget per page (2 min) — the real governor now
+    elementCap: 80,                   // V3_ACT_ELEMENT_CAP (live-page body scan; a pre-selected subset overrides it — see collectActPage opts.xpaths)
+    caseTimeoutMs: 180000,            // per-case hard hang-guard — raised above runWallClockMs so the 2-min lane budget is the binding cap, not a hard kill
   }),
 
   // ── E. Inventory / discovery quantity budgets (fail-closed DoS backstops — over-cap ⇒ the builder refuses).

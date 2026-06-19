@@ -243,3 +243,46 @@ with an informational background-image is caught on the corpus path only if the 
 (interactive bg-image controls, which ARE inventoried, are already caught). When the corpus path is next
 exercised, extend the inventory builder to nominate `getComputedStyle(el).backgroundImage` `url()` elements that
 have no text and no accessible name. Low priority — the active ACT eval path (act-page-collect) is complete.
+
+---
+
+## H. EN 301 549 V4.1.0 Annex C — conformance-scope items (deferred / boundary)
+
+**Recorded 2026-06-19** from `docs/analysis/en301549/EN301549-ANNEX-C-ANALYSIS.md`. Annex C for Web is **WCAG 2.2
+pass-through** per-criterion (no EN-specific per-SC test to build), so the only EN-distinct work is at *page/process*
+scope (C.9.6 conformance requirements, C.9.7 user preferences). **Implemented now:** the C.9.6.2 "full pages"
+TRUNCATION DISCLOSURE (`collect.coverage` + build `coverage`/`summary.coverageTruncated`) — a page-clear on a
+cap-truncated page is no longer mistaken for a full-page claim. The rest:
+
+- **C.9.7 user preferences — deterministic check (DEFER, feasible).** No lane checks that the page doesn't block UA
+  presentation modes / override platform a11y settings. The cheap, sound part is detectable: `user-scalable=no` /
+  `maximum-scale=1` in the viewport meta (blocked zoom). The harder part (animation that ignores
+  `prefers-reduced-motion`, blocked `forced-colors`) can reuse the existing `render_with_overrides` CDP tool
+  (emulate the media feature, diff the render). New conformance-scope lane outside the 22 selected SCs — defer; do
+  the `user-scalable=no` detector first when picked up (overlaps WCAG 1.4.4 resize-text).
+- **C.9.6.5 non-interference — 1.4.2 Audio control (DEFER) + 2.1.2 strengthening (DEFER).** 2.2.2 is **already
+  covered** (the `motion-control` family + `motion-control-v0` rubric — the analysis's "2.2.2 no lane" is stale).
+  1.4.2 (autoplay audio >3s with no pause/stop) has no lane — a detectable new lane (autoplay `<audio>`/`<video>`
+  with audio, no controls), but not in the 22 SCs → defer. The existing `keyboard-trap-escape` (2.1.2) abstains
+  5/5 on the ACT subset — strengthening it beyond abstain is a separate detector-tuning investigation → defer.
+  (2.3.1 three-flashes is **NOT to be built** — flash-rate is unsound by two-frame vision; see the routing
+  analysis OUT-OF-SCOPE set. Recorded here for completeness, not as a deferral.)
+- **C.9.6.3 Complete processes — STRUCTURAL BOUNDARY (document, don't build).** `orchestrate()` consumes a single
+  `collect` (one page/state); there is no flow/journey input. A multi-step process where step 3 has a barrier
+  passes every per-page run. This is the same single-page boundary as TT G6 (§F) — accept and document; a
+  page-clear must never be read as process-conformant. Not runner-fixable without a flow orchestrator.
+- **C.9.6.4 Only accessibility-supported ways — STRUCTURAL BOUNDARY.** The harness reads a sampled/CDP accessibility
+  tree as a *proxy* for AT exposure; it cannot verify a technique is accessibility-supported across a real
+  AT/browser matrix (the EN/WCAG sense). Fine for mainstream HTML/ARIA, an unverified assumption for novel widgets.
+  An automated harness fundamentally cannot run a real-AT matrix — document as a known limitation.
+- **Corpus-path (eval-page) truncation parity.** The full-pages disclosure landed on the active ACT path
+  (`act-page-collect`, body-scan cap). `eval-page` collects from an external xpath INVENTORY, so its "truncation"
+  is the inventory builder's concern (it would carry no `collect.coverage` → disclosed as untruncated). When the
+  corpus path is next exercised, have the inventory builder record whether it capped, mirroring `coverage`.
+
+**NOT relevant / no action (recorded so they aren't re-raised):** (1) per-criterion "EN tests" — Web Annex C *is*
+WCAG 2.2; nothing to build. (2) 2.4.10 over-coverage — EN treats it AAA-informative; the harness covers it
+non-authoritatively (shadow), so the extra coverage is harmless. (3) Adding 2.5.7 / 3.2.6 / 3.3.7 — the analysis
+itself annotates "(builder: disregard this)"; the 22-SC selection is the deliberate scope. (4) The EN
+Inspection/Pass/Fail/Not-applicable → applicability-oracle + PARTIAL/PROVISIONAL mapping is a positioning point,
+not a code change.
