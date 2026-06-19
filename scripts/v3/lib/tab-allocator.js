@@ -79,6 +79,20 @@ function createTabAllocator(opts = {}) {
     catch (e) { openFailures++; releaseSlot(); throw e; }
     granted++;
 
+    // DOWNLOAD GUARD: deny file downloads on EVERY tab. Saved fixture pages can link to real external resources
+    // Chrome serves as a download — e.g. ACT 5effbb links to gutenberg.org's Ulysses `.epub` — and a runner that
+    // ACTIVATES such a link (keyboard-activation's Enter, a click) makes Chrome fetch + SAVE that file on every
+    // element×state×runner pass. Page-scoped `deny` cancels the download navigation (no fetch, no saved file).
+    // Best-effort: a mock/no-CDP page (the allocator's unit tests) or an old Chrome simply skips it — never blocks
+    // acquire(), never throws. This is the single chokepoint for experiment, vision-capture and run-pages tabs.
+    try {
+      if (page && typeof page.target === 'function') {
+        const _dl = await page.target().createCDPSession();
+        await _dl.send('Page.setDownloadBehavior', { behavior: 'deny' }).catch(() => {});
+        await _dl.detach().catch(() => {});
+      }
+    } catch (e) { /* CDP unavailable / mock page ⇒ downloads simply not denied (no-op) */ }
+
     let released = false;
     const release = async () => {
       if (released) return; released = true;
