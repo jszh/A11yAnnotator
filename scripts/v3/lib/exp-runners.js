@@ -476,11 +476,19 @@ function probeFormError(marker) {
   // problem as server-side validation). ASP.NET `data-val-required`/`data-val-email` are boolean-by-PRESENCE (the
   // attribute value is the message); the others must read literal "true".
   const eqTrue = (v) => String(v || '').trim().toLowerCase() === 'true'; // tolerate "True"/" true " (adversarial review)
-  const softRequired = el.hasAttribute('data-val-required')      // ASP.NET unobtrusive — presence = required
+  // R2 G5-F2: the soft markers PROVE a rule was AUTHORED, not that a client validator is RUNNING. A server-validated-
+  // only form can ship `data-val-*`/`ng-required` while its unobtrusive/framework script is absent or failed to load
+  // — submitting then surfaces no client error and we would FALSE-BARRIER it (the same invisibility gap that keeps
+  // bare type=password out). So honor the soft markers ONLY when an ACTIVE client validator is DETECTABLE (jQuery
+  // Validate, Angular, or ASP.NET unobtrusive validation-message spans present); otherwise abstain (treat as
+  // unconstrained → not-applicable). Native `required`/`pattern`/aria-required are browser-enforced and unaffected.
+  const _clientValidatorActive = !!(window.jQuery && window.jQuery.validator) || !!window.angular
+    || !!document.querySelector('[data-valmsg-for],.field-validation-valid,.field-validation-error,[ng-app],[data-ng-app]');
+  const softRequired = _clientValidatorActive && (el.hasAttribute('data-val-required') // ASP.NET unobtrusive — presence = required
     || eqTrue(el.getAttribute('data-required'))                  // explicit boolean marker (Bootstrap/custom)
     || eqTrue(el.getAttribute('data-rule-required'))             // jQuery Validate
-    || eqTrue(el.getAttribute('ng-required'));                   // Angular LITERAL only (expression-valued ⇒ ambiguous ⇒ excluded)
-  const softEmail = el.hasAttribute('data-val-email');           // ASP.NET email validator — presence = client-side email rule
+    || eqTrue(el.getAttribute('ng-required')));                  // Angular LITERAL only (expression-valued ⇒ ambiguous ⇒ excluded)
+  const softEmail = _clientValidatorActive && el.hasAttribute('data-val-email'); // ASP.NET email validator — presence = client-side email rule
   const required = el.required === true || el.getAttribute('aria-required') === 'true' || softRequired;
   const hasConstraint = required || softEmail || el.hasAttribute('pattern') || /^(email|url|number|tel)$/.test(type) || el.hasAttribute('min') || el.hasAttribute('max') || el.hasAttribute('minlength');
   const fieldConstrained = !!(form && hasConstraint);
@@ -551,6 +559,7 @@ function probeFormError(marker) {
 
   // make the field invalid (the error condition this constraint detects)
   const orig = ('value' in el) ? el.value : null;
+  const origAriaInvalid = el.getAttribute('aria-invalid'); // R2 G5-F4: snapshot so the probe leaves no aria-invalid residue
   if ('value' in el) {
     el.value = required ? '' : (softEmail || /^(email|url)$/.test(type)) ? 'x' : /number/.test(type) ? 'abc' : '';
     for (const ev of ['input', 'change', 'blur']) el.dispatchEvent(new Event(ev, { bubbles: true }));
@@ -562,7 +571,11 @@ function probeFormError(marker) {
   const onSubmit = (e) => { e.preventDefault(); };
   form.addEventListener('submit', onSubmit, true);
   try {
-    const btn = form.querySelector('button[type="submit"],input[type="submit"],button:not([type])');
+    // R2 G5-F1: a native submit control fires the form's submit handler; but many SPA/JS forms validate on a
+    // `type=button` / `role=button` click with NO submit control (requestSubmit then fires no listener → false
+    // "no error"). Fall back to clicking such a validator button so its click-handler validation runs.
+    const btn = form.querySelector('button[type="submit"],input[type="submit"],button:not([type])')
+      || form.querySelector('button[type="button"],input[type="button"],[role="button"]');
     if (btn) btn.click();
     else if (form.requestSubmit) form.requestSubmit();
     else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
@@ -596,6 +609,9 @@ function probeFormError(marker) {
   }
   for (const n of universe()) { try { delete n[PRE]; } catch (e) {} }
   if (orig != null) { el.value = orig; } // restore
+  // R2 G5-F4: undo any aria-invalid the page's validation set in reaction to the probe, so two fields probed on
+  // one un-reloaded page (only the test harness does this; production reloads per attempt) can't contaminate.
+  try { if (origAriaInvalid === null) el.removeAttribute('aria-invalid'); else el.setAttribute('aria-invalid', origAriaInvalid); } catch (e) {}
   return { isUserInputField, fieldRendered, fieldConstrained: true, applicable: true, errorNotIdentified: !(nativeWouldBlock || customIdentifies), nativeWouldBlock, customIdentifies, errorSample };
 }
 

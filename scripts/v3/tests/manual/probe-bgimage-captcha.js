@@ -38,9 +38,11 @@ const HTML = `<!doctype html><html><head><meta charset=utf-8><style>
   <div id="c1" class="g-recaptcha" data-sitekey="abc" style="width:300px;height:78px"></div>
   <div id="c2" class="cf-turnstile" data-sitekey="xyz" style="width:300px;height:65px"></div>
   <iframe id="c3" title="hCaptcha challenge" src="https://hcaptcha.com/c?x=1" style="width:300px;height:80px"></iframe>
-  <div id="c4" class="login-captcha-box" style="width:300px;height:80px">verify</div>
-  <!-- DECOY: not a captcha -->
+  <div id="c4" class="captcha-container" style="width:300px;height:80px">verify</div>
+  <!-- DECOYS: not a captcha — a buried "captcha" substring + a prose title (R2 G3-1 tokenizer) -->
   <div id="d6" class="login-box" style="width:300px;height:80px">Sign in</div>
+  <div id="d9" class="no-captcha-needed-badge" style="width:120px;height:40px">verified</div>
+  <p id="d10" title="What is a CAPTCHA?">help</p>
 </body></html>`;
 
 const idOf = (xpath) => xpath; // we'll map via box/text below; print xpath + flags + a hint
@@ -84,8 +86,10 @@ const idOf = (xpath) => xpath; // we'll map via box/text below; print xpath + fl
     ['c1 captcha', got('c1').isCaptcha === true],
     ['c2 captcha', got('c2').isCaptcha === true],
     ['c3 captcha', got('c3').isCaptcha === true],
-    ['c4 captcha', got('c4').isCaptcha === true],
+    ['c4 captcha (captcha-container, leading token)', got('c4').isCaptcha === true],
     ['d6 NOT captcha', got('d6').isCaptcha === false],
+    ['d9 NOT captcha (buried substring)', got('d9').isCaptcha === false],
+    ['d10 NOT captcha (prose title)', got('d10').isCaptcha === false],
   ];
   console.log('\n--- ASSERTIONS ---');
   let pass = 0;

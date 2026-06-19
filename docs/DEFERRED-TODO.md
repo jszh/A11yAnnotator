@@ -214,6 +214,27 @@ resolve from pixels; then thin `collect-lists.js` to real-list facts + (optional
 Cross-ref: `TRUSTED-TESTER-GAP-ANALYSIS.md` "Architectural note (G1)". Medium priority — the glyph heuristic
 is correct-but-marginal today (LLM-judged candidate), so this is an elegance/coverage win, not a barrier fix.
 
+**R2 residual lows (deferred 2026-06-19, from `TRUSTED-TESTER-GAP-ANALYSIS-R2.md`).** The R2 independent review's
+medium findings were all fixed (G2-1 interactivity parity, G3-1 token detection + alt-adequacy retention, G3-2
+in-frame captcha, G5-F2 active-validator gate, G5-F1 type=button trigger, G5-F4 aria-invalid restore). The remaining
+**low** items are deferred as recall/elegance, none a barrier or false-PASS:
+- **G2-2 (`::before`/`::after` background icons).** `getComputedStyle(el).backgroundImage` does not read pseudo-element
+  backgrounds, so a non-interactive `::before` status icon with no text/name is invisible to the bg gate. (An
+  *interactive* one is rescued by 4.1.2 `button-name`.) The detection primitive exists (`exp-runners.js` `pseudoPaints()`);
+  when picked up, read `getComputedStyle(el, '::before'/'::after').backgroundImage` in `_bgMeaningful` (both collectors).
+  Low — rare, and an unmarked status icon is usually also a `::before` *content* glyph axe/AT can see.
+- **G2-3 (meaningful bg co-located with text on ONE element).** The `text.length===0` gate is a deliberate
+  decorative-flood guard, but text-*presence* ≠ text-*equivalent*: `<div class=bg>Premium</div>` whose background
+  conveys separate meaning is owned by nobody. The common idiom (separate badge/icon span) IS caught. Removing the
+  guard floods (every labelled button/card has a bg); a sound fix needs a "bg conveys info BEYOND the text" judgment —
+  push to the rubric with the element-crop rather than gate it in the collector. Low.
+- **G1 `::before`/`list-style-image` recall hint.** The faux-list nominator is DOM-text only; a list rendered with
+  CSS bullets is invisible to it (the `info-relationships-v0` rubric already judges it from the viewport screenshot —
+  see DEFERRED-TODO §G full-page vision). Optional: read `::before`/`::marker` content to hand the rubric a textual
+  hint. Low — overlaps §G.
+- **CC-3 / 7.A.1.c** is now **resolved** (a captcha `<img>` keeps `alt-text-adequacy`, which asks the alt-purpose
+  question, alongside `captcha-alternative`).
+
 **G2 follow-on (corpus-path inventory completeness, NOT a fact-parity gap).** The background-image-meaning FACT is
 computed identically in BOTH collectors (`act-page-collect.js` self-includes bg-image/captcha elements via its
 inclusion gate; `eval-page.js` computes the same fact in its per-element evaluate). But `eval-page.js` only

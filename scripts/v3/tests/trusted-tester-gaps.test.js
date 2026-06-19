@@ -69,6 +69,20 @@ test('G3: captcha-alternative does NOT fire on an ordinary image; alt-text-adequ
   assert.ok(rids.includes('alt-text-adequacy-v0'), 'an image still gets alt-adequacy');
   assert.ok(!rids.includes('captcha-alternative-v0'), 'a non-captcha image never gets the captcha rubric');
 });
+test('R2 G3-1/CC-1/CC-3: a captcha IMAGE keeps alt-text-adequacy (7.A.1.c) AND gets captcha-alternative; a captcha DIV gets only captcha-alternative', () => {
+  const collect = { elements: [
+    { xpath: '/capimg', tag: 'img', isImage: true, role: 'img', isCaptcha: true },
+    { xpath: '/capdiv', tag: 'div', isCaptcha: true },
+  ] };
+  const ledger = [
+    { xpath: '/capimg', sc: '1.1.1', claimFamily: 'captcha-alternative', autoPartial: true },
+    { xpath: '/capimg', sc: '1.1.1', claimFamily: 'non-text-content', autoPartial: true },
+    { xpath: '/capdiv', sc: '1.1.1', claimFamily: 'captcha-alternative', autoPartial: true },
+  ];
+  const subs = selectRubricSubjects(collect, ledger, RUBRICS);
+  assert.deepEqual(ridsFor(subs, '/capimg'), ['alt-text-adequacy-v0', 'captcha-alternative-v0'], 'captcha IMAGE: both rubrics (alt judges purpose, captcha judges modalities)');
+  assert.deepEqual(ridsFor(subs, '/capdiv'), ['captcha-alternative-v0'], 'captcha non-image widget: alt-adequacy correctly skipped');
+});
 
 // ───────────────────────────── G1/G2/G3 — precompute signal surfacing ─────────────────────────────
 test('G1: structure.lists is surfaced into the grouping/reading-order signals', () => {
@@ -129,9 +143,13 @@ const GATE_HTML = `<!doctype html><meta charset=utf-8><style>.bg{background-imag
   <span id="d2" class="bg ic" aria-hidden="true"></span>
   <a id="p3" class="bg ic" href="#" aria-labelledby="missing-id"></a>
   <div id="p5" class="bg" style="width:300px;height:200px"></div>
+  <div id="p6" class="bg ic" onclick="void 0"></div>
+  <div id="p7" class="bg ic" role="spinbutton"></div>
   <div id="dfb" class="bg" style="width:780px;height:400px"></div>
   <div id="c1" class="g-recaptcha" data-sitekey="k" style="width:300px;height:78px"></div>
   <div id="c2" class="turnstile-widget" style="width:300px;height:65px">verify</div>
+  <img id="d7" class="no-captcha-needed-badge" alt="Verified human" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" style="width:40px;height:40px">
+  <p id="d8" title="What is a CAPTCHA?">Some help text</p>
   <div id="d3" style="width:300px;height:78px">just a div</div>
 </body>`;
 
@@ -147,12 +165,16 @@ test('G2/G3: collector fires bg-image on unlabeled controls (incl. DANGLING labe
     assert.equal(by.p1 && by.p1.backgroundImageMeaningful, true, 'unlabeled bg-image control fires');
     assert.equal(by.p3 && by.p3.backgroundImageMeaningful, true, 'a DANGLING aria-labelledby does not mask the barrier (adversarial fix)');
     assert.equal(by.p5 && by.p5.backgroundImageMeaningful, true, 'a MEDIUM non-interactive bg fires — size deferred to the rubric (a)');
+    assert.equal(by.p6 && by.p6.backgroundImageMeaningful, true, 'an onclick bg control fires (R2 G2-1 — was dropped on the ACT path)');
+    assert.equal(by.p7 && by.p7.backgroundImageMeaningful, true, 'a role=spinbutton bg control fires (R2 G2-1)');
     assert.ok(!(by.dfb && by.dfb.backgroundImageMeaningful), 'a FULL-BLEED backdrop does NOT fire (almost always decorative) (a)');
     assert.ok(!(by.d1 && by.d1.backgroundImageMeaningful), 'a named control does NOT');
     assert.ok(!(by.d2 && by.d2.backgroundImageMeaningful), 'an aria-hidden bg does NOT');
     assert.equal(by.c1 && by.c1.isCaptcha, true, 'g-recaptcha fires isCaptcha');
     assert.equal(by.c2 && by.c2.isCaptcha, true, 'a turnstile-classed widget fires (adversarial fix)');
     assert.ok(!(by.d3 && by.d3.isCaptcha), 'a plain div is not a captcha');
+    assert.ok(!(by.d7 && by.d7.isCaptcha), 'a non-captcha image whose class merely CONTAINS "captcha" is NOT a captcha (R2 G3-1 tokenizer)');
+    assert.ok(!(by.d8 && by.d8.isCaptcha), 'prose with "What is a CAPTCHA?" in a non-iframe title is NOT a captcha (R2 G3-1)');
   } finally { await browser.close(); }
 });
 
@@ -164,6 +186,7 @@ const formErrorRunner = RUNNERS['form-error-probe'];
 const G5_HTML = `<!doctype html><meta charset=utf-8><body>
   <form><input id="jsreq" data-val-required type="text"><input id="plain" type="text">
   <input id="disab" required disabled type="text"><input id="ro" required readonly value="prefilled" type="text">
+  <span class="field-validation-valid" data-valmsg-for="jsreq"></span>
   <button type="submit">Go</button></form>
 </body>`;
 const xpById = (id) => `(function(){var e=document.getElementById(${JSON.stringify(id)});var parts=[];for(var n=e;n&&n.nodeType===1;n=n.parentElement){var i=1;for(var s=n.previousElementSibling;s;s=s.previousElementSibling)if(s.tagName===n.tagName)i++;parts.unshift(n.tagName.toLowerCase()+'['+i+']');}return '/'+parts.join('/');})()`;
@@ -186,5 +209,56 @@ test('G5: framework-required is constrained; bare/disabled/readonly fields are N
     assert.equal(disab.outcome.errorNotIdentified, false, 'and never reports a barrier');
     assert.equal(ro.valid, false, 'a READONLY required field is NOT applicable (adversarial false-barrier fix)');
     assert.equal(ro.outcome.errorNotIdentified, false, 'and never reports a barrier');
+  } finally { await browser.close(); }
+});
+
+// R2 G5-F2: a soft marker without a DETECTABLE active client validator must stay unconstrained (a server-validated-
+// only ASP.NET form ships data-val-* but its unobtrusive script may be absent — probing it would false-barrier).
+const G5F2_HTML = `<!doctype html><meta charset=utf-8><body><form><input id="srv" data-val-required type="text"><button type="submit">Go</button></form></body>`;
+test('R2 G5-F2: data-val-required with NO active client validator stays unconstrained (no false barrier)', { skip: !(chromeOK && formErrorRunner), concurrency: false }, async () => {
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const page = await browser.newPage();
+    const tmp = path.join(os.tmpdir(), 'tt-gap-g5f2.html');
+    fs.writeFileSync(tmp, G5F2_HTML);
+    await page.goto('file://' + tmp, { waitUntil: 'load' });
+    const res = await formErrorRunner(page, { targetXpath: await page.evaluate(`(${xpById('srv')})`), candidateId: 'f2' });
+    assert.equal(res.applicabilityEvidence.fieldConstrained, false, 'no [data-valmsg-for]/jQuery.validator/angular present ⇒ the data-val-* marker does not constrain');
+  } finally { await browser.close(); }
+});
+
+// R2 G5-F1: a form validated by a type=button click with NO submit control must still be triggered (else a false
+// "no error surfaced"). The active validator span makes the data-val-required field constrained.
+const G5F1_HTML = `<!doctype html><meta charset=utf-8><body>
+  <form><input id="x" data-val-required type="text">
+  <span class="field-validation-valid" data-valmsg-for="x"></span>
+  <button type="button" id="valbtn">Validate</button>
+  <div id="err" class="field-validation-error" style="display:none">This field is required</div></form>
+  <script>document.getElementById('valbtn').addEventListener('click',function(){if(!document.getElementById('x').value){document.getElementById('err').style.display='block';}});</script>
+</body>`;
+test('R2 G5-F1: a type=button validator (no submit button) is clicked, so the error IS identified', { skip: !(chromeOK && formErrorRunner), concurrency: false }, async () => {
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const page = await browser.newPage();
+    const tmp = path.join(os.tmpdir(), 'tt-gap-g5f1.html');
+    fs.writeFileSync(tmp, G5F1_HTML);
+    await page.goto('file://' + tmp, { waitUntil: 'load' });
+    const res = await formErrorRunner(page, { targetXpath: await page.evaluate(`(${xpById('x')})`), candidateId: 'f1' });
+    assert.equal(res.applicabilityEvidence.fieldConstrained, true, 'active validator + data-val-required ⇒ constrained');
+    assert.equal(res.outcome.errorNotIdentified, false, 'the type=button validator was clicked and surfaced the error (R2 G5-F1)');
+  } finally { await browser.close(); }
+});
+
+// R2 G3-2: a captcha inside a SAME-ORIGIN iframe is detected (the in-frame branch now computes isCaptcha).
+test('R2 G3-2: a g-recaptcha inside a same-origin iframe enumerates isCaptcha', { skip: !chromeOK, concurrency: false }, async () => {
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    const page = await browser.newPage();
+    const tmp = path.join(os.tmpdir(), 'tt-gap-frame.html');
+    fs.writeFileSync(tmp, `<!doctype html><meta charset=utf-8><body><iframe srcdoc="<div class='g-recaptcha' data-sitekey='k' style='width:300px;height:78px'>x</div>"></iframe></body>`);
+    const collect = await collectActPage(page, { url: 'file://' + tmp, file: 'tt:frame', runId: 't' });
+    const inframe = collect.elements.filter((e) => e.inFrame);
+    assert.ok(inframe.length > 0, 'the same-origin iframe was descended into');
+    assert.ok(inframe.some((e) => e.isCaptcha === true), 'an in-frame g-recaptcha enumerates isCaptcha (R2 G3-2)');
   } finally { await browser.close(); }
 });

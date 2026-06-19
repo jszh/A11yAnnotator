@@ -159,10 +159,13 @@ const RUBRIC_GATE = {
   // a logo/icon gets alt-text-adequacy only (long-desc on a simple logo was UNCERTAIN noise on 2/3 of them).
   'long-description-completeness-v0': (el) => !!el && el.complexImageHint === true,
   // TT gap G3: the captcha-alternative rubric (1.1.1) fires ONLY on a detected CAPTCHA — without this gate it would
-  // fire on every image's 1.1.1 obligation (routing is by SC). Conversely alt-text-adequacy SKIPS a captcha (the
-  // captcha-alternative rubric owns it) — an `<img>` captcha's "alt" is not the multi-modal-alternative question.
+  // fire on every image's 1.1.1 obligation (routing is by SC).
   'captcha-alternative-v0': (el) => !!el && el.isCaptcha === true,
-  'alt-text-adequacy-v0': (el) => !el || el.isCaptcha !== true,
+  // R2 G3-1/CC-1/CC-3: alt-text-adequacy is KEPT for a captcha that is an actual <img> (its alt still owes a
+  // purpose description — TT 7.A.1.c — and captcha-alternative self-abstains to PARTIAL, so both run harmlessly);
+  // it is skipped only for a captcha that is a non-image widget (div/iframe), where there is no alt to judge. This
+  // also stops an over-broad isCaptcha FP (a non-captcha image with "captcha" in a class) from losing its alt judgment.
+  'alt-text-adequacy-v0': (el) => !el || el.isCaptcha !== true || el.isImage === true,
 };
 
 // v2.9 PURE SIGNAL PRE-COMPUTE (3.1 §3): reuse a11y-eval verbatim where the inputs exist on the

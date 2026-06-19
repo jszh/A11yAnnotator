@@ -86,6 +86,56 @@ async function collectActPage(page, opts = {}) {
       const role = el.getAttribute('role') || '';
       return ['input', 'select', 'textarea'].includes(tag) || /^(textbox|combobox|listbox|spinbutton|searchbox|slider)$/.test(role);
     }
+    // ── TT gaps G2/G3: shared, self-contained signal helpers (R2 G2-1 parity + G3-2 in-frame). Used by BOTH the
+    //    top-level loop and the same-origin in-frame loop so they compute IDENTICAL bg-meaning / captcha facts, and
+    //    kept operand-for-operand aligned with eval-page.js's gate. Each reads only `el` (+ its own document/view),
+    //    so it is correct whether `el` lives in the top document or a same-origin frame. ──────────────────────────
+    function _view(el) { return (el.ownerDocument && el.ownerDocument.defaultView) || window; }
+    // UNIFIED interactivity predicate (identical set to eval-page.js `_interactiveLocal`): native interactive tags,
+    // interactive ARIA roles INCLUDING option/spinbutton/textbox/combobox/searchbox, a non-negative tabindex, or
+    // onclick. The old top-level `isInteractive` omitted onclick/tabindex/option/spinbutton/textbox/searchbox, so a
+    // bg control of those shapes was dropped on the ACT path but kept on eval-page (R2 G2-1).
+    function _bgInteractive(el) {
+      const tg = el.tagName.toLowerCase();
+      const role = (el.getAttribute('role') || '').toLowerCase();
+      const ti = el.getAttribute('tabindex');
+      return ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'].includes(tg)
+        || ['link', 'button', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'checkbox', 'radio', 'switch', 'slider', 'textbox', 'combobox', 'searchbox', 'option', 'spinbutton'].includes(role)
+        || (ti !== null && +ti >= 0) || el.hasAttribute('onclick');
+    }
+    // TIGHTENED captcha detection (R2 G3-1): provider-specific (data-sitekey / provider src / g-recaptcha|h-captcha|
+    // cf-turnstile) OR captcha/turnstile as a LEADING token segment (captcha-box, recaptcha-container) — NOT a buried
+    // substring (no-captcha-needed-badge), and a `title` counts ONLY on an iframe (a provider widget frame), never
+    // prose on a <p title="What is a CAPTCHA?">.
+    function _isCaptchaEl(el) {
+      if (el.hasAttribute('data-sitekey')) return true;
+      if (/recaptcha|hcaptcha|captcha|turnstile/.test((el.getAttribute('src') || '').toLowerCase())) return true;
+      const tok = (s) => (s || '').toLowerCase().split(/\s+/).some((t) => /^(g-recaptcha|h-captcha|cf-turnstile|(re|h)?captcha|turnstile)(-|$)/.test(t));
+      if (tok(el.getAttribute('class')) || tok(el.getAttribute('id'))) return true;
+      if (el.tagName.toLowerCase() === 'iframe' && /captcha|turnstile/.test((el.getAttribute('title') || '').toLowerCase())) return true;
+      return false;
+    }
+    // bg-meaning nomination computed from `el` + its rendered box. Mirrors the top-level inline gate; used by the
+    // in-frame loop (R2 G3-2). Returns { meaningful, url }.
+    function _bgMeaningful(el, box) {
+      const win = _view(el);
+      const bgi = win.getComputedStyle(el).backgroundImage || '';
+      if (!/url\(/i.test(bgi)) return { meaningful: false, url: null };
+      const tg = el.tagName.toLowerCase();
+      const roleA = (el.getAttribute('role') || '').toLowerCase();
+      const hidden = el.getAttribute('aria-hidden') === 'true' || !!el.closest('[aria-hidden="true"]');
+      const pres = roleA === 'presentation' || roleA === 'none';
+      const isImg = tg === 'img' || tg === 'svg' || tg === 'canvas' || roleA === 'img' || (tg === 'input' && (el.getAttribute('type') || '').toLowerCase() === 'image');
+      if (hidden || pres || isImg || !(box.width > 0 && box.height > 0)) return { meaningful: false, url: null };
+      const lbl = (el.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean).map((id) => { const t = el.ownerDocument.getElementById(id); return t ? (t.textContent || '') : ''; }).join(' ');
+      const accName = ((tg === 'img' ? (el.getAttribute('alt') || '') : '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + lbl + ' ' + (el.getAttribute('title') || '')).trim();
+      if ((el.textContent || '').trim().length || accName.length) return { meaningful: false, url: null };
+      const vw = win.innerWidth || 1280, vh = win.innerHeight || 800;
+      const fullBleed = box.width >= vw * 0.8 && box.height >= vh * 0.5;
+      const candidate = box.width >= 16 && box.height >= 16 && !fullBleed;
+      const meaningful = _bgInteractive(el) || candidate;
+      return { meaningful, url: meaningful ? ((bgi.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || null) : null };
+    }
     // ROLES whose accessible NAME may come from the element's own CONTENTS (ARIA "name from author/contents").
     // Gated so a region/group/textbox/combobox is NOT spuriously named by descendant text.
     const NFC_ROLES = /^(button|link|menuitem|menuitemcheckbox|menuitemradio|option|tab|treeitem|checkbox|radio|switch|heading|cell|gridcell|columnheader|rowheader|row|tooltip)$/;
@@ -258,16 +308,14 @@ async function collectActPage(page, opts = {}) {
       const _vw = window.innerWidth || 1280, _vh = window.innerHeight || 800;
       const _fullBleed = box.width >= _vw * 0.8 && box.height >= _vh * 0.5; // a near-full-screen backdrop ⇒ decorative
       const _bgCandidate = box.width >= 16 && box.height >= 16 && !_fullBleed; // not a tracking pixel, not a full-bleed hero
+      // INTERACTIVITY via the shared `_bgInteractive` (R2 G2-1) — the old `isInteractive` omitted onclick / tabindex /
+      // role=option,spinbutton,textbox,searchbox, dropping those bg controls on the ACT path while eval-page kept them.
       const backgroundImageMeaningful = /url\(/i.test(_bgi) && !ariaHidden && !presentational && !isImage
-        && text.length === 0 && _accName.length === 0 && box.width > 0 && box.height > 0 && (isInteractive || _bgCandidate);
+        && text.length === 0 && _accName.length === 0 && box.width > 0 && box.height > 0 && (_bgInteractive(el) || _bgCandidate);
       const backgroundImageUrl = backgroundImageMeaningful ? ((_bgi.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || null) : null;
-      // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative. Detect common widgets
-      // (reCAPTCHA / hCaptcha / Cloudflare Turnstile / generic "captcha" class·id·src·title / data-sitekey). The
-      // rubric asks the multi-modal-alternative question and returns review/PARTIAL — never a hard verdict.
-      const _cid = (((el.getAttribute('class') || '') + ' ' + (el.id || '')).toLowerCase());
-      const isCaptcha = /captcha|turnstile/.test(_cid) || el.hasAttribute('data-sitekey') // class/id channel covers Turnstile mounted with a non-exact class (adversarial review)
-        || /recaptcha|hcaptcha|captcha|turnstile/.test((el.getAttribute('src') || '').toLowerCase())
-        || /captcha/.test((el.getAttribute('title') || '').toLowerCase());
+      // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative — tightened, token-based
+      // detection via the shared `_isCaptchaEl` (R2 G3-1: no longer a bare substring; title only on an iframe).
+      const isCaptcha = _isCaptchaEl(el);
       if (!focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha) continue;
       els.push({
         xpath: xpathOf(el),
@@ -342,8 +390,12 @@ async function collectActPage(page, opts = {}) {
         const focusable = focusableByMarkup(el);
         const isFormField = fieldLike(el);
         const isImage = tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img' || (tag === 'input' && type === 'image');
-        if (!focusable && !isFormField && !sampledRole && !text && !isImage) continue;
         const box = el.getBoundingClientRect();
+        // R2 G3-2: compute the SAME bg-meaning / captcha facts in-frame as the top level (the old in-frame branch
+        // omitted them, so an in-frame captcha / bg control never enumerated its 7.D / 7.C obligation).
+        const _frameCaptcha = _isCaptchaEl(el);
+        const { meaningful: _frameBgM, url: _frameBgU } = _bgMeaningful(el, box);
+        if (!focusable && !isFormField && !sampledRole && !text && !isImage && !_frameCaptcha && !_frameBgM) continue;
         els.push({
           xpath: prefix + xpathOfInDoc(el, fdoc), inFrame: true,
           text, hasText: text.length > 0, focusable,
@@ -352,6 +404,7 @@ async function collectActPage(page, opts = {}) {
           roleAttr, sampledRole, axRole: sampledRole, axName: labelledText(el, sampledRole), tag, type,
           box: { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.width), height: Math.round(box.height) },
           inModal: false, focusRisk: false, underOverlay: false, hasHoverContent: false,
+          backgroundImageMeaningful: _frameBgM, backgroundImageUrl: _frameBgU, isCaptcha: _frameCaptcha, // R2 G3-2 parity
         });
       }
     }

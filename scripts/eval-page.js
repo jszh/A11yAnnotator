@@ -526,7 +526,7 @@ function parseRGB(s) {
           try { window.scrollTo(sx0, sy0); } catch (e) {}
         }
         const interactiveTags = ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'];
-        const interactiveRoles = ['link', 'button', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'checkbox', 'radio', 'switch', 'slider', 'textbox', 'combobox', 'option', 'spinbutton'];
+        const interactiveRoles = ['link', 'button', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'checkbox', 'radio', 'switch', 'slider', 'textbox', 'combobox', 'searchbox', 'option', 'spinbutton']; // 'searchbox' added for bg-gate parity with act-page-collect (R2 G2-1)
         const formTags = ['input', 'select', 'textarea'];
         const formRoles = ['textbox', 'combobox', 'checkbox', 'radio', 'switch', 'slider', 'spinbutton', 'searchbox'];
         // TT gaps G2/G3 (1.1.1, parity with act-page-collect.js): a meaningful CSS background-image (TT 7.C) + a
@@ -545,10 +545,13 @@ function parseRGB(s) {
         const backgroundImageMeaningful = /url\(/i.test(_bgi) && !_ariaHidden && !_presentational && !_isImg
           && (r.innerText || r.textContent || '').trim().length === 0 && _accName.length === 0 && b.width > 0 && b.height > 0 && (_interactiveLocal || _bgCandidate);
         const backgroundImageUrl = backgroundImageMeaningful ? ((_bgi.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || null) : null;
-        const _cid = (((r.getAttribute('class') || '') + ' ' + (r.id || '')).toLowerCase());
-        const isCaptcha = /captcha|turnstile/.test(_cid) || r.hasAttribute('data-sitekey') // class/id channel covers Turnstile (parity, adversarial review)
+        // TIGHTENED, token-based captcha detection (R2 G3-1, parity with act-page-collect `_isCaptchaEl`): provider
+        // signals OR captcha/turnstile as a LEADING class/id token segment (not a buried substring); title only on iframe.
+        const _capTok = (s) => (s || '').toLowerCase().split(/\s+/).some((t) => /^(g-recaptcha|h-captcha|cf-turnstile|(re|h)?captcha|turnstile)(-|$)/.test(t));
+        const isCaptcha = r.hasAttribute('data-sitekey')
           || /recaptcha|hcaptcha|captcha|turnstile/.test((r.getAttribute('src') || '').toLowerCase())
-          || /captcha/.test((r.getAttribute('title') || '').toLowerCase());
+          || _capTok(r.getAttribute('class')) || _capTok(r.getAttribute('id'))
+          || (tag === 'iframe' && /captcha|turnstile/.test((r.getAttribute('title') || '').toLowerCase()));
         return {
           tag, roleAttr, ariaLabel: r.getAttribute('aria-label'), ariaLabelledby: r.getAttribute('aria-labelledby'),
           ariaDescribedby: r.getAttribute('aria-describedby'), alt: r.getAttribute('alt'), href: r.getAttribute('href'), // href: Item 14a (2.4.4 same-name index)
