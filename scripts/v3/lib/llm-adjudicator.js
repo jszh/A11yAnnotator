@@ -158,6 +158,11 @@ const RUBRIC_GATE = {
   // 7b: long-description-completeness is for genuinely data-bearing images (figure / role=figure / aria-describedby);
   // a logo/icon gets alt-text-adequacy only (long-desc on a simple logo was UNCERTAIN noise on 2/3 of them).
   'long-description-completeness-v0': (el) => !!el && el.complexImageHint === true,
+  // TT gap G3: the captcha-alternative rubric (1.1.1) fires ONLY on a detected CAPTCHA — without this gate it would
+  // fire on every image's 1.1.1 obligation (routing is by SC). Conversely alt-text-adequacy SKIPS a captcha (the
+  // captcha-alternative rubric owns it) — an `<img>` captcha's "alt" is not the multi-modal-alternative question.
+  'captcha-alternative-v0': (el) => !!el && el.isCaptcha === true,
+  'alt-text-adequacy-v0': (el) => !el || el.isCaptcha !== true,
 };
 
 // v2.9 PURE SIGNAL PRE-COMPUTE (3.1 §3): reuse a11y-eval verbatim where the inputs exist on the
@@ -301,6 +306,18 @@ function precomputeSignals(element, skill) {
         uncertainReason: 'this image is REMOVED from the accessibility tree (' + (element.hiddenMechanism || 'aria-hidden') + '), so AT never announces it. Decide from the CROP + nearbyText whether the image carries INFORMATION a non-sighted user is DENIED: (a) if its content is REDUNDANT with the adjacent text (nearbyText), or it is purely decorative (a spacer / flourish / background / illustrative photo adding no information), then removing it is CORRECT — NOT a barrier; (b) if it conveys UNIQUE meaning absent from the surrounding text (a logo/wordmark identifying the page, a chart, an informative diagram, or text baked into the image), hiding it IS a barrier (REPRODUCED). `renderedVisible` only means the image has a non-trivial SIZE — it does NOT mean the image is meaningful; do not flag from size alone.',
       };
     }
+    // TT gap G2 (TT 7.C, 1.1.1): a meaningful CSS background-image owes a text alternative. Unlike an <img> it has
+    // NO `alt` — the equivalent must come from an accessible name (surfaced above) or adjacent text. Hand the rubric
+    // the bg-image facts + the explicit decorative-default so it does not flag a decorative texture, but DOES flag an
+    // interactive control or an informational icon/badge whose meaning is conveyed ONLY by the background pixels.
+    if (element.backgroundImageMeaningful === true) {
+      s.backgroundImage = {
+        url: element.backgroundImageUrl || null,
+        interactive: element.isInteractive === true || element.focusable === true,
+        hasAccessibleName: !!(typeof element.axName === 'string' && element.axName.trim().length > 0),
+        uncertainReason: 'this element conveys its visible content through a CSS background-image (it is removed by TT\'s "hide backgrounds" step), and it has NO text and NO accessible name. Decide from the CROP: (a) if the image is DECORATIVE (a texture/gradient/flourish/spacer adding no information) it is NOT a barrier — decorative is the DEFAULT for an ambiguous background; (b) if it CONVEYS INFORMATION a non-sighted user would be denied — an INTERACTIVE control whose only label is the image (also a 4.1.2 failure), an informational icon/badge ("New", "Sold out", a status/warning glyph), text baked into the image, or a chart — and no text equivalent exists, hiding it IS a barrier (REPRODUCED). If you cannot tell whether it carries information, return PARTIAL.',
+      };
+    }
     // Item 14a (2.4.4 in-context): surface the OTHER links sharing this link's accessible name + their destinations,
     // so the rubric can judge whether identically-named links resolve to DIFFERENT places (a 2.4.4 barrier).
     if (Array.isArray(element.__sameNameLinks) && element.__sameNameLinks.length) {
@@ -338,6 +355,16 @@ function precomputeSignals(element, skill) {
         uncertainReason: 'this control overrides its native role — verify the ANNOUNCED role matches its actual behavior; treat as SCRUTINY, not a presumed barrier (many overrides are benign)',
       };
     }
+  }
+  // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA must have a non-visual AND non-auditory alternative. This is a REVIEW-tier
+  // question a single static page rarely resolves — surface the detection + the explicit instruction to ask the
+  // question and PARTIAL rather than verdict (TT itself prompts a human here). Never a confident clear.
+  if (skill === 'captcha') {
+    s.captcha = {
+      detected: true,
+      tag: element.tag || null,
+      uncertainReason: 'a CAPTCHA is present. WCAG 1.1.1 requires an alternative form for users who CANNOT see AND an alternative for users who CANNOT hear (e.g. a visual puzzle MUST be paired with an audio option, and ideally a non-auditory path too). From a single static page you usually cannot confirm BOTH modalities exist — look in the crop/surrounding region for an explicit audio-challenge control or an alternative path. If you can SEE that only one modality is offered (a visual-only puzzle with no audio option), that IS a barrier (REPRODUCED). If you cannot confirm the alternatives either way, return PARTIAL (review) — do NOT issue a confident clear.',
+    };
   }
   // Item 13: surface a field's placeholder into the forms/field-label signals — flag the placeholder-as-SOLE-label
   // smell (the placeholder disappears on input), without auto-failing a placeholder used ALONGSIDE a real label.
@@ -381,6 +408,7 @@ function precomputeSignals(element, skill) {
         headings: Array.isArray(struct.headings) ? struct.headings.slice(0, 60) : [],
         landmarks: Array.isArray(struct.landmarks) ? struct.landmarks.slice(0, 40) : undefined,
         tables: Array.isArray(struct.tables) ? struct.tables : undefined, // Tier-0 #4 (when collected)
+        lists: Array.isArray(struct.lists) ? struct.lists : undefined,    // TT gap G1 (1.3.1 / TT 10.D — when collected)
       };
     }
     // the SUBJECT heading itself (b49b2e): surface role/level/text + offscreen so the off-viewport heading the

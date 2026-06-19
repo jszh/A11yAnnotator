@@ -5,6 +5,7 @@
 // coupling) so a parallel runner can reuse it offline (file://) without inheriting the suite's flag parsing.
 const crypto = require('crypto');
 const { collectTables } = require('./collect-tables.js'); // Tier-0 #4: per-<table> relationship facts for 1.3.1
+const { collectLists } = require('./collect-lists.js');   // TT gap G1: per-list semantics (1.3.1 / TT 10.D)
 
 function digestForUrl(url) {
   return 'sha256:url:' + crypto.createHash('sha256').update(String(url)).digest('hex');
@@ -238,7 +239,36 @@ async function collectActPage(page, opts = {}) {
           hasDescriptionsTrack: kinds.includes('descriptions'),
         };
       }
-      if (!focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion) continue;
+      // TT gap G2 (TT 7.C, 1.1.1): a CSS background-image that CONVEYS INFORMATION owes a text alternative (TT
+      // hides backgrounds and checks the info survives). Gate HARD against the decorative flood — a url() background
+      // (not a gradient), a rendered box, NO text, NO accessible name, not aria-hidden/role=presentation, not an
+      // actual <img>/svg (those already own non-text-content), and either INTERACTIVE (a control labelled ONLY by
+      // the image — also a 4.1.2 failure) OR icon/badge-SIZED (a meaningful glyph, not a full-bleed decorative hero).
+      // The rubric judges informational-vs-decorative; the collector only nominates candidates.
+      const _bgi = (getComputedStyle(el).backgroundImage || '');
+      // RESOLVE aria-labelledby to its referenced TEXT (not the raw id-ref string) — a dangling/empty labelledby
+      // must NOT count as a name (else a bg-image control with a broken labelledby is silently un-flagged; adversarial review).
+      const _lblText = (el.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean).map((id) => { const t = document.getElementById(id); return t ? (t.textContent || '') : ''; }).join(' ');
+      const _accName = ((tag === 'img' ? (el.getAttribute('alt') || '') : '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + _lblText + ' ' + (el.getAttribute('title') || '')).trim();
+      // SIZE is a MEANING proxy (small≈icon, big≈hero) — letting the collector cap at icon-size made it decide
+      // informational-vs-decorative, which is the RUBRIC's job (it created a silent FN on a large informational bg).
+      // Defer that call to the LLM: nominate any rendered NON-tracking-pixel bg that is NOT a full-bleed backdrop (a
+      // near-full-screen background is the one case almost ALWAYS decorative), and let the rubric judge the rest from
+      // the crop. Interactive elements are nominated at ANY size (a control labelled only by a bg-image is a barrier).
+      const _vw = window.innerWidth || 1280, _vh = window.innerHeight || 800;
+      const _fullBleed = box.width >= _vw * 0.8 && box.height >= _vh * 0.5; // a near-full-screen backdrop ⇒ decorative
+      const _bgCandidate = box.width >= 16 && box.height >= 16 && !_fullBleed; // not a tracking pixel, not a full-bleed hero
+      const backgroundImageMeaningful = /url\(/i.test(_bgi) && !ariaHidden && !presentational && !isImage
+        && text.length === 0 && _accName.length === 0 && box.width > 0 && box.height > 0 && (isInteractive || _bgCandidate);
+      const backgroundImageUrl = backgroundImageMeaningful ? ((_bgi.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || null) : null;
+      // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative. Detect common widgets
+      // (reCAPTCHA / hCaptcha / Cloudflare Turnstile / generic "captcha" class·id·src·title / data-sitekey). The
+      // rubric asks the multi-modal-alternative question and returns review/PARTIAL — never a hard verdict.
+      const _cid = (((el.getAttribute('class') || '') + ' ' + (el.id || '')).toLowerCase());
+      const isCaptcha = /captcha|turnstile/.test(_cid) || el.hasAttribute('data-sitekey') // class/id channel covers Turnstile mounted with a non-exact class (adversarial review)
+        || /recaptcha|hcaptcha|captcha|turnstile/.test((el.getAttribute('src') || '').toLowerCase())
+        || /captcha/.test((el.getAttribute('title') || '').toLowerCase());
+      if (!focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha) continue;
       els.push({
         xpath: xpathOf(el),
         // (axName below is computed by labelledText(el, sampledRole) — name-from-contents gated by role)
@@ -276,6 +306,7 @@ async function collectActPage(page, opts = {}) {
         autoMotion,
         underOverlay: focusable && _underOverlay(box),
         hasHoverContent: _hasHoverContent(el),
+        backgroundImageMeaningful, backgroundImageUrl, isCaptcha, // TT gaps G2/G3 (1.1.1)
       });
     }
     // IFRAME TRAVERSAL (coverage audit, akn7bn 2.1.1): descend ONE level into SAME-ORIGIN iframes and collect
@@ -399,6 +430,8 @@ async function collectActPage(page, opts = {}) {
   // Tier-0 #4: per-<table> relationship facts (separate evaluate so the self-contained extractor is shared with
   // eval-page.js). Read-only; any failure degrades to [] (never throws).
   const tables = await page.evaluate(collectTables).catch(() => []);
+  // TT gap G1: per-list semantics (real ul/ol/dl + visually-apparent faux lists) for the 1.3.1 JUDGMENT.
+  const lists = await page.evaluate(collectLists).catch(() => []);
 
   // OPT-IN axe run (axe-promotion): inject axe + resolve each finding node's CSS target to the SAME v3 xpath
   // scheme this collector uses (the xpathOf below is byte-identical to the inventory's), so build-v3 can match an
@@ -438,7 +471,7 @@ async function collectActPage(page, opts = {}) {
     elements: data.elements || [],
     elementCount: (data.elements || []).length,
     page: { reflowApplicable: !!data.reflowApplicable },
-    structure: { title: data.title || '', lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [] },
+    structure: { title: data.title || '', lang: data.lang || '', headings: data.headings || [], landmarks: data.landmarks || [], tables: tables || [], lists: lists || [] },
     axe: axeData ? axeData.violations : [],
     axeIncomplete: axeData ? axeData.incomplete : [],
     axeRan: !!axeData,

@@ -463,10 +463,32 @@ function probeFormError(marker) {
   const cs = getComputedStyle(el), rect = el.getBoundingClientRect();
   const fieldRendered = cs.display !== 'none' && cs.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
   const form = el.closest('form');
-  const required = el.required === true || el.getAttribute('aria-required') === 'true';
-  const hasConstraint = required || el.hasAttribute('pattern') || /^(email|url|number|tel)$/.test(type) || el.hasAttribute('min') || el.hasAttribute('max') || el.hasAttribute('minlength');
+  // G5 (TT 5.F, gap analysis): a field validated CLIENT-SIDE by a framework but carrying NO native HTML
+  // constraint and not `required` was evaluated NOT-applicable, so a real JS-only "required/format" check was
+  // skipped. Widen `required` to CLIENT-SIDE framework REQUIRED markers — each GUARANTEES a client-side rule
+  // exists, so a non-surfaced error after the empty/invalid submit below is a genuine identification gap. A bare
+  // `type=password` (or any field with NO client-side marker) is DELIBERATELY NOT widened: this probe
+  // preventDefaults the submit and never navigates, so it cannot observe SERVER-side validation — treating every
+  // password as constrained would FALSE-BARRIER the (correct, common) server-validated form. Only UNAMBIGUOUS
+  // client-side REQUIRED markers qualify — each definitively means "required NOW". AMBIGUOUS markers are EXCLUDED
+  // on purpose: a generic `data-validate`, an Aurelia `required.bind="expr"`, or an `ng-required="expr"` whose
+  // expression may evaluate FALSE would FALSE-BARRIER a field that isn't actually required (the same invisibility
+  // problem as server-side validation). ASP.NET `data-val-required`/`data-val-email` are boolean-by-PRESENCE (the
+  // attribute value is the message); the others must read literal "true".
+  const eqTrue = (v) => String(v || '').trim().toLowerCase() === 'true'; // tolerate "True"/" true " (adversarial review)
+  const softRequired = el.hasAttribute('data-val-required')      // ASP.NET unobtrusive — presence = required
+    || eqTrue(el.getAttribute('data-required'))                  // explicit boolean marker (Bootstrap/custom)
+    || eqTrue(el.getAttribute('data-rule-required'))             // jQuery Validate
+    || eqTrue(el.getAttribute('ng-required'));                   // Angular LITERAL only (expression-valued ⇒ ambiguous ⇒ excluded)
+  const softEmail = el.hasAttribute('data-val-email');           // ASP.NET email validator — presence = client-side email rule
+  const required = el.required === true || el.getAttribute('aria-required') === 'true' || softRequired;
+  const hasConstraint = required || softEmail || el.hasAttribute('pattern') || /^(email|url|number|tel)$/.test(type) || el.hasAttribute('min') || el.hasAttribute('max') || el.hasAttribute('minlength');
   const fieldConstrained = !!(form && hasConstraint);
-  if (!isUserInputField || !fieldRendered || !fieldConstrained) return { isUserInputField, fieldRendered, fieldConstrained, applicable: false, errorNotIdentified: false };
+  // A DISABLED or READONLY field is NOT user-operable — it is excluded from HTML constraint validation and a user
+  // can never put invalid input in it, so 3.3.1 error-identification does not apply. Without this guard the probe
+  // blanks the value + submits and, seeing no error surface, reports a FALSE BARRIER (adversarial review, HIGH).
+  const notOperable = el.disabled === true || el.readOnly === true || el.getAttribute('aria-disabled') === 'true';
+  if (!isUserInputField || !fieldRendered || !fieldConstrained || notOperable) return { isUserInputField, fieldRendered, fieldConstrained: fieldConstrained && !notOperable, applicable: false, errorNotIdentified: false };
 
   // ---- error-surface detection (3.3.1: identification is AUTHOR-VISIBLE text, not only aria-wired) ----
   // The old channel only honoured a message reachable via aria-describedby/errormessage AND gated on
@@ -530,7 +552,7 @@ function probeFormError(marker) {
   // make the field invalid (the error condition this constraint detects)
   const orig = ('value' in el) ? el.value : null;
   if ('value' in el) {
-    el.value = required ? '' : /^(email|url)$/.test(type) ? 'x' : /number/.test(type) ? 'abc' : '';
+    el.value = required ? '' : (softEmail || /^(email|url)$/.test(type)) ? 'x' : /number/.test(type) ? 'abc' : '';
     for (const ev of ['input', 'change', 'blur']) el.dispatchEvent(new Event(ev, { bubbles: true }));
   }
   // native: would the browser BLOCK submit and show a message? (off when the form is novalidate)

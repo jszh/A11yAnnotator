@@ -58,6 +58,10 @@ const FAMILIES = Object.freeze({
   'meaningful-sequence':     Object.freeze({ sc: '1.3.2', skills: ['grouping-and-reading-order'] }),      // 1.3.2 (Item 14c, rubric sequence-meaning-v0) — page-level, gated on a vsr reading-order divergence
   'media-alternatives':      Object.freeze({ sc: '1.2.2', skills: ['media-alternatives'] }),             // 1.2.2 (Item 10, rubric media-alternatives-v0) — a <video> owes captions; presence+plausibility, abstain on sync
   'motion-control':          Object.freeze({ sc: '2.2.2', skills: ['timing-and-motion'] }),              // 2.2.2 (Item 14d, rubric motion-control-v0) — auto-moving >5s/looping/autoplay content owes a pause/stop
+  // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative. Its own skill+rubric
+  // (captcha-alternative-v0) asks the multi-modal question and returns review/PARTIAL — never a hard verdict.
+  // (The 1.1.1 background-image-meaning gap G2 reuses the existing non-text-content family + alt-text-adequacy rubric.)
+  'captcha-alternative':     Object.freeze({ sc: '1.1.1', skills: ['captcha'] }),                        // 1.1.1 (TT 7.D) — review-tier, gated on isCaptcha
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
@@ -174,6 +178,12 @@ function familiesFor(el) {
   if (WIDGET_ROLE.test(role) && typeof el.axName === 'string' && el.axName.trim().length > 0) fams.push('label-in-name'); // 2.5.3 (axName non-empty already proves a name — factHasText was redundant)
   // MEANING-call families (3.2) — role-precise so they fire only on real img/link/heading/form elements.
   if (IMG_ROLE.test(role) || el.isImage === true) { fams.push('non-text-content'); fams.push('images-of-text'); } // 1.1.1 alt + 1.4.5 (incl. role=none/svg/canvas graphics — the mis-marked-decorative case)
+  // TT gap G2 (TT 7.C, 1.1.1): a CSS background-image conveying INFORMATION owes a text alternative. Routed to the
+  // SAME non-text-content family + alt-text-adequacy rubric as an <img> (it is non-text content owing an alt). NOT
+  // images-of-text/non-text-contrast (those need an actual graphic element). Gated on the collector's hard signal.
+  if (el.backgroundImageMeaningful === true) fams.push('non-text-content');                // 1.1.1 (CSS background-image meaning)
+  // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative — its own review-tier family.
+  if (el.isCaptcha === true) fams.push('captcha-alternative');                             // 1.1.1 (CAPTCHA modalities)
   if (role === 'link') fams.push('link-purpose');                                          // 2.4.4
   if (HEADING_ROLE.test(role)) fams.push('heading-descriptive');                           // 2.4.6 (heading facet)
   // 2.4.6 LABEL facet (coverage audit): a form field / <label> owes heading-descriptive too — the v0 rubric

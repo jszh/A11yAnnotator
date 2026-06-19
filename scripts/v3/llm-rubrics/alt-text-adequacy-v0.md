@@ -39,6 +39,15 @@ deterministic runner already disposed this obligation, DEFER — you are only ha
   name, not the name's plausibility in isolation.
 - **Wrong purpose for a functional image:** a linked/iconed control's name must convey the ACTION (where
   it goes / what it does), not merely the picture.
+- **CSS background-image carrying meaning (TT 7.C):** when `signals.backgroundImage` is present, the element
+  conveys its visible content through a CSS `background-image` — there is NO `alt`, and TT's "hide
+  backgrounds" step removes it, so any information it carries must ALSO exist as text (an accessible name or
+  adjacent text). DECORATIVE is the DEFAULT for an ambiguous background (a texture/gradient/flourish/spacer →
+  NOT a barrier). A barrier requires the crop to show the background conveys INFORMATION with no text
+  equivalent: an INTERACTIVE control whose only label is the image (`backgroundImage.interactive:true`,
+  `hasAccessibleName:false` — also a 4.1.2 failure), an informational icon/badge ("New", "Sold out", a
+  status/warning glyph), text baked into the image, or a chart. If you cannot tell whether the background
+  carries information, return PARTIAL.
 
 **Evidence handed to you:** the accessible name, the `element-crop` (the image's RENDERED pixels) and
 `surrounding-region`, the role, and whether the image is linked/functional.

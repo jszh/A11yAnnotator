@@ -46,6 +46,7 @@ const ROOT = path.join(__dirname, '..');
 // page-location resolution is centralized in scripts/lib/asset-paths.js (one place to relocate fixtures).
 const { assetPath, assetUrlUnder } = require('./lib/asset-paths.js');
 const { collectTables } = require('./v3/lib/collect-tables.js'); // Tier-0 #4: per-<table> relationship facts for 1.3.1
+const { collectLists } = require('./v3/lib/collect-lists.js');   // TT gap G1: per-list semantics (1.3.1 / TT 10.D)
 function pageDigest(file) {
   try { return 'sha256:' + crypto.createHash('sha256').update(fs.readFileSync(assetPath(file))).digest('hex'); }
   catch (e) { return null; }
@@ -249,6 +250,8 @@ function parseRGB(s) {
     // Tier-0 #4: per-<table> relationship facts (shared self-contained extractor); folded into structure for the
     // 1.3.1 info-relationships JUDGMENT. Read-only; degrades to [] on any failure.
     try { out.structure.tables = await page.evaluate(collectTables); } catch (e) { out.structure.tables = []; }
+    // TT gap G1: per-list semantics (real ul/ol/dl + visually-apparent faux lists) for the 1.3.1 JUDGMENT.
+    try { out.structure.lists = await page.evaluate(collectLists); } catch (e) { out.structure.lists = []; }
     // #2 parity: source heading accessible NAMES from the CDP-computed AX node (same machinery as the element
     // loop below) — the in-page heuristic returns '' for an <h2><img alt="Foo"></h2> heading; CDP gives "Foo".
     // Falls back to the heuristic name when a node can't resolve. Mirrors act-page-collect.js's heading CDP pass.
@@ -526,6 +529,26 @@ function parseRGB(s) {
         const interactiveRoles = ['link', 'button', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'checkbox', 'radio', 'switch', 'slider', 'textbox', 'combobox', 'option', 'spinbutton'];
         const formTags = ['input', 'select', 'textarea'];
         const formRoles = ['textbox', 'combobox', 'checkbox', 'radio', 'switch', 'slider', 'spinbutton', 'searchbox'];
+        // TT gaps G2/G3 (1.1.1, parity with act-page-collect.js): a meaningful CSS background-image (TT 7.C) + a
+        // CAPTCHA widget (TT 7.D). IDENTICAL hard gates to the synthetic collector so the fact is the same on both
+        // paths — url() bg, rendered box, no text, no accessible name, not aria-hidden/presentational, not an <img>,
+        // and interactive OR icon-sized. The rubric judges informational-vs-decorative / the multi-modal question.
+        const _bgi = cs.backgroundImage || '';
+        // RESOLVE aria-labelledby to text (parity with act-page-collect) — a dangling labelledby must not mask a barrier.
+        const _lblText = (r.getAttribute('aria-labelledby') || '').split(/\s+/).filter(Boolean).map((id) => { const t = document.getElementById(id); return t ? (t.textContent || '') : ''; }).join(' ');
+        const _accName = ((tag === 'img' ? (r.getAttribute('alt') || '') : '') + ' ' + (r.getAttribute('aria-label') || '') + ' ' + _lblText + ' ' + (r.getAttribute('title') || '')).trim();
+        const _interactiveLocal = interactiveTags.includes(tag) || interactiveRoles.includes(roleAttr) || (r.getAttribute('tabindex') !== null && +r.getAttribute('tabindex') >= 0) || r.hasAttribute('onclick');
+        // SIZE is a meaning proxy — defer informational-vs-decorative to the rubric (parity with act-page-collect):
+        // nominate any non-tracking-pixel bg that is NOT a full-bleed backdrop; interactive nominated at any size.
+        const _fullBleed = b.width >= (innerWidth || 1280) * 0.8 && b.height >= (innerHeight || 800) * 0.5;
+        const _bgCandidate = b.width >= 16 && b.height >= 16 && !_fullBleed;
+        const backgroundImageMeaningful = /url\(/i.test(_bgi) && !_ariaHidden && !_presentational && !_isImg
+          && (r.innerText || r.textContent || '').trim().length === 0 && _accName.length === 0 && b.width > 0 && b.height > 0 && (_interactiveLocal || _bgCandidate);
+        const backgroundImageUrl = backgroundImageMeaningful ? ((_bgi.match(/url\(["']?([^"')]+)["']?\)/i) || [])[1] || null) : null;
+        const _cid = (((r.getAttribute('class') || '') + ' ' + (r.id || '')).toLowerCase());
+        const isCaptcha = /captcha|turnstile/.test(_cid) || r.hasAttribute('data-sitekey') // class/id channel covers Turnstile (parity, adversarial review)
+          || /recaptcha|hcaptcha|captcha|turnstile/.test((r.getAttribute('src') || '').toLowerCase())
+          || /captcha/.test((r.getAttribute('title') || '').toLowerCase());
         return {
           tag, roleAttr, ariaLabel: r.getAttribute('aria-label'), ariaLabelledby: r.getAttribute('aria-labelledby'),
           ariaDescribedby: r.getAttribute('aria-describedby'), alt: r.getAttribute('alt'), href: r.getAttribute('href'), // href: Item 14a (2.4.4 same-name index)
@@ -554,6 +577,7 @@ function parseRGB(s) {
           liveRegion, // Item 11: 4.1.3 status-message family
           isMedia, mediaInfo, // Item 10: 1.2.x media family
           autoMotion, // Item 14d: 2.2.2 motion-control family
+          backgroundImageMeaningful, backgroundImageUrl, isCaptcha, // TT gaps G2/G3 (1.1.1)
           // 2.1.2 focus-trap risk (coverage audit) — parity with act-page-collect so the widened gate fires on real pages too.
           focusRisk: r.hasAttribute('onblur') || r.hasAttribute('onfocus') || r.hasAttribute('onfocusout')
             || !!r.closest('[role=dialog],dialog,[aria-modal=true],[role=menu],[role=listbox],[role=grid],[role=tablist],[class*=modal i],[class*=overlay i],[class*=dialog i],[class*=popup i],[class*=lightbox i]'),

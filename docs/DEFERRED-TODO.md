@@ -155,3 +155,70 @@ owes 1.3.1/2.4.10. Also broaden `collectTables`/landmark detection to ARIA `role
 ARIA-only structure is seen at all. Verify against BOTH repros above (d0f69e must still enumerate+flag; bc4a75 may
 drop) before relying on it. Low priority — the benefit (less abstain noise) is small and the downside (lost true
 barriers) is severe.
+
+---
+
+## F. Trusted-Tester v5.1.3 gap analysis — deferred / structural items (G4, G6, G7, G8)
+
+**Recorded 2026-06-18** alongside the implemented TT gaps (G1 list semantics, G2 background-image meaning, G3
+CAPTCHA modalities, G5 form-error soft-constraint widening — all shipped). Source:
+`docs/analysis/TRUSTED-TESTER-GAP-ANALYSIS.md`. These four are the gaps the analysis itself rated
+defer/structural/minor; each is recorded here with its reasoning and (where it exists) a pointer.
+
+- **G4 — reveal-then-check focus order & focus WITHIN revealed content (2.4.3 / TT 4.F.2.b).** TT requires
+  ACTIVATING triggers that reveal hidden focusables (menus, dialogs, expandable trees) and checking focus order
+  to/from/within them. This is the SAME work as **backlog item D** (dynamic-subject reveal discovery) — see §D
+  above; do not duplicate. When picked up, reuse `observe_state_after_activation` to open each reveal, then re-run
+  the `tab-order` instrument within the revealed subtree. Fail-closed: an unopened reveal must NOT read as
+  "no barrier". Still deferred.
+
+- **G6 — cross-page / set-of-pages determinations (2.4.2 / 2.4.4).** Structural scope boundary of a SINGLE-page
+  harness. TT 12.B asks whether a page title DISTINGUISHES the page within its set; the same-named-link and
+  consistent-navigation tests are inherently multi-page. **No code change — the rubrics already avoid a false
+  PASS here:** `page-title-v0` judges DESCRIPTIVENESS only and explicitly states cross-site uniqueness "is not the
+  test"; `link-purpose-v0` returns PARTIAL when it cannot see a sibling/destination to compare. If a multi-page
+  corpus is ever introduced, a thin "title-uniqueness / nav-consistency" pass over the page SET would close it
+  (compare each page's title against its siblings; flag duplicates that serve different purposes). Document the
+  boundary so single-page determinations never read as cross-page PASSes (done — this entry).
+
+- **G7 — keystroke-timing (2.1.1 / TT 4.B).** No harness equivalent for "no functionality depends on the TIMING
+  of keystrokes" (key-repeat / down-vs-up timing). Niche — applies to a vanishing set of pages (custom key-timing
+  games / Morse-style inputs). Track, do not prioritize. If pursued: a runner that dispatches keydown/keyup with
+  varied dwell and asserts behavior is timing-independent — high effort, near-zero corpus yield.
+
+- **G8 — obsolete `<frame>` title (4.1.2 / TT 12.C).** TT 12.C checks a `<frame>` (frameset) carries a title;
+  `<frame>`/`<frameset>` are HTML5-obsolete. The `<iframe>` name facet IS covered (named-iframe →
+  `name-role-value`, `applicability-oracle.js`). A cheap add — extend the named-iframe oracle branch to
+  `el.tag === 'frame'` — but the surface is effectively extinct on the modern corpus. Track, do not prioritize.
+
+## G. Full-page (or scrolled) vision for the page-STRUCTURE rubrics — retires the G1 faux-list glyph heuristic
+
+**Deferred 2026-06-18** after the heuristic-vs-LLM adversarial audit. The page-level structure rubrics
+(`info-relationships-v0` 1.3.1, `heading-descriptive-v0` 2.4.6, `section-headings-v0` 2.4.10) declare
+`visionEvidence: [viewport]` — so they are **blind to anything below the fold / off-screen**. This is a
+SINGLE general limitation that currently has several piecemeal patches:
+- the off-screen-heading evidence blackout (`LLM-ROUTING-AND-FAILURE-ANALYSIS.md` b49b2e: a `top:-9999px`
+  heading omitted from the viewport frame; partly mitigated by surfacing `{role, level, offscreen}` into
+  precompute, but the model still can't SEE it);
+- the **G1 faux-list glyph heuristic** — a DOM-text proxy that exists largely to compensate for the rubric
+  not seeing below-fold lists, and which fundamentally cannot see CSS `::before`/`list-style-image` bullets.
+
+**Principled fix (one change, several patches retired).** Give the page-structure rubrics a **full-page or
+scrolled-tile capture** (the `capture_full_page` CDP tool already exists, `scripts/v3/lib/cdp-tools.js`), so
+vision judges ALL rendered structure — headings, lists (CSS-bulleted or not), tables — uniformly from pixels.
+Then: (a) the off-screen-heading blackout closes for free; (b) the G1 faux-list glyph detection can be
+**retired** (or demoted to a pure below-fold-recall hint), since vision now sees every rendered list. Sequence:
+add a `full-page`/`viewport-tiled` entry to `VISION_EVIDENCE` + the capture pipeline; switch the three
+page-structure rubrics' `visionEvidence`; re-verify the b49b2e off-screen case + a CSS-bulleted faux list now
+resolve from pixels; then thin `collect-lists.js` to real-list facts + (optionally) a below-fold-only hint.
+Cross-ref: `TRUSTED-TESTER-GAP-ANALYSIS.md` "Architectural note (G1)". Medium priority — the glyph heuristic
+is correct-but-marginal today (LLM-judged candidate), so this is an elegance/coverage win, not a barrier fix.
+
+**G2 follow-on (corpus-path inventory completeness, NOT a fact-parity gap).** The background-image-meaning FACT is
+computed identically in BOTH collectors (`act-page-collect.js` self-includes bg-image/captcha elements via its
+inclusion gate; `eval-page.js` computes the same fact in its per-element evaluate). But `eval-page.js` only
+evaluates the elements its external xpath INVENTORY lists, so a PURE non-interactive decorative-looking `<div>`
+with an informational background-image is caught on the corpus path only if the inventory builder includes it
+(interactive bg-image controls, which ARE inventoried, are already caught). When the corpus path is next
+exercised, extend the inventory builder to nominate `getComputedStyle(el).backgroundImage` `url()` elements that
+have no text and no accessible name. Low priority — the active ACT eval path (act-page-collect) is complete.
