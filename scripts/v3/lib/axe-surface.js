@@ -35,7 +35,7 @@ const AXE_SURFACED_RULES = Object.freeze(new Set([
   // aria-braillelabel/brailleroledescription with no non-braille label/roledescription to back it (RCA: all
   // three carry axe's `wcag412` tag and promote to a decided 4.1.2 barrier via AXE_SC_FAMILY in build-v3).
   'aria-required-attr', 'aria-allowed-attr', 'aria-valid-attr', 'aria-roles', 'aria-valid-attr-value',
-  'nested-interactive', 'aria-hidden-focus', 'aria-prohibited-attr', 'aria-braille-equivalent',
+  'nested-interactive', 'aria-hidden-focus', 'aria-prohibited-attr', 'aria-braille-equivalent', 'aria-roledescription',
   // required owned/context (1.3.1 — redundant with the wholesale set, listed for intent/robustness)
   'aria-required-children', 'aria-required-parent', 'td-headers-attr',
   // use-of-color (1.4.1, coverage item #8) — F73: a link distinguishable from its surrounding text-block

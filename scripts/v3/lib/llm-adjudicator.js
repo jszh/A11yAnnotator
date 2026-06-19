@@ -632,6 +632,10 @@ function selectRubricSubjects(collect, ledger, rubrics, { onlyAutoPartial = true
   for (const el of (collect && collect.elements) || []) {
     if (!el || !el.xpath) continue;
     if ((el.axRole || el.sampledRole || el.roleAttr) !== 'link') continue;
+    // 2.4.4 is a set test over AT-REACHABLE links: an aria-hidden / a11y-tree-removed link is NOT a real
+    // same-name peer (no user reaches it). Excluding it stops a phantom peer — re-introduced via the el.text
+    // fallback below — from inventing an identical-names barrier (a 2.4.4 false positive).
+    if (el.removedFromA11yTree === true || el.inTree === false) continue;
     const nm = (typeof el.axName === 'string' && el.axName.trim()) || (typeof el.text === 'string' && el.text.trim()) || '';
     if (!nm) continue;
     const k = nm.toLowerCase();

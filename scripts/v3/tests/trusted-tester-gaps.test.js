@@ -29,9 +29,9 @@ const RUBRICS = {
 const ridsFor = (subs, xp) => [...new Set(subs.filter((s) => s.xpath === xp).map((s) => s.rubricId))].sort();
 
 // ───────────────────────────── G2/G3 — oracle families + Rule-16 coverage ─────────────────────────────
-test('G2: a meaningful background-image owes non-text-content (1.1.1), NOT images-of-text/non-text-contrast', () => {
+test('G2: a meaningful background-image owes non-text-content (1.1.1) + images-of-text (1.4.5), NOT non-text-contrast', () => {
   const fams = oracle.familiesFor({ xpath: '/d', tag: 'div', backgroundImageMeaningful: true });
-  assert.deepEqual(fams, ['non-text-content'], 'bg-image div gets exactly the 1.1.1 alt family');
+  assert.deepEqual(fams, ['non-text-content', 'images-of-text'], 'bg-image div owes 1.1.1 alt + 1.4.5 images-of-text (a bg-image can be text-as-image; the rubric self-clears a photo); never non-text-contrast');
 });
 test('G3: a CAPTCHA owes captcha-alternative (1.1.1)', () => {
   const fams = oracle.familiesFor({ xpath: '/c', tag: 'div', isCaptcha: true });

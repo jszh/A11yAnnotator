@@ -105,3 +105,40 @@ The cases the rubric loop **cannot** fix (by design — they are not rubric prob
 targets for the non-rubric fixes: oracle (svg/canvas 1.1.1 enumeration; iframe-pair set-level equivalence),
 resolver (cross-origin/`file://` link destinations), and the link-purpose precompute (route action-only names
 in table cells).
+
+---
+
+# Post-fix eval (run5) — full 74-case validation
+
+After landing ALL fixes (rubrics + oracle + axe-mint + kbd-trap + resolver + scorer), the full 74-case
+reaches-LLM eval (`--cases all74 --out run5-postfix`, same config as run4) moved:
+
+| | FP | FN | total wrong |
+|---|---|---|---|
+| run4 baseline | 43 | 31 | 74 |
+| **run5 (post-fix)** | **7** | **19** | **26** |
+
+**48 fixed, 0 regressions.** FP −84%. The rubric loop's out-of-loop predictions were all confirmed by the
+code fixes (iframe ×8, aria-hidden 1.1.1 ×4, resolver, scorer-credit, axe-mint, kbd-trap).
+
+## The 26 still-wrong — disposition
+
+**Addressable by the remaining (lower-yield) fixes (~10):**
+- 2.4.4 link cluster — link-purpose precompute (enclosing-context vs preceding-sibling) + collector
+  `onclick=location`/query-string: 5effbb/98f0638a, fd3a94/{9ceacbea, ef75d424, f92350be, dddcd76a}.
+- bare svg/canvas → 1.1.1 oracle gate (no img-role, no name): 7d6734 ×3.
+- contrast hard-split decomposition (1.4.3): afw4f7/bf47c65f.
+- 4.1.2 FP one-off: 307n5z/ede992d9.
+
+**Partially-fixed lanes needing a second look (~7):** the axe-mint and kbd-trap fixed SOME of their cluster
+but not all — kb1m8s ×3 (4.1.2 noObligation/missedAgree — likely a non-`aria-prohibited-attr` ARIA issue axe
+does not flag), 80af7b ×3 (2.1.2 — the confinement probe's tail-half heuristic gap or a distinct trap variant),
+6cfa84/9812d828 (4.1.2 aria-hidden-focus did not fire). Worth a targeted probe.
+
+**Irreducible / harness-defensibly-right (~4):** fd3a94/0b01e772 (fixture saved byte-identical — re-capture
+only), fd3a94/7ebe961d (identical name + identical destination, only an icon differs — correctly cleared),
+5effbb/771c36b9 + fd3a94/{228c0a3d, 9abd9bcf} (same-page-fragment / residual 2.4.4 ambiguity).
+
+**Deferred (cross-frame):** akn7bn/62673162 (2.1.1 iframe `tabindex=-1` with focusable content — needs
+cross-frame collection). Plus 0va7u6/bf023941 (1.4.5), 047fe0/92907970 (2.4.10), cc0f0a/2f1d9641 (2.4.6) —
+honest-uncertainty residue.

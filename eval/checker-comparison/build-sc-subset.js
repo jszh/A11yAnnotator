@@ -200,7 +200,12 @@ async function rewriteRefs(text, baseUrl, hostFile, re, grp) {
     if (!ASSET_EXT.test(ref.split(/[?#]/)[0])) continue;
     let abs; try { abs = new URL(ref, baseUrl); } catch (e) { continue; }
     const local = await mirrorAsset(abs.href);
-    if (local) map.set(ref, relFromTo(hostFile, local));
+    // PRESERVE the ?query/#fragment on the rewritten ref. The local FILE is mirrored once by pathname (a static
+    // server ignores the query), but client-side JS can render DIFFERENT content per query — e.g. ACT fd3a94's
+    // contact-us.html?page=1 vs ?page=2 shows "Chat" vs "Call" via URLSearchParams. Dropping the query collapsed
+    // two distinct same-named link destinations into one (a false "equivalent purpose"). Keep it so the
+    // distinction survives offline (file:// preserves location.search, so the page's JS still branches).
+    if (local) map.set(ref, relFromTo(hostFile, local) + (abs.search || '') + (abs.hash || ''));
   }
   let out = text;
   for (const [ref, rel] of map) out = out.split(ref).join(rel); // ref values are distinctive root-relative paths

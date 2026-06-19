@@ -183,10 +183,11 @@ function familiesFor(el) {
   // bare/decorative svg/canvas/role=img is not enumerated. (A decorative image conveying UNIQUE meaning despite
   // being hidden is still caught by the alt-text-adequacy decorative-marking signal, not by minting an obligation here.)
   if ((IMG_ROLE.test(role) || el.isImage === true) && el.removedFromA11yTree !== true) { fams.push('non-text-content'); fams.push('images-of-text'); }
-  // TT gap G2 (TT 7.C, 1.1.1): a CSS background-image conveying INFORMATION owes a text alternative. Routed to the
-  // SAME non-text-content family + alt-text-adequacy rubric as an <img> (it is non-text content owing an alt). NOT
-  // images-of-text/non-text-contrast (those need an actual graphic element). Gated on the collector's hard signal.
-  if (el.backgroundImageMeaningful === true) fams.push('non-text-content');                // 1.1.1 (CSS background-image meaning)
+  // TT gap G2 (TT 7.C): a CSS background-image conveying INFORMATION owes a text alternative — the SAME
+  // non-text-content family + alt-text-adequacy rubric as an <img> (1.1.1). It ALSO owes images-of-text (1.4.5):
+  // a background-image can render TEXT-AS-IMAGE (e.g. a textimage.jpg); the images-of-text rubric judges that and
+  // self-clears a photo/logo. It does NOT owe non-text-contrast (1.4.11 needs an actual widget/graphic element).
+  if (el.backgroundImageMeaningful === true) { fams.push('non-text-content'); fams.push('images-of-text'); } // 1.1.1 + 1.4.5
   // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative — its own review-tier family.
   if (el.isCaptcha === true) fams.push('captcha-alternative');                             // 1.1.1 (CAPTCHA modalities)
   if (role === 'link') fams.push('link-purpose');                                          // 2.4.4

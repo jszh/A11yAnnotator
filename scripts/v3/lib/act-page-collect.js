@@ -202,6 +202,74 @@ async function collectActPage(page, opts = {}) {
       for (const a of ['aria-describedby', 'aria-controls']) { const v = el.getAttribute(a); if (v) for (const id of v.split(/\s+/)) if (_tooltipIds.has(id)) return true; }
       return false;
     };
+    // FIX #4 (akn7bn 2.1.1): is ANY modal dialog open? A showModal()'d <dialog> inerts everything outside its top
+    // layer, so an iframe BEHIND the modal is not in tab order regardless of its own tabIndex (Inapplicable Ex6).
+    const _anyModalOpen = (function () { try { return [...document.querySelectorAll('dialog')].some((d) => { try { return d.matches(':modal'); } catch (e) { return d.open; } }); } catch (e) { return false; } })();
+    // FIX #4: a GENUINELY-focusable INNER descendant — focusable by markup AND not itself tabindex<0. The page-level
+    // `focusableByMarkup` returns true for any <a href> even with its OWN tabindex<0, which would false-positive ACT
+    // Inapplicable Ex4 (an iframe excluded from tab order whose only inner link is ALSO tabindex=-1 ⇒ nothing was
+    // wrongly excluded). So exclude an own-negative-tabindex descendant explicitly.
+    const _innerGenuinelyFocusable = (el) => {
+      if (el.disabled || el.getAttribute('aria-disabled') === 'true' || el.getAttribute('aria-hidden') === 'true') return false;
+      const ti = el.getAttribute('tabindex');
+      if (ti !== null && +ti < 0) return false; // its OWN negative tabindex keeps it out of tab order
+      const tg = el.tagName.toLowerCase();
+      if (ti !== null && +ti >= 0) return true;
+      if (tg === 'a' && el.hasAttribute('href')) return true;
+      return ['button', 'input', 'select', 'textarea', 'summary'].includes(tg);
+    };
+    // FIX #4: an iframe/frame EXCLUDED from tab order that nonetheless holds operable content (ACT akn7bn 2.1.1).
+    // Gate: tag is iframe/frame, tabIndex<0, the frame is RENDERED (not display:none/visibility:hidden/[hidden]/
+    // [inert]/closest([inert]), not collapsed to ≤1px CONTENT box — a 1×1 frame renders ~5px with the default
+    // 2px border, so the CONTENT box is the collapse signal — and not behind an open modal), and it has ≥1
+    // genuinely-focusable inner descendant (not itself tabindex<0). Same-origin frames only (cross-origin throws).
+    const _iframeTabExcluded = (el) => {
+      const tg = el.tagName.toLowerCase();
+      if (tg !== 'iframe' && tg !== 'frame') return false;
+      if (el.tabIndex >= 0) return false;
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      const collapsed = r.width <= 1 || r.height <= 1 || el.clientWidth <= 1 || el.clientHeight <= 1;
+      const rendered = cs.display !== 'none' && cs.visibility !== 'hidden' && !el.hasAttribute('hidden') && !el.hasAttribute('inert')
+        && !el.closest('[inert]') && !collapsed
+        && !(_anyModalOpen && !(el.matches(':modal') || el.closest('dialog:modal')));
+      if (!rendered) return false;
+      let fdoc = null;
+      try { fdoc = el.contentDocument; } catch (e) { fdoc = null; } // cross-origin ⇒ no judgment, fail closed
+      if (!fdoc || !fdoc.body) return false;
+      for (const d of fdoc.querySelectorAll('*')) if (_innerGenuinelyFocusable(d)) return true;
+      return false;
+    };
+    // FIX #8 (kb1m8s 4.1.2): role=none/presentation prohibits ALL global ARIA props, so an authored role of EXACTLY
+    // `none`/`presentation` carrying ANY global aria-* state/property is a barrier. Computed from the AUTHORED
+    // attributes (not the browser-resolved role). aria-hidden is special: aria-hidden=true REMOVES the element (not
+    // a prohibited-global failure), so only a non-true aria-hidden counts. WAI-ARIA global state/property set:
+    const _GLOBAL_ARIA = new Set(['aria-atomic', 'aria-busy', 'aria-controls', 'aria-current', 'aria-describedby', 'aria-description', 'aria-details', 'aria-disabled', 'aria-dropeffect', 'aria-errormessage', 'aria-flowto', 'aria-grabbed', 'aria-haspopup', 'aria-hidden', 'aria-invalid', 'aria-keyshortcuts', 'aria-label', 'aria-labelledby', 'aria-live', 'aria-owns', 'aria-relevant', 'aria-roledescription', 'aria-braillelabel', 'aria-brailleroledescription']);
+    const _roleNoneWithGlobalAria = (el, roleAttr) => {
+      if (roleAttr !== 'none' && roleAttr !== 'presentation') return false;
+      return el.getAttributeNames().some((n) => _GLOBAL_ARIA.has(n) && (n !== 'aria-hidden' || el.getAttribute('aria-hidden') !== 'true'));
+    };
+    // FIX #5 (6cfa84 4.1.2): a genuinely-focusable element STILL in tab order (not tabindex=-1 — the focus-sentinel
+    // exception) sitting inside an `[aria-hidden="true"]` subtree with no intervening aria-hidden=false reset. The
+    // element is reachable by keyboard but absent from the a11y tree ⇒ no name/role/state — a 4.1.2 barrier. axe
+    // abstains-as-incomplete on off-screen sentinels, so this must NOT ride on axe.
+    const _focusableInAriaHidden = (el) => {
+      const ti = el.getAttribute('tabindex');
+      if (ti !== null && +ti < 0) return false; // tabindex=-1 ⇒ the sentinel exception (not in tab order)
+      if (el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
+      const tg = el.tagName.toLowerCase();
+      const focusableShape = (ti !== null && +ti >= 0) || (tg === 'a' && el.hasAttribute('href'))
+        || (tg === 'input' && (el.getAttribute('type') || '').toLowerCase() !== 'hidden')
+        || ['button', 'select', 'textarea', 'summary'].includes(tg) || el.hasAttribute('contenteditable');
+      if (!focusableShape) return false;
+      // inside an aria-hidden=true subtree with NO closer aria-hidden=false reset between el and that ancestor.
+      for (let n = el; n; n = n.parentElement) {
+        const ah = n.getAttribute && n.getAttribute('aria-hidden');
+        if (ah === 'true') return true;
+        if (ah === 'false') return false; // a reset breaks the suppression before we hit a true ancestor
+      }
+      return false;
+    };
     const els = [];
     // PRE-SELECTED SUBSET (saved pages): when the caller passes an explicit xpath list, collect EXACTLY those
     // elements — no `body *` scan, no inclusion filter, no element cap, no visibility filter (the inventory already
@@ -336,7 +404,13 @@ async function collectActPage(page, opts = {}) {
       // TT gap G3 (TT 7.D, 1.1.1): a CAPTCHA owes a non-visual AND non-auditory alternative — tightened, token-based
       // detection via the shared `_isCaptchaEl` (R2 G3-1: no longer a bare substring; title only on an iframe).
       const isCaptcha = _isCaptchaEl(el);
-      if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha) continue; // a pre-selected subset element is always included
+      // DETERMINISTIC BARRIER FLAGS (probe RUN5 fixes): an iframe excluded from tab order with operable inner
+      // content (2.1.1), a focusable element inside an aria-hidden subtree (4.1.2), and a role=none/presentation
+      // carrying a prohibited global ARIA prop (4.1.2). build-v3 mints a barrier obligation for each (axe-mint pattern).
+      const iframeTabExcluded = _iframeTabExcluded(el);
+      const focusableInAriaHidden = _focusableInAriaHidden(el);
+      const roleNoneWithGlobalAria = _roleNoneWithGlobalAria(el, roleAttr);
+      if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !roleNoneWithGlobalAria) continue; // a pre-selected subset element is always included
       els.push({
         xpath: xpathOf(el),
         // (axName below is computed by labelledText(el, sampledRole) — name-from-contents gated by role)
@@ -375,6 +449,7 @@ async function collectActPage(page, opts = {}) {
         underOverlay: focusable && _underOverlay(box),
         hasHoverContent: _hasHoverContent(el),
         backgroundImageMeaningful, backgroundImageUrl, isCaptcha, // TT gaps G2/G3 (1.1.1)
+        iframeTabExcluded, focusableInAriaHidden, roleNoneWithGlobalAria, // deterministic barrier flags (2.1.1 / 4.1.2)
       });
     }
     // IFRAME TRAVERSAL (coverage audit, akn7bn 2.1.1): descend ONE level into SAME-ORIGIN iframes and collect
@@ -475,7 +550,13 @@ async function collectActPage(page, opts = {}) {
     await cdp.send('DOM.getDocument', { depth: -1 }).catch(() => {});
     const resolveAx = async (xpath) => {
       if (typeof xpath !== 'string' || !xpath) return null;
-      const ev = await cdp.send('Runtime.evaluate', { expression: `(function(){var parts=${JSON.stringify(xpath)}.split('>>');var doc=document,n=null;for(var i=0;i<parts.length;i++){if(!doc)return null;var r=doc.evaluate(parts[i],doc,null,9,null);n=r.singleNodeValue;if(!n)return null;if(i<parts.length-1){try{doc=n.contentDocument;}catch(e){return null;}}}return n;})()`, returnByValue: false }).catch(() => null);
+      // SVG/MathML NAMESPACE FALLBACK (7d6734 1.1.1 FP): a namespaced node (svg/circle/math) returns null from a
+      // plain `document.evaluate('/html/body/svg[1]')` because the engine matches names case-sensitively in the
+      // null namespace. When a segment fails, RETRY it with each lowercase `tag[idx]` step rewritten to
+      // `*[local-name()="tag"][idx]` (leaving @attr / * / () / :: / predicates intact) — applied PER `>>` frame
+      // segment so cross-frame descent is preserved. Fallback-only: `local-name()="div"` matches HTML identically,
+      // so a successfully-resolving HTML xpath is never perturbed (near-zero regression).
+      const ev = await cdp.send('Runtime.evaluate', { expression: `(function(){var nsf=function(s){return s.split('/').map(function(p){var m=p.match(/^([a-zA-Z][\\w-]*)(\\[[0-9]+\\])?$/);return m?'*[local-name()="'+m[1]+'"]'+(m[2]||''):p;}).join('/');};var parts=${JSON.stringify(xpath)}.split('>>');var doc=document,n=null;for(var i=0;i<parts.length;i++){if(!doc)return null;var r=doc.evaluate(parts[i],doc,null,9,null);n=r.singleNodeValue;if(!n){try{n=doc.evaluate(nsf(parts[i]),doc,null,9,null).singleNodeValue;}catch(e){n=null;}}if(!n)return null;if(i<parts.length-1){try{doc=n.contentDocument;}catch(e){return null;}}}return n;})()`, returnByValue: false }).catch(() => null);
       if (!ev || !ev.result || !ev.result.objectId) return null;
       const dn = await cdp.send('DOM.describeNode', { objectId: ev.result.objectId }).catch(() => null);
       const backendNodeId = dn && dn.node && dn.node.backendNodeId;

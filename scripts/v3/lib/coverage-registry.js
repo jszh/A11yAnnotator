@@ -66,7 +66,7 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'heading-label', when: (el) => el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)) || (el.tag === 'label' && factHasText(el)), families: ['heading-descriptive'] }),
   Object.freeze({ id: 'use-of-color', when: (el) => factRole(el) === 'link' || el.isFormField === true || FORMFIELD_ROLE.test(factRole(el)), families: ['use-of-color'] }),
   // TT gap G2 — a meaningful CSS background-image owes non-text-content (1.1.1); re-declared to match the oracle (Rule 16).
-  Object.freeze({ id: 'background-image', when: (el) => el.backgroundImageMeaningful === true, families: ['non-text-content'] }),
+  Object.freeze({ id: 'background-image', when: (el) => el.backgroundImageMeaningful === true, families: ['non-text-content', 'images-of-text'] }),
   // TT gap G3 — a CAPTCHA owes a captcha-alternative (1.1.1) review obligation; re-declared to match the oracle (Rule 16).
   Object.freeze({ id: 'captcha', when: (el) => el.isCaptcha === true, families: ['captcha-alternative'] }),
 ]);

@@ -16,13 +16,23 @@ const H = require('./run-experiments.js'); // shared helpers (tagByXpath, hydrat
 const _lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
 const _lum = (c) => 0.2126 * _lin(c.r) + 0.7152 * _lin(c.g) + 0.0722 * _lin(c.b);
 const contrastRatio = (fg, bg) => { const l1 = _lum(fg), l2 = _lum(bg); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
-// worst (minimum) contrast of the foreground against the rendered backdrop mean and its luminance
-// extremes — taking the min automatically picks the contrast-reducing end for either text polarity.
+// alpha-composite a (possibly translucent) source over an opaque backdrop (mirrors the in-page `over`).
+const overBg = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a) });
+// worst (minimum) contrast of the foreground against REAL backdrop pixels (luminance percentiles) — taking the
+// min picks the contrast-reducing region for either text polarity.
+// Fix B: when fg carries alpha < 1, RE-COMPOSITE the raw fg over EACH candidate backdrop before the ratio (a
+// translucent glyph renders a DIFFERENT colour over each region — e.g. grey-α over white vs over black).
+// PHANTOM-MEAN GUARD: candidates are ACTUAL pixel colours (p05/p25/p50/p75/p95), NEVER the arithmetic MEAN. The
+// mean of a non-uniform backdrop is a synthetic luminance NO pixel has — for a hard-stop/bimodal backdrop it is a
+// phantom mid-gray that, with a translucent glyph composited over it, fabricates a worst-case the text never
+// experiences (false BARRIER); for opaque text it hides the dark extreme (false CLEAR). p25/p50/p75 catch the
+// worst region for a translucent glyph over a SMOOTH gradient (mid-tones are real pixels there); on a hard-stop
+// backdrop they collapse to the real modes, so no mid-gray is ever sampled.
 const worstContrast = (fg, backdrop) => {
-  const cands = [{ r: backdrop.r, g: backdrop.g, b: backdrop.b }];
-  if (backdrop.p05) cands.push(backdrop.p05);
-  if (backdrop.p95) cands.push(backdrop.p95);
-  return Math.min(...cands.map((c) => contrastRatio(fg, c)));
+  const cands = [backdrop.p05, backdrop.p25, backdrop.p50, backdrop.p75, backdrop.p95].filter(Boolean);
+  if (!cands.length) cands.push({ r: backdrop.r, g: backdrop.g, b: backdrop.b }); // only when no percentile pixels exist
+  const translucent = Number.isFinite(fg.a) && fg.a < 1;
+  return Math.min(...cands.map((c) => contrastRatio(translucent ? overBg(fg, c) : fg, c)));
 };
 
 // standard result envelope (same shape as the focus runner's finalize()).
@@ -93,6 +103,30 @@ function measureContrast(marker) {
   // in any relevant layer makes the composition non-trivial.
   const colorEq = (x, y) => !!x && !!y && x.r === y.r && x.g === y.g && x.b === y.b;
   const rectContains = (R, t, tol) => R.left <= t.left + tol && R.top <= t.top + tol && R.right >= t.right - tol && R.bottom >= t.bottom - tol;
+  // THE CANVAS FLOOR (Fix A): the colour painted UNDER everything when no DOM box paints an opaque
+  // background at a point. It is NOT unconditionally white — CSS propagates the <html> background, or
+  // (if <html> has none) the <body> background, to the viewport canvas. So a `body{background:#000}` page
+  // has a BLACK canvas, not white. Resolve that propagated base; assume the CSS-standard white ONLY when
+  // neither root paints. canvasHasPaint flags a root background-IMAGE (a non-uniform/unknown floor) so the
+  // uniform CLEAR path is withheld (the rendered-pixel oracle still grounds the worst-case barrier).
+  const WHITE = { r: 255, g: 255, b: 255, a: 1 };
+  const rootCs = document.documentElement && getComputedStyle(document.documentElement);
+  const bodyCs = document.body && getComputedStyle(document.body);
+  const rootImg = !!(rootCs && rootCs.backgroundImage && rootCs.backgroundImage !== 'none');
+  const bodyImg = !!(bodyCs && bodyCs.backgroundImage && bodyCs.backgroundImage !== 'none');
+  const rootBg = rootCs ? rgba(rootCs.backgroundColor) : null;
+  const bodyBg = bodyCs ? rgba(bodyCs.backgroundColor) : null;
+  // The canvas takes <html>'s background; only if <html> paints NOTHING does <body>'s propagate. Resolve an
+  // OPAQUE root colour as the floor; flag a root background-IMAGE (or a partly-translucent root over the
+  // white default) as canvasHasPaint so the uniform CLEAR is withheld (an image floor is not uniform-clearable).
+  let canvasFloor = WHITE, canvasHasPaint = rootImg;
+  if (rootBg && rootBg.a === 1) canvasFloor = { r: rootBg.r, g: rootBg.g, b: rootBg.b, a: 1 };
+  else if (rootBg && rootBg.a > 0) { canvasFloor = over(rootBg, WHITE); canvasHasPaint = true; }
+  else if (!rootImg) { // <html> paints nothing → <body> background propagates to the canvas
+    canvasHasPaint = bodyImg;
+    if (bodyBg && bodyBg.a === 1) canvasFloor = { r: bodyBg.r, g: bodyBg.g, b: bodyBg.b, a: 1 };
+    else if (bodyBg && bodyBg.a > 0) { canvasFloor = over(bodyBg, WHITE); canvasHasPaint = true; }
+  }
   function resolveAt(px, py) {
     const stack = document.elementsFromPoint(px, py);
     const idx = stack.indexOf(el);
@@ -108,7 +142,16 @@ function measureContrast(marker) {
       if (c && c.a > 0) { layers.push(c); layerEls.push(node); }
       if (c && c.a === 1) { baseEl = node; break; }
     }
-    if (!baseEl) return { baseEl: null, color: null, hasImage, hasFilterBlend, layerEls };
+    if (!baseEl) {
+      // Fix A — no opaque DOM box paints under this point: the propagated CANVAS floor (canvasFloor: the
+      // <html>/<body>-propagated background, else white) is the base. Composite any translucent layers onto
+      // it so text over a transparent region yields a computable backdrop. canvasHasPaint (a root bg-IMAGE)
+      // is folded into hasImage so the uniform CLEAR is withheld; the worst-case barrier still runs against
+      // the rendered-pixel oracle, so a wrong floor fails toward abstain, never toward a confident clear.
+      let onFloor = canvasFloor;
+      for (let i = layers.length - 1; i >= 0; i--) onFloor = over(layers[i], onFloor);
+      return { baseEl: null, color: null, canvasColor: { r: onFloor.r, g: onFloor.g, b: onFloor.b, a: 1 }, hasImage: hasImage || canvasHasPaint, hasFilterBlend, layerEls };
+    }
     let composed = layers[layers.length - 1];
     for (let i = layers.length - 2; i >= 0; i--) composed = over(layers[i], composed);
     return { baseEl, color: composed, hasImage, hasFilterBlend, layerEls };
@@ -159,6 +202,32 @@ function measureContrast(marker) {
     const c = rgba(ncs.backgroundColor);
     const paints = (c && c.a > 0) || (ncs.backgroundImage && ncs.backgroundImage !== 'none') || pseudoPaints(node);
     if (paints && intersectsText(node.getBoundingClientRect())) { foreignPainter = true; break; }
+  }
+
+  // Fix A — DEFAULT-CANVAS FLOOR. When NO opaque DOM base resolved at ANY sample (the box and its whole
+  // paint stack are transparent) AND nothing FOREIGN/pseudo paints under the run, the floor of the paint
+  // stack is the propagated canvas (canvasFloor: the <html>/<body> background, else the CSS-standard white).
+  // resolveAt already composited any translucent layers onto that floor into `canvasColor`, so use it as the
+  // base — this ENABLES a computation (text over a transparent region, or over the transparent part of a
+  // gradient) instead of abstaining. SOUNDNESS: this only sets a non-null backdrop so backgroundResolved is
+  // true; it NEVER on its own clears, because the CLEAR path additionally requires backdropIsSolidUniform
+  // (= uniformSamples && layersContainText && no image/filter/blend), set below ONLY for a genuinely uniform
+  // canvas. A wrong floor assumption therefore fails toward abstain (the downstream pixelAgrees gate / the
+  // non-uniform p05-p95 oracle), never toward a confident clear; the worst-case BARRIER measures the RAW fg
+  // over the RENDERED pixels, not over the assumed floor.
+  let onDefaultCanvas = false;
+  if (!bg && samples.length && !foreignPainter && !pseudoPainter
+      && samples.every((s) => s && !s.baseEl && s.canvasColor)) {
+    const c0 = samples[0].canvasColor;
+    const canvasUniform = samples.every((s) => colorEq(s.canvasColor, c0));
+    bg = { r: c0.r, g: c0.g, b: c0.b, a: 1 };
+    onDefaultCanvas = true;
+    if (canvasUniform && !hasImage && !hasFilterBlend) {
+      uniformSamples = true;     // every sample is the same default-canvas colour, no image/filter/blend
+      layersContainText = true;  // the canvas (initial containing block) contains the whole run by definition
+    } else {
+      uniformSamples = false;    // a gradient/image floor is non-uniform → no CLEAR, worst-case path only
+    }
   }
 
   // the RENDERED glyph fill — `-webkit-text-fill-color` overrides the painted ink while leaving
@@ -228,6 +297,11 @@ function measureContrast(marker) {
     ratio, threshold,
     bgColor: bg ? { r: Math.round(bg.r), g: Math.round(bg.g), b: Math.round(bg.b) } : null, // the backdrop the RATIO used
     fgColor: effFgColor, // the composited FOREGROUND the ratio used (vs rendered glyph ink)
+    // RAW glyph fill incl. alpha (Fix B): a translucent fg must be RE-composited over EACH backdrop
+    // candidate before the ratio (the single pre-composited effFgColor is wrong on a split/gradient
+    // backdrop — it bakes in one backdrop). onDefaultCanvas flags that bg is the assumed canvas floor.
+    fgRaw: fg ? { r: fg.r, g: fg.g, b: fg.b, a: fg.a } : null,
+    onDefaultCanvas,
     signature: `${fillRaw}|${bg ? bg.r + ',' + bg.g + ',' + bg.b : 'na'}|${sizePx}|${weight}`,
   };
 }
@@ -296,7 +370,11 @@ function analyzeBackdrop(sentAB64, sentBB64, hiddenB64) {
     return {
       uniform: glyphPixels >= 8 && range <= 12, range, glyphPixels,
       r: Math.round(sumR / n), g: Math.round(sumG / n), b: Math.round(sumB / n), // representative MEAN (audit V3R4-H1)
-      p05: samples.length ? at(0.05) : null, p95: samples.length ? at(0.95) : null,
+      // REAL backdrop pixels at luminance percentiles (the worst-case ratio is measured over colours pixels
+      // actually HAVE — see worstContrast's phantom-mean guard). p25/p50/p75 are added so a translucent glyph over
+      // a SMOOTH gradient samples its real mid-tones; on a hard-stop backdrop they collapse to the real modes.
+      p05: samples.length ? at(0.05) : null, p25: samples.length ? at(0.25) : null, p50: samples.length ? at(0.5) : null,
+      p75: samples.length ? at(0.75) : null, p95: samples.length ? at(0.95) : null,
     };
   });
 }
@@ -354,8 +432,12 @@ async function runTextContrastPixel(page, request) {
     // failure when the rendered backdrop differs within the ±16 agreement tolerance (audit B2), and the
     // mean alone hides a darker sub-region under range≤12 (audit J.4). pixelAgrees still gates
     // computability, so a >16 CSS/rendered disagreement abstains (INCONCLUSIVE), unchanged.
-    if (contrastComputable && o.measurementStable && a.fgColor && backdrop) {
-      renderedRatio = worstContrast(a.fgColor, backdrop);
+    // Fix B: prefer the RAW alpha-bearing fg so worstContrast re-composites a translucent glyph over each
+    // backdrop candidate (the pre-composited a.fgColor baked in a single backdrop). Identical to a.fgColor
+    // when the fg is opaque (alpha === 1).
+    const fgForWorst = (a.fgRaw && Number.isFinite(a.fgRaw.a)) ? a.fgRaw : a.fgColor;
+    if (contrastComputable && o.measurementStable && fgForWorst && backdrop) {
+      renderedRatio = worstContrast(fgForWorst, backdrop);
       o.thresholdMet = renderedRatio >= a.threshold;
       o.thresholdFailed = renderedRatio < a.threshold;
     }
@@ -370,8 +452,11 @@ async function runTextContrastPixel(page, request) {
     // bg must be resolved (an opaque resolved fg is backdrop-independent). We NEVER relax a CLEAR on a non-uniform
     // backdrop (a "might pass" stays INCONCLUSIVE → the rubric); only a clear FAIL is promoted.
     if (!o.thresholdFailed && !o.thresholdMet && o.measurementStable && !pixelUniform
-        && a.foregroundResolved && a.backgroundResolved && a.fgColor && backdrop && Number.isFinite(a.threshold)) {
-      const worst = worstContrast(a.fgColor, backdrop);
+        && a.foregroundResolved && a.backgroundResolved && fgForWorst && backdrop && Number.isFinite(a.threshold)) {
+      // measured against the ACTUAL rendered backdrop (analyzeBackdrop p05/p95) with the raw fg re-composited
+      // per candidate — so a default-white assumption (onDefaultCanvas) does NOT feed this barrier; it is
+      // grounded in real pixels. The ≥0.5 margin below stays the only flip condition.
+      const worst = worstContrast(fgForWorst, backdrop);
       // a ≥0.5 margin below threshold guards against a few anti-aliased boundary pixels at the worst extreme
       // (analyzeBackdrop hides the glyph fill, so it measures the BACKDROP; p05/p95 are robust to stray pixels).
       if (Number.isFinite(worst) && worst <= a.threshold - 0.5) {

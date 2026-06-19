@@ -75,7 +75,22 @@ async function runInstruments(page, opts = {}) {
   const confine = await detectFixedSetConfinementTraps(page).catch(() => null);
   // emit the already-promoted `keyboard-trap` kind (build-v3 promotes that + self-refocus to a 2.1.2 barrier);
   // `detector` keeps the mechanism string distinct (kbd-trap:confinement) for audit.
-  if (confine) add('keyboard-trap', (confine.traps || []).map((t) => ({ sc: t.sc, kind: 'keyboard-trap', detector: 'confinement', xpath: t.xpath, detail: `confirmed keyboard trap: focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape` })));
+  // FAN OUT over the WHOLE confined set: focus mutual-bounces among every element in S and can leave by none of
+  // them, so EACH is a 2.1.2 barrier. The detector anchors the trap on one member (t.xpath), but the GT-targeted
+  // element may be a DIFFERENT member — emit one finding per member xpath so every confined obligation is filled
+  // (de-duped; falls back to the lone anchor xpath if memberXpaths is absent).
+  if (confine) {
+    const confineRows = [];
+    for (const t of (confine.traps || [])) {
+      const members = (Array.isArray(t.memberXpaths) && t.memberXpaths.length) ? t.memberXpaths : [t.xpath];
+      const seen = new Set();
+      for (const xpath of members) {
+        if (!xpath || seen.has(xpath)) continue; seen.add(xpath);
+        confineRows.push({ sc: t.sc, kind: 'keyboard-trap', detector: 'confinement', xpath, detail: `confirmed keyboard trap: focus is confined to a fixed set of ${t.setSize} element(s) and cannot leave by Tab, Shift+Tab, or Escape` });
+      }
+    }
+    add('keyboard-trap', confineRows);
+  }
   // focus-rejection (2.1.1/2.4.7, F55): a control that removes its OWN focus the instant it receives it —
   // the inverse of a self-refocus trap (focus can never rest on it, so it can't be operated or shown).
   const rej = await detectFocusRejection(page).catch(() => null);

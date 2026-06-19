@@ -31,7 +31,7 @@ test('C3 text-contrast-pixel: clear / barrier / inconclusive incl. rgba, gradien
   assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[1]/span']), 'NO_BARRIER_OBSERVED', 'black/white clears');
   assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[2]/span']), 'BARRIER_OBSERVED', 'grey/white fails');
   assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[3]/span']), 'BARRIER_OBSERVED', 'rgba composited fails (no false clear)');
-  assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[4]/span']), null, 'gradient backdrop ⇒ inconclusive (cannot clear)');
+  assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[4]/span']), 'BARRIER_OBSERVED', 'dark #3b3b3b text over the BLACK half of a black→white gradient is ~1.8:1 ⇒ worst-region BARRIER (the canvas-floor fix resolves the gradient backdrop; was a pre-fix abstain)');
   assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[5]/span']), 'NO_BARRIER_OBSERVED', 'large bold clears at the 3:1 threshold');
   assert.equal(dir('text-contrast-pixel', byXp['/html/body/div[6]/span']), null, 'colour animation ⇒ inconclusive (unstable)');
 });

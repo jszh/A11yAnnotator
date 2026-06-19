@@ -32,13 +32,15 @@ test('axe-surface: wholesale SCs + per-rule 4.1.2 allow-list surface; genuinely-
     axeViolation('link-name', ['wcag244', 'wcag412'], ['a']),                // 2.4.4 wholesale + 4.1.2 per-rule (NEW)
     axeViolation('list', ['wcag131'], ['ul']),                               // 1.3.1 — surfaced
     axeViolation('aria-roles', ['wcag412'], ['div']),                        // 4.1.2 — surfaced via per-rule allow-list (NEW)
-    axeViolation('aria-roledescription', ['wcag412'], ['div']),              // 4.1.2 — NOT in the per-rule allow-list ⇒ dropped (no wholesale 4.1.2)
+    axeViolation('aria-roledescription', ['wcag412'], ['div']),              // 4.1.2 — surfaced via per-rule allow-list (a role-prohibited roledescription)
+    axeViolation('made-up-412-rule', ['wcag412'], ['div']),                  // 4.1.2 — NOT on the per-rule allow-list ⇒ dropped (no wholesale 4.1.2)
   ] };
   const { ran, findings } = surfaceAxeFindings(collect);
   assert.equal(ran, true);
   assert.deepEqual([...new Set(findings.map((f) => f.sc))].sort(), ['1.1.1', '1.3.1', '1.3.5', '2.4.4', '3.1.1', '3.1.2', '4.1.2']);
   assert.ok(!findings.some((f) => f.sc === '1.4.3'), 'color-contrast (1.4.3) is NOT surfaced (axe does not own it here)');
-  assert.ok(!findings.some((f) => f.ruleId === 'aria-roledescription'), 'a 4.1.2 rule NOT on the per-rule allow-list is dropped (no wholesale 4.1.2)');
+  assert.ok(findings.some((f) => f.ruleId === 'aria-roledescription' && f.sc === '4.1.2'), 'aria-roledescription IS surfaced (now on the per-rule allow-list)');
+  assert.ok(!findings.some((f) => f.ruleId === 'made-up-412-rule'), 'a 4.1.2 rule NOT on the per-rule allow-list is dropped (no wholesale 4.1.2)');
   assert.ok(findings.some((f) => f.ruleId === 'link-name' && f.sc === '2.4.4') && findings.some((f) => f.ruleId === 'link-name' && f.sc === '4.1.2'), 'link-name fans out to BOTH its SCs (per-rule allow-list)');
   // structured-only: axe's raw html/help prose is NOT carried (cannot leak page content into the
   // strictly-scanned results — note the fixture html even contains the legacy token "N/A").

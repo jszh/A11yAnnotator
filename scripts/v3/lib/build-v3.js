@@ -336,6 +336,34 @@ function buildV3(bundle, opts = {}) {
     }));
   }
 
+  // DETERMINISTIC STRUCTURAL BARRIERS (probe RUN5 fixes — byte-decidable failures the LLM/checker lanes missed):
+  //   FIX #4 (akn7bn 2.1.1): an iframe EXCLUDED from tab order (tabindex<0) that still holds operable inner content.
+  //   FIX #5 (6cfa84 4.1.2): a focusable, still-tabbable element inside an aria-hidden subtree — reachable by
+  //     keyboard but absent from the a11y tree (the focusable DESCENDANT owns the barrier; axe abstains here).
+  //   FIX #8 (kb1m8s 4.1.2): role=none/presentation carrying a PROHIBITED global ARIA prop.
+  // The collector computes each flag from the AUTHORED DOM; here we emit a deterministic BARRIER obs + MINT its
+  // obligation (the axe-mint pattern below) — it FILLS the ledger as a PROVISIONAL barrier instead of being
+  // dropped, deduped against the oracle/checker set, and never overrides a deterministic CLAIM/PARTIAL.
+  const DET_BARRIER = [
+    { flag: 'iframeTabExcluded', sc: '2.1.1', claimFamily: 'keyboard-operable', mechanism: 'iframe-excluded-from-tab' },
+    { flag: 'focusableInAriaHidden', sc: '4.1.2', claimFamily: 'name-role-value', mechanism: 'focusable-in-aria-hidden' },
+    { flag: 'roleNoneWithGlobalAria', sc: '4.1.2', claimFamily: 'name-role-value', mechanism: 'role-none-global-aria' },
+  ];
+  const detBarrierObs = [];
+  for (const el of (bundle.collect.elements || [])) {
+    if (!el || typeof el.xpath !== 'string' || !el.xpath) continue;
+    for (const d of DET_BARRIER) {
+      if (el[d.flag] !== true) continue;
+      detBarrierObs.push(stampAuthority({
+        sc: d.sc, claimFamily: d.claimFamily,
+        observationScope: { actionTargetRef: el.xpath, state: 'static-dom', action: 'inspect', environment: 'headless-chromium' },
+        wouldBe: { observationOutcome: 'BARRIER_OBSERVED' },
+        source: 'deterministic', mechanism: 'det:' + d.mechanism,
+        confidence: 'high', rationaleRef: null, evidenceRefs: [],
+      }));
+    }
+  }
+
   // (5) INDEPENDENT obligation reconciliation: enumerate from the COLLECTOR (atomic per family);
   //     every obligation gets exactly one disposition. Authoritative CLAIMs clear; shadow
   //     observations and unsupported proposals are PARTIAL (shadow flagged); un-proposed ⇒ auto.
@@ -388,6 +416,21 @@ function buildV3(bundle, opts = {}) {
     seenAxe.add(id);
     axeDecidedObligations.push({ obligationId: id, xpath, sc: o.sc, claimFamily: o.claimFamily });
   }
+  // DETERMINISTIC-BARRIER obligations (probe RUN5 FIX #4/#5/#8): MINT one per detBarrierObs whose key the oracle
+  // didn't already enumerate — exactly like axeDecidedObligations — so the byte-decidable barrier (iframe-tab-
+  // exclusion / focusable-in-aria-hidden / role=none-global-aria) fills the ledger as a PROVISIONAL barrier rather
+  // than vanishing (these facets aren't oracle-enumerated). Deduped against the static/dynamic/checker/axe set; the
+  // §5b fill still never overrides a deterministic CLAIM/PARTIAL on the same key. NOT an oracle/coverage family
+  // (the mint path sidesteps the Rule-16 parity check, exactly as axe does).
+  const detBarrierObligations = [];
+  const seenDet = new Set();
+  for (const o of detBarrierObs) {
+    const xpath = o.observationScope && o.observationScope.actionTargetRef;
+    const id = oracle.oblId(xpath, o.sc, o.claimFamily);
+    if (existingOblIds.has(id) || seenChk.has(id) || seenAxe.has(id) || seenDet.has(id)) continue;
+    seenDet.add(id);
+    detBarrierObligations.push({ obligationId: id, xpath, sc: o.sc, claimFamily: o.claimFamily });
+  }
   // 1.3.2 MEANINGFUL SEQUENCE (Item 14c): enumerate a PAGE-LEVEL meaning-vs-mechanics obligation ONLY when the vsr
   // detector found a visual-vs-source reorder (gated, never on every page). Page-level, auto-PARTIAL → sequence-meaning-v0.
   const sequenceObligations = [];
@@ -395,7 +438,7 @@ function buildV3(bundle, opts = {}) {
     const sid = oracle.oblId(oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH, '1.3.2', 'meaningful-sequence');
     if (!existingOblIds.has(sid)) sequenceObligations.push({ obligationId: sid, xpath: oracle.PAGE_MEANINGFUL_SEQUENCE_XPATH, sc: '1.3.2', claimFamily: 'meaningful-sequence' });
   }
-  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...sequenceObligations];
+  const obligations = [...staticObligations, ...dynamicObligations, ...checkerObligations, ...axeDecidedObligations, ...detBarrierObligations, ...sequenceObligations];
   const dispositions = [];
   for (const c of claims) dispositions.push({
     obligationId: oracle.oblId(c._target, c._sc, c._family), kind: 'CLAIM',
@@ -418,7 +461,7 @@ function buildV3(bundle, opts = {}) {
   const scoreCache = Object.create(null);
   const scoreMech = (mech) => { if (!Object.prototype.hasOwnProperty.call(scoreCache, mech)) scoreCache[mech] = metrics.scoreMechanism(scoringView, gold || [], mech, opts.provisionOpts || {}); return scoreCache[mech]; };
   const obsByObl = Object.create(null);
-  for (const o of [...annotationObs, ...trapObs, ...axeObs, ...targetSizeObs]) { // trap + axe + target-size obs fill the ledger alongside the LLM obs (but not the scoring view)
+  for (const o of [...annotationObs, ...trapObs, ...axeObs, ...targetSizeObs, ...detBarrierObs]) { // trap + axe + target-size + deterministic-barrier obs fill the ledger alongside the LLM obs (but not the scoring view)
     const oid = oracle.oblId(o.observationScope && o.observationScope.actionTargetRef, o.sc, o.claimFamily);
     (obsByObl[oid] = obsByObl[oid] || []).push(o);
   }

@@ -37,7 +37,11 @@ async function queryAxNode(page, args) {
       // S4 (RCA R4): resolve a `>>`-pathed node by DESCENDING into same-origin iframes (frame contentDocument).
       // A cross-origin frame yields contentDocument:null ⇒ the node stays unresolved (an honest abstain, never a
       // mis-resolution). This un-deads the akn7bn cluster where in-frame `<a>`/button nodes returned "not found".
-      const ev = await cdp.send('Runtime.evaluate', { expression: `(function(){var parts=${JSON.stringify(targetXpath)}.split('>>');var doc=document,el=null;for(var i=0;i<parts.length;i++){if(!doc)return null;var r=doc.evaluate(parts[i],doc,null,9,null);el=r.singleNodeValue;if(!el)return null;if(i<parts.length-1){try{doc=el.contentDocument;}catch(e){return null;}}}return el;})()`, returnByValue: false }).catch(() => ({}));
+      // SVG/MathML NAMESPACE FALLBACK (parity with act-page-collect's resolveAx): a namespaced node returns null
+      // from a plain document.evaluate, so when a segment fails, RETRY it with each lowercase `tag[idx]` step
+      // rewritten to `*[local-name()="tag"][idx]` (per `>>` frame segment). Fallback-only — HTML xpaths resolve
+      // identically via local-name(), so a successfully-resolving xpath is never perturbed.
+      const ev = await cdp.send('Runtime.evaluate', { expression: `(function(){var nsf=function(s){return s.split('/').map(function(p){var m=p.match(/^([a-zA-Z][\\w-]*)(\\[[0-9]+\\])?$/);return m?'*[local-name()="'+m[1]+'"]'+(m[2]||''):p;}).join('/');};var parts=${JSON.stringify(targetXpath)}.split('>>');var doc=document,el=null;for(var i=0;i<parts.length;i++){if(!doc)return null;var r=doc.evaluate(parts[i],doc,null,9,null);el=r.singleNodeValue;if(!el){try{el=doc.evaluate(nsf(parts[i]),doc,null,9,null).singleNodeValue;}catch(e){el=null;}}if(!el)return null;if(i<parts.length-1){try{doc=el.contentDocument;}catch(e){return null;}}}return el;})()`, returnByValue: false }).catch(() => ({}));
       if (ev && ev.result && ev.result.objectId) { const { node } = await cdp.send('DOM.describeNode', { objectId: ev.result.objectId }).catch(() => ({})); backendNodeId = node ? node.backendNodeId : null; }
     }
     if (!backendNodeId) return { resolved: false, reason: 'node not found at the given xpath/coordinate' };
@@ -637,8 +641,20 @@ async function resolveDestination(page, args) {
       const meta = await p.evaluate(() => { const m = document.querySelector('meta[http-equiv="refresh" i]'); if (!m) return null; const c = (m.getAttribute('content') || '').trim(); const mm = c.match(/^(\d+(?:\.\d+)?)\s*(?:;|$)/); return mm ? { delay: parseFloat(mm[1]) } : null; }).catch(() => null);
       let instantRedirect = httpChain > 0, redirectDelayMs = httpChain > 0 ? 0 : null, interstitial = false;
       if (meta) { redirectDelayMs = Math.round(meta.delay * 1000); instantRedirect = httpChain > 0 || meta.delay === 0; interstitial = meta.delay > 0; }
-      const fp = await p.evaluate(() => { const m = document.querySelector('main') || document.body; const para = m && m.querySelector('p'); return { title: document.title, h1: (document.querySelector('h1') || {}).textContent || null, mainFirstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null }; }).catch(() => ({}));
-      return { linkXpath: xp, finalUrl: p.url().slice(0, 300), httpStatus: resp ? resp.status() : null, title: (fp.title || '').slice(0, 200), h1: fp.h1 ? String(fp.h1).trim().slice(0, 160) : null, mainFirstParagraph: fp.mainFirstParagraph || null, instantRedirect, redirectDelayMs, ...(interstitial ? { interstitialPage: true } : {}) };
+      const fp = await p.evaluate(() => {
+        // Read VISIBLE content, not DOM-order-first. Client-side JS can show one of several same-SOURCE sections
+        // per ?query (e.g. contact-us.html?page=1 → "Chat", ?page=2 → "Call"); querySelector('h1') returns the
+        // first heading in SOURCE regardless of display, so two query branches look identical. Visible-first h1 +
+        // innerText (which omits display:none) capture the branch → two same-named links to different query pages
+        // fingerprint DIFFERENTLY (the real 2.4.4 distinction the static byte-href could not show).
+        const vis = (el) => { if (!el) return false; const s = getComputedStyle(el); if (s.display === 'none' || s.visibility === 'hidden') return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+        const m = document.querySelector('main') || document.body;
+        const h1 = [...document.querySelectorAll('h1')].find(vis) || document.querySelector('h1');
+        const para = [...((m || document).querySelectorAll('p'))].find(vis) || (m && m.querySelector('p'));
+        const vt = ((document.body && document.body.innerText) || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+        return { title: document.title, h1: h1 ? h1.textContent : null, mainFirstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null, visibleText: vt };
+      }).catch(() => ({}));
+      return { linkXpath: xp, finalUrl: p.url().slice(0, 300), httpStatus: resp ? resp.status() : null, title: (fp.title || '').slice(0, 200), h1: fp.h1 ? String(fp.h1).trim().slice(0, 160) : null, mainFirstParagraph: fp.mainFirstParagraph || null, visibleText: fp.visibleText || null, instantRedirect, redirectDelayMs, ...(interstitial ? { interstitialPage: true } : {}) };
     } catch (e) { return { linkXpath: xp, error: String(e && e.message || e).slice(0, 200) }; }
     finally { try { if (p) await p.close(); } catch (e) {} try { if (bctx && bctx.close) await bctx.close(); } catch (e) {} }
   };
@@ -653,7 +669,7 @@ async function resolveDestination(page, args) {
   // null (NOT false) when fewer than 2 links resolved — "could not compare". The model must NOT read an unresolved
   // set as "destinations differ" (that defaulted finalUrlEqual:false and produced a 2.4.4 false positive).
   const eqOf = (field) => ok.length >= 2 ? ok.every((f) => f[field] === ok[0][field]) : null;
-  return { fingerprints, resolvedCount: ok.length, equality: { finalUrlEqual: eqOf('finalUrl'), titleEqual: eqOf('title'), h1Equal: eqOf('h1'), mainFirstParagraphEqual: eqOf('mainFirstParagraph') }, note: 'each link resolved to a raw fingerprint (+ redirect timing) + a per-field byte-EQUALITY grid across the resolved set. Equality is string-equality only (the model judges "same purpose?"); an equality field is null when fewer than 2 links resolved (could not compare — NOT "different").' };
+  return { fingerprints, resolvedCount: ok.length, equality: { finalUrlEqual: eqOf('finalUrl'), titleEqual: eqOf('title'), h1Equal: eqOf('h1'), mainFirstParagraphEqual: eqOf('mainFirstParagraph'), visibleTextEqual: eqOf('visibleText') }, note: 'each link resolved to a raw fingerprint (+ redirect timing) + a per-field byte-EQUALITY grid across the resolved set. Equality is string-equality only (the model judges "same purpose?"); an equality field is null when fewer than 2 links resolved (could not compare — NOT "different"). visibleText/h1 are read from the RENDERED page (post client-side JS), so two same-named links to different query branches differ here even when the static URL/title match.' };
 }
 
 // ============================================================================================
