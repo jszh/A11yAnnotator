@@ -187,6 +187,12 @@ function scoreCase(tc, out) {
   const inScopeOblig = ledger.filter((r) => inScope.has(r.sc));
   rec.inScopeObligations = inScopeOblig.length;
   rec.inScopeAutoPartial = inScopeOblig.filter((r) => r.autoPartial).length;
+  // a MINTED/deterministic BARRIER that FILLED an in-scope obligation (autoPartial=false, cleared=false) is the
+  // harness catching it — covers the axe-decided, deterministic-detector (iframe/aria-hidden/role=none) and
+  // keyboard-trap PROVISIONAL barriers that fill the ledger but never enter shadowObservations as source:
+  // 'deterministic' (so rec.v3Barrier misses them, and the obligation, being filled, is no longer autoPartial →
+  // it was mis-scored as noObligation/noVerdict). This is the minted-barrier analog of the v3Barrier credit.
+  rec.inScopeBarrierFilled = inScopeOblig.filter((r) => r.autoPartial === false && r.cleared === false).length;
 
   const barrierAgent = agentInScope.filter((v) => v.agentVerdict === 'REPRODUCED');
   const barrierRubric = rubricInScope.filter((j) => j.verdict === 'LIKELY_BARRIER');
@@ -199,7 +205,7 @@ function scoreCase(tc, out) {
   // deterministically and correctly subtracted from the LLM lane), so it is a true catch — NOT a noObligation FN.
   // Without this, the LLM-only scorer penalized the harness for a barrier it actually found (the contrast/keyboard
   // runner cases that show v3Barrier:true but produce no LLM verdict because the obligation was already disposed).
-  if (rec.v3Barrier) outcome = 'caught';
+  if (rec.v3Barrier || rec.inScopeBarrierFilled > 0) outcome = 'caught';
   else if (barrierAgent.length || barrierRubric.length) outcome = 'caught';
   else if (nVerdicts === 0) outcome = rec.inScopeAutoPartial > 0 ? 'noVerdict' : 'noObligation';
   else if (okAgent.length || okRubric.length) outcome = 'missedAgree';
