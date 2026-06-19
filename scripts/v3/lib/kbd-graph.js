@@ -427,4 +427,42 @@ async function detectFocusRejection(page, opts = {}) {
   return { rejections, focusableCount: focs.length, coverageTruncated: focs.length > RETENTION_CAP };
 }
 
-module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL };
+// 6cfa84 (4.1.2): a tabbable element with an aria-hidden ANCESTOR — the AT never announces it, so a keyboard
+// user reaches a control with no name/role/state. This MUST be a DYNAMIC detector: the held-out check proved the
+// rule's PASSED example (an off-screen focus-SENTINEL <a> in aria-hidden that redirects focus on receipt) is
+// STATICALLY IDENTICAL to its FAILED example — a static flag can only over-fit one and FP the other. We drive
+// focus and observe whether it RESTS. SOUND BY CONSTRUCTION + held-out-validated over the whole 6cfa84 rule:
+//  - applicability mirrors the rule: only FOCUSABLE_SEL candidates in the Tab ring (tabFocusables already drops
+//    tabindex<0, so an inapplicable tabindex=-1/aria-hidden control is never probed) that have a PROPER ANCESTOR
+//    (not self) with aria-hidden=true — a self-aria-hidden control is a different concern and is NOT 6cfa84;
+//  - a candidate is a barrier ONLY when, after focus() + a full settle (covering a setTimeout/rAF redirect),
+//    focus still RESTS on that same element. A sentinel redirects focus AWAY → settledId !== id → NOT flagged.
+//  Fail-closed: a candidate whose focus cannot be read is abandoned (never a false barrier).
+async function detectFocusRestsInAriaHidden(page, opts = {}) {
+  const focs = await page.evaluate(tagFocusables, FOCUSABLE_SEL).catch(() => []);
+  if (!Array.isArray(focs) || !focs.length) return { traps: [], focusableCount: (focs || []).length };
+  // which tagged (tabbable) focusables sit under a PROPER ANCESTOR with aria-hidden=true
+  const candidateIds = await page.evaluate(() => {
+    const out = [];
+    document.querySelectorAll('[data-v3-foc]').forEach((el) => {
+      let p = el.parentElement;
+      while (p) { if (p.getAttribute && p.getAttribute('aria-hidden') === 'true') { out.push(el.getAttribute('data-v3-foc')); break; } p = p.parentElement; }
+    });
+    return out;
+  }).catch(() => []);
+  const byId = new Map(focs.map((f) => [f.id, f]));
+  const traps = [];
+  for (const id of candidateIds) {
+    const f = byId.get(id); if (!f) continue;
+    await page.evaluate(() => { const b = document.body; if (b) { b.tabIndex = -1; b.focus(); } }).catch(() => null);
+    const focused = await page.evaluate((i) => { const el = document.querySelector(`[data-v3-foc="${i}"]`); if (!el) return false; el.focus(); return true; }, id).catch(() => null);
+    if (focused === null) continue;                                  // fail-closed: cannot drive focus
+    await settleMs(page, REFOCUS_SETTLE_MS);                          // let a sentinel's onfocus redirect (sync OR setTimeout) land
+    const settledId = await page.evaluate(activeFocId).catch(() => null);
+    if (settledId === null) continue;                                // fail-closed: cannot read focus
+    if (settledId === id) traps.push({ sc: '4.1.2', xpath: f.xpath, tag: f.tag, label: f.label });
+  }
+  return { traps, focusableCount: focs.length };
+}
+
+module.exports = { collectTabOrder, tabOrderFindings, detectKeyboardTraps, detectFocusRetentionTraps, detectFixedSetConfinementTraps, detectFocusRejection, detectFocusRestsInAriaHidden, REACH_SAFETY_CAP, REFOCUS_SETTLE_MS, TRAP_REGION_SEL, FOCUSABLE_SEL };

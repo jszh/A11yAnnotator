@@ -58,6 +58,12 @@ const MAX_TABS = Math.min(LIMITS.concurrency.maxTabs, Math.max(1, Number(arg('ma
 const MAX_AUTO = Number(arg('max-auto', LIMITS.act.maxAuto));
 const ELEMENT_CAP = Number(arg('element-cap', LIMITS.act.elementCap));
 const RUN_WALL = Number(arg('run-wall-ms', LIMITS.act.runWallClockMs)); // experiment-lane wall-clock budget per page (defers the tail by TIME, not count)
+// INSTRUMENTS lane robustness: cap concurrent keyboard-driving lanes WELL BELOW the page pool (they round-trip many
+// Tab/settle presses and thrash a contended browser), and give each a generous hard timeout. A lane that exceeds it
+// fails closed (no findings) — non-authoritative, so it never asserts a false NO_BARRIER, it just forgoes the catch.
+const INSTRUMENTS_CONC = Math.max(1, Number(arg('instruments-conc', Math.min(PAGE_CONC, 4))));
+const INSTRUMENTS_TIMEOUT = Number(arg('instruments-timeout-ms', 90000));
+const instGate = makeSemaphore(INSTRUMENTS_CONC); // shared run-telemetry semaphore (.run(fn)); caps concurrent kbd-driving lanes
 const VISION = arg('no-vision', false) ? false : true;
 const TOOLS = !!arg('tools', false);
 const CASES_FILE = arg('cases', null);                 // --cases=<file>: restrict to a whitespace-separated testcaseId list (subset eval; composes with --sc/--limit)
@@ -300,6 +306,11 @@ async function main() {
         const out = await orchestrate(collect, drive, {
           resolveUrl: () => urlFor(tc),
           executablePath: CHROME, browser, tabAllocator: alloc, maxTabs: MAX_TABS,
+          // INSTRUMENTS lane (VSR + keyboard-trap + focus-rests-in-aria-hidden) — was NEVER enabled here, so the kbd
+          // 2.1.2 + 6cfa84 4.1.2 deterministic catches silently never ran (those cases read as noObligation). Enable it,
+          // gated to a LOWER concurrency than the page pool (the lane DRIVES the keyboard and thrashes a contended
+          // browser) and bounded by a hard timeout (orchestrate races it; a slow/hung lane fails closed to no findings).
+          runInstruments: true, instrumentsGate: instGate, instrumentsTimeoutMs: INSTRUMENTS_TIMEOUT,
           now: collect.collectedAt + 2,
           restrictScs: RESTRICT_SC ? new Set(tc.sc || []) : undefined, // judge ONLY the case's GT'd SC (ACT GT is per-SC)
           maxAutomatic: Number.isFinite(MAX_AUTO) ? MAX_AUTO : Infinity,

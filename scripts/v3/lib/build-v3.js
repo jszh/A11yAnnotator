@@ -271,16 +271,27 @@ function buildV3(bundle, opts = {}) {
   // a review/directional finding), and the §5b fill below still only touches an ENUMERATED, NON-deterministic
   // (auto-PARTIAL) obligation — a valid experiment PARTIAL is never overridden. These obs fill the LEDGER but do
   // NOT join annotationObs (the LLM annotation/gold-scoring view stays LLM-only).
+  // Two DYNAMIC instrument barriers are promoted here, both adversarially held-out-validated for ~0 FP:
+  //  - 2.1.2 keyboard-trap / -self-refocus (NOT the demoted -confinement review signal, whose pass/fail turns on a
+  //    semantic escape-advisory the keyboard driver cannot read);
+  //  - 4.1.2 focus-rests-in-aria-hidden (6cfa84): a tabbable element under an aria-hidden ANCESTOR where focus RESTS
+  //    after settling. This MUST be dynamic — the rule's passed focus-sentinel is statically identical to its failed
+  //    barrier, so the reverted static flag was unsound. Both only fill an ENUMERATED auto-PARTIAL obligation.
+  const INSTRUMENT_BARRIER = {
+    '2.1.2': { kinds: ['keyboard-trap', 'keyboard-trap-self-refocus'], family: 'no-keyboard-trap', state: 'keyboard-trap-probe', action: 'tab-cycle', mech: 'kbd-trap:' },
+    '4.1.2': { kinds: ['focus-rests-in-aria-hidden'], family: 'name-role-value', state: 'focus-rest-probe', action: 'focus', mech: 'aria-hidden-focus:' },
+  };
   const trapObs = [];
   if (bundle.instruments && Array.isArray(bundle.instruments.findings)) {
     for (const f of bundle.instruments.findings) {
-      if (!f || f.sc !== '2.1.2' || f.review || !f.xpath) continue;
-      if (f.kind !== 'keyboard-trap' && f.kind !== 'keyboard-trap-self-refocus') continue;
+      if (!f || f.review || !f.xpath) continue;
+      const spec = INSTRUMENT_BARRIER[f.sc];
+      if (!spec || !spec.kinds.includes(f.kind)) continue;
       trapObs.push(stampAuthority({
-        sc: '2.1.2', claimFamily: 'no-keyboard-trap',
-        observationScope: { actionTargetRef: f.xpath, state: 'keyboard-trap-probe', action: 'tab-cycle', environment: 'headless-chromium' },
+        sc: f.sc, claimFamily: spec.family,
+        observationScope: { actionTargetRef: f.xpath, state: spec.state, action: spec.action, environment: 'headless-chromium' },
         wouldBe: { observationOutcome: 'BARRIER_OBSERVED' },
-        source: 'instrument', mechanism: 'kbd-trap:' + String(f.detector || 'keyboard-trap'),
+        source: 'instrument', mechanism: spec.mech + String(f.detector || f.kind),
         confidence: 'high', rationaleRef: null, evidenceRefs: [],
       }));
     }
@@ -299,10 +310,16 @@ function buildV3(bundle, opts = {}) {
   // a list-structure node) and blanketing any one onto the single page-level info-relationships obligation
   // over-fires; those stay shadow checker signals. element-level SCs above match by their own xpath.
   const AXE_PAGE_LEVEL = { '2.4.2': [oracle.PAGE_TITLE_XPATH, 'page-title'] };
+  // VALIDITY-only axe rules do NOT promote to an authoritative barrier — they flag malformed ARIA SYNTAX, not a
+  // user-facing name-role-value failure, and over-fire when the bad value is harmless. (Held-out adversarial sweep:
+  // axe `aria-valid-attr-value` flags `aria-hidden="yes"` on a generic <div> — a markup nit ACT 6cfa84 rules
+  // INAPPLICABLE — and was promoted to a 4.1.2 barrier.) They still surface as shadow checker signals / LLM hints.
+  const AXE_VALIDITY_NONBARRIER = new Set(['aria-valid-attr-value', 'aria-valid-attr']);
   const axeObs = [];
   if (bundle.checkerFindings && Array.isArray(bundle.checkerFindings.findings)) {
     for (const f of bundle.checkerFindings.findings) {
       if (!f || f.source !== 'axe' || f.kind !== 'violation' || f.review) continue; // DECIDED hard violations only
+      if (AXE_VALIDITY_NONBARRIER.has(f.rule || f.ruleId)) continue;                  // validity-only ⇒ shadow, never an authoritative barrier
       let xpath = f.xpath, family = AXE_SC_FAMILY[f.sc];
       if (!family && Object.prototype.hasOwnProperty.call(AXE_PAGE_LEVEL, f.sc)) { xpath = AXE_PAGE_LEVEL[f.sc][0]; family = AXE_PAGE_LEVEL[f.sc][1]; }
       if (!family || !xpath || xpath[0] !== '/') continue; // a CSS-selector fallback xpath can't match a v3 obligation — skip

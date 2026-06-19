@@ -130,10 +130,28 @@ async function orchestrate(collect, drive, opts = {}) {
   // authoritative; they are recorded for offline scoring against the hand-labeled ground truth.
   if (opts.runInstruments && opts.resolveUrl) {
     const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
-    const inst = await timings.stage('instruments', () => require('./run-instruments.js')
-      .runInstrumentsForUrl(url, { executablePath: opts.executablePath, browser, tabAllocator, file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest })
-      .catch(() => ({ file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, findings: [] })));
-    bundle.instruments = inst;
+    // ROBUSTNESS: the keyboard instruments DRIVE the page (press Tab/Shift+Tab/Escape + settle), which under heavy
+    // concurrent-Chrome load can slow to a crawl or, pathologically, HANG (an unresolved CDP round-trip). The `.catch`
+    // only covers a REJECTION; a hang would block the whole case. Race the stage against a hard wall-clock cap and
+    // fall back to empty findings (fail-closed — instruments are non-authoritative, so a skipped lane never asserts a
+    // false NO_BARRIER; it just forgoes the deterministic catch and the obligation rides to the LLM/PARTIAL as before).
+    const empty = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, findings: [], timedOut: false };
+    const capMs = Number.isFinite(opts.instrumentsTimeoutMs) ? opts.instrumentsTimeoutMs : 90000;
+    // CONCURRENCY GATE: when the caller passes a semaphore (run-telemetry makeSemaphore, .run(fn)), hold a slot for
+    // the whole lane so only a few keyboard-driving lanes contend at once. The timeout starts only once we hold the
+    // slot (inside run(fn)), so time spent queueing never burns the budget. No gate ⇒ run immediately (the timeout
+    // still bounds a hang).
+    const stage = () => timings.stage('instruments', () => {
+      let timer;
+      const run = require('./run-instruments.js')
+        .runInstrumentsForUrl(url, { executablePath: opts.executablePath, browser, tabAllocator, file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest })
+        .catch(() => empty);
+      const guard = new Promise((resolve) => { timer = setTimeout(() => resolve({ ...empty, timedOut: true }), capMs); });
+      return Promise.race([run, guard]).finally(() => clearTimeout(timer));
+    });
+    bundle.instruments = opts.instrumentsGate && typeof opts.instrumentsGate.run === 'function'
+      ? await opts.instrumentsGate.run(stage)
+      : await stage();
   }
   // CHECKER FINDINGS stage — C0 (Harness 3.3): surface axe's already-decided coverage from the
   // collector's OWN run (collect.axe / collect.axeRan, scripts/eval-page.js). FREE: no browser, no

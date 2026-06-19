@@ -60,3 +60,50 @@ coverage-gap FN** only when GT=failed.
 3. **6cfa84 → dynamic lane**: route the focusable-in-aria-hidden judgment to the LLM with the focus-driving
    tools (observe whether focus rests vs redirects), since no static condition can distinguish its
    passed/failed pair.
+
+---
+
+## Batch 2 — kbd/instrument generalization, the dynamic 6cfa84 detector, and the pipeline gap
+
+Extending the held-out adversarial sweep to the detectors it had NOT covered (the keyboard-trap instruments)
+surfaced more of the same class of problem — and a pipeline gap that meant none of it was running in the eval.
+
+**(a) Confinement detector over-fires 4/7 passed (80af7b) — demoted.** `detectFixedSetConfinementTraps` claimed
+"SOUND BY CONSTRUCTION", but the full-rule sweep disproved it: a trap whose only exit is a NON-STANDARD key
+(e.g. Ctrl+M) is a 2.1.2 PASS *iff the page advises the user of that method* and a FAIL otherwise — yet the two
+are mechanically identical (Tab/Shift+Tab/Escape all fail in both; `ab24c77e` passed vs `7dcc4ae0` failed differ
+only by a `<p>Press Ctrl+M to Exit</p>`). The advisory is semantic; keyboard-driving can't read it. So the
+confinement detector is **demoted to a review signal** (routes to the 2.1.2 rubric), never an authoritative
+barrier. The self-refocus detector (focus returns to the SAME element ⇒ inescapable regardless of advisory) is
+genuinely sound (0 over-fire) and stays.
+
+**(b) Dynamic 6cfa84 detector (`detectFocusRestsInAriaHidden`).** Replaces the reverted static flag: drive focus
+to each tabbable element under an aria-hidden ANCESTOR and flag only if focus RESTS (a sentinel redirects away →
+cleared). Held-out-validated over the whole rule + cross-rule self-aria-hidden cases: **0 over-fire**, recovers
+`9812d828`. The scope is deliberately ANCESTOR-only: including self-aria-hidden would catch `d0b1b435`
+(`<p tabindex=0 aria-hidden>`, GT=failed) but **over-fire on `bd0d0d0c`** (`<a aria-hidden href>`, GT=4.1.2
+inapplicable) — a structurally identical pair with opposite verdicts. Tested the extension, saw the over-fire,
+rejected it.
+
+**(c) The instruments lane was NEVER wired into `run-fn-llm`.** The keyboard/VSR/focus-rests instruments only run
+under `orchestrate({runInstruments:true})`, which the FN×LLM eval never passed — so the 2.1.2 + 6cfa84 deterministic
+catches silently never ran (those cases read as noObligation). Wired it on, behind a dedicated **concurrency gate**
+(keyboard-driving lanes thrash a contended browser) and a **hard timeout** (orchestrate races the lane; a hung lane
+fails closed to no findings — non-authoritative, so never a false NO_BARRIER).
+
+**(d) A SECOND over-fire, found only by the full-pipeline sweep.** With instruments on, the end-to-end sweep flagged
+`4d71a1ad` (6cfa84 inapplicable) — not from any new detector but from axe's `aria-valid-attr-value` promoting
+`aria-hidden="yes"` (an invalid VALUE on a generic `<div>`) to a 4.1.2 barrier. A markup-validity defect is not a
+name-role-value failure; **validity-only axe rules (`aria-valid-attr-value`, `aria-valid-attr`) no longer promote
+to authoritative barriers** (they stay shadow signals). `d0b1b435` (valid `aria-hidden="true"`) is caught by a
+different, genuine axe rule, so no recall is lost.
+
+**Final held-out result (instruments ON, emitted barriers by GT):**
+- **80af7b (2.1.2): 0 over-fire**, recall 1/5 — the 3 Ctrl+M sibling-bounce failures correctly route to the LLM
+  (advisory is semantic) and `0ec0e93e` self-refocus is caught in isolation but flaky under the full lane (a
+  timing robustness nit, not an over-fire). This is the sound trade for killing 4 confinement FPs.
+- **6cfa84 (4.1.2): 0 over-fire, recall 6/6.**
+
+The recurring lesson, now twice-confirmed: a deterministic detector that "passes its tuned examples" can still
+over-fire on the rest of the rule, and the only way to know is to attack the FULL rule end-to-end. Two of the most
+confident "sound by construction" claims in the codebase were wrong; the held-out sweep is the standing gate.
