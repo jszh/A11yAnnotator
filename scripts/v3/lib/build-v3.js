@@ -347,7 +347,7 @@ function buildV3(bundle, opts = {}) {
   const DET_BARRIER = [
     { flag: 'iframeTabExcluded', sc: '2.1.1', claimFamily: 'keyboard-operable', mechanism: 'iframe-excluded-from-tab' },
     { flag: 'focusableInAriaHidden', sc: '4.1.2', claimFamily: 'name-role-value', mechanism: 'focusable-in-aria-hidden' },
-    { flag: 'roleNoneWithGlobalAria', sc: '4.1.2', claimFamily: 'name-role-value', mechanism: 'role-none-global-aria' },
+    { flag: 'prohibitedAriaAttr', sc: '4.1.2', claimFamily: 'name-role-value', mechanism: 'prohibited-aria-attr' },
   ];
   const detBarrierObs = [];
   for (const el of (bundle.collect.elements || [])) {

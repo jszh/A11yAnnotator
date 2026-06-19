@@ -245,9 +245,20 @@ async function collectActPage(page, opts = {}) {
     // attributes (not the browser-resolved role). aria-hidden is special: aria-hidden=true REMOVES the element (not
     // a prohibited-global failure), so only a non-true aria-hidden counts. WAI-ARIA global state/property set:
     const _GLOBAL_ARIA = new Set(['aria-atomic', 'aria-busy', 'aria-controls', 'aria-current', 'aria-describedby', 'aria-description', 'aria-details', 'aria-disabled', 'aria-dropeffect', 'aria-errormessage', 'aria-flowto', 'aria-grabbed', 'aria-haspopup', 'aria-hidden', 'aria-invalid', 'aria-keyshortcuts', 'aria-label', 'aria-labelledby', 'aria-live', 'aria-owns', 'aria-relevant', 'aria-roledescription', 'aria-braillelabel', 'aria-brailleroledescription']);
-    const _roleNoneWithGlobalAria = (el, roleAttr) => {
-      if (roleAttr !== 'none' && roleAttr !== 'presentation') return false;
-      return el.getAttributeNames().some((n) => _GLOBAL_ARIA.has(n) && (n !== 'aria-hidden' || el.getAttribute('aria-hidden') !== 'true'));
+    // kb1m8s (4.1.2): a PROHIBITED ARIA attribute that axe does NOT flag. Targeted supplement (broad role-specific
+    // ARIA validity stays axe's aria-prohibited-attr / aria-allowed-attr to avoid a flood) for three axe-gap conditions:
+    //  (1) role=none/presentation carrying ANY global ARIA state/property (none/presentation expose no role to AT);
+    //  (2) aria-roledescription on a GENERIC element (bare div/span, no explicit role) — generic cannot be re-described;
+    //  (3) a BRAILLE property with no backing regular property — aria-braillelabel without aria-label/aria-labelledby,
+    //      or aria-brailleroledescription without aria-roledescription (a braille equivalent is meaningless alone).
+    const _prohibitedAriaAttr = (el, roleAttr) => {
+      const names = el.getAttributeNames(); const has = (a) => names.includes(a);
+      if ((roleAttr === 'none' || roleAttr === 'presentation') &&
+          names.some((n) => _GLOBAL_ARIA.has(n) && (n !== 'aria-hidden' || el.getAttribute('aria-hidden') !== 'true'))) return true;
+      if (has('aria-roledescription') && !roleAttr && /^(div|span)$/i.test(el.tagName)) return true;
+      if (has('aria-braillelabel') && !has('aria-label') && !has('aria-labelledby')) return true;
+      if (has('aria-brailleroledescription') && !has('aria-roledescription')) return true;
+      return false;
     };
     // FIX #5 (6cfa84 4.1.2): a genuinely-focusable element STILL in tab order (not tabindex=-1 — the focus-sentinel
     // exception) sitting inside an `[aria-hidden="true"]` subtree with no intervening aria-hidden=false reset. The
@@ -409,8 +420,8 @@ async function collectActPage(page, opts = {}) {
       // carrying a prohibited global ARIA prop (4.1.2). build-v3 mints a barrier obligation for each (axe-mint pattern).
       const iframeTabExcluded = _iframeTabExcluded(el);
       const focusableInAriaHidden = _focusableInAriaHidden(el);
-      const roleNoneWithGlobalAria = _roleNoneWithGlobalAria(el, roleAttr);
-      if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !roleNoneWithGlobalAria) continue; // a pre-selected subset element is always included
+      const prohibitedAriaAttr = _prohibitedAriaAttr(el, roleAttr);
+      if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !prohibitedAriaAttr) continue; // a pre-selected subset element is always included
       els.push({
         xpath: xpathOf(el),
         // (axName below is computed by labelledText(el, sampledRole) — name-from-contents gated by role)
@@ -449,7 +460,7 @@ async function collectActPage(page, opts = {}) {
         underOverlay: focusable && _underOverlay(box),
         hasHoverContent: _hasHoverContent(el),
         backgroundImageMeaningful, backgroundImageUrl, isCaptcha, // TT gaps G2/G3 (1.1.1)
-        iframeTabExcluded, focusableInAriaHidden, roleNoneWithGlobalAria, // deterministic barrier flags (2.1.1 / 4.1.2)
+        iframeTabExcluded, focusableInAriaHidden, prohibitedAriaAttr, // deterministic barrier flags (2.1.1 / 4.1.2)
       });
     }
     // IFRAME TRAVERSAL (coverage audit, akn7bn 2.1.1): descend ONE level into SAME-ORIGIN iframes and collect
