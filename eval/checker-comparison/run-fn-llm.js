@@ -198,7 +198,11 @@ function scoreCase(tc, out) {
   // keyboard-trap PROVISIONAL barriers that fill the ledger but never enter shadowObservations as source:
   // 'deterministic' (so rec.v3Barrier misses them, and the obligation, being filled, is no longer autoPartial →
   // it was mis-scored as noObligation/noVerdict). This is the minted-barrier analog of the v3Barrier credit.
-  rec.inScopeBarrierFilled = inScopeOblig.filter((r) => r.autoPartial === false && r.cleared === false).length;
+  // ONLY a minted PROVISIONAL BARRIER counts as a catch — NOT a deferred/review PARTIAL. The old test
+  // (`autoPartial === false`) also matched a deliberate PARTIAL (a checker/runner/instrument flagging the obligation
+  // for REVIEW without asserting a barrier — e.g. contrast on a photo backdrop, the demoted confinement review),
+  // which inflated BOTH recall and FP by scoring "the harness deferred" as "the harness caught it".
+  rec.inScopeBarrierFilled = inScopeOblig.filter((r) => r.disposition === 'PROVISIONAL' && r.cleared === false).length;
 
   const barrierAgent = agentInScope.filter((v) => v.agentVerdict === 'REPRODUCED');
   const barrierRubric = rubricInScope.filter((j) => j.verdict === 'LIKELY_BARRIER');
