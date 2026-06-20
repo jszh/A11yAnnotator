@@ -75,20 +75,25 @@ Why axe-core is the fair baseline (verified on THIS corpus, not assumed):
 **(ii) LLM-lane ablation — on the reaches-LLM *residual* (458 cases axe does NOT flag, so axe = 0 here by
 construction; this is precisely the existing-checker gap):**
 
-| Configuration | Recall ↑ | FP rate ↓ | Precision ↑ | F1 ↑ | Δrecall |
-|---|---|---|---|---|---|
-| existing checkers (axe) — by construction | 0.0 | 0.0 | — | — | — |
-| + v3 deterministic detectors (−LLM) | 15.2 (10/66) | 0.3 | 90.9 | 0.26 | +15.2 |
-| LLM, **axe-level evidence** (no v3 evidence, no vision, no tools) | 15.2 (10/66) | 0.3 | 90.9 | 0.26 | **+0.0** |
-| LLM **+ v3 evidence + vision** (no tools) | 66.7 (44/66) | 3.3 | 77.2 | 0.72 | **+51.5** |
-| **LLM + v3 evidence + vision + tools (Full)** | **75.8** (50/66) | 3.3 | 79.4 | **0.78** | **+9.1** |
-| (prior harness: LLM-only, no v3) | 53.0 (35/66) | 11.0 | 44.9 | 0.49 | — |
+Decomposed into the **deterministic floor** + the **LLM lane's OWN** contribution (LLM-flagged barriers),
+so the LLM's value is not hidden behind the always-on detectors. These are disjoint: end-to-end = det ∪ LLM.
 
-**The decisive ablation:** an LLM lane fed only axe-level evidence (row 3) adds **nothing** over the
-deterministic detectors — it catches the exact same 10/66. The harness's **evidence provisioning is the
-critical enabler**: it is what makes the LLM useful at all (+51.5 recall, row 4). Tools add a further +9.1
-(row 5). End-to-end on the full corpus the two-stage harness reaches ≈91% recall (deterministic pre-settle
-~60% + LLM recovery of the residual; derived).
+| Configuration | Det. detectors | **LLM lane (LLM-flagged)** | = End-to-end recall | FP rate |
+|---|---|---|---|---|
+| existing checkers (axe) — by construction | 0/66 | — | 0.0 | 0.0 |
+| v3 deterministic detectors, no LLM | 10/66 (15.2%) | — (off) | 15.2 | 0.3 |
+| LLM, **axe-level evidence** (no v3 evid., no vision, no tools) | 10/66 | **0/66 (+0.0)** | 15.2 | 0.3 |
+| LLM **+ v3 evidence + vision** (no tools) | 10/66 | **34/66 (+51.5)** | 66.7 | 3.3 |
+| **LLM + v3 evidence + vision + tools (Full)** | 10/66 | **40/66 (+60.6)** | **75.8** | 3.3 |
+| (prior harness: LLM-only, no v3) | — | — | 53.0 | 11.0 |
+
+**Why the two top LLM rows look like the detector row in *end-to-end* terms, and why that is the point:**
+`V3_MINIMAL_EVIDENCE` strips the LLM's evidence but does NOT turn off the deterministic detectors, so the
+detectors still catch their 10. The honest measure is the **LLM-lane column**: an LLM fed only axe-level
+evidence flags **0/66 on its own** — it is useless without the harness's evidence provisioning. That same LLM,
+given the v3 evidence bundle, flags **34/66** (+51.5); tools add another **+6** (40/66). So the recall is
+produced by the *evidence*, not the LLM per se. End-to-end on the full 581 corpus the two-stage harness reaches
+≈91% recall (deterministic pre-settle ~60% + LLM recovery of the residual; derived).
 
 ## Table 2 — Held-out generalization gate (581-case full corpus)
 
@@ -115,9 +120,9 @@ fires on a GT-pass/inapplicable case. (This is the methodological check that cau
    decomposed into facets; deterministic facets (presence, geometry, ARIA validity, contrast-over-flat-color)
    are decided by checkers and *subtracted* from the LLM's queue, and each semantic obligation is handed a
    *precomputed evidence bundle* (programmatic context, sibling-link destinations, decorative/removed-from-tree
-   flags, vision crops). The ablation (Table 1b) shows this is decisive: an LLM fed only axe-level evidence adds
-   **0** over the deterministic detectors (15.2→15.2), while the same LLM with the v3 evidence bundle jumps to
-   66.7 recall (**+51.5**). The evidence provisioning — not the LLM per se — is what unlocks the recall, and it
+   flags, vision crops). The ablation (Table 1b) shows this is decisive: an LLM fed only axe-level evidence flags
+   **0/66 barriers on its own**, while the same LLM given the v3 evidence bundle flags **34/66** (+51.5 recall),
+   and tools add a further +6. The evidence provisioning — not the LLM per se — is what unlocks the recall, and it
    simultaneously *de-noises* (LLM false positives 43→13).
 
 3. **A held-out generalization gate + dynamic detectors.** Evaluating each detector over the *whole* rule (not
