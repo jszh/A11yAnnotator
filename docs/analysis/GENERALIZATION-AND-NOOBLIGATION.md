@@ -136,3 +136,32 @@ Both FP sets are entirely LLM over-flags (run4 had no deterministic detectors), 
 43 → 13 FPs** — the deterministic detectors subtract settled obligations from the auto-PARTIAL set (fewer reach
 the LLM to mis-flag) and the rubric/evidence fixes clear more passed cases. Residual work is the ~13 LLM
 over-flags (2.4.4 / 1.1.1) — rubric RCA, not detector work — and the #11/#12 evidence-acted-on-by-rubric gap.
+
+---
+
+## Deterministic baseline + LLM-over-flag RCA
+
+**Deterministic-only baseline** (`run9-llmoff-baseline`, `--no-llm`): **15% recall (10/66), 0.3% FP (1/392)**.
+The detectors are high-precision (single FP: `dc170fd0`, one contrast worst-case-barrier over-fire on a passed
+afw4f7 case); the LLM lane adds +61% recall and is where ~all FPs come from. So the residual FP problem is an
+LLM-judgment problem, not detector over-fire.
+
+**RCA of the 12 LLM over-flags** → two generalizable patterns, and the honest finding that most are
+LLM-judgment-limited (not cleanly fixable by signal/rubric without an FP↔FN trade):
+
+- **2.4.4 link-purpose (5).** Split three ways. (a) `HTML`-in-a-nested-list / table — a SIGNAL bug: #12
+  `enclosingBlockText` only saw the link's nearest block. FIXED for nested lists (ancestor list-item subject,
+  commit e9b397f), verified no FN regression. (b) `Download` under a generic `<th>Books</th>` — table headers
+  ARE 2.4.4 context, but the LLM over-accepts a generic category title and falsely clears a real barrier, so
+  table-header context is deliberately deferred. (c) same-name links to different URLs (`ACT rules`→two ACT
+  resources) — the rubric conflates different-URL with different-PURPOSE; a tested rubric lean toward
+  "equivalent purpose" OVER-corrected (cleared a genuine failure), so it was reverted — this needs
+  `resolve_destination` CONTENT comparison, not a rubric nudge.
+- **1.1.1 alt-text on SVGs (3).** Partly cross-rule (a nameless `role=image` SVG IS a general 1.1.1 concern but
+  is *inapplicable* for the specific named-image rule the case belongs to) and partly decorative-judgment (a
+  plain shape, or an icon inside an already-named link). Not a clean rubric bug — left as a finding.
+
+The takeaway: the deterministic layer is sound and high-precision; the remaining FPs are genuinely hard LLM
+semantic judgments where signal/rubric changes trade FP for FN. The one clean win here is the nested-list
+programmatic-context signal; the rest are documented as deferred (resolve_destination purpose comparison;
+generic-category-header handling; SVG decorative/cross-rule scoping).
