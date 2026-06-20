@@ -98,7 +98,8 @@ Evidence forms (NONE is the harness's deployed form except where noted):
 | **Full: v3 signals + vision + tools** | targeted | 38/66 | 72.7 | 80.0 | 0.76 | 3.1 |
 | Full + HTML (full markup) | targeted | 40/66 | 75.8 | 75.8 | 0.76 | 4.1 |
 | Full + HTML + full-page vision | full-page | 43/66 | 78.8 | 72.2 | 0.75 | 5.1 |
-| **Full + HTML, style-stripped** (facet-routed markup) | targeted | 42/66 | **78.8** | 76.5 | **0.78** | 4.1 |
+| Full + HTML, style-stripped | targeted | 42/66 | **78.8** | 76.5 | 0.78 | 4.1 |
+| **Full + HTML, style-stripped + facet-gated** | targeted | 42/66 | 77.3 | **81.0** | **0.79** | 3.1 |
 
 **Two independent levers (the corrected central finding).**
 - **Vision is the RECALL lever.** name/role 6 → +vision 26 (LLM-lane). The model must *see* the rendered page
@@ -125,10 +126,17 @@ Evidence forms (NONE is the harness's deployed form except where noted):
   it exposes barriers the curated signals under-collect (e.g. 1.3.1 on a `div`/`role=grid` table the
   `<table>`-only collector misses). **Stripping inline `style=` from the HTML** — keeping the structural facets
   (tags/ARIA/href/text), removing the computed facet (colour) a runner owns — recovers the precision while
-  keeping the recall: **78.8 recall / 76.5 precision / F1 0.78**, the best of all 12 configurations and above
-  the deployed Full (0.76). The contrast FPs drop 4→2 (the residual 2 are *vision*-driven, not HTML). So the
-  harness's central route-by-facet thesis extends to markup itself: even when handing the LLM HTML, strip the
-  deterministic facets and keep the structural ones.
+  keeping the recall (78.8 / 76.5 / F1 0.78; contrast FPs 4→2, the residual 2 *vision*-driven). An RCA of the
+  *remaining* over-flags found the same re-derive-from-markup failure on other channels — hrefs (2.4.4),
+  `onblur` handlers (2.1.2), `aria-hidden=""` (4.1.2) — each a facet a runner owns. **Facet-gating** the HTML
+  (augment ON for structural SCs, OFF for the runner-owned 1.4.3/4.1.2/2.1.2) removes the 4.1.2 + 2.1.2 FPs and
+  reaches **77.3 recall / 81.0 precision / F1 0.79** — the best of all configurations, **dominating the
+  deployed Full on both axes** (+4.6 recall, +1.0 precision, same 3.1% FP). So the harness's central
+  route-by-facet thesis extends to markup itself: even when handing the LLM HTML, keep the *structural* facets
+  and withhold the ones a deterministic producer owns (colour, ARIA-validity, runtime behavior). The remaining
+  HTML FP source — 2.4.4 same-name links to different URLs the GT treats as same-*purpose* — is not fixed by
+  withholding the href (it is also the recall benefit) but points to feeding destination *content*
+  (`resolve_destination`) so the model judges purpose, not URL string.
 
 **Methodology — a measurement confound worth reporting.** The naive no-vision numbers were near-zero, which
 first read as "the LLM is useless without our evidence." That was an artifact: the rubric lane has a
