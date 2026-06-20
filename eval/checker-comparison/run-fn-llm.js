@@ -68,7 +68,14 @@ const instGate = makeSemaphore(INSTRUMENTS_CONC); // shared run-telemetry semaph
 const VISION = arg('no-vision', false) ? false : true;
 const TOOLS = !!arg('tools', false);
 const CASES_FILE = arg('cases', null);                 // --cases=<file>: restrict to a whitespace-separated testcaseId list (subset eval; composes with --sc/--limit)
-const OUT = path.join(REPO_ROOT, 'results', arg('out', null) || 'fn-llm'); // --out=<name>: write to results/<name> instead of results/fn-llm (don't clobber a baseline)
+const RUN_NAME = arg('out', null) || 'fn-llm';
+const OUT = path.join(REPO_ROOT, 'results', RUN_NAME); // --out=<name>: write to results/<name> instead of results/fn-llm (don't clobber a baseline)
+// experiment identity (so the monitor can label WHICH config is running) + a fixed status path the monitor reads
+// by default, so `node fn-llm-monitor.js` (no arg) always follows the latest run without retyping the run name.
+const EVIDENCE_MODE = process.env.V3_HTML_EVIDENCE === '1' ? 'raw-html' : process.env.V3_MINIMAL_EVIDENCE === '1' ? 'name/role' : 'v3-signals';
+const NO_VISION_RUBRIC = process.env.V3_NO_VISION_RUBRIC === '1';
+const BASELINE_VISION = process.env.V3_BASELINE_VISION === '1';
+const FIXED_STATUS_PATH = process.env.LLM_EVAL_STATUS_PATH || process.env.FN_LLM_STATUS_PATH || '/tmp/llm-eval-status.json';
 const STATUS_EVERY_MS = 500;
 
 const MODEL = process.env.V3_LLM_MODEL || 'claude-sonnet-4-6';
@@ -120,7 +127,8 @@ const urlFor = (tc) => 'file://' + path.join(SUBSET_DIR, tc.localPath);
 const startedAt = Date.now();
 const tel = {
   startedAt,
-  config: { fnTotal: 0, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, perPageLlm: LLM_CONC, maxTabs: MAX_TABS, vision: VISION, tools: TOOLS, model: MODEL },
+  runName: RUN_NAME,
+  config: { fnTotal: 0, pageConc: PAGE_CONC, globalLlm: GLOBAL_LLM, perPageLlm: LLM_CONC, maxTabs: MAX_TABS, vision: VISION, tools: TOOLS, evidence: EVIDENCE_MODE, noVisionRubric: NO_VISION_RUBRIC, baselineVision: BASELINE_VISION, model: MODEL },
   phase: 'init',
   done: 0,
   total: 0,
@@ -138,7 +146,11 @@ function writeStatus() {
   try {
     tel.elapsedMs = Date.now() - startedAt;
     tel.llm.inFlightNow = Object.keys(tel.inflight).length;
-    fs.writeFileSync(path.join(OUT, 'status.json'), JSON.stringify(tel));
+    const payload = JSON.stringify(tel);
+    fs.writeFileSync(path.join(OUT, 'status.json'), payload);
+    // mirror to a FIXED path (last-writer-wins) so the monitor can follow "the current run" with no arg; the
+    // payload carries runName + config so the dashboard shows WHICH experiment owns it.
+    try { fs.writeFileSync(FIXED_STATUS_PATH, payload); } catch (e) { /* best effort */ }
   } catch (e) { /* best effort */ }
 }
 

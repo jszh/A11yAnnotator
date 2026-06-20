@@ -3,7 +3,9 @@
 // Live CLI monitor for run-fn-llm.js. Polls a run's status.json and redraws a dashboard: progress,
 // per-page-worker activity, in-flight LLM judgments, tab allocator usage, token spend, and memory. Read-only;
 // run in a second terminal alongside the runner.
-//   Usage:  node fn-llm-monitor.js [target]   where target (default results/fn-llm) is any of:
+//   Usage:  node fn-llm-monitor.js [target]
+//     NO ARG → follows the CURRENT run via the fixed path /tmp/llm-eval-status.json (whichever run wrote last);
+//              the dashboard header shows that run's name + config, so you always know which experiment you see.
 //     a run NAME (the runner's --out value):  node fn-llm-monitor.js run9-llmoff-baseline
 //     --out=<name> (symmetry with the runner): node fn-llm-monitor.js --out=run9-llmoff-baseline
 //     a results dir:                           node fn-llm-monitor.js results/run9-llmoff-baseline
@@ -12,8 +14,9 @@ const fs = require('fs');
 const path = require('path');
 
 const RESULTS_ROOT = path.join(__dirname, '..', '..', 'results');
+const FIXED_STATUS_PATH = process.env.LLM_EVAL_STATUS_PATH || process.env.FN_LLM_STATUS_PATH || '/tmp/llm-eval-status.json';
 function resolveStatus(arg) {
-  if (!arg) return path.join(RESULTS_ROOT, 'fn-llm', 'status.json');
+  if (!arg) return FIXED_STATUS_PATH;                                        // no arg → follow the CURRENT run
   arg = String(arg).replace(/^--out=/, '');                                  // accept --out=<name> like the runner
   if (arg.endsWith('.json')) return path.resolve(arg);                       // explicit status.json file
   if (fs.existsSync(arg) && fs.statSync(arg).isDirectory()) return path.join(path.resolve(arg), 'status.json'); // a dir
@@ -64,7 +67,8 @@ function render(t, conf) {
   const elapsed = t.elapsedMs || (t.startedAt ? now - t.startedAt : 0);
   const cfg = t.config || {};
   const phaseC = t.phase === 'done' ? 'green' : t.phase === 'running' ? 'cyan' : 'yellow';
-  L.push(clr('bold', '  FN × LLM evidence lane') + clr('gray', `   model ${cfg.model || '?'} · effort medium · vision ${cfg.vision ? 'on' : 'off'} · tools ${cfg.tools ? 'ON' : 'off'}`));
+  const visLabel = cfg.vision ? (cfg.baselineVision ? 'full-page' : 'on') : 'off';
+  L.push(clr('bold', `  LLM evidence-lane · ${clr('cyan', t.runName || '(unnamed)')}`) + clr('gray', `   evidence ${cfg.evidence || '?'}${cfg.noVisionRubric ? ' (de-visioned)' : ''} · vision ${visLabel} · tools ${cfg.tools ? 'ON' : 'off'} · ${cfg.model || '?'}`));
   L.push(clr('gray', `  phase `) + clr(phaseC, (t.phase || '?')) + clr('gray', `   elapsed ${fmtMs(elapsed)}   pages=${cfg.pageConc} globalLLM=${cfg.globalLlm} maxTabs=${cfg.maxTabs}`));
   L.push('');
 
