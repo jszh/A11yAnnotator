@@ -352,6 +352,10 @@ async function collectActPage(page, opts = {}) {
         if (!inBlock) return null;
         return parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().slice(0, 300);
       })() : undefined;
+      // HTML-evidence ablation (V3_HTML_EVIDENCE): the element's RAW markup + its parent's markup, so an ablation
+      // can feed the LLM the HTML in place of v3 structured signals (does raw markup beat the route-by-facet bundle?).
+      const htmlSnippet = (el.outerHTML || '').slice(0, 2000);
+      const enclosingHtml = el.parentElement ? (el.parentElement.outerHTML || '').slice(0, 2800) : null;
       const box = el.getBoundingClientRect();
       const focusable = focusableByMarkup(el);
       const isFormField = fieldLike(el);
@@ -492,6 +496,7 @@ async function collectActPage(page, opts = {}) {
         type,
         href: href || null, // Item 14a: destination for the 2.4.4 same-name-link in-context index
         jsHref, enclosingBlockText, // #11 onclick-nav target + #12 enclosing-block context (2.4.4)
+        htmlSnippet, enclosingHtml, // raw markup for the HTML-evidence ablation
         // heading level for the page-structure precompute branch (Tier-0 #3): aria-level wins, else h1-h6 tag.
         ariaLevel: el.getAttribute('aria-level') ? Number(el.getAttribute('aria-level')) : (/^h[1-6]$/.test(tag) ? Number(tag[1]) : null),
         box: { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.width), height: Math.round(box.height) },

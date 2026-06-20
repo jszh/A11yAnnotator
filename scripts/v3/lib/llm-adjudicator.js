@@ -174,6 +174,9 @@ const RUBRIC_GATE = {
 function precomputeSignals(element, skill) {
   element = element || {}; // the `= {}` default only fires on undefined; a malformed `null` must not crash
   const s = {};
+  // ABLATION (V3_HTML_EVIDENCE): replace the v3 structured signals with the element's RAW markup (+ its parent's),
+  // so we can measure whether raw HTML beats the route-by-facet evidence bundle. No other signals; no vision/tools.
+  if (process.env.V3_HTML_EVIDENCE === '1') return { rawElementHtml: element.htmlSnippet || null, enclosingHtml: element.enclosingHtml || null };
   // ABLATION (V3_MINIMAL_EVIDENCE): strip ALL v3 evidence-provisioning signals — the LLM judges from the bare
   // subject (name/role in the prompt) only, i.e. axe-level evidence. Used to measure the value of v3 precompute.
   if (process.env.V3_MINIMAL_EVIDENCE === '1') return s;
@@ -578,7 +581,11 @@ async function runAdjudication(subjects, opts = {}) {
     // supply EXACTLY the vision frames the rubric declares AND the collector captured for this element.
     const avail = visionByXpath[subj.xpath] || {};
     const frames = [];
-    for (const state of visionEvidence) {
+    // BASELINE-VISION ablation (V3_BASELINE_VISION): for the SAME subjects the v3 design would give vision to
+    // (visionEvidence non-empty), replace the DESIGNED element/surrounding crops with the page-wide full-page
+    // `viewport` screenshot — i.e. "just show the model the page" vs the targeted per-SC crops.
+    const visStates = (process.env.V3_BASELINE_VISION === '1' && visionEvidence.length) ? ['viewport'] : visionEvidence;
+    for (const state of visStates) {
       const data = avail[state];
       if (typeof data === 'string' && data.length) frames.push({ id: `vis:${subj.skill}:${i}:${state}`, state, data, mediaType: 'image/png' });
     }
