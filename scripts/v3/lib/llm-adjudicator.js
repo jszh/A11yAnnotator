@@ -460,6 +460,9 @@ function precomputeSignals(element, skill) {
     }
   }
   s.boxMin = num(element.box && typeof element.box === 'object' ? Math.min(element.box.w, element.box.h) : undefined);
+  // V3_HTML_AUGMENT: ADD raw markup ON TOP of the full structured signals (vs V3_HTML_EVIDENCE which REPLACES
+  // them). Tests whether the grounding signals can restore precision while HTML supplies the extra recall.
+  if (process.env.V3_HTML_AUGMENT === '1') { s.rawElementHtml = element.htmlSnippet || null; s.enclosingHtml = element.enclosingHtml || null; }
   return s;
 }
 
