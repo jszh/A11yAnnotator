@@ -1,12 +1,25 @@
 #!/usr/bin/env node
 'use strict';
-// Live CLI monitor for run-fn-llm.js. Polls results/fn-llm/status.json and redraws a dashboard: progress,
+// Live CLI monitor for run-fn-llm.js. Polls a run's status.json and redraws a dashboard: progress,
 // per-page-worker activity, in-flight LLM judgments, tab allocator usage, token spend, and memory. Read-only;
-// run in a second terminal alongside the runner.   Usage:  node fn-llm-monitor.js [path/to/status.json]
+// run in a second terminal alongside the runner.
+//   Usage:  node fn-llm-monitor.js [target]   where target (default results/fn-llm) is any of:
+//     a run NAME (the runner's --out value):  node fn-llm-monitor.js run9-llmoff-baseline
+//     --out=<name> (symmetry with the runner): node fn-llm-monitor.js --out=run9-llmoff-baseline
+//     a results dir:                           node fn-llm-monitor.js results/run9-llmoff-baseline
+//     an explicit status.json path:            node fn-llm-monitor.js results/run9-llmoff-baseline/status.json
 const fs = require('fs');
 const path = require('path');
 
-const STATUS = process.argv[2] || path.join(__dirname, '..', '..', 'results', 'fn-llm', 'status.json');
+const RESULTS_ROOT = path.join(__dirname, '..', '..', 'results');
+function resolveStatus(arg) {
+  if (!arg) return path.join(RESULTS_ROOT, 'fn-llm', 'status.json');
+  arg = String(arg).replace(/^--out=/, '');                                  // accept --out=<name> like the runner
+  if (arg.endsWith('.json')) return path.resolve(arg);                       // explicit status.json file
+  if (fs.existsSync(arg) && fs.statSync(arg).isDirectory()) return path.join(path.resolve(arg), 'status.json'); // a dir
+  return path.join(RESULTS_ROOT, arg, 'status.json');                        // bare run NAME → results/<name>/status.json
+}
+const STATUS = resolveStatus(process.argv[2]);
 const EVERY_MS = 500;
 
 const C = {

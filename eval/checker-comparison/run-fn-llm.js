@@ -45,6 +45,7 @@ const AXE_PATH = process.env.AXE_PATH || path.join(REPO_ROOT, 'axe.min.js'); // 
 const LIMIT = Number(arg('limit', 0));                 // 0 = all
 const SC = arg('sc', null);
 const REACHES_LLM = !!arg('reaches-llm', false);       // run the REACHES-LLM set (recall on failed + SPECIFICITY on passed/inapplicable) instead of bothFail
+const RUN_LLM = !arg('no-llm', false);                 // --no-llm ⇒ DETERMINISTIC-ONLY baseline (no LLM lane); measures what the detectors/axe catch alone
 const RESTRICT_SC = REACHES_LLM || !!arg('restrict-sc', false); // judge ONLY the case's GT'd SC — ACT ground truth is per-SC (off-target verdicts are unscoreable + wasted spend)
 const PAGE_CONC = Number(arg('pages', 8));             // pages orchestrated at once (default = cores-2 headroom; was 4 —
                                                       // too few to feed the global LLM cap once tools cap per-page conc)
@@ -321,7 +322,7 @@ async function main() {
           budgetOpts: { maxRunWallClockMs: RUN_WALL }, // deterministic lane bounded by TIME (2 min), not count — run as many real runners as fit, defer the tail to the LLM lane
 
           experimentConcurrency: Math.min(LIMITS.concurrency.experimentCap, LIMITS.concurrency.experiment),
-          runLlm: true, runAgent, captureVision: VISION, wrapAgent, // wrapAgent → the tool agent shares the global cap + telemetry
+          runLlm: RUN_LLM, runAgent, captureVision: RUN_LLM && VISION, wrapAgent, // --no-llm ⇒ DETERMINISTIC baseline (no LLM lane, no vision capture)
           llmConcurrency: LLM_CONC,
           llmTools: TOOLS, llmTransportConfig: TRANSPORT_WITH_SINK,
           llmToolConcurrency: LIMITS.concurrency.llmTool,
