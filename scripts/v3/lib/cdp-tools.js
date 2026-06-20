@@ -497,23 +497,50 @@ async function computeContrastRatio(page, args) {
     // Normalise ANY CSS colour (incl. wide-gamut oklch()/color(srgb ...)) to sRGB rgba by painting it to a 1×1
     // canvas and reading the pixel back — so parseRGB never chokes on a syntax it doesn't recognise. Alpha is
     // preserved (the translucency refusal still fires on a<1).
-    const used = (xp) => {
+    const toRgba = (c) => { try { const cv = document.createElement('canvas'); cv.width = cv.height = 1; const cx = cv.getContext('2d'); cx.fillStyle = c; cx.fillRect(0, 0, 1, 1); const d = cx.getImageData(0, 0, 1, 1).data; return `rgba(${d[0]}, ${d[1]}, ${d[2]}, ${(d[3] / 255).toFixed(3)})`; } catch (e) { return c; } };
+    const used = (xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; return el ? toRgba(getComputedStyle(el).color) : null; };
+    // nodeB reader: for 1.4.3 text-vs-BACKGROUND, point nodeB at the element bearing the bg — if its OWN
+    // background-color is opaque, use THAT (not its inherited text colour). A transparent own-bg means nodeB is a
+    // foreground/text node (1.4.1 G183 link-vs-surrounding-text), so fall back to `color`. (Own bg, not a walked-up
+    // effective bg, so 1.4.1's transparent surrounding-text node keeps using its colour, not the page background.)
+    const usedB = (xp) => {
       const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
       if (!el) return null;
-      const c = getComputedStyle(el).color;
-      try { const cv = document.createElement('canvas'); cv.width = cv.height = 1; const cx = cv.getContext('2d'); cx.fillStyle = c; cx.fillRect(0, 0, 1, 1); const d = cx.getImageData(0, 0, 1, 1).data; return `rgba(${d[0]}, ${d[1]}, ${d[2]}, ${(d[3] / 255).toFixed(3)})`; } catch (e) { return c; }
+      const bg = getComputedStyle(el).backgroundColor;
+      const opaque = bg && bg !== 'transparent' && !/rgba\([^)]*,\s*0\s*\)/.test(bg);
+      return toRgba(opaque ? bg : getComputedStyle(el).color);
     };
-    return { a: used(xa), b: used(xb) };
+    // nodeA's RENDERED font for the WCAG large-text threshold. getComputedStyle().fontSize is ALWAYS the resolved
+    // USED value in px — the browser has already collapsed em/rem/pt/%/keyword to px — so no manual unit maths is
+    // needed (and is wrong: `1.5em` only means px AFTER inheritance is resolved). fontWeight is likewise resolved
+    // to a numeric string ('700' for bold), which contrastThresholdFor parseInts.
+    const fontOf = (xp) => {
+      const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+      if (!el || el.nodeType !== 1) return null;
+      const cs = getComputedStyle(el);
+      return { fontPx: parseFloat(cs.fontSize), fontWeight: cs.fontWeight };
+    };
+    return { a: used(xa), b: usedB(xb), fontA: fontOf(xa) };
   }, nodeAXpath, nodeBXpath).catch(() => null);
   if (!cols || !cols.a || !cols.b) return { error: 'one or both nodes not found' };
   const pa = A.parseRGB(cols.a), pb = A.parseRGB(cols.b);
   if (!pa || !pb) return { inconclusive: 'unparseable-color', colorA: cols.a, colorB: cols.b };
   if ((pa.a != null && pa.a < 1) || (pb.a != null && pb.a < 1)) return { inconclusive: 'alpha-unresolved', note: 'a translucent colour cannot be reduced to a sound ratio — defer to the perceptual rubric' };
   const rawRatio = A.contrastRatioRaw([pa.r, pa.g, pa.b], [pb.r, pb.g, pb.b]);
-  const th = Number.isFinite(threshold) ? threshold : 3;
-  // `passes` compares the UNROUNDED ratio (WCAG "do not round up": 2.998 must NOT pass 3:1); contrastRatio is
-  // the 2-dp DISPLAY value only.
-  return { colorA: cols.a, colorB: cols.b, source: 'cssom', contrastRatio: +rawRatio.toFixed(2), threshold: th, passes: rawRatio >= th, note: 'WCAG ratio of two FLAT used-colours (G183); `passes` is a mechanical compare on the unrounded ratio, not an SC disposition.' };
+  // AUTHORITATIVE text threshold from nodeA's rendered font — so the model NEVER has to (mis)guess 3.0 vs 4.5
+  // for large text. WCAG large text = >=18pt(24px) or >=14pt(18.67px) bold; contrastThresholdFor encodes it.
+  const fontPx = cols.fontA && Number.isFinite(cols.fontA.fontPx) ? cols.fontA.fontPx : null;
+  const textThreshold = fontPx != null ? A.contrastThresholdFor(fontPx, cols.fontA.fontWeight) : null;
+  const isLargeText = fontPx != null ? A.isLargeText(fontPx, cols.fontA.fontWeight) : null;
+  const th = Number.isFinite(threshold) ? threshold : (textThreshold != null ? textThreshold : 3);
+  // `passes`/`passesAsText` compare the UNROUNDED ratio (WCAG "do not round up": 2.998 must NOT pass 3:1).
+  return {
+    colorA: cols.a, colorB: cols.b, source: 'cssom', contrastRatio: +rawRatio.toFixed(2),
+    fontPx, isLargeText, textThreshold,
+    passesAsText: textThreshold != null ? rawRatio >= textThreshold : null, // USE THIS for 1.4.3 text contrast
+    threshold: th, passes: rawRatio >= th,
+    note: 'WCAG ratio of two FLAT used-colours. For 1.4.3 TEXT contrast use passesAsText (textThreshold is font-derived: ' + (isLargeText ? '3.0 large-text' : '4.5 normal') + '); `passes` honours an explicit threshold override. Not an SC disposition.',
+  };
 }
 
 // ============================================================================================
