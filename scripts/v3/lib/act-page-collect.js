@@ -477,12 +477,30 @@ async function collectActPage(page, opts = {}) {
       const iframeTabExcluded = _iframeTabExcluded(el);
       const focusableInAriaHidden = _focusableInAriaHidden(el);
       const prohibitedAriaAttr = _prohibitedAriaAttr(el, roleAttr);
+      // 1.4.3 contrast APPLICABILITY (improvement B): text that is part of / labels an INACTIVE component has NO
+      // contrast requirement (WCAG 1.4.3 exception for inactive UI components). The afw4f7 GT-inapplicable FPs are
+      // exactly these — a <fieldset disabled>, a <div role=button aria-disabled>, a <label> named by an
+      // aria-disabled control. Mark them so the oracle does NOT enumerate a text-contrast obligation (else they
+      // fall through to the LLM, which reads the gray off the crop and over-flags — the residual vision contrast FP).
+      const inactiveText = (() => {
+        if (el.closest('[disabled],[aria-disabled="true"]')) return true; // self or ANCESTOR disabled (fieldset/control)
+        // a <label> whose associated control is inactive — the control is a DESCENDANT (wrapping label) or via for=,
+        // so closest() (which only goes up) cannot see it; only treat LABELS this way (not arbitrary containers).
+        if (el.tagName.toLowerCase() === 'label') {
+          if (el.querySelector('[disabled],[aria-disabled="true"]')) return true; // label WRAPS its disabled control
+          const f = el.getAttribute('for'); if (f) { const c = el.ownerDocument.getElementById(f); if (c && (c.disabled || c.getAttribute('aria-disabled') === 'true')) return true; }
+        }
+        // text NAMED BY an inactive control via aria-labelledby (the control points at this element's id)
+        if (el.id) { try { const r = el.ownerDocument.querySelector('[aria-labelledby~="' + CSS.escape(el.id) + '"]'); if (r && (r.disabled || r.getAttribute('aria-disabled') === 'true' || r.closest('[disabled],[aria-disabled="true"]'))) return true; } catch (e) {} }
+        return false;
+      })();
       if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !prohibitedAriaAttr) continue; // a pre-selected subset element is always included
       els.push({
         xpath: xpathOf(el),
         // (axName below is computed by labelledText(el, sampledRole) — name-from-contents gated by role)
         text,
         hasText: text.length > 0,
+        inactiveText, // 1.4.3 contrast exemption (B): part of/labels an inactive component → no contrast obligation
         focusable,
         isInteractive, ownsInteractiveDescendants, hasKeyHandler,
         isFormField,

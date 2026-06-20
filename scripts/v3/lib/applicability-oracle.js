@@ -132,7 +132,7 @@ function familiesFor(el) {
     // (the akn7bn iframe). The frame's inner focusables carry keyboard-operable on their own.
     if (el.tag !== 'iframe' && el.tag !== 'frame') fams.push('keyboard-operable');
   }
-  if (factHasText(el)) fams.push('text-contrast');
+  if (factHasText(el) && el.inactiveText !== true) fams.push('text-contrast'); // 1.4.3 exempts inactive UI components (B)
   if (WIDGET_ROLE.test(role)) fams.push('name-role-value');
   // 4.1.2 NAMED-IFRAME facet (coverage audit): a named <iframe> owes name-role-value so the rubric can judge
   // name/purpose equivalence (ACT 4b1c6c) — a name-role question v3's widget-only gate missed and that axe
