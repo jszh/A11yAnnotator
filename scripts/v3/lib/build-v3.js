@@ -369,6 +369,10 @@ function buildV3(bundle, opts = {}) {
     // behaviour, which a static scan cannot observe. A deterministic detector here over-fits the one failed fixture and
     // FPs the rule's own passed example. 6cfa84 needs the DYNAMIC LLM-with-tools lane (drive focus, observe redirect).
     { flag: 'prohibitedAriaAttr', sc: '4.1.2', claimFamily: 'name-role-value', mechanism: 'prohibited-aria-attr' },
+    // NOTE: a deterministic flat-colour CONTRAST barrier (improvement B part 2) was tested and REVERTED — the
+    // collection-time computation is timing-fragile (afw4f7/dc170fd0: a `<style>`-applied bg-image hadn't
+    // rendered at the settle moment, so `#ccc` read on default white → a deterministic-mint FP on a GT-pass).
+    // The vision LLM sees the RENDERED page, so contrast is more robust left to it. See B-PART-2 analysis.
   ];
   const detBarrierObs = [];
   for (const el of (bundle.collect.elements || [])) {
