@@ -93,6 +93,23 @@ function createTabAllocator(opts = {}) {
       }
     } catch (e) { /* CDP unavailable / mock page ⇒ downloads simply not denied (no-op) */ }
 
+    // NETWORK-EGRESS GUARD: the saved fixtures are self-contained (file://), so ANY http(s) request to a real
+    // EXTERNAL host is a leak — a link the keyboard probe activated (5effbb's gutenberg `.epub`), a meta-refresh,
+    // a stray sub-resource. The download-deny above cancels the SAVE but NOT the network fetch (the 30-75s
+    // gutenberg stall). Abort every non-local http(s) request so no external fetch / download / stall happens in
+    // ANY lane. localhost is exempted (a fixture server); file:/data:/blob:/about: always continue. Each acquired
+    // page is fresh (open() above), so this single listener never accumulates.
+    try {
+      if (page && typeof page.setRequestInterception === 'function') {
+        await page.setRequestInterception(true);
+        page.on('request', (req) => {
+          let block = false;
+          try { const u = new URL(req.url()); block = /^https?:$/.test(u.protocol) && !/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(u.hostname); } catch (e) { block = false; }
+          if (block) req.abort('blockedbyclient').catch(() => {}); else req.continue().catch(() => {});
+        });
+      }
+    } catch (e) { /* interception unsupported (mock page) ⇒ no egress guard (no-op) */ }
+
     let released = false;
     const release = async () => {
       if (released) return; released = true;
