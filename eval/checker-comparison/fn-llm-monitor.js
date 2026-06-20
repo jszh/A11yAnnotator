@@ -140,13 +140,18 @@ function render(t, conf) {
   return L.join('\n');
 }
 
-const RESULTS = path.join(path.dirname(STATUS), 'results.json');
+// results.json lives in the run's OWN dir — a sibling of STATUS for an explicit path, but NOT when following
+// the fixed /tmp status. Resolve it from the payload's runName so the confusion matrix works either way.
+function resolveResults(t) {
+  if (t && t.runName) return path.join(RESULTS_ROOT, t.runName, 'results.json');
+  return path.join(path.dirname(STATUS), 'results.json');
+}
 let lastConf = null; // cache so a mid-write results.json parse failure doesn't blank the matrix
 function tick() {
   let frame;
   try {
     const t = JSON.parse(fs.readFileSync(STATUS, 'utf8'));
-    try { lastConf = confusionFrom(JSON.parse(fs.readFileSync(RESULTS, 'utf8'))); } catch (e) { /* keep lastConf */ }
+    try { lastConf = confusionFrom(JSON.parse(fs.readFileSync(resolveResults(t), 'utf8'))); } catch (e) { /* keep lastConf */ }
     frame = render(t, lastConf);
   } catch (e) {
     frame = clr('yellow', `  waiting for ${path.relative(process.cwd(), STATUS)} …`) + clr('gray', '\n  (start the run: node run-fn-llm.js)');
