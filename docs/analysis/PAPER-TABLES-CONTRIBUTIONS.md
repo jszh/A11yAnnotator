@@ -95,7 +95,10 @@ Evidence forms (NONE is the harness's deployed form except where noted):
 | LLM + v3 signals + full-page vision | full-page | 35/66 | 68.2 | **80.4** | 0.74 | 2.8 |
 | LLM + raw HTML + vision | targeted | 37/66 | 71.2 | 63.5 | 0.67 | 6.9 |
 | LLM + v3 signals + HTML + vision | targeted | 41/66 | **77.3** | 68.0 | 0.72 | 6.1 |
-| **Full: v3 signals + vision + tools** | targeted | 38/66 | 72.7 | 80.0 | **0.76** | 3.1 |
+| **Full: v3 signals + vision + tools** | targeted | 38/66 | 72.7 | 80.0 | 0.76 | 3.1 |
+| Full + HTML (full markup) | targeted | 40/66 | 75.8 | 75.8 | 0.76 | 4.1 |
+| Full + HTML + full-page vision | full-page | 43/66 | 78.8 | 72.2 | 0.75 | 5.1 |
+| **Full + HTML, style-stripped** (facet-routed markup) | targeted | 42/66 | **78.8** | 76.5 | **0.78** | 4.1 |
 
 **Two independent levers (the corrected central finding).**
 - **Vision is the RECALL lever.** name/role 6 → +vision 26 (LLM-lane). The model must *see* the rendered page
@@ -112,9 +115,20 @@ Evidence forms (NONE is the harness's deployed form except where noted):
   (signals+HTML+vision) reaches the **highest recall (77.3%)** but over-flags (precision 68%) — the markup
   invites barriers the page denies. The single-run combination realizes only part of the union (LLM-lane 41,
   not 46).
-- **Tools are precise recall (the F1 winner).** The Full config adds recall at **80% precision** → best F1
-  (0.76); CDP probes ground the model the way raw markup cannot. Tools buy *less* raw recall than HTML
-  (72.7 vs 77.3) but at far higher precision (80 vs 68).
+- **Tools are precise recall.** Over the Full config, CDP probes add recall at **80% precision**; they ground
+  the model the way raw markup cannot, buying *less* raw recall than HTML (72.7 vs 77.3) but at far higher
+  precision (80 vs 68).
+- **Route-by-facet applies to raw markup too (the F1 winner).** Adding *full* HTML to the Full config trades
+  precision for recall (75.8/75.8, F1 0.76) — an RCA found its #1 FP source is the model reading inline
+  `style="color:#888"` off the markup and **re-deriving 1.4.3 contrast**, overriding the deterministic ratio +
+  applicability the runner owns (also: over-eager 2.4.4 from raw hrefs). Its recall *benefit* is structural —
+  it exposes barriers the curated signals under-collect (e.g. 1.3.1 on a `div`/`role=grid` table the
+  `<table>`-only collector misses). **Stripping inline `style=` from the HTML** — keeping the structural facets
+  (tags/ARIA/href/text), removing the computed facet (colour) a runner owns — recovers the precision while
+  keeping the recall: **78.8 recall / 76.5 precision / F1 0.78**, the best of all 12 configurations and above
+  the deployed Full (0.76). The contrast FPs drop 4→2 (the residual 2 are *vision*-driven, not HTML). So the
+  harness's central route-by-facet thesis extends to markup itself: even when handing the LLM HTML, strip the
+  deterministic facets and keep the structural ones.
 
 **Methodology — a measurement confound worth reporting.** The naive no-vision numbers were near-zero, which
 first read as "the LLM is useless without our evidence." That was an artifact: the rubric lane has a
