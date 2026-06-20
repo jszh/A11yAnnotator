@@ -78,14 +78,16 @@ construction; this is precisely the existing-checker gap):**
 Decomposed into the **deterministic floor** + the **LLM lane's OWN** contribution (LLM-flagged barriers),
 so the LLM's value is not hidden behind the always-on detectors. These are disjoint: end-to-end = det ∪ LLM.
 
-| Configuration | Det. detectors | **LLM lane (LLM-flagged)** | = End-to-end recall | FP rate |
-|---|---|---|---|---|
-| existing checkers (axe) — by construction | 0/66 | — | 0.0 | 0.0 |
-| v3 deterministic detectors, no LLM | 10/66 (15.2%) | — (off) | 15.2 | 0.3 |
-| LLM, **axe-level evidence** (no v3 evid., no vision, no tools) | 10/66 | **0/66 (+0.0)** | 15.2 | 0.3 |
-| LLM **+ v3 evidence + vision** (no tools) | 10/66 | **34/66 (+51.5)** | 66.7 | 3.3 |
-| **LLM + v3 evidence + vision + tools (Full)** | 10/66 | **40/66 (+60.6)** | **75.8** | 3.3 |
-| (prior harness: LLM-only, no v3) | — | — | 53.0 | 11.0 |
+Last four columns (Recall / FP / Precision / F1) are the combined det ∪ LLM end-to-end output.
+
+| Configuration | Det. detectors | **LLM lane (its own)** | Recall ↑ | FP ↓ | Prec ↑ | F1 ↑ |
+|---|---|---|---|---|---|---|
+| existing checkers (axe) — by construction | 0/66 | — | 0.0 | 0.0 | — | — |
+| v3 deterministic detectors, no LLM | 10/66 (15.2%) | — (off) | 15.2 | 0.3 | **90.9** | 0.26 |
+| LLM, **axe-level evidence** (no v3 evid./vision/tools) | 10/66 | **0/66 (+0.0)** | 15.2 | 0.3 | **90.9** | 0.26 |
+| LLM **+ v3 evidence + vision** (no tools) | 10/66 | **34/66 (+51.5)** | 66.7 | 3.3 | 77.2 | 0.72 |
+| **LLM + v3 evidence + vision + tools (Full)** | 10/66 | **40/66 (+60.6)** | **75.8** | 3.3 | 79.4 | **0.78** |
+| (prior harness: LLM-only, no v3) | — | — | 53.0 | 11.0 | 44.9 | 0.49 |
 
 **Why the two top LLM rows look like the detector row in *end-to-end* terms, and why that is the point:**
 `V3_MINIMAL_EVIDENCE` strips the LLM's evidence but does NOT turn off the deterministic detectors, so the
