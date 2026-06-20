@@ -107,3 +107,32 @@ different, genuine axe rule, so no recall is lost.
 The recurring lesson, now twice-confirmed: a deterministic detector that "passes its tuned examples" can still
 over-fire on the rest of the rule, and the only way to know is to attack the FULL rule end-to-end. Two of the most
 confident "sound by construction" claims in the codebase were wrong; the held-out sweep is the standing gate.
+
+---
+
+## Full run (run8, 458 cases) + scorer correction
+
+First full FN×LLM run with the instruments lane live (`results/run8-instruments`, 0 errors). The run exposed a
+SCORER bug, not detector over-fire: `inScopeBarrierFilled` (the c5e520a minted-barrier credit) tested
+`autoPartial === false`, which also matched a DELIBERATE `PARTIAL` (a checker/runner/instrument flagging an
+obligation for REVIEW without asserting a barrier). Scoring "the harness deferred" as "the harness caught it"
+inflated both recall and FP. Fixed (commit 1bd433d) to count `disposition === 'PROVISIONAL'` only.
+
+RCA of all 30 run8 specificity FPs: **0 were real `PROVISIONAL` deterministic over-fire** — the generalization
+work held. 17 were deferred-`PARTIAL`s the scorer miscounted; 13 were genuine LLM rubric over-flags. Re-scoring
+run8 (rebuild the 24 deterministic-fill catches, classify PROVISIONAL vs PARTIAL, re-apply the scorer to the
+actual outcomes) flipped 19 inflated catches (17 FP-side, 2 recall-side).
+
+Apples-to-apples vs run4 (run4 predates the c5e520a `barrierFilled` credit — all its catches were LLM-verdict,
+so it carries zero deferred-PARTIAL inflation and needs no re-scoring):
+
+| metric | run4 (LLM-only) | run8 re-scored (LLM + detectors) |
+|---|---|---|
+| Recall | 53% (35/66) | **76% (50/66)** |
+| FP rate | 11.0% (43) | **3.3% (13/392)** |
+| Precision | 45% | **79%** |
+
+Both FP sets are entirely LLM over-flags (run4 had no deterministic detectors), so the **LLM lane itself went
+43 → 13 FPs** — the deterministic detectors subtract settled obligations from the auto-PARTIAL set (fewer reach
+the LLM to mis-flag) and the rubric/evidence fixes clear more passed cases. Residual work is the ~13 LLM
+over-flags (2.4.4 / 1.1.1) — rubric RCA, not detector work — and the #11/#12 evidence-acted-on-by-rubric gap.
