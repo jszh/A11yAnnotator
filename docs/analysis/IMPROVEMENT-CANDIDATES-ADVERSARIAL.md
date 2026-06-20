@@ -23,9 +23,12 @@ to remove 2 FPs; the gated config's 2.1.2 FNs rose to **4** (vs 2 ungated). The 
 gated = 51 TP / 12 FP → F1 0.791; ungated 2.1.2 ≈ 53 TP / 14 FP → **F1 ≈ 0.797**. 4.1.2 is clean (HTML helped
 0/6 of its recall — verified), 1.4.3 is clean (its HTML benefit is 0, all over-flag).
 
-**Verdict: DROP 2.1.2 from the gate** (set {1.4.3, 4.1.2}); the principled fix for keyboard-trap is
-facet-level deferral to the live keyboard instrument on the *escape* question, not a blanket SC gate. Being
-verified by exp18 (`V3_HTML_GATE_SCS=1.4.3,4.1.2`). The gate set is now env-tunable.
+**Verdict (REVISED after the run): KEEP the gate as shipped {1.4.3,4.1.2,2.1.2}.** My F1 estimate (0.797)
+was WRONG — exp18 (`V3_HTML_GATE_SCS=1.4.3,4.1.2`) gave **0.782 < the gated 0.791** (recall +1 but FP +3 on a
+fresh run, not the estimated +2/+2; LLM non-determinism dominated the point estimate). A real tension exists
+(2.1.2 is mixed-facet) but blanket-ungating does not help; the principled fix is facet-level deferral to the
+live keyboard instrument on the *escape* question. **Lesson: the run is ground truth; the estimate was
+within-noise optimism.** Gate set left env-tunable (`V3_HTML_GATE_SCS`) for the eventual facet-level fix.
 
 ## A. Feed 2.4.4 destination *content* (resolve_destination) so the model judges purpose, not URL — DROP
 
@@ -40,9 +43,12 @@ each destination and let the model compare content.
    **same path, different query** = same purpose (pagination). The model over-flags because it compares the
    whole URL string.
 
-**Verdict: DROP the fetch; PURSUE a cheaper alternative** — a structured signal on `sameNameLinks` that
-normalizes destinations (same-path/different-query → "likely same purpose"; different-path → "possibly
-different"), so the model judges path-divergence not query-divergence. No network, no missing files.
+**Verdict: DROP — and the URL-structure alternative is ALSO refuted (scoped test).** Characterizing all 24
+fd3a94 cases by URL pattern: the discriminator is **the opposite** of a clean heuristic — `contact-us.html?page=1`
+vs `?page=2` (same-path/diff-query) are GT-**failed** (real barriers the LLM correctly catches), while
+`index.html` vs `index-copy.html` (diff-path) are GT-**passed** (same purpose). So a "same-path → same purpose"
+signal would *clear the real `?page` barriers*. 2.4.4 equivalent-purpose is irreducibly semantic; no cheap
+URL signal works, and (Method G) neither model capacity nor reasoning effort fixes it either.
 
 ## B. Compute the deterministic contrast facet on the ACT collector path — PURSUE (root cause found)
 
@@ -62,11 +68,32 @@ inactive components; use the large-text threshold), or it just moves the over-fl
 deterministic FP. Counterexample if skipped: `#777`-on-`#EEE` is 3.5:1 (< 4.5) → a naive deterministic check
 flags it, but the case is inapplicable → still an FP.
 
-**Verdict: PURSUE** — port `eval-page.js`'s contrast computation (`color`/`effBg`/ratio/`reliable` + the
-existing pixel-contrast runner hook) into `act-page-collect.js`, *with* the inactive/large-text applicability.
-Then flat-colour contrast is settled deterministically and the rubric only routes genuinely-ambiguous
-complex-backdrop cases (`reliable=false`) to the LLM. Highest-value of the candidates: a clean root cause + a
-principled fix that removes the systematic contrast FP at the source. (Cross-ref: routing-analysis Tier-0 #2.)
+**Verdict: PURSUE — split into two, part 1 SHIPPED.** Scoped `--sc=1.4.3` test (exp20) splits B:
+- **Part 1 — inactive-component exemption (SHIPPED, commit ecca50e).** The afw4f7 inapplicable FPs are all
+  DISABLED controls (`<fieldset disabled>`, `<div role=button aria-disabled>`, a `<label>` wrapping / named-by a
+  disabled control). `act-page-collect` now flags `inactiveText`; the oracle skips the 1.4.3 obligation.
+  Probe-verified: all 4 disabled cases → exempt (noObligation); 3 real GT-fail barriers NOT exempted (0
+  over-fire). WCAG-correct (1.4.3 exempts inactive components).
+- **Part 2 — contrast-RATIO port (PURSUE, the bigger half).** The residual exp20 FPs are now all on **active**
+  controls (`319a4651`/`aed692e9`: bold/large text the LLM eyeballs as "indistinguishable"). These need the
+  computed ratio + bold/large threshold from `eval-page.js` ported to the ACT path, so flat-colour contrast is
+  *settled* deterministically and the rubric only routes complex-backdrop (`reliable=false`) cases. Highest
+  remaining value. (Cross-ref: routing-analysis Tier-0 #2.) Also: replicate `inactiveText` on the eval-page
+  (corpus) path for parity.
+
+## G. Faceted LLM — stronger model / higher reasoning for hard (high-FP/FN) categories — DROP
+
+**Idea:** route the hard categories (2.4.4, 4.1.2, 1.1.1) to Opus or `effort=high` instead of Sonnet/medium.
+
+**Targeted experiments.** (1) `effort=high` full run (exp19) vs medium (exp17): F1 **0.768 < 0.791**; the
+systematic FPs (2.4.4 ×4) and hard FNs (4.1.2 ×3, 1.1.1 ×3) are **identical** — stable across effort. (2) Opus
+scoped to 2.4.4 (exp21) vs Sonnet: Opus is *more conservative* — TP **13→9**, FP 4→3 → F1 **0.69 vs 0.84**. It
+trades 4 real barriers for 1 fewer FP, the wrong direction for detection.
+
+**Verdict: DROP.** Neither reasoning effort nor model capacity selectively fixes the systematic errors — they
+are **evidence/knowledge-limited, not capacity-limited** (purpose-equivalence and alt-adequacy are genuinely
+ambiguous). Confirms the harness thesis: improvement comes from *evidence provisioning* (Method B part 2), not
+LLM scaling.
 
 ## C. Self-consistency / multi-seed voting (reduce LLM noise) — DROP (only fixes the noise tail)
 
@@ -122,10 +149,14 @@ for the paper's limitation section.
 
 ---
 
-## Ranked action list
+## Ranked action list (post-scoped-test)
 
-1. **Method 0** — drop 2.1.2 from the gate (verifying via exp18). *Cheap, F1 +~0.006.*
-2. **Method B** — port the contrast facet (with applicability) to the ACT collector. *Highest value: removes the systematic contrast FP at the source.*
-3. **Method A-alt** — URL-structure signal on `sameNameLinks` (same-path/different-query → same purpose). *Cheap; addresses the dominant residual FP (2.4.4 ×3–4).*
-4. **Method E** — broaden ARIA-grid detection (keep §E substance-gate). *Determinism win.*
-5. **Drop:** C (voting), D (skeptic) — dominated by route-by-facet; only touch the noise tail / share the blind spot.
+1. **Method B part 2** — port the contrast-RATIO computation (with the bold/large threshold) to the ACT
+   collector, settling active flat-colour contrast deterministically. *Top remaining value: removes the active
+   contrast FPs at the source.* (Part 1, the inactive-exemption, is shipped.)
+2. **Method E** — broaden ARIA-grid detection (keep §E substance-gate). *Determinism win; HTML already recovers d0f69e.*
+3. **Method B parity** — replicate `inactiveText` on the eval-page (corpus) path.
+4. **DROP:** Method 0 (gate-ungate, run-refuted), A (URL signal, scoped-refuted), C (voting), D (skeptic),
+   G (faceted-LLM, effort + Opus both refuted). The throughline: every generic LLM lever (more votes, a
+   skeptic pass, more reasoning, a bigger model) is dominated by *provisioning the right facet-routed
+   evidence* — that fixes the systematic errors at the source; the LLM tricks only touch the noise or hurt.
