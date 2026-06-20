@@ -739,7 +739,10 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
     // ANY declared frame is missing — capture skipped the element (off-viewport / <6px / hidden), or the
     // transition isn't driven yet (the form-submit pair for 3.3.1/3.3.3 is not produced) — ABSTAIN rather
     // than judge BLIND. Missing declared evidence ⇒ the obligation simply stays auto-PARTIAL (honest "could not decide").
-    if (declaredVision.length && frames.length < declaredVision.length) return null;
+    // NO-VISION ablation fairness (V3_NO_VISION_RUBRIC): BYPASS the gate so the LLM is actually CALLED without the
+    // crops — otherwise a no-vision run abstains here before the model ever runs, and its 0 recall is a gate
+    // artifact, not a measurement of what the model can do from text. (Paired with the de-visioned rubric note.)
+    if (declaredVision.length && frames.length < declaredVision.length && process.env.V3_NO_VISION_RUBRIC !== '1') return null;
     const checkerHint = (checkerHintsByXpath[subj.xpath] || []).find((h) => h.sc === subj.sc) || null;
     const messages = buildMessages({ xpath: subj.xpath, skill: subj.skill, sc: subj.sc, claimFamily: subj.claimFamily }, signals, transcriptByXpath[subj.xpath], frames, { rubric: rub.text, checkerHint, toolsEnabled: opts.toolsEnabled });
     let out; const t0 = Date.now();
