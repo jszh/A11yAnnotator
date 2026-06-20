@@ -74,12 +74,28 @@ flags it, but the case is inapplicable → still an FP.
   disabled control). `act-page-collect` now flags `inactiveText`; the oracle skips the 1.4.3 obligation.
   Probe-verified: all 4 disabled cases → exempt (noObligation); 3 real GT-fail barriers NOT exempted (0
   over-fire). WCAG-correct (1.4.3 exempts inactive components).
-- **Part 2 — contrast-RATIO port (PURSUE, the bigger half).** The residual exp20 FPs are now all on **active**
-  controls (`319a4651`/`aed692e9`: bold/large text the LLM eyeballs as "indistinguishable"). These need the
-  computed ratio + bold/large threshold from `eval-page.js` ported to the ACT path, so flat-colour contrast is
-  *settled* deterministically and the rubric only routes complex-backdrop (`reliable=false`) cases. Highest
-  remaining value. (Cross-ref: routing-analysis Tier-0 #2.) Also: replicate `inactiveText` on the eval-page
-  (corpus) path for parity.
+- **Part 2 — contrast-RATIO port (TESTED → REVERTED).** Implemented the port (ratio + bold/large threshold +
+  a boundary guard) and scoped-tested it (`--sc=1.4.3`, exp22). It **failed**: a deterministic-mint FP on
+  `afw4f7/dc170fd0` (GT-pass). The fixture is `p{color:#ccc; background:#000 + black-hole.jpeg}` — at the
+  collector's settle moment the `<style>`/bg-image hadn't rendered, so `#ccc` read on default white → ratio
+  ~1.6 → "clear fail" → minted (a fresh probe, styles applied, correctly gets reliable=false). **Collection-
+  time contrast is timing-fragile** w.r.t. style/image application, so a deterministic disposition over it
+  mis-fires. The **vision LLM sees the RENDERED page**, so contrast is more robustly left to it. Also exposed a
+  genuine boundary issue: `319a4651` is GT-pass at ratio **4.43 vs 4.5** — the GT is lenient within rounding,
+  so strict deterministic contrast over-flags near the threshold regardless of timing. **Verdict: do not port
+  a deterministic contrast disposition to the ACT path.** A future *evidence-only* variant (surface the ratio
+  to the LLM where reliably flat, no disposition) is lower-risk but unproven; the active-control contrast FPs
+  are accepted as a near-threshold/ambiguity limitation. Reverted; B part 1 stands.
+
+**Opus FN deep-dive (refines Method G).** Analyzing the 2.4.4 barriers Opus missed: all 4 are confident
+`LIKELY_OK` clears (not abstain, not noObligation), and Opus *cites the destinations it was given* (chat/phone,
+`redirect1.html`, `?page` — verified factually grounded, not hallucinated). So: **0% missing signal**; **~70%
+model-calibration** (Opus has a stronger lenient "equivalent-purpose" prior — pagination/redirects/nearby text
+all read as equivalent); **~30% soft prompt-overfit** (the rubric states the strict rule, Sonnet follows it,
+Opus's lenient prior overrides the same instructions — so the prompt implicitly relies on Sonnet's disposition).
+A *model-robust* operational test ("differ in path OR query and the name alone doesn't state the distinct
+purpose → barrier; do not infer equivalence from redirects/pagination/non-enclosing text") would de-couple the
+rubric from Sonnet — but part of the gap is irreducible rule-ambiguity (some Opus clears are defensible).
 
 ## G. Faceted LLM — stronger model / higher reasoning for hard (high-FP/FN) categories — DROP
 
@@ -151,12 +167,15 @@ for the paper's limitation section.
 
 ## Ranked action list (post-scoped-test)
 
-1. **Method B part 2** — port the contrast-RATIO computation (with the bold/large threshold) to the ACT
-   collector, settling active flat-colour contrast deterministically. *Top remaining value: removes the active
-   contrast FPs at the source.* (Part 1, the inactive-exemption, is shipped.)
-2. **Method E** — broaden ARIA-grid detection (keep §E substance-gate). *Determinism win; HTML already recovers d0f69e.*
-3. **Method B parity** — replicate `inactiveText` on the eval-page (corpus) path.
-4. **DROP:** Method 0 (gate-ungate, run-refuted), A (URL signal, scoped-refuted), C (voting), D (skeptic),
-   G (faceted-LLM, effort + Opus both refuted). The throughline: every generic LLM lever (more votes, a
-   skeptic pass, more reasoning, a bigger model) is dominated by *provisioning the right facet-routed
-   evidence* — that fixes the systematic errors at the source; the LLM tricks only touch the noise or hurt.
+1. **Method E** — broaden ARIA-grid detection (keep §E substance-gate). *Determinism win; HTML already recovers d0f69e.*
+2. **Method B parity** — replicate `inactiveText` (B part 1) on the eval-page (corpus) path.
+3. **(optional) evidence-only contrast** — surface the flat-colour ratio to the contrast rubric *as evidence*
+   (no disposition), grounding the vision LLM where reliably flat. Lower-risk than the reverted deterministic
+   disposition; unproven — needs its own scoped test.
+4. **SHIPPED:** HTML promotion (default), B part 1 (1.4.3 inactive-component exemption).
+5. **DROP / REVERTED:** B part 2 (deterministic contrast — timing-fragile), Method 0 (gate-ungate, run-refuted),
+   A (URL signal, scoped-refuted), C (voting), D (skeptic), G (faceted-LLM — effort + Opus both refuted; the
+   Opus FN gap is model-calibration + soft prompt-overfit, not missing signal). The throughline: every generic
+   LLM lever (more votes, a skeptic pass, more reasoning, a bigger model) is dominated by — or, for deterministic
+   contrast, defeated by the timing-fragility of — *provisioning the right facet-routed evidence*; the durable
+   wins (det floor, route-by-facet, the inactive-exemption, the vision lane) all hold.
