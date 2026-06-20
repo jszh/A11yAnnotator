@@ -184,7 +184,13 @@ function htmlEvidence(element) {
   }
   return { rawElementHtml: h || null, enclosingHtml: e || null };
 }
-function precomputeSignals(element, skill) {
+// V3_HTML_FACET_GATE: facet-route the HTML augmentation. The RCA on the additional FPs showed raw markup
+// over-flags on facets a DETERMINISTIC producer owns — contrast (inline colour, 1.4.3), ARIA-validity
+// (aria-hidden="", 4.1.2), keyboard-trap (onblur handlers, 2.1.2) — where the LLM re-judges the facet off the
+// markup instead of deferring to the runner. So gate HTML OFF for those runner-owned SCs, keeping it for the
+// STRUCTURAL SCs (1.3.1 ARIA-tables, 2.4.4/2.4.6 context, 2.4.10) where markup is the recall benefit.
+const HTML_RUNNER_OWNED_SC = new Set(['1.4.3', '4.1.2', '2.1.2']);
+function precomputeSignals(element, skill, sc) {
   element = element || {}; // the `= {}` default only fires on undefined; a malformed `null` must not crash
   const s = {};
   // ABLATION (V3_HTML_EVIDENCE): replace the v3 structured signals with the element's RAW markup (+ its parent's),
@@ -475,7 +481,9 @@ function precomputeSignals(element, skill) {
   s.boxMin = num(element.box && typeof element.box === 'object' ? Math.min(element.box.w, element.box.h) : undefined);
   // V3_HTML_AUGMENT: ADD raw markup ON TOP of the full structured signals (vs V3_HTML_EVIDENCE which REPLACES
   // them). Tests whether the grounding signals can restore precision while HTML supplies the extra recall.
-  if (process.env.V3_HTML_AUGMENT === '1') { const he = htmlEvidence(element); s.rawElementHtml = he.rawElementHtml; s.enclosingHtml = he.enclosingHtml; }
+  if (process.env.V3_HTML_AUGMENT === '1' && !(process.env.V3_HTML_FACET_GATE === '1' && HTML_RUNNER_OWNED_SC.has(sc))) {
+    const he = htmlEvidence(element); s.rawElementHtml = he.rawElementHtml; s.enclosingHtml = he.enclosingHtml;
+  }
   return s;
 }
 
@@ -597,7 +605,7 @@ async function runAdjudication(subjects, opts = {}) {
   // make another subject reuse an id and bind the wrong element's crop. No shared mutation here.
   const computed = await runPool(subjects, concurrency, async (subj, i) => {
     const transcriptExcerpt = transcriptByXpath[subj.xpath];
-    const signals = precomputeSignals(subj.element, subj.skill);
+    const signals = precomputeSignals(subj.element, subj.skill, subj.sc);
     const { text: rubricText, visionEvidence } = getRubric(subj.skill);
     // supply EXACTLY the vision frames the rubric declares AND the collector captured for this element.
     const avail = visionByXpath[subj.xpath] || {};
@@ -746,7 +754,7 @@ async function runRubricJudgments(rubricSubjects, opts = {}) {
   const computed = await runPool(rubricSubjects, concurrency, async (subj, i) => {
     if (isLegacyToken(subj.rubricId)) return null; // a legacy-token rubric id would make the artifact reject — drop it
     const rub = subj.rubric || {};
-    const signals = precomputeSignals(subj.element, subj.skill);
+    const signals = precomputeSignals(subj.element, subj.skill, subj.sc);
     const avail = visionByXpath[subj.xpath] || {};
     const declaredVision = rub.visionEvidence || [];
     const frames = [];

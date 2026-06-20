@@ -32,6 +32,7 @@ const CONFIGS = [
   ['exp14-full-html', 'FULL + HTML: v3 + HTML + vision + TOOLS', 'targeted', 'name/role + v3 signals + HTML + tools'],
   ['exp15-full-html-fullpage', 'FULL + HTML + FULL-PAGE vision + TOOLS', 'full-page', 'name/role + v3 signals + HTML + tools'],
   ['exp16-full-html-nostyle', 'FULL + HTML (style-stripped) + vision + TOOLS', 'targeted', 'name/role + v3 signals + HTML(no-style) + tools'],
+  ['exp17-full-html-facetgate', 'FULL + HTML (style-stripped, FACET-GATED) + TOOLS', 'targeted', 'name/role + v3 signals + HTML(structural-only) + tools'],
 ];
 
 function metrics(dir) {
