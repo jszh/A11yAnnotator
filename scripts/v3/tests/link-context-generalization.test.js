@@ -93,6 +93,22 @@ test('#12 OVER-FIRE guard: a link INSIDE a sentence → linkAloneInBlock=false (
   assert.equal(sig.linkAloneInBlock, false, 'enclosing-block prose around the link must be recognized as context');
 });
 
+test('#12 nested list: a link in a child <li> inherits its ANCESTOR list-item subject as context', { skip: !chromeOK }, async () => {
+  const c = await collectHtml(`<ul><li>Ulysses<ul><li><a href="/4300-h.htm">HTML</a></li><li><a href="/4300.txt">Plain text</a></li></ul></li></ul>`);
+  const el = links(c).find((l) => (l.axName || l.text || '').trim() === 'HTML');
+  const sig = adj.precomputeSignals(el, 'name-role-state').enclosingContext;
+  assert.equal(sig.linkAloneInBlock, false, 'the ancestor <li> "Ulysses" is programmatic 2.4.4 context — a nested format link is not alone');
+});
+
+test('#12 OVER-FIRE guard: a table-cell link does NOT inherit a generic table title as context', { skip: !chromeOK }, async () => {
+  // table-cell HEADER cells are 2.4.4 context in principle, but a generic category title (<th>Books</th>) is not a
+  // SPECIFIC disambiguator and the LLM over-accepts it — so the signal deliberately does NOT gather table headers.
+  const c = await collectHtml(`<table><tr><th colspan="2">Books</th></tr><tr><td>Ulysses</td><td><a href="/d.htm">Download</a></td></tr></table>`);
+  const el = links(c)[0];
+  const sig = adj.precomputeSignals(el, 'name-role-state').enclosingContext;
+  assert.equal(sig.linkAloneInBlock, true, 'a generic table title must NOT be fed as disambiguating context (would falsely clear a real barrier)');
+});
+
 // ─────────────────────────── generalized prohibited-ARIA (variants outside the ACT examples) ───────────────────────────
 
 test('prohibited-ARIA GENERALIZES roledescription beyond div/span: <p>/<em> (prohibited roles) are flagged', { skip: !chromeOK }, async () => {

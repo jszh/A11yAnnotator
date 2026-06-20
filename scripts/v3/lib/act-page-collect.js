@@ -330,10 +330,28 @@ async function collectActPage(page, opts = {}) {
       // window.open) so a same-named JS-link SET can be destination-compared. A computed onclick (no string literal)
       // yields null — never a false signal. General over the nav idioms, not tied to one fixture's exact string.
       const jsHref = (function () { const oc = el.getAttribute('onclick') || ''; const m = oc.match(/(?:location\.href|location\.assign|location\.replace|location|window\.open)\s*(?:=|\()\s*['"]([^'"]+)['"]/i); return m ? m[1] : null; })();
-      // #12 (2.4.4 enclosing context): text of the link's NEAREST block ancestor — WCAG "programmatically determined
-      // link context". A link ALONE in its block (blockText == its own name) has NO enclosing context beyond its name;
-      // a preceding-SIBLING block is not enclosing. General block-ancestor set, not one fixture's structure.
-      const enclosingBlockText = (sampledRole === 'link' || tag === 'a') ? (function () { const bl = el.closest('p,li,td,th,dd,dt,figcaption,blockquote,caption,section,article,aside,header,footer,main,nav,details,form,fieldset'); return bl ? (bl.innerText || bl.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 300) : null; })() : undefined;
+      // #12 (2.4.4 enclosing context): the WCAG "programmatically-determined link context" — NOT just the link's
+      // nearest block. It includes the OWN text of each ANCESTOR list-item (a nested `<li>HTML</li>` under
+      // `<li>Ulysses</li>` IS disambiguated by "Ulysses"). `ownText` strips nested links so a parent <li>'s text is
+      // its OWN subject, not its child links. A preceding-SIBLING paragraph is still excluded (not an ancestor), and
+      // walking only ANCESTORS keeps the alone-in-its-own-block case (`<p><a>Workshop</a></p>`) correctly context-free.
+      // NOTE: table-cell HEADER cells are ALSO 2.4.4 context, but they are deliberately NOT gathered here — the LLM
+      // cannot reliably tell a SPECIFIC header (a row's subject) from a GENERIC category title (a `<th>Books</th>`
+      // spanning a download table), so feeding the generic title falsely cleared a real barrier. Deferred until the
+      // rubric can treat a generic-category header as insufficient disambiguation.
+      const enclosingBlockText = (sampledRole === 'link' || tag === 'a') ? (function () {
+        const ownText = (node) => { if (!node) return ''; const c = node.cloneNode(true); c.querySelectorAll('a,[role=link]').forEach((n) => n.remove()); return (c.textContent || '').replace(/\s+/g, ' ').trim(); };
+        const parts = []; let inBlock = false;
+        let n = el.parentElement, hops = 0;
+        while (n && hops < 8) { const t = n.tagName.toLowerCase();
+          if (/^(li|td|th|dd|dt|figcaption|blockquote|caption)$/.test(t)) { parts.push(ownText(n)); inBlock = true; }
+          else if (/^(p|h[1-6])$/.test(t)) { parts.push(ownText(n)); inBlock = true; break; }  // a paragraph/heading is a terminal enclosing block
+          n = n.parentElement; hops++; }
+        // NOT inside any enclosing block ⇒ null (no signal — defer to the LLM). Inside a block but no other text ⇒
+        // "" (linkAloneInBlock=true). Inside a block WITH disambiguating own-text ⇒ that text.
+        if (!inBlock) return null;
+        return parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+      })() : undefined;
       const box = el.getBoundingClientRect();
       const focusable = focusableByMarkup(el);
       const isFormField = fieldLike(el);
