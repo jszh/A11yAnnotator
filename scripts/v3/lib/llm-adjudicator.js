@@ -174,6 +174,9 @@ const RUBRIC_GATE = {
 function precomputeSignals(element, skill) {
   element = element || {}; // the `= {}` default only fires on undefined; a malformed `null` must not crash
   const s = {};
+  // ABLATION (V3_MINIMAL_EVIDENCE): strip ALL v3 evidence-provisioning signals — the LLM judges from the bare
+  // subject (name/role in the prompt) only, i.e. axe-level evidence. Used to measure the value of v3 precompute.
+  if (process.env.V3_MINIMAL_EVIDENCE === '1') return s;
   const num = (v) => (Number.isFinite(v) ? v : undefined);
   // S7 (RCA R7): target-size is a 2.5.x GEOMETRY check — it belongs to the pointer/target-size skill, NOT the
   // contrast skill. Attaching it to `color-and-visual-text` contaminated the contrast/complex-backdrop judgment
