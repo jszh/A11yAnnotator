@@ -62,10 +62,15 @@ Why axe-core is the fair baseline (verified on THIS corpus, not assumed):
 - **HTML_CodeSniffer**: adds exactly **1** unique catch over axe (+0.6 recall) but **quadruples FP** (3.0→12.1)
   and craters precision (89.8→68.6) — the known "spray" noise. Not a useful addition.
 - **Alfa**: 0 unique (prior comparison analysis).
-- The checkers' *indeterminate*/review flags (axe-incomplete, IBM POTENTIAL/MANUAL, htmlcs warnings) are NOT
-  decided catches — in the harness they are merged into a single `checkerFindings` stream and surfaced to the
-  LLM as **uncertainty hints**, i.e. they are the LLM lane's *evidence*, not existing-checker decisions, so they
-  do not belong in this baseline.
+- The checkers' *indeterminate*/review flags are NOT decided catches; they are the LLM lane's *evidence*, so
+  they do not belong in this baseline. VERIFIED end-to-end (not assumed): only **axe's `incomplete`** findings
+  are wired into the harness and reach the LLM — the prompt block `"external-checker cross-signal … flagged for
+  REVIEW"` appears in 2 run8 cases (both kb1m8s/4.1.2), and the LLM's thinking *starts from it*
+  (tc 17a785ed: "The checker flagged aria-prohibited-attr … let me check the computed role" → tool probe →
+  REPRODUCED on an `aria-label`-on-generic case the deterministic detector does NOT catch). **IBM, htmlcs,
+  QualWeb, and Alfa were run only in the standalone comparison, NOT inside the harness (`runChecker`=0), so
+  their indeterminate signals never reached the LLM in these runs.** (The designed multi-checker uncertainty
+  merge exists in code but only axe's leg is active.)
 
 **(ii) LLM-lane ablation — on the reaches-LLM *residual* (458 cases axe does NOT flag, so axe = 0 here by
 construction; this is precisely the existing-checker gap):**
