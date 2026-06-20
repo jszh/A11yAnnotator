@@ -81,8 +81,12 @@ so the LLM's value is not hidden behind the always-on detectors. These are disjo
 Last four columns (Recall / FP / Precision / F1) are the combined det ∪ LLM end-to-end output.
 
 Evidence tiers (NONE feeds raw HTML/markup — the harness describes each element structurally, never as a snippet):
-- **name/role only** = xpath + SC + claim-family + the rubric + the element's accessible *name/role/states* (the
-  VSR "announcement"). That is *all* the LLM gets here — no precompute signals, no vision, no tools.
+- **existing-checker evidence** ("harness − v3") = xpath + SC + claim-family + rubric + the element's accessible
+  *name/role/states* (VSR announcement) + **axe's own finding/uncertainty for the element** (the checker hint is
+  NOT stripped by `V3_MINIMAL_EVIDENCE`). This is what an LLM bolted directly onto existing checkers would see.
+  On the reaches-LLM residual every case is **axe-undecided by construction** (that is the definition of the
+  residual), so axe's contribution here is the review/uncertainty flag, not a decided finding. No v3 precompute
+  signals, no vision, no tools.
 - **+ v3 evidence** = the structured precompute *signals* (JSON): contrast ratios + the literal fg/threshold,
   same-name sibling-link destinations, enclosing-block context, decorative/removed-from-tree flags, computed
   states, etc. — i.e. the "route-by-facet" evidence bundle.
@@ -93,7 +97,7 @@ Evidence tiers (NONE feeds raw HTML/markup — the harness describes each elemen
 |---|---|---|---|---|---|---|
 | existing checkers (axe) — by construction | 0/66 | — | 0.0 | 0.0 | — | — |
 | v3 deterministic detectors, no LLM | 10/66 (15.2%) | — (off) | 15.2 | 0.3 | **90.9** | 0.26 |
-| LLM, **name/role only** (no v3 signals, no vision, no tools) | 10/66 | **0/66 (+0.0)** | 15.2 | 0.3 | **90.9** | 0.26 |
+| LLM, **existing-checker evidence** (name/role + axe findings/review; no v3 signals/vision/tools) | 10/66 | **0/66 (+0.0)** | 15.2 | 0.3 | **90.9** | 0.26 |
 | LLM **+ v3 evidence + vision** (no tools) | 10/66 | **34/66 (+51.5)** | 66.7 | 3.3 | 77.2 | 0.72 |
 | **LLM + v3 evidence + vision + tools (Full)** | 10/66 | **40/66 (+60.6)** | **75.8** | 3.3 | 79.4 | **0.78** |
 | (prior harness: LLM-only, no v3) | — | — | 53.0 | 11.0 | 44.9 | 0.49 |
