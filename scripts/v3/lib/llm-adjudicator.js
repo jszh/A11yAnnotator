@@ -189,7 +189,11 @@ function htmlEvidence(element, stripStyle) {
 // — so HTML is gated OFF for those runner-owned SCs and ON for STRUCTURAL SCs (1.3.1 ARIA-tables, 2.4.4/2.4.6
 // context, 2.4.10) where markup is the recall benefit. This is the DEPLOYED default (F1-best config: 77.3
 // recall / 81.0 precision on the reaches-LLM set, dominating the no-HTML Full on both axes).
-const HTML_RUNNER_OWNED_SC = new Set(['1.4.3', '4.1.2', '2.1.2']);
+// Env-configurable (V3_HTML_GATE_SCS, comma-separated) for gate-set tuning; default is the runner-owned set.
+// NOTE (adversarial review): 2.1.2 is a MIXED-facet SC — the onblur markup helps the LLM catch real traps too,
+// so SC-level gating loses TPs with the FPs; the principled fix is facet-level deferral to the live keyboard
+// instrument on the ESCAPE question. Kept under review; gate set is tunable here.
+const HTML_RUNNER_OWNED_SC = new Set((process.env.V3_HTML_GATE_SCS || '1.4.3,4.1.2,2.1.2').split(',').map((x) => x.trim()).filter(Boolean));
 function precomputeSignals(element, skill, sc) {
   element = element || {}; // the `= {}` default only fires on undefined; a malformed `null` must not crash
   const s = {};

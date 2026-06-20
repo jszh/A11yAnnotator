@@ -32,6 +32,7 @@ const CONFIGS = [
   ['exp14-full-html', 'FULL + HTML: v3 + HTML + vision + TOOLS', 'targeted', 'name/role + v3 signals + HTML + tools'],
   ['exp15-full-html-fullpage', 'FULL + HTML + FULL-PAGE vision + TOOLS', 'full-page', 'name/role + v3 signals + HTML + tools'],
   ['exp16-full-html-nostyle', 'FULL + HTML (style-stripped) + vision + TOOLS', 'targeted', 'name/role + v3 signals + HTML(no-style) + tools'],
+  ['exp18-gate-no212', 'DEFAULT, gate={1.4.3,4.1.2} (2.1.2 UN-gated)', 'targeted', 'facet-gated minus 2.1.2'],
   ['exp17-full-html-facetgate', 'FULL + HTML (style-stripped, FACET-GATED) + TOOLS', 'targeted', 'name/role + v3 signals + HTML(structural-only) + tools'],
 ];
 
