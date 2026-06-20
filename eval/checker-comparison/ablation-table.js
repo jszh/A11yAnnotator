@@ -26,7 +26,9 @@ const CONFIGS = [
   ['exp6-baseline-vision', 'LLM + v3 signals + FULL-PAGE vision', 'full-page', 'name/role + v3 signals'],
   ['exp9-namerole-vision', 'LLM + name/role + targeted vision', 'targeted', 'name/role'],
   ['exp2-llm-notools', 'LLM + v3 signals + targeted vision', 'targeted', 'name/role + v3 signals'],
-  ['run8-instruments', 'FULL: v3 + targeted vision + TOOLS', 'targeted', 'name/role + v3 signals + tools'],
+  ['exp12-html-vision', 'LLM + raw HTML + targeted vision', 'targeted', 'name/role + HTML'],
+  ['exp13-html-signals-vision', 'LLM + v3 signals + HTML + targeted vision', 'targeted', 'name/role + v3 signals + HTML'],
+  ['run8-rescored', 'FULL: v3 + targeted vision + TOOLS', 'targeted', 'name/role + v3 signals + tools'],
 ];
 
 function metrics(dir) {

@@ -286,3 +286,41 @@ non-authoritatively (shadow), so the extra coverage is harmless. (3) Adding 2.5.
 itself annotates "(builder: disregard this)"; the 22-SC selection is the deliberate scope. (4) The EN
 Inspection/Pass/Fail/Not-applicable → applicability-oracle + PARTIAL/PROVISIONAL mapping is a positioning point,
 not a code change.
+
+---
+
+## I. Network-egress guard: refine to per-resource-type policy IF the corpus gains legit external resources
+
+**Recorded 2026-06-20.** `tab-allocator.js` now installs a **hard network-egress guard** at the single tab
+chokepoint (commit 853149c): request interception aborts **every** non-local `http(s)` request (localhost
+exempted; `file:`/`data:`/`blob:`/`about:` continue). This stopped the gutenberg `.epub` fetch/stall (ACT 5effbb
+links to `gutenberg.org/ebooks/4300.epub.images`; the download-deny guard cancelled the SAVE but not the network
+FETCH — the 30-75s stall the exp-runners comment documents).
+
+**Why the BROAD block is correct TODAY (verified, not assumed).** Across all **602** fixture files, exactly **one**
+references an external embedded resource — a GitHub **`/blob/`** logo URL (`github.com/act-rules/…/act-logo.png`),
+which is the HTML viewer page, **not** a raw PNG, so it was **already broken before the guard**. Every other
+fixture is self-contained; all `file://` local resources still load (probe-verified). The gutenberg links are
+**href-only** (not embedded), so blocking their activation-fetch leaves both the rendered page and the href the
+LLM reads for 2.4.4 unchanged. And nothing about the block reaches the LLM: the collector has no console/network
+capture (its only handler is a no-op `page.on('pageerror', () => {})`), no precompute-signal/prompt field carries
+a network/error string, and the keyboard probe records the link as *operable* (`navigated=true` from intent), not
+as an error. So the broad block introduces **zero** LLM-visible info and zero rendering artifact on this corpus.
+
+**When to refine (the deferred work).** If the corpus is ever expanded to fixtures that LEGITIMATELY embed
+external rendering resources (external `<img>`/CSS/fonts that must appear in a vision crop — e.g. a real-site
+capture, or 1.1.1/1.4.5 cases whose image is hosted off-page), the broad block would corrupt those crops (broken
+images) and could mislead the LLM. Then refine the guard from "abort all external" to a **per-resource-type
+policy**:
+- **ALLOW** external `image` / `stylesheet` / `font` (`req.resourceType()`) — rendering fidelity for vision crops.
+- **BLOCK** external `document` (navigations / downloads — the `.epub` leak is a document/navigation request),
+  `xhr` / `fetch` / `websocket` / `media` / `script` (egress leaks + heavy fetches).
+- **Caveat (do not skip):** allowing external rendering resources **reintroduces a page-load stall risk** for slow
+  external hosts (the `goto({waitUntil:'load'})` waits on them). Pair the allow-list with a short per-request
+  timeout / abort-after-N-ms and/or a size cap so a slow external image cannot re-create the stall this guard was
+  added to remove. (This is exactly why the broad block is preferred while no legit external resource exists.)
+- Verify: a fixture with a real external image renders it in the crop; a fixture linking an external `.epub` still
+  gets `ERR_BLOCKED_BY_CLIENT` on activation; the local 5effbb probe still shows 0 leaked gutenberg requests.
+
+Low priority — purely contingent on a corpus change that has not happened; the current corpus makes the broad
+block strictly correct (no fidelity loss, no stalls, no leaks).
