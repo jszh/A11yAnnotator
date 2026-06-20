@@ -475,6 +475,11 @@ function buildPrompt(subject, signals, transcriptExcerpt, opts = {}) {
     `Claim family (bind your verdict to this): ${subject.claimFamily}`,
     '--- rubric ---',
     rubric,
+    // NO-VISION ablation fairness (V3_NO_VISION_RUBRIC): neutralize the rubric's visual-examination instructions so a
+    // text-only run is NOT penalized for abstaining on a crop it was never given. Without this, the rubric's "judge
+    // from the crop" lines make the LLM return PARTIAL for lack of vision — confounding the no-vision measurement.
+    ...(process.env.V3_NO_VISION_RUBRIC === '1' ? ['--- IMPORTANT: NO visual evidence is available for this judgment ---',
+      'No screenshot, crop, image, or rendered-pixel view is provided. DISREGARD every rubric instruction to examine a crop / image / surrounding-region / rendered pixels / "what you can SEE". Judge ONLY from the TEXTUAL evidence in this prompt (accessible name, role, signals, markup, context). Do NOT return PARTIAL merely because you cannot see the rendering — make your best determination from the available textual facts; return PARTIAL only if those facts THEMSELVES genuinely cannot resolve it.'] : []),
     // #44: tell the agent how to READ the deterministic signals — an `uncertainReason` is WHY a checker
     // abstained, and an absent signal/ratio means "could not decide", never "passes". (Atomic rubrics
     // additionally carry this in their "Interpreting the deterministic evidence" section.)
