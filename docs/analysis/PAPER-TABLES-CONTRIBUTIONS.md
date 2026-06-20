@@ -44,11 +44,28 @@ LLM lane only (prior harness) & 53.0 & 11.0 & 44.9 & 0.49\\
 
 Two denominators (the harness is two-stage: a deterministic pre-settle, then an LLM lane over the residual):
 
-**(i) Existing-checker baseline — full 581-corpus** (177 fail, 404 pass/inapplicable):
+**(i) Existing-checker baseline — full 581-corpus** (177 fail, 404 pass/inapplicable). We verified the
+"best existing checker" claim against a FIVE-engine comparison (axe-core, IBM Equal Access, QualWeb [the
+W3C ACT-Rules reference], HTML_CodeSniffer, Alfa), not axe alone:
 
 | System | Recall ↑ | FP rate ↓ | Precision ↑ | F1 ↑ |
 |---|---|---|---|---|
-| axe-core only (no LLM, no v3) | 59.9 (106/177) | 3.0 (12/404) | 89.8 | 0.72 |
+| **axe-core only** (best single) | 59.9 (106/177) | **3.0** (12/404) | **89.8** | 0.72 |
+| axe ∪ htmlcs (max-recall union) | 60.5 (107/177) | 12.1 (49/404) | 68.6 | 0.64 |
+
+Why axe-core is the fair baseline (verified on THIS corpus, not assumed):
+- **IBM Equal Access**: its decided SCs (1.4.12, 2.5.3) and review-prior SCs (1.4.1, 1.3.3) are **not in the
+  corpus's 13 SCs at all** → contributes 0.
+- **QualWeb** (W3C ACT-Rules reference impl): catches **0/8** of a residual-failure sample — the cases the
+  harness recovers are dynamic (keyboard-trap, focus-rests) or semantic (link-purpose, descriptiveness), which
+  no *static* engine, even the ACT reference, decides.
+- **HTML_CodeSniffer**: adds exactly **1** unique catch over axe (+0.6 recall) but **quadruples FP** (3.0→12.1)
+  and craters precision (89.8→68.6) — the known "spray" noise. Not a useful addition.
+- **Alfa**: 0 unique (prior comparison analysis).
+- The checkers' *indeterminate*/review flags (axe-incomplete, IBM POTENTIAL/MANUAL, htmlcs warnings) are NOT
+  decided catches — in the harness they are merged into a single `checkerFindings` stream and surfaced to the
+  LLM as **uncertainty hints**, i.e. they are the LLM lane's *evidence*, not existing-checker decisions, so they
+  do not belong in this baseline.
 
 **(ii) LLM-lane ablation — on the reaches-LLM *residual* (458 cases axe does NOT flag, so axe = 0 here by
 construction; this is precisely the existing-checker gap):**
