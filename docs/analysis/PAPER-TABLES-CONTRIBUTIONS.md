@@ -80,19 +80,28 @@ so the LLM's value is not hidden behind the always-on detectors. These are disjo
 
 Last four columns (Recall / FP / Precision / F1) are the combined det ∪ LLM end-to-end output.
 
+Evidence tiers (NONE feeds raw HTML/markup — the harness describes each element structurally, never as a snippet):
+- **name/role only** = xpath + SC + claim-family + the rubric + the element's accessible *name/role/states* (the
+  VSR "announcement"). That is *all* the LLM gets here — no precompute signals, no vision, no tools.
+- **+ v3 evidence** = the structured precompute *signals* (JSON): contrast ratios + the literal fg/threshold,
+  same-name sibling-link destinations, enclosing-block context, decorative/removed-from-tree flags, computed
+  states, etc. — i.e. the "route-by-facet" evidence bundle.
+- **+ vision** = rendered screenshot crops (element-crop + surrounding-region) to the multimodal model.
+- **+ tools** = live CDP probes (resolve_destination, query_ax_node, observe_state_after_activation, …).
+
 | Configuration | Det. detectors | **LLM lane (its own)** | Recall ↑ | FP ↓ | Prec ↑ | F1 ↑ |
 |---|---|---|---|---|---|---|
 | existing checkers (axe) — by construction | 0/66 | — | 0.0 | 0.0 | — | — |
 | v3 deterministic detectors, no LLM | 10/66 (15.2%) | — (off) | 15.2 | 0.3 | **90.9** | 0.26 |
-| LLM, **axe-level evidence** (no v3 evid./vision/tools) | 10/66 | **0/66 (+0.0)** | 15.2 | 0.3 | **90.9** | 0.26 |
+| LLM, **name/role only** (no v3 signals, no vision, no tools) | 10/66 | **0/66 (+0.0)** | 15.2 | 0.3 | **90.9** | 0.26 |
 | LLM **+ v3 evidence + vision** (no tools) | 10/66 | **34/66 (+51.5)** | 66.7 | 3.3 | 77.2 | 0.72 |
 | **LLM + v3 evidence + vision + tools (Full)** | 10/66 | **40/66 (+60.6)** | **75.8** | 3.3 | 79.4 | **0.78** |
 | (prior harness: LLM-only, no v3) | — | — | 53.0 | 11.0 | 44.9 | 0.49 |
 
 **Why the two top LLM rows look like the detector row in *end-to-end* terms, and why that is the point:**
 `V3_MINIMAL_EVIDENCE` strips the LLM's evidence but does NOT turn off the deterministic detectors, so the
-detectors still catch their 10. The honest measure is the **LLM-lane column**: an LLM fed only axe-level
-evidence flags **0/66 on its own** — it is useless without the harness's evidence provisioning. That same LLM,
+detectors still catch their 10. The honest measure is the **LLM-lane column**: an LLM given only the element's name/role
+(no v3 signals/vision/tools) flags **0/66 on its own** — it is useless without the harness's evidence provisioning. That same LLM,
 given the v3 evidence bundle, flags **34/66** (+51.5); tools add another **+6** (40/66). So the recall is
 produced by the *evidence*, not the LLM per se. End-to-end on the full 581 corpus the two-stage harness reaches
 ≈91% recall (deterministic pre-settle ~60% + LLM recovery of the residual; derived).
