@@ -81,12 +81,13 @@ so the LLM's value is not hidden behind the always-on detectors. These are disjo
 Last four columns (Recall / FP / Precision / F1) are the combined det ∪ LLM end-to-end output.
 
 Evidence tiers (NONE feeds raw HTML/markup — the harness describes each element structurally, never as a snippet):
-- **existing-checker evidence** ("harness − v3") = xpath + SC + claim-family + rubric + the element's accessible
-  *name/role/states* (VSR announcement) + **axe's own finding/uncertainty for the element** (the checker hint is
-  NOT stripped by `V3_MINIMAL_EVIDENCE`). This is what an LLM bolted directly onto existing checkers would see.
-  On the reaches-LLM residual every case is **axe-undecided by construction** (that is the definition of the
-  residual), so axe's contribution here is the review/uncertainty flag, not a decided finding. No v3 precompute
-  signals, no vision, no tools.
+- **existing-checker evidence** ("harness − v3") — what an LLM bolted onto existing checkers sees. Per residual
+  case the prompt is: xpath + SC + claim-family + rubric + the element's accessible *name/role/states* (VSR), and
+  the pre-computed signals block is **empty `{}`** — the v3 precompute is stripped AND axe has nothing decided to
+  put there (the residual is, by definition, the cases axe could not settle). A separate axe review-hint block
+  appears ONLY on the ~2/66 cases where axe returned needs-review; for the rest there is no axe block at all. So
+  on the residual this is effectively **name/role + an empty evidence block**, and that emptiness *is* the
+  existing-checker contribution — the v3 evidence is what fills the `{}`. No vision, no tools.
 - **+ v3 evidence** = the structured precompute *signals* (JSON): contrast ratios + the literal fg/threshold,
   same-name sibling-link destinations, enclosing-block context, decorative/removed-from-tree flags, computed
   states, etc. — i.e. the "route-by-facet" evidence bundle.
