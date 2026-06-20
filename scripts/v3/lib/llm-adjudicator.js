@@ -171,12 +171,25 @@ const RUBRIC_GATE = {
 // v2.9 PURE SIGNAL PRE-COMPUTE (3.1 §3): reuse a11y-eval verbatim where the inputs exist on the
 // element facts, so the agent reasons over the SAME deterministic measures v2.9 surfaced — never
 // re-deriving them. Side-effect-free; returns a structured signal bundle the prompt embeds.
+// V3_HTML_NOSTYLE: strip inline `style=` from raw-markup evidence so the LLM cannot re-derive a DETERMINISTIC
+// facet from the markup and override the runner that owns it. RCA (afw4f7): HTML's #1 FP source was the model
+// reading `style="color:#888"` off the markup and re-judging 1.4.3 contrast, ignoring the computed ratio +
+// applicability the signals encode. Stripping inline style keeps structural markup (tags, ARIA, href, text)
+// while removing the colour/geometry the model should defer to the deterministic facet on.
+function htmlEvidence(element) {
+  let h = element.htmlSnippet || null, e = element.enclosingHtml || null;
+  if (process.env.V3_HTML_NOSTYLE === '1') {
+    const strip = (s) => (typeof s === 'string' ? s.replace(/\sstyle=("[^"]*"|'[^']*')/gi, '') : s);
+    h = strip(h); e = strip(e);
+  }
+  return { rawElementHtml: h || null, enclosingHtml: e || null };
+}
 function precomputeSignals(element, skill) {
   element = element || {}; // the `= {}` default only fires on undefined; a malformed `null` must not crash
   const s = {};
   // ABLATION (V3_HTML_EVIDENCE): replace the v3 structured signals with the element's RAW markup (+ its parent's),
   // so we can measure whether raw HTML beats the route-by-facet evidence bundle. No other signals; no vision/tools.
-  if (process.env.V3_HTML_EVIDENCE === '1') return { rawElementHtml: element.htmlSnippet || null, enclosingHtml: element.enclosingHtml || null };
+  if (process.env.V3_HTML_EVIDENCE === '1') return htmlEvidence(element);
   // ABLATION (V3_MINIMAL_EVIDENCE): strip ALL v3 evidence-provisioning signals — the LLM judges from the bare
   // subject (name/role in the prompt) only, i.e. axe-level evidence. Used to measure the value of v3 precompute.
   if (process.env.V3_MINIMAL_EVIDENCE === '1') return s;
@@ -462,7 +475,7 @@ function precomputeSignals(element, skill) {
   s.boxMin = num(element.box && typeof element.box === 'object' ? Math.min(element.box.w, element.box.h) : undefined);
   // V3_HTML_AUGMENT: ADD raw markup ON TOP of the full structured signals (vs V3_HTML_EVIDENCE which REPLACES
   // them). Tests whether the grounding signals can restore precision while HTML supplies the extra recall.
-  if (process.env.V3_HTML_AUGMENT === '1') { s.rawElementHtml = element.htmlSnippet || null; s.enclosingHtml = element.enclosingHtml || null; }
+  if (process.env.V3_HTML_AUGMENT === '1') { const he = htmlEvidence(element); s.rawElementHtml = he.rawElementHtml; s.enclosingHtml = he.enclosingHtml; }
   return s;
 }
 
