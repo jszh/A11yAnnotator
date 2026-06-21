@@ -520,7 +520,21 @@ async function computeContrastRatio(page, args) {
       const cs = getComputedStyle(el);
       return { fontPx: parseFloat(cs.fontSize), fontWeight: cs.fontWeight };
     };
-    return { a: used(xa), b: usedB(xb), fontA: fontOf(xa) };
+    // text-shadow halo (Q1): a white-on-black glow gives glyphs an effective BACKING of the shadow colour, raising
+    // legibility above the flat text-vs-bg ratio — which the flat formula is blind to. Parse each shadow to its
+    // normalised rgba + offsets + blur (computed `textShadow` serialises as "<color> <ox> <oy> <blur>", comma-sep).
+    const shadowsOf = (xp) => {
+      const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
+      if (!el || el.nodeType !== 1) return [];
+      const ts = getComputedStyle(el).textShadow;
+      if (!ts || ts === 'none') return [];
+      return ts.split(/,(?![^(]*\))/).map((p) => p.trim()).filter(Boolean).map((p) => {
+        const cm = p.match(/rgba?\([^)]*\)|#[0-9a-fA-F]+/);
+        const nums = (p.match(/-?[\d.]+px/g) || []).map((v) => parseFloat(v));
+        return { color: cm ? toRgba(cm[0]) : null, ox: nums[0] || 0, oy: nums[1] || 0, blur: nums[2] || 0 };
+      }).filter((s) => s.color);
+    };
+    return { a: used(xa), b: usedB(xb), fontA: fontOf(xa), shadowsA: shadowsOf(xa) };
   }, nodeAXpath, nodeBXpath).catch(() => null);
   if (!cols || !cols.a || !cols.b) return { error: 'one or both nodes not found' };
   const pa = A.parseRGB(cols.a), pb = A.parseRGB(cols.b);
@@ -533,13 +547,30 @@ async function computeContrastRatio(page, args) {
   const textThreshold = fontPx != null ? A.contrastThresholdFor(fontPx, cols.fontA.fontWeight) : null;
   const isLargeText = fontPx != null ? A.isLargeText(fontPx, cols.fontA.fontWeight) : null;
   const th = Number.isFinite(threshold) ? threshold : (textThreshold != null ? textThreshold : 3);
+  // TEXT-SHADOW halo (Q1 consistency): a CONTRAST-ENHANCING halo gives the glyph an effective backing of the shadow
+  // colour, so legibility is bounded by text-vs-shadow, not the flat text-vs-bg. Credit a shadow ONLY when it is a
+  // genuine centred halo (real blur, offset within the blur — not a one-sided drop), OPAQUE (alpha >= 0.5), AND
+  // actually helps (shadow contrasts with the text MORE than the bg does). These guards stop a token/faint/drop
+  // shadow from clearing real low contrast. It is an APPROXIMATION (a thin halo may not fully back the glyph) — the
+  // flat `contrastRatio` is still surfaced as the worst-case, and the perceptual rubric/crop is the final arbiter.
+  let shadowAdjacentRatio = null; let shadowColor = null;
+  for (const sh of (cols.shadowsA || [])) {
+    const ps = A.parseRGB(sh.color);
+    if (!ps || (ps.a != null && ps.a < 0.5)) continue;                                  // opaque-ish only
+    if (!(sh.blur >= 1 && Math.abs(sh.ox) <= sh.blur && Math.abs(sh.oy) <= sh.blur)) continue; // centred halo, real extent
+    const sr = A.contrastRatioRaw([pa.r, pa.g, pa.b], [ps.r, ps.g, ps.b]);
+    if (sr > rawRatio && (shadowAdjacentRatio == null || sr > shadowAdjacentRatio)) { shadowAdjacentRatio = sr; shadowColor = sh.color; }
+  }
+  const shadowIsContrastEnhancing = shadowAdjacentRatio != null;
+  const effectiveTextRatio = shadowIsContrastEnhancing ? shadowAdjacentRatio : rawRatio;
   // `passes`/`passesAsText` compare the UNROUNDED ratio (WCAG "do not round up": 2.998 must NOT pass 3:1).
   return {
     colorA: cols.a, colorB: cols.b, source: 'cssom', contrastRatio: +rawRatio.toFixed(2),
     fontPx, isLargeText, textThreshold,
-    passesAsText: textThreshold != null ? rawRatio >= textThreshold : null, // USE THIS for 1.4.3 text contrast
+    ...(shadowIsContrastEnhancing ? { shadowColor, shadowAdjacentRatio: +shadowAdjacentRatio.toFixed(2), effectiveTextRatio: +effectiveTextRatio.toFixed(2) } : {}),
+    passesAsText: textThreshold != null ? effectiveTextRatio >= textThreshold : null, // USE THIS for 1.4.3 text contrast (credits a halo text-shadow)
     threshold: th, passes: rawRatio >= th,
-    note: 'WCAG ratio of two FLAT used-colours. For 1.4.3 TEXT contrast use passesAsText (textThreshold is font-derived: ' + (isLargeText ? '3.0 large-text' : '4.5 normal') + '); `passes` honours an explicit threshold override. Not an SC disposition.',
+    note: 'WCAG ratio of two FLAT used-colours' + (shadowIsContrastEnhancing ? ', RAISED by a contrast-enhancing text-shadow halo (passesAsText/effectiveTextRatio use text-vs-shadow ' + (+shadowAdjacentRatio.toFixed(2)) + '; flat contrastRatio is the no-shadow worst case — confirm legibility from the crop)' : '') + '. For 1.4.3 TEXT contrast use passesAsText (textThreshold font-derived: ' + (isLargeText ? '3.0 large-text' : '4.5 normal') + '); `passes` honours an explicit threshold override. Not an SC disposition.',
   };
 }
 
