@@ -314,6 +314,17 @@ async function collectActPage(page, opts = {}) {
     // run is by definition NOT truncated — the subset is the complete selection.
     const _domTotal = document.querySelectorAll('body *').length;
     let _cappedOut = false;
+    // 2.4.6 visible section-heading context (improvement A — VISIBILITY-AWARE per the held-out gate). A field/label's
+    // nearest preceding PERCEIVABLY-VISIBLE heading is the section context that can disambiguate a duplicate label
+    // (cc0f0a: a VISIBLE "Shipping" heading clears "Name"; an OFF-SCREEN `top:-9999px` "Shipping address" does NOT —
+    // it leaves the visible labels ambiguous, so the barrier stands). visible = not display:none/visibility:hidden/
+    // aria-hidden AND not off-screen/clipped. Document-ordered ⇒ the LAST preceding visible heading is the nearest.
+    const _HEADINGS = [...document.querySelectorAll('h1,h2,h3,h4,h5,h6,[role="heading"]')].map((h) => {
+      const r = h.getBoundingClientRect();
+      const off = r.left <= -1000 || r.top <= -1000 || (r.width <= 1 && r.height <= 1);
+      return { node: h, text: textOf(h).slice(0, 80), vis: visible(h) && !off && h.getAttribute('aria-hidden') !== 'true' && !h.closest('[aria-hidden="true"]') };
+    });
+    const _sectionHeading = (el) => { let t = null; for (const h of _HEADINGS) { if (h.vis && h.text && (el.compareDocumentPosition(h.node) & Node.DOCUMENT_POSITION_PRECEDING)) t = h.text; } return t; };
     for (const el of (_subset || document.querySelectorAll('body *'))) {
       if (!_subset) {
         if (els.length >= cap) { _cappedOut = true; break; }
@@ -494,6 +505,7 @@ async function collectActPage(page, opts = {}) {
         if (el.id) { try { const r = el.ownerDocument.querySelector('[aria-labelledby~="' + CSS.escape(el.id) + '"]'); if (r && (r.disabled || r.getAttribute('aria-disabled') === 'true' || r.closest('[disabled],[aria-disabled="true"]'))) return true; } catch (e) {} }
         return false;
       })();
+      const sectionHeading = (text.length > 0 || /^(input|select|textarea)$/i.test(el.tagName || '')) ? _sectionHeading(el) : null; // 2.4.6 visible section context (A) — labels AND fields
       if (!_subset && !focusable && !isFormField && !sampledRole && !text && !isImage && !liveRegion && !isMedia && !autoMotion && !backgroundImageMeaningful && !isCaptcha && !iframeTabExcluded && !focusableInAriaHidden && !prohibitedAriaAttr) continue; // a pre-selected subset element is always included
       els.push({
         xpath: xpathOf(el),
@@ -501,6 +513,7 @@ async function collectActPage(page, opts = {}) {
         text,
         hasText: text.length > 0,
         inactiveText, // 1.4.3 contrast exemption (B): part of/labels an inactive component → no contrast obligation
+        sectionHeading, // 2.4.6 (A): nearest preceding VISIBLE section heading (null if off-screen/none) — disambiguation context
         focusable,
         isInteractive, ownsInteractiveDescendants, hasKeyHandler,
         isFormField,

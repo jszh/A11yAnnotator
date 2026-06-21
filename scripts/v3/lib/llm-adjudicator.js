@@ -482,6 +482,10 @@ function precomputeSignals(element, skill, sc) {
       };
     }
   }
+  // 2.4.6 (improvement A): the nearest preceding VISIBLE section heading — disambiguation context for a duplicate
+  // label ("Name" under a visible "Billing" heading IS descriptive in context). null ⇒ no perceivable section
+  // heading (an off-screen one does NOT disambiguate the visible labels — the rubric must treat that as a barrier).
+  if (typeof element.sectionHeading === 'string' && element.sectionHeading) s.sectionHeading = element.sectionHeading;
   s.boxMin = num(element.box && typeof element.box === 'object' ? Math.min(element.box.w, element.box.h) : undefined);
   // V3_HTML_AUGMENT: ADD raw markup ON TOP of the full structured signals (vs V3_HTML_EVIDENCE which REPLACES
   // them). Tests whether the grounding signals can restore precision while HTML supplies the extra recall.

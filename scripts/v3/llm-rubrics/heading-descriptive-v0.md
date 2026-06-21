@@ -26,11 +26,15 @@ to the content it introduces (visible in the `viewport`). Failure modes:
   names an unrelated object or a generic concept rather than the field's purpose; a label assembled in the WRONG
   ORDER (e.g. a reversed `aria-labelledby` that concatenates its referenced tokens out of sequence) so the
   resulting name misreads the field; and the SAME label repeated on two or more fields of DIFFERENT purpose
-  where the label alone (NOT its surrounding legend/group heading) does not distinguish them — a user navigating
-  field-by-field hears the identical label twice and cannot tell which is which. Each is NON-descriptive →
-  **REPRODUCED**. Judge the label against what the field expects, visible in the `viewport`; do not clear a
-  label just because the single word is a real word, and for a repeated label judge whether IT — not its
-  container — distinguishes the field. You do NOT need to know the field's exact expected value to flag a label
+  where NEITHER the label NOR a PERCEIVABLE section heading distinguishes them. For the repeated-label case use
+  **`signals.sectionHeading`** — the field's nearest preceding VISIBLE section heading (null if the only heading
+  is off-screen/hidden): if the same-named fields sit under DIFFERENT *visible* section headings (e.g. one under
+  "Shipping", one under "Billing" — `sectionHeading` non-null and differing, confirmed in the `viewport`), the
+  label IS distinguished in context → **NOT REPRODUCED**. But if `sectionHeading` is **null** (the disambiguating
+  heading is OFF-SCREEN / hidden, so a sighted user sees the identical labels with no visible section cue) OR the
+  same-named fields share one section, the visible labels are ambiguous → **REPRODUCED**. (A vague/mismatched/
+  wrong-order label is non-descriptive on its own regardless of section.) Judge the label against what the field
+  expects, visible in the `viewport`; do not clear a label just because the single word is a real word. You do NOT need to know the field's exact expected value to flag a label
   that names an unrelated UI object or concept (e.g. a navigation/menu word on a free-text input): such a label
   fails ON ITS FACE → **REPRODUCED**, not PARTIAL/UNCERTAIN. Reserve PARTIAL only for a label that plausibly
   COULD describe the field but whose target/content you cannot see.
