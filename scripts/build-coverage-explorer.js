@@ -110,6 +110,34 @@ const MISSING = {
   '2.4.6': [Miss('missing', 'Form-LABEL descriptiveness — heading-descriptive-v0 judges HEADINGS; field-label-probe judges label PRESENCE; neither judges whether a form label is adequately DESCRIPTIVE.', 'beyond heading-descriptive', 'whether a form label (not heading) is descriptive')],
 };
 
+// ---- ACT-AUGMENTED corpus (optional overlay): the human-judgment test pages being built for the aspects ACT
+// rules structurally cannot reach. WORK IN PROGRESS — pages exist + are CDP-verified, but there is no HARNESS
+// eval verdict yet. Source: eval/act-augmented/_annotator/manifest.json (per-SC aspects → pages, references, TT).
+const ACTAUG = {}; let AA_PAGES = 0, AA_ASPECTS = 0;
+try {
+  const m = JSON.parse(R('eval/act-augmented/_annotator/manifest.json'));
+  const scs = Array.isArray(m) ? m : (m.scs || Object.values(m).find(Array.isArray) || []);
+  for (const s of scs) {
+    const aspects = (s.aspects || []).map((a) => ({ slug: a.slug, title: a.title || a.slug, plain: a.plain || '', desc: a.description || '', why: a.whyUncovered || a.scLimb || '', priority: a.priority || '', refs: a.references || [], tt: a.ttTests || [], pages: (a.pages || []).map((p) => ({ id: p.id || '', scenario: p.scenario || '' })), pageCount: (a.pages || []).length }));
+    if (aspects.length) { ACTAUG[s.sc] = { aspects, totalPages: aspects.reduce((n, a) => n + a.pageCount, 0) }; AA_ASPECTS += aspects.length; AA_PAGES += ACTAUG[s.sc].totalPages; }
+  }
+} catch (e) {}
+function actAugPane(sc, a) {
+  return `<p class="aaplain">${esc(a.plain)}</p><p>${esc(a.desc)}</p>
+    ${a.why ? `<p><b>Why ACT rules can't reach it:</b> ${esc(a.why)}</p>` : ''}
+    <p><b>Associates with:</b> guideline SC ${esc(sc)}${a.tt && a.tt.length ? ` · Trusted Tester ${esc(a.tt.join(', '))}` : ''}${a.priority ? ` · priority ${esc(a.priority)}` : ''}</p>
+    ${a.refs && a.refs.length ? `<h5>Technique / failure references</h5><ul>${a.refs.map((r) => `<li><code>${esc(r.doc || '')}</code>${r.quote ? ` — “${esc(String(r.quote).slice(0, 180))}…”` : ''}</li>`).join('')}</ul>` : ''}
+    <h5>Test pages — ${a.pageCount} human-judgment page${a.pageCount === 1 ? '' : 's'} <span class="wip">(WIP · no harness verdict yet)</span></h5>
+    <ul class="aapages">${a.pages.map((p) => `<li><code>${esc(p.id)}</code>${p.scenario ? ` — ${esc(String(p.scenario).slice(0, 140))}` : ''}</li>`).join('')}</ul>`;
+}
+function actAugRow(sc) {
+  const A = ACTAUG[sc]; if (!A || !A.aspects.length) return '';
+  const chips = A.aspects.map((a) => { const k = 'aa-' + sc + '-' + a.slug; addPane(k, `Act-augmented aspect — ${a.title}`, actAugPane(sc, a));
+    return `<button class="aachip" data-detail="${k}"><span class="aatitle">${esc(a.title.slice(0, 56))}${a.title.length > 56 ? '…' : ''}</span><span class="aacount">${a.pageCount}p</span>${a.priority === 'high' ? '<span class="aapri">high</span>' : ''}</button>`;
+  }).join(' ');
+  return `<tr class="actaug" data-sc="${sc}"><td colspan="6"><span class="aalabel">⚗ Act-augmented tests (WIP — human-judgment pages, no harness eval yet):</span> <b>${A.aspects.length}</b> aspects ACT rules can't reach · <b>${A.totalPages}</b> pages &nbsp; ${chips}</td></tr>`;
+}
+
 // ---- render ----
 const detailPanes = [];
 const addPane = (key, title, html) => { detailPanes.push(`<div class="pane" id="pane-${key}">${title ? `<h3>${esc(title)}</h3>` : ''}${html}</div>`); };
@@ -172,7 +200,7 @@ function scRows(e) {
     const missLis = missing.map((m) => `<li><span class="gsrc ${m.kind === 'partial' ? 'part' : 'miss'}">${m.kind === 'partial' ? 'PARTIAL COVERAGE' : 'NO COMPONENT'}</span> ${esc(m.text)} <span class="cite">[${esc(m.cite)}]</span><div class="quote">Requirement aspect not covered: <mark>${esc(m.hi)}</mark></div></li>`).join('');
     gapRow = `<tr class="gap" data-gap="1"><td colspan="5"><strong>⚠ Not fully covered:</strong><ul class="gaps">${errLis}${missLis}</ul></td></tr>`;
   }
-  return pathRows.join('') + gapRow;
+  return pathRows.join('') + gapRow + actAugRow(e.sc);
 }
 
 const EN_SCOPE = [
@@ -215,6 +243,9 @@ thead th{position:sticky;top:0;background:#f6f8fa;font-size:12px;text-transform:
 .chip{font:inherit;font-size:11.5px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:2px 9px;cursor:pointer;margin:1px 2px 1px 0}.chip:hover{border-color:#0969da}.chip.en{border-color:#6e7781}.chip.tt{border-color:#bf8700}
 .none{color:var(--mut);font-size:11px;font-style:italic}
 tr.gap td{background:#fff5f5;border-top:2px solid #ffd0d0}tr.gap .gaps{margin:4px 0 0;padding-left:18px}tr.gap li{margin:6px 0}
+tr.actaug{display:none}tr.actaug td{background:#eef5ff;border-top:1px dashed #9ec3ff;font-size:12px}
+.aalabel{color:#0a4a82;font-weight:700}.aachip{font:inherit;font-size:11px;border:1px solid #9ec3ff;background:#fff;border-radius:6px;padding:2px 7px;cursor:pointer;margin:2px 3px 0 0;display:inline-flex;gap:5px;align-items:center;vertical-align:top}.aachip:hover{border-color:#0969da}.aacount{color:#0a4a82;font-weight:700}.aapri{font-size:9px;background:#ffe0c2;color:#8a4b00;padding:0 4px;border-radius:3px}
+.aaplain{font-style:italic;color:#444}.aapages{font-size:12px}.wip{color:var(--a);font-weight:600;font-size:11px}
 .gsrc{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-right:5px}.gsrc.err{background:#ffe3e3;color:#a40e26}.gsrc.miss{background:#ffe0c2;color:#8a4b00}.gsrc.part{background:#fff3cd;color:#7a5200}
 .cite{font-size:11px;color:var(--mut)}
 .quote{margin:4px 0;padding:6px 10px;background:#fff;border-left:3px solid var(--a);border-radius:3px;font-size:12.5px}.cases{font-size:11.5px;color:var(--mut)}
@@ -239,6 +270,7 @@ footer{color:var(--mut);font-size:12px;padding:6px 24px 30px}
 <div class="controls">
 <input id="q" type="search" placeholder="Filter by SC, name, tool, experiment, rule id…" style="min-width:300px">
 <label><input type="checkbox" id="hidecov"> hide fully-covered (show only SCs with an error or an uncovered aspect)</label>
+<label><input type="checkbox" id="showaa"> show act-augmented tests (WIP · ${AA_ASPECTS} aspects · ${AA_PAGES} pages)</label>
 </div>
 </header>
 <div class="wrap">
@@ -251,19 +283,20 @@ footer{color:var(--mut);font-size:12px;padding:6px 24px 30px}
 ${enScopeHtml}
 </div>
 </div>
-<footer>Full pipeline (deterministic + axe + LLM) over ${esc((RUNSRC || '').replace('results/', '').replace('/results.json', '') || 'no run')}: ${RUN_N} ACT cases, ${accPct}% accuracy, ${errRuleCount} rules with FP/FN errors. ${missSCs} SCs have a requirement aspect covered by no component (completeness gaps). See <code>docs/reference/COVERAGE-AND-GAPS.md</code>.</footer>
+<footer>Full pipeline (deterministic + axe + LLM) over ${esc((RUNSRC || '').replace('results/', '').replace('/results.json', '') || 'no run')}: ${RUN_N} ACT cases, ${accPct}% accuracy, ${errRuleCount} rules with FP/FN errors. ${missSCs} SCs have a requirement aspect covered by no component (completeness gaps). The optional <b>act-augmented</b> overlay shows ${AA_PAGES} human-judgment pages across ${AA_ASPECTS} aspects ACT rules can't reach (work in progress — no harness verdicts yet). See <code>docs/reference/COVERAGE-AND-GAPS.md</code>.</footer>
 <div class="modal" id="modal"><div class="box"><button class="close" id="close">✕ close</button><div id="modalbody"></div></div></div>
 <div hidden id="panes">${detailPanes.join('\n')}</div>
 <script>
 const modal=document.getElementById('modal'),body=document.getElementById('modalbody');
 document.addEventListener('click',e=>{const b=e.target.closest('[data-detail]');if(b){const p=document.getElementById('pane-'+b.dataset.detail);body.innerHTML=p?p.innerHTML:'';modal.classList.add('open');}if(e.target.id==='close'||e.target===modal)modal.classList.remove('open');});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')modal.classList.remove('open');});
-const q=document.getElementById('q'),hc=document.getElementById('hidecov'),tbl=document.getElementById('tbl');
+const q=document.getElementById('q'),hc=document.getElementById('hidecov'),aa=document.getElementById('showaa'),tbl=document.getElementById('tbl');
 function groups(){const gs=[];let cur=[];for(const tr of tbl.tBodies[0].rows){if(tr.querySelector('.sccell')){if(cur.length)gs.push(cur);cur=[tr];}else cur.push(tr);}if(cur.length)gs.push(cur);return gs;}
 function apply(){const term=q.value.toLowerCase();for(const g of groups()){const txt=g.map(r=>r.textContent.toLowerCase()).join(' ');const hasGap=g.some(r=>r.dataset.gap);
- const show=(!term||txt.includes(term))&&(!hc.checked||hasGap);for(const r of g)r.style.display=show?'':'none';
+ const show=(!term||txt.includes(term))&&(!hc.checked||hasGap);
+ for(const r of g){const isAA=r.classList.contains('actaug');const vis=show&&(!isAA||aa.checked);r.style.display=!vis?'none':(isAA?'table-row':'');}
  for(const r of g)for(const p of r.querySelectorAll('.pill'))p.style.display=(hc.checked&&!(+p.dataset.err>0)&&!p.classList.contains('nodata'))?'none':'';}}
-q.addEventListener('input',apply);hc.addEventListener('change',apply);
+q.addEventListener('input',apply);hc.addEventListener('change',apply);aa.addEventListener('change',apply);
 </script>
 </body></html>`;
 
