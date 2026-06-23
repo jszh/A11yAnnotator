@@ -131,11 +131,11 @@ function confusionTable(v) {
 }
 function rulePill(id) {
   const r = actById[id] || {}; const v = ruleStats(id); const k = 'act-' + id; const aa = aspectsByRule[id];
-  const aaHtml = aa ? `<div class="aanote"><b>⚗ Act-augmented WIP tests address this rule's blind spots:</b><ul>${aa.map((x) => `<li><code>${esc(x.sc)}</code> ${esc(x.title.slice(0, 80))} — ${x.pageCount} pages</li>`).join('')}</ul></div>` : '';
-  addPane(k, `ACT ${id} — ${r.name || ''}${actNotAuto.has(id) ? '  ·  ⚙ not fully automatable' : ''}`, confusionTable(v) + aaHtml + '<h4>Rule (verbatim)</h4>' + md(actContent[id] || '_no content_'));
-  if (!v) return `<button class="pill nodata${aa ? ' hasaa' : ''}" data-detail="${k}" title="no eval data${aa ? ' · ' + aa.length + ' act-augmented aspect(s)' : ''}"><span class="rid">${id}${actNotAuto.has(id) ? ' ⚙' : ''}</span><span class="lbl">no data${aa ? ' · ⚗' + aa.length : ''}</span></button>`;
+  const aaHtml = aa ? `<div class="aanote"><b>Act-augmented WIP tests address this rule's blind spots:</b><ul>${aa.map((x) => `<li><code>${esc(x.sc)}</code> ${esc(x.title.slice(0, 80))} — ${x.pageCount} pages</li>`).join('')}</ul></div>` : '';
+  addPane(k, `ACT ${id} — ${r.name || ''}${actNotAuto.has(id) ? '  ·  not fully automatable (semi-auto/manual)' : ''}`, confusionTable(v) + aaHtml + '<h4>Rule (verbatim)</h4>' + md(actContent[id] || '_no content_'));
+  if (!v) return `<button class="pill nodata${aa ? ' hasaa' : ''}" data-detail="${k}" title="no eval data${aa ? ' · ' + aa.length + ' act-augmented aspect(s)' : ''}"><span class="rid">${id}${actNotAuto.has(id) ? ' <span class="na" title="not fully automatable — semi-auto/manual">semi</span>' : ''}</span><span class="lbl">no data</span>${aa ? '<span class="augb">act-aug ' + aa.length + '</span>' : ''}</button>`;
   const correct = v.tp + v.tn, err = v.fp + v.fn; const W = 50; const w = (x) => Math.round(W * x / Math.max(1, v.n));
-  return `<button class="pill ${err ? 'err' : 'full'}" data-detail="${k}" title="${correct}/${v.n} correct (${(100 * correct / v.n).toFixed(0)}%) · ${err} error"><span class="rid">${id}${actNotAuto.has(id) ? ' ⚙' : ''}</span><span class="bar"><i class="ok" style="width:${w(correct)}px"></i><i class="er" style="width:${w(err)}px"></i></span>${err ? `<span class="errflag">${err}✗</span>` : ''}</button>`;
+  return `<button class="pill ${err ? 'err' : 'full'}" data-detail="${k}" title="${correct}/${v.n} correct (${(100 * correct / v.n).toFixed(0)}%) · ${err} error"><span class="rid">${id}${actNotAuto.has(id) ? ' <span class="na" title="not fully automatable — semi-auto/manual">semi</span>' : ''}</span><span class="bar"><i class="ok" style="width:${w(correct)}px"></i><i class="er" style="width:${w(err)}px"></i></span>${err ? `<span class="errflag">${err}✗</span>` : ''}</button>`;
 }
 function aspectChip(sc, a) {
   const k = 'aa-' + sc + '-' + a.slug; const pri = a.priority === 'high' ? 'phi' : a.priority === 'low' ? 'plo' : 'pmd';
@@ -160,9 +160,9 @@ function scBlock(e) {
   // status badge
   const st = [];
   if (errN) st.push(`<span class="st serr">⚠ ${errN} error${errN > 1 ? 's' : ''}</span>`);
-  if (missing.length) st.push(`<span class="st smiss">◢ ${missing.length} no-component</span>`);
+  if (missing.length) st.push(`<span class="st smiss">${missing.length} no-component</span>`);
   if (!errN && !missing.length) st.push('<span class="st sok">✓ clean</span>');
-  if (aa) st.push(`<span class="st saa">⚗ ${aa.aspects.length} aspects · ${aa.totalPages}p</span>`);
+  if (aa) st.push(`<span class="st saa">act-aug · ${aa.aspects.length} aspects · ${aa.totalPages}p</span>`);
 
   // ---- unified detail ----
   let det = '';
@@ -170,10 +170,10 @@ function scBlock(e) {
     det += `<div class="dsec err"><h4>⚠ Harness errors — full pipeline (det + axe + LLM)</h4><ul>` + errRules.map((id) => { const v = perRule[id]; const exp = expectationOf(actContent[id]); const parts = []; if (v.fp) parts.push(`${v.fp} over-flag${v.fp > 1 ? 's' : ''} (FP${v.errCases.some((c) => /LLM/.test(c.via)) ? ', via the LLM lane' : ''})`); if (v.fn) parts.push(`${v.fn} missed (FN)`); return `<li><b>ACT ${id}</b>: ${parts.join('; ')} on ${v.n} cases — does not yet satisfy <span class="quote"><mark>${esc(exp)}</mark></span></li>`; }).join('') + `</ul></div>`;
   }
   if (missing.length) {
-    det += `<div class="dsec miss"><h4>◢ Requirement aspects with NO component (deterministic, rubric, or axe)</h4><ul>` + missing.map((m) => `<li>${esc(m.text)} <span class="cite">[${esc(m.cite)}]</span> — <mark>${esc(m.hi)}</mark></li>`).join('') + `</ul></div>`;
+    det += `<div class="dsec miss"><h4>Requirement aspects with NO component (deterministic, rubric, or axe)</h4><ul>` + missing.map((m) => `<li>${esc(m.text)} <span class="cite">[${esc(m.cite)}]</span> — <mark>${esc(m.hi)}</mark></li>`).join('') + `</ul></div>`;
   }
   if (aa) {
-    det += `<div class="dsec aa"><h4>⚗ Act-augmented tests — ${aa.aspects.length} aspects ACT rules can't reach · ${aa.totalPages} human-judgment pages <span class="wip">(WIP · no harness verdict)</span></h4><div class="aachips">` + aa.aspects.map((a) => aspectChip(e.sc, a)).join(' ') + `</div></div>`;
+    det += `<div class="dsec aa"><h4>Act-augmented tests — ${aa.aspects.length} aspects ACT rules can't reach · ${aa.totalPages} human-judgment pages <span class="wip">(WIP · no harness verdict)</span></h4><div class="aachips">` + aa.aspects.map((a) => aspectChip(e.sc, a)).join(' ') + `</div></div>`;
   }
   det += `<div class="dsec pw"><h4>Coverage pathways</h4>${pathCell}</div>`;
 
@@ -220,6 +220,8 @@ tr.sc{cursor:pointer}tr.sc:hover{background:#f6faff}tr.sc.expanded{background:#e
 .pill{font:inherit;display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:#fff;border-radius:6px;padding:1px 5px;cursor:pointer;margin:2px 3px 0 0;vertical-align:top}.pill:hover{border-color:#0969da}.pill .rid{font-size:10.5px;font-weight:600;font-family:ui-monospace,monospace}.pill .lbl{font-size:10px;color:var(--mut);font-style:italic}
 .pill .bar{display:inline-flex;height:7px;width:50px;border-radius:4px;overflow:hidden;background:#e7ebef}.pill .bar i{height:7px;display:inline-block}.pill .bar .ok{background:var(--ok)}.pill .bar .er{background:var(--er)}
 .pill.err{border-color:#ffb3b3;background:#fff5f5}.pill .errflag{font-size:9px;color:var(--r);font-weight:700}.pill.nodata{opacity:.7}.pill.hasaa{border-color:#9ec3ff;opacity:1}.pill.hasaa .lbl{color:#0a4a82}
+.augb{font-size:9.5px;background:#e7f0ff;color:#0a4a82;border:1px solid #9ec3ff;border-radius:3px;padding:0 4px;font-weight:700;margin-left:3px}
+.na{font-size:9px;background:#f0e8ff;color:#5a3a9a;border-radius:3px;padding:0 3px;font-weight:700}
 .chip{font:inherit;font-size:11px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:1px 8px;cursor:pointer}.chip:hover{border-color:#0969da}.chip.en{border-color:#6e7781}.chip.tt{border-color:#bf8700}
 .none{color:var(--mut);font-size:11px;font-style:italic}
 .status{font-size:11px;white-space:nowrap}.st{padding:1px 6px;border-radius:4px;font-weight:600;margin-right:3px;display:inline-block;margin-bottom:2px}.st.serr{background:#ffe3e3;color:#a40e26}.st.smiss{background:#ffe0c2;color:#8a4b00}.st.sok{background:#dafbe1;color:#0a5a2a}.st.saa{background:#e7f0ff;color:#0a4a82}.exp{color:var(--mut);font-weight:700}.sc.expanded .exp{transform:rotate(90deg);display:inline-block}
@@ -236,11 +238,11 @@ footer{color:var(--mut);font-size:12px;padding:6px 24px 30px}
 </style></head><body>
 <header>
 <h1>WCAG Coverage Explorer <span style="font-weight:400;color:var(--mut);font-size:14px">— A11yAnnotator v3</span></h1>
-<div class="sub"><b>Click any SC row</b> to expand a unified detail: harness FP/FN errors, requirement aspects no component covers, and the act-augmented WIP test corpus. ACT-rule pills are the <b>full-pipeline</b> (det + axe + LLM) accuracy on that rule's test cases; open one for a TP/FP/TN/FN breakdown. A <code>no-data</code> pill that borders blue (⚗) has act-augmented WIP tests for its blind spots. Pill scoring: <code>${esc((RUNSRC || '').replace('results/', '').replace('/results.json', '') || 'none')}</code> (${RUN_N} cases, ${accPct}%).</div>
+<div class="sub"><b>Click any SC row</b> to expand a unified detail: harness FP/FN errors, requirement aspects no component covers, and the act-augmented WIP test corpus. ACT-rule pills are the <b>full-pipeline</b> (det + axe + LLM) accuracy on that rule's test cases; open one for a TP/FP/TN/FN breakdown. A <code>no-data</code> pill that borders blue and marked “act-aug N” has act-augmented WIP tests for its blind spots. Pill scoring: <code>${esc((RUNSRC || '').replace('results/', '').replace('/results.json', '') || 'none')}</code> (${RUN_N} cases, ${accPct}%).</div>
 <div class="legend">
 <span><b>Pathway:</b> <span class="kind det">det</span> <span class="kind axe">axe</span> <span class="kind llm">LLM</span> <span class="kind ibm">IBM</span></span>
-<span><b>Pill:</b> <span style="display:inline-block;width:20px;height:7px;background:var(--ok);border-radius:3px;vertical-align:middle"></span> correct <span style="display:inline-block;width:14px;height:7px;background:var(--er);border-radius:3px;vertical-align:middle"></span> error · ⚙ not-automatable</span>
-<span><b>Status:</b> <span class="st serr">⚠ error</span> <span class="st smiss">◢ no-component</span> <span class="st saa">⚗ act-augmented</span></span>
+<span><b>Pill:</b> <span style="display:inline-block;width:20px;height:7px;background:var(--ok);border-radius:3px;vertical-align:middle"></span> correct <span style="display:inline-block;width:14px;height:7px;background:var(--er);border-radius:3px;vertical-align:middle"></span> error · “semi” = not-automatable</span>
+<span><b>Status:</b> <span class="st serr">⚠ error</span> <span class="st smiss">no-component</span> <span class="st saa">act-augmented</span></span>
 <span><b>Aspect priority</b> (impact of the gap): <span class="aapri phi">high</span> <span class="aapri pmd">medium</span> <span class="aapri plo">low</span></span>
 </div>
 <div class="controls">
