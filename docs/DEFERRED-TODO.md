@@ -4,7 +4,7 @@ The single backlog for work the user **explicitly approved deferring** (distinct
 recommendations, which live in the analysis docs). Each entry carries enough design to action later.
 Add new items here when the user approves deferring a concrete piece of work.
 
-Cross-reference: `docs/analysis/LLM-ROUTING-AND-FAILURE-ANALYSIS.md` holds the broader (not-yet-approved)
+Cross-reference: `docs/analysis/reports-2026-06/LLM-ROUTING-AND-FAILURE-ANALYSIS.md` holds the broader (not-yet-approved)
 recommendation backlog (SVG-namespaced-xpath resolver, page-level `precomputeSignals` threading, a media
 1.2.x lane, composite ARIA roles, the dead-ended `roleOverridesNative`/`states`/`needsPixelContrast` facts,
 a deterministic pixel-contrast runner).
@@ -67,6 +67,20 @@ Design:
   (B) catches what *no* deterministic producer even saw. Connects to the analysis doc's "whole classes of
   elements are invisible to the collector".
 
+**Partial sidecar prototype 2026-06-22.** A fixture-assisted `visual-content-discovery` sidecar now exists in
+`scripts/v3/lib/broad-scope-probes.js` and `scripts/v3/lib/broad-scope-llm-review.js`. It nominates rendered
+non-DOM or partly non-DOM visual surfaces for downstream `1.1.1` / `1.4.1` / `1.4.5` review: pseudo/background
+image text, canvas charts, SVG charts, and color-only status cues. Verified evidence: 300/300 generated
+non-interference/interaction rows pass, including 10/10 visual-content positives and 10/10 negatives; all 20
+visual-content fixtures have screenshot/state captures; prompt-pack audit covers 520 entries and reports
+visual-content directions `{UNCERTAIN_DISCOVERY:10, NO_PACKET_SCOPED_OK:10}` with 0 bridgeable barriers/clears;
+prompt pressure reports visual-content verdicts `{UNCERTAIN:10, NO_REVIEW:10}` and 0 converted judgments.
+
+This does **not** close item B. The prototype is marker/fixture assisted and does not perform general screenshot
+pre-analysis, OCR, canvas/SVG semantic extraction, or arbitrary-region discovery on saved websites. Adequate
+alternative suppression is fixture-proven only; in the wild, alternative adequacy must be judged by a downstream
+rubric/LLM/human. Absence of a visual-content packet must never read as a pass for `1.1.1`, `1.4.1`, or `1.4.5`.
+
 ## C. eval-page axe-parity via DOM-identity tagging (answer to "support both CSS selector + xpath") — ✅ DONE 2026-06-18
 **Implemented.** eval-page.js tags each obligation node with `data-v3-xp` before the axe run; the axe evaluate
 resolves each finding's CSS target to its node and reads `data-v3-xp`, so axe findings carry the dataset xpath
@@ -97,6 +111,20 @@ IDENTITY, not by xpath string:
 **Deferred 2026-06-18** while executing the LLM Routing & Failure Analysis. The other Tier-2 lanes shipped; this
 one is a LARGE new mutating runner whose entire payoff is gated on the on-hold LLM + CDP tools, so a partial
 version would add inert/dead code (the exact "already-computed facts dead-end" anti-pattern the report flags).
+
+**Partial sidecar prototype 2026-06-22.** A broad-scope `reveal-state-discovery` sidecar now exists in
+`scripts/v3/lib/broad-scope-probes.js` and `scripts/v3/lib/broad-scope-llm-review.js`. It activates generated
+disclosures/tabs/details/menu/dialog-like controls with trusted input, records newly visible nodes, routes review
+packets to `1.3.1/2.4.3/2.4.10/4.1.2`, and defaults to `UNCERTAIN` rather than a barrier. Verified evidence:
+300/300 generated non-interference/interaction rows pass, including 10/10 reveal positives and 10/10 reveal
+negatives; all 20 reveal fixtures have screenshot/state captures; prompt pressure reports reveal verdicts
+`{UNCERTAIN:10, NO_REVIEW:10}` and 0 converted judgments.
+
+This does **not** close item D. Remaining work is the actual v3 dynamic-subject implementation: emit revealed
+nodes with content-addressed fingerprints into `dynamicSubjects`, reconcile them through `expandDiscovered`, and
+rerun the relevant obligations inside the revealed state. Also still missing: keyboard-only reveals, hover/focus
+reveals, long transitions, shadow DOM, iframe reveals, and bounded state-combination exploration. Absence of a
+sidecar reveal packet must never read as a pass.
 
 **Problem.** A subject that exists ONLY after activation — 2.4.10 sections injected by a disclosure, a 1.1.1
 carousel-panel image, 1.4.3 text revealed by an "expand" — is invisible to `deriveObligations`, which enumerates
@@ -162,15 +190,16 @@ barriers) is severe.
 
 **Recorded 2026-06-18** alongside the implemented TT gaps (G1 list semantics, G2 background-image meaning, G3
 CAPTCHA modalities, G5 form-error soft-constraint widening — all shipped). Source:
-`docs/analysis/TRUSTED-TESTER-GAP-ANALYSIS.md`. These four are the gaps the analysis itself rated
+`docs/reference/standards/TRUSTED-TESTER-GAP-ANALYSIS.md`. These four are the gaps the analysis itself rated
 defer/structural/minor; each is recorded here with its reasoning and (where it exists) a pointer.
 
 - **G4 — reveal-then-check focus order & focus WITHIN revealed content (2.4.3 / TT 4.F.2.b).** TT requires
   ACTIVATING triggers that reveal hidden focusables (menus, dialogs, expandable trees) and checking focus order
   to/from/within them. This is the SAME work as **backlog item D** (dynamic-subject reveal discovery) — see §D
   above; do not duplicate. When picked up, reuse `observe_state_after_activation` to open each reveal, then re-run
-  the `tab-order` instrument within the revealed subtree. Fail-closed: an unopened reveal must NOT read as
-  "no barrier". Still deferred.
+  the `tab-order` instrument within the revealed subtree. The 2026-06-22 broad-scope sidecar helps discover some
+  reveal states, but it does not yet perform the TT focus-order/focus-within check or emit v3 obligations. Fail-closed:
+  an unopened reveal must NOT read as "no barrier". Still deferred.
 
 - **G6 — cross-page / set-of-pages determinations (2.4.2 / 2.4.4).** Structural scope boundary of a SINGLE-page
   harness. TT 12.B asks whether a page title DISTINGUISHES the page within its set; the same-named-link and
@@ -214,6 +243,20 @@ resolve from pixels; then thin `collect-lists.js` to real-list facts + (optional
 Cross-ref: `TRUSTED-TESTER-GAP-ANALYSIS.md` "Architectural note (G1)". Medium priority — the glyph heuristic
 is correct-but-marginal today (LLM-judged candidate), so this is an elegance/coverage win, not a barrier fix.
 
+**Partial sidecar prototype 2026-06-22.** A first `visual-structure-discovery` lane now exists in
+`scripts/v3/lib/broad-scope-probes.js` and `scripts/v3/lib/broad-scope-llm-review.js`. It finds generated
+heading-like text, bullet-like groups, and CSS grid/table-like layouts that are not programmatic headings, lists,
+or tables/grids. It routes review packets to `1.3.1` / `2.4.6` plus optional AAA `2.4.10` follow-up, attaches
+visual refs, and is code-clamped to `UNCERTAIN` as a discovery-only sidecar. Verified evidence: 300/300 generated
+non-interference/interaction rows pass, including 10/10 visual-structure positives and 10/10 negatives; prompt
+pressure reports visual-structure verdicts `{UNCERTAIN:10, NO_REVIEW:10}` and 0 converted judgments; all 20
+visual-structure fixtures have screenshot/state captures.
+
+This does **not** close item G. Remaining work is full-page/tiled capture for the real page-structure rubrics,
+OCR/vision support for canvas/SVG/background/pseudo-rendered structure, below-fold saved-site pressure, responsive
+breakpoints, and retirement/demotion of the older faux-list glyph heuristic after equivalence is proven. Absence of
+a visual-structure packet must never read as a pass.
+
 **R2 residual lows (deferred 2026-06-19, from `TRUSTED-TESTER-GAP-ANALYSIS-R2.md`).** The R2 independent review's
 medium findings were all fixed (G2-1 interactivity parity, G3-1 token detection + alt-adequacy retention, G3-2
 in-frame captcha, G5-F2 active-validator gate, G5-F1 type=button trigger, G5-F4 aria-invalid restore). The remaining
@@ -248,7 +291,7 @@ have no text and no accessible name. Low priority — the active ACT eval path (
 
 ## H. EN 301 549 V4.1.0 Annex C — conformance-scope items (deferred / boundary)
 
-**Recorded 2026-06-19** from `docs/analysis/en301549/EN301549-ANNEX-C-ANALYSIS.md`. Annex C for Web is **WCAG 2.2
+**Recorded 2026-06-19** from `docs/reference/standards/en301549/EN301549-ANNEX-C-ANALYSIS.md`. Annex C for Web is **WCAG 2.2
 pass-through** per-criterion (no EN-specific per-SC test to build), so the only EN-distinct work is at *page/process*
 scope (C.9.6 conformance requirements, C.9.7 user preferences). **Implemented now:** the C.9.6.2 "full pages"
 TRUNCATION DISCLOSURE (`collect.coverage` + build `coverage`/`summary.coverageTruncated`) — a page-clear on a
@@ -260,13 +303,19 @@ cap-truncated page is no longer mistaken for a full-page claim. The rest:
   `prefers-reduced-motion`, blocked `forced-colors`) can reuse the existing `render_with_overrides` CDP tool
   (emulate the media feature, diff the render). New conformance-scope lane outside the 22 selected SCs — defer; do
   the `user-scalable=no` detector first when picked up (overlaps WCAG 1.4.4 resize-text).
-- **C.9.6.5 non-interference — 1.4.2 Audio control (DEFER) + 2.1.2 strengthening (DEFER).** 2.2.2 is **already
-  covered** (the `motion-control` family + `motion-control-v0` rubric — the analysis's "2.2.2 no lane" is stale).
-  1.4.2 (autoplay audio >3s with no pause/stop) has no lane — a detectable new lane (autoplay `<audio>`/`<video>`
-  with audio, no controls), but not in the 22 SCs → defer. The existing `keyboard-trap-escape` (2.1.2) abstains
-  5/5 on the ACT subset — strengthening it beyond abstain is a separate detector-tuning investigation → defer.
-  (2.3.1 three-flashes is **NOT to be built** — flash-rate is unsound by two-frame vision; see the routing
-  analysis OUT-OF-SCOPE set. Recorded here for completeness, not as a deferral.)
+- **C.9.6.5 non-interference — production promotion remains DEFERRED.** 2.2.2 is **already covered** by the
+  `motion-control` family + `motion-control-v0` rubric. Experimental broad-scope sidecar lanes now exist for
+  1.4.2 audio control, 2.2.2 pause/stop/hide evidence, 2.3.1 flash-risk, and 2.1.2 trap review, with generated
+  fixtures and no-authoritative-publication gates. These are **not production conformance lanes yet**:
+  - 1.4.2 generated positives prove known non-silent media playback for >3s with no independent control, but
+    arbitrary saved-site audibility and custom control exercise remain unresolved.
+  - 2.3.1 generated positives cover only a narrow JS opacity-toggle fixture; production needs rendered-frame
+    sampling, actual timestamps, relative-luminance / saturated-red threshold math, viewport/occlusion checks, and
+    adversarial flash classes.
+  - 2.1.2 strengthening still needs the production trap detector to share the broader region selector and dynamic
+    focusable-derived budget.
+  Keep these sidecar-only until each family has a finite applicability predicate, adversarial fixture classes, saved
+  page pressure evidence, and explicit bridge authorization.
 - **C.9.6.3 Complete processes — STRUCTURAL BOUNDARY (document, don't build).** `orchestrate()` consumes a single
   `collect` (one page/state); there is no flow/journey input. A multi-step process where step 3 has a barrier
   passes every per-page run. This is the same single-page boundary as TT G6 (§F) — accept and document; a
@@ -324,3 +373,111 @@ policy**:
 
 Low priority — purely contingent on a corpus change that has not happened; the current corpus makes the broad
 block strictly correct (no fidelity loss, no stalls, no leaks).
+
+---
+
+## J. Broad WCAG / Trusted Tester / EN support program beyond ACT
+
+**Recorded 2026-06-21** from the broad-scope integration work in
+`docs/analysis/improvement-research-2026-06/BROAD-SCOPE-INTEGRATION-EXPERIMENT-REPORT.md`. The user explicitly
+asked not to limit future work to ACT examples or the current observed errors. ACT remains useful for atomic
+checker calibration, but it is not the shape of the whole problem: Trusted Tester and EN requirements include
+hidden/revealed states, page sets, complete processes, user preferences, real accessibility-support assumptions,
+and semantic adequacy judgments that an ACT-only fixture set will miss.
+
+Decision: support these broader surfaces through the v3 sidecar/discovery architecture first, not by widening
+authoritative pass/fail publication. New lanes should initially create evidence packets, dynamic subjects,
+process/site manifests, or human/LLM review queues. They may bridge into v3 judgments only after they have a
+finite applicability predicate, positive evidence requirements, adversarial fixtures, and explicit bridge approval.
+Clean detector output must never mean "page passes."
+
+Priority implementation themes:
+
+- **Reveal-state discovery.** Implement §D / TT G4: activate disclosures, tabs, menus, dialogs, carousels, and
+  expandable trees in isolated page states; diff DOM/AX/focus order; emit dynamic subjects with action provenance.
+  This supports WCAG focus order/visible content checks and Trusted Tester reveal-then-check procedures.
+- **Full-page / tiled structure vision.** Implement §G so structure rubrics can see below-fold headings, lists,
+  tables, visual text, canvas/SVG regions, and pseudo-rendered structure. A 2026-06-22 generated sidecar prototype
+  now covers visible non-semantic heading/list/table-like HTML/CSS patterns, but not full-page/tiled OCR or saved
+  websites. Keep it discovery/review-first; do not clear page-level 1.3.1 / 2.4.x obligations from absence.
+- **Visual-content discovery.** Implement §B for real pages: full-page/tiled screenshots plus OCR/vision/region
+  discovery for image text, canvas/SVG charts, icon-only meaning, and color-only information. A 2026-06-22 generated
+  sidecar prototype now covers fixture-assisted pseudo/background text, canvas/SVG charts, and color-only cues, but
+  remains `UNCERTAIN`-only and cannot prove alternative adequacy on arbitrary pages.
+- **Media and temporal thresholds.** Promote only narrow, measured sub-lanes first: audible autoplay duration and
+  independent controls for 1.4.2; rendered-frame flash frequency/area/red-threshold math for 2.3.1; persistent
+  non-essential motion with exercised controls for 2.2.2.
+- **Time-based media alternatives.** A 2026-06-22 generated media-alternatives packet slice now covers 10 positive
+  and 10 negative scoped `1.2.x` fixtures with inline transcript/description extraction, SC-specific LLM prompt
+  rules, and explicit barrier-or-uncertain sidecar packets. The live sidecar path now preserves scoped `1.2.x`
+  warnings, structural evidence claims, and extracted media details when a content model exists; pages without a
+  content model still fail closed to `UNCERTAIN`. This is still not a real-media solution: saved websites need
+  caption/transcript/description file extraction, ASR or media-content modelling, and separate enumeration for each
+  applicable `1.2.x` SC. A clean/scoped-control media packet is not a media pass.
+- **Accessible authentication.** A 2026-06-22 generated `3.3.8` packet slice now covers 10 positive and 10 negative
+  controls, including password recall, CAPTCHA-like tests, transcription/calculation/puzzle/personal-content recall
+  barriers, and scoped exceptions such as password managers, passkeys, one-time-code autocomplete/paste support,
+  non-cognitive alternatives, object-recognition exception, personal-content exception, and explicit
+  not-authentication-step controls. Prompt-pack pressure now emits 20 auth packets with `{LIKELY_BARRIER:10,
+  UNCERTAIN:10}` and 0 converted judgments. This is still not a real authentication solution: saved websites need
+  flow manifests, test credentials, process-state driving, CAPTCHA alternative discovery, and exception adequacy
+  review. A clean/no-packet auth result is not a `3.3.8` pass.
+- **Redundant entry.** A 2026-06-22 generated `3.3.7` packet slice now covers 10 positive and 10 negative controls.
+  Positives require same-process, same-information-previously-provided, required-reentry, and no
+  auto-populate/selection/exception evidence. Controls cover auto-populated reuse, selection, different process,
+  not previously provided, optional re-entry, security/invalid-data/essential exceptions, not-redundant-entry, and
+  user-confirmed reuse. Prompt-pack pressure now emits 20 redundant-entry packets with `{LIKELY_BARRIER:10,
+  UNCERTAIN:10}` and 0 converted judgments; visual capture includes all 20 cases. Independent review found and the
+  implementation fixed two integration issues: real `runBroadScopeForUrl()` now preserves evidence claims, and
+  broad-scope review clamps disallowed `LIKELY_OK` outputs for barrier-or-uncertain lanes. This is still not a real
+  process solution: saved websites need process/session traces or manifests proving previous entry and same-process
+  scope. Treat EN references here as applicable-WCAG-version pass-through context, not as a current EN 301 549
+  V3.2.1 clause. A clean/no-packet redundant-entry result is not a `3.3.7` pass.
+- **Language/readability cognitive sidecar.** A 2026-06-22 generated `3.1.5` packet slice now covers 10 positive
+  and 10 negative controls. Positives require user-facing required text, above-lower-secondary reading level after
+  proper-name/title removal, no supplemental content observed, no lower-secondary version observed, supplement
+  adequacy evaluated, and language/method support. Controls cover supplemental summaries, lower-level versions,
+  non-required text, below-threshold text, glossary/examples/audio/illustration support, proper-name/title issues,
+  unsupported-language methods, and review-disabled samples. Prompt-pack pressure emits 20 packets with
+  `{LIKELY_BARRIER:10, UNCERTAIN:10}` and 0 converted judgments; visual capture includes all 20 cases. This is still
+  not a real reading-level solution: saved websites need selected passage sampling, language detection,
+  proper-name/title removal records, language-specific readability formulas or qualified review, threshold mapping to
+  lower secondary education, and supplemental-content adequacy review. SC 3.1.5 is AAA and not generally an EN 301
+  549 V3.2.1 web requirement. A clean/no-packet readability result is not a `3.1.5` pass.
+- **Pointer and alternative-operation discovery.** Extend fixture-scoped 2.5.1 / 2.5.7 probes to discover author
+  path gestures, multipoint-like gestures where possible, drag widgets, keyboard/text-field/menu alternatives, and
+  independent essential/UA exception evidence. Current generated lanes are deliberately not exhaustive.
+- **Process and page-set manifests.** Structured sidecar analyzers now exist for optional complete-process and
+  site-set manifests, with generated 10/10 positive and 10/10 negative controls for measured process-step failures,
+  scoped process controls, redundant-entry exception facts, duplicate/different-purpose titles, repeated navigation, help mechanisms,
+  component identification, and same-name link purpose. Complete-process and site-set controls now emit scoped prompt
+  packets in generated tests (`SCOPED_PROCESS_CONTROL` / `SCOPED_SITE_SET_CONTROL` → `UNCERTAIN`) instead of
+  disappearing as no-packet rows, while the default clean-manifest production paths remain fail-closed and
+  non-authoritative. Remaining deferred work is to feed
+  them from real flow/page-set inputs: crawler/session traces for complete processes, redundant entry, consistent
+  navigation/help/title, and EN full-page/process conformance scope. Missing, incomplete, or clean manifests should
+  produce scope warnings or scoped review controls, not passes or barriers by themselves.
+- **Platform/user-preference sidecars.** Keep forced-colors, reduced-motion, resize/reflow, zoom restrictions, and
+  EN C.9.7-style user-preference checks as sidecar or registered narrow WCAG mappings. Browser emulation is useful
+  evidence, not a full accessibility-support matrix.
+- **Document/rich embedded content adapters.** If PDFs, office docs, EPUBs, canvas-heavy apps, SVG, or embedded
+  viewers enter scope, add artifact-specific extraction/vision adapters with explicit artifact type and extraction
+  provenance. Do not roll source-document findings into web-page conformance without an explicit scope decision.
+
+Testing focus for every lane:
+
+- 10 positive + 10 negative generated fixtures before any saved-site pressure run.
+- At least one adversarial round targeting false negatives, stale state, wrong target attribution, exception abuse,
+  and non-exhaustive alternative search.
+- Prompt-pack and schema tests proving broad-scope clears remain sidecar-only unless a registered bridge says
+  otherwise.
+- Representative visual/state inspection, plus a written caveat for what the lane still cannot prove.
+
+## Micro-check ABSTAIN-ESCALATION (deferred 2026-06-22)
+The focused LLM micro-checks are wired into the runners ONLY as FALSE-BARRIER REDUCERS (review a deterministic FAIL,
+clear it on a skeptic-confirmed exemption). The complementary idea — ESCALATING a deterministic ABSTAIN to a fail to
+catch a barrier the runner can't decide — is built (`resolveEscalation` in `micro-checks.js`, gated behind
+`escalateAbstains` in the C5/C8/C2 wrappers, default OFF) but NOT integrated, because escalation ADDS false-barriers
+(measured: C5 +15, C8 +11) — the opposite of the current goal of keeping the false-barrier count low. Revisit when
+recall (catching missed barriers) is wanted over precision; turn on `escalateAbstains` per-runner and re-tune the
+escalation confidence bar / skeptic to hold the false-barrier rate down.
