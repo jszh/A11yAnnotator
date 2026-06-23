@@ -283,6 +283,11 @@ async function collectForV3(page, tc, runId) {
         inModal: !!el.closest('[role="dialog"],dialog,[aria-modal="true"]'),
         underOverlay: false,
         hasHoverContent: false,
+        // C8 small-signal applicability facts (parity with eval-page.js so the ACT lane exercises the families).
+        complexImageHint: (tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img') && (!!el.closest('figure') || roleAttr === 'figure' || el.hasAttribute('aria-describedby')),
+        tabindexEffective: (() => { const ti = el.getAttribute('tabindex'); return ti !== null ? +ti : (['a', 'button', 'input', 'select', 'textarea', 'summary'].includes(tag) && !el.disabled ? 0 : null); })(),
+        hasGlyphText: (() => { let ot = ''; for (const n of el.childNodes) if (n.nodeType === 3) ot += n.textContent; return [...ot].some((ch) => { const c = ch.codePointAt(0); return (c >= 0xE000 && c <= 0xF8FF) || (c >= 0xF0000 && c <= 0xFFFFD) || (c >= 0x100000 && c <= 0x10FFFD); }) || (/[Ѐ-ӿͰ-Ͽ]/.test(ot) && /[a-zA-Z]/.test(ot)); })(),
+        splitFieldGroup: (() => { if (tag !== 'input' && tag !== 'select') return false; const ml = parseInt(el.getAttribute('maxlength'), 10); if (!(Number.isFinite(ml) && ml <= 6)) return false; const grp = el.closest('fieldset, [role=group], form, div'); if (!grp) return false; return [...grp.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]), select')].filter((i) => { const m = parseInt(i.getAttribute('maxlength'), 10); return Number.isFinite(m) && m <= 6; }).length >= 2; })(),
       });
     }
     return {

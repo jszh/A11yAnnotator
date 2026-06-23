@@ -431,6 +431,11 @@ async function collectActPage(page, opts = {}) {
       // aria-describedby long-description pointer) owes the long-description-completeness rubric; a bare logo/icon
       // gets alt-adequacy only (long-desc on a simple logo is UNCERTAIN noise).
       const complexImageHint = isImage && (!!el.closest('figure') || roleAttr === 'figure' || el.hasAttribute('aria-describedby'));
+      // C8 small-signal predicates (parity with eval-page.js / the ACT inline collector).
+      const tabindexEffective = (() => { const ti = el.getAttribute('tabindex'); return ti !== null ? +ti : (['a', 'button', 'input', 'select', 'textarea', 'summary'].includes(tag) && !el.disabled ? 0 : null); })();
+      let _ownTxt = ''; for (const _n of el.childNodes) if (_n.nodeType === 3) _ownTxt += _n.textContent;
+      const hasGlyphText = [..._ownTxt].some((ch) => { const c = ch.codePointAt(0); return (c >= 0xE000 && c <= 0xF8FF) || (c >= 0xF0000 && c <= 0xFFFFD) || (c >= 0x100000 && c <= 0x10FFFD); }) || (/[Ѐ-ӿͰ-Ͽ]/.test(_ownTxt) && /[a-zA-Z]/.test(_ownTxt));
+      const splitFieldGroup = (() => { if (tag !== 'input' && tag !== 'select') return false; const ml = parseInt(el.getAttribute('maxlength'), 10); if (!(Number.isFinite(ml) && ml <= 6)) return false; const grp = el.closest('fieldset, [role=group], form, div'); if (!grp) return false; return [...grp.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]), select')].filter((i) => { const m = parseInt(i.getAttribute('maxlength'), 10); return Number.isFinite(m) && m <= 6; }).length >= 2; })();
       // LIVE REGION (Item 11, 4.1.3): a status container (aria-live polite/assertive, or an implicitly-live role)
       // owes a status-message obligation — are dynamic status changes announced to AT. Kept even when empty (a live
       // region is typically populated dynamically, so it has no text at collect time).
@@ -538,6 +543,7 @@ async function collectActPage(page, opts = {}) {
         renderedVisible, nearbyText, svgLiveText, svgNamedDescendant,
         ariaHiddenWithName,
         complexImageHint,
+        tabindexEffective, hasGlyphText, splitFieldGroup, // C8 small-signal predicates (parity)
         // Item 13 (cheap scrutiny signals, parity with eval-page): a native control that overrides its role
         // (<button role=link>) → name-role scrutiny; a field's placeholder → field-label scrutiny (placeholder-as-label).
         roleOverridesNative: ['a', 'button', 'input', 'select', 'textarea', 'summary', 'details'].includes(tag) && !!roleAttr,

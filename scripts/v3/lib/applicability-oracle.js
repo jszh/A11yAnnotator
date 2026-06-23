@@ -62,6 +62,13 @@ const FAMILIES = Object.freeze({
   // (captcha-alternative-v0) asks the multi-modal question and returns review/PARTIAL — never a hard verdict.
   // (The 1.1.1 background-image-meaning gap G2 reuses the existing non-text-content family + alt-text-adequacy rubric.)
   'captcha-alternative':     Object.freeze({ sc: '1.1.1', skills: ['captcha'] }),                        // 1.1.1 (TT 7.D) — review-tier, gated on isCaptcha
+  // C8 small deterministic signals (runSmallSignalExp): unlike the rubric-only broadenings above, each HAS a
+  // deterministic decider (barrier/pass) and abstains to a rubric only on the semantic residual.
+  'glyph-text-alternative':  Object.freeze({ sc: '1.1.1', skills: ['name-role-state'] }),                // 1.1.1 — icon-font/PUA glyph in own text with no text alternative (gated on hasGlyphText)
+  'long-description':        Object.freeze({ sc: '1.1.1', skills: ['name-role-state'] }),                // 1.1.1 — complex image with no long-description source (gated on complexImageHint)
+  'multipart-field-grouping': Object.freeze({ sc: '4.1.2', skills: ['name-role-state'] }),               // 4.1.2 — split field with no group label + unnamed parts (gated on splitFieldGroup)
+  'positive-tabindex-order': Object.freeze({ sc: '2.4.3', skills: ['focus-management'] }),               // 2.4.3 — tabindex>0 disrupting focus order, F44 (gated on tabindexEffective>0)
+  'composite-arrow-trap':    Object.freeze({ sc: '2.1.2', skills: ['keyboard-operability'] }),           // 2.1.2 — C2 arrow-key roving-widget trap (gated on composite role); complements no-keyboard-trap
 });
 
 const WIDGET_ROLE = /^(button|link|checkbox|switch|tab|menuitem|combobox|radio|slider)$/;
@@ -199,6 +206,12 @@ function familiesFor(el) {
   // color-cue surfaces (link distinguished by colour alone; field state by colour). Rubric self-abstains otherwise.
   if (role === 'link' || el.isFormField === true || FORMFIELD_ROLE.test(role)) fams.push('use-of-color');
   if (el.isFormField === true || FORMFIELD_ROLE.test(role)) fams.push('error-suggestion'); // 3.3.3 (alongside field-label/error-identification)
+  // C8 small-signal predicates (collector-provided cheap facts; the runner re-verifies in-page).
+  if (el.hasGlyphText === true) fams.push('glyph-text-alternative');                        // 1.1.1 (icon-font/PUA in own text)
+  if (el.complexImageHint === true && el.removedFromA11yTree !== true) fams.push('long-description'); // 1.1.1 (data-bearing image)
+  if (el.splitFieldGroup === true) fams.push('multipart-field-grouping');                   // 4.1.2 (split field group)
+  if (Number(el.tabindexEffective) > 0) fams.push('positive-tabindex-order');               // 2.4.3 (F44 positive tabindex)
+  if (/^(menu|menubar|tablist|listbox|grid|treegrid|toolbar|radiogroup|tree)$/.test(role)) fams.push('composite-arrow-trap'); // 2.1.2 (C2 arrow-key trap)
   return [...new Set(fams)];
 }
 

@@ -155,6 +155,67 @@ const CATALOG = {
       },
       typedOutcomes: ['targetIsFocusable', 'keyboardReachableInState', 'realKeyboardFocus', 'focusedRectResolved', 'overlayLayerPresent', 'entirelyObscuredByAuthorContent', 'obscuringLayerOpaqueAndBlocking', 'notObscuredAfterScroll', 'hydrationReady'],
     },
+
+    // ---- C4 (audit): non-text contrast → 1.4.11 (CLEAR/BARRIER on a flat-reducible cue; AT-independent). Fills the
+    // producer the non-text-contrast-v0 rubric assumed. Decides ONLY when the strongest distinguishing cue + adjacent
+    // surface reduce to two flat opaque colours; inactive/default-UA ⇒ INAPPLICABLE; graphical/state-indicator/
+    // gradient/pseudo/sub-part ⇒ in-scope but not flat-reducible ⇒ auto-PARTIAL (rubric judges the pixels).
+    'non-text-contrast': {
+      sc: '1.4.11', claimFamily: 'non-text-contrast',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['inScopeComponent'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['inScopeComponent', 'cueReducible', 'contrastComputed', 'thresholdMet'] },
+        BARRIER_OBSERVED: { requires: ['inScopeComponent', 'cueReducible', 'contrastComputed', 'thresholdFailed'] },
+      },
+      typedOutcomes: ['inScopeComponent', 'cueReducible', 'contrastComputed', 'thresholdMet', 'thresholdFailed'],
+    },
+
+    // ---- C8 (audit): small deterministic signals. One shared runner (runSmallSignalExp); each decides the clear
+    // deterministic case (barrier/pass) or abstains to the matching rubric (auto-PARTIAL). Same typed-outcome shape:
+    // signalApplicable (resolved + ran) + barrierConfirmed (verdict fail) | passConfirmed (verdict pass).
+    'glyph-text-alt': {        // icon-font/PUA glyph in own text with no text alternative (1.1.1)
+      sc: '1.1.1', claimFamily: 'glyph-text-alternative',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['signalApplicable'] },
+      supports: { NO_BARRIER_OBSERVED: { requires: ['signalApplicable', 'passConfirmed'] }, BARRIER_OBSERVED: { requires: ['signalApplicable', 'barrierConfirmed'] } },
+      typedOutcomes: ['signalApplicable', 'barrierConfirmed', 'passConfirmed'],
+    },
+    'long-desc-presence': {    // complex image with NO long-description source of any channel (1.1.1)
+      sc: '1.1.1', claimFamily: 'long-description',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['signalApplicable'] },
+      supports: { NO_BARRIER_OBSERVED: { requires: ['signalApplicable', 'passConfirmed'] }, BARRIER_OBSERVED: { requires: ['signalApplicable', 'barrierConfirmed'] } },
+      typedOutcomes: ['signalApplicable', 'barrierConfirmed', 'passConfirmed'],
+    },
+    'multipart-grouping': {    // split field (≥2 short inputs) with no group label and unnamed parts (4.1.2)
+      sc: '4.1.2', claimFamily: 'multipart-field-grouping',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['signalApplicable'] },
+      supports: { NO_BARRIER_OBSERVED: { requires: ['signalApplicable', 'passConfirmed'] }, BARRIER_OBSERVED: { requires: ['signalApplicable', 'barrierConfirmed'] } },
+      typedOutcomes: ['signalApplicable', 'barrierConfirmed', 'passConfirmed'],
+    },
+    'positive-tabindex': {     // tabindex>0 disrupting focus order on a page with ≥2 focusables (2.4.3, F44)
+      sc: '2.4.3', claimFamily: 'positive-tabindex-order',
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['signalApplicable'] },
+      supports: { NO_BARRIER_OBSERVED: { requires: ['signalApplicable', 'passConfirmed'] }, BARRIER_OBSERVED: { requires: ['signalApplicable', 'barrierConfirmed'] } },
+      typedOutcomes: ['signalApplicable', 'barrierConfirmed', 'passConfirmed'],
+    },
+
+    // ---- C2 (audit): composite-widget arrow-key trap → 2.1.2 (drives ARROW keys then tests Tab escape from an
+    // inner item; the mechanism keyboard-trap-escape never exercises). AT-independent physical focus test.
+    'composite-arrow-trap': {
+      sc: '2.1.2', claimFamily: 'composite-arrow-trap',
+      cost: { maxWallClockMs: 15000, retries: 1, mutationRisk: 'high' }, // arrow + Tab/Shift+Tab on a roving widget
+      accessibilitySupportDependent: { BARRIER_OBSERVED: false, NO_BARRIER_OBSERVED: false },
+      applicability: { requires: ['isCompositeWidget'] },
+      supports: {
+        NO_BARRIER_OBSERVED: { requires: ['isCompositeWidget', 'widgetEscapes'] },
+        BARRIER_OBSERVED: { requires: ['isCompositeWidget', 'widgetTrapBarrier'] },
+      },
+      typedOutcomes: ['isCompositeWidget', 'widgetTrapBarrier', 'widgetEscapes'],
+    },
   },
 };
 

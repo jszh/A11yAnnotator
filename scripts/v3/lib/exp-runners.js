@@ -7,6 +7,9 @@
 'use strict';
 
 const H = require('./run-experiments.js'); // shared helpers (tagByXpath, hydrate, reach, settle, …)
+const NTC = require('./nontext-contrast-runner.js'); // C4: deterministic 1.4.11 non-text-contrast (collect in-page, dispose in Node)
+const SS = require('./small-signals.js'); // C8: deterministic small signals (glyph 1.1.1, long-desc 1.1.1, multipart 4.1.2, f44 2.4.3)
+const RV = require('./reveal-state-runner.js'); // C2: arrow-key composite-widget trap driver (2.1.2 mechanism keyboard-trap-escape never tests)
 
 // Node-side relative-luminance + contrast ratio (mirrors the in-page WCAG formula). Used by the 1.4.3
 // runner to compute the WORST-CASE rendered contrast (Harness 3.3 A1 / audit J.4): a clear must hold
@@ -734,7 +737,20 @@ function measureReflow() {
       if (tag === 'MAP' || tag === 'SVG' || (role && /^(table|grid|treegrid)$/.test(role))) return true;
       if (tag === 'TABLE' && (p.querySelector('th, caption') || /^(table|grid|treegrid)$/.test(role || ''))) { dataTableExemptionApplied = true; return true; }
       const ov = getComputedStyle(p).overflowX;
-      if (ov === 'auto' || ov === 'scroll') return true; // author-provided 2D affordance
+      if (ov === 'auto' || ov === 'scroll') {
+        // G225 FIX (was: blanket exempt — passed carousels that strand panels off-screen). A scroll container is a
+        // valid 2-D affordance ONLY if it is REACHABLE (keyboard-focusable, OR has working nav controls / tabs near
+        // it), OR the overflowing content is an UNBREAKABLE string (a long URL/token that legitimately needs the
+        // scroll, C33). An UNREACHABLE scroller stranding FLOWABLE content is a G225 barrier — do NOT exempt here
+        // (fall through; a higher data-table/map ancestor may still exempt).
+        const focusable = p.tabIndex >= 0;
+        const scope = p.parentElement || p;
+        const navReachable = [...scope.querySelectorAll('button, [role=button], a[href], [role=tab]')].some((b) => { const bc = getComputedStyle(b); return bc.display !== 'none' && bc.visibility !== 'hidden' && !b.disabled && b.getAttribute('aria-disabled') !== 'true' && b.getAttribute('aria-hidden') !== 'true' && (b.tabIndex == null || b.tabIndex >= 0); });
+        const ecs = getComputedStyle(el);
+        const unbreakable = /\S{30,}/.test((el.textContent || '').replace(/\s+/g, ' ')) && !/(anywhere|break-word|break-all)/.test((ecs.overflowWrap || '') + ' ' + (ecs.wordBreak || ''));
+        if (focusable || navReachable || unbreakable) return true; // genuine affordance / C33
+        // else: unreachable scroller stranding flowable content ⇒ G225 barrier ⇒ not exempt at this level
+      }
     }
     return false;
   };
@@ -752,10 +768,31 @@ function measureReflow() {
     // invisible clipping: a wider-than-parent child under overflow-x:hidden
     if ((cs.overflowX === 'hidden' || cs.overflowX === 'clip') && el.scrollWidth > el.clientWidth + SLOP) clipHidingDetected = true;
   }
+  // G225 (the bug fix's other half): an inner overflow-x:auto/scroll container whose content overflows
+  // (scrollWidth > clientWidth) and is FLOWABLE (not a data table/map/code/figure or an unbreakable string) and
+  // UNREACHABLE (not keyboard-focusable, no working nav controls / tabs) STRANDS content off-screen. The off-screen
+  // panels never cross the viewport edge, so the loop above misses them — a horizontal-scroll barrier even when the
+  // PAGE itself does not scroll (the scroller requires horizontal scrolling to reach the stranded content).
+  const is2D = (el) => { const role = el.getAttribute && el.getAttribute('role'); return el.tagName === 'TABLE' || el.tagName === 'MAP' || el.tagName === 'SVG' || el.tagName === 'PRE' || el.tagName === 'CODE' || !!(role && /^(table|grid|treegrid|toolbar|application|img|figure)$/.test(role)); };
+  let strandedScroller = false;
+  for (const el of all) {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    if (!/(auto|scroll)/.test(cs.overflowX)) continue;
+    if (el.scrollWidth <= el.clientWidth + SLOP) continue;
+    if (is2D(el)) continue;
+    if (/\S{30,}/.test((el.textContent || '').replace(/\s+/g, ' ')) && el.children.length === 0) continue; // unbreakable string ⇒ C33 affordance
+    const scope = el.parentElement || el;
+    const reachable = el.tabIndex >= 0 || !!scope.querySelector('[role=tablist] [role=tab]')
+      || [...scope.querySelectorAll('button,[role=button],a[href],[role=tab]')].some((b) => { const bc = getComputedStyle(b); return bc.display !== 'none' && bc.visibility !== 'hidden' && !b.disabled && b.getAttribute('aria-disabled') !== 'true' && b.getAttribute('aria-hidden') !== 'true' && (b.tabIndex == null || b.tabIndex >= 0); });
+    if (!reachable) { strandedScroller = true; break; }
+  }
   return {
-    horizontalScrollPresent, overflowSourceLocated, clipHidingDetected, dataTableExemptionApplied,
-    allOverflowExemptOr2D: overflowSourceLocated && !anyNonExempt,
-    overflowBarrierObserved: horizontalScrollPresent && overflowSourceLocated && anyNonExempt,
+    horizontalScrollPresent: horizontalScrollPresent || strandedScroller,
+    overflowSourceLocated: overflowSourceLocated || strandedScroller,
+    clipHidingDetected, dataTableExemptionApplied,
+    allOverflowExemptOr2D: overflowSourceLocated && !anyNonExempt && !strandedScroller,
+    overflowBarrierObserved: (horizontalScrollPresent && overflowSourceLocated && anyNonExempt) || strandedScroller,
     scrollWidth: se.scrollWidth, clientWidth: se.clientWidth,
   };
 }
@@ -1365,6 +1402,86 @@ async function runHoverContentTri(page, request) {
   return mk(request, 'hover-content-tri', '1.4.13', o, { hasHoverFocusTrigger: o.hasHoverFocusTrigger, triggerReachable: o.triggerReachable }, { action: 'hover-focus-tri', valid, measurement: { rest, hovered, nativeTitleOnly } });
 }
 
+// =====================================================================================
+// C4 — non-text-contrast → 1.4.11 (UI components + graphical objects). Fills the producer the
+// non-text-contrast-v0 rubric assumed existed (oracle: "No deterministic 1.4.11 runner exists").
+// CLEAR/BARRIER only when the strongest distinguishing cue + its adjacent surface reduce to two flat
+// opaque colours; otherwise INACTIVE/default-UA ⇒ INAPPLICABLE, and graphical/state-indicator/gradient/
+// pseudo/sub-part ⇒ in-scope but not flat-reducible ⇒ auto-PARTIAL (the rubric judges the pixels).
+async function runNonTextContrast(page, request) {
+  const marker = String(request.candidateId || request.targetXpath);
+  const o = { inScopeComponent: false, cueReducible: false, contrastComputed: false, thresholdMet: false, thresholdFailed: false };
+  const hydrationReady = await H.hydrate(page);
+  const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
+  if (!tagged) return mk(request, 'non-text-contrast', '1.4.11', o, { hydrationReady }, { action: 'inspect-non-text-contrast' });
+  const facts = await page.evaluate(NTC.collectNonTextFacts, `[data-v3-target="${marker}"]`, { focusState: false }).catch(() => null);
+  const d = NTC.disposeFromFacts(facts, { focusState: false });
+  let valid = false;
+  if (facts && facts.found) {
+    valid = true;
+    if (d.exempt) { /* inactive/default-UA/decorative ⇒ out of 1.4.11 scope ⇒ inScopeComponent stays false ⇒ INAPPLICABLE */ }
+    else if (d.decided && (d.verdict === 'pass' || d.verdict === 'fail')) {
+      o.inScopeComponent = true; o.cueReducible = true; o.contrastComputed = true;
+      o.thresholdMet = d.verdict === 'pass'; o.thresholdFailed = d.verdict === 'fail';
+    } else { o.inScopeComponent = true; } // abstain ⇒ in-scope but not flat-reducible ⇒ auto-PARTIAL
+  }
+  return mk(request, 'non-text-contrast', '1.4.11', o,
+    { component: (facts && facts.role) || null, exempt: !!(d && d.exempt), exemptReason: (d && d.exemptReason) || null, hydrationReady },
+    { action: 'inspect-non-text-contrast', valid, measurement: { ratio: (d && d.ratio) || null, cue: (d && d.cue) || null, adjacent: (d && d.adjacent) || null, threshold: NTC.THRESHOLD, reason: (d && (d.reason || d.uncertainReason)) || null } });
+}
+
+// =====================================================================================
+// C8 — small deterministic signals (one shared runner, dispatched by experimentId → aspect).
+// Each wraps small-signals.js detectSignal: a clear deterministic verdict (fail = BARRIER / pass = NO_BARRIER)
+// or an abstain (the semantic residual ⇒ auto-PARTIAL, judged by the matching rubric). signalApplicable is set
+// whenever the element resolved + the signal ran, so an abstain falls to PARTIAL, not INAPPLICABLE.
+// =====================================================================================
+const SS_ASPECT = { 'glyph-text-alt': 'glyph-substitution', 'long-desc-presence': 'long-description-presence', 'multipart-grouping': 'multipart-field-grouping', 'positive-tabindex': 'positive-tabindex-f44' };
+const SS_SC = { 'glyph-text-alt': '1.1.1', 'long-desc-presence': '1.1.1', 'multipart-grouping': '4.1.2', 'positive-tabindex': '2.4.3' };
+async function runSmallSignalExp(page, request) {
+  const marker = String(request.candidateId || request.targetXpath);
+  const aspect = SS_ASPECT[request.experimentId];
+  const sc = SS_SC[request.experimentId] || request.sc;
+  const o = { signalApplicable: false, barrierConfirmed: false, passConfirmed: false };
+  const hydrationReady = await H.hydrate(page);
+  const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
+  if (!tagged) return mk(request, request.experimentId, sc, o, { hydrationReady }, { action: 'small-signal:' + aspect });
+  const r = await SS.runSmallSignal(page, { aspect, targetSelector: `[data-v3-target="${marker}"]` }).catch(() => null);
+  let valid = false;
+  if (r && r.reason !== 'not-found') {
+    valid = true; o.signalApplicable = true; // the element resolved + the signal ran (decide or abstain)
+    if (r.verdict === 'fail') o.barrierConfirmed = true;
+    else if (r.verdict === 'pass') o.passConfirmed = true;
+    // abstain ⇒ neither ⇒ auto-PARTIAL (the rubric judges the semantic residual)
+  }
+  return mk(request, request.experimentId, sc, o, { aspect, hydrationReady }, { action: 'small-signal:' + aspect, valid, measurement: { aspect, reason: (r && (r.reason || r.uncertainReason)) || null } });
+}
+
+// =====================================================================================
+// C2 — composite-widget arrow-key trap → 2.1.2. Complements keyboard-trap-escape (which tests Tab/Shift+Tab/Esc/
+// advised-key but never drives ARROW keys): a roving-tabindex composite widget can let Tab leave from its tab stop
+// yet trap focus once an ARROW has moved to an inner item. Implemented as a sibling family (not folded into the
+// audited runKeyboardTrapEscape) so the existing 2.1.2 contract is untouched; the two cover distinct mechanisms.
+// =====================================================================================
+async function runCompositeArrowTrap(page, request) {
+  const marker = String(request.candidateId || request.targetXpath);
+  const o = { isCompositeWidget: false, widgetTrapBarrier: false, widgetEscapes: false };
+  const hydrationReady = await H.hydrate(page);
+  const tagged = await page.evaluate(H.tagByXpath, request.targetXpath, marker).catch(() => false);
+  if (!tagged) return mk(request, 'composite-arrow-trap', '2.1.2', o, { hydrationReady }, { action: 'arrow-key-trap' });
+  // roving-tabindex ⇒ enter via a focusable inner item (the active descendant), not the container.
+  const itemTagged = await page.evaluate((m) => {
+    const w = document.querySelector(`[data-v3-target="${m}"]`); if (!w) return false;
+    const item = w.querySelector('[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio],[role=tab],[role=option],[role=treeitem],[role=row],[role=gridcell],[role=radio],button,a[href],[tabindex]') || w;
+    item.setAttribute('data-v3-arrow-item', '1'); return true;
+  }, marker).catch(() => false);
+  o.isCompositeWidget = true;
+  const r = itemTagged ? await RV.runReveal(page, { aspect: 'arrow-key-composite-widget-trap', triggerSelector: '[data-v3-arrow-item="1"]', revealedSelector: `[data-v3-target="${marker}"]`, interaction: 'focus' }).catch(() => null) : null;
+  let valid = false;
+  if (r && r.decided) { valid = true; if (r.verdict === 'fail') o.widgetTrapBarrier = true; else if (r.verdict === 'pass') o.widgetEscapes = true; }
+  return mk(request, 'composite-arrow-trap', '2.1.2', o, { isCompositeWidget: true, hydrationReady }, { action: 'arrow-key-trap', valid, measurement: { reason: (r && r.reason) || null } });
+}
+
 const RUNNERS = {
   'text-contrast-pixel': runTextContrastPixel,
   'field-label-probe': runFieldLabelProbe,
@@ -1375,6 +1492,12 @@ const RUNNERS = {
   'keyboard-activation': runKeyboardActivation,
   'ax-state-diff': runAxStateDiff,
   'hover-content-tri': runHoverContentTri,
+  'non-text-contrast': runNonTextContrast,
+  'glyph-text-alt': runSmallSignalExp,
+  'long-desc-presence': runSmallSignalExp,
+  'multipart-grouping': runSmallSignalExp,
+  'positive-tabindex': runSmallSignalExp,
+  'composite-arrow-trap': runCompositeArrowTrap,
 };
 
 module.exports = { RUNNERS, measureContrast, measureFieldLabel, measureReflow, measureObscured };

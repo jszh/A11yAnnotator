@@ -491,6 +491,18 @@ function parseRGB(s) {
         // COMPLEX-IMAGE hint (Item 7b, parity): a data-bearing image (figure / role=figure / aria-describedby) owes
         // long-description-completeness; a bare logo/icon gets alt-adequacy only.
         const complexImageHint = (tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img') && (!!r.closest('figure') || roleAttr === 'figure' || r.hasAttribute('aria-describedby'));
+        // C8 glyph-substitution predicate: the element's OWN direct text (not descendants) carries an icon-font/PUA
+        // codepoint or a Cyrillic/Greek-mixed-with-Latin homoglyph — the glyph-text-alternative family + runner.
+        let _ownTxt = ''; for (const _n of r.childNodes) if (_n.nodeType === 3) _ownTxt += _n.textContent;
+        const hasGlyphText = [..._ownTxt].some((ch) => { const c = ch.codePointAt(0); return (c >= 0xE000 && c <= 0xF8FF) || (c >= 0xF0000 && c <= 0xFFFFD) || (c >= 0x100000 && c <= 0x10FFFD); }) || (/[Ѐ-ӿͰ-Ͽ]/.test(_ownTxt) && /[a-zA-Z]/.test(_ownTxt));
+        // C8 multipart-field-grouping predicate: this is one of ≥2 short (maxlength≤6) inputs in a shared
+        // fieldset/group/form — a split field (date DD/MM/YYYY, card groups, code digits) — the multipart family.
+        const splitFieldGroup = (() => {
+          if ((tag !== 'input' && tag !== 'select')) return false;
+          const ml = parseInt(r.getAttribute('maxlength'), 10); if (!(Number.isFinite(ml) && ml <= 6)) return false;
+          const grp = r.closest('fieldset, [role=group], form, div'); if (!grp) return false;
+          return [...grp.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]), select')].filter((i) => { const m = parseInt(i.getAttribute('maxlength'), 10); return Number.isFinite(m) && m <= 6; }).length >= 2;
+        })();
         let obscured = false;
         if (b.width > 0 && b.height > 0) {
           const hx = Math.min(innerWidth - 1, Math.max(0, b.x + b.width / 2)), hy = Math.min(innerHeight - 1, Math.max(0, b.y + b.height / 2));
@@ -576,6 +588,7 @@ function parseRGB(s) {
           isImage: tag === 'img' || tag === 'svg' || tag === 'canvas' || roleAttr === 'img',
           removedFromA11yTree, hiddenMechanism, ariaHiddenWithName, renderedVisible, nearbyText, svgLiveText, // Tier-0 #5 (e88epe) + S3 (R3) + S7 (R7)
           complexImageHint, // Item 7b: gate long-description-completeness to data-bearing images
+          hasGlyphText, splitFieldGroup, // C8 small-signal applicability predicates (glyph-text-alternative / multipart-field-grouping)
           underOverlay, hasHoverContent, // Item 9: un-dead 2.4.11 focus-not-obscured + 1.4.13 content-on-hover
           liveRegion, // Item 11: 4.1.3 status-message family
           isMedia, mediaInfo, // Item 10: 1.2.x media family
