@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaign Analytics — Funnel · Quanta Insights</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter", system-ui, sans-serif; background:#0e1117; color:#e6e9ef; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px 20px; background:#161b22; border-bottom:1px solid #232a33; }
+  .top .brand { font-weight:700; color:#6ea8fe; }
+  .top .crumbs { color:#8b95a3; font-size:.85rem; }
+  .panelwrap { max-width:860px; margin:24px auto; padding:0 18px; }
+  h1 { font-size:1.35rem; margin:0 0 16px; }
+  [role="tablist"] { display:flex; gap:2px; border-bottom:1px solid #2a323c; }
+  [role="tab"] {
+    background:transparent; border:0; color:#9aa4b2; padding:11px 18px; font:600 .95rem inherit;
+    cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-1px;
+  }
+  [role="tab"]:hover { color:#cdd5df; }
+  [role="tab"]:focus-visible { outline:2px solid #6ea8fe; outline-offset:-2px; }
+  /* The visually ACTIVE tab: bright text + blue underline. Applied via .active class, NOT via aria-selected. */
+  [role="tab"].active { color:#fff; border-bottom-color:#6ea8fe; }
+  [role="tabpanel"] { padding:22px 4px; }
+  .kpis { display:flex; gap:18px; margin:8px 0 22px; }
+  .kpi { background:#161b22; border:1px solid #232a33; border-radius:10px; padding:16px 20px; flex:1; }
+  .kpi .n { font-size:1.6rem; font-weight:700; }
+  .kpi .l { color:#8b95a3; font-size:.8rem; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  th, td { text-align:left; padding:9px 10px; border-bottom:1px solid #232a33; }
+  th { color:#9aa4b2; font-weight:600; }
+  .bar { height:8px; border-radius:4px; background:#6ea8fe; }
+  .why { background:#11151c; border:1px solid #232a33; border-radius:8px; padding:13px 16px; font-size:.8rem; color:#9aa4b2; margin-top:24px; }
+  [hidden] { display:none; }
+</style>
+</head>
+<body>
+<div class="top">
+  <span class="brand">Quanta Insights</span>
+  <span class="crumbs">/ Campaigns / Spring Launch / Analytics</span>
+</div>
+
+<div class="panelwrap">
+  <h1>Spring Launch — Campaign Analytics</h1>
+
+  <div role="tablist" aria-label="Analytics views">
+    <!-- aria-selected="true" sits on the FIRST tab... -->
+    <button role="tab" id="t-over" aria-selected="true"  aria-controls="p-over" tabindex="-1">Overview</button>
+    <button role="tab" id="t-aud"  aria-selected="false" aria-controls="p-aud"  tabindex="-1">Audience</button>
+    <!-- ...but the THIRD tab is the one rendered active (bright + underlined) and whose panel is shown. -->
+    <button role="tab" id="t-fun"  aria-selected="false" aria-controls="p-fun"  class="active" tabindex="0">Funnel</button>
+    <button role="tab" id="t-rev"  aria-selected="false" aria-controls="p-rev"  tabindex="-1">Revenue</button>
+  </div>
+
+  <!-- Only the Funnel panel is visible; the Overview panel is hidden, contradicting aria-selected. -->
+  <div role="tabpanel" id="p-over" aria-labelledby="t-over" hidden>
+    <p>Overview content.</p>
+  </div>
+  <div role="tabpanel" id="p-aud" aria-labelledby="t-aud" hidden>
+    <p>Audience content.</p>
+  </div>
+  <div role="tabpanel" id="p-fun" aria-labelledby="t-fun">
+    <div class="kpis">
+      <div class="kpi"><div class="n">48,210</div><div class="l">Landing views</div></div>
+      <div class="kpi"><div class="n">12,944</div><div class="l">Add to cart</div></div>
+      <div class="kpi"><div class="n">3,108</div><div class="l">Purchases</div></div>
+    </div>
+    <table>
+      <caption style="text-align:left;color:#8b95a3;font-size:.8rem;margin-bottom:8px">Conversion funnel, last 30 days</caption>
+      <thead><tr><th>Step</th><th>Users</th><th>Rate</th><th aria-hidden="true"></th></tr></thead>
+      <tbody>
+        <tr><td>Landing page</td><td>48,210</td><td>100%</td><td><div class="bar" style="width:100%"></div></td></tr>
+        <tr><td>Product view</td><td>27,560</td><td>57%</td><td><div class="bar" style="width:57%"></div></td></tr>
+        <tr><td>Add to cart</td><td>12,944</td><td>27%</td><td><div class="bar" style="width:27%"></div></td></tr>
+        <tr><td>Checkout</td><td>5,602</td><td>12%</td><td><div class="bar" style="width:12%"></div></td></tr>
+        <tr><td>Purchase</td><td>3,108</td><td>6.4%</td><td><div class="bar" style="width:6%"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div role="tabpanel" id="p-rev" aria-labelledby="t-rev" hidden>
+    <p>Revenue content.</p>
+  </div>
+
+  <div class="why">
+    <strong>Why automated tools miss this:</strong> the tablist has four real tabs, each with role="tab", a name,
+    and a permitted, valid aria-selected boolean — ACT 4e8ab6 / 5c01ea / 6a7281 pass. Exactly one tab carries
+    aria-selected="true", which is structurally correct. The defect is that aria-selected="true" is on
+    <em>Overview</em> while <em>Funnel</em> is the tab that is visually highlighted and whose panel is displayed.
+    A checker cannot see that the bright underlined tab and the shown panel are Funnel, not Overview; that requires
+    reading the rendered UI and matching it to the exposed state.
+  </div>
+</div>
+</body>
+</html>

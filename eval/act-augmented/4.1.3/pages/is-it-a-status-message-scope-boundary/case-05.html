@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Roles — Aperture Robotics Careers</title>
+<!--
+  ASPECT: is-it-a-status-message-scope-boundary
+  INTENDED CLASSIFICATION: failed
+  This is the FALSE-NEGATIVE direction. The job-search filter runs without a
+  page reload and without moving focus. When a filter matches nothing, the page
+  shows "No roles match your filters." in a PLAIN <p> with NO role=status /
+  aria-live. That sentence is a GENUINE status message: it conveys the result
+  of an action ("No results returned" is literally the Understanding's own
+  example of a status update). The results LIST itself is correctly NOT a status
+  message and needs nothing — but the count/empty-state summary IS one and is
+  left unannounced. A sighted user sees "No roles match"; a screen-reader user,
+  whose focus stays on the filter control, hears nothing and may conclude the
+  filter is broken or that roles are still loading. This is the in-scope status
+  that the author wrongly treated as "just content" like the list.
+-->
+<style>
+  :root { --indigo:#2b2f77; --cyan:#0e8aa6; --ink:#1d2230; --muted:#5b6577; --line:#e4e8ef; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; color:var(--ink); background:#f4f6fa; }
+  header { background:var(--indigo); color:#fff; padding:16px 28px; display:flex; align-items:center; gap:12px; }
+  header .logo { font-weight:800; letter-spacing:.5px; }
+  header nav { margin-left:auto; font-size:.85rem; opacity:.85; }
+  .wrap { max-width:960px; margin:26px auto; display:grid; grid-template-columns:240px 1fr; gap:24px; padding:0 20px; }
+  aside { background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; align-self:start; }
+  aside h2 { font-size:.95rem; margin:0 0 12px; }
+  .filter { margin-bottom:16px; }
+  .filter > span { display:block; font-weight:600; font-size:.82rem; margin-bottom:6px; color:var(--muted); }
+  .filter label { display:flex; gap:8px; align-items:center; padding:5px 0; font-size:.9rem; }
+  .results { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px 26px; }
+  .results h1 { font-size:1.35rem; margin:0 0 4px; }
+  /* The empty-state / count summary — a GENUINE status message rendered as a plain <p>. */
+  #summary { color:var(--muted); margin:4px 0 18px; font-size:.95rem; min-height:1.2em; }
+  ul.jobs { list-style:none; padding:0; margin:0; }
+  ul.jobs li { padding:16px 18px; border:1px solid var(--line); border-radius:10px; margin-bottom:12px; }
+  ul.jobs h3 { margin:0 0 4px; font-size:1.05rem; }
+  ul.jobs h3 a { color:var(--indigo); text-decoration:none; }
+  ul.jobs h3 a:hover { text-decoration:underline; }
+  ul.jobs .meta { color:var(--muted); font-size:.85rem; }
+  .empty { text-align:center; color:var(--muted); padding:30px 10px; }
+  button:focus-visible, input:focus-visible { outline:3px solid #3a86ff; outline-offset:2px; }
+  .why { grid-column:1 / -1; background:#fff; border:1px solid var(--line); border-radius:8px; padding:14px 16px; font-size:.8rem; color:#45506a; }
+  footer { max-width:960px; margin:8px auto 50px; padding:0 20px; color:var(--muted); font-size:.78rem; }
+</style>
+</head>
+<body data-intended-classification="failed" data-sc="4.1.3">
+<header>
+  <span class="logo">APERTURE ROBOTICS</span>
+  <nav>Careers · Engineering · Operations · Internships</nav>
+</header>
+
+<div class="wrap">
+  <aside aria-label="Filter roles">
+    <h2>Filter roles</h2>
+    <div class="filter">
+      <span id="dept-lbl">Department</span>
+      <label><input type="checkbox" class="f" data-key="dept" value="hardware"> Hardware</label>
+      <label><input type="checkbox" class="f" data-key="dept" value="software"> Software</label>
+      <label><input type="checkbox" class="f" data-key="dept" value="ops"> Operations</label>
+    </div>
+    <div class="filter">
+      <span id="loc-lbl">Location</span>
+      <label><input type="checkbox" class="f" data-key="loc" value="remote"> Remote</label>
+      <label><input type="checkbox" class="f" data-key="loc" value="boston"> Boston, MA</label>
+      <label><input type="checkbox" class="f" data-key="loc" value="austin"> Austin, TX</label>
+    </div>
+  </aside>
+
+  <section class="results" aria-label="Open roles">
+    <h1>Open roles</h1>
+    <!-- GENUINE status message lives here. On filter change it updates to "3 roles match…" or
+         "No roles match your filters." but is a plain <p> with NO role=status / aria-live. -->
+    <p id="summary">Showing all 3 open roles.</p>
+
+    <ul class="jobs" id="jobList">
+      <li data-dept="hardware" data-loc="boston">
+        <h3><a href="#">Senior Mechatronics Engineer</a></h3>
+        <p class="meta">Hardware · Boston, MA · Full-time</p>
+      </li>
+      <li data-dept="software" data-loc="remote">
+        <h3><a href="#">Perception Software Engineer</a></h3>
+        <p class="meta">Software · Remote (US) · Full-time</p>
+      </li>
+      <li data-dept="ops" data-loc="austin">
+        <h3><a href="#">Field Operations Lead</a></h3>
+        <p class="meta">Operations · Austin, TX · Full-time</p>
+      </li>
+    </ul>
+    <div class="empty" id="empty" hidden>
+      <p>No roles match your filters. Try removing a filter or selecting a different location.</p>
+    </div>
+  </section>
+
+  <div class="why">
+    Why automated tools cannot judge this page: the page is structurally clean — labeled checkboxes, a
+    semantic job list, valid contrast. axe/WAVE/Lighthouse find no defect because there is no missing
+    attribute to flag, and they never run the filter to see that the <code>#summary</code> /
+    <code>#empty</code> text changes silently. The hard part is the classification: the results
+    <em>list</em> is correctly NOT a status message and needs nothing, but the "No roles match…" /
+    "N roles match…" summary IS a status message (it conveys the result of the filter action, the
+    Understanding's own "No results returned" example). Deciding that this one sentence — not the list —
+    needed a live region requires interpreting what each piece of content MEANS.
+  </div>
+</div>
+
+<footer>
+  Aperture Robotics is an equal-opportunity employer. Roles refreshed nightly.
+</footer>
+
+<script>
+  // Client-side filtering, no reload, focus stays on the checkbox. The summary line (count or
+  // "no results") is updated as a PLAIN <p> with no role=status / aria-live, so a screen-reader
+  // user is never told the result of their filter action. The empty-state IS a status message
+  // ("No results returned") left programmatically undeterminable -> 4.1.3 FAIL.
+  var summary = document.getElementById('summary');
+  var list = document.getElementById('jobList');
+  var empty = document.getElementById('empty');
+  var items = Array.prototype.slice.call(list.querySelectorAll('li'));
+
+  function activeFilters(key) {
+    return Array.prototype.slice
+      .call(document.querySelectorAll('.f[data-key="' + key + '"]:checked'))
+      .map(function (c) { return c.value; });
+  }
+  function apply() {
+    var depts = activeFilters('dept');
+    var locs = activeFilters('loc');
+    var shown = 0;
+    items.forEach(function (li) {
+      var okDept = !depts.length || depts.indexOf(li.dataset.dept) !== -1;
+      var okLoc = !locs.length || locs.indexOf(li.dataset.loc) !== -1;
+      var visible = okDept && okLoc;
+      li.hidden = !visible;
+      if (visible) shown++;
+    });
+    if (shown === 0) {
+      list.hidden = true;
+      empty.hidden = false;
+      summary.textContent = 'No roles match your filters.';   // <-- status message, but plain <p>
+    } else {
+      list.hidden = false;
+      empty.hidden = true;
+      summary.textContent = 'Showing ' + shown + ' of 3 open roles.'; // <-- also a status message
+    }
+  }
+  document.querySelectorAll('.f').forEach(function (c) {
+    c.addEventListener('change', apply);
+  });
+</script>
+</body>
+</html>

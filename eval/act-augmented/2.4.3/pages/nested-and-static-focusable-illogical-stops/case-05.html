@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Add a patient allergy — Meadowbrook Clinic</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { font:16px/1.55 system-ui, "Segoe UI", sans-serif; color:#1b242b;
+           background:#eef3f5; margin:0; }
+    .panel { max-width:600px; margin:30px auto; background:#fff; border-radius:12px;
+             box-shadow:0 2px 12px rgba(0,0,0,.07); overflow:hidden; }
+    .top { background:#125e63; color:#fff; padding:16px 24px; }
+    .top h1 { margin:0; font-size:1.18rem; }
+    .top p { margin:4px 0 0; color:#bfe0e1; font-size:.85rem; }
+    form { padding:22px 24px 28px; }
+    .field { margin-bottom:16px; }
+    label { display:block; font-weight:600; font-size:.88rem; margin-bottom:5px; color:#274; }
+    input, select, textarea { width:100%; padding:10px 12px; border:1px solid #bcd0d2;
+                              border-radius:7px; font:inherit; }
+    input:focus, select:focus, textarea:focus, .summary:focus, .saved:focus {
+      outline:3px solid #1f9aa0; outline-offset:1px; }
+
+    /* PASS element #1: a status region placed at a LOGICAL point — right after the submit
+       button, where any save result belongs. It is focusable so we can move focus to it on
+       save (so the user lands on the confirmation). It never interrupts a data-entry chain. */
+    .saved { margin-top:14px; padding:11px 13px; border-radius:8px; background:#e6f6ec;
+             border:1px solid #9ed8b3; color:#15602f; font-weight:600; display:none; }
+    .saved.show { display:block; }
+
+    /* PASS element #2: a read-only summary placed at the very END of the form, AFTER all
+       inputs and the submit button. It is focusable (tabindex="0") so users can review it,
+       but it adds no mid-sequence stop. */
+    .summary { margin-top:18px; padding:14px; background:#f3f7f8; border:1px solid #d6e2e4;
+               border-radius:8px; font-size:.9rem; color:#33484e; }
+    .summary h2 { margin:0 0 6px; font-size:.92rem; color:#274; }
+    .summary dl { margin:0; display:grid; grid-template-columns:auto 1fr; gap:4px 14px; }
+    .summary dt { font-weight:600; }
+    .summary dd { margin:0; }
+
+    button.save { margin-top:6px; padding:12px 22px; font:inherit; font-weight:700; color:#fff;
+                  background:#125e63; border:none; border-radius:8px; cursor:pointer; }
+    button.save:focus { outline:3px solid #1f9aa0; outline-offset:2px; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="top">
+      <h1>Add an allergy</h1>
+      <p>Patient: R. Okafor &middot; MRN 44-9183</p>
+    </div>
+
+    <form id="allergyForm" action="#" method="post" novalidate>
+      <div class="field">
+        <label for="allergen">Allergen</label>
+        <input id="allergen" name="allergen" type="text" value="Penicillin">
+      </div>
+
+      <div class="field">
+        <label for="reaction">Reaction</label>
+        <select id="reaction" name="reaction">
+          <option>Hives</option>
+          <option selected>Anaphylaxis</option>
+          <option>Nausea</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="severity">Severity</label>
+        <select id="severity" name="severity">
+          <option>Mild</option>
+          <option>Moderate</option>
+          <option selected>Severe</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="notes">Clinical notes</label>
+        <textarea id="notes" name="notes" rows="2">Reported by patient; confirmed 2024.</textarea>
+      </div>
+
+      <button type="submit" class="save">Save allergy</button>
+
+      <!-- Status region: logical position (immediately after submit), focus moved here on save. -->
+      <p class="saved" id="saved" role="status" aria-live="polite" tabindex="-1"></p>
+
+      <!-- End-of-form review summary: focusable, but placed AFTER everything; no mid-flow stop. -->
+      <section class="summary" tabindex="0" aria-label="Entry summary">
+        <h2>You are recording</h2>
+        <dl>
+          <dt>Allergen</dt><dd>Penicillin</dd>
+          <dt>Reaction</dt><dd>Anaphylaxis</dd>
+          <dt>Severity</dt><dd>Severe</dd>
+        </dl>
+      </section>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('allergyForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var s = document.getElementById('saved');
+      s.textContent = 'Allergy saved to the patient record.';
+      s.classList.add('show');
+      s.focus(); // move focus to the confirmation — a logical focus move, not a stray stop
+    });
+  </script>
+
+  <!--
+    WHY THIS PASSES (and why a naive "flag every focusable non-control" heuristic would
+    wrongly fail it):
+    Two non-interactive elements are focusable here — the status region and the end-of-form
+    summary — exactly the situation the Understanding note PERMITS. Neither impedes operation:
+    the status region sits after the submit button and only receives focus on save (a logical
+    focus move to the confirmation); the summary sits at the very END, after all inputs and the
+    button, so it never interrupts the data-entry chain. The tab order is: allergen -> reaction
+    -> severity -> notes -> Save -> summary. No control is reached twice; no dead stop lands
+    between two related fields. This is the boundary the SC draws: focusable static content that
+    does NOT impede meaning or operation is allowed.
+  -->
+</body>
+</html>

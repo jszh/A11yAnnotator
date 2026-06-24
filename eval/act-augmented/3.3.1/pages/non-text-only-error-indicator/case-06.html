@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Expense claim — line items | Vantage Logistics intranet</title>
+<style>
+  body { font:14px/1.5 "Segoe UI",Tahoma,sans-serif; color:#26303a;
+         background:#eceff2; margin:0; }
+  .app { max-width:820px; margin:0 auto; background:#fff; min-height:100vh; }
+  .hd { background:#2d3e50; color:#fff; padding:14px 26px; display:flex;
+        align-items:center; justify-content:space-between; }
+  .hd h1 { font-size:1.05rem; margin:0; font-weight:600; }
+  .hd .who { font-size:.82rem; opacity:.85; }
+  .body { padding:24px 26px 60px; }
+  .crumbs { font-size:.78rem; color:#73808c; margin:0 0 18px; }
+  fieldset { border:1px solid #cdd4da; border-radius:6px; padding:16px 18px 6px;
+             margin:0 0 18px; background:#fff; }
+  legend { font-weight:600; padding:0 6px; font-size:.92rem; }
+  /* Per the company validator, a section needing attention is "highlighted in yellow".
+     That highlight is the only thing marking this line item as in error. */
+  fieldset.attention { background:#fff7d6; border-color:#e6cf63; }
+  .line { display:grid; grid-template-columns:150px 1fr; gap:8px 14px;
+          align-items:center; margin:0 0 12px; }
+  .line label { font-weight:500; }
+  input[type=text], select {
+    padding:8px 9px; font-size:.92rem; border:1px solid #c2cad1; border-radius:5px;
+    background:#fff; width:100%; box-sizing:border-box; }
+  .submit { background:#1d6f3c; color:#fff; border:0; border-radius:5px;
+            padding:10px 22px; font-size:.92rem; font-weight:600; cursor:pointer; }
+  .hint { font-size:.78rem; color:#73808c; margin:18px 0 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hd">
+    <h1>Vantage Logistics · Expense claim EX-44821</h1>
+    <span class="who">d.okafor@vantage-log.com</span>
+  </div>
+
+  <div class="body">
+    <p class="crumbs">Finance &rsaquo; My claims &rsaquo; EX-44821 &rsaquo; Edit line items</p>
+
+    <form action="/expenses/EX-44821/save" method="post" novalidate>
+
+      <fieldset>
+        <legend>Line 1 — Rail</legend>
+        <div class="line">
+          <label for="d1">Date</label>
+          <input type="text" id="d1" name="d1" value="03/06/2026">
+        </div>
+        <div class="line">
+          <label for="a1">Amount (GBP)</label>
+          <input type="text" id="a1" name="a1" value="84.20">
+        </div>
+        <div class="line">
+          <label for="c1">Category</label>
+          <select id="c1" name="c1"><option selected>Travel — rail</option><option>Travel — taxi</option></select>
+        </div>
+      </fieldset>
+
+      <!-- This claim line exceeds the £75 per-meal cap, so the validator flagged it by
+           highlighting the whole fieldset yellow. The descriptive text that should explain
+           the breach ("Meal exceeds the £75 cap") was never rendered. The legend stays the
+           plain "Line 2 — Meals" and no message, hidden text or aria state is present. -->
+      <fieldset class="attention">
+        <legend>Line 2 — Meals</legend>
+        <div class="line">
+          <label for="d2">Date</label>
+          <input type="text" id="d2" name="d2" value="03/06/2026">
+        </div>
+        <div class="line">
+          <label for="a2">Amount (GBP)</label>
+          <input type="text" id="a2" name="a2" value="139.00">
+        </div>
+        <div class="line">
+          <label for="c2">Category</label>
+          <select id="c2" name="c2"><option selected>Meals — dinner</option><option>Meals — lunch</option></select>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Line 3 — Accommodation</legend>
+        <div class="line">
+          <label for="d3">Date</label>
+          <input type="text" id="d3" name="d3" value="03/06/2026">
+        </div>
+        <div class="line">
+          <label for="a3">Amount (GBP)</label>
+          <input type="text" id="a3" name="a3" value="112.00">
+        </div>
+        <div class="line">
+          <label for="c3">Category</label>
+          <select id="c3" name="c3"><option selected>Hotel</option><option>Airbnb</option></select>
+        </div>
+      </fieldset>
+
+      <button type="submit" class="submit">Save and submit for approval</button>
+      <p class="hint">Claims over £500 require a manager's secondary approval.</p>
+    </form>
+  </div>
+</div>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  The "highlight in yellow" cue is exactly the multi-cue example WCAG endorses — but ONLY
+  when accompanied by a text description. Here the descriptive text was omitted, so the
+  yellow background of the "Line 2 — Meals" fieldset is the sole indicator that the £139
+  dinner breached the £75 cap. The markup is impeccable (real fieldsets/legends/labels,
+  good contrast), and a background colour on a container is never flagged by axe/WAVE/
+  Lighthouse as an error indicator. A screen-reader user reads Line 2 identically to the
+  valid lines — "Line 2 Meals, Amount GBP, 139.00" — with no spoken difference. Recognising
+  that the yellow fieldset MEANS "this line is in error" and that the explanation exists
+  only as a background colour, not in text, is a rendered-visual + semantic judgment beyond
+  any static checker.
+-->
+</body>
+</html>

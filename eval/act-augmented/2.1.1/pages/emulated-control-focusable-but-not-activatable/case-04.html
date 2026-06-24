@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Virtual Galleries — The Halverson Museum of Modern Craft</title>
+<style>
+  body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:#16181d; background:#101114; }
+  header { padding:1.5rem 2rem; border-bottom:1px solid #23262d; color:#f4f4f5; }
+  header .eyebrow { letter-spacing:.18em; text-transform:uppercase; font-size:.7rem; color:#8a8f99; }
+  header h1 { margin:.35rem 0 0; font-weight:300; font-size:1.7rem; }
+  .lead { color:#c7cad1; max-width:62ch; padding:1.5rem 2rem 0; line-height:1.6; }
+  .gallery-grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:1.25rem; padding:1.75rem 2rem 3rem;
+  }
+  figure.exhibit { margin:0; background:#181a1f; border:1px solid #262a32; border-radius:10px; overflow:hidden; }
+  /* The clickable artwork "enter exhibit" image — focusable, with an onkeypress that looks wired up */
+  .exhibit img.cover {
+    display:block; width:100%; height:190px; object-fit:cover; cursor:pointer; outline:none;
+  }
+  .exhibit img.cover:focus { outline:3px solid #d9a441; outline-offset:-3px; }
+  figcaption { padding:.85rem 1rem 1.1rem; color:#e6e8ec; }
+  figcaption .title { font-weight:600; font-size:1.02rem; }
+  figcaption .artist { color:#9aa0aa; font-size:.85rem; margin-top:.15rem; }
+  figcaption .hint { color:#d9a441; font-size:.78rem; margin-top:.55rem; letter-spacing:.04em; }
+  #curtain {
+    position:fixed; inset:0; background:rgba(8,9,11,.92); color:#f4f4f5; display:none;
+    place-items:center; text-align:center; padding:2rem;
+  }
+  #curtain.open { display:grid; }
+  #curtain .room { max-width:520px; }
+  #curtain h2 { font-weight:300; }
+  #curtain button { margin-top:1.2rem; background:#d9a441; border:0; color:#1a1206; padding:.6rem 1.1rem; border-radius:6px; font-size:.95rem; cursor:pointer; }
+  footer { color:#6b7079; font-size:.78rem; padding:1.5rem 2rem 2.5rem; border-top:1px solid #23262d; }
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Online Exhibitions</div>
+  <h1>The Halverson Museum of Modern Craft</h1>
+</header>
+
+<p class="lead">Step inside three of our touring exhibitions from anywhere. Select an artwork
+   to enter its virtual room, where you can pan, zoom and read the curator's notes.</p>
+
+<div class="gallery-grid">
+  <!-- Each cover image is the clickable entry point. tabindex makes it focusable; the
+       onkeypress LOOKS like keyboard support but calls preventDefault() and returns
+       before ever invoking enterRoom(), so Enter/Space silently do nothing. -->
+  <figure class="exhibit">
+    <img class="cover" tabindex="0" role="button" alt="Enter the exhibit: Vessels of Memory"
+         src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='260' height='190'&gt;&lt;rect width='260' height='190' fill='%23463a2e'/&gt;&lt;circle cx='130' cy='95' r='52' fill='%23caa15c'/&gt;&lt;/svg&gt;"
+         onclick="enterRoom('Vessels of Memory')"
+         onkeypress="handleKey(event, 'Vessels of Memory')">
+    <figcaption>
+      <div class="title">Vessels of Memory</div>
+      <div class="artist">Imelda R. Santos · ceramic, 2023</div>
+      <div class="hint">Select to enter ›</div>
+    </figcaption>
+  </figure>
+
+  <figure class="exhibit">
+    <img class="cover" tabindex="0" role="button" alt="Enter the exhibit: Folded Light"
+         src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='260' height='190'&gt;&lt;rect width='260' height='190' fill='%232e3a46'/&gt;&lt;polygon points='40,150 130,40 220,150' fill='%237fb0c9'/&gt;&lt;/svg&gt;"
+         onclick="enterRoom('Folded Light')"
+         onkeypress="handleKey(event, 'Folded Light')">
+    <figcaption>
+      <div class="title">Folded Light</div>
+      <div class="artist">Tomas Bergqvist · paper &amp; glass, 2021</div>
+      <div class="hint">Select to enter ›</div>
+    </figcaption>
+  </figure>
+
+  <figure class="exhibit">
+    <img class="cover" tabindex="0" role="button" alt="Enter the exhibit: Warp and Weft"
+         src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='260' height='190'&gt;&lt;rect width='260' height='190' fill='%233a2e3e'/&gt;&lt;rect x='30' y='40' width='200' height='110' fill='%23b97fae'/&gt;&lt;/svg&gt;"
+         onclick="enterRoom('Warp and Weft')"
+         onkeypress="handleKey(event, 'Warp and Weft')">
+    <figcaption>
+      <div class="title">Warp and Weft</div>
+      <div class="artist">Nour El-Amin · woven fibre, 2024</div>
+      <div class="hint">Select to enter ›</div>
+    </figcaption>
+  </figure>
+</div>
+
+<div id="curtain" role="dialog" aria-modal="true" aria-labelledby="roomTitle">
+  <div class="room">
+    <h2 id="roomTitle">Exhibit</h2>
+    <p>You are now in the virtual room. Use the controls to pan and zoom.</p>
+    <button onclick="closeRoom()">Leave room</button>
+  </div>
+</div>
+
+<footer>The Halverson Museum of Modern Craft · Online exhibitions are free to all visitors.</footer>
+
+<script>
+  function enterRoom(name) {
+    document.getElementById('roomTitle').textContent = name;
+    document.getElementById('curtain').classList.add('open');
+  }
+  function closeRoom() {
+    document.getElementById('curtain').classList.remove('open');
+  }
+  // The developer intended keyboard support, but the guard logic is wrong: it calls
+  // preventDefault() to "stop the page scrolling on Space" and then returns immediately
+  // for EVERY key — including Enter and Space — so enterRoom() is never reached from the
+  // keyboard. The handler is present (so the markup reads as keyboard-ready) but it
+  // swallows activation. There is no fallback link or button to enter a room.
+  function handleKey(event, name) {
+    event.preventDefault();   // stop default scroll/activation
+    return false;             // early-out before activation — kills Enter AND Space
+    // (the intended `if (event.key === 'Enter' || event.key === ' ') enterRoom(name);`
+    //  was never reached)
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find a Charging Station — VoltRoute</title>
+<style>
+  /*
+    THE DEFECT (human-judgment only):
+    A genuine interactive map (a real <svg> map with plotted stations) legitimately
+    requires two-dimensional layout — it is excepted from Reflow. But the developer placed
+    the map and its control sidebar (filters, legend, results list) in ONE non-wrapping
+    flex row whose total width is fixed. The map keeps its size (fine), but the sidebar's
+    filters, the legend, and the "results" list are pushed off the right edge and clipped
+    at 320px. Those controls are NOT excepted: a filter form, a legend, and a results list
+    must reflow. The author scoped the exception to the whole map+controls module instead
+    of the map alone.
+  */
+  :root { font-family: "Inter", system-ui, sans-serif; color: #1b2330; }
+  body { margin: 0; background: #f4f6fa; }
+  header.top { background: #0a2540; color: #fff; padding: 14px 20px; }
+  header.top h1 { margin: 0; font-size: 1.4rem; }
+  header.top p { margin: 4px 0 0; color: #b9c6dc; font-size: 0.85rem; }
+  .finder-intro { padding: 16px 20px 0; max-width: 60ch; line-height: 1.5; }
+
+  /*
+    Non-wrapping flex row containing the excepted map AND non-excepted controls.
+    nowrap + a fixed gap means the sidebar is pushed off-canvas at 320px.
+  */
+  .finder {
+    display: flex; flex-wrap: nowrap; gap: 20px; align-items: flex-start;
+    padding: 16px 20px 40px; min-width: 1080px;   /* whole module won't reflow */
+  }
+  /* The excepted map (genuinely 2D). */
+  .map { flex: 0 0 680px; background: #dfe7f0; border: 1px solid #c2cede; border-radius: 10px; }
+  .map svg { display: block; width: 680px; height: 420px; }
+
+  /* The NON-excepted control sidebar — should reflow, but is pinned beside the map. */
+  .controls { flex: 0 0 360px; }
+  .controls .panel {
+    background: #fff; border: 1px solid #d6deea; border-radius: 10px; padding: 14px; margin-bottom: 14px;
+  }
+  .controls h2 { font-size: 1rem; margin: 0 0 10px; }
+  .controls label { display: block; font-size: 0.82rem; font-weight: 600; margin: 8px 0 3px; }
+  .controls input, .controls select { width: 100%; padding: 8px; font-size: 0.95rem; }
+  .controls .legend li { list-style: none; display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 0.85rem; }
+  .controls .legend .swatch { width: 14px; height: 14px; border-radius: 3px; }
+  .controls .results li { padding: 8px 0; border-bottom: 1px solid #edf1f6; font-size: 0.88rem; }
+  .controls .results strong { display: block; }
+  .controls .results small { color: #5a6678; }
+</style>
+</head>
+<body>
+  <header class="top">
+    <h1>Find a Charging Station</h1>
+    <p>VoltRoute · live availability across the network</p>
+  </header>
+
+  <p class="finder-intro">
+    Search the map for rapid and ultra-rapid chargers near you. Filter by connector type and
+    availability, then select a site for live status and directions.
+  </p>
+
+  <div class="finder">
+    <!-- EXCEPTED: a genuine interactive map (2D layout required). -->
+    <div class="map" role="application" aria-label="Charging station map">
+      <svg viewBox="0 0 680 420" role="img" aria-label="Map of charging stations across the city">
+        <rect width="680" height="420" fill="#e7eef6"/>
+        <path d="M0 250 L180 230 L320 280 L470 210 L680 250" stroke="#a9bcd2" stroke-width="3" fill="none"/>
+        <path d="M120 0 L150 200 L130 420" stroke="#cdd9e8" stroke-width="6" fill="none"/>
+        <path d="M0 120 L680 150" stroke="#cdd9e8" stroke-width="6" fill="none"/>
+        <circle cx="160" cy="150" r="10" fill="#16a34a"/>
+        <circle cx="330" cy="240" r="10" fill="#16a34a"/>
+        <circle cx="470" cy="120" r="10" fill="#dc2626"/>
+        <circle cx="560" cy="300" r="10" fill="#eab308"/>
+        <text x="20" y="30" font-size="14" fill="#46566b">City centre charging network</text>
+      </svg>
+    </div>
+
+    <!-- NOT EXCEPTED: filters, legend, results — these must reflow but are pinned right. -->
+    <div class="controls">
+      <div class="panel">
+        <h2>Filter stations</h2>
+        <form aria-label="Charging station filters">
+          <label for="conn">Connector</label>
+          <select id="conn"><option>Any</option><option>CCS</option><option>CHAdeMO</option><option>Type 2</option></select>
+          <label for="speed">Minimum speed</label>
+          <select id="speed"><option>Any</option><option>50 kW</option><option>150 kW</option><option>350 kW</option></select>
+          <label for="avail"><input type="checkbox" id="avail" style="width:auto"> Available now only</label>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Legend</h2>
+        <ul class="legend">
+          <li><span class="swatch" style="background:#16a34a"></span> Available</li>
+          <li><span class="swatch" style="background:#eab308"></span> In use</li>
+          <li><span class="swatch" style="background:#dc2626"></span> Out of service</li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h2>Nearby results</h2>
+        <ul class="results">
+          <li><strong>Harbour Point Supercharge</strong><small>350 kW · CCS · 4 of 6 free · 0.8 km</small></li>
+          <li><strong>Market Square Rapids</strong><small>150 kW · CCS/CHAdeMO · 1 of 4 free · 1.3 km</small></li>
+          <li><strong>Riverside Car Park</strong><small>50 kW · Type 2 · out of service · 2.0 km</small></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT:
+    The map legitimately requires 2D layout (valid 1.4.10 exception), so a tool noticing the
+    map's size must NOT flag it. The failure is that the filter form, legend, and results list
+    — none of which need 2D layout — share a nowrap flex row with `min-width:1080px`, so they
+    are clipped off the right edge at 320px and never reflow below the map. No attribute is
+    missing (filters have <label>, the map has an accessible name). A checker cannot decide
+    "the map may stay 2D, but the adjacent controls must drop below it and reflow." That
+    scoping — map exempt, surrounding controls not — is a human contextual judgment.
+  -->
+</body>
+</html>

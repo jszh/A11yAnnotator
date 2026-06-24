@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statement summary — Linden Credit Union</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (scope-guard / TRAP case):
+  Two controls on this page LOOK like data-entry fields but are NOT, so SC 3.3.2
+  (which applies only to controls "associated with data entry") owes them no
+  field-style instruction:
+
+  1) #amount-display — a <div contenteditable="false"> styled to look exactly like
+     a filled text input (border, padding, monospace). It is a READ-ONLY display of
+     the statement balance ("$2,418.05"). It accepts no input: contenteditable is
+     false, it has no name/role of textbox, it is not focusable as an editor. It is
+     output dressed as input.
+
+  2) #period-trigger — a <button> styled to look like a <select>/combobox text box
+     ("Jun 2026 ▾"). Activating it opens a calendar DIALOG of links to past
+     statements. It does not accept typed data; it is a dialog-opener (navigation),
+     not a data-entry control.
+
+  The ONE genuine data-entry control is the "Search transactions" field, which is
+  correctly labelled + instructed (in scope, satisfied). So the page is PASS for
+  3.3.2.
+
+  THE TRAP: a model/auditor pattern-matching on appearance ("that looks like a text
+  box → it's an input → it needs a label/instruction") will FALSE-POSITIVE on the
+  read-only amount display or the period button. The correct judgment is by ROLE
+  and BEHAVIOUR, not by visual styling: neither accepts data entry, so 3.3.2 does
+  not apply to them. axe/WAVE/Lighthouse do not flag them either (the contenteditable
+  div is not an input; the period control is a named button), but they also can't
+  catch a human/model wrongly demanding an instruction for them — that requires
+  judging that an input-LOOKING control is not actually a data-entry control.
+-->
+<style>
+  :root{ --ink:#11212e; --muted:#5b6b78; --line:#d4dce3; --brand:#15583f; --bg:#eef3f1; --field:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+  .wrap{ max-width:680px; margin:32px auto; padding:0 18px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .brand .mark{ width:30px; height:30px; border-radius:50%; background:var(--brand); }
+  .brand strong{ font-size:1.1rem; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:24px; box-shadow:0 6px 22px rgba(17,33,46,.06); }
+  h1{ font-size:1.35rem; margin:0 0 2px; }
+  .sub{ color:var(--muted); margin:0 0 20px; font-size:.92rem; }
+  .row{ display:flex; gap:18px; flex-wrap:wrap; margin-bottom:22px; }
+  .stat{ flex:1 1 200px; }
+  .stat .k{ font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:6px; }
+  /* This DIV is dressed to look like a filled text input but is read-only output. */
+  .fauxfield{ font:1.4rem/1 "SF Mono",ui-monospace,monospace; font-weight:700; color:var(--ink);
+              border:2px solid var(--line); border-radius:9px; background:var(--field);
+              padding:12px 14px; display:inline-block; min-width:160px; }
+  /* This BUTTON is dressed to look like a select/combobox text box but opens a dialog. */
+  .selbtn{ font:1rem/1 "Inter",system-ui,sans-serif; color:var(--ink); border:2px solid var(--line);
+           border-radius:9px; background:var(--field); padding:12px 14px; cursor:pointer; display:inline-flex;
+           align-items:center; gap:10px; min-width:160px; justify-content:space-between; }
+  .selbtn:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .selbtn .car{ color:var(--muted); }
+  /* The ONE real data-entry control — labelled + instructed. */
+  .txnsearch{ margin-top:6px; }
+  .txnsearch label{ display:block; font-weight:700; font-size:.9rem; margin-bottom:5px; }
+  .txnsearch .hint{ color:var(--muted); font-size:.82rem; margin:0 0 8px; }
+  .txnsearch input{ width:100%; padding:11px 13px; font-size:1rem; border:2px solid var(--line); border-radius:9px; }
+  .txnsearch input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .actions{ display:flex; gap:10px; margin-top:22px; flex-wrap:wrap; }
+  .actions a, .actions button{ font:.92rem/1 "Inter",system-ui,sans-serif; text-decoration:none; border:1px solid var(--line);
+           background:#fff; color:var(--ink); padding:10px 14px; border-radius:9px; cursor:pointer; }
+  .actions .primary{ background:var(--brand); color:#fff; border-color:var(--brand); }
+  /* statement-picker dialog */
+  .dlg{ position:fixed; inset:0; background:rgba(17,33,46,.4); display:flex; align-items:center; justify-content:center; }
+  .dlg[hidden]{ display:none; }
+  .dlg .panel{ background:#fff; border-radius:14px; padding:18px; width:300px; }
+  .dlg h2{ font-size:1rem; margin:0 0 10px; }
+  .dlg .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .dlg .grid a{ text-align:center; padding:9px 0; border:1px solid var(--line); border-radius:8px; text-decoration:none; color:var(--ink); font-size:.85rem; }
+  .dlg .grid a[aria-current="true"]{ background:var(--brand); color:#fff; border-color:var(--brand); }
+  .dlg .close{ margin-top:12px; width:100%; padding:9px; border:1px solid var(--line); background:#f3f6f5; border-radius:8px; cursor:pointer; }
+  .foot{ color:var(--muted); font-size:.8rem; margin-top:16px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><strong>Linden Credit Union</strong></div>
+
+    <main class="card">
+      <h1>Statement summary</h1>
+      <p class="sub">Free checking ···· 4821</p>
+
+      <div class="row">
+        <div class="stat">
+          <div class="k" id="amt-k">Current balance</div>
+          <!--
+            READ-ONLY DISPLAY dressed as an input. contenteditable=false, no textbox role,
+            tabindex not set so it is not a tab stop / not an editor. It is output, not entry.
+          -->
+          <div class="fauxfield" id="amount-display" contenteditable="false" aria-labelledby="amt-k" aria-readonly="true">$2,418.05</div>
+        </div>
+        <div class="stat">
+          <div class="k" id="per-k">Statement period</div>
+          <!--
+            Looks like a <select> text box; is actually a DIALOG-OPENER button.
+            Opening it presents links to past statements. No typed data entry.
+          -->
+          <button type="button" class="selbtn" id="period-trigger" aria-labelledby="per-k period-trigger"
+                  aria-haspopup="dialog" aria-expanded="false">
+            <span>Jun 2026</span><span class="car" aria-hidden="true">▾</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- THE ONE genuine data-entry control: labelled + instructed (in scope, satisfied) -->
+      <div class="txnsearch">
+        <label for="txn">Search transactions</label>
+        <p class="hint" id="txn-hint">Enter a merchant name or amount (e.g. <em>“Costco”</em> or <em>“49.99”</em>). Searches this statement only.</p>
+        <input type="search" id="txn" name="txn" aria-describedby="txn-hint" placeholder="Search this statement" autocomplete="off">
+      </div>
+
+      <div class="actions">
+        <a class="primary" href="#download">Download PDF</a>
+        <a href="#dispute">Dispute a charge</a>
+        <button type="button" id="printS">Print statement</button>
+      </div>
+
+      <p class="foot">The balance figure and the period selector above are display/navigation controls, not fields you fill in.</p>
+    </main>
+  </div>
+
+  <!-- Statement-picker DIALOG (links to prior statements) -->
+  <div class="dlg" id="periodDlg" role="dialog" aria-modal="true" aria-label="Choose a statement period" hidden>
+    <div class="panel">
+      <h2>Choose a statement period</h2>
+      <div class="grid">
+        <a href="#s-jun" aria-current="true">Jun 2026</a>
+        <a href="#s-may">May 2026</a>
+        <a href="#s-apr">Apr 2026</a>
+        <a href="#s-mar">Mar 2026</a>
+        <a href="#s-feb">Feb 2026</a>
+        <a href="#s-jan">Jan 2026</a>
+      </div>
+      <button type="button" class="close" id="closeDlg">Close</button>
+    </div>
+  </div>
+
+<script>
+  var trig = document.getElementById('period-trigger'),
+      dlg  = document.getElementById('periodDlg'),
+      close = document.getElementById('closeDlg');
+  function openDlg(){ dlg.hidden = false; trig.setAttribute('aria-expanded','true'); close.focus(); }
+  function closeDlg(){ dlg.hidden = true; trig.setAttribute('aria-expanded','false'); trig.focus(); }
+  trig.addEventListener('click', openDlg);
+  close.addEventListener('click', closeDlg);
+  dlg.addEventListener('click', function(e){ if(e.target === dlg) closeDlg(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !dlg.hidden) closeDlg(); });
+  // The faux amount field genuinely rejects editing (belt-and-braces: it is not editable anyway).
+  document.getElementById('amount-display').addEventListener('beforeinput', function(e){ e.preventDefault(); });
+</script>
+</body>
+</html>

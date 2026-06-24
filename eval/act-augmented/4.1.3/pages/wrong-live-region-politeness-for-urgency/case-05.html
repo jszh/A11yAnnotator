@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brewhaus — Complete your order</title>
+<style>
+  body { font:15px/1.55 'Helvetica Neue',Arial,sans-serif; margin:0; color:#23211e; background:#faf7f2; }
+  header { background:#2b1d12; color:#f3e9da; padding:12px 20px; font-weight:700; letter-spacing:.5px; }
+  .checkout { max-width:920px; margin:24px auto; display:grid; grid-template-columns:1fr 340px; gap:28px; padding:0 20px; }
+  @media (max-width:760px){ .checkout{ grid-template-columns:1fr; } }
+  .panel { background:#fff; border:1px solid #e7ded0; border-radius:10px; padding:20px 22px; }
+  h2 { font-size:17px; margin:0 0 14px; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:13px; font-weight:600; margin-bottom:5px; }
+  .field input { width:100%; padding:10px 12px; border:1.5px solid #ddd3c4; border-radius:7px; font-size:15px; }
+  .field input:focus { outline:3px solid #d9b98a; border-color:#a9772f; }
+  /* The big, red, action-blocking banner the SIGHTED user sees on decline. */
+  .decline-banner { display:none; margin:4px 0 16px; padding:13px 15px; border:2px solid #9a1b1b;
+                    background:#fdeceb; border-radius:8px; color:#7a1414; font-weight:600; font-size:14.5px; }
+  .decline-banner.show { display:block; }
+  button.pay { width:100%; background:#a9772f; color:#fff; border:0; padding:13px; font-size:16px; font-weight:700; border-radius:8px; cursor:pointer; }
+  .summary { font-size:14px; }
+  .summary .line { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f0e9dd; }
+  .summary .line:last-of-type { border-bottom:0; }
+  .summary .tot { font-weight:800; font-size:16px; padding-top:10px; }
+  .muted { color:#7a7268; }
+  .note { grid-column:1 / -1; background:#fff7e6; border:1px solid #ffe2a8; border-radius:9px; padding:13px 16px; font-size:13px; color:#5b4a16; }
+  code { background:#f0ece4; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+             clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+</style>
+</head>
+<body>
+<header>BREWHAUS · Specialty Coffee</header>
+
+<div class="checkout">
+  <section class="panel" aria-label="Payment">
+    <h2>Payment</h2>
+
+    <!--
+      THE DEFECT: the critical status message is SPLIT across two elements, and the live
+      region announces the WRONG one.
+
+      * #payStatus IS a present, valid, role="status" live region — so every "is there a
+        live region / is it non-empty" checker passes, and it genuinely announces on
+        decline.
+      * BUT on decline the script routes the URGENT, action-blocking instruction
+        ("Payment declined — do NOT refresh or you may be charged twice") into the
+        VISIBLE red banner #declineBanner, which is a PLAIN <p> (no role, no aria-live).
+        Into the live region #payStatus it writes only a bland, generic line:
+        "Payment update available." That generic line is what the screen reader announces.
+
+      Result: the sighted user sees the full blocking warning in red; the screen-reader
+      user is told only "Payment update available" and never hears "do not refresh / you
+      may be double-charged." The status message that conveys the critical change is NOT
+      programmatically surfaced to AT — a genuine 4.1.3 failure (a live region is present
+      and announces, but the actual status content is in the un-announced node). Only a
+      human comparing the VISIBLE text against what the live region actually announces can
+      see that the urgent content was routed to the silent element.
+    -->
+    <p class="decline-banner" id="declineBanner"></p>
+    <p class="sr-only" id="payStatus" role="status" aria-atomic="true"></p>
+
+    <div class="field">
+      <label for="card">Card number</label>
+      <input id="card" inputmode="numeric" autocomplete="cc-number" value="4000 0000 0000 0002">
+    </div>
+    <div class="field">
+      <label for="exp">Expiry</label>
+      <input id="exp" autocomplete="cc-exp" value="11 / 27" style="max-width:120px">
+    </div>
+    <div class="field">
+      <label for="cvc">Security code</label>
+      <input id="cvc" autocomplete="cc-csc" value="123" style="max-width:120px">
+    </div>
+    <button class="pay" id="payBtn" type="button">Pay $43.80</button>
+  </section>
+
+  <aside class="panel summary" id="orderSummary" aria-label="Order summary">
+    <h2>Order summary</h2>
+    <div class="line"><span>Ethiopia Yirgacheffe · 2× 340g whole bean</span><span>$31.00</span></div>
+    <div class="line"><span>Ceramic V60 dripper, size 02</span><span>$24.00</span></div>
+    <div class="line"><span class="muted">Subtotal</span><span class="muted">$55.00</span></div>
+    <div class="line"><span class="muted">First-order discount (20%)</span><span class="muted">−$11.00</span></div>
+    <div class="line"><span class="muted">Standard shipping</span><span class="muted">$4.80</span></div>
+    <div class="line"><span class="muted">Estimated tax</span><span class="muted">$3.40</span></div>
+    <div class="line tot"><span>Total</span><span>$43.80</span></div>
+    <p class="muted" style="margin-top:12px;">Ships to: 1487 Larkspur Lane, Apt 3, Portland, OR 97214. Estimated delivery Thursday–Saturday. A confirmation email will be sent to the address on your account once payment is approved.</p>
+  </aside>
+
+  <div class="note">
+    <strong>Why automated checkers pass this page:</strong> <code>#payStatus</code> is a
+    real <code>role="status"</code> live region present at load, and on decline it is
+    non-empty and genuinely announces. axe / WAVE / Lighthouse confirm a status message
+    <em>can</em> be announced — and one is — so nothing fails. What they cannot see is
+    that the announced text is the bland filler <code>"Payment update available."</code>
+    while the actual blocking warning ("do NOT refresh — you may be double-charged") lives
+    in the visible red <code>&lt;p&gt;</code> banner, which has no role and no
+    <code>aria-live</code>. Only a human comparing what is shown on screen against what the
+    live region actually says can tell the critical status was routed to the silent node.
+  </div>
+</div>
+
+<script>
+  var payBtn        = document.getElementById('payBtn');
+  var declineBanner = document.getElementById('declineBanner');
+  var payStatus     = document.getElementById('payStatus');
+
+  payBtn.addEventListener('click', function () {
+    payBtn.disabled = true;
+    payBtn.textContent = 'Processing…';
+
+    // The gateway declines after ~1.2s. The CRITICAL, action-blocking instruction goes
+    // into the VISIBLE banner (a plain <p>, never announced). The actual live region gets
+    // only a generic placeholder — so the screen reader announces "Payment update
+    // available" and the user never hears the "do not refresh / double charge" warning.
+    setTimeout(function () {
+      declineBanner.textContent =
+        'Payment declined by your bank. Do NOT refresh or press Pay again — ' +
+        'a second attempt may place a duplicate charge. Use a different card below.';
+      declineBanner.classList.add('show');
+
+      // Routed to the live region instead of the real warning:
+      payStatus.textContent = 'Payment update available.';
+
+      payBtn.disabled = false;
+      payBtn.textContent = 'Pay $43.80';
+    }, 1200);
+  });
+</script>
+</body>
+</html>

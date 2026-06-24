@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Identity check — County Records Office</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (and why this page PASSES 3.3.3):
+  Post-submit error state on a government identity-verification form. The "Full legal
+  name (exactly as printed on your photo ID)" field was left blank, so a visible,
+  correctly associated error reads "Enter your full legal name exactly as it appears on
+  your photo ID." No specific suggested value is offered, and none is possible: a
+  person's legal name is a hand-verified fact known only to the applicant and their
+  document — the system has no database to infer or enumerate it from. The only knowable
+  rule is non-empty, plus the human-checkable instruction to match the ID. Generic
+  (but instructive) message -> conformant (DNA / knowability gate PASS).
+
+  This is the boundary case that SHARPENS the gate: it sits right next to the FAILING
+  enumerable fields. Contrast it with case-02's "Purchase month" (twelve known values,
+  suggestion knowable, FAIL) and case-04's slug (availability computable, FAIL). A
+  legal name has NO knowable correct value the system could supply, so the same shape
+  of generic message that fails there PASSES here. The distinction is purely semantic.
+
+  A checker that mechanically required a suggested value would WRONGLY fail this. No
+  tool can decide that a legal name is un-inferable to the system; that is meaning.
+-->
+<style>
+  :root{ --ink:#1b1f24; --muted:#56606b; --line:#c9d0d8; --gov:#1a3a6b; --danger:#9a2a1e; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Public Sans","Segoe UI",system-ui,Arial,sans-serif; color:var(--ink); background:#eceff3; }
+  .gband{ height:6px; background:var(--gov); }
+  .wrap{ max-width:680px; margin:30px auto; padding:0 18px; }
+  header.brand{ margin-bottom:18px; }
+  header.brand .seal{ display:inline-block; width:34px; height:34px; border-radius:50%; background:var(--gov); vertical-align:middle; }
+  header.brand strong{ margin-left:10px; font-size:1.05rem; vertical-align:middle; }
+  header.brand .sub{ display:block; margin-top:4px; color:var(--muted); font-size:.82rem; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:26px 26px; }
+  h1{ font-size:1.45rem; margin:0 0 6px; color:var(--gov); }
+  .lede{ color:var(--muted); margin:0 0 22px; font-size:.94rem; }
+  .step{ font-size:.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin:0 0 4px; }
+  fieldset{ border:1px solid var(--line); border-radius:6px; padding:18px 16px 6px; margin:0 0 20px; }
+  legend{ font-weight:700; font-size:1rem; padding:0 6px; }
+  .field{ margin-bottom:18px; }
+  label{ display:block; font-weight:600; font-size:.92rem; margin-bottom:6px; }
+  .hint{ color:var(--muted); font-size:.84rem; margin:0 0 8px; }
+  input[type=text]{ width:100%; padding:11px 12px; font-size:1rem; border:2px solid var(--line);
+        border-radius:4px; background:#fff; color:var(--ink); }
+  input[aria-invalid="true"]{ border-color:var(--danger); background:#fdf6f5; }
+  input:focus{ outline:3px solid #ffbf47; outline-offset:0; }
+  .err{ display:flex; gap:7px; align-items:flex-start; margin-top:8px; color:var(--danger); font-size:.88rem; font-weight:600; }
+  .err svg{ flex:0 0 auto; margin-top:2px; }
+  .twocol{ display:flex; gap:16px; }
+  .twocol .field{ flex:1; }
+  button{ margin-top:6px; padding:12px 26px; font-size:1rem; font-weight:700; color:#fff;
+          background:var(--gov); border:0; border-radius:4px; cursor:pointer; }
+  .priv{ margin-top:16px; color:var(--muted); font-size:.78rem; }
+</style>
+</head>
+<body>
+  <div class="gband" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="brand">
+      <span class="seal" aria-hidden="true"></span><strong>County Records Office</strong>
+      <span class="sub">Online services · Request a certified copy</span>
+    </header>
+    <main class="card">
+      <p class="step">Step 2 of 4 — Verify your identity</p>
+      <h1>Confirm who you are</h1>
+      <p class="lede">We use this to match your request to your record. A clerk reviews each request against the photo ID you upload.</p>
+
+      <form action="#" method="post" novalidate>
+        <fieldset>
+          <legend>Your identity</legend>
+
+          <div class="field">
+            <label for="legalname">Full legal name (exactly as printed on your photo ID)</label>
+            <p class="hint" id="legalname-hint">Include middle names, suffixes and accents if they appear on the document.</p>
+            <!--
+              HAND-VERIFIED legal name, left empty, now in error. The correct value is a
+              fact about the applicant and their physical document; the system has no
+              source to infer or enumerate it. The only knowable rule is non-empty, plus
+              the human-checkable "match your ID" instruction. The message states exactly
+              that. No specific suggested value is possible. -> PASS (DNA / gate).
+            -->
+            <input type="text" id="legalname" name="legalname"
+                   aria-describedby="legalname-hint error-legalname" aria-invalid="true"
+                   value="" autocomplete="name">
+            <p class="err" id="error-legalname">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+              <span>Enter your full legal name exactly as it appears on your photo ID.</span>
+            </p>
+          </div>
+
+          <div class="twocol">
+            <div class="field">
+              <label for="dob">Date of birth</label>
+              <p class="hint" id="dob-hint">MM/DD/YYYY</p>
+              <input type="text" id="dob" name="dob" aria-describedby="dob-hint"
+                     value="04/12/1986" autocomplete="bday" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="idnum">Photo ID number</label>
+              <p class="hint" id="idnum-hint">The number on the front of the ID you'll upload.</p>
+              <input type="text" id="idnum" name="idnum" aria-describedby="idnum-hint"
+                     value="D-4471-9920-3318" autocomplete="off">
+            </div>
+          </div>
+        </fieldset>
+
+        <button type="submit">Continue to document upload</button>
+        <p class="priv">Your information is used only to process this records request and is handled under the County Privacy Notice.</p>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.1 (and 1.1.1) FAILURE — F13 with a TEMPORAL twist: an inline-SVG line graph uses
+    line COLOR to distinguish two series (revenue vs cost), the lines CROSS, and the text
+    alternative names the colors and lists the numbers but never resolves the color-borne fact
+    that actually matters: in which months the business was profitable (revenue above cost)
+    versus loss-making (cost above revenue).
+
+    A founder's monthly P&L mini-chart plots two <polyline> series across six months. The
+    GREEN line is revenue; the RED line is cost. The two lines cross twice: cost is ABOVE
+    revenue (a loss) in Feb and Mar, then revenue climbs above cost from Apr onward. The whole
+    point of the chart is "we turned the corner in April."
+
+    The aria-label/description gives every monthly value for both series AND states the color
+    rule ("revenue is the green line, cost is the red line"). But it never says which line is
+    ON TOP in any month — i.e. it never resolves "we lost money in Feb and Mar and were
+    profitable Apr-Jun." A sighted reader sees the crossover instantly. A blind user, a
+    red-green colour-blind user (for whom the two lines are nearly the same hue), or a reader
+    of a monochrome printout gets twelve numbers and a color rule but must do mental arithmetic
+    on six pairs to recover the profit/loss story the chart was drawn to tell — and the chart's
+    own narrative ("which is on top") is never stated.
+
+    WHY AUTOMATED TOOLS MISS IT: the SVG is role="img" with a long accessible name; there is
+    nothing malformed. Scanners confirm a named graphic and stop. They cannot trace the two
+    polylines, detect the crossover points, decide that "which series is higher" is the salient
+    color-encoded fact, and then verify the prose never states it. That requires reading the
+    plotted geometry, reasoning about the comparison the colors set up, and checking the prose
+    against it — human visual + semantic + arithmetic judgment.
+  -->
+  <title>Monthly P&amp;L — Tidepool Labs (seed deck)</title>
+  <style>
+    :root { --ink:#16202b; --muted2:#5d6b78; --line:#e2e7ee; --bg:#0f1722; --card:#ffffff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:#e9eef5; background:linear-gradient(160deg,#0f1722,#16263a); min-height:100vh; }
+    .deck { max-width:760px; margin:0 auto; padding:46px 24px; }
+    .slidekicker { letter-spacing:.18em; text-transform:uppercase; font-size:11px; color:#7da3c9; }
+    h1.slide { font-size:26px; margin:6px 0 4px; }
+    .slidesub { color:#aebfd2; font-size:14px; margin:0 0 26px; }
+    .card { background:var(--card); color:var(--ink); border-radius:16px; padding:24px; box-shadow:0 18px 40px rgba(0,0,0,.35); }
+    .card h2 { font-size:15px; margin:0 0 14px; color:var(--muted2); font-weight:600; }
+    svg.lines { width:100%; max-width:640px; height:auto; display:block; }
+    .takeaway { margin-top:18px; font-size:14px; color:var(--muted2); line-height:1.6; }
+    .takeaway b { color:var(--ink); }
+    .legend2 { display:flex; gap:18px; font-size:13px; color:var(--muted2); margin-top:6px; }
+    .legend2 span { display:inline-flex; align-items:center; gap:7px; }
+    .legend2 i { width:22px; height:3px; border-radius:2px; display:inline-block; }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <div class="slidekicker">Tidepool Labs · Series A</div>
+    <h1 class="slide">We turned the corner this spring</h1>
+    <p class="slidesub">Monthly revenue and cost, first half of the year ($000s).</p>
+
+    <div class="card">
+      <h2>Revenue vs. cost, Jan–Jun</h2>
+      <!--
+        Two polylines over 6 months. y-axis: top=high.
+        Revenue (GREEN #1f9d55): Jan 40, Feb 38, Mar 46, Apr 62, May 78, Jun 95
+        Cost    (RED   #d8392b): Jan 44, Feb 55, Mar 52, Apr 50, May 49, Jun 47
+        => Cost ABOVE revenue (LOSS) in Jan, Feb, Mar; revenue ABOVE cost (PROFIT) Apr,May,Jun.
+        Lines cross between Mar and Apr. Plot box: x 60..600, y 30..260. value->y: y=260-(v*2.3)
+      -->
+      <svg class="lines" viewBox="0 0 640 300" role="img"
+        aria-label="Line graph of monthly figures from January to June in thousands of dollars. Revenue is the green line: 40, 38, 46, 62, 78, 95. Cost is the red line: 44, 55, 52, 50, 49, 47. The x-axis is the six months January through June; the y-axis is dollars in thousands.">
+        <rect width="640" height="300" fill="#ffffff"></rect>
+        <!-- axes -->
+        <g stroke="#e2e7ee" stroke-width="1">
+          <line x1="60" y1="30" x2="60" y2="260"></line>
+          <line x1="60" y1="260" x2="600" y2="260"></line>
+          <line x1="60" y1="145" x2="600" y2="145"></line>
+        </g>
+        <g font-family="Inter,Arial,sans-serif" font-size="11" fill="#5d6b78">
+          <text x="54" y="264" text-anchor="end">0</text>
+          <text x="54" y="149" text-anchor="end">50</text>
+          <text x="54" y="34" text-anchor="end">100</text>
+        </g>
+        <!-- month labels at x = 60,168,276,384,492,600 -->
+        <g font-family="Inter,Arial,sans-serif" font-size="12" fill="#16202b" text-anchor="middle">
+          <text x="60" y="280">Jan</text>
+          <text x="168" y="280">Feb</text>
+          <text x="276" y="280">Mar</text>
+          <text x="384" y="280">Apr</text>
+          <text x="492" y="280">May</text>
+          <text x="600" y="280">Jun</text>
+        </g>
+        <!-- Cost (RED): y = 260 - v*2.3 ; 44->158.8 55->133.5 52->140.4 50->145 49->147.3 47->151.9 -->
+        <polyline fill="none" stroke="#d8392b" stroke-width="3"
+          points="60,158.8 168,133.5 276,140.4 384,145 492,147.3 600,151.9"></polyline>
+        <!-- Revenue (GREEN): 40->168 38->172.6 46->154.2 62->117.4 78,80.6 95->41.5 -->
+        <polyline fill="none" stroke="#1f9d55" stroke-width="3"
+          points="60,168 168,172.6 276,154.2 384,117.4 492,80.6 600,41.5"></polyline>
+      </svg>
+
+      <div class="legend2">
+        <span><i style="background:#1f9d55"></i> Revenue</span>
+        <span><i style="background:#d8392b"></i> Cost</span>
+      </div>
+
+      <p class="takeaway">
+        Both series are plotted above. <b>Revenue is the green line; cost is the red line.</b>
+        Revenue ran 40, 38, 46, 62, 78 and 95 from January to June, while cost held steadier at
+        44, 55, 52, 50, 49 and 47. Momentum is clearly building into the summer — exactly the
+        trajectory we want heading into the raise.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

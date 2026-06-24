@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MercyHealth Patient Portal — Refill Prescription</title>
+<style>
+  body { font:15px/1.55 'Segoe UI',Roboto,Helvetica,Arial,sans-serif; margin:0; color:#1b2733; background:#eef3f6; }
+  .topbar { background:#0a6b6b; color:#fff; padding:11px 20px; display:flex; align-items:center; gap:14px; }
+  .topbar strong { font-size:16px; letter-spacing:.2px; }
+  .topbar .who { margin-left:auto; font-size:13px; opacity:.9; }
+  .card { max-width:560px; margin:22px auto; background:#fff; border:1px solid #d6dee4; border-radius:11px; padding:22px 24px; }
+  h1 { font-size:19px; margin:0 0 4px; }
+  .sub { color:#5a6b78; font-size:13.5px; margin:0 0 18px; }
+  .rx { display:flex; gap:14px; align-items:center; border:1px solid #e3e9ee; border-radius:9px; padding:12px 14px; margin-bottom:18px; background:#fafcfd; }
+  .rx .pill { width:40px; height:40px; border-radius:50%; background:#e2f1f1; color:#0a6b6b; display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .rx .name { font-weight:600; }
+  .rx .meta { color:#5a6b78; font-size:12.5px; }
+  .focusrow { display:flex; align-items:center; gap:9px; margin:0 0 18px; padding:10px 12px; background:#f4f7f9; border:1px solid #e3e9ee; border-radius:8px; font-size:13.5px; color:#3a4a57; }
+  .focusrow button { font:inherit; font-size:13px; border:1px solid #b9c6cf; background:#fff; border-radius:6px; padding:5px 11px; cursor:pointer; }
+  .focusrow button[aria-pressed="true"] { background:#0a6b6b; color:#fff; border-color:#0a6b6b; }
+  .pickup { display:block; margin:0 0 6px; font-weight:600; }
+  select { width:100%; padding:9px 10px; font:inherit; border:1px solid #c3ced6; border-radius:7px; background:#fff; }
+  .submit { margin-top:20px; width:100%; padding:12px; font:600 15px inherit; color:#fff; background:#0a6b6b; border:0; border-radius:8px; cursor:pointer; }
+  #refillStatus { margin-top:16px; min-height:22px; font-size:14px; }
+  #refillStatus.err { color:#b4232a; font-weight:600; }
+  #refillStatus.ok  { color:#0a6b6b; }
+  .note { max-width:560px; margin:18px auto; background:#fff7e6; border:1px solid #ffe2a8; border-radius:9px; padding:13px 16px; font-size:13px; color:#5b4a16; }
+  code { background:#eef1f5; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <strong>MercyHealth Patient Portal</strong>
+  <span class="who">Signed in: D. Okafor</span>
+</div>
+
+<div class="card">
+  <h1>Refill prescription</h1>
+  <p class="sub">Review the medication, choose a pickup pharmacy, then submit your refill request.</p>
+
+  <div class="rx">
+    <span class="pill" aria-hidden="true">Rx</span>
+    <div>
+      <div class="name">Warfarin sodium 5 mg tablet</div>
+      <div class="meta">1 tablet daily &middot; Rx #4471902 &middot; 2 refills remaining</div>
+    </div>
+  </div>
+
+  <!--
+    THE DEFECT lives in the interaction between #focusToggle and #refillStatus.
+
+    #refillStatus is a PRESENT, VALID live region at page load:
+        <p id="refillStatus" role="status" aria-live="polite" aria-atomic="true">
+    so axe / WAVE / Lighthouse all see a real status container that announces — they pass.
+
+    But the developer copied SCR14's "let users silence non-emergency alerts" toggle and
+    wired it BACKWARDS. The "Focus mode" button is meant to quiet chatty announcements.
+    Instead, its handler sets aria-live="off" on #refillStatus, AND focus mode is ON BY
+    DEFAULT (aria-pressed="true", the region starts aria-live="off"). So at the exact
+    moment the consequential refill OUTCOME is written into the region — "Refill request
+    FAILED: this medication requires prescriber re-authorization. Call your clinic." —
+    the container is aria-live="off", and the screen reader announces NOTHING. A status
+    message exists in the DOM but is not programmatically surfaced: a real F103 failure.
+    A sighted user sees the red error; a screen-reader user hears silence and believes
+    the refill went through. Only a human who toggles state and listens catches that the
+    live region was muted precisely when it had to speak.
+  -->
+  <div class="focusrow">
+    <span>Reduce on-screen announcements while you work</span>
+    <button type="button" id="focusToggle" aria-pressed="true">Focus mode: On</button>
+  </div>
+
+  <label class="pickup" for="pharmacy">Pickup pharmacy</label>
+  <select id="pharmacy">
+    <option>MercyHealth Main Campus Pharmacy</option>
+    <option>Eastside Community Pharmacy</option>
+    <option>Mail order (7–10 days)</option>
+  </select>
+
+  <button type="button" class="submit" id="submitBtn">Submit refill request</button>
+
+  <!-- Valid status live region, present at load. role=status + aria-live + aria-atomic. -->
+  <p id="refillStatus" role="status" aria-live="off" aria-atomic="true"></p>
+</div>
+
+<div class="note">
+  <strong>Why automated checkers pass this page:</strong> <code>#refillStatus</code> is a
+  real, valid live region present at load with <code>role="status"</code>,
+  <code>aria-live</code>, and <code>aria-atomic="true"</code>, and the failure outcome text
+  IS injected into it. axe / WAVE / Lighthouse confirm a status-message container exists and
+  is wired correctly, so nothing fails statically. Only a human who notices that the
+  &ldquo;Focus mode&rdquo; toggle is on by default and flips the region to
+  <code>aria-live="off"</code> &mdash; muting the region at the very moment the
+  refill-failure message is written &mdash; realises the status message is never announced
+  (WCAG <code>F103</code>: a status message that cannot be programmatically determined / is
+  not surfaced by AT).
+</div>
+
+<script>
+  var toggleBtn = document.getElementById('focusToggle');
+  var statusEl  = document.getElementById('refillStatus');
+  var submitBtn = document.getElementById('submitBtn');
+
+  // BACKWARDS SCR14: "Focus mode" is meant to quiet chatty alerts, but it is ON by default
+  // and it mutes #refillStatus by setting aria-live="off". The region therefore starts
+  // muted, and stays muted unless the user happens to turn focus mode OFF.
+  function applyFocusMode(on) {
+    toggleBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    toggleBtn.textContent = 'Focus mode: ' + (on ? 'On' : 'Off');
+    // The bug: focus mode "On" sets the *outcome* region to aria-live="off".
+    statusEl.setAttribute('aria-live', on ? 'off' : 'polite');
+  }
+  applyFocusMode(true); // default state: muted
+
+  toggleBtn.addEventListener('click', function () {
+    var on = toggleBtn.getAttribute('aria-pressed') === 'true';
+    applyFocusMode(!on);
+  });
+
+  submitBtn.addEventListener('click', function () {
+    // Simulated gateway response for this controlled medication: the refill is blocked and
+    // the user must act (call the clinic). This is unambiguously a status message:
+    // it reports the result of an action and the existence of an error, and takes no focus.
+    statusEl.className = 'err';
+    statusEl.textContent =
+      'Refill request FAILED: Warfarin 5 mg requires prescriber re-authorization. ' +
+      'No refill was submitted — please call your clinic at (555) 0140 to reauthorize.';
+    // Because #refillStatus is aria-live="off" while focus mode is On (the default),
+    // this consequential failure is written silently: no AT announcement is produced.
+  });
+</script>
+</body>
+</html>

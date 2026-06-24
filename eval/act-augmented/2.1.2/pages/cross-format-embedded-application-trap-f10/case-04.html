@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New release note — Helm Docs editor</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — this one PASSES, and a tool cannot confirm it):
+    This is the boundary/PASS variant. The page hosts a <markdown-editor> web component
+    whose UI lives in an open Shadow DOM. INSIDE the editing surface, Tab is deliberately
+    captured (Tab inserts indentation, the documented WYSIWYG behavior from the WCAG
+    Understanding "rich text editor" example), so plain Tab does NOT move focus out — by
+    itself that would be a trap. BUT the component (a) shows a persistent, visible
+    instruction inside the shadow root: "Press Esc to leave the editor", and (b) wires a
+    WORKING Esc handler that moves focus out of the shadow tree to the next control, so a
+    keyboard user is advised of, and actually has, a standard exit method (Esc). Per the
+    SC, advising the user of a non-Tab exit method that works is a PASS.
+    Automated tools cannot confirm this PASS: they cannot tell that Tab is intentionally
+    captured for indentation rather than accidentally trapping, they cannot verify the
+    Esc handler actually frees focus across the shadow boundary, and they cannot read the
+    in-shadow instruction and judge it accurate. Establishing the PASS requires a human to
+    enter the editor, observe Tab is captured, READ the Esc advice, press Esc, and confirm
+    focus lands on "Publish" outside the boundary.
+  -->
+  <style>
+    :root { --ink:#1b1f27; --muted:#5e6573; --line:#e4e7ee; --brand:#4338ca; --bg:#f6f7fb; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); margin: 0; background: var(--bg); }
+    header { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 26px; display: flex; align-items: center; gap: 10px; }
+    header .brand { font-weight: 800; letter-spacing: .2px; }
+    main { max-width: 740px; margin: 28px auto; padding: 0 20px; }
+    h1 { font-size: 1.5rem; margin: 0 0 6px; }
+    .lede { color: var(--muted); margin: 0 0 20px; }
+    label.title-l { display: block; font-weight: 700; font-size: .85rem; margin: 0 0 6px; }
+    input.title { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid #c2c7d4; border-radius: 8px; background: #fff; margin: 0 0 18px; }
+    input.title:focus-visible { outline: 3px solid var(--brand); outline-offset: 1px; }
+    .editor-wrap { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+    .actions { margin: 20px 0 0; display: flex; gap: 12px; }
+    .actions button {
+      font: inherit; font-weight: 800; border-radius: 9px; padding: 11px 20px; cursor: pointer; border: 0;
+    }
+    .publish { background: var(--brand); color: #fff; }
+    .publish:focus-visible { outline: 3px solid #1e1b6b; outline-offset: 3px; }
+    .cancel { background: #eef0f6; color: var(--ink); }
+    .cancel:focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; }
+    footer { color: var(--muted); font-size: .8rem; text-align: center; margin: 40px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Helm Docs</span>
+    <span style="color:var(--muted);font-size:.85rem;">Internal knowledge base</span>
+  </header>
+
+  <main>
+    <h1>Draft a release note</h1>
+    <p class="lede">Use Markdown. In the editor, Tab indents the current line — see the on-screen tip for how to step out.</p>
+
+    <label class="title-l" for="note-title">Title</label>
+    <input class="title" id="note-title" type="text" value="v3.2 — faster cold starts">
+
+    <div class="editor-wrap">
+      <!--
+        The editor captures Tab for indentation (a documented rich-text behavior) and
+        tells the user, inside the editor, to press Esc to leave. The Esc handler works.
+      -->
+      <markdown-editor></markdown-editor>
+    </div>
+
+    <div class="actions">
+      <button class="publish" type="button" data-after="true">Publish</button>
+      <button class="cancel" type="button">Save draft</button>
+    </div>
+  </main>
+
+  <footer>Helm Docs · Changes are reviewed before they go live.</footer>
+
+  <script>
+    class MarkdownEditor extends HTMLElement {
+      constructor() {
+        super();
+        const root = this.attachShadow({ mode: 'open', delegatesFocus: true });
+        root.innerHTML = [
+          '<style>',
+          '  :host{display:block}',
+          '  .tip{font-size:.82rem;color:#3730a3;background:#eef0fe;border:1px solid #c7caf7;',
+          '    border-radius:8px;padding:8px 10px;margin:0 0 10px}',
+          '  .tip kbd{font:inherit;background:#fff;border:1px solid #b9bdf0;border-bottom-width:2px;',
+          '    border-radius:5px;padding:1px 6px;font-weight:700}',
+          '  textarea{width:100%;min-height:150px;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;',
+          '    padding:12px;border:1px solid #c2c7d4;border-radius:8px;background:#fbfcff;resize:vertical}',
+          '  textarea:focus-visible{outline:3px solid #4338ca;outline-offset:1px}',
+          '</style>',
+          '<p class="tip" id="tip">Editing mode: <kbd>Tab</kbd> indents the current line. ',
+          'Press <kbd>Esc</kbd> to leave the editor and continue to the page controls.</p>',
+          '<textarea id="ta" aria-describedby="tip">## Highlights\n\n- Cold starts down ~40%\n- </textarea>'
+        ].join('');
+        this._ta = root.getElementById('ta');
+        // Tab is captured to insert indentation (documented WYSIWYG behavior). This alone
+        // would be a trap — so a working, advertised Esc exit is provided.
+        this._ta.addEventListener('keydown', (e) => {
+          if (e.key === 'Tab') {
+            e.preventDefault();
+            const s = this._ta.selectionStart, en = this._ta.selectionEnd, v = this._ta.value;
+            this._ta.value = v.slice(0, s) + '  ' + v.slice(en);
+            this._ta.selectionStart = this._ta.selectionEnd = s + 2;
+          } else if (e.key === 'Escape') {
+            // Working standard-exit method: move focus to the first control AFTER the
+            // editor in the host document, crossing the shadow boundary cleanly.
+            e.preventDefault();
+            this._ta.blur();
+            const next = document.querySelector('[data-after="true"]');
+            if (next) next.focus();
+          }
+        });
+      }
+    }
+    customElements.define('markdown-editor', MarkdownEditor);
+  </script>
+</body>
+</html>

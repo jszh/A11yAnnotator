@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.1 (and 1.1.1) FAILURE — F13: text alternative omits the information conveyed
+    by COLOR DIFFERENCES inside an informational chart image.
+
+    This is the CANONICAL F13 case, lifted from the WCAG Failure F13 example. A quarterly
+    sales bar chart is delivered as a single flattened IMAGE (inline-SVG data: URI, so the
+    bars and the red fill are raster/image pixels, NOT live DOM elements). Four employees'
+    sales are plotted; the bars for the two people who fell BELOW the yearly quota are drawn
+    in RED, the bars for the two who met it are drawn in green. The quota line is the salient
+    distinction the chart was made to communicate.
+
+    The alt is non-empty, fluent, and even STATES the color rule:
+      "...Mary sold 3.1M, Fred 2.6M, Bob 2.2M, Andrew 3.4M. The red bars indicate sales that
+       were below the yearly quota."
+    It gives every number AND explains what red means — but it never RESOLVES the fact: it
+    never names WHICH employees are red / below quota (Fred and Bob). A sighted reader looks
+    at the bars and sees instantly that Fred's and Bob's bars are red. A blind or colour-blind
+    user, or anyone on a monochrome display, hears all four numbers plus an abstract rule and
+    can never recover the resolved fact "Fred and Bob missed quota."
+
+    WHY AUTOMATED TOOLS MISS IT: axe/WAVE/Lighthouse only check that alt is present and
+    non-empty (it is) and plausibly descriptive (it is — it is a long, accurate paragraph).
+    No checker reads the chart pixels to learn that the 2nd and 3rd bars are red, then reads
+    the prose to confirm those employees are never named as below quota, then compares the two
+    meanings. That three-way read-pixels / read-prose / compare-meaning judgment is exactly
+    the manual F13 procedure no scanner performs.
+  -->
+  <title>Q4 Sales Performance — Northwind Field Sales</title>
+  <style>
+    :root { --ink:#1c2530; --muted:#5a6675; --line:#dbe2ea; --bg:#f4f7fb; --brand:#1f5fa6; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    .wrap { max-width:860px; margin:0 auto; padding:28px 22px 48px; }
+    header.app { display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--line); padding-bottom:16px; }
+    header.app .logo { width:34px; height:34px; border-radius:8px; background:var(--brand); }
+    header.app h1 { font-size:18px; margin:0; letter-spacing:.01em; }
+    header.app .crumb { margin-left:auto; color:var(--muted); font-size:13px; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px; margin-top:22px; box-shadow:0 1px 2px rgba(20,40,70,.04); }
+    .panel h2 { font-size:16px; margin:0 0 4px; }
+    .panel .sub { color:var(--muted); font-size:13px; margin:0 0 18px; }
+    figure { margin:0; }
+    figure img { display:block; width:100%; max-width:680px; height:auto; border:1px solid var(--line); border-radius:8px; }
+    figcaption { color:var(--muted); font-size:13px; margin-top:10px; line-height:1.55; }
+    .kpis { display:flex; gap:14px; margin-top:20px; flex-wrap:wrap; }
+    .kpi { flex:1 1 150px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+    .kpi .v { font-size:22px; font-weight:700; }
+    .kpi .l { color:var(--muted); font-size:12px; }
+    footer { color:var(--muted); font-size:12px; margin-top:26px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="app">
+      <span class="logo" aria-hidden="true"></span>
+      <h1>Northwind Sales Insights</h1>
+      <span class="crumb">Dashboards / Field Sales / FY24 Q4</span>
+    </header>
+
+    <section class="panel" aria-labelledby="chartHeading">
+      <h2 id="chartHeading">Annual sales vs. quota — Field Sales team</h2>
+      <p class="sub">Bars below the $3.0M quota line are flagged in red. Generated from Looker, exported as a static image for the quarterly board pack.</p>
+
+      <figure>
+        <!--
+          The chart is an IMAGE. Bars: Mary 3.1M (green), Fred 2.6M (RED), Bob 2.2M (RED),
+          Andrew 3.4M (green). The dashed quota line sits at 3.0M. RED = below quota.
+          The alt lists all four figures and states the red rule but NEVER names Fred and Bob
+          as the below-quota employees.
+        -->
+        <img
+          alt="Bar chart of FY24 annual sales for the four-person Field Sales team. Mary sold 3.1 million dollars; Fred 2.6 million; Bob 2.2 million; Andrew 3.4 million. The yearly quota is 3.0 million dollars and is shown as a dashed line. The bars shown in red indicate sales that were below the yearly quota."
+          src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='680'%20height='360'%20viewBox='0%200%20680%20360'%3E%3Crect%20width='680'%20height='360'%20fill='%23ffffff'/%3E%3Cg%20stroke='%23dbe2ea'%20stroke-width='1'%3E%3Cline%20x1='70'%20y1='40'%20x2='70'%20y2='300'/%3E%3Cline%20x1='70'%20y1='300'%20x2='650'%20y2='300'/%3E%3C/g%3E%3Cg%20font-family='Segoe%20UI,Arial,sans-serif'%20font-size='12'%20fill='%235a6675'%3E%3Ctext%20x='40'%20y='304'%20text-anchor='end'%3E0%3C/text%3E%3Ctext%20x='40'%20y='235'%20text-anchor='end'%3E1M%3C/text%3E%3Ctext%20x='40'%20y='170'%20text-anchor='end'%3E2M%3C/text%3E%3Ctext%20x='40'%20y='105'%20text-anchor='end'%3E3M%3C/text%3E%3Ctext%20x='40'%20y='44'%20text-anchor='end'%3E4M%3C/text%3E%3C/g%3E%3Crect%20x='110'%20y='98'%20width='80'%20height='202'%20fill='%232f9e57'/%3E%3Crect%20x='250'%20y='131'%20width='80'%20height='169'%20fill='%23d23b3b'/%3E%3Crect%20x='390'%20y='157'%20width='80'%20height='143'%20fill='%23d23b3b'/%3E%3Crect%20x='530'%20y='80'%20width='80'%20height='220'%20fill='%232f9e57'/%3E%3Cline%20x1='70'%20y1='105'%20x2='650'%20y2='105'%20stroke='%231c2530'%20stroke-width='1.5'%20stroke-dasharray='6%204'/%3E%3Ctext%20x='648'%20y='100'%20text-anchor='end'%20font-family='Segoe%20UI,Arial,sans-serif'%20font-size='11'%20fill='%231c2530'%3EQuota%203.0M%3C/text%3E%3Cg%20font-family='Segoe%20UI,Arial,sans-serif'%20font-size='13'%20fill='%231c2530'%20text-anchor='middle'%3E%3Ctext%20x='150'%20y='320'%3EMary%3C/text%3E%3Ctext%20x='290'%20y='320'%3EFred%3C/text%3E%3Ctext%20x='430'%20y='320'%3EBob%3C/text%3E%3Ctext%20x='570'%20y='320'%3EAndrew%3C/text%3E%3C/g%3E%3Cg%20font-family='Segoe%20UI,Arial,sans-serif'%20font-size='12'%20fill='%23ffffff'%20font-weight='bold'%20text-anchor='middle'%3E%3Ctext%20x='150'%20y='118'%3E3.1M%3C/text%3E%3Ctext%20x='290'%20y='151'%3E2.6M%3C/text%3E%3Ctext%20x='430'%20y='177'%3E2.2M%3C/text%3E%3Ctext%20x='570'%20y='100'%3E3.4M%3C/text%3E%3C/g%3E%3C/svg%3E">
+        <figcaption>
+          Figure 1. FY24 annual sales by representative against the $3.0M quota. Source: Northwind CRM, pulled 2024-01-08.
+        </figcaption>
+      </figure>
+
+      <div class="kpis">
+        <div class="kpi"><div class="v">$11.3M</div><div class="l">Team total, FY24</div></div>
+        <div class="kpi"><div class="v">$2.83M</div><div class="l">Average per rep</div></div>
+        <div class="kpi"><div class="v">$3.0M</div><div class="l">Per-rep quota</div></div>
+      </div>
+    </section>
+
+    <footer>
+      Confidential — internal board pack. Figures unaudited.
+    </footer>
+  </div>
+</body>
+</html>

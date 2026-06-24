@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Getting started — Meridian Project Hub</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2, F10):
+    The page embeds an interactive onboarding "coachmark" as a cross-document iframe
+    (src="case-01-frame.html", a same-origin sibling file — no network). Inside that
+    embedded document a native <button id="gotit"> swallows the Tab key (keydown ->
+    preventDefault + re-focus itself) and also re-grabs focus onblur. The iframe is the
+    only focusable thing between the "Skip tour" link before it and the "Open dashboard"
+    link after it. Once Tab moves focus into the iframe and onto the button, focus can
+    NEVER cross the iframe boundary back to the parent document's "Open dashboard" link.
+    There is no Esc handler and no instruction anywhere about how to leave.
+    A static scan (axe-core / WAVE / Lighthouse) sees: a well-formed iframe with a title
+    and a valid src. It does NOT drive Tab across the document boundary, and it does not
+    follow the embedded document to discover the inner button's key handling. There is no
+    missing attribute, no empty name, no role error to flag in the host light DOM — the
+    trapping logic lives entirely inside the embedded format. Resolving the trap requires
+    actually pressing Tab, landing in the iframe, pressing Tab again, and OBSERVING that
+    focus does not advance to "Open dashboard" — a runtime, cross-document keyboard fact
+    no DOM snapshot can compute.
+  -->
+  <style>
+    :root { --ink:#1d2330; --muted:#5b6473; --line:#e3e7ee; --brand:#2f5fe0; --bg:#f5f7fb; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); margin: 0; background: var(--bg); }
+    header { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 28px; display: flex; align-items: center; gap: 12px; }
+    header .logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, #2f5fe0, #7a3bea); }
+    header .name { font-weight: 700; letter-spacing: .2px; }
+    main { max-width: 720px; margin: 34px auto; padding: 0 20px; }
+    h1 { font-size: 1.7rem; margin: 0 0 6px; }
+    .lede { color: var(--muted); margin: 0 0 22px; }
+    .skip { display: inline-block; margin: 0 0 18px; color: var(--brand); font-weight: 600; text-decoration: none; }
+    .skip:focus-visible { outline: 3px solid #103a99; outline-offset: 3px; }
+    .coach-wrap { border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 6px; box-shadow: 0 6px 22px rgba(28,40,80,.06); }
+    iframe { width: 100%; height: 232px; border: 0; border-radius: 10px; display: block; }
+    .after { margin: 22px 0 0; }
+    .after a {
+      display: inline-block; background: var(--brand); color: #fff; font-weight: 700;
+      text-decoration: none; padding: 11px 20px; border-radius: 9px;
+    }
+    .after a:focus-visible { outline: 3px solid #08245e; outline-offset: 3px; }
+    footer { color: var(--muted); font-size: .82rem; text-align: center; margin: 40px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo" aria-hidden="true"></span>
+    <span class="name">Meridian Project Hub</span>
+  </header>
+
+  <main>
+    <h1>Welcome aboard, Priya</h1>
+    <p class="lede">Your workspace is ready. Take the 20-second tour below, or jump straight in.</p>
+
+    <a class="skip" href="#dashboard">Skip tour</a>
+
+    <!--
+      The onboarding coachmark is a tiny embedded app delivered as its own document so it
+      can be cached/versioned independently of the host shell. The "Got it" button keeps
+      focus to itself, so Tab never leaves the iframe.
+    -->
+    <div class="coach-wrap">
+      <iframe src="case-01-frame.html" title="Quick tour: pinning your first board"></iframe>
+    </div>
+
+    <p class="after">
+      <a href="#dashboard" data-after="true">Open dashboard</a>
+    </p>
+  </main>
+
+  <footer>Meridian Project Hub · You can replay the tour anytime from Help.</footer>
+</body>
+</html>

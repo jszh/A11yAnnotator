@@ -1,0 +1,51 @@
+{
+  "sc": "2.4.10",
+  "count": 3,
+  "patterns": [
+    {
+      "platform": "Gutenberg blocks / page-builder sections used as visual styling (Heading block, Divi Text module set to H-tag)",
+      "name": "Heading levels chosen for font size — skipped levels and visual-only headings",
+      "description": "Editors pick heading tags by how big they look. A section header is set to H4 because H2 'looks too big', producing H1 then H4 with no H2/H3. Conversely, bold styled text that visually functions as a heading is left as a <p>, so the document outline has no entry. Builders make every text element's tag a free-form dropdown, so structure tracks visual size, not meaning.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6",
+        "2.4.10"
+      ],
+      "typicalMarkup": "<h1>Welcome</h1>\n<h4 class=\"has-large-font-size\">Our Services</h4>  <!-- skipped H2/H3 -->\n<p class=\"has-x-large-font-size\" style=\"font-weight:700\">Pricing</p>  <!-- looks like a heading, isn't -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Tools can flag a skipped level (H1->H4) but cannot decide that styled bold <p> SHOULD be a heading, nor whether a heading is descriptive of the section it labels. That mapping of visual prominence and meaning to correct level/semantics is human judgment.",
+      "realWorldNote": "Learn WordPress and WP handbook warn against using headings for visual styling / skipping levels. https://learn.wordpress.org/tutorial/using-headings-for-accessibility-and-seo/ ; Gutenberg document outline only warns, doesn't enforce.",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Framer auto-generated headings / text layers",
+      "name": "Heading hierarchy from visual size: skipped levels and multiple H1s",
+      "description": "Designers style text layers by visual size and Framer lets each text layer be tagged H1–H6 (or left as a paragraph/div). The result is non-sequential heading levels (H1 → H4), several H1s on one page, decorative big text marked as a heading, or real section headings left as plain styled divs.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6",
+        "2.4.10"
+      ],
+      "typicalMarkup": "<h1>Acme</h1>\n<h1>Build faster</h1>\n<h4>Features</h4>   <!-- visually the section heading, level skipped -->\n<div class=\"text-xl\">Pricing</div>  <!-- looks like a heading, isn't one -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Skipped levels and multiple H1s are partly linter-detectable, but the high-value errors are semantic: deciding that a big styled <div> SHOULD be a heading, or that an <h4> is functioning as the section title, requires understanding the page's meaning and visual structure — automated checks can't infer intended document outline.",
+      "realWorldNote": "AudioEye's Framer review stresses that simply tagging headings isn't enough and that missing/out-of-order/non-descriptive headings break navigation; Framer's per-layer heading control makes mis-tagging easy: https://www.audioeye.com/post/framer-offers-accessibility-features-but-are-they/",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Marketing/long-form pages built in Elementor, Divi, Wix, Webflow visual editors",
+      "name": "Heading levels chosen for visual size, not document structure",
+      "description": "Authors pick heading tags by how big the text looks, producing skipped levels (h1 then h4), multiple or zero h1s, or styled <div>/<p> that look like headings but carry no heading role. The visual hierarchy and the programmatic outline diverge, breaking screen-reader heading navigation.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6",
+        "2.4.10"
+      ],
+      "typicalMarkup": "<h1>Our Services</h1>\n<h4 class=\"big-text\">Consulting</h4> <!-- skipped h2/h3 -->\n<p class=\"looks-like-a-heading\" style=\"font-size:2rem;font-weight:700\">Pricing</p>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Skipped heading levels are partially flagged ('heading-order'), but tools cannot detect a visually-styled <p> that SHOULD be a heading (no role to test against), nor judge whether the heading TEXT accurately describes its section (2.4.6). Matching the visual outline to the intended structure is a human reading/visual task.",
+      "realWorldNote": "Elementor/Divi heading-misuse is a top page-builder audit finding: https://www.abrightclearweb.com/elementor-accessibility/ ; WebAIM Million also notes heading issues among manual-skewed problems.",
+      "family": "real-world-audit-findings"
+    }
+  ]
+}

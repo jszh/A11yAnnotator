@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get a term-life quote — Beacon Mutual</title>
+  <style>
+    :root { --ink:#1a2230; --muted:#5b6675; --line:#d4dae2; --navy:#13315c; --gold:#b8860b; --red:#b3261e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Source Sans 3", "Segoe UI", Arial, sans-serif; color:var(--ink);
+           background:#f5f7fa; line-height:1.55; }
+    .masthead { background:var(--navy); color:#fff; padding:14px 24px; display:flex; align-items:center; gap:10px; }
+    .masthead .mark { width:18px; height:18px; background:var(--gold); border-radius:50%; }
+    .masthead b { font-size:18px; letter-spacing:.3px; }
+    .card { max-width:560px; margin:28px auto; background:#fff; border:1px solid var(--line);
+            border-radius:10px; padding:28px 30px 32px; }
+    h1 { font-size:24px; margin:0 0 4px; }
+    .sub { color:var(--muted); margin:0 0 8px; font-size:15px; }
+    .legend { color:var(--muted); font-size:13px; margin:0 0 24px; }
+    .req { color:var(--red); font-weight:700; }
+    .field { margin:0 0 22px; }
+    label { display:block; font-weight:600; font-size:15px; margin:0 0 6px; }
+    input { width:100%; max-width:300px; font-size:16px; padding:10px 12px;
+            border:1px solid var(--line); border-radius:6px; }
+    .help { color:var(--muted); font-size:13px; margin:5px 0 0; }
+    button { background:var(--navy); color:#fff; border:0; border-radius:6px; font-size:16px;
+             font-weight:600; padding:12px 22px; cursor:pointer; }
+    .note { max-width:560px; margin:0 auto 40px; font-size:12.5px; color:var(--muted); padding:0 30px; }
+  </style>
+</head>
+<body>
+  <div class="masthead"><span class="mark"></span><b>Beacon Mutual</b></div>
+
+  <main>
+    <form class="card" id="quote" novalidate>
+      <h1>Get a term-life quote</h1>
+      <p class="sub">A few details give us an accurate monthly estimate.</p>
+      <p class="legend">Fields marked <span class="req">*</span> are required.</p>
+
+      <!-- PASS: the SAME date field as case-01, but the label now carries the format cue inline:
+           "Date of birth (MM/DD/YYYY)". The user knows the expected order and shape before typing. -->
+      <div class="field">
+        <label for="dob">Date of birth (MM/DD/YYYY) <span class="req">*</span></label>
+        <input type="text" id="dob" name="dob" inputmode="numeric" placeholder="MM/DD/YYYY"
+               autocomplete="bday" required>
+      </div>
+
+      <!-- PASS: the SAME required email field as case-02, but the label now states the requirement
+           inline and consistently with the page's "*" convention: "Email (required)". The label
+           conveys both the topic AND the required-status data requirement. -->
+      <div class="field">
+        <label for="email">Email (required) <span class="req">*</span></label>
+        <input type="email" id="email" name="email" autocomplete="email" required>
+        <p class="help">We'll send your quote here. We never share your address.</p>
+      </div>
+
+      <!-- PASS: optional field, correctly NOT marked required, topic + nature both clear. -->
+      <div class="field">
+        <label for="zip">ZIP code (5 digits) <span class="req">*</span></label>
+        <input type="text" id="zip" name="zip" inputmode="numeric" maxlength="5"
+               pattern="\d{5}" placeholder="e.g. 02139" required>
+      </div>
+
+      <button type="submit">See my estimate</button>
+    </form>
+
+    <p class="note">Demo note (not shown to users): This page PASSES WCAG 2.4.6 Test 5.B and is the
+      boundary control for this aspect. Each label names its topic AND its applicable data requirement
+      inline: "Date of birth (MM/DD/YYYY)" states the date format up front (no reliance on an error),
+      "Email (required)" states the required-status consistently with the legend's "*" convention, and
+      "ZIP code (5 digits)" states the data type/length. A user knows what input is expected before
+      submitting; no requirement is hidden behind an error message. It is included to demonstrate that
+      the failing cases differ purely by the missing requirement cue — the topic is identical.</p>
+  </main>
+
+  <script>
+    var f = document.getElementById('quote');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      // Format cues are stated in the labels, so users can satisfy them before submitting.
+      var dob = document.getElementById('dob').value.trim();
+      var zip = document.getElementById('zip').value.trim();
+      var email = document.getElementById('email').value.trim();
+      var ok = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/.test(dob)
+            && /^\d{5}$/.test(zip)
+            && /.+@.+\..+/.test(email);
+      alert(ok ? 'Great — calculating your estimate…'
+               : 'Please complete the required fields as labelled.');
+    });
+  </script>
+</body>
+</html>

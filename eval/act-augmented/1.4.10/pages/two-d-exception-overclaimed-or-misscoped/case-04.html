@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About Our Practice — Hartwell Family Dental</title>
+<style>
+  /*
+    THE DEFECT (human-judgment only):
+    This page's "team & services" section is built as a multi-column <table>, but it is a
+    LAYOUT table — the cells hold prose (staff bios, service descriptions), not tabular
+    data. There is no real row/column relationship; the table is just being used to place
+    paragraphs side by side. The author gave the table a large fixed width and told the page
+    to scroll horizontally, justifying it as "it's a table, and tables are exempt from
+    Reflow." But the exception only covers content that GENUINELY requires 2D layout for
+    understanding. Prose in a layout table does not — it should reflow into one column. So
+    the whole page 2D-scrolls for content that has no business being exempt.
+  */
+  :root { font-family: "Source Sans Pro", system-ui, sans-serif; color: #233; }
+  body { margin: 0; background: #fbfcfd; }
+  .hero { background: #0e7c86; color: #fff; padding: 26px 22px; }
+  .hero h1 { margin: 0; font-size: 1.8rem; }
+  .hero p { margin: 6px 0 0; color: #d4f1f3; }
+  main { padding: 22px; }
+  .lede { max-width: 65ch; line-height: 1.55; font-size: 1.02rem; }
+  h2 { color: #0e7c86; margin: 28px 0 10px; }
+  /*
+    Layout table holding prose. It is given an enormous fixed width so the page must
+    scroll in 2D. There are NO <th> headers because there is no real header relationship —
+    a tell that this is layout, not data.
+  */
+  table.team { border-collapse: collapse; width: 1240px; table-layout: fixed; }
+  table.team td {
+    vertical-align: top; padding: 16px 20px; width: 310px;
+    border-right: 1px solid #e2e8ea;
+  }
+  table.team td:last-child { border-right: 0; }
+  table.team h3 { margin: 0 0 6px; font-size: 1.05rem; color: #0a5b62; }
+  table.team .role { color: #5b6b6d; font-size: 0.85rem; margin: 0 0 8px; }
+  table.team p { line-height: 1.5; font-size: 0.94rem; }
+  .closing { max-width: 65ch; line-height: 1.55; margin-top: 26px; }
+  footer { padding: 18px 22px; font-size: 0.82rem; color: #5b6b6d; }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <h1>Hartwell Family Dental</h1>
+    <p>Gentle, modern dentistry for every generation — established 1998.</p>
+  </header>
+
+  <main>
+    <p class="lede">
+      For over twenty-five years our family-owned practice has cared for the families of
+      Hartwell and the surrounding villages. We believe dentistry should be calm,
+      unhurried, and tailored to you. Below you can meet the people who look after your
+      smile and read about the everyday and specialist treatments we provide.
+    </p>
+
+    <h2>Meet the team &amp; what we offer</h2>
+    <!-- LAYOUT table: prose in cells, no data relationship, no <th>. -->
+    <table class="team">
+      <tr>
+        <td>
+          <h3>Dr. Aisha Hartwell</h3>
+          <p class="role">Principal Dentist, BDS</p>
+          <p>
+            Aisha founded the practice after training in Leeds. She has a particular
+            interest in nervous patients and minimally invasive restorative work, and she
+            still does the school visits that started the practice’s outreach programme.
+          </p>
+        </td>
+        <td>
+          <h3>Marcus Vale</h3>
+          <p class="role">Hygienist &amp; Therapist</p>
+          <p>
+            Marcus leads our preventive care. Whether it is a routine clean, gum-health
+            coaching, or helping children build good habits early, he keeps appointments
+            relaxed and explains every step before he begins.
+          </p>
+        </td>
+        <td>
+          <h3>General &amp; family care</h3>
+          <p class="role">Everyday treatments</p>
+          <p>
+            Check-ups, fillings, crowns, and emergency appointments for the whole family.
+            We hold same-day slots each morning for urgent pain, and we never charge a
+            consultation fee for children under twelve.
+          </p>
+        </td>
+        <td>
+          <h3>Cosmetic &amp; specialist</h3>
+          <p class="role">When you want more</p>
+          <p>
+            Teeth whitening, clear aligners, and implant referrals through our partner
+            specialists. We will always talk you through the options, costs, and what to
+            realistically expect before anything is booked.
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <p class="closing">
+      New patients are warmly welcome. Call the front desk or use our online booking form,
+      and a member of the team will help you find a time that suits your family.
+    </p>
+  </main>
+
+  <footer>
+    Hartwell Family Dental · 14 Church Lane · Open Mon–Sat · Wheelchair accessible.
+  </footer>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT:
+    A checker sees a <table> element and (at most) might suppose the 1.4.10 exception
+    applies, or it would skip Reflow entirely. The table is well-formed; nothing is missing.
+    The real failure is CLASSIFICATION: this is a LAYOUT table holding prose (bios, service
+    blurbs) with no row/column data relationship and no <th>, so it does NOT require
+    two-dimensional layout for understanding — it should reflow into one column. The author's
+    "it's a table, so it's exempt" justification is wrong. Distinguishing a genuine data table
+    from prose-in-a-layout-table is a meaning-level human judgment no automated tool performs.
+  -->
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northbank — Recent transactions</title>
+<style>
+  :root { --ink:#16202c; --line:#d7dde4; --brand:#0a5; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+    color: var(--ink); background: #eef1f5;
+  }
+  .shell { max-width: 760px; margin: 32px auto; padding: 0 20px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #5a6573; margin: 0 0 20px; font-size: 14px; }
+
+  /* The account card. The designer wanted neat rounded corners and a fixed
+     height with an inner scroll so the card never grows past one screen.
+     overflow:hidden was added to keep the rounded corners crisp where the
+     inner scroll meets the rounded edge. */
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden;            /* <-- clips anything painted at the card edge */
+    box-shadow: 0 1px 3px rgba(20,32,44,.08);
+  }
+  .card__head {
+    padding: 16px 20px; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .card__head h2 { font-size: 15px; margin: 0; }
+  .card__head .bal { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  .ledger { max-height: 300px; overflow-y: auto; }
+  .row {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center;
+    padding: 12px 0 12px 20px; border-bottom: 1px solid #eef1f5;
+  }
+  .row:last-child { border-bottom: 0; }
+  .row .who { font-weight: 600; }
+  .row .when { color: #7a8694; font-size: 12.5px; margin-top: 2px; }
+  .row .amt { font-variant-numeric: tabular-nums; }
+  .row .amt.neg { color: #b4232a; }
+
+  /* The actionable control in each row is a round "details" icon button,
+     pinned flush against the card's right edge so it sits exactly at the
+     overflow:hidden boundary (its right side touches x = card width). The
+     designer wanted the chevrons to align tightly with the card edge for a
+     clean rail, so the button has NO right margin. */
+  .row .go {
+    width: 30px; height: 30px; margin-right: 0; margin-left: 6px;
+    border: 0; border-radius: 50%; background: #eef2f6; color: #4a5663;
+    font: inherit; font-size: 15px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    /* translate the button so its right half overhangs the clip edge,
+       matching the designer's "flush rail" intent */
+    transform: translateX(13px);
+  }
+  .row .go:hover { background: #e3e9f0; }
+
+  /* Author-supplied focus indicator: a clean 3px ring with a 3px outward
+     offset. Because the button is pushed flush to (and slightly past) the
+     card's right edge, the focus ring is a CIRCLE whose right half is painted
+     OUTSIDE the .card's overflow:hidden box and clipped away. Only a thin
+     left-hand crescent of the ring survives — visually indistinguishable from
+     the button's own circular fill, so a keyboard user gets no real "this is
+     focused" cue. */
+  .row .go:focus { outline: none; }
+  .row .go:focus-visible {
+    outline: 3px solid var(--brand);
+    outline-offset: 3px;
+    background: #e6f6ee;
+  }
+  .note { margin-top: 26px; font-size: 12px; color:#8a93a0; line-height:1.55; }
+</style>
+</head>
+<body>
+  <main class="shell">
+    <h1>Recent transactions</h1>
+    <p class="sub">Everyday Checking ···4471 — last 30 days</p>
+
+    <section class="card" aria-labelledby="cardh">
+      <div class="card__head">
+        <h2 id="cardh">December activity</h2>
+        <span class="bal">$2,948.10</span>
+      </div>
+      <div class="ledger" role="list" aria-label="Transactions, newest first">
+        <div class="row" role="listitem">
+          <span><span class="who">Lina's Grocery</span><div class="when">Dec 18 · Pending</div></span>
+          <span class="amt neg">−$54.20</span>
+          <button class="go" type="button" aria-label="Details for Lina's Grocery, December 18">›</button>
+        </div>
+        <div class="row" role="listitem">
+          <span><span class="who">Paycheck — Acme Robotics</span><div class="when">Dec 16 · Direct deposit</div></span>
+          <span class="amt">+$2,310.00</span>
+          <button class="go" type="button" aria-label="Details for Acme Robotics paycheck, December 16">›</button>
+        </div>
+        <div class="row" role="listitem">
+          <span><span class="who">City Power &amp; Light</span><div class="when">Dec 15 · Autopay</div></span>
+          <span class="amt neg">−$132.77</span>
+          <button class="go" type="button" aria-label="Details for City Power and Light, December 15">›</button>
+        </div>
+        <div class="row" role="listitem">
+          <span><span class="who">Transfer to Savings</span><div class="when">Dec 14</div></span>
+          <span class="amt neg">−$400.00</span>
+          <button class="go" type="button" aria-label="Details for Transfer to Savings, December 14">›</button>
+        </div>
+        <div class="row" role="listitem">
+          <span><span class="who">Brewpoint Coffee</span><div class="when">Dec 13</div></span>
+          <span class="amt neg">−$6.95</span>
+          <button class="go" type="button" aria-label="Details for Brewpoint Coffee, December 13">›</button>
+        </div>
+        <div class="row" role="listitem">
+          <span><span class="who">Refund — Orbit Books</span><div class="when">Dec 12</div></span>
+          <span class="amt">+$18.40</span>
+          <button class="go" type="button" aria-label="Details for Orbit Books refund, December 12">›</button>
+        </div>
+      </div>
+    </section>
+
+    <p class="note">
+      Why automated checkers pass this: tabbing each details button DOES change
+      pixels — the button background swaps and the surviving left crescent of
+      the ring paints inside the card. ACT rule oj04fd is satisfied because at
+      least one device pixel inside the scrolling area changes color. But the
+      button is pinned flush to the card's right edge, so the ring is a circle
+      whose right half is removed by <code>overflow:hidden</code>; the surviving
+      crescent reads as part of the button's own fill, giving a keyboard user
+      no real "this control is focused" cue. The change-detection is real; the
+      human "can I actually see where focus is?" judgment is what fails.
+    </p>
+  </main>
+</body>
+</html>

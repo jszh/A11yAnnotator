@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 FAILURE (F43) — every recipe ingredient line marked up as its own <h5>,
+    fabricating a deep, flat heading outline that reflects no section structure.
+
+    The page is a food blog recipe. The visible structure a screen-reader user should get is:
+        h1  recipe title
+        h2  "Ingredients"   (a section, whose body is a LIST of ingredients)
+        h2  "Method"        (a section)
+    Instead, the author styled each ingredient line as "Heading 5" in the blog editor so the
+    ingredients would render in a uniform bold serif. The actual programmatic outline becomes:
+        h1  "Brown-Butter Banana Bread"
+        h2  "Ingredients"
+          h5  "2 cups all-purpose flour"
+          h5  "1 tsp baking soda"
+          h5  "1/2 tsp fine sea salt"
+          h5  "1/2 cup unsalted butter, browned"
+          h5  "3 very ripe bananas, mashed"
+          h5  "2 large eggs, room temperature"
+        h2  "Method"
+        ...
+    Each ingredient is NOT a section heading — it begins no block of related content; it is a
+    LIST ITEM. Six sibling <h5> elements fabricate six subsections that do not exist, flooding
+    the heading rotor with non-heading content and destroying the outline's usefulness. (It is
+    also the inverse 1.3.1 list failure: a visually apparent list is not coded as a list.)
+
+    WHY AUTOMATED TOOLS MISS IT: each <h5> is valid, non-empty, and (h2 -> h5) only "skips"
+    levels, which axe treats as a WARNING at most, not a failure; six repeated h5 siblings are
+    not flagged by any rule. No tool can read "2 cups all-purpose flour" and conclude "this is
+    an ingredient (a list item), not a section heading." That requires understanding the
+    content domain.
+  -->
+  <title>Brown-Butter Banana Bread — The Floured Spoon</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Source Sans Pro", system-ui, sans-serif; color:#2b2622;
+           background:#fffdf8; line-height:1.6; }
+    header { background:#5e4632; color:#fdf6ec; padding:1rem 1.2rem; }
+    header .brand { font-family:Georgia, serif; font-size:1.3rem; font-weight:700; }
+    main { max-width:42rem; margin:1.4rem auto 4rem; padding:0 1.2rem; }
+    h1 { font-family:Georgia, serif; font-size:2rem; margin:.3rem 0 .2rem; }
+    .meta { color:#8a7a66; font-size:.88rem; margin-bottom:1rem; }
+    .hero { width:100%; height:230px; border-radius:10px; margin-bottom:1.2rem;
+            background:linear-gradient(135deg,#d8a86a,#a9743c 60%,#6e4421); }
+    h2 { font-family:Georgia, serif; font-size:1.4rem; margin:1.8rem 0 .6rem;
+         border-bottom:2px solid #ecdcc4; padding-bottom:.25rem; }
+    /* Ingredients were each set to "Heading 5" in the editor to get this uniform bold serif look. */
+    h5 { font-family:Georgia, serif; font-size:1rem; font-weight:600; color:#3a3026;
+         margin:.35rem 0; padding:.35rem .6rem; background:#fbf2e2; border-radius:5px; }
+    ol.method { padding-left:1.3rem; }
+    ol.method li { margin:.5rem 0; }
+    p { margin:0 0 1rem; }
+    footer { max-width:42rem; margin:0 auto 3rem; padding:0 1.2rem; font-size:.8rem; color:#8a7a66; }
+  </style>
+</head>
+<body>
+  <header><span class="brand">The Floured Spoon</span></header>
+
+  <main>
+    <article>
+      <h1>Brown-Butter Banana Bread</h1>
+      <p class="meta">By Priya Sundaram · Prep 15 min · Bake 55 min · Makes 1 loaf</p>
+
+      <div class="hero" role="img" aria-label="A sliced loaf of golden banana bread on parchment"></div>
+
+      <p>Browning the butter first gives this loaf a deep, nutty backbone that ordinary
+      banana bread never reaches. Use bananas so ripe they look ruined — that is exactly
+      when they are sweetest.</p>
+
+      <h2>Ingredients</h2>
+      <!--
+        Each line below is an INGREDIENT (a list item), not a section heading. They begin no
+        sections. Marking each as <h5> fabricates six subsections under "Ingredients".
+      -->
+      <h5>2 cups all-purpose flour</h5>
+      <h5>1 tsp baking soda</h5>
+      <h5>1/2 tsp fine sea salt</h5>
+      <h5>1/2 cup unsalted butter, browned and cooled</h5>
+      <h5>3 very ripe bananas, mashed (about 1 1/2 cups)</h5>
+      <h5>2 large eggs, room temperature</h5>
+
+      <h2>Method</h2>
+      <ol class="method">
+        <li>Heat the butter in a light-colored pan over medium until it foams, then smells
+        nutty and turns amber, 5–7 minutes. Pour into a bowl and cool slightly.</li>
+        <li>Whisk flour, baking soda, and salt in a separate bowl.</li>
+        <li>Stir the mashed bananas and eggs into the browned butter, then fold in the dry
+        ingredients until just combined.</li>
+        <li>Bake at 350°F (175°C) for 50–55 minutes, until a skewer comes out clean.</li>
+      </ol>
+    </article>
+  </main>
+
+  <footer>The Floured Spoon · Small-batch baking from a tiny Brooklyn kitchen.</footer>
+</body>
+</html>

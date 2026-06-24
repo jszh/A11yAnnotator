@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.10 PASS — wrappable code that PROVIDES a working wrap mechanism (G206 / G224).
+
+    Context: an API reference page for a webhooks endpoint. It shows a long `docker run ...` command
+    and a long single-line JSON example — both WRAPPABLE (a soft-wrap loses no meaning for a shell
+    command or a JSON payload string). By default the block is preformatted (handy for copying), but
+    the page provides a real, keyboard-operable "Wrap lines" toggle (a <button aria-pressed>) that
+    switches the <pre> to `white-space: pre-wrap`. When wrapped, every command/payload fits within
+    320 CSS px and reads in a single column with vertical scrolling only.
+
+    THE JUDGMENT: this is the conforming counterpart to case-05. The code is wrappable, and a mechanism
+    to wrap it is provided (G224 check 4 / the G206 "option to switch to a layout that does not require
+    horizontal scrolling"). So even though the DEFAULT view scrolls horizontally, the page passes
+    1.4.10 because a mechanism is available. A human must verify (a) wrapping these particular lines
+    loses no meaning and (b) the toggle actually works and is reachable by keyboard.
+
+    WHY AUTOMATED TOOLS MISS IT: a tool sees a <pre> overflowing 320px by default (same as case-05's
+    failing default) and a generic <button>. It cannot determine that the button toggles wrapping, that
+    wrapping is an ADEQUATE remedy for THIS content (because the content is wrappable code, not Python),
+    or that the toggle is the G224/G206 mechanism. That chain of judgments — content is wrappable, the
+    control wraps it, wrapping suffices — is human reasoning over meaning + behavior.
+  -->
+  <title>Webhooks API — Send a test event — Relay API Reference</title>
+  <style>
+    :root { --ink:#101826; --muted:#5d6b7d; --line:#dfe6ee; --bg:#ffffff; --accent:#0b5cab; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .wrap { max-width:760px; margin:0 auto; padding:24px 18px 60px; }
+    .crumbs { font-size:13px; color:var(--muted); }
+    .crumbs a { color:var(--accent); text-decoration:none; }
+    h1 { font-size:24px; margin:14px 0 6px; }
+    .lede { color:var(--muted); margin:0 0 18px; }
+    h2 { font-size:16px; margin:24px 0 6px; }
+    p { margin:0 0 12px; }
+    .codecard { border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:0 0 16px; }
+    .codecard .bar { display:flex; align-items:center; gap:8px; padding:7px 10px; background:#f2f5f9; border-bottom:1px solid var(--line); font-size:12px; color:var(--muted); }
+    .codecard .bar .lang { font-family:"SF Mono",Menlo,monospace; }
+    .codecard .bar .controls { margin-left:auto; display:flex; gap:6px; }
+    .codecard .bar button {
+      background:#fff; color:#27405f; border:1px solid #c8d3df; border-radius:6px;
+      padding:3px 10px; font-size:12px; cursor:pointer; font-family:inherit;
+    }
+    .codecard .bar button[aria-pressed="true"] { background:#0b5cab; color:#fff; border-color:#0b5cab; }
+    .codecard .bar button:focus-visible { outline:2px solid #0b5cab; outline-offset:2px; }
+    pre {
+      margin:0; padding:14px 16px; background:#0d1626; color:#e3e9f2;
+      font-family:"SF Mono",Menlo,Consolas,monospace; font-size:13.5px; line-height:1.6;
+      white-space: pre;     /* default: preformatted (easy to copy) ... */
+      overflow-x: auto;
+    }
+    pre.wrap-on {
+      white-space: pre-wrap;   /* ...toggled to wrap — fits 320px, reads in one column */
+      overflow-wrap: anywhere;
+      overflow-x: hidden;
+    }
+    .tok-c { color:#7e8aa6; font-style:italic; }
+    .tok-flag { color:#ffcaa6; }
+    .tok-key { color:#8fb6ff; }
+    .tok-str { color:#9be3a6; }
+    footer { margin-top:30px; border-top:1px solid var(--line); padding-top:14px; color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="crumbs"><a href="#">API Reference</a> / <a href="#">Webhooks</a> / Send a test event</p>
+    <h1>Send a test event</h1>
+    <p class="lede">Use these examples to deliver a test event to one of your webhook endpoints. The
+    lines are long, so each code block has a <strong>Wrap lines</strong> toggle — turn it on to read the
+    whole command in a single column without scrolling sideways.</p>
+
+    <h2>Trigger from the CLI container</h2>
+    <p>This runs the Relay CLI in Docker and posts a sample <code>invoice.paid</code> event.</p>
+    <div class="codecard">
+      <div class="bar">
+        <span class="lang">bash</span>
+        <span class="controls">
+          <button type="button" class="wrapbtn" aria-pressed="false">Wrap lines</button>
+        </span>
+      </div>
+      <pre><code><span class="tok-c"># long, but a shell command wraps without losing meaning</span>
+docker run --rm -e RELAY_API_KEY=$RELAY_API_KEY relayhq/cli:2.7 events send --endpoint=ep_9fa31c --type=invoice.paid --payload='{"id":"in_88421","amount":4200,"currency":"usd","customer":"cus_5512"}' --idempotency-key=test-2026-06-20-01</code></pre>
+    </div>
+
+    <h2>The JSON body that gets delivered</h2>
+    <p>Your endpoint receives a single JSON object. Wrapping it changes nothing about its meaning.</p>
+    <div class="codecard">
+      <div class="bar">
+        <span class="lang">json</span>
+        <span class="controls">
+          <button type="button" class="wrapbtn" aria-pressed="false">Wrap lines</button>
+        </span>
+      </div>
+      <pre><code>{<span class="tok-key">"id"</span>:<span class="tok-str">"evt_3a91f0c2"</span>,<span class="tok-key">"type"</span>:<span class="tok-str">"invoice.paid"</span>,<span class="tok-key">"created"</span>:1750000000,<span class="tok-key">"data"</span>:{<span class="tok-key">"invoice"</span>:<span class="tok-str">"in_88421"</span>,<span class="tok-key">"amount"</span>:4200,<span class="tok-key">"currency"</span>:<span class="tok-str">"usd"</span>,<span class="tok-key">"hosted_url"</span>:<span class="tok-str">"https://pay.relay.example.com/i/in_88421?sig=Zk19"</span>}}</code></pre>
+    </div>
+
+    <p>Both examples are wrappable, so turning on <em>Wrap lines</em> lets the entire command and
+    payload fit within a narrow viewport with only vertical scrolling.</p>
+
+    <footer>Relay API &middot; v2 &middot; status.relay.example.com</footer>
+  </div>
+
+  <script>
+    // Wrap-lines toggle: switches the sibling <pre> between preformatted and wrapped.
+    document.querySelectorAll('.wrapbtn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var pre = btn.closest('.codecard').querySelector('pre');
+        var on = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-pressed', String(!on));
+        pre.classList.toggle('wrap-on', !on);
+      });
+    });
+  </script>
+</body>
+</html>

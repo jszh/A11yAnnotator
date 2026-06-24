@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- PASS CONTROL (Focus-Not-Obscured "dismissible" path). A government transit portal shows
+       a tall fixed consent/notice banner that, at the 256px reflow height, would otherwise eat
+       a big share of the viewport. The banner is genuinely USER-DISMISSIBLE: a real "Dismiss"
+       button removes it from the DOM (and a keyboard user can reach it first, before the page
+       content). Per the Reflow Understanding doc's overlap note, providing a way for the user
+       to dismiss the obscuring content satisfies the requirement. After dismissal the full
+       page is readable at the reflow viewport. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Changes — Metrolink Riverside Line — City of Northgate Transit</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font: 16px/1.55 "Public Sans", "Segoe UI", Arial, sans-serif; color: #1b1b1b; background: #f7f8fa; }
+    .gov { background: #112e51; color: #fff; padding: 10px 16px; font-size: 14px; }
+    .gov .seal { font-weight: 700; }
+    .gov .dept { font-size: 12px; opacity: .85; }
+    main { padding: 16px; max-width: 660px; margin: 0 auto; }
+    h1 { font-size: 23px; margin: 6px 0 6px; }
+    .updated { font-size: 12px; color: #5b616b; margin: 0 0 16px; }
+    h2 { font-size: 18px; color: #112e51; margin: 22px 0 6px; }
+    p { margin: 0 0 14px; }
+    .alert { background: #fff3cd; border-left: 4px solid #b88600; padding: 10px 14px; margin: 0 0 16px; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    th, td { border: 1px solid #d6d9dd; padding: 8px; text-align: left; }
+    th { background: #eef1f5; }
+
+    /* The consent/notice banner is fixed to the bottom and is ~150px tall. Left in place at a
+       256px-tall viewport it would consume well over half the screen. But it is dismissible. */
+    .notice {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+      background: #1b1b1b; color: #f4f4f4;
+      padding: 14px 16px; min-height: 150px;
+      border-top: 4px solid #ffbe2e;
+    }
+    .notice h2 { color: #ffbe2e; margin: 0 0 6px; font-size: 16px; }
+    .notice p { margin: 0 0 10px; font-size: 13px; line-height: 1.45; }
+    .notice .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .notice button {
+      font: 600 14px inherit; cursor: pointer; border-radius: 5px; padding: 9px 16px; border: 0;
+    }
+    .notice .dismiss { background: #ffbe2e; color: #1b1b1b; }
+    .notice .more { background: transparent; color: #ffd97a; border: 1px solid #6a6a6a; }
+    .notice button:focus { outline: 3px solid #4d90fe; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <!-- WHY THIS PASSES (and why a tool cannot confirm it without rendering + interaction):
+       The fixed banner WOULD consume the 256px viewport — identical static markup to a
+       failing cookie bar. What makes it pass is behavioural: the Dismiss button actually
+       removes the banner, and it is reachable by keyboard before the page body (the banner
+       precedes <main> in the DOM and the button is early in tab order). No static rule can
+       tell a dismissible banner from a permanent one, nor verify the dismiss truly frees the
+       viewport. A human must tab to Dismiss, activate it, and confirm the full schedule is
+       then readable at the reflow viewport — exactly the "way to dismiss the obscuring
+       content without advancing keyboard focus past it" the Understanding doc calls for. -->
+  <header class="gov">
+    <div class="seal">City of Northgate · Transit Authority</div>
+    <div class="dept">Metrolink Light Rail · Service Advisories</div>
+  </header>
+
+  <section class="notice" role="region" aria-label="Site notice">
+    <h2>Planned engineering work this weekend</h2>
+    <p>The Riverside Line will not run between Harbour Gate and Old Mill on Saturday and Sunday.
+      Replacement buses will operate every 15 minutes. Allow extra time for your journey.</p>
+    <div class="row">
+      <button class="dismiss" type="button"
+              onclick="this.closest('.notice').remove()">Dismiss this notice</button>
+      <button class="more" type="button">Full details</button>
+    </div>
+  </section>
+
+  <main>
+    <h1>Riverside Line — Service Changes</h1>
+    <p class="updated">Last updated: Friday 13 June, 4:10 p.m.</p>
+
+    <div class="alert">
+      <strong>Weekend closure:</strong> Harbour Gate ↔ Old Mill closed for track renewal,
+      Sat–Sun. Use replacement bus route R.
+    </div>
+
+    <h2>What is changing</h2>
+    <p>To replace ageing track between Harbour Gate and Old Mill, trains will not serve those
+      four stations this weekend. Trains will continue to run normally on the rest of the line.
+      The work is part of a multi-year programme to reduce delays caused by speed restrictions
+      over the older sections of track.</p>
+
+    <h2>Replacement bus times</h2>
+    <table>
+      <caption class="sr-only">Replacement bus frequency by time band</caption>
+      <thead>
+        <tr><th scope="col">Time</th><th scope="col">Frequency</th><th scope="col">First / last</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Daytime</td><td>Every 15 min</td><td>06:00 / 23:30</td></tr>
+        <tr><td>Late evening</td><td>Every 30 min</td><td>23:30 / 00:45</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Refunds and accessibility</h2>
+    <p>If your usual journey is disrupted, off-peak fares apply all weekend. Replacement buses
+      are low-floor and wheelchair accessible. Staff will be on hand at Harbour Gate and Old
+      Mill to assist passengers who need help transferring between rail and bus.</p>
+
+    <h2>Stay informed</h2>
+    <p>For real-time updates during the closure, check the live status page or sign up for line
+      alerts by text. Normal Monday service resumes from first train.</p>
+  </main>
+</body>
+</html>

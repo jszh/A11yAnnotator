@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make a gift — Riverkeeper Trust</title>
+<style>
+  /* Self-contained icon-font shim: a single ligature "error_outline" maps to a warning glyph.
+     No network fonts — we draw the glyph with a CSS pseudo-element keyed off the ligature text. */
+  :root { --ink:#22302b; --line:#cfdad3; --brand:#0b6e4f; --err:#b23b2e; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Georgia",serif; color:var(--ink); background:#f4f8f5; }
+  header { background:var(--brand); color:#fff; padding:16px 28px; }
+  header .org { font-size:1.05rem; font-weight:700; letter-spacing:.3px; }
+  main { max-width:500px; margin:38px auto; background:#fff; border:1px solid var(--line);
+         border-radius:10px; padding:30px 34px; }
+  h1 { font-family:"Helvetica Neue",Arial,sans-serif; font-size:1.45rem; margin:0 0 6px; }
+  p.mission { margin:0 0 22px; color:#566b61; font-size:.95rem; }
+  fieldset { border:1px solid var(--line); border-radius:9px; padding:16px 18px; margin:0 0 20px; }
+  legend { font-family:"Helvetica Neue",Arial,sans-serif; font-weight:700; font-size:.9rem; padding:0 6px; }
+  .amount-row { display:flex; align-items:center; gap:10px; }
+  .amount-row .prefix { font-size:1.1rem; color:#566b61; }
+  .amount-row input { width:120px; padding:10px 12px; border:1px solid var(--line); border-radius:7px;
+                      font-size:1.05rem; font-family:"Helvetica Neue",Arial,sans-serif; }
+  .amount-row input.over { border-color:var(--err); }
+  .amount-row input:focus { outline:3px solid #2f80c8; outline-offset:1px; }
+  /* The icon-font ligature. The accessible name is the LIGATURE TEXT itself: "error_outline". */
+  .micon {
+    font-family:"Material Icons","Helvetica Neue",Arial,sans-serif;
+    font-size:0; line-height:1; width:22px; height:22px; display:inline-block; position:relative;
+  }
+  .micon::before {
+    content:""; position:absolute; inset:0; border:2.4px solid var(--err); border-radius:50%;
+  }
+  .micon::after {
+    content:"!"; position:absolute; inset:0; font:700 14px/22px "Helvetica Neue",Arial,sans-serif;
+    color:var(--err); text-align:center;
+  }
+  .note { font-family:"Helvetica Neue",Arial,sans-serif; font-size:.8rem; color:#6a7872; margin:8px 2px 0; }
+  .give { font-family:"Helvetica Neue",Arial,sans-serif; width:100%; padding:13px; border:0;
+          border-radius:7px; background:var(--brand); color:#fff; font-size:1.02rem; font-weight:600; cursor:pointer; }
+  footer { max-width:500px; margin:14px auto 50px; color:#88958e; font-size:.74rem; text-align:center;
+           font-family:"Helvetica Neue",Arial,sans-serif; }
+</style>
+</head>
+<body>
+<header><span class="org">Riverkeeper Trust</span></header>
+
+<main>
+  <h1>Make a one-time gift</h1>
+  <p class="mission">Your support keeps the watershed clean and the river flowing for generations.</p>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS
+    Online single-gift limit is $10,000; the donor typed 25000. That is a genuine out-of-range
+    input error. The error is conveyed by an icon-font ligature (Material Icons style). A junior
+    dev wired the accessible name straight from the ligature key: aria-label="error_outline" —
+    the LITERAL ICON NAME (it describes the picture, an outlined error symbol), not the donation
+    error. axe/WAVE/Lighthouse see role=img WITH a non-empty accessible name, so the icon "has a
+    text alternative" and passes every structural rule (no empty name, no missing role, contrast
+    fine). The defect is SEMANTIC: a screen-reader user hears "error_outline" — the name of a
+    glyph — which conveys neither the cause (amount exceeds the $10,000 online maximum) nor even
+    that this is the amount field. Only a human reading the alternative's MEANING against the
+    field's real error can tell the text alternative fails to identify or describe the error.
+  -->
+
+  <form action="#" method="post" novalidate>
+    <fieldset>
+      <legend>Gift amount</legend>
+      <div class="amount-row">
+        <span class="prefix">$</span>
+        <input type="text" inputmode="numeric" id="amount" name="amount" class="over"
+               aria-invalid="true" aria-describedby="amount-icon" value="25000">
+        <span class="micon" role="img" id="amount-icon" aria-label="error_outline"></span>
+      </div>
+      <p class="note">Single online gifts range from $5 to $10,000. For larger gifts, please call our office.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Your details</legend>
+      <label for="dname" class="note" style="font-weight:700;margin-bottom:6px;display:block;">Name on card</label>
+      <input type="text" id="dname" name="dname" value="A. Petrova"
+             style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:7px;">
+    </fieldset>
+
+    <button type="submit" class="give">Donate</button>
+  </form>
+</main>
+
+<footer>Riverkeeper Trust is a registered 501(c)(3). Gifts are tax-deductible.</footer>
+</body>
+</html>

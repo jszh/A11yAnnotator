@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Translation Booth — InterpretHub</title>
+<style>
+  body { margin: 0; font-family: "Helvetica Neue", Arial, sans-serif; background: #0f1620; color: #e7edf5; }
+  header { background: #16263b; padding: 14px 24px; border-bottom: 2px solid #2c466b; }
+  header h1 { margin: 0; font-size: 1.1rem; color: #cfe0f5; }
+  .wrap { max-width: 760px; margin: 22px auto; padding: 0 16px; }
+  a { color: #6fb1ff; }
+  .booth { border: 2px solid #2c466b; border-radius: 10px; background: #13202f; padding: 18px; margin: 16px 0; }
+  .booth h2 { margin: 0 0 8px; font-size: 1rem; color: #9fc3f0; }
+  .booth label { display: block; font-size: .82rem; margin: 10px 0 4px; color: #b8c8dc; }
+  .booth select, .booth textarea, .booth input[type="text"] {
+    width: 100%; box-sizing: border-box; background: #0c151f; color: #e7edf5;
+    border: 1px solid #34557f; border-radius: 6px; padding: 8px; font-size: .92rem;
+  }
+  .booth textarea { min-height: 86px; resize: vertical; }
+  .booth .row { display: flex; gap: 10px; }
+  .booth .row > div { flex: 1; }
+  .booth button { background: #1f3a5c; color: #e7edf5; border: 1px solid #3c5f8c; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-size: .88rem; }
+  .booth select:focus, .booth textarea:focus, .booth input:focus, .booth button:focus { outline: 3px solid #ffb648; outline-offset: 2px; }
+  .exit-note { margin-top: 12px; background: #102a1c; border: 1px solid #2f6b46; border-radius: 6px; padding: 10px 12px; font-size: .85rem; color: #bfe6cd; }
+  .exit-note kbd { background: #e7edf5; color: #0f1620; border-radius: 4px; padding: 1px 6px; font-weight: 700; font-size: .78rem; }
+  .leave { background: #1f3a5c; color: #e7edf5; border: 1px solid #3c5f8c; border-radius: 6px; padding: 9px 18px; cursor: pointer; }
+  footer { max-width: 760px; margin: 16px auto 44px; padding: 0 16px; font-size: .77rem; color: #7e90a6; }
+</style>
+</head>
+<body>
+<header><h1>InterpretHub &middot; Live Translation Booth</h1></header>
+<div class="wrap">
+  <p>Session: <strong>City Council public hearing</strong> &mdash; English &rarr; Spanish relay.</p>
+  <a href="/sessions">&larr; All sessions</a>
+
+  <!-- FAIL (accuracy in the real environment, beyond the corpus's plainly-present/absent Ctrl+M cases):
+       The booth is a focus-looping subset (source select, glossary box, and the live-transcript textarea
+       loop so an interpreter can stay heads-down). A custom exit IS documented, the instruction IS
+       reachable from inside the loop (it is plain in-flow text the screen reader reads), and the page's
+       OWN keydown handler genuinely listens for the documented combo. The defect: the documented combo is
+       Ctrl+W — a combination the BROWSER reserves for "close tab", so the OS/user-agent consumes it before
+       the page handler can run. The advice is accurate "on paper" (matches the handler) but INACCURATE in
+       the real user environment: pressing the documented key never exits the trap (and may close the tab).
+       Whether a documented keystroke is actually deliverable to the page is exactly the hardware/UA/OS
+       judgment the Understanding doc warns auditors to make — a static tool cannot. -->
+  <section class="booth" id="booth" aria-label="Interpretation booth">
+    <h2>Interpretation booth</h2>
+    <div class="row">
+      <div>
+        <label for="src">Source channel</label>
+        <select id="src">
+          <option>Floor — English</option>
+          <option>Floor — Mandarin</option>
+          <option>Relay — Spanish</option>
+        </select>
+      </div>
+      <div>
+        <label for="term">Glossary lookup</label>
+        <input id="term" type="text" placeholder="e.g. variance, easement…">
+      </div>
+    </div>
+    <label for="transcript">Live transcript (your relay)</label>
+    <textarea id="transcript" placeholder="Type the interpreted text here…"></textarea>
+    <button type="button" id="mark">Insert timestamp</button>
+
+    <p class="exit-note" id="exitNote">
+      Heads-up: while you are in the booth, <kbd>Tab</kbd> cycles only between these fields so your cursor
+      never drifts mid-sentence. To move focus back out to the rest of the page, press
+      <kbd>Ctrl</kbd>+<kbd>W</kbd>.
+    </p>
+  </section>
+
+  <button class="leave" id="leave" type="button">Leave booth &amp; review</button>
+</div>
+<footer>
+  InterpretHub &middot; Sessions auto-archive 30 days after they end.
+  <!--
+    WHY THIS FAILS (and why a checker can't catch it):
+    Focus is trapped in #booth (blur re-focuses the first control). A custom exit is documented, the
+    documentation is keyboard-reachable in-subset (real in-flow text, read by AT), and the page's keydown
+    handler DOES branch on Ctrl+W — so by every static signal the advice "matches" the code. But Ctrl+W is
+    a reserved user-agent shortcut (close current tab): the browser intercepts it, so the page's handler is
+    never reached and focus never leaves. The documented exit is therefore INACCURATE in the actual runtime
+    environment. axe/WAVE/Lighthouse see present, reachable, well-formed instruction text whose key string
+    equals the handler's key string — they do not model that the browser eats Ctrl+W before the page sees
+    it, do not press keys, and cannot judge "is this combo deliverable to the page on this UA/OS." The
+    Understanding doc explicitly makes deliverability a hardware/user-agent/OS judgment for a human auditor.
+  -->
+</footer>
+
+<script>
+(function () {
+  var booth = document.getElementById('booth');
+  var fields = booth.querySelectorAll('select, input, textarea, button');
+  var first = fields[0];
+  var trapOn = false;
+
+  fields.forEach(function (el) {
+    el.addEventListener('focus', function () { trapOn = true; });
+    el.addEventListener('blur', function () {
+      if (trapOn) setTimeout(function () { if (trapOn) first.focus(); }, 0);
+    });
+  });
+
+  // The page DOES wire an exit on the documented combo (Ctrl+W) — so a static "does the advice match the
+  // code" check would pass. In a real browser this branch is dead code: the user agent consumes Ctrl+W
+  // (close tab) before keydown reaches the page, so focus is never released. The exit is documented and
+  // code-matched yet not deliverable — inaccurate in practice.
+  booth.addEventListener('keydown', function (e) {
+    if (e.ctrlKey && (e.key === 'w' || e.key === 'W')) {
+      e.preventDefault();
+      trapOn = false;
+      document.getElementById('leave').focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

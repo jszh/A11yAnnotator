@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 FAILURE (F25, example 2 — agency name shared as the title of every route page).
+    This is the timetable / route-detail page for ONE specific bus route ("32系統
+    みなと循環線", the Minato Loop, route 32) on a municipal transit agency site.
+    The route nav lists sibling routes (11, 21, 32, 45...), and the <h1>, the
+    direction tabs, and the timetable table make the page specifically route 32.
+    But the <title> is only the agency name "桜井市交通局" (Sakurai City Transit
+    Bureau) — the SAME string carried by every route page and the agency home page.
+    The title names the agency, not this route, so it cannot distinguish route 32's
+    timetable from route 11's or route 45's.
+    i18n twist: the document is Japanese (lang="ja") and the body is fully
+    localized, but the <title> was left as the generic agency name only — so the
+    failure is the distinguish-within-set problem, not a translation problem.
+    Why automated tools miss it: <title> is present and non-empty (axe/WAVE/
+    Lighthouse PASS); they cannot read the Japanese body to learn this is route 32
+    nor compare titles across the route pages.
+  -->
+  <title>桜井市交通局</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; color:#1c2430; }
+    header { background:#0a5a3c; color:#fff; padding:12px 20px; display:flex; align-items:center; gap:20px; }
+    header .name { font-weight:800; font-size:17px; }
+    header nav ul { list-style:none; display:flex; gap:16px; margin:0; padding:0; font-size:14px; }
+    header nav a { color:#d7f0e4; text-decoration:none; }
+    .routebar { background:#eaf4ee; border-bottom:1px solid #cfe3d6; padding:10px 20px; display:flex; gap:10px; flex-wrap:wrap; font-size:14px; }
+    .routebar a { text-decoration:none; color:#0a5a3c; border:1px solid #b7d8c4; background:#fff; border-radius:16px; padding:4px 12px; }
+    .routebar a[aria-current="page"] { background:#0a5a3c; color:#fff; border-color:#0a5a3c; font-weight:700; }
+    main { max-width:880px; margin:0 auto; padding:20px; }
+    .crumb { font-size:13px; color:#5a6b62; margin-bottom:8px; }
+    h1 { font-size:24px; margin:0 0 4px; }
+    .meta { color:#5a6b62; font-size:14px; margin:0 0 18px; }
+    .dirtabs { display:flex; gap:8px; margin-bottom:14px; }
+    .dirtabs button { border:1px solid #cfe3d6; background:#fff; border-radius:8px 8px 0 0; padding:8px 16px; font-size:14px; cursor:pointer; }
+    .dirtabs button[aria-selected="true"] { background:#0a5a3c; color:#fff; border-color:#0a5a3c; font-weight:700; }
+    table { border-collapse:collapse; width:100%; font-size:14px; }
+    caption { text-align:left; font-weight:700; margin-bottom:8px; }
+    th, td { border:1px solid #cfe3d6; padding:7px 10px; text-align:center; }
+    th[scope="row"] { background:#f3f8f5; text-align:left; }
+    thead th { background:#eaf4ee; }
+    footer { border-top:1px solid #cfe3d6; margin-top:28px; padding:18px 20px; font-size:13px; color:#5a6b62; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="name">桜井市交通局</span>
+    <nav aria-label="メインメニュー">
+      <ul>
+        <li><a href="/">ホーム</a></li>
+        <li><a href="/routes">路線一覧</a></li>
+        <li><a href="/fares">運賃</a></li>
+        <li><a href="/news">お知らせ</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <nav class="routebar" aria-label="路線を選ぶ">
+    <a href="/routes/11">11系統</a>
+    <a href="/routes/21">21系統</a>
+    <a href="/routes/32" aria-current="page">32系統</a>
+    <a href="/routes/45">45系統</a>
+    <a href="/routes/58">58系統</a>
+  </nav>
+
+  <main>
+    <p class="crumb">ホーム / 路線一覧 / 32系統</p>
+    <h1>32系統 みなと循環線 — 時刻表</h1>
+    <p class="meta">桜井駅前 ⇄ みなと公園 ⇄ 中央病院（循環）／ 平日ダイヤ</p>
+
+    <div class="dirtabs" role="tablist" aria-label="方向">
+      <button role="tab" aria-selected="true">桜井駅前 発（右回り）</button>
+      <button role="tab" aria-selected="false">中央病院 発（左回り）</button>
+    </div>
+
+    <table>
+      <caption>32系統 平日 時刻表（桜井駅前 発）</caption>
+      <thead>
+        <tr><th scope="col">時</th><th scope="col">分</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">7時</th><td>05 / 20 / 35 / 50</td></tr>
+        <tr><th scope="row">8時</th><td>00 / 12 / 24 / 36 / 48</td></tr>
+        <tr><th scope="row">9時</th><td>05 / 25 / 45</td></tr>
+        <tr><th scope="row">10時</th><td>05 / 35</td></tr>
+        <tr><th scope="row">17時</th><td>00 / 15 / 30 / 45</td></tr>
+        <tr><th scope="row">18時</th><td>00 / 18 / 36 / 54</td></tr>
+      </tbody>
+    </table>
+
+    <footer>
+      <p>桜井市交通局 運輸課 ／ TEL 0744-00-0000</p>
+      <p>このページ（32系統）も、11系統・45系統の時刻表ページも、トップページも、すべて同じ「桜井市交通局」というタイトルで開きます。</p>
+    </footer>
+  </main>
+</body>
+</html>

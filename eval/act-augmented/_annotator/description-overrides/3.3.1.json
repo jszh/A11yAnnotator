@@ -1,0 +1,27 @@
+{
+  "error-message-mismatches-actual-error/case-03": {
+    "mechanism": "Boilerplate mismatch: the message asserts a rule already satisfied (>=8 characters on a 14-character password value 'riverstonelake') instead of the rule actually failing (missing digit). The error line ('Password must be at least 8 characters.') and the requirements checklist directly contradict each other, since the checklist marks 'At least 8 characters' MET (green) and 'At least one number' UNMET (red).",
+    "scenario": "SaaS 'set your password' screen, post-submit error state. Password field holds the 14-character value 'riverstonelake' (shown as 14 bullets); the visible aria-describedby error #pw-err reads 'Password must be at least 8 characters.' while the page's own requirements list marks 'At least 8 characters' as MET and 'At least one number' as the only UNMET rule.",
+    "note": "Prose said '12-character value (12 bullets)'; the actual retained value is 'riverstonelake' (14 characters), so the 12/12-bullet counts were wrong. The page's own HTML comment also mis-states it as 12. Defect mechanism is unchanged (14 >= 8 holds)."
+  },
+  "non-text-only-error-indicator/case-01": {
+    "mechanism": "Error conveyed only by CSS border (2px solid red) + red-tinted background (input.flagged), which are not part of the accessible name and are never announced; the field is plain type=text with no aria-invalid and no constraint, so a screen reader hears 'Number of places to reserve, edit, 6' identically to a valid field, and the error is not 'in text' as SC 3.3.1 requires.",
+    "scenario": "Riverside Adult Learning course-enrolment form re-rendered after a failed submit; the 'Number of places to reserve' field input#seats holds value '6', which the server rejected as over the class cap of 4, and wears a 2px red border + red-tinted background (class 'flagged') as the SOLE error cue. No message, no aria-invalid, no hidden text anywhere conveys that an error occurred.",
+    "note": "Prose described an allotment-newsletter email field 'tom@' with primarySelector input#email.flagged; the actual page is a course-enrolment form whose flagged field is input#seats (value '6', over-capacity). No input#email exists; the named value/field/scenario were wrong. The text-only red-border-plus-tint indicator mechanism is genuinely present as described, so only the prose drifted. (Corrected primarySelector: input#seats.flagged.)"
+  },
+  "inline-error-adjacent-to-wrong-field/case-03": {
+    "mechanism": "Two legs each use the IDENTICAL visible label 'Travel date' and an identical empty .msg slot, with no aria-describedby. The generic error 'Travel date is invalid.' is rendered into the FIRST .msg slot (under the OUTBOUND input, whose date 2026-07-14 is valid and which carries the red .flagged border), while the leg actually in error (Return, 2025-03-02, a past date) shows no message. Identification rests on presentation/proximity, which points at the wrong (valid) leg; the duplicate labels mean the text alone cannot disambiguate either, so the item in error is not identified.",
+    "scenario": "Aerolinks round-trip itinerary (PDX <=> DEN): two legs (Outbound / Return) each labelled 'Travel date' with no aria-describedby, where the generic error 'Travel date is invalid.' is painted under the valid Outbound input (2026-07-14, red-bordered) while the genuinely-invalid Return date (2025-03-02, in the past) gets an empty message slot.",
+    "note": "rewritten to match the page (was a different instance)"
+  },
+  "non-text-only-error-indicator/case-03": {
+    "mechanism": "On the bounced submit the server adds class='flagged' to the postcode input, which paints ONLY a 2px red border plus a red round error glyph drawn as a CSS background-image (inline-SVG data URI) at the field's right edge. There is no message, no asterisk, no pseudo-element, no aria-invalid, and no text of any kind. A CSS background-image never enters the accessibility tree, so a screen reader announces 'Postcode, edit, SW1A 9ZZ XX' identically to a valid field — the error is conveyed by visual styling alone, not in text as SC 3.3.1 requires.",
+    "scenario": "Pennine Mutual car-insurance quote form re-rendered after the server rejected the postcode 'SW1A 9ZZ XX'; the input#postcode.flagged shows ONLY a red border + a red error glyph rendered as a CSS background-image (inline SVG), with no message, no asterisk, no aria-invalid, and no error text anywhere.",
+    "note": "rewritten to match the page (was a different instance)"
+  },
+  "silent-redisplay-after-real-error/case-01": {
+    "mechanism": "Post-submit state: the server bounced the booking because Event date '2019-03-02' violates the printed 'at least 14 days in advance' rule, but re-displayed the form under the result-sounding heading 'Request logged' with the out-of-range date retained and ZERO error text anywhere. No field carries required/min/max/pattern, so nothing is computed :invalid and AT announces every field as a normal text box; the 'Request logged' heading actively implies success (G83), so the silent re-display gives no hint the submission failed.",
+    "scenario": "City of Glenmore facility-booking confirmation page shown after the server rejected the request (Event date '2019-03-02' breaks the printed 'at least 14 days in advance' rule); the form is silently re-displayed under the success-sounding heading 'Request logged' with the past date retained and no error message anywhere.",
+    "note": "rewritten to match the page (was a different instance)"
+  }
+}

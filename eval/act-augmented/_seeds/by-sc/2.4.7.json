@@ -1,0 +1,124 @@
+{
+  "sc": "2.4.7",
+  "count": 8,
+  "patterns": [
+    {
+      "platform": "Wix sites (focus-indicator suppression / 'blue boxes off')",
+      "name": "Visible focus indicator disabled by default for aesthetics",
+      "description": "Wix historically disabled the visual focus ring ('blue boxes') by default because designers felt it 'doesn't look good,' and the editor still exposes a toggle to turn focus indicators on/off. With them off, keyboard users have no idea where focus is across links, buttons, and gallery items.",
+      "wcagScs": [
+        "2.4.7"
+      ],
+      "typicalMarkup": "a:focus, button:focus { outline: none; box-shadow: none; }\n/* template default suppressing the focus ring */",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Automated tools rarely detect a MISSING focus indicator — outline:none is legal CSS and a custom indicator might exist via box-shadow or a class. Confirming there is no perceptible focus indicator on real focus requires tabbing through and watching, a visual human check.",
+      "realWorldNote": "Wix Engineering: 'the visual focus was actively disabled up until now... the reason was a design one - the focus indication doesn’t look good.' Wix support has a 'turning the blue boxes on and off' article. https://www.wix.engineering/post/the-story-of-making-wix-accessible",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Divi theme defaults / Elementor global button styles / many premium themes",
+      "name": "Focus outline removed globally via CSS (outline:none / :focus reset)",
+      "description": "Theme stylesheets ship 'outline:0' on a, button, and form controls (or :focus { outline:none } for visual polish) and never add a replacement focus style. Keyboard-only users lose all indication of focus position across links, menu items, and buttons. Sometimes :focus has a style but :focus-visible / actual tab traversal shows nothing on builder-generated buttons.",
+      "wcagScs": [
+        "2.4.7"
+      ],
+      "typicalMarkup": "a, button, input, .et_pb_button { outline: none; }\nbutton:focus { outline: 0; box-shadow: none; }",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Automated tools cannot reliably detect a missing focus indicator: outline:none is legal if a visible alternative (border/box-shadow/background change) exists. Determining there is NO perceivable focus change requires tabbing through and visually observing each interactive element across states.",
+      "realWorldNote": "Divi reviews repeatedly cite removed focus indicators: 'The CSS in the Divi theme has removed visible focus indicators.' https://elevagedigital.com/improving-wordpress-divi-accessibility/ and divi-accessibility plugin 'adds a visual outline to focusable elements.' https://github.com/campuspress/divi-accessibility",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Shopify / WooCommerce themes — focus styling removed on interactive controls",
+      "name": "Focus outline suppressed on swatches, buttons and links",
+      "description": "Themes (or merchant CSS tweaks) apply outline:none / :focus{outline:0} to buttons, variant swatch labels, and links to 'clean up' the design, leaving no visible focus indicator. Keyboard users cannot tell which swatch/button is focused while navigating the product form.",
+      "wcagScs": [
+        "2.4.7",
+        "1.4.11"
+      ],
+      "typicalMarkup": "a:focus, button:focus, .product-form__input label:focus {\n  outline: none;\n}\n/* no replacement :focus-visible box-shadow/border provided */",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "Partly auto-detectable — some tools flag outline:none in CSS — but they cannot reliably confirm there is no adequate replacement indicator (a box-shadow or border swap may suffice) without observing the focused state. Reliable confirmation is by tabbing and watching; still, the core 'no visible focus' is verifiable, so flagged humanJudgmentNeeded=false with the caveat that replacement-indicator adequacy may need a look.",
+      "realWorldNote": "Dawn/Shopify keyboard audits repeatedly cite suppressed/weak focus indicators; TestParty and Shopify theme best-practices emphasize visible focus on all interactive controls. https://testparty.ai/blog/shopify-checkout-keyboard-navigation-fixes",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Webflow div with Interaction (IX2) used as a button/CTA",
+      "name": "Clickable div CTA with no role and no accessible name",
+      "description": "Designers wire a Webflow click Interaction onto a plain Div Block (often containing only an icon or a background image), so the rendered element is a clickable div with no button/link role, not in the tab order, and no accessible name. It looks and behaves like a button visually but is invisible/inoperable to keyboard and screen-reader users.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "2.4.7"
+      ],
+      "typicalMarkup": "<div class=\"btn-card w-inline-block\" data-w-id=\"a3f9...\">\n  <div class=\"icon\"></div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A bare <div> with a click handler attached via a data-w-id Interaction has no role, no tabindex, and frequently no text — automated scanners do not flag a generic div as a 'control' because nothing in the static DOM declares it interactive; they cannot tell it carries a JS click handler that makes it a de-facto button. Recognizing it as a missing-name control requires a human to see it renders/behaves as a CTA.",
+      "realWorldNote": "Webflow's own accessibility guidance warns that click triggers should be placed on button elements rather than divs, and that role=button on a div still loses platform behaviors like spacebar activation. See Webflow accessibility checklist / 'The Webflow Way' accessibility docs: https://webflow.com/accessibility/checklist and community guidance at https://www.gracefulwebstudio.com/blog-articles/webflow-video-lightbox-accessibility-and-focus-management",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow native Slider component",
+      "name": "Off-screen carousel slides keep focusable controls and links",
+      "description": "Webflow's Slider hides non-active slides with CSS transforms/opacity (not display:none), so links, buttons, and form fields inside the off-screen slides remain in the tab order. Keyboard users tab into invisible content, focus disappears off-screen, and the slide-dot/arrow controls are often unlabeled icon buttons.",
+      "wcagScs": [
+        "2.4.3",
+        "2.1.1",
+        "4.1.2",
+        "2.4.7"
+      ],
+      "typicalMarkup": "<div class=\"w-slide\" style=\"transform:translateX(100%);opacity:0\">\n  <a href=\"/offer\" class=\"slide-cta w-inline-block\">Shop now</a>\n</div>\n<div class=\"w-slider-arrow-left\" role=\"button\" tabindex=\"0\"></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The off-screen slide is still visible to the accessibility tree (no display:none / aria-hidden), so scanners see normal in-DOM links and report nothing wrong; detecting that focus visually 'leaves the screen' onto a translated-off slide requires running the keyboard sequence and watching where the focus ring goes — a dynamic, visual check tools don't perform.",
+      "realWorldNote": "Accessibility guidance for sliders specifies off-screen slides must be hidden via display:none/visibility:hidden or aria-hidden + tabindex=-1, which Webflow's default Slider does not do: https://dev.to/jasonwebb/how-to-build-a-more-accessible-carousel-or-slider-35lp and https://www.flowradar.com/answer/fix-issue-slider-webflow-not-accessible-screen-readers",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Tailwind CSS / Tailwind UI utility classes",
+      "name": "focus:outline-none with no replacement focus ring",
+      "description": "Developers apply Tailwind's focus:outline-none (often to kill the default blue ring on inputs/buttons) but never add a focus-visible:ring/outline replacement. Keyboard users get no visible focus indicator as they tab through forms and menus, making the UI unusable without a mouse.",
+      "wcagScs": [
+        "2.4.7",
+        "1.4.11"
+      ],
+      "typicalMarkup": "<button class=\"focus:outline-none px-4 py-2 bg-blue-600 text-white\">\n  Save\n</button>\n<!-- on Tab focus, nothing visible changes -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe/Lighthouse do not evaluate whether a visible focus indicator appears on :focus — there is no reliable automated check for 2.4.7. Detecting the missing ring requires actually tabbing and visually observing each control's focus state, i.e. human or pixel-diff judgment, especially since outline-none renders a transparent (not removed) outline.",
+      "realWorldNote": "Tailwind's own docs warn that outline-none must be paired with an accessible focus state and recommend focus-visible: utilities; community guidance repeatedly flags focus:outline-none misuse. https://tailwindcss.com/docs/outline-style",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "WordPress slider plugins (Slider Revolution, Smart Slider), Elementor/Divi carousels, Wix Pro Gallery",
+      "name": "Auto-rotating carousel, keyboard-inaccessible, no pause",
+      "description": "A hero carousel auto-advances on a timer with no pause/stop control, prev/next arrows are non-focusable divs, and slide changes are not announced. Keyboard users cannot reach controls; the moving content steals reading position; offscreen slides may still be in the tab order as hidden focusable links.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.7",
+        "2.4.3",
+        "4.1.3",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<div class=\"slider\" data-autoplay=\"true\" data-interval=\"4000\">\n  <div class=\"slide\"><a href=\"/promo\">Shop the sale</a></div>\n  <div class=\"arrow next\" onclick=\"next()\"></div> <!-- div, not focusable -->\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Auto-rotation timing and the absence of a pause control are temporal/behavioral and not in the static DOM signature. Tools may catch a div with onclick lacking a role, but cannot verify keyboard reachability of the rotation, that focus is trapped/lost between slides, or that offscreen slides leak into the tab order — all need manual keyboard testing.",
+      "realWorldNote": "WCAG-ART and the A11Y Collective document carousel pause/keyboard/announce failures as classic manual-test items: https://www.a11y-collective.com/blog/accessible-carousel/ ; WP slider accessibility caveats: https://www.abrightclearweb.com/accessible-slider-wordpress/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Cookie-consent banners, newsletter modals, promo pop-ups (OneTrust, Privy, Mailchimp, Wix popups)",
+      "name": "Modal/pop-up keyboard trap or focus-not-managed",
+      "description": "A modal or interstitial appears but focus is not moved into it, focus is not trapped within it (so keyboard users tab to the obscured page behind), or — the inverse failure — focus IS trapped with no keyboard-reachable close, stranding the user. The page behind also remains in the tab order under the overlay.",
+      "wcagScs": [
+        "2.1.2",
+        "2.4.3",
+        "2.4.7",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<div class=\"modal\" style=\"position:fixed;inset:0\"> <!-- no role=dialog, no aria-modal, focus stays on body -->\n  <button onclick=\"close()\">×</button> <!-- '×' close, empty name; no Esc handler -->\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Focus behavior is dynamic and only observable by actually tabbing through after the modal opens. A static scan sees a div with some content; it cannot detect that focus was never moved in, that the user can tab behind the overlay, or that there is no keyboard escape (2.1.2). Requires manual keyboard testing.",
+      "realWorldNote": "The Murphy v. Eyebobs overlay case specifically cited a promo pop-up and a modal dialog that were not keyboard/screen-reader accessible: https://www.accessibility.works/blog/avoid-accessibility-overlay-tools-toolbar-plugins/ ; modal focus-trap failures are a top serial-plaintiff demand-letter item.",
+      "family": "real-world-audit-findings"
+    }
+  ]
+}

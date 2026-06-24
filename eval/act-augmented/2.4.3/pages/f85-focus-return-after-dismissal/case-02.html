@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Medications — Riverbend Health Patient Portal</title>
+<style>
+  :root { --ink:#19222b; --muted:#5e6a76; --line:#dde3ea; --teal:#0a7d77; --bg:#f2f6f6; --danger:#b21f2d; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  .topbar { background:var(--teal); color:#fff; padding:12px 22px; display:flex; align-items:center; gap:16px; }
+  .topbar .brand { font-weight:700; }
+  .topbar nav { margin-left:auto; display:flex; gap:18px; }
+  .topbar nav a { color:#dff1f0; text-decoration:none; font-size:14px; }
+  .wrap { max-width:880px; margin:0 auto; padding:26px 20px 140px; }
+  .crumb { color:var(--muted); font-size:13px; margin-bottom:8px; }
+  h1 { font-size:23px; margin:0 0 6px; }
+  .lead { color:var(--muted); margin:0 0 22px; max-width:62ch; }
+  ul.meds { list-style:none; margin:0; padding:0; border:1px solid var(--line); border-radius:12px; background:#fff; overflow:hidden; }
+  ul.meds li { display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid var(--line); }
+  ul.meds li:last-child { border-bottom:none; }
+  .pill { width:40px; height:40px; border-radius:50%; background:#e6f3f2; color:var(--teal); display:flex; align-items:center; justify-content:center; font-weight:700; flex:0 0 auto; }
+  .med-main { flex:1 1 auto; }
+  .med-main .name { font-weight:600; }
+  .med-main .dose { color:var(--muted); font-size:13px; }
+  .med-actions { display:flex; gap:8px; }
+  .btn { font:inherit; border:1px solid var(--line); background:#fff; color:var(--ink); padding:7px 12px; border-radius:8px; cursor:pointer; font-size:14px; }
+  .btn:hover { border-color:#bcc6d0; }
+  .btn.remove { color:var(--danger); border-color:#eccfd2; }
+  .btn.remove:hover { background:#fbeff0; }
+  .btn:focus-visible { outline:3px solid #7fd0cb; outline-offset:2px; }
+  .footnote { margin-top:34px; color:var(--muted); font-size:13px; max-width:70ch; }
+
+  .scrim { position:fixed; inset:0; background:rgba(15,25,30,.5); display:none; align-items:center; justify-content:center; z-index:60; }
+  .scrim.open { display:flex; }
+  .confirm { background:#fff; width:440px; max-width:92vw; border-radius:14px; box-shadow:0 22px 55px rgba(0,0,0,.32); padding:22px 22px 18px; }
+  .confirm h2 { margin:0 0 8px; font-size:18px; }
+  .confirm p { margin:0 0 18px; color:var(--muted); }
+  .confirm .actions { display:flex; justify-content:flex-end; gap:10px; }
+  .confirm .btn.danger { background:var(--danger); border-color:var(--danger); color:#fff; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Riverbend Health</span>
+  <nav>
+    <a href="#">Appointments</a>
+    <a href="#">Messages</a>
+    <a href="#">Medications</a>
+    <a href="#">Billing</a>
+  </nav>
+</div>
+
+<div class="wrap">
+  <div class="crumb">Home / My Health / Medications</div>
+  <h1>My Medications</h1>
+  <p class="lead">Active prescriptions on file with Riverbend Pharmacy. Removing a medication here only
+  hides it from your personal list — it does not cancel the prescription with your provider.</p>
+
+  <ul class="meds" id="med-list">
+    <li data-med="lisinopril">
+      <span class="pill" aria-hidden="true">Rx</span>
+      <span class="med-main"><span class="name">Lisinopril</span><br><span class="dose">10 mg tablet · once daily</span></span>
+      <span class="med-actions">
+        <button class="btn">Refill</button>
+        <button class="btn remove" data-name="Lisinopril">Remove</button>
+      </span>
+    </li>
+    <li data-med="metformin">
+      <span class="pill" aria-hidden="true">Rx</span>
+      <span class="med-main"><span class="name">Metformin</span><br><span class="dose">500 mg tablet · twice daily</span></span>
+      <span class="med-actions">
+        <button class="btn">Refill</button>
+        <button class="btn remove" data-name="Metformin">Remove</button>
+      </span>
+    </li>
+    <li data-med="atorvastatin">
+      <span class="pill" aria-hidden="true">Rx</span>
+      <span class="med-main"><span class="name">Atorvastatin</span><br><span class="dose">20 mg tablet · at bedtime</span></span>
+      <span class="med-actions">
+        <button class="btn">Refill</button>
+        <button class="btn remove" data-name="Atorvastatin">Remove</button>
+      </span>
+    </li>
+    <li data-med="levothyroxine">
+      <span class="pill" aria-hidden="true">Rx</span>
+      <span class="med-main"><span class="name">Levothyroxine</span><br><span class="dose">75 mcg tablet · morning, empty stomach</span></span>
+      <span class="med-actions">
+        <button class="btn">Refill</button>
+        <button class="btn remove" data-name="Levothyroxine">Remove</button>
+      </span>
+    </li>
+  </ul>
+
+  <p class="footnote">If a medication is missing or a dose looks incorrect, do not adjust it here —
+  send a secure message to your care team. This list is refreshed nightly from the pharmacy system.</p>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="confirm" role="alertdialog" aria-modal="true" aria-labelledby="c-title" aria-describedby="c-desc">
+    <h2 id="c-title">Remove this medication?</h2>
+    <p id="c-desc">This removes <strong id="c-name">the medication</strong> from your personal list.
+    You can add it back later from "All prescriptions."</p>
+    <div class="actions">
+      <button class="btn" id="c-cancel">Keep it</button>
+      <button class="btn danger" id="c-confirm">Remove</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var scrim = document.getElementById('scrim');
+  var nameEl = document.getElementById('c-name');
+  var list = document.getElementById('med-list');
+  var pendingLi = null;          // the <li> being removed
+  var triggerBtn = null;         // the Remove button that opened the dialog
+
+  list.addEventListener('click', function (e) {
+    var btn = e.target.closest('.btn.remove');
+    if (!btn) return;
+    triggerBtn = btn;
+    pendingLi = btn.closest('li');
+    nameEl.textContent = btn.getAttribute('data-name');
+    scrim.classList.add('open');
+    document.getElementById('c-cancel').focus();   // on-open focus is fine
+    document.addEventListener('keydown', escClose);
+  });
+
+  function escClose(e) { if (e.key === 'Escape') cancel(); }
+
+  // Cancel correctly returns to the trigger (the Remove button still exists).
+  function cancel() {
+    scrim.classList.remove('open');
+    document.removeEventListener('keydown', escClose);
+    if (triggerBtn) triggerBtn.focus();
+    pendingLi = null; triggerBtn = null;
+  }
+
+  // THE DEFECT: confirming deletes the row (so the trigger no longer exists), then
+  // closes the dialog and SCROLLS TO THE TOP rather than placing focus on the next
+  // (or previous) medication's controls. The "logical neighbor" that F85 requires is
+  // never chosen — focus is thrown to the top of the page via the brand link.
+  function confirmRemove() {
+    if (pendingLi) pendingLi.parentNode.removeChild(pendingLi);
+    scrim.classList.remove('open');
+    document.removeEventListener('keydown', escClose);
+    window.scrollTo(0, 0);
+    // Developer's idea of "reset": focus the first thing in the page.
+    document.querySelector('.topbar .brand') &&
+      (document.querySelector('.topbar nav a') || document.body).focus();
+    pendingLi = null; triggerBtn = null;
+  }
+
+  document.getElementById('c-cancel').addEventListener('click', cancel);
+  document.getElementById('c-confirm').addEventListener('click', confirmRemove);
+</script>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  This is the subtle case F85 explicitly carves out. When the trigger is REMOVED by the
+  action, focus must move to a *logical neighbor* — the next or previous medication's
+  controls. A naive automated check of "focus === trigger" would be wrong here even on a
+  correct implementation (the trigger is gone). The only way to judge this is to reason
+  about the action's semantics (a delete removed item N, so focus belongs on item N or
+  N-1) and observe that this page instead throws focus to the page top. role=alertdialog,
+  aria-modal, labelledby/describedby, and on-open focus are all valid, so static scans pass.
+-->
+</body>
+</html>

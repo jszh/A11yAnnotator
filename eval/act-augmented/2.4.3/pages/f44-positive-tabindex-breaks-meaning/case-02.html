@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.3 (Focus Order), failure F44 — the EDIT-DRIFT variant called out in the
+    technique itself: "the page is modified to add a new field in the middle of the
+    page, but the author forgets to add a tabindex attribute to the new field. As a
+    result, the new field is at the end of the tab order."
+
+    This is a state employee benefits-enrollment form. ALL the original fields carry
+    explicit positive tabindex (1..7): First name(1), Last name(2), Email(3),
+    Address(4), City(5), ZIP(6), then the Submit button(7). A "Daytime phone" field
+    was added later, between Email and Address, with NO tabindex. Because elements
+    with positive tabindex are visited first (in numeric order) and elements WITHOUT
+    a positive tabindex are visited afterward in DOM order, the new Phone field is
+    tabbed LAST — after the Submit button. Keyboard order becomes:
+    First → Last → Email → Address → City → ZIP → Submit → Phone.
+
+    The visible layout is perfect: Phone sits right under Email where it belongs.
+    The defect only exists in the TAB TRAVERSAL.
+
+    WHY AUTOMATED TOOLS MISS IT: every field has a label, valid markup, and good
+    contrast. axe flags positive tabindex as best-practice only, and crucially has
+    NO concept that one field was "left out" of an otherwise-explicit numbering, nor
+    that the result strands Phone after Submit. Detecting "Submit comes before a data
+    field" as a meaning break requires understanding that a submit button should be
+    last and that an enrollment field reached after submission is unreachable in
+    practice. That is a human operability judgment.
+  -->
+  <title>Benefits Enrollment — Step 2 of 4 | State of Marin Employee Portal</title>
+  <style>
+    :root { --ink:#1b1f23; --muted:#646b73; --rule:#cfd6dd; --brand:#0b4f6c; --bg:#f5f7f9; --req:#b3261e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial,Helvetica,sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+    .gov-bar { background:#1b1f23; color:#fff; font-size:.75rem; padding:.4rem 1.2rem; }
+    header.app { background:var(--brand); color:#fff; padding:1rem 1.2rem; }
+    header.app h1 { margin:0; font-size:1.25rem; }
+    header.app .step { font-size:.82rem; opacity:.92; margin-top:.2rem; }
+    .card { max-width:640px; margin:1.6rem auto; background:#fff; border:1px solid var(--rule); border-radius:10px; padding:1.6rem 1.6rem 2rem; }
+    .card > p.intro { margin-top:0; color:var(--muted); }
+    fieldset { border:0; margin:0; padding:0; }
+    legend { font-weight:700; font-size:1rem; margin-bottom:.8rem; padding:0; }
+    .field { margin-bottom:1.05rem; }
+    label { display:block; font-weight:600; font-size:.9rem; margin-bottom:.3rem; }
+    label .req { color:var(--req); }
+    input { width:100%; padding:.55rem .65rem; font-size:1rem; border:1px solid var(--rule); border-radius:6px; }
+    input:focus { outline:3px solid #ffbf47; outline-offset:1px; border-color:var(--brand); }
+    .row { display:flex; gap:1rem; }
+    .row .field { flex:1; }
+    .hint { font-size:.78rem; color:var(--muted); margin-top:.25rem; }
+    .actions { margin-top:1.4rem; display:flex; gap:.8rem; }
+    button { font-size:.95rem; font-weight:700; padding:.65rem 1.4rem; border-radius:6px; border:1px solid var(--brand); cursor:pointer; }
+    button.primary { background:var(--brand); color:#fff; }
+    button.secondary { background:#fff; color:var(--brand); }
+    footer { color:var(--muted); font-size:.76rem; text-align:center; padding:1.5rem; }
+  </style>
+</head>
+<body>
+  <header class="app">
+    <div class="gov-bar">An official State of Marin service · Secure portal (HTTPS)</div>
+    <h1>Benefits Enrollment</h1>
+    <div class="step">Step 2 of 4 — Personal &amp; contact information</div>
+  </header>
+
+  <main>
+  <form class="card" action="step3.html" method="post" novalidate>
+    <p class="intro">Confirm your contact details. Fields marked <span style="color:#b3261e">*</span> are required for your enrollment packet to be mailed.</p>
+
+    <fieldset>
+      <legend>Your information</legend>
+
+      <div class="row">
+        <div class="field">
+          <label for="fn">First name <span class="req" aria-hidden="true">*</span></label>
+          <input id="fn" name="first_name" autocomplete="given-name" tabindex="1" required>
+        </div>
+        <div class="field">
+          <label for="ln">Last name <span class="req" aria-hidden="true">*</span></label>
+          <input id="ln" name="last_name" autocomplete="family-name" tabindex="2" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="email">Work email <span class="req" aria-hidden="true">*</span></label>
+        <input id="email" name="email" type="email" autocomplete="email" tabindex="3" required>
+      </div>
+
+      <!--
+        ===== FIELD ADDED IN A LATER SPRINT (HR asked for a daytime phone) =====
+        It was placed correctly in the DOM/visual order — right under Work email —
+        but the developer pasted the markup WITHOUT a tabindex. Every neighbor has
+        an explicit positive tabindex (3 above, 4 below), so this un-indexed field
+        is shoved to the very END of the tab order, after the Submit button.
+      -->
+      <div class="field">
+        <label for="phone">Daytime phone <span class="req" aria-hidden="true">*</span></label>
+        <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="(415) 555-0142">
+        <p class="hint" id="phone-hint">We only call about enrollment problems.</p>
+      </div>
+
+      <div class="field">
+        <label for="addr">Mailing address <span class="req" aria-hidden="true">*</span></label>
+        <input id="addr" name="address" autocomplete="address-line1" tabindex="4" required>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="city">City <span class="req" aria-hidden="true">*</span></label>
+          <input id="city" name="city" autocomplete="address-level2" tabindex="5" required>
+        </div>
+        <div class="field">
+          <label for="zip">ZIP code <span class="req" aria-hidden="true">*</span></label>
+          <input id="zip" name="zip" autocomplete="postal-code" inputmode="numeric" tabindex="6" required>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button type="submit" class="primary" tabindex="7">Continue to Step 3</button>
+      <button type="button" class="secondary" tabindex="8">Save &amp; finish later</button>
+    </div>
+  </form>
+  </main>
+
+  <footer>Need help? Call HR Shared Services at (415) 555-0100, Mon–Fri 8a–5p.</footer>
+</body>
+</html>

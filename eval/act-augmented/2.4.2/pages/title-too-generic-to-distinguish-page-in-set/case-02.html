@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 FAILURE (F25, example 2 — same title shared across pages in a set).
+    This is step 3 of a 4-step checkout flow. The progress bar, the <h1>, and the
+    body make the page's specific role unmistakable: "Step 3 of 4 — Payment". But
+    the <title> is the section-shared label "Checkout" — the SAME string every step
+    of this flow carries (Cart review = step 1, Shipping = step 2, Payment = step 3,
+    Review & place order = step 4). Within this set of pages the title cannot
+    distinguish which checkout step the user is on. A screen-reader user who tabs
+    between browser tabs, recovers a crashed session from history, or is told to
+    "go back two steps" hears the same "Checkout" on every step.
+    Why automated tools miss it: <title> is present and non-empty (axe/WAVE/
+    Lighthouse PASS). The defect is that the SAME title is reused across the four
+    steps and carries no step-level information — a comparison + semantic judgment
+    a single-page linter cannot make.
+  -->
+  <title>Checkout</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family: Inter, system-ui, Arial, sans-serif; color:#222b3a; background:#f6f7f9; }
+    header { background:#fff; border-bottom:1px solid #e3e7ee; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
+    .brand { font-weight:800; color:#3b2bd9; }
+    .secure { font-size:12px; color:#5a6373; }
+    .wrap { max-width:760px; margin:24px auto; background:#fff; border:1px solid #e3e7ee; border-radius:12px; padding:28px 32px 36px; }
+
+    ol.steps { list-style:none; display:flex; gap:0; padding:0; margin:0 0 28px; counter-reset:s; }
+    ol.steps li { flex:1; text-align:center; position:relative; font-size:12px; color:#9aa3b2; }
+    ol.steps li .dot { width:28px; height:28px; border-radius:50%; background:#e3e7ee; color:#5a6373; display:flex; align-items:center; justify-content:center; margin:0 auto 6px; font-weight:700; }
+    ol.steps li::before { content:""; position:absolute; top:14px; left:-50%; width:100%; height:2px; background:#e3e7ee; z-index:0; }
+    ol.steps li:first-child::before { display:none; }
+    ol.steps li.done .dot { background:#c9f0dd; color:#0c7a4d; }
+    ol.steps li.current .dot { background:#3b2bd9; color:#fff; }
+    ol.steps li.current { color:#3b2bd9; font-weight:700; }
+
+    h1 { font-size:22px; margin:0 0 4px; }
+    .sub { color:#5a6373; font-size:14px; margin:0 0 22px; }
+    fieldset { border:1px solid #e3e7ee; border-radius:10px; padding:18px; margin:0 0 18px; }
+    legend { font-weight:700; font-size:14px; padding:0 6px; }
+    label { display:block; font-size:13px; margin:12px 0 5px; font-weight:600; }
+    input { width:100%; padding:11px; border:1px solid #cfd5df; border-radius:8px; font-size:14px; }
+    .row { display:flex; gap:14px; }
+    .row > div { flex:1; }
+    .summary { background:#f6f7f9; border-radius:10px; padding:14px 16px; font-size:14px; margin-bottom:20px; }
+    .summary .line { display:flex; justify-content:space-between; padding:3px 0; }
+    .summary .total { font-weight:800; border-top:1px solid #e3e7ee; margin-top:6px; padding-top:8px; }
+    .actions { display:flex; justify-content:space-between; margin-top:6px; }
+    .back { background:none; border:0; color:#3b2bd9; font-size:14px; cursor:pointer; }
+    .pay { background:#3b2bd9; color:#fff; border:0; padding:13px 26px; border-radius:9px; font-size:15px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Loomwell Home</span>
+    <span class="secure">🔒 Secure checkout</span>
+  </header>
+
+  <main class="wrap">
+    <ol class="steps" aria-label="Checkout progress">
+      <li class="done"><span class="dot" aria-hidden="true">1</span>Cart</li>
+      <li class="done"><span class="dot" aria-hidden="true">2</span>Shipping</li>
+      <li class="current" aria-current="step"><span class="dot" aria-hidden="true">3</span>Payment</li>
+      <li><span class="dot" aria-hidden="true">4</span>Review</li>
+    </ol>
+
+    <h1>Step 3 of 4 — Payment</h1>
+    <p class="sub">Enter your card details. Shipping to 14 Alder Lane, Portland — arriving Jun 26–28.</p>
+
+    <div class="summary" aria-label="Order summary">
+      <div class="line"><span>Merino throw blanket (×1)</span><span>$118.00</span></div>
+      <div class="line"><span>Shipping (standard)</span><span>$6.00</span></div>
+      <div class="line total"><span>Total due now</span><span>$124.00</span></div>
+    </div>
+
+    <form>
+      <fieldset>
+        <legend>Card details</legend>
+        <label for="cc">Card number</label>
+        <input id="cc" inputmode="numeric" autocomplete="cc-number" placeholder="1234 5678 9012 3456">
+        <div class="row">
+          <div>
+            <label for="exp">Expiry</label>
+            <input id="exp" autocomplete="cc-exp" placeholder="MM / YY">
+          </div>
+          <div>
+            <label for="cvc">Security code</label>
+            <input id="cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="CVC">
+          </div>
+        </div>
+        <label for="name">Name on card</label>
+        <input id="name" autocomplete="cc-name">
+      </fieldset>
+
+      <div class="actions">
+        <button class="back" type="button">← Back to shipping</button>
+        <button class="pay" type="submit">Continue to review →</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

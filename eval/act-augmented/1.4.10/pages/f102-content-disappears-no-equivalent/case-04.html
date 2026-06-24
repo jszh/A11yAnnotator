@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Webhooks — Pulsegate API Reference</title>
+<!--
+  SC 1.4.10 Reflow — F102 PASS CONTROL.
+
+  This is the positive boundary: the SAME structural move as case-03 (six nav
+  links collapse to a hamburger at narrow width) but done correctly. The
+  hamburger is a real disclosure built on a native <button aria-expanded> +
+  <ul id> with a small, dependency-free script that toggles aria-expanded and the
+  panel's hidden state. When opened at 320px it renders ALL six destination links
+  — the same set shown horizontally at desktop width — so nothing is lost: the
+  content is "offered in some other way" exactly as F102 permits.
+
+  Likewise the left documentation sidebar (the on-this-page section list) is NOT
+  deleted at narrow width — it is repositioned into the single column above the
+  article, so its links remain reachable.
+
+  This page is INCLUDED as a passed variant because the aspect's core difficulty
+  is deciding whether a replacement mechanism genuinely surfaces the dropped
+  content. The evaluator must operate the hamburger at 320px and confirm the six
+  links are really there (PASS) — the mirror image of case-03 (dead button, FAIL).
+  Nothing here fails 1.4.10: reflows cleanly, no horizontal scroll, all content
+  reachable.
+
+  WHY IT MATTERS FOR TOOLING: a static scanner cannot tell case-03 from case-04 —
+  both have a named button and the links in the DOM. Only by activating the menu
+  after reflow can a human confirm THIS one works.
+-->
+<style>
+  :root { --brand:#5b21b6; --ink:#1f2430; --muted:#5d6470; --line:#e4e2ee; --code:#f5f3fb; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: "Inter", system-ui, sans-serif; color:var(--ink); }
+  a { color:var(--brand); }
+  header.top { display:flex; align-items:center; gap:16px; padding:12px 20px; border-bottom:1px solid var(--line); }
+  header.top .logo { font-weight:800; }
+  nav.docnav ul { list-style:none; display:flex; gap:6px; margin:0; padding:0; }
+  nav.docnav a { text-decoration:none; color:var(--ink); padding:8px 12px; border-radius:6px; font-size:.9rem; }
+  nav.docnav a:hover, nav.docnav a[aria-current="page"] { background:#f1edfb; color:var(--brand); }
+
+  .menu-toggle { display:none; margin-left:auto; align-items:center; gap:8px;
+    background:#fff; border:1px solid var(--line); border-radius:8px; padding:9px 12px; font:inherit; cursor:pointer; }
+  .menu-toggle .bars, .menu-toggle .bars::before, .menu-toggle .bars::after {
+    display:block; width:18px; height:2px; background:var(--ink); content:""; }
+  .menu-toggle .bars { position:relative; }
+  .menu-toggle .bars::before { position:absolute; top:-6px; }
+  .menu-toggle .bars::after { position:absolute; top:6px; }
+
+  .layout { display:grid; grid-template-columns: 240px minmax(0,1fr); gap:32px; max-width:1080px; margin:0 auto; padding:24px 20px 60px; }
+  .layout > * { min-width:0; }   /* allow grid items to shrink below content width so <pre> scrolls internally */
+  aside.onpage { border-right:1px solid var(--line); padding-right:20px; align-self:start; position:sticky; top:20px; }
+  aside.onpage h2 { font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  aside.onpage ul { list-style:none; margin:0; padding:0; }
+  aside.onpage li { margin:4px 0; }
+  aside.onpage a { text-decoration:none; color:var(--muted); font-size:.9rem; }
+  aside.onpage a:hover { color:var(--brand); }
+
+  article h1 { font-size:1.9rem; margin:.1em 0 .4em; }
+  article h2 { margin-top:1.8em; border-bottom:1px solid var(--line); padding-bottom:.2em; }
+  article p { line-height:1.65; max-width:70ch; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:8px; padding:14px 16px; overflow:auto; font-size:.85rem; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  @media (max-width: 820px) {
+    nav.docnav { display:none; }            /* horizontal nav hidden ... */
+    .menu-toggle { display:inline-flex; }   /* ... and a working disclosure shown */
+    nav.docnav.is-open { display:block; position:absolute; left:0; right:0; top:54px;
+      background:#fff; border-bottom:1px solid var(--line); padding:8px; z-index:20; }
+    nav.docnav.is-open ul { flex-direction:column; gap:2px; }
+    nav.docnav.is-open a { display:block; }
+    .layout { grid-template-columns: 1fr; gap:0; }
+    aside.onpage { border-right:0; border-bottom:1px solid var(--line); padding:0 0 16px;
+      margin-bottom:24px; position:static; }  /* sidebar REPOSITIONED, not deleted */
+  }
+</style>
+</head>
+<body>
+  <header class="top">
+    <span class="logo">Pulsegate <span style="color:var(--brand)">/ docs</span></span>
+    <!-- The same six links shown both in the desktop nav AND inside the disclosure when opened. -->
+    <nav class="docnav" id="primary-nav" aria-label="API reference">
+      <ul>
+        <li><a href="/docs/auth">Authentication</a></li>
+        <li><a href="/docs/events">Events</a></li>
+        <li><a href="/docs/webhooks" aria-current="page">Webhooks</a></li>
+        <li><a href="/docs/rate-limits">Rate limits</a></li>
+        <li><a href="/docs/errors">Errors</a></li>
+        <li><a href="/docs/sdks">SDKs</a></li>
+      </ul>
+    </nav>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">
+      <span class="bars" aria-hidden="true"></span> Menu
+    </button>
+  </header>
+
+  <div class="layout">
+    <aside class="onpage" aria-label="On this page">
+      <h2>On this page</h2>
+      <ul>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#register">Registering an endpoint</a></li>
+        <li><a href="#verify">Verifying signatures</a></li>
+        <li><a href="#retries">Retries &amp; backoff</a></li>
+      </ul>
+    </aside>
+
+    <article>
+      <h1 id="overview">Webhooks</h1>
+      <p>Webhooks let Pulsegate notify your application when events happen in your account, such as a
+        payment settling or a subscription lapsing. Instead of polling the Events API, you register an
+        HTTPS endpoint and we POST a signed JSON payload to it as each event occurs.</p>
+
+      <h2 id="register">Registering an endpoint</h2>
+      <p>Create a webhook endpoint from the dashboard or via the API. Each endpoint can subscribe to a
+        subset of event types.</p>
+<pre><code>POST /v1/webhook_endpoints
+{
+  "url": "https://example.com/pulsegate/hooks",
+  "events": ["payment.settled", "subscription.lapsed"]
+}</code></pre>
+
+      <h2 id="verify">Verifying signatures</h2>
+      <p>Every delivery includes a <code>Pulsegate-Signature</code> header. Compute the HMAC-SHA256 of
+        the raw request body using your endpoint's signing secret and compare it in constant time
+        before trusting the payload.</p>
+
+      <h2 id="retries">Retries &amp; backoff</h2>
+      <p>If your endpoint does not return a 2xx within 10 seconds, we retry with exponential backoff
+        for up to 24 hours. Use the delivery's <code>id</code> to deduplicate, since a successful event
+        may be delivered more than once.</p>
+    </article>
+  </div>
+
+  <script>
+    // Minimal, dependency-free disclosure: toggles aria-expanded and the panel's open state.
+    // At 320px this genuinely reveals ALL six nav links — the same set shown at desktop width.
+    (function () {
+      var btn = document.querySelector('.menu-toggle');
+      var nav = document.getElementById('primary-nav');
+      btn.addEventListener('click', function () {
+        var open = nav.classList.toggle('is-open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    })();
+  </script>
+</body>
+</html>

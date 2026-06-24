@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Issue #2184 — Forge Tracker</title>
+<style>
+  :root { --ink:#1b1f24; --muted:#656d76; --line:#d0d7de; --accent:#0969da; --bg:#fff; --chip:#f6f8fa; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  header.site { border-bottom:1px solid var(--line); padding:10px 20px; display:flex; align-items:center; gap:14px; }
+  header.site .logo { font-weight:800; }
+  header.site .repo { color:var(--muted); }
+  .layout { display:grid; grid-template-columns:1fr 300px; gap:28px; max-width:1080px; margin:0 auto; padding:24px 20px 120px; }
+  h1 { font-size:24px; font-weight:400; margin:0 0 4px; }
+  h1 .num { color:var(--muted); }
+  .meta { color:var(--muted); font-size:13px; margin-bottom:18px; }
+  .body-card { border:1px solid var(--line); border-radius:8px; }
+  .body-card .head { background:var(--chip); padding:8px 14px; border-bottom:1px solid var(--line); font-size:13px; color:var(--muted); border-radius:8px 8px 0 0; }
+  .body-card .content { padding:16px; }
+  .body-card p { margin:0 0 12px; }
+  aside h2 { font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin:0 0 10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; list-style:none; margin:0 0 8px; padding:0; }
+  .chip { display:inline-flex; align-items:center; gap:6px; background:var(--chip); border:1px solid var(--line); border-radius:999px; padding:3px 4px 3px 10px; font-size:12px; }
+  .chip .dot { width:9px; height:9px; border-radius:50%; }
+  .chip .x { border:none; background:transparent; cursor:pointer; color:var(--muted); width:18px; height:18px; border-radius:50%; line-height:1; font-size:13px; padding:0; }
+  .chip .x:hover { background:#e3e7eb; color:var(--ink); }
+  .chip .x:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .addlabel { font:inherit; border:1px dashed var(--line); background:#fff; color:var(--muted); border-radius:999px; padding:4px 12px; cursor:pointer; }
+  aside hr { border:none; border-top:1px solid var(--line); margin:18px 0; }
+  .assignee { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .av { width:22px; height:22px; border-radius:50%; background:#d8def0; }
+
+  .scrim { position:fixed; inset:0; background:rgba(27,31,36,.4); display:none; align-items:center; justify-content:center; z-index:50; }
+  .scrim.open { display:flex; }
+  .confirm { background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 18px 50px rgba(0,0,0,.28); width:380px; max-width:92vw; padding:18px; }
+  .confirm h3 { margin:0 0 6px; font-size:15px; }
+  .confirm p { margin:0 0 16px; color:var(--muted); }
+  .confirm .row { display:flex; justify-content:flex-end; gap:8px; }
+  .btn { font:inherit; border:1px solid var(--line); background:#fff; border-radius:7px; padding:6px 12px; cursor:pointer; }
+  .btn.danger { background:#cf222e; border-color:#cf222e; color:#fff; }
+  .btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="logo">Forge</span>
+  <span class="repo">acme-platform / billing-service</span>
+</header>
+
+<div class="layout">
+  <main>
+    <h1>Refund webhook retries exhausted before backoff completes <span class="num">#2184</span></h1>
+    <p class="meta">Opened 6 days ago by dpereira · 12 comments</p>
+    <div class="body-card">
+      <div class="head">dpereira commented 6 days ago</div>
+      <div class="content">
+        <p>When the payment processor returns a 429 on the refund endpoint, our webhook consumer retries
+        five times in under two seconds and then gives up, marking the refund as <code>failed</code>.
+        The exponential backoff config appears to be ignored on this path.</p>
+        <p>Repro: issue a refund while the sandbox processor is in throttle mode. Expected: retries
+        spread across ~60s. Actual: all five fire immediately.</p>
+      </div>
+    </div>
+  </main>
+
+  <aside aria-label="Issue metadata">
+    <h2>Labels</h2>
+    <!-- Tag/chip list. Each chip's × opens a confirm; on confirm the chip is removed
+         and focus moves to the NEXT chip's × (or the previous one if last) — the
+         logical neighbor required by F85's tag-delete note. -->
+    <ul class="chips" id="labels">
+      <li class="chip" data-label="bug">
+        <span class="dot" style="background:#d73a4a" aria-hidden="true"></span>bug
+        <button class="x" aria-label="Remove label bug">&times;</button>
+      </li>
+      <li class="chip" data-label="payments">
+        <span class="dot" style="background:#0e8a16" aria-hidden="true"></span>payments
+        <button class="x" aria-label="Remove label payments">&times;</button>
+      </li>
+      <li class="chip" data-label="needs-repro">
+        <span class="dot" style="background:#fbca04" aria-hidden="true"></span>needs-repro
+        <button class="x" aria-label="Remove label needs-repro">&times;</button>
+      </li>
+      <li class="chip" data-label="p1">
+        <span class="dot" style="background:#b60205" aria-hidden="true"></span>p1
+        <button class="x" aria-label="Remove label p1">&times;</button>
+      </li>
+    </ul>
+    <button class="addlabel">+ Add label</button>
+
+    <hr>
+    <h2>Assignee</h2>
+    <div class="assignee"><span class="av" aria-hidden="true"></span> dpereira</div>
+  </aside>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="confirm" role="alertdialog" aria-modal="true" aria-labelledby="rm-title" aria-describedby="rm-desc">
+    <h3 id="rm-title">Remove label?</h3>
+    <p id="rm-desc">Remove the <strong id="rm-name">label</strong> label from issue #2184.</p>
+    <div class="row">
+      <button class="btn" id="rm-cancel">Cancel</button>
+      <button class="btn danger" id="rm-confirm">Remove label</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var scrim = document.getElementById('scrim');
+  var list = document.getElementById('labels');
+  var nameEl = document.getElementById('rm-name');
+  var pendingChip = null, triggerX = null;
+
+  list.addEventListener('click', function (e) {
+    var x = e.target.closest('.chip .x');
+    if (!x) return;
+    triggerX = x;
+    pendingChip = x.closest('.chip');
+    nameEl.textContent = pendingChip.getAttribute('data-label');
+    scrim.classList.add('open');
+    document.getElementById('rm-cancel').focus();
+    document.addEventListener('keydown', escClose);
+  });
+
+  function escClose(e) { if (e.key === 'Escape') cancel(); }
+
+  // Cancel: the chip still exists, so return to its remove button.
+  function cancel() {
+    scrim.classList.remove('open');
+    document.removeEventListener('keydown', escClose);
+    if (triggerX) triggerX.focus();
+    pendingChip = null; triggerX = null;
+  }
+
+  // CORRECT (PASS): the confirm removes the chip, so the trigger no longer exists.
+  // Focus is placed on the NEXT chip's remove button; if the removed chip was last,
+  // focus goes to the now-last chip's remove button; if none remain, focus the
+  // "+ Add label" button. This is the logical neighbor F85 prescribes — NOT a failure.
+  function confirmRemove() {
+    var next = pendingChip.nextElementSibling;       // next chip
+    var prev = pendingChip.previousElementSibling;   // previous chip
+    pendingChip.parentNode.removeChild(pendingChip);
+    scrim.classList.remove('open');
+    document.removeEventListener('keydown', escClose);
+
+    var target = null;
+    if (next && next.classList.contains('chip')) target = next.querySelector('.x');
+    else if (prev && prev.classList.contains('chip')) target = prev.querySelector('.x');
+    else target = document.querySelector('.addlabel');
+    if (target) target.focus();
+
+    pendingChip = null; triggerX = null;
+  }
+
+  document.getElementById('rm-cancel').addEventListener('click', cancel);
+  document.getElementById('rm-confirm').addEventListener('click', confirmRemove);
+</script>
+
+<!--
+  WHY THIS IS A PASS (and why a naive tool would wrongly flag it)
+  This is the exact exception in F85's design note: deleting a tag removes its trigger,
+  so focus CANNOT return to the trigger and instead moves to the next tag in the list
+  (or the previous tag when the deleted one was last, or "+ Add label" when none remain).
+  A naive automated heuristic of "after close, focus must equal the opening trigger"
+  would FALSE-POSITIVE here — the trigger is gone by design. Judging that the chosen
+  destination (the neighboring chip) is "logical" requires understanding that a delete
+  removed item N and that item N's neighbor is the correct landing spot. The cancel path,
+  by contrast, correctly returns to the still-present trigger.
+-->
+</body>
+</html>

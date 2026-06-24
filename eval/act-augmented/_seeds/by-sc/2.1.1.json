@@ -1,0 +1,415 @@
+{
+  "sc": "2.1.1",
+  "count": 27,
+  "patterns": [
+    {
+      "platform": "Squarespace search block (instant/predictive results)",
+      "name": "Instant search results render with no announcement or result count",
+      "description": "Results appear on each keystroke beneath the search box, but the results container is not a live region and the result count is never announced, so screen-reader users don't know results appeared, how many, or that the list changed. The Quick Preview is also keyboard-inaccessible and the spinner is silent.",
+      "wcagScs": [
+        "4.1.3",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<input type=\"search\" aria-label=\"Search\">\n<div class=\"search-results\"><!-- results injected on keystroke; no aria-live, no \"12 results\" announcement --></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Static analysis finds a labeled search input and valid result links. The absence of an announcement is a dynamic behavior that only surfaces when you type and listen with a screen reader; tools can't infer that the live update should have been announced.",
+      "realWorldNote": "Amy Carney's Squarespace audit: 'Search results appear on keystroke but screen readers aren't notified of appearance or result count; processing spinner lacks announcements; Quick Preview not keyboard accessible.' https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Wix Slideshow / Pro Gallery slider & lightbox; Wix popups",
+      "name": "Carousel/slider/lightbox not keyboard operable or focus-trapping",
+      "description": "Wix sliders and popups frequently can't be advanced/controlled by keyboard, and opened lightboxes/popups either don't move focus in, leave focus on the page behind, or trap it without an Esc exit. Arrow controls are mouse-only; the auto-rotating slideshow can't be paused.",
+      "wcagScs": [
+        "2.1.1",
+        "2.1.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div class=\"slider-arrow next\" onclick=\"next()\"></div>\n<!-- div, no tabindex, no role=button, no keydown; lightbox opens with focus left on body -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Whether a control is reachable AND operable by keyboard, whether focus moves into a dialog, and whether Esc escapes are runtime/interaction facts. Static scans see divs/images; they can't exercise Tab/Enter/Esc to discover the inoperability or the trap.",
+      "realWorldNote": "Wix ADA guides: 'Wix sliders are frequently keyboard inaccessible' and 'Wix popups often fail keyboard navigation.' https://www.lowcodewebsite.com/post/wix-accessibility-complete-guide-to-fix-issues-achieve-ada-compliance-2026",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Elementor / Divi mega-menu and dropdown nav (default Nav Menu widget, Max Mega Menu)",
+      "name": "Submenu opens on hover only, not keyboard-operable, not dismissible (1.4.13)",
+      "description": "The dropdown/mega-menu reveals on mouse hover via CSS :hover. Tab key skips the submenu entirely (submenus stay display:none for keyboard), and even where they appear they cannot be dismissed with Esc and aren't hoverable/persistent. Keyboard and screen-reader users cannot reach second-level items, and the hover-revealed panel fails Content on Hover or Focus.",
+      "wcagScs": [
+        "2.1.1",
+        "1.4.13",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<li class=\"menu-item-has-children\">\n  <a href=\"/products\">Products</a>\n  <ul class=\"sub-menu\" style=\"display:none\"> <!-- shown only on li:hover, no aria-expanded, no Esc handler -->\n    <li><a href=\"/products/a\">Item A</a></li>\n  </ul>\n</li>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Static scanners see valid nested lists and links and report no error. Discovering that the submenu only opens on hover, that Tab never reaches it, and that Esc does not dismiss the hover panel requires actually operating the menu by keyboard and mouse.",
+      "realWorldNote": "Divi 'dropdown menus can only be activated with a mouse... submenus remain hidden.' https://arrowdesign.ie/fix-divi-menu-accessibility-issues-wcag-compliance-solution/ ; WP Trac #49950 'submenu should be dismissible' (1.4.13); https://216digital.com/how-to-make-mega-menus-more-accessible/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Elementor Accordion / Toggle widget, Divi Toggle/Accordion module",
+      "name": "Custom accordion header not keyboard-operable / wrong tabindex / missing aria-expanded",
+      "description": "Accordion headers are <div>/<a href=\"#\"> with a jQuery click handler. The clickable element either isn't focusable, or has the wrong tabindex (Elementor puts tabindex on the wrong child so the control is invisible to keyboard), and Enter/Space don't toggle because the handler only listens for click. aria-expanded is missing or, in some builder versions, slapped onto a <summary> where it is invalid.",
+      "wcagScs": [
+        "2.1.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"elementor-tab-title\" data-tab=\"1\" role=\"tab\">\n  Section One\n</div>\n<div class=\"elementor-tab-content\" style=\"display:none\">...</div>\n<!-- jQuery: $('.elementor-tab-title').on('click', toggle) — no keydown, no aria-expanded -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "role=tab with no working keyboard handler can look structurally fine to a scanner; some tools flag missing aria-expanded but not the click-only handler. Confirming Enter/Space actually toggle the panel, and that focus lands and the expanded state is announced, requires keyboard testing.",
+      "realWorldNote": "Elementor issue #23335 'Accordion and Toggle have broken accessibility'; #11246 'aria-expanded not used'; community: 'JQuery click event handler cannot be triggered via keypress.' https://github.com/elementor/elementor/issues/23335 and https://testpros.com/accessibility/making-elementor-essential-addons-accordion-accessible/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Elementor Tabs widget / Beaver Builder Tabs / Divi Tabs module",
+      "name": "Tab panel content not associated/announced; div tabs missing roles",
+      "description": "Builder 'tabs' render as styled divs. Either the tablist/tab/tabpanel roles and aria-controls/aria-selected are absent (so it's just clickable divs), or the roles exist but the panel content isn't reliably exposed when a tab is activated. Selecting a tab by keyboard may not move focus or announce the newly revealed panel.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<ul class=\"fl-tabs-labels\">\n  <li class=\"fl-tab-active\">Description</li>\n  <li>Reviews</li>\n</ul>\n<div class=\"fl-tabs-panels\"><div class=\"fl-tab-content\">...</div></div>\n<!-- no role=tablist/tab/tabpanel, no aria-selected/aria-controls -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Plain divs with click handlers raise no role/value error in a scanner (nothing claims to be a tab). Where roles do exist, confirming the active panel's content is actually announced on switch needs screen-reader testing, not static analysis.",
+      "realWorldNote": "Beaver Builder review: with tabs 'the content of an expanded tab isn't reliably read out.' https://wpshout.com/beaver-builder-accessibility/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Elementor / Divi 'div as button' CTA blocks, animated counters, hotspot widgets",
+      "name": "Div with onClick acting as a button — wrong/absent role, no keyboard, name mismatch",
+      "description": "A styled <div> (or <a href=\"#\">) carries a JS click handler and visually reads as a button. It exposes no button role, isn't in the tab order, and Enter/Space don't activate it. Where an aria-label is added it can mismatch the visible label (e.g. visible 'Start your free trial', aria-label left as a generic 'button' from a template), so the accessible name doesn't contain the visible text.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<div class=\"elementor-cta__button\" onclick=\"location.href='/signup'\" aria-label=\"button\">\n  Start your free trial\n</div>  <!-- no role, no tabindex, aria-label hides the visible label -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A div with onClick and no role is invisible to the accessibility tree, so some scanners simply don't see a control to test. Detecting the visible-vs-accessible name mismatch and that it should be a keyboard-operable button requires comparing what's seen to what's announced.",
+      "realWorldNote": "Elementor #25128: aria-label custom attribute doesn't reach the <a>, producing name mismatches; div-button anti-pattern is endemic to builder CTA modules. https://github.com/elementor/elementor/issues/25128",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Shopify / BigCommerce — quick-view modal (Add to cart from grid)",
+      "name": "Quick-view modal keyboard trap / no focus return",
+      "description": "Quick-view modals open over the product grid. Two common failures: (a) focus stays on the underlying page so keyboard users tab through background content behind the overlay, or (b) focus enters the modal but Escape doesn't close it and Tab can cycle but never escape, and on close focus is not returned to the triggering 'Quick view' button — keyboard users are stranded or lose their place.",
+      "wcagScs": [
+        "2.1.2",
+        "2.4.3",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<div class=\"quick-view-overlay\" role=\"dialog\">\n  <div class=\"quick-view\">\n    <button class=\"qv-close\" onclick=\"closeQV()\">×</button>\n    <!-- product form -->\n  </div>\n</div>\n<!-- aria-modal absent; no Esc handler; focus not moved in or restored on close -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "role=dialog may be present so structural checks pass. The trap, the missing Escape handler, and the failure to restore focus to the trigger are dynamic, interaction-time behaviors that require actually tabbing through the open modal and closing it — automated DOM snapshots don't exercise focus flow or key handlers.",
+      "realWorldNote": "TestParty's Shopify checkout/keyboard guides explicitly call out 'quick-view modals that trap focus so keyboard users cannot escape' and modals that 'capture focus and never give it back'. https://testparty.ai/blog/shopify-checkout-keyboard-navigation-fixes ; https://testparty.ai/blog/modal-dialog-accessibility",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Shopify / WooCommerce — AJAX filter / faceted search sidebar",
+      "name": "Facet filtering updates grid silently; no result-count announcement",
+      "description": "Selecting a filter checkbox (size, color, price) re-renders the product grid via AJAX with no page reload. The new result count ('24 products') and any 'No results' state are not in a live region, so screen reader users don't know the grid changed or how many products remain. Some themes also replace native checkboxes with styled divs that lose keyboard operability.",
+      "wcagScs": [
+        "4.1.3",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<aside class=\"facets\">\n  <label><input type=\"checkbox\" name=\"color\" value=\"red\"> Red</label>\n</aside>\n<div class=\"product-grid\" id=\"grid\"><!-- replaced via AJAX, no aria-live --></div>\n<div class=\"result-count\">24 products</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "On the initial static snapshot the markup is valid (labeled checkboxes, a count div). The defect appears only when a filter fires and content swaps without an announcement — a runtime behavior. Whether the count and no-results state qualify as status messages requiring aria-live is an intent-based judgment scanners can't make.",
+      "realWorldNote": "Equalize Digital's FacetWP audit and Scott O'Hara's 'dynamic results' guidance cover exactly this; accessibility-test.org documents ecommerce faceted-search live-region gaps. https://equalizedigital.com/testing-facetwp-for-accessibility/ ; https://accessibility-test.org/blog/compliance/accessibility-for-e-commerce-product-filtering-and-faceted-search/",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Wix Stores / headless React storefronts — icon-only controls",
+      "name": "div/span 'button' with visual label mismatching its accessible name",
+      "description": "Cart, wishlist, quick-add and quantity controls are built as <div> or <span> with click handlers and an icon. Either there is no accessible name at all, or an aria-label was copy-pasted/templated so it mismatches the visible glyph or tooltip (e.g. a heart icon labeled 'button', or a '+' quantity stepper whose aria-label says 'Decrease'). The visible text/icon and the programmatic name disagree.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<div class=\"qty-up\" role=\"button\" tabindex=\"0\" aria-label=\"Decrease quantity\">\n  <svg aria-hidden=\"true\"><!-- plus icon --></svg>\n</div>\n<span class=\"wishlist\" onclick=\"addWish()\"><i class=\"icon-heart\"></i></span>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A linter flags the second case (clickable span with no name / no role / no keyboard handler) — that part is auto-detectable. But the first case has a role, tabindex, and an aria-label, so axe passes it; detecting that the label 'Decrease' contradicts the visible '+' glyph requires reading the icon and comparing it to the name — a visual/semantic human judgment (the 'accessible name contains visible label' check needs human eyes on the icon).",
+      "realWorldNote": "Wix guidance notes 'missing or inappropriately applied ARIA labels' as a critical screen-reader issue and that some elements need manual fixing; TestParty lists wishlist/quick-add 'icon-only buttons without labels'. https://accessibe.com/blog/knowledgebase/wix-website-accessibility ; https://testparty.ai/blog/beyond-alt-text-hidden-shopify-accessibility-barriers",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Webflow div with Interaction (IX2) used as a button/CTA",
+      "name": "Clickable div CTA with no role and no accessible name",
+      "description": "Designers wire a Webflow click Interaction onto a plain Div Block (often containing only an icon or a background image), so the rendered element is a clickable div with no button/link role, not in the tab order, and no accessible name. It looks and behaves like a button visually but is invisible/inoperable to keyboard and screen-reader users.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "2.4.7"
+      ],
+      "typicalMarkup": "<div class=\"btn-card w-inline-block\" data-w-id=\"a3f9...\">\n  <div class=\"icon\"></div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A bare <div> with a click handler attached via a data-w-id Interaction has no role, no tabindex, and frequently no text — automated scanners do not flag a generic div as a 'control' because nothing in the static DOM declares it interactive; they cannot tell it carries a JS click handler that makes it a de-facto button. Recognizing it as a missing-name control requires a human to see it renders/behaves as a CTA.",
+      "realWorldNote": "Webflow's own accessibility guidance warns that click triggers should be placed on button elements rather than divs, and that role=button on a div still loses platform behaviors like spacebar activation. See Webflow accessibility checklist / 'The Webflow Way' accessibility docs: https://webflow.com/accessibility/checklist and community guidance at https://www.gracefulwebstudio.com/blog-articles/webflow-video-lightbox-accessibility-and-focus-management",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow native Slider component",
+      "name": "Off-screen carousel slides keep focusable controls and links",
+      "description": "Webflow's Slider hides non-active slides with CSS transforms/opacity (not display:none), so links, buttons, and form fields inside the off-screen slides remain in the tab order. Keyboard users tab into invisible content, focus disappears off-screen, and the slide-dot/arrow controls are often unlabeled icon buttons.",
+      "wcagScs": [
+        "2.4.3",
+        "2.1.1",
+        "4.1.2",
+        "2.4.7"
+      ],
+      "typicalMarkup": "<div class=\"w-slide\" style=\"transform:translateX(100%);opacity:0\">\n  <a href=\"/offer\" class=\"slide-cta w-inline-block\">Shop now</a>\n</div>\n<div class=\"w-slider-arrow-left\" role=\"button\" tabindex=\"0\"></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The off-screen slide is still visible to the accessibility tree (no display:none / aria-hidden), so scanners see normal in-DOM links and report nothing wrong; detecting that focus visually 'leaves the screen' onto a translated-off slide requires running the keyboard sequence and watching where the focus ring goes — a dynamic, visual check tools don't perform.",
+      "realWorldNote": "Accessibility guidance for sliders specifies off-screen slides must be hidden via display:none/visibility:hidden or aria-hidden + tabindex=-1, which Webflow's default Slider does not do: https://dev.to/jasonwebb/how-to-build-a-more-accessible-carousel-or-slider-35lp and https://www.flowradar.com/answer/fix-issue-slider-webflow-not-accessible-screen-readers",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow native Lightbox component",
+      "name": "Lightbox opens without focus trap, dialog role, or labeled close",
+      "description": "Webflow's built-in Lightbox opens an overlay but does not trap focus (Tab leaves the modal to the page behind it), has no role=dialog / aria-modal, no accessible name on the dialog, and the close 'X' is an unlabeled icon. Esc behavior and focus return to the trigger are not handled.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.3",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"w-lightbox-backdrop\">\n  <div class=\"w-lightbox-container\">\n    <img class=\"w-lightbox-img\" src=\"/full.jpg\">\n    <div class=\"w-lightbox-close\"></div>\n  </div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A missing focus trap is a behavioral property: nothing in the static markup is 'invalid', so axe/Lighthouse cannot detect that Tab escapes the open overlay. The unlabeled close MIGHT be flagged, but confirming the dialog lacks a name and that focus returns to the trigger requires opening it and operating it by keyboard.",
+      "realWorldNote": "Documented that the Webflow lightbox lacks a focus trap (users can tab out), is missing a descriptive accessible name on the dialog, and needs custom code/ARIA to fix: https://www.gracefulwebstudio.com/blog-articles/webflow-video-lightbox-accessibility-and-focus-management and Webflow's own checklist task 'Ensure modals are keyboard navigable': https://webflow.com/accessibility/checklist/task/ensure-modals-are-keyboard-navigable",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow / Framer hover-revealed dropdown menus and tooltips",
+      "name": "Hover content (mega-menu, tooltip) not dismissible, hoverable, or persistent",
+      "description": "Mega-menu panels and tooltips built as hover-only Interactions appear on mouseover and vanish the instant the pointer leaves the trigger. There's no Esc-to-dismiss, the revealed panel can't be hovered into without it closing, and it isn't reachable/persistable by keyboard focus.",
+      "wcagScs": [
+        "1.4.13",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<div class=\"nav-item\" data-w-id=\"hover-1\">Products\n  <div class=\"dropdown-panel\" style=\"opacity:0;pointer-events:none\">\n    <a href=\"/a\">Item A</a><a href=\"/b\">Item B</a>\n  </div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Dismissible/hoverable/persistent (1.4.13) are interaction-time properties. Static analysis sees a nav item with a nested panel and can't determine the panel only appears on :hover, disappears when the pointer moves toward it, and lacks an Esc handler — this requires a human to hover and try to interact with the revealed content.",
+      "realWorldNote": "Classic 1.4.13 failure: content disappears when the mouse moves off the trigger and offers no Esc dismissal; design tools' hover Interactions reproduce exactly this: https://www.w3.org/WAI/WCAG21/Understanding/content-on-hover-or-focus.html and https://sarahmhigley.com/writing/tooltips-in-wcag-21/",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Bootstrap Modal (and hand-rolled React modals)",
+      "name": "Background page not inert / aria-hidden focus conflict behind modal",
+      "description": "When a Bootstrap/custom modal opens, the underlying page is not made inert and is not hidden from AT (or, conversely, aria-hidden=\"true\" is placed on an ancestor that still contains the focused trigger). Screen-reader users can read and tab into the page behind the dialog, and focus can land on aria-hidden content, producing the \"focusable element inside aria-hidden\" conflict.",
+      "wcagScs": [
+        "2.4.3",
+        "4.1.2",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<div aria-hidden=\"true\"> <!-- whole app -->\n  <button id=\"open\">Open</button> <!-- focus may still be here -->\n</div>\n<div class=\"modal\" role=\"dialog\"> ... </div>\n<!-- background not inert; SR can swipe into it -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe flags aria-hidden containing a focusable element only when the snapshot is in that exact state; whether the background is truly inert / focus is trapped is a runtime, interaction-driven property. Confirming a SR can reach behind-modal content or that Tab escapes requires actually operating the dialog with the keyboard/AT.",
+      "realWorldNote": "Bootstrap issue #29769 and MDN's aria-modal docs cover the inert/aria-hidden tradeoff; the focusable-inside-aria-hidden conflict is a frequent audit finding. https://github.com/twbs/bootstrap/issues/29769",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "jQuery UI / Bootstrap Tabs & Accordion",
+      "name": "div/anchor \"tab\" widgets lacking tab roles and arrow-key support",
+      "description": "Older jQuery UI and many Bootstrap-derived tab/accordion implementations render tabs as <a>/<li> or plain divs that toggle panels via click, without role=\"tablist\"/\"tab\"/\"tabpanel\", without aria-selected/aria-controls, and without the expected arrow-key roving-tabindex behavior. Screen readers do not recognize the tab pattern and keyboard users cannot move between tabs with arrow keys.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<ul class=\"nav nav-tabs\">\n  <li class=\"active\"><a href=\"#a\">Details</a></li>\n  <li><a href=\"#b\">Reviews</a></li>\n</ul>\n<!-- no role=tablist/tab/tabpanel, no aria-selected, no arrow keys -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Plain anchors with hrefs are individually valid and focusable, so structural linters see nothing wrong. Recognizing that this SHOULD be the ARIA tabs pattern (and that arrow-key navigation and aria-selected are absent) requires understanding the intended widget semantics and testing keyboard interaction.",
+      "realWorldNote": "WAI-ARIA APG tabs pattern requires roles + arrow-key support; legacy jQuery UI / Bootstrap tab markup commonly ships without them, a recurring audit finding for interactive widgets.",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Tabs widget (Bootstrap nav-tabs, hand-rolled tab UIs)",
+      "name": "Tabs with no roving tabindex / no arrow-key support",
+      "description": "Tab strips use role=\"tablist\"/role=\"tab\" markup (or just styled links) but every tab is a separate Tab stop and arrow keys do nothing. Users must Tab through all tabs, and roving tabindex (one tabindex=0, rest -1) is absent, breaking the APG keyboard contract. Often aria-selected is also static or missing.",
+      "wcagScs": [
+        "2.1.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<ul role=\"tablist\">\n  <li role=\"tab\" tabindex=\"0\">Overview</li>\n  <li role=\"tab\" tabindex=\"0\">Specs</li>\n  <li role=\"tab\" tabindex=\"0\">Reviews</li>\n</ul>\n<!-- no arrow handler; aria-selected never updated -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe has a 'tablist must contain tabs' structural check but does not verify the roving-tabindex pattern or arrow-key handling — those are runtime keyboard behaviors. A page where every tab is independently Tab-focusable is technically operable, so it does not fail any static rule; the broken expectation (arrow keys move between tabs) is only observable by operating it.",
+      "realWorldNote": "MDN tab/tablist role docs and Deque's A11y Support Series both specify roving tabindex (active tab tabindex=0, others -1) and arrow-key navigation as the contract that custom tabs routinely omit. https://www.deque.com/blog/a11y-support-series-part-1-aria-tab-panel-accessibility/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Menu button + role=menu (app 'kebab' menus, navigation 'mega menus')",
+      "name": "role=menu misused for site nav; no arrow keys, no haspopup, links not menuitems",
+      "description": "Developers slap role=\"menu\"/role=\"menuitem\" onto a navigation dropdown of links, or onto an actions menu, but never implement the APG menu keyboard model: no aria-haspopup on the trigger, no focus moved to the first item on open, arrow keys do nothing, Escape does not close. Because role=menu changes how screen readers expose children (links stop being announced as links), the result is worse than plain markup.",
+      "wcagScs": [
+        "2.1.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<button onclick=\"open()\">Account</button>\n<ul role=\"menu\">\n  <li role=\"menuitem\"><a href=\"/profile\">Profile</a></li>\n  <li role=\"menuitem\"><a href=\"/logout\">Log out</a></li>\n</ul>\n<!-- no aria-haspopup/aria-expanded, no arrow-key handling, no focus mgmt -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The ARIA is syntactically valid (menu contains menuitems), so structural rules pass. The failures are behavioral (missing arrow-key navigation, focus not entering the menu, Escape not closing) plus a semantic judgment that role=menu was the wrong pattern for navigation links — neither is visible in a static DOM scan.",
+      "realWorldNote": "The Zenyth 'Navigating the Maze of ARIA Menu Roles' guide and APG menubar pattern stress that role=menu is for application menus, demands full arrow-key focus management, and is routinely misapplied to site navigation. https://www.zenythgroup.com/post/navigating-the-maze-of-aria-menu-roles-a-comprehensive-guide",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Custom slider (price range filters, noUiSlider clones, hand-rolled drag handles)",
+      "name": "Slider with no role/value and no keyboard operation",
+      "description": "A draggable thumb on a track is built from divs with a mousedown handler. There is no role=\"slider\", no aria-valuenow/min/max, no aria-valuetext, and arrow keys do nothing. Screen reader users hear no value and cannot change it; keyboard-only users cannot operate it at all. Dual-thumb range sliders compound this by giving neither thumb a name.",
+      "wcagScs": [
+        "2.1.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"slider-track\">\n  <div class=\"slider-thumb\" style=\"left:42%\"></div>\n</div>\n<!-- no role=slider, no aria-valuenow/min/max, no tabindex, no keydown -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "If the thumb has no role and no tabindex, axe sees only inert divs and cannot know they are meant to be a slider, so it raises nothing. Even when role=slider is present, whether arrow keys actually change aria-valuenow is a runtime behavior. The intent ('this draggable thing is a value control') requires visually recognizing the slider, which a linter cannot do.",
+      "realWorldNote": "TPGi's 'ARIA Slider' series and DigitalA11y's slider-role reference state authors MUST set aria-valuemin/max/now and must update value + aria-valuetext on every arrow/Home/End keypress — the steps custom sliders most often skip. https://www.tpgi.com/aria-slider-part-1/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Carousel / slider (Slick, Swiper defaults, hero banners on CMS themes)",
+      "name": "Auto-rotating carousel with no pause control and no slide announcement",
+      "description": "A hero carousel auto-advances every few seconds with no visible/operable pause-stop-hide control. Slides change under keyboard focus, focus is lost when the focused slide rotates away, off-screen slides remain in the tab order and accessibility tree, and slide changes are not exposed via group/aria-roledescription/live region. Vestibular and cognitive users get unstoppable motion; keyboard users get focus thrown to the top of the page.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.3",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"carousel\">\n  <div class=\"slide active\"><a href=\"/sale\">Big Sale</a></div>\n  <div class=\"slide\" aria-hidden=\"false\"><a href=\"/new\">New In</a></div>\n</div>\n<script>setInterval(next, 4000)</script>\n<!-- no pause button; offscreen slide links still focusable -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Auto-rotation, the absence of a pause control, focus loss when slides swap, and links inside hidden slides remaining tabbable are all timing/runtime behaviors. A static scan cannot tell the content is moving or that a pause mechanism is required; deciding whether off-screen slides are correctly hidden needs observing the rotation. WebAIM notes carousels are 'one of the most problematic' widgets precisely for these reasons.",
+      "realWorldNote": "WebAIM 'Animation and Carousels' and the APG carousel pattern require a pause/stop control, pausing on focus, and hiding non-visible slides; Smashing Magazine's accessible-carousel guide documents the focus-loss-on-rotate bug. https://webaim.org/techniques/carousels/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "ARIA tree / file-explorer tree (CMS page-tree pickers, doc nav trees)",
+      "name": "Tree with Tab-per-node instead of arrow navigation; missing expanded/level",
+      "description": "A nested expand/collapse tree uses role=\"tree\"/role=\"treeitem\" but is navigated with Tab to every node (instead of a single tab stop + arrow keys), parent nodes lack aria-expanded, end nodes wrongly carry aria-expanded, and aria-level/setsize/posinset are absent on dynamically loaded branches. Screen reader users get no hierarchy or open/closed state; the keyboard model contradicts the APG tree contract.",
+      "wcagScs": [
+        "2.1.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<ul role=\"tree\">\n  <li role=\"treeitem\" tabindex=\"0\">Docs\n    <ul role=\"group\">\n      <li role=\"treeitem\" tabindex=\"0\">Intro</li>\n    </ul>\n  </li>\n</ul>\n<!-- no aria-expanded on 'Docs'; every node tabindex=0; no arrow handler -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The role nesting (tree > treeitem > group) is structurally valid so static checks pass. Whether arrow keys navigate, whether the tree is a single tab stop, and whether aria-expanded toggles on expand/collapse are runtime behaviors. Knowing aria-expanded is missing on a parent requires knowing which nodes have children at runtime — invisible to a snapshot scan.",
+      "realWorldNote": "MDN tree/treeitem role docs and Accessible Culture's '(Not so) Simple ARIA Tree Views' document that trees use arrow-key navigation (not Tab), require aria-expanded only on parents, and need aria-level/setsize/posinset on dynamic nodes — all routinely botched. https://accessibleculture.org/articles/2013/02/not-so-simple-aria-tree-views-and-screen-readers/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Radio group (custom styled radios, form-builder widgets, Shoelace-style components)",
+      "name": "Custom radios: no grouping, every radio a tab stop, no arrow selection",
+      "description": "Styled radio buttons are built from divs (or are native radios stripped of fieldset/legend and group semantics). There is no role=\"radiogroup\" or fieldset/legend, so the question text is never associated; each radio is a separate Tab stop instead of one stop with arrow-key selection; and the group label is unannounced. Screen reader users hear isolated options with no context or count.",
+      "wcagScs": [
+        "1.3.1",
+        "2.1.1",
+        "4.1.2",
+        "3.3.2"
+      ],
+      "typicalMarkup": "<p>Choose a plan</p>\n<div class=\"radio\" role=\"radio\" tabindex=\"0\">Basic</div>\n<div class=\"radio\" role=\"radio\" tabindex=\"0\">Pro</div>\n<!-- no role=radiogroup wrapper / no fieldset+legend; both are tab stops -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Individual role=radio elements with text content pass name/role checks. The missing radiogroup association (the 'Choose a plan' label is a sibling <p>, not a programmatic group name) and the broken single-tab-stop + arrow-key model are a structural-relationship judgment and a runtime behavior respectively — TestParty reports 95% of sites have at least one improperly grouped radio set that scanners do not catch as a hard failure.",
+      "realWorldNote": "TestParty's radio-group remediation writeup and shoelace-style/shoelace issue #218 document ungrouped radios and Tab-per-radio (instead of arrow navigation) as pervasive custom-component failures. https://testparty.ai/blog/accessible-radio-groups-html-fast-remediation-large-sites and https://github.com/shoelace-style/shoelace/issues/218",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Listbox (custom <select> replacements, country/option pickers)",
+      "name": "Custom listbox: options not announced, selection state visual-only",
+      "description": "A fake select shows a styled options panel of <li> items. The trigger lacks combobox/button semantics with aria-expanded, the panel is not role=\"listbox\" with role=\"option\" children, selection is shown only by a checkmark/highlight (no aria-selected), and focus/active option is not tracked. Screen reader users cannot tell which option is selected or how many exist; keyboard arrow navigation through options is often missing.",
+      "wcagScs": [
+        "4.1.2",
+        "1.4.1",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"select\" tabindex=\"0\">United States</div>\n<ul class=\"options\">\n  <li class=\"selected\">United States</li>\n  <li>Canada</li>\n</ul>\n<!-- no role=listbox/option, no aria-selected, no aria-expanded on trigger -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The trigger div has an accessible name and the list is a valid <ul>, so static checks pass. That selection is conveyed only by a CSS class/checkmark (no aria-selected — a use-of-color/visual-only-state issue) and that arrow-key navigation is absent are visual and runtime judgments. The freeCodeCamp and Chris Henrick writeups stress native <select> is far safer precisely because these get botched.",
+      "realWorldNote": "freeCodeCamp's accessible custom-dropdown guide and Chris Henrick's 'Custom and Accessible Select Menus Aren't Easy' document missing role=listbox/option, missing aria-selected, and absent keyboard support as the standard custom-listbox failures. https://www.freecodecamp.org/news/how-to-build-an-accessible-custom-dropdown-select-element/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "WordPress slider plugins (Slider Revolution, Smart Slider), Elementor/Divi carousels, Wix Pro Gallery",
+      "name": "Auto-rotating carousel, keyboard-inaccessible, no pause",
+      "description": "A hero carousel auto-advances on a timer with no pause/stop control, prev/next arrows are non-focusable divs, and slide changes are not announced. Keyboard users cannot reach controls; the moving content steals reading position; offscreen slides may still be in the tab order as hidden focusable links.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.7",
+        "2.4.3",
+        "4.1.3",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<div class=\"slider\" data-autoplay=\"true\" data-interval=\"4000\">\n  <div class=\"slide\"><a href=\"/promo\">Shop the sale</a></div>\n  <div class=\"arrow next\" onclick=\"next()\"></div> <!-- div, not focusable -->\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Auto-rotation timing and the absence of a pause control are temporal/behavioral and not in the static DOM signature. Tools may catch a div with onclick lacking a role, but cannot verify keyboard reachability of the rotation, that focus is trapped/lost between slides, or that offscreen slides leak into the tab order — all need manual keyboard testing.",
+      "realWorldNote": "WCAG-ART and the A11Y Collective document carousel pause/keyboard/announce failures as classic manual-test items: https://www.a11y-collective.com/blog/accessible-carousel/ ; WP slider accessibility caveats: https://www.abrightclearweb.com/accessible-slider-wordpress/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Bootstrap/template tabs, accordions, and custom dropdowns in CMS themes",
+      "name": "Custom widget role present but state/keyboard support missing",
+      "description": "A theme implements tabs/accordions/menus with role=tab/button and ARIA, satisfying role checks, but the dynamic VALUE/STATE is wrong or static: aria-expanded never toggles, aria-selected is hard-coded, the panel relationship (aria-controls) is broken, and arrow-key navigation is absent. ARIA presence makes the page LOOK accessible while behaving inaccessibly.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "1.3.1",
+        "4.1.3"
+      ],
+      "typicalMarkup": "<button aria-expanded=\"false\" class=\"accordion\">Shipping</button>\n<!-- clicking opens the panel visually but aria-expanded stays \"false\"; no arrow-key support -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Static scans confirm the ATTRIBUTES exist and are valid; they cannot verify the attribute VALUE tracks the live UI state (aria-expanded staying false after opening) or that keyboard interaction patterns work — these are dynamic, requiring activation and re-inspection. This is precisely why WebAIM finds MORE detected errors on ARIA-heavy pages.",
+      "realWorldNote": "WebAIM Million: pages WITH ARIA average ~34-69% MORE detected errors than pages without — broken/incomplete ARIA is a leading cause: https://webaim.org/projects/million/2024 ; 2026 confirms the pattern: https://webaim.org/projects/million/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Marketing-site / CMS clickable cards and tiles built as div/span with onclick (Webflow interactions, custom hero tiles, jQuery .click handlers)",
+      "name": "div/span with click handler as a fake button (no role, no keyboard)",
+      "description": "An interactive control is a bare div or span with a JS click handler, no role, no tabindex, and only an onclick (no keydown). Keyboard users cannot reach or activate it, and screen readers announce nothing meaningful. This is the canonical W3C F59 failure.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"card\" onclick=\"go('/pricing')\">\n  <h3>Pricing</h3><p>See plans</p>\n</div>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "Partially auto-detectable (axe 'interactive controls must be operable' / clickable element flags exist), but tools frequently miss it when the handler is attached via addEventListener at runtime rather than an inline onclick attribute, or delegated from a parent. Confirming it is genuinely interactive (vs. a decorative animated div) often needs a human to click/Tab and observe.",
+      "realWorldNote": "W3C failure F59 (script makes div/span a UI control without a role); Deque 'Building Accessible Buttons with ARIA'. https://www.w3.org/TR/WCAG20-TECHS/F59.html",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Modal dialogs, off-canvas drawers, and carousels (Bootstrap modal backdrops, slick/swiper slides, third-party overlay libs) that set aria-hidden on containers holding focusable elements",
+      "name": "aria-hidden=\"true\" on (or wrapping) focusable elements",
+      "description": "A container is hidden from AT with aria-hidden=\"true\" but still contains tabbable controls (links, buttons, inputs) that were not made inert / tabindex=-1. Keyboard users can Tab into a control the screen reader refuses to announce — 'focus goes nowhere' — producing a phantom/ghost focus and broken navigation. Common on inactive carousel slides and behind-modal page content.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div aria-hidden=\"true\">\n  <a href=\"/buy\">Buy now</a>  <!-- still in tab order -->\n</div>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "Mostly auto-detectable (axe rule 'aria-hidden elements do not contain focusable elements'). Included for completeness. Tools can miss it when focusability comes from runtime-added tabindex, or when the aria-hidden is toggled on only in a state (modal open) the scanner never enters; reaching that state is a human/dynamic step.",
+      "realWorldNote": "GetWCAG 4.1.2 fix guide 'avoid focusable elements inside aria-hidden containers'; ACT rules issue 643; UW accessibility 'aria-hidden elements'. https://getwcag.com/en/accessibility-guide/aria-hidden-focus",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Page-builder custom widgets (Elementor/WPBakery div \"buttons\", custom controls with aria-label)",
+      "name": "div role=button whose accessible name contradicts its visible label",
+      "description": "A builder renders an interactive control as a <div>/<span> with role=\"button\" (or no role at all) and an aria-label that was authored separately from the visible text — so the on-screen label says \"Submit\" while the accessible name is \"Send form\", or the visible text is \"Get Quote\" but aria-label is \"button\". Voice-control users saying the visible word can't activate it, and screen-reader users hear something different from what's shown; when role is missing entirely, it isn't even reachable by keyboard.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<div role=\"button\" aria-label=\"Send form\" tabindex=\"0\">Submit</div>\n<div class=\"elementor-button\" onclick=\"...\">Get Quote</div>  <!-- no role, not focusable -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "When an aria-label is present the control HAS an accessible name, so 4.1.2 \"has a name\" passes; comparing that name against the visible rendered text to detect a mismatch requires OCR/text extraction of the visible label and a semantic equality judgment that automation doesn't make reliably. (The pure missing-role/not-focusable variant is more linter-catchable.)",
+      "realWorldNote": "div role=button with aria-label diverging from visible text is the canonical accessible-name-mismatch failure (also a 2.5.3 issue). https://www.makethingsaccessible.com/guides/say-what-you-see-wcag-2-5-3-label-in-name-level-a/ and https://www.w3.org/WAI/WCAG21/Techniques/failures/F96.html",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — the NAME limb at sub-field granularity (F86 semantic
+    variant). This is a US-style "split" telephone control: three separate <input>s laid
+    out as ( ___ ) ___ - ____ . The visual punctuation makes the structure obvious to a
+    sighted user: the first box is the AREA CODE, the second is the PREFIX (exchange), the
+    third is the LINE NUMBER (suffix). But the developer gave ALL THREE the identical
+    accessible name aria-label="Phone". Every part therefore HAS a non-empty programmatic
+    name, so ACT rule e086e5 ("Form field has non-empty accessible name") PASSES on each of
+    the three inputs. Collectively, though, the three identical "Phone" names do not identify
+    each part's role within the whole: a screen-reader user tabbing through hears
+    "Phone, edit  Phone, edit  Phone, edit" and cannot tell which box wants the area code,
+    which wants the prefix, and which wants the four-digit line number.
+
+    WHY AUTOMATED TOOLS MISS IT: axe-core, WAVE and Lighthouse implement the per-field
+    non-emptiness rule (e086e5). Each input here has aria-label="Phone" — a present,
+    non-empty, programmatically determined name — so the rule is satisfied on every part and
+    no tool fires. No automated checker can read the visual "( ) -" grouping, infer the
+    intended per-part roles (area/prefix/line), and judge that three interchangeable "Phone"
+    names fail to differentiate them. That is the multi-part SEMANTIC judgment F86 requires
+    and a per-field emptiness test structurally cannot express.
+  -->
+  <title>Checkout — Shipping &amp; Contact | Trailhead Outfitters</title>
+  <style>
+    :root { --ink:#15202b; --muted:#5d6b79; --line:#cfd8e0; --accent:#1f6f54; --bg:#f4f6f8; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",system-ui,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    .shell { max-width:640px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+    .brand { font-weight:800; letter-spacing:.02em; color:var(--accent); font-size:1.15rem; }
+    .crumbs { font-size:.8rem; color:var(--muted); margin:.3rem 0 1.4rem; }
+    h1 { font-size:1.5rem; margin:0 0 .25rem; }
+    .sub { color:var(--muted); margin:0 0 1.6rem; font-size:.95rem; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:1.4rem 1.4rem 1.6rem; margin-bottom:1.2rem; }
+    .card h2 { font-size:1.05rem; margin:0 0 1rem; }
+    .row { margin-bottom:1.1rem; }
+    label.fieldlabel, .grouplabel { display:block; font-size:.86rem; font-weight:600; margin-bottom:.4rem; }
+    .hint { font-size:.78rem; color:var(--muted); margin-top:.35rem; }
+    input[type=text], input[type=email], input[type=tel] {
+      font:inherit; padding:.5rem .6rem; border:1px solid var(--line); border-radius:6px; background:#fff;
+    }
+    input.full { width:100%; }
+    .phone-line { display:flex; align-items:center; gap:.3rem; font-size:1.05rem; color:var(--muted); }
+    .phone-line input { width:3.6rem; text-align:center; }
+    .phone-line input.suffix { width:4.6rem; }
+    .paren { font-weight:600; }
+    .btn { background:var(--accent); color:#fff; border:0; border-radius:7px; padding:.7rem 1.3rem; font:inherit; font-weight:700; cursor:pointer; }
+    fieldset { border:0; margin:0; padding:0; }
+    legend { padding:0; }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="brand">Trailhead Outfitters</div>
+    <p class="crumbs">Cart › <strong>Shipping &amp; Contact</strong> › Payment › Review</p>
+    <h1>Shipping &amp; contact details</h1>
+    <p class="sub">We&rsquo;ll text you a tracking link when your order ships. Standard delivery 3&ndash;5 business days.</p>
+
+    <form action="#" method="post" novalidate>
+      <section class="card">
+        <h2>Recipient</h2>
+        <div class="row">
+          <label class="fieldlabel" for="fullname">Full name</label>
+          <input class="full" id="fullname" name="fullname" type="text" value="Renée Caldwell" autocomplete="name">
+        </div>
+        <div class="row">
+          <label class="fieldlabel" for="addr">Street address</label>
+          <input class="full" id="addr" name="addr" type="text" value="148 Birchwood Ave, Apt 3" autocomplete="street-address">
+        </div>
+        <div class="row">
+          <label class="fieldlabel" for="email">Email for receipt</label>
+          <input class="full" id="email" name="email" type="email" value="renee.caldwell@example.com" autocomplete="email">
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Mobile number for delivery texts</h2>
+        <!--
+          The compound phone control. To a sighted user the layout reads unambiguously as
+          ( AREA ) PREFIX - LINE. But all three inputs carry the SAME aria-label="Phone",
+          so each part passes the non-empty-name rule while none identifies its own role.
+        -->
+        <fieldset class="row">
+          <legend class="grouplabel">Mobile phone</legend>
+          <div class="phone-line">
+            <span class="paren" aria-hidden="true">(</span>
+            <input type="tel" inputmode="numeric" maxlength="3" value="402" aria-label="Phone" autocomplete="off">
+            <span class="paren" aria-hidden="true">)</span>
+            <input type="tel" inputmode="numeric" maxlength="3" value="555" aria-label="Phone" autocomplete="off">
+            <span aria-hidden="true">&ndash;</span>
+            <input type="tel" class="suffix" inputmode="numeric" maxlength="4" value="0173" aria-label="Phone" autocomplete="off">
+          </div>
+          <p class="hint">U.S. mobile numbers only. Message and data rates may apply.</p>
+        </fieldset>
+      </section>
+
+      <button class="btn" type="submit">Continue to payment</button>
+    </form>
+  </main>
+</body>
+</html>

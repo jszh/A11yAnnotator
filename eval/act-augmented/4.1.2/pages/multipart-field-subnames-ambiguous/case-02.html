@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — the NAME limb at sub-field granularity (F86 semantic
+    variant), via the "aria-labelledby points every part at ONE group label" anti-pattern.
+    This is a three-box date entry laid out DD / MM / YYYY. Day, Month and Year are three
+    separate <input>s. Instead of giving each box its own role-name ("Day", "Month", "Year"),
+    the author wired aria-labelledby="dob-label" on ALL THREE inputs, where #dob-label is the
+    single visible group caption "Date of birth". So the accessible name computed for each of
+    the three boxes is the identical string "Date of birth".
+
+    Each input therefore HAS a non-empty programmatic name (it resolves through a valid
+    aria-labelledby IDREF to real text), so ACT rule e086e5 PASSES on each part. But the three
+    identical "Date of birth" names do not tell the user which box is the DAY, which is the
+    MONTH and which is the YEAR. A sighted user reads it from the "DD / MM / YYYY" placeholders
+    and slashes; a screen-reader user hears "Date of birth, Date of birth, Date of birth."
+    In en-GB the order is day-month-year, the opposite of US month-day-year, so getting the
+    part wrong is a real data-entry error, not a cosmetic one.
+
+    WHY AUTOMATED TOOLS MISS IT: e086e5 only checks that each field's accessible name is
+    non-empty. aria-labelledby resolves to non-empty text on every input, so the rule is
+    satisfied three times and no tool flags it. No checker can read the DD/MM/YYYY visual order
+    and decide that three identical "Date of birth" names fail to identify day vs. month vs.
+    year. (axe will NOT flag the duplicate aria-labelledby target; multiple elements may
+    legitimately reference one label, e.g. a group caption.)
+  -->
+  <title>Register for a Blue Badge — Riverside Borough Council</title>
+  <style>
+    :root { --ink:#0b0c0c; --muted:#505a5f; --line:#b1b4b6; --gov:#1d70b8; --green:#00703c; --bg:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial,Helvetica,sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+    .gov-bar { background:#0b0c0c; color:#fff; font-weight:700; padding:.7rem 1rem; }
+    .shell { max-width:620px; margin:0 auto; padding:1.6rem 1rem 4rem; }
+    .phase { display:inline-block; background:var(--gov); color:#fff; font-size:.72rem; font-weight:700; padding:.15rem .45rem; text-transform:uppercase; letter-spacing:.04em; }
+    .phase + span { font-size:.82rem; color:var(--muted); margin-left:.5rem; }
+    h1 { font-size:1.6rem; margin:1.3rem 0 .4rem; }
+    .lede { color:var(--muted); margin:0 0 1.8rem; }
+    .form-group { margin-bottom:1.8rem; }
+    .form-group > label, fieldset > legend.g { font-weight:700; font-size:1rem; display:block; margin-bottom:.3rem; }
+    .help { color:var(--muted); font-size:.88rem; margin:.1rem 0 .6rem; }
+    input[type=text] { font:inherit; padding:.45rem .5rem; border:2px solid var(--ink); border-radius:0; }
+    .one-line input { width:100%; max-width:22rem; }
+    fieldset { border:0; margin:0; padding:0; }
+    .date-parts { display:flex; gap:1rem; }
+    .date-cell { display:flex; flex-direction:column; }
+    .date-cell .cap { font-size:.8rem; color:var(--muted); margin-bottom:.2rem; }
+    .date-cell input { border:2px solid var(--ink); padding:.45rem .4rem; font:inherit; }
+    .date-cell.day input, .date-cell.month input { width:3.2rem; }
+    .date-cell.year input { width:4.6rem; }
+    .btn { background:var(--green); color:#fff; border:0; padding:.65rem 1.2rem; font:inherit; font-weight:700; box-shadow:0 2px 0 #002d18; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="gov-bar">Riverside Borough Council</div>
+  <main class="shell">
+    <p><span class="phase">Beta</span><span>This is a new service &ndash; your feedback will help us improve it.</span></p>
+    <h1>Apply for a Blue Badge</h1>
+    <p class="lede">Step 2 of 6 &mdash; About the applicant. We use these details to check eligibility against DVLA and council records.</p>
+
+    <form action="#" method="post" novalidate>
+      <div class="form-group one-line">
+        <label for="surname">Surname</label>
+        <p class="help">As shown on the applicant&rsquo;s photo ID.</p>
+        <input id="surname" name="surname" type="text" value="Okonkwo" autocomplete="family-name">
+      </div>
+
+      <div class="form-group one-line">
+        <label for="nino">National Insurance number</label>
+        <p class="help">It&rsquo;s on the applicant&rsquo;s payslip, P60 or letters about tax. For example, QQ 12 34 56 C.</p>
+        <input id="nino" name="nino" type="text" value="QQ 12 34 56 C">
+      </div>
+
+      <!--
+        The compound date control. The single group caption #dob-label = "Date of birth" is
+        referenced by all three inputs via aria-labelledby, so each box's accessible name is
+        the identical "Date of birth". The role-naming ("Day", "Month", "Year") lives ONLY in
+        the visible .cap spans, which are NOT referenced by any input's name computation.
+      -->
+      <fieldset class="form-group" role="group" aria-labelledby="dob-label dob-hint">
+        <legend class="g" id="dob-label">Date of birth</legend>
+        <p class="help" id="dob-hint">For example, 27 3 1958.</p>
+        <div class="date-parts">
+          <div class="date-cell day">
+            <span class="cap" aria-hidden="true">DD</span>
+            <input type="text" inputmode="numeric" maxlength="2" value="27" aria-labelledby="dob-label">
+          </div>
+          <div class="date-cell month">
+            <span class="cap" aria-hidden="true">MM</span>
+            <input type="text" inputmode="numeric" maxlength="2" value="03" aria-labelledby="dob-label">
+          </div>
+          <div class="date-cell year">
+            <span class="cap" aria-hidden="true">YYYY</span>
+            <input type="text" inputmode="numeric" maxlength="4" value="1958" aria-labelledby="dob-label">
+          </div>
+        </div>
+      </fieldset>
+
+      <button class="btn" type="submit">Save and continue</button>
+    </form>
+  </main>
+</body>
+</html>

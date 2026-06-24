@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — Lumière Candle Co.</title>
+<style>
+  :root { --ink:#2b2622; --muted:#7a716a; --line:#e8e1d8; --brand:#9a6b3f; --brand-dk:#7c5430; --paper:#fbf8f4; }
+  * { box-sizing:border-box; }
+  body { font-family:"Inter","Segoe UI",Arial,sans-serif; color:var(--ink); margin:0; background:var(--paper); }
+  header { padding:18px 26px; border-bottom:1px solid var(--line); font-family:Georgia,serif; font-size:1.2rem; letter-spacing:.06em; color:var(--brand-dk); }
+  main { max-width:620px; margin:30px auto; }
+  h1 { font-size:1.4rem; margin:0 0 18px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px 28px; margin-bottom:18px; }
+  .row { display:flex; justify-content:space-between; padding:7px 0; }
+  .row.total { font-weight:700; border-top:1px solid var(--line); margin-top:8px; padding-top:12px; }
+  label { display:block; font-size:.85rem; font-weight:600; margin:14px 0 6px; }
+  input { width:100%; padding:11px 12px; border:1px solid #cdc4ba; border-radius:7px; font-size:1rem; }
+  .pay { width:100%; margin-top:22px; background:var(--brand); color:#fff; border:0; padding:14px; border-radius:8px; font-size:1.05rem; font-weight:700; cursor:pointer; }
+  .pay:hover { background:var(--brand-dk); }
+  .pay:disabled { background:#c8b29c; cursor:default; }
+  /* processing overlay text — sits in a live region */
+  .processing { margin-top:18px; min-height:22px; text-align:center; color:#7a5b00; font-size:.96rem; }
+  .processing .bar { height:5px; background:#eadfce; border-radius:3px; overflow:hidden; margin-top:9px; }
+  .processing .bar i { display:block; height:100%; width:35%; background:#d8a200; animation:slide 1.1s ease-in-out infinite; }
+  @keyframes slide { 0%{margin-left:-35%;} 100%{margin-left:100%;} }
+  /* confirmation panel — built fresh, NOT a live region */
+  .confirmation { display:none; }
+  .confirmation.show { display:block; }
+  .confirmation .check { font-size:2.4rem; color:#1e7a46; text-align:center; }
+  .confirmation h2 { text-align:center; margin:6px 0 4px; }
+  .confirmation .ord { text-align:center; color:var(--muted); font-size:.9rem; }
+  footer { max-width:620px; margin:14px auto 60px; color:#9a9088; font-size:.78rem; }
+</style>
+</head>
+<body>
+<header>LUMIÈRE CANDLE CO.</header>
+
+<main>
+  <h1>Checkout</h1>
+
+  <div class="card" id="orderCard">
+    <div class="row"><span>Amber &amp; Oak — Large (×2)</span><span>$58.00</span></div>
+    <div class="row"><span>Sea Salt Votive set</span><span>$24.00</span></div>
+    <div class="row"><span>Shipping</span><span>$6.50</span></div>
+    <div class="row total"><span>Total</span><span>$88.50</span></div>
+  </div>
+
+  <div class="card" id="payCard">
+    <label for="cc">Card number</label>
+    <input id="cc" inputmode="numeric" autocomplete="cc-number" value="4242 4242 4242 4242">
+    <label for="exp">Expiry</label>
+    <input id="exp" autocomplete="cc-exp" value="08 / 28">
+    <button id="pay" class="pay" type="button">Pay $88.50</button>
+
+    <!-- The BUSY status is in a polite live region (correct on entry). -->
+    <div id="proc" class="processing" role="status" aria-live="polite" aria-atomic="true"></div>
+  </div>
+
+  <!-- The RESULT confirmation is a normal panel — NOT a live region, no role=status. -->
+  <div class="card confirmation" id="confirm">
+    <div class="check" aria-hidden="true">✓</div>
+    <h2>Thank you — your order is confirmed</h2>
+    <p class="ord">Order #LUM-50418 · A receipt is on its way to your inbox.</p>
+  </div>
+</main>
+
+<footer>Lumière Candle Co. — hand-poured in small batches.</footer>
+
+<script>
+/*
+  Two-phase checkout:
+  Phase 1 (entry): "Processing payment…" + an indeterminate progress bar are injected
+  into #proc, which is role=status / aria-live=polite. This IS announced.
+  Phase 2 (completion): on success we (a) EMPTY #proc (proc.textContent = '') AND
+  (b) hide the pay card and reveal the #confirm panel, which is an ORDINARY div with
+  NO role=status / aria-live. The confirmation text ("your order is confirmed",
+  order number) is therefore never announced.
+
+  Sighted users see the progress bar vanish and a green check + "order confirmed"
+  appear. An AT user hears "Processing payment…" then nothing: the end of the wait is
+  silent (region emptied) AND the result lands outside any live region. They cannot
+  tell if the payment went through — a high-stakes ambiguity that invites a duplicate
+  charge if they re-press, or abandonment.
+
+  This differs from a plain toast case: the result is rendered in a brand-new visible
+  PANEL (so it's clearly meaningful page content), yet it is still not a status message,
+  and the busy region is cleared rather than reused.
+*/
+(function () {
+  var pay = document.getElementById('pay');
+  var proc = document.getElementById('proc');
+  var payCard = document.getElementById('payCard');
+  var confirm = document.getElementById('confirm');
+
+  pay.addEventListener('click', function () {
+    pay.disabled = true;
+    // Phase 1 — announced.
+    proc.innerHTML = 'Processing payment…<div class="bar" aria-hidden="true"><i></i></div>';
+
+    window.setTimeout(function () {
+      // Phase 2 — busy region emptied (silent); result rendered OUTSIDE any live region.
+      proc.textContent = '';
+      payCard.style.display = 'none';
+      confirm.classList.add('show');
+      // No live region ever receives "order confirmed" / "Order #LUM-50418".
+    }, 1800);
+  });
+})();
+</script>
+</body>
+</html>

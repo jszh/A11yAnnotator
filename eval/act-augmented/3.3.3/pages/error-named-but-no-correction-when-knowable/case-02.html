@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reserve your seats — Lumen Hall Box Office</title>
+<!--
+  WHY THIS PAGE PASSES SC 3.3.3 (it is the PASS TWIN of case-01):
+  This page is the deliberate contrast case. Like case-01 it renders a POST-SUBMIT
+  error state for a date field that accepts exactly one format (MM/DD/YYYY), and the
+  user typed a real-but-misshapen date ("7/4/2025" lacks the leading zero on the
+  month). The ONE difference that matters for SC 3.3.3 is that the error message here
+  does NOT stop at restating the problem: it SUPPLIES THE KNOWABLE CORRECTION in text
+  — "Use two-digit month and day with a four-digit year: MM/DD/YYYY (for example,
+  07/04/2025)." A screen-reader or cognitively-loaded user is told exactly how to fix
+  it.
+
+  This twin exists so the judge must distinguish PRESENCE-OF-CORRECTION, not
+  presence-of-error-text. Automated tools see the same structural shape in case-01 and
+  case-02 (label resolves, aria-describedby resolves to a non-empty string,
+  aria-invalid set, good contrast) and would score BOTH identically — they cannot tell
+  that case-01's string is a bare restatement and this one is an actionable suggestion.
+  Only semantic reading separates pass from fail. Expected outcome: PASSED.
+-->
+<style>
+  :root{ --ink:#191324; --muted:#6b6577; --line:#d8d3e0; --plum:#5a2a82; --danger:#a51d2d; --gold:#caa14a; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.6 "Georgia","Times New Roman",serif; color:var(--ink);
+        background:linear-gradient(180deg,#2a1840,#120a1e); min-height:100vh; }
+  .ticket{ max-width:520px; margin:46px auto; background:#fff; border-radius:14px;
+        overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,.45); }
+  .stub{ background:var(--plum); color:#fff; padding:22px 28px; }
+  .stub .kicker{ font:600 .72rem/1 "Helvetica Neue",sans-serif; letter-spacing:.18em;
+        text-transform:uppercase; color:var(--gold); }
+  .stub h1{ font-size:1.45rem; margin:6px 0 0; }
+  .body{ padding:26px 28px 30px; }
+  .field{ margin-bottom:18px; }
+  label{ display:block; font:600 .95rem/1.4 "Helvetica Neue",sans-serif; margin-bottom:6px; }
+  .help{ color:var(--muted); font:.82rem/1.4 "Helvetica Neue",sans-serif; margin:0 0 7px; }
+  input[type=text]{ width:100%; padding:11px 13px; font-size:1.05rem; font-family:"Helvetica Neue",sans-serif;
+        border:2px solid var(--line); border-radius:7px; }
+  input[aria-invalid="true"]{ border-color:var(--danger); background:#fff6f6; }
+  input:focus{ outline:3px solid var(--plum); outline-offset:1px; }
+  .err{ display:flex; gap:8px; margin-top:8px; color:var(--danger);
+        font:.88rem/1.45 "Helvetica Neue",sans-serif; }
+  .err .x{ flex:0 0 auto; font-weight:800; }
+  button{ width:100%; margin-top:4px; padding:13px; font:700 1rem "Helvetica Neue",sans-serif;
+        color:#120a1e; background:var(--gold); border:0; border-radius:8px; cursor:pointer; }
+  .perf{ color:var(--muted); font:.8rem/1.4 "Helvetica Neue",sans-serif; margin:14px 0 0; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="ticket">
+    <div class="stub">
+      <p class="kicker">Lumen Hall · Box Office</p>
+      <h1>Confirm your reservation</h1>
+    </div>
+    <div class="body">
+      <form action="#" method="post" novalidate>
+        <div class="field">
+          <label for="patron">Name on reservation</label>
+          <input type="text" id="patron" name="patron" value="Theo Nakamura" autocomplete="name">
+        </div>
+
+        <div class="field">
+          <label for="visit">Performance date</label>
+          <p class="help" id="visit-help">The evening you plan to attend.</p>
+          <!--
+            Accepted format (authoritative): strictly MM/DD/YYYY (zero-padded, slashes).
+            Retained value "7/4/2025" is a real date missing the leading zero on month.
+            The message below SUPPLIES the knowable correction in text -> SC 3.3.3 PASS.
+          -->
+          <input type="text" id="visit" name="visit"
+                 aria-describedby="visit-help visit-error"
+                 aria-invalid="true"
+                 value="7/4/2025">
+          <p class="err" id="visit-error">
+            <span class="x" aria-hidden="true">!</span>
+            <span>That date isn't in the format we accept. Use a two-digit month and day with a four-digit year — MM/DD/YYYY (for example, 07/04/2025).</span>
+          </p>
+        </div>
+
+        <button type="submit">Hold my seats</button>
+        <p class="perf">A Midsummer Night's Dream · Main Stage · Renders from file://</p>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

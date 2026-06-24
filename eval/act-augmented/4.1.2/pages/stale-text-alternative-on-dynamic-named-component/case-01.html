@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hammered Copper Pour-Over Kettle — Brewhaus Coffee Supply</title>
+<!--
+  SC 4.1.2 stale text alternative on a dynamic NAMED component.
+  ASPECT: F20 — the non-text content (the star icon) is swapped by script on
+  click, but its text alternative (the <img alt>) is NEVER updated, so the
+  toggle's accessible name stays frozen on its OLD state.
+
+  WHY AUTOMATED TOOLS MISS IT:
+  - The <button> wraps an <img> that ALWAYS has a non-empty alt, so axe/WAVE/
+    Lighthouse "image-alt", "button-name", and "link-name" all PASS on every
+    sample. There is never an empty name to catch.
+  - The defect is temporal: at first paint the name ("Add to favorites") is
+    correct. Only AFTER a click does the rendered glyph (a filled gold star =
+    "saved") contradict the still-frozen name. A one-shot static scan samples
+    the DOM once and sees a perfectly valid named control.
+  - Catching it needs: trigger the click, then compare the NEW pixels (filled
+    star) against the UNCHANGED name — a visual + temporal judgment.
+-->
+<style>
+  :root { --ink:#2b211a; --bg:#faf6f0; --line:#e4d8c8; --gold:#c89b3c; }
+  body { margin:0; font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); }
+  header { background:#3a2b20; color:#f4ead9; padding:14px 24px; }
+  header .brand { font-weight:700; letter-spacing:.5px; }
+  main { max-width:760px; margin:28px auto; padding:0 20px; }
+  .product { display:grid; grid-template-columns:200px 1fr; gap:24px;
+             background:#fff; border:1px solid var(--line); border-radius:10px;
+             padding:22px; }
+  .shot { width:200px; height:200px; border-radius:8px;
+          background:linear-gradient(135deg,#caa472,#7c5a36);
+          display:flex; align-items:center; justify-content:center;
+          color:#fff8ec; font-size:54px; }
+  h1 { font-size:22px; margin:0 0 6px; }
+  .price { font-size:20px; color:#7a5a2e; font-weight:700; margin:6px 0 14px; }
+  .rating { color:#8a7a64; font-size:14px; margin-bottom:16px; }
+  .actions { display:flex; gap:12px; align-items:center; }
+  .buy { background:var(--gold); border:none; color:#241a0e; font-weight:700;
+         padding:12px 22px; border-radius:8px; cursor:pointer; }
+  /* The favorite toggle: a real <button> wrapping a swappable <img>. */
+  .fav { background:#fff; border:1px solid var(--line); border-radius:8px;
+         padding:9px 11px; cursor:pointer; line-height:0; }
+  .fav:focus-visible { outline:3px solid #3a6ea5; outline-offset:2px; }
+  .fav img { width:26px; height:26px; display:block; }
+  .saved-note { font-size:13px; color:#5a7a3a; margin-top:12px; min-height:18px; }
+  footer { max-width:760px; margin:30px auto; padding:0 20px; color:#8a7a64;
+           font-size:13px; }
+</style>
+</head>
+<body>
+<header><span class="brand">Brewhaus Coffee Supply</span></header>
+<main>
+  <nav aria-label="Breadcrumb" style="font-size:13px;margin-bottom:16px;color:#8a7a64;">
+    Home / Kettles &amp; Pots / Pour-Over
+  </nav>
+  <article class="product">
+    <div class="shot" aria-hidden="true">&#9749;</div>
+    <div>
+      <h1>Hammered Copper Pour-Over Kettle &mdash; 1.0 L</h1>
+      <p class="price">$64.00</p>
+      <p class="rating">4.7 &#9733; (213 reviews) &middot; Ships in 2 business days</p>
+      <div class="actions">
+        <button class="buy" type="button">Add to cart</button>
+
+        <!-- THE DEFECTIVE NAMED COMPONENT -->
+        <button id="favBtn" class="fav" type="button" onclick="toggleFav()">
+          <!-- alt is the ENTIRE accessible name of this button.
+               It is set once and the script never rewrites it. -->
+          <img id="favIcon"
+               src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24'&gt;&lt;path fill='none' stroke='%23b9892f' stroke-width='1.8' d='M12 3.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.8l6.1-.7z'/&gt;&lt;/svg&gt;"
+               alt="Add to favorites">
+        </button>
+      </div>
+      <p id="savedNote" class="saved-note" aria-hidden="true"></p>
+    </div>
+  </article>
+</main>
+<footer>
+  Brewhaus Coffee Supply &middot; Free returns within 30 days.
+</footer>
+
+<script>
+  // Persona: a junior front-end dev copied a "favourite toggle" snippet from a
+  // Stack Overflow answer. The snippet swaps the SVG data-URI to a filled gold
+  // star (the visual "saved" state) and pushes the product id into a list.
+  // The author updated the picture and the visible note — but the toggle's
+  // accessible name (the <img alt>) was left exactly as it shipped.
+  var faved = false;
+  var EMPTY_STAR = document.getElementById('favIcon').getAttribute('src');
+  var FILLED_STAR = "data:image/svg+xml;utf8," + encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24'>" +
+    "<path fill='#e0a92b' stroke='#b9892f' stroke-width='1' d='M12 3.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.8l6.1-.7z'/></svg>");
+
+  function toggleFav() {
+    faved = !faved;
+    var icon = document.getElementById('favIcon');
+    var note = document.getElementById('savedNote');
+    // Visual content is mutated...
+    icon.setAttribute('src', faved ? FILLED_STAR : EMPTY_STAR);
+    // ...and a sighted-only confirmation is shown...
+    note.textContent = faved ? "Saved to your favorites." : "";
+    // BUG (F20): the alt — i.e. the BUTTON'S ACCESSIBLE NAME — is never changed.
+    // After this runs, the glyph is a filled "saved" star but a screen reader,
+    // braille display, and voice-control all still get "Add to favorites".
+    // The correct name once saved would be "Remove from favorites".
+  }
+</script>
+</body>
+</html>

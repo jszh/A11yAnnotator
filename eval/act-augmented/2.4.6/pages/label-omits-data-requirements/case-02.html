@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Donate — Riverkeepers Alliance</title>
+  <style>
+    :root { --ink:#10241f; --muted:#5a6b66; --line:#cdd8d4; --teal:#0f766e; --req:#9a3412; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter", "Segoe UI", Arial, sans-serif; color:var(--ink);
+           background:#f4f7f6; line-height:1.5; }
+    header { background:var(--teal); color:#fff; padding:14px 20px; }
+    header b { font-size:18px; letter-spacing:.3px; }
+    .card { max-width:560px; margin:28px auto; background:#fff; border:1px solid var(--line);
+            border-radius:12px; padding:26px 28px 30px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+    h1 { font-size:24px; margin:0 0 4px; }
+    .sub { color:var(--muted); margin:0 0 24px; font-size:15px; }
+    .row { margin:0 0 20px; }
+    label { display:block; font-weight:600; margin:0 0 6px; }
+    .req { color:var(--req); font-weight:600; }
+    input { width:100%; font-size:16px; padding:10px 12px; border:1px solid var(--line);
+            border-radius:8px; }
+    .legend { color:var(--muted); font-size:13px; margin:0 0 22px; }
+    button { background:var(--teal); color:#fff; border:0; border-radius:8px; font-size:16px;
+             font-weight:600; padding:12px 20px; cursor:pointer; width:100%; }
+    .err-msg { color:var(--req); font-size:14px; margin:6px 0 0; display:none; }
+    .note { max-width:560px; margin:0 auto 40px; font-size:13px; color:var(--muted); padding:0 28px; }
+  </style>
+</head>
+<body>
+  <header><b>Riverkeepers Alliance</b></header>
+  <main>
+    <form class="card" id="donateForm" novalidate>
+      <h1>Make a one-time gift</h1>
+      <p class="sub">Your support keeps the lower watershed monitored and litigated.</p>
+
+      <p class="legend">Fields marked <span class="req">(required)</span> must be completed.</p>
+
+      <div class="row">
+        <label for="fname">First name <span class="req">(required)</span></label>
+        <input type="text" id="fname" name="fname" required>
+        <p class="err-msg" id="fname-err">Enter your first name.</p>
+      </div>
+
+      <div class="row">
+        <label for="amount">Gift amount <span class="req">(required)</span></label>
+        <input type="text" id="amount" name="amount" inputmode="decimal" required>
+        <p class="err-msg" id="amount-err">Enter an amount.</p>
+      </div>
+
+      <!-- ISSUE: this field IS required (the `required` attribute is set and the handler blocks
+           submission without it, sending the receipt + tax acknowledgement here). But unlike the
+           two fields above, its visible label is just "Email" with NO "(required)" indicator. The
+           page has TAUGHT the user a convention — "(required)" marks mandatory fields — and this
+           label silently breaks it, so the label fails to convey that the field must be completed.
+           The required-status is a data requirement TT 5.B lists, conveyed for siblings but not here. -->
+      <div class="row">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+        <p class="err-msg" id="email-err">Enter your email address so we can send your receipt.</p>
+      </div>
+
+      <button type="submit">Donate</button>
+    </form>
+
+    <p class="note">Demo note (not shown to users): This page fails WCAG 2.4.6 Test 5.B. The legend
+      establishes that "(required)" is the required-field cue. Two fields carry it; the genuinely
+      required <code>#email</code> field does not, so its label "Email" fails to communicate the
+      "required" data requirement that TT 5.B enumerates. Automated tools pass it: the label is
+      associated and non-empty, the <code>required</code> attribute is present and even programmatically
+      exposes <code>aria-required</code> semantics — so axe sees a labelled, required input with no error.
+      No tool can judge that, given the page's own visible convention, the absent "(required)" word makes
+      this label non-descriptive of its requirement.</p>
+  </main>
+
+  <script>
+    var f = document.getElementById('donateForm');
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var bad = false;
+      [['fname','fname-err'],['amount','amount-err'],['email','email-err']].forEach(function (p) {
+        var el = document.getElementById(p[0]);
+        var msg = document.getElementById(p[1]);
+        if (!el.value.trim()) { msg.style.display = 'block'; bad = true; }
+        else { msg.style.display = 'none'; }
+      });
+      if (!bad) alert('Thank you for your gift!');
+    });
+  </script>
+</body>
+</html>

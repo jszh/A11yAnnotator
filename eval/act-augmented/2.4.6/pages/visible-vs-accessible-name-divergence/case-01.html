@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riverside Health — New patient registration</title>
+<style>
+  :root { --ink:#1b2733; --muted:#5a6b7b; --line:#d6dee6; --brand:#0a6e74; --brand-d:#075257; --req:#b3261e; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:#eef3f4; }
+  .card { max-width:560px; margin:32px auto; background:#fff; border:1px solid var(--line); border-radius:12px; padding:28px 30px 34px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  h1 { font-size:21px; margin:0 0 4px; }
+  .lede { color:var(--muted); margin:0 0 22px; font-size:14px; }
+  .field { margin:0 0 20px; }
+  label { display:block; font-weight:600; margin:0 0 6px; }
+  .hint { display:block; font-weight:400; color:var(--muted); font-size:13px; margin-top:2px; }
+  .req { color:var(--req); font-weight:700; }
+  input[type=text], input[type=email] { width:100%; padding:10px 12px; font-size:15px; border:1px solid #b9c4cf; border-radius:8px; }
+  input:focus { outline:2px solid var(--brand); outline-offset:1px; }
+  .btn { background:var(--brand); color:#fff; border:0; border-radius:8px; padding:12px 20px; font-size:15px; font-weight:600; cursor:pointer; }
+  .btn:hover { background:var(--brand-d); }
+  fieldset { border:0; padding:0; margin:0; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>New patient registration</h1>
+    <p class="lede">Please match the details exactly as they appear on your insurance card.</p>
+
+    <form action="#" method="post" novalidate>
+      <fieldset>
+        <div class="field">
+          <label for="legal-name">Full legal name <span class="req" aria-hidden="true">*</span></label>
+          <input type="text" id="legal-name" name="legal-name" autocomplete="name" required>
+        </div>
+
+        <!-- THE DEFECT IS ON THIS FIELD.
+             VISIBLE label = "Date of birth (MM/DD/YYYY) *" — descriptive AND carries the
+             data-format requirement (MM/DD/YYYY) that TT 5.B explicitly requires a label to convey.
+             But the field also carries aria-label="dob_1". Per the accessible-name computation,
+             aria-label WINS over an associated <label>, so the COMPUTED ACCESSIBLE NAME is the
+             bare slug "dob_1". A screen-reader user hears "dob 1, edit text" — no purpose, no
+             format. The <label for> association is intact and the field HAS a non-empty
+             accessible name, so 4.1.2 and 3.3.2 both pass; only the descriptiveness of the
+             announced surface fails 2.4.6.
+             How it arose: an Angular team added aria-label="dob_1" as an automated-test selector
+             hook (their e2e suite queries by aria-label), not realizing it overrides the label. -->
+        <div class="field">
+          <label for="dob">Date of birth (MM/DD/YYYY) <span class="req" aria-hidden="true">*</span>
+            <span class="hint">Enter as two-digit month, two-digit day, four-digit year.</span>
+          </label>
+          <input type="text" id="dob" name="dob" aria-label="dob_1"
+                 inputmode="numeric" placeholder="MM/DD/YYYY" required>
+        </div>
+
+        <div class="field">
+          <label for="email">Email address <span class="req" aria-hidden="true">*</span></label>
+          <input type="email" id="email" name="email" autocomplete="email" required>
+        </div>
+      </fieldset>
+
+      <p style="font-size:13px;color:var(--muted)">Fields marked <span class="req">*</span> are required.</p>
+      <button type="submit" class="btn">Continue to insurance details</button>
+    </form>
+  </main>
+</body>
+</html>

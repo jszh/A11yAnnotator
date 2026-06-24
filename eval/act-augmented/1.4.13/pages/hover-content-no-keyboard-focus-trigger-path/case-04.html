@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choose your fare — SkyArc Airways booking</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    background: #f4f6fb;
+    color: #15212e;
+  }
+  header { background: #112a5c; color: #fff; padding: 14px 30px; display: flex; align-items: center; gap: 10px; }
+  header .logo { font-weight: 800; letter-spacing: .3px; }
+  header .logo span { color: #62b6ff; }
+  main { max-width: 820px; margin: 26px auto; padding: 0 20px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .route { color: #4a5a6b; font-size: 14px; margin: 0 0 22px; }
+
+  .fares { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .fare {
+    background: #fff; border: 1px solid #d8e0ea; border-radius: 12px;
+    padding: 18px 16px 16px; position: relative; display: flex; flex-direction: column;
+  }
+  .fare h2 { font-size: 14px; margin: 0 0 2px; color: #4a5a6b; text-transform: uppercase; letter-spacing: .4px; }
+  .fare .price { font-size: 26px; font-weight: 800; margin: 2px 0 12px; }
+  .fare ul { margin: 0 0 16px; padding-left: 18px; font-size: 13px; color: #2c3a49; line-height: 1.6; }
+  .fare ul li { margin: 0; }
+  .fare .pick { margin-top: auto; }
+  .fare .pick button {
+    width: 100%; padding: 10px; border: 0; border-radius: 8px; cursor: pointer;
+    background: #1d59d8; color: #fff; font-size: 14px; font-weight: 700;
+  }
+
+  /* The info trigger next to each fare name. A real, focusable <button>. */
+  .info {
+    border: 1px solid #9fb2c6; background: #eef3fa; color: #1d59d8;
+    width: 18px; height: 18px; border-radius: 50%; font-size: 12px; font-weight: 700;
+    line-height: 1; cursor: pointer; padding: 0; margin-left: 6px; vertical-align: 1px;
+  }
+  .info:focus-visible { outline: 2px solid #1d59d8; outline-offset: 2px; }
+  .name-row { display: flex; align-items: center; }
+
+  .pop {
+    position: absolute; z-index: 30; left: 12px; right: 12px; top: 64px;
+    background: #0f2038; color: #eaf2fb; font-size: 12.5px; line-height: 1.5;
+    padding: 11px 13px; border-radius: 8px; box-shadow: 0 12px 28px rgba(0,0,0,.28);
+    display: none;
+  }
+  .pop strong { color: #ffd27a; }
+  .pop[data-open="1"] { display: block; }
+  .note { font-size: 12.5px; color: #607080; margin-top: 18px; }
+</style>
+</head>
+<body>
+  <header><span class="logo">Sky<span>Arc</span> Airways</span></header>
+
+  <main>
+    <h1>Choose your fare</h1>
+    <p class="route">SEA → JFK · Tue, Aug 4 · 1 adult · Nonstop · 5h 32m</p>
+
+    <div class="fares">
+
+      <!-- BASIC ECONOMY — the trap fare -->
+      <section class="fare" aria-labelledby="f1">
+        <div class="name-row">
+          <h2 id="f1">Basic</h2>
+          <button class="info" id="info-basic" type="button"
+                  aria-describedby="pop-basic" aria-label="Fare details for Basic">i</button>
+        </div>
+        <div class="price">$148</div>
+        <ul>
+          <li>Carry-on personal item</li>
+          <li>Seat assigned at check-in</li>
+          <li>Boarding group 9</li>
+        </ul>
+        <div class="pick"><button type="button">Select Basic</button></div>
+        <div class="pop" id="pop-basic" role="tooltip"></div>
+      </section>
+
+      <!-- MAIN -->
+      <section class="fare" aria-labelledby="f2">
+        <div class="name-row">
+          <h2 id="f2">Main</h2>
+          <button class="info" id="info-main" type="button"
+                  aria-describedby="pop-main" aria-label="Fare details for Main">i</button>
+        </div>
+        <div class="price">$214</div>
+        <ul>
+          <li>Carry-on + personal item</li>
+          <li>Standard seat selection</li>
+          <li>Boarding group 5</li>
+        </ul>
+        <div class="pick"><button type="button">Select Main</button></div>
+        <div class="pop" id="pop-main" role="tooltip"></div>
+      </section>
+
+      <!-- FLEX -->
+      <section class="fare" aria-labelledby="f3">
+        <div class="name-row">
+          <h2 id="f3">Flex</h2>
+          <button class="info" id="info-flex" type="button"
+                  aria-describedby="pop-flex" aria-label="Fare details for Flex">i</button>
+        </div>
+        <div class="price">$329</div>
+        <ul>
+          <li>2 checked bags</li>
+          <li>Preferred seat selection</li>
+          <li>Boarding group 2</li>
+        </ul>
+        <div class="pick"><button type="button">Select Flex</button></div>
+        <div class="pop" id="pop-flex" role="tooltip"></div>
+      </section>
+
+    </div>
+
+    <p class="note">Tap or hover the “i” next to a fare name for the full rules. Selecting a fare
+    takes you to seat selection.</p>
+  </main>
+
+  <script>
+    // Each "i" button IS a real, focusable <button> AND has a focus handler — so a quick
+    // "does focus reveal something?" check passes. The catch: the focus handler renders a
+    // SHORT, reassuring blurb, while ONLY the mouse-hover handler renders the FULL rules
+    // including the load-bearing penalty (non-refundable, $99 change fee, no upgrades).
+    // For the Basic fare those penalties are the whole point of opening the popup, and a
+    // keyboard user never sees them.
+    var FARES = {
+      basic: {
+        // FULL text — pointer hover only:
+        full: 'Basic (lowest price). <strong>Non-refundable and non-changeable.</strong> ' +
+              'Changes/cancellation are not permitted; the ticket is forfeited if unused. ' +
+              'No same-day standby. Not eligible for upgrades or seat changes after booking. ' +
+              'Earns 0 miles.',
+        // SHORT text — keyboard focus only:
+        brief: 'Basic — our lowest one-way price for this route.'
+      },
+      main: {
+        full: 'Main. Changes allowed for a <strong>$99 fee</strong> plus fare difference. ' +
+              'Refundable to travel credit only. Earns 5 miles per dollar.',
+        brief: 'Main — changes allowed for a fee. Refundable to travel credit.'
+      },
+      flex: {
+        full: 'Flex. <strong>Free changes and full refund to original payment.</strong> ' +
+              'Same-day standby included. Earns 7 miles per dollar.',
+        brief: 'Flex — free changes and full refund to original payment.'
+      }
+    };
+
+    ['basic', 'main', 'flex'].forEach(function (k) {
+      var btn = document.getElementById('info-' + k);
+      var pop = document.getElementById('pop-' + k);
+
+      // Pointer hover → FULL rules.
+      btn.addEventListener('mouseenter', function () {
+        pop.innerHTML = FARES[k].full;
+        pop.setAttribute('data-open', '1');
+      });
+      btn.addEventListener('mouseleave', function () {
+        pop.removeAttribute('data-open');
+      });
+
+      // Keyboard focus → only the SHORT blurb (penalties omitted).
+      btn.addEventListener('focus', function () {
+        pop.innerHTML = FARES[k].brief;
+        pop.setAttribute('data-open', '1');
+      });
+      btn.addEventListener('blur', function () {
+        pop.removeAttribute('data-open');
+      });
+    });
+  </script>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT (and why this FAILS 1.4.13 on the focus limb):
+    The trigger is a real, focusable <button> WITH a focus handler, so the popup DOES open on
+    keyboard focus — every static scanner, and even a naive "focus reveals content?" heuristic,
+    passes the page (valid role="tooltip", aria-describedby resolving, accessible names,
+    contrast all fine). The defect is semantic: the focus path opens a DIFFERENT, abbreviated
+    payload than the hover path. The mouse-hover popup for the Basic fare discloses the only
+    place on the page that the ticket is NON-REFUNDABLE and NON-CHANGEABLE; the keyboard-focus
+    popup replaces that with a friendly one-liner ("our lowest one-way price") that omits the
+    penalty entirely. So content IS triggerable by hover that is NOT (fully) triggerable by
+    keyboard focus — the focus path withholds the material information. Catching this requires a
+    human to (1) hover the button and read the full rules, (2) Tab to the same button and read
+    the focus popup, and (3) JUDGE that the keyboard version drops the load-bearing penalty.
+    No tool compares two interaction-state payloads for meaning-equivalence. Verdict: FAILED.
+  -->
+</body>
+</html>

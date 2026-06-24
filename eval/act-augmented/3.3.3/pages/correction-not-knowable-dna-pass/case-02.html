@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warranty registration — Tarn &amp; Pike Tools</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (and why this page FAILS 3.3.3 on ONE field only):
+  Two fields are re-rendered in the post-submit error state, and BOTH show the same
+  bare, correctly associated message: the field name + "Required." Structurally the
+  two fields are IDENTICAL — same markup, same aria wiring, same generic message. An
+  automated checker (and a snapshot scan) sees two well-formed errors and cannot rank
+  one above the other.
+
+  The knowability gate splits them:
+   * "Purchase month" is an ENUMERABLE field — the correct value is one of exactly
+     twelve known strings (January..December). A suggestion is KNOWABLE (e.g. "Choose
+     one of: January, February, ... December"). Showing only "Required" withholds a
+     suggestion that the system plainly could give. -> SC 3.3.3 FAIL on this field.
+   * "Anything else we should know?" is a FREE-TEXT field — the correct value is
+     whatever the customer wants to say. No suggestion is knowable; "Required" is the
+     conformant maximum. -> SC 3.3.3 PASS on this field.
+
+  The page as a whole FAILS because the Month field fails. The judgment requires
+  deciding, per field, whether a correction is knowable — a semantic call about the
+  nature of each field that axe/WAVE/Lighthouse cannot make. They have no model of
+  "this field's correct value is enumerable" vs "this field's value is open prose."
+-->
+<style>
+  :root{ --ink:#15191c; --muted:#5a636b; --line:#cfd5da; --brand:#1f5e3a; --danger:#b42318; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Segoe UI",system-ui,Arial,sans-serif; color:var(--ink); background:#eef2ef; }
+  .wrap{ max-width:640px; margin:36px auto; padding:0 18px; }
+  header.brand{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  header.brand .logo{ width:30px; height:30px; border-radius:6px; background:var(--brand); }
+  header.brand strong{ font-size:1.1rem; letter-spacing:.3px; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:26px 26px; }
+  h1{ font-size:1.4rem; margin:0 0 4px; }
+  .lede{ color:var(--muted); margin:0 0 22px; font-size:.94rem; }
+  .summary{ border:1px solid #f1c0bb; background:#fdf3f2; border-radius:8px; padding:12px 14px; margin-bottom:20px; }
+  .summary h2{ font-size:.95rem; margin:0 0 6px; color:var(--danger); }
+  .summary ul{ margin:0; padding-left:20px; font-size:.88rem; }
+  .summary a{ color:var(--danger); }
+  .field{ margin-bottom:20px; }
+  label{ display:block; font-weight:600; font-size:.92rem; margin-bottom:6px; }
+  .hint{ color:var(--muted); font-size:.84rem; margin:0 0 8px; }
+  input[type=text]{ width:100%; padding:11px 12px; font-size:1rem; border:2px solid var(--line);
+        border-radius:8px; background:#fff; color:var(--ink); }
+  textarea{ width:100%; min-height:90px; padding:11px 12px; font:1rem/1.5 inherit; border:2px solid var(--line);
+        border-radius:8px; background:#fff; color:var(--ink); resize:vertical; }
+  [aria-invalid="true"]{ border-color:var(--danger); background:#fffafa; }
+  input:focus, textarea:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .err{ display:flex; gap:7px; align-items:flex-start; margin-top:8px; color:var(--danger); font-size:.87rem; }
+  .err svg{ flex:0 0 auto; margin-top:2px; }
+  .row{ display:flex; gap:16px; }
+  .row .field{ flex:1; }
+  button{ margin-top:6px; padding:12px 22px; font-size:1rem; font-weight:600; color:#fff;
+          background:var(--brand); border:0; border-radius:8px; cursor:pointer; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand"><span class="logo" aria-hidden="true"></span><strong>Tarn &amp; Pike Tools</strong></header>
+    <main class="card">
+      <h1>Register your warranty</h1>
+      <p class="lede">Model T&amp;P-740 cordless impact driver · Serial 0X-22817</p>
+
+      <div class="summary" role="alert">
+        <h2>2 fields need your attention</h2>
+        <ul>
+          <li><a href="#month">Purchase month</a> — required</li>
+          <li><a href="#notes">Anything else we should know?</a> — required</li>
+        </ul>
+      </div>
+
+      <form action="#" method="post" novalidate>
+        <div class="row">
+          <div class="field">
+            <label for="month">Purchase month</label>
+            <p class="hint" id="month-hint">The month printed on your receipt.</p>
+            <!--
+              ENUMERABLE field. Correct value is one of twelve known month names.
+              A suggestion IS knowable ("Choose one of: January .. December") but only
+              "Required" is shown. -> 3.3.3 FAIL on this field. Note it is a TEXT input,
+              not a <select>, so the twelve values are NOT exposed in the control.
+            -->
+            <input type="text" id="month" name="month"
+                   aria-describedby="month-hint error-month"
+                   aria-invalid="true" value=""
+                   autocomplete="off">
+            <p class="err" id="error-month">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+              <span>Purchase month — Required.</span>
+            </p>
+          </div>
+          <div class="field">
+            <label for="year">Purchase year</label>
+            <p class="hint" id="year-hint">Four digits, e.g. 2025.</p>
+            <input type="text" id="year" name="year" aria-describedby="year-hint" value="2025" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="notes">Anything else we should know?</label>
+          <p class="hint" id="notes-hint">Optional context about your purchase or how you use the tool. Tell us in your own words.</p>
+          <!--
+            FREE-TEXT field. Correct value is open prose. No suggestion is knowable;
+            "Required" is the conformant maximum. -> 3.3.3 PASS on this field.
+            (Marked required here by a copy-paste of the same validator — fine either way.)
+          -->
+          <textarea id="notes" name="notes"
+                    aria-describedby="notes-hint error-notes"
+                    aria-invalid="true"></textarea>
+          <p class="err" id="error-notes">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <span>Anything else we should know? — Required.</span>
+          </p>
+        </div>
+
+        <button type="submit">Complete registration</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

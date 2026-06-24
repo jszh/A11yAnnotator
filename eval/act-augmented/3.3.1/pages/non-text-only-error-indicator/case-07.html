@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Place a bid — Lot 214, Harlow &amp; Crane Auctioneers</title>
+<style>
+  body { font:16px/1.55 "Inter","Segoe UI",sans-serif; color:#1c1c1c;
+         background:#f4f2ef; margin:0; }
+  .wrap { max-width:560px; margin:0 auto; padding:40px 24px 64px; }
+  h1 { font-size:1.4rem; margin:0 0 2px; }
+  .lot { color:#6b6358; margin:0 0 26px; }
+  form { background:#fff; border:1px solid #ded8cf; border-radius:10px; padding:26px 28px 32px; }
+  .field { margin:0 0 20px; }
+  label { display:block; font-weight:600; margin:0 0 6px; }
+  input[type=text], input[type=email] {
+    width:100%; box-sizing:border-box; padding:11px 12px; font-size:1rem;
+    border:1px solid #cfc7bb; border-radius:7px; background:#fff; }
+  /* SAME red-border + tint visual styling as the failing cases... */
+  input.flagged { border:2px solid #c4161c; background:#fdecec; }
+  /* ...but here it is ACCOMPANIED by a real text message, properly associated. */
+  .err {
+    display:flex; align-items:center; gap:7px;
+    margin:7px 0 0; color:#a31218; font-size:.9rem; font-weight:600;
+  }
+  .err svg { flex:0 0 16px; }
+  .bid { background:#143d2b; color:#fff; border:0; border-radius:7px;
+         padding:12px 26px; font-size:1rem; font-weight:600; cursor:pointer; }
+  .small { font-size:.82rem; color:#8a8175; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Place a bid</h1>
+  <p class="lot">Lot 214 · A Victorian rosewood writing slope · current bid £180</p>
+
+  <!-- CONTROL (should PASS). The email field carries the identical red border + tint as the
+       failing cases, BUT the error is also IDENTIFIED AND DESCRIBED IN TEXT: a visible
+       message "Email address is not valid" sits adjacent to the field and is programmatically
+       tied to it via aria-describedby. The red styling is now an acceptable ADDITIONAL cue,
+       not the sole one. -->
+  <form action="/lots/214/bid" method="post" novalidate>
+    <div class="field">
+      <label for="bidder">Your name</label>
+      <input type="text" id="bidder" name="bidder" value="Margaret Ellison">
+    </div>
+
+    <div class="field">
+      <label for="email">Email address</label>
+      <input type="email" id="email" name="email" value="margaret.ellison@"
+             class="flagged" aria-invalid="true" aria-describedby="email-err">
+      <p class="err" id="email-err">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 2 L23 21 H1 Z" fill="#c4161c"/>
+          <rect x="11" y="9" width="2" height="6" fill="#fff"/>
+          <rect x="11" y="17" width="2" height="2" fill="#fff"/>
+        </svg>
+        <span>Email address is not valid.</span>
+      </p>
+    </div>
+
+    <div class="field">
+      <label for="amount">Your maximum bid (GBP)</label>
+      <input type="text" id="amount" name="amount" value="200" inputmode="numeric">
+      <p class="small">Bids increase in £10 steps. We bid on your behalf up to your maximum.</p>
+    </div>
+
+    <button type="submit" class="bid">Submit bid</button>
+  </form>
+</div>
+
+<!--
+  WHY THIS PAGE PASSES (discrimination control)
+  Visually this looks like the failing cases — the same 2px red border and red tint on the
+  email field. The difference is that the error is now IDENTIFIED AND DESCRIBED IN TEXT:
+  "Email address is not valid." is a visible message tied to the field via
+  aria-describedby="email-err", and aria-invalid="true" exposes the state. The decorative
+  triangle is correctly aria-hidden, so the meaning rides on the text, not the icon. A
+  screen-reader user focusing the field hears "Email address, invalid entry, Email address
+  is not valid." Per WCAG the colour/icon are acceptable as ADDITIONAL indicators because a
+  text description is present. This page exists to test that the aspect's judgment
+  discriminates "styling + text" (pass) from "styling alone" (fail) — automated tools, which
+  cannot see the red styling as an error cue at all, would not distinguish these pages either
+  way, which is exactly why human visual reconciliation is required.
+-->
+</body>
+</html>

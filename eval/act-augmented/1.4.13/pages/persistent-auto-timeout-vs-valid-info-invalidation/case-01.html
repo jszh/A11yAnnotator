@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wire transfer — daily limit help | Meridian Pay</title>
+<style>
+  :root { --ink:#16202b; --muted:#5b6776; --line:#cfd6df; --brand:#0b6e4f; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.55 "Segoe UI", system-ui, sans-serif; color:var(--ink); background:#f4f6f9; }
+  header { background:#0b3d2e; color:#fff; padding:14px 24px; }
+  header b { font-size:18px; letter-spacing:.3px; }
+  main { max-width:680px; margin:28px auto; background:#fff; border:1px solid var(--line); border-radius:10px; padding:28px 30px; }
+  h1 { font-size:21px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 22px; }
+  label { display:block; font-weight:600; margin:18px 0 6px; }
+  .field { display:flex; align-items:center; gap:8px; }
+  input[type=text] { flex:1; padding:11px 12px; border:1px solid var(--line); border-radius:7px; font-size:16px; }
+  /* the help trigger */
+  .help {
+    position:relative;
+    display:inline-flex; align-items:center; justify-content:center;
+    width:24px; height:24px; border-radius:50%;
+    border:1px solid var(--brand); color:var(--brand);
+    background:#fff; font-weight:700; cursor:help;
+  }
+  .help:focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
+  .tip {
+    position:absolute; left:50%; top:130%; transform:translateX(-50%);
+    width:280px; background:#16202b; color:#fff; padding:12px 14px;
+    border-radius:8px; font-size:14px; line-height:1.5;
+    box-shadow:0 6px 18px rgba(0,0,0,.25); z-index:10;
+    opacity:0; visibility:hidden; transition:opacity .12s ease;
+  }
+  .tip::after { content:""; position:absolute; left:50%; top:-6px; transform:translateX(-50%) rotate(45deg); width:12px; height:12px; background:#16202b; }
+  .tip.show { opacity:1; visibility:visible; }
+  .row { display:flex; gap:8px; align-items:baseline; }
+  button.primary { margin-top:26px; background:var(--brand); color:#fff; border:0; padding:12px 20px; border-radius:8px; font-size:16px; cursor:pointer; }
+  footer { max-width:680px; margin:18px auto 60px; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<header><b>Meridian Pay</b> &nbsp;·&nbsp; Business banking</header>
+
+<main>
+  <h1>New wire transfer</h1>
+  <p class="sub">International payments are reviewed before release.</p>
+
+  <form onsubmit="return false">
+    <label for="amt">Amount (USD)
+      <span class="row" style="font-weight:400">
+        <button type="button" id="limitHelp" class="help" aria-describedby="limitTip" aria-label="About the daily transfer limit">?</button>
+      </span>
+    </label>
+    <div class="field">
+      <input type="text" id="amt" inputmode="decimal" placeholder="0.00" autocomplete="off">
+    </div>
+
+    <div id="limitTip" role="tooltip" class="tip">
+      Your verified daily wire limit is <strong>$25,000</strong>. Amounts above this need
+      a one-time call to your relationship manager at the number on the back of your card.
+      Limits reset at 11:59&nbsp;PM in your account time zone.
+    </div>
+
+    <label for="ref">Reference / memo</label>
+    <div class="field"><input type="text" id="ref" placeholder="Invoice 4471"></div>
+
+    <button type="submit" class="primary">Review transfer</button>
+  </form>
+</main>
+
+<footer>Meridian Pay is a fictional demo. No real banking data is processed.</footer>
+
+<script>
+  // Help bubble appears on hover AND keyboard focus (good).
+  // BUG: a setTimeout auto-hides it 4 seconds after it appears, EVEN while the
+  // trigger is still hovered or focused — the dev added the timer to "auto-clean
+  // up tooltips" without realizing it breaks the Persistent condition.
+  var trigger = document.getElementById('limitHelp');
+  var tip = document.getElementById('limitTip');
+  var autoHideTimer = null;
+
+  function showTip() {
+    tip.classList.add('show');
+    clearTimeout(autoHideTimer);
+    // ---- the defect: time-based auto-dismiss ----
+    autoHideTimer = setTimeout(function () {
+      tip.classList.remove('show');   // hides regardless of hover/focus state
+    }, 4000);
+  }
+  function hideTip() {
+    tip.classList.remove('show');
+    clearTimeout(autoHideTimer);
+  }
+
+  trigger.addEventListener('mouseenter', showTip);
+  trigger.addEventListener('mouseleave', hideTip);
+  trigger.addEventListener('focus', showTip);
+  trigger.addEventListener('blur', hideTip);
+  // Tooltip is hoverable (mousing onto it keeps it shown) and Esc-dismissible —
+  // those two conditions PASS. Only Persistent is broken, by the timer above.
+  tip.addEventListener('mouseenter', function () { clearTimeout(autoHideTimer); tip.classList.add('show'); });
+  tip.addEventListener('mouseleave', hideTip);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideTip(); });
+</script>
+
+<!--
+  WHY AUTOMATED TOOLS MISS IT:
+  axe/WAVE/Lighthouse see a well-formed role="tooltip", a real <button> trigger with
+  an accessible name, aria-describedby wiring, focus + hover handlers, and an Esc
+  dismiss handler. Every static check passes. The failure is purely temporal: the
+  setTimeout(...,4000) removes the tooltip while the user is STILL hovering/focused.
+  A scanner cannot tell whether a 4-second timer is a disallowed auto-dismiss
+  (this case) or a legitimate information-invalidation (case-05/case-06). That is a
+  judgment about the MEANING of the content over time, which only a human reviewer
+  watching the timeline can make.
+-->
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fernweave — Handwoven Throws & Home Textiles</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter","Segoe UI",Arial,sans-serif; color:#2b2622; background:#fbf8f4; }
+  header.shop { display:flex; align-items:center; justify-content:space-between; padding:16px 30px; border-bottom:1px solid #e6ded3; }
+  .brand { font-weight:800; letter-spacing:1px; font-size:1.2rem; color:#7a4d2b; }
+  .shop nav a { color:#5a514a; text-decoration:none; margin-left:18px; font-size:.9rem; }
+  .hero { padding:40px 30px; }
+  .hero h1 { font-size:1.8rem; margin:0 0 8px; }
+  .hero p { color:#6a6058; max-width:520px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; padding:0 30px 50px; max-width:980px; }
+  .card { background:#fff; border:1px solid #ece4d8; border-radius:8px; overflow:hidden; }
+  .card .ph { height:140px; background:linear-gradient(135deg,#d8c4ab,#b8956a); }
+  .card .body { padding:12px 14px; }
+  .card h3 { font-size:.98rem; margin:0 0 4px; }
+  .card .price { color:#7a4d2b; font-weight:700; font-size:.92rem; }
+  .card button { margin-top:10px; width:100%; padding:9px; border:0; border-radius:5px; background:#7a4d2b; color:#fff; cursor:pointer; }
+
+  /* Newsletter overlay */
+  .overlay {
+    position:fixed; inset:0; background:rgba(40,30,20,.55);
+    display:flex; align-items:center; justify-content:center; z-index:100;
+  }
+  .modal {
+    background:#fff; width:420px; max-width:92vw; border-radius:12px; padding:30px 32px; position:relative;
+    box-shadow:0 18px 50px rgba(0,0,0,.3);
+  }
+  .modal h2 { margin:0 0 6px; font-size:1.4rem; color:#7a4d2b; }
+  .modal p { margin:0 0 18px; color:#6a6058; font-size:.92rem; }
+  .modal label { display:block; font-size:.82rem; font-weight:600; margin:12px 0 5px; }
+  .modal input { width:100%; padding:11px 12px; border:1px solid #d8cdbd; border-radius:6px; font-size:1rem; }
+  .modal input:focus { outline:3px solid #2f80c8; }
+  .modal .go { margin-top:18px; width:100%; padding:12px; border:0; border-radius:6px; background:#7a4d2b; color:#fff; font-size:1rem; cursor:pointer; }
+  .modal .close {
+    position:absolute; top:12px; right:14px; width:34px; height:34px; border:1px solid #e0d6c8;
+    background:#faf6f0; border-radius:50%; font-size:1.1rem; line-height:1; cursor:pointer; color:#7a4d2b;
+  }
+  .modal .close:focus { outline:3px solid #2f80c8; }
+  .modal .decline { display:block; margin:14px auto 0; background:none; border:0; color:#9a8f82; font-size:.82rem; text-decoration:underline; cursor:pointer; }
+</style>
+</head>
+<body>
+<header class="shop">
+  <span class="brand">FERNWEAVE</span>
+  <nav aria-label="Shop">
+    <a href="#new">New</a>
+    <a href="#throws">Throws</a>
+    <a href="#cart">Cart (0)</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <h1>Handwoven throws for slow evenings</h1>
+  <p>Small-batch textiles woven on traditional looms. Naturally dyed, ethically sourced.</p>
+</section>
+
+<div class="grid">
+  <div class="card"><div class="ph"></div><div class="body"><h3>Juniper Wool Throw</h3><div class="price">$148</div><button type="button">Add to bag</button></div></div>
+  <div class="card"><div class="ph"></div><div class="body"><h3>Saltmarsh Linen Throw</h3><div class="price">$132</div><button type="button">Add to bag</button></div></div>
+  <div class="card"><div class="ph"></div><div class="body"><h3>Ochre Cotton Throw</h3><div class="price">$96</div><button type="button">Add to bag</button></div></div>
+</div>
+
+<!--
+  THE DEFECT (F55 variant: overlay re-grabs focus to its FIRST input on every focusin).
+  A marketing-tools plugin (think a Privy/OptinMonster-style popup) wanted to "keep the
+  signup field front and center." Its focus-management code is a single overlay-scoped
+  focusin listener that re-focuses the email input whenever focus moves INSIDE the modal —
+  meant as a crude focus trap, but it never special-cases the Close (×), the Decline link,
+  or the Submit button. RESULT: a keyboard user can never Tab off the email field — every
+  attempt to reach "Close", "No thanks", or even "Get 10% off" snaps focus straight back to
+  the email box. The control they need (Close) is in the DOM, is a real <button>, is named,
+  is focusable, and is even reachable for a split second — but focus will not REST on it, so
+  the overlay cannot be dismissed or submitted by keyboard, and the page behind is unreachable.
+  (This is NOT 2.1.2: there is no Tab-cycle ring; focus is actively yanked to one element, so
+  the element that should be operable can never hold focus — a 2.1.1 "cannot rest" failure.)
+-->
+<div class="overlay" id="nlOverlay" role="dialog" aria-modal="true" aria-labelledby="nlTitle">
+  <div class="modal" id="nlModal">
+    <button type="button" class="close" id="nlClose" aria-label="Close newsletter signup">&times;</button>
+    <h2 id="nlTitle">Get 10% off your first order</h2>
+    <p>Join the Fernweave letter for new arrivals and a welcome discount.</p>
+    <form action="#" method="post">
+      <label for="nlEmail">Email address</label>
+      <input type="email" id="nlEmail" name="email" placeholder="you@example.com" autocomplete="email">
+      <button type="submit" class="go">Get my 10% off</button>
+    </form>
+    <button type="button" class="decline" id="nlDecline">No thanks, maybe later</button>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var modal  = document.getElementById('nlModal');
+    var first  = document.getElementById('nlEmail');
+
+    // Marketing-plugin "focus trap": keep attention on the signup field.
+    // BUG: it re-focuses the first input on ANY focusin inside the modal, with no
+    // exclusion for Close/Decline/Submit. So Tab/Shift+Tab to those controls always
+    // rebounds to the email box — focus can never rest on the dismiss controls.
+    modal.addEventListener('focusin', function () {
+      // Defer so it wins the race against the browser's own focus assignment.
+      setTimeout(function () {
+        if (document.activeElement !== first) first.focus();
+      }, 0);
+    });
+
+    // The Close/Decline handlers themselves are fine — but you can never keep focus
+    // on them long enough to press Space/Enter, so by keyboard they're unreachable.
+    document.getElementById('nlClose').addEventListener('click', closeOverlay);
+    document.getElementById('nlDecline').addEventListener('click', closeOverlay);
+    function closeOverlay() { document.getElementById('nlOverlay').style.display = 'none'; }
+  })();
+</script>
+</body>
+</html>

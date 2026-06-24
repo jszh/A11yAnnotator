@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VitalView — Population Health Insights</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif; margin: 0;
+    color: #102a32; background: #eef4f5; line-height: 1.6;
+  }
+  .appbar {
+    background: #0e5b66; color: #eafafa; padding: 14px 26px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .appbar .mark { font-weight: 800; letter-spacing: .5px; }
+  .appbar .crumb { color: #aee0e3; font-size: .85rem; }
+  main { max-width: 760px; margin: 0 auto; padding: 30px 22px 70px; }
+  h1 { font-size: 1.55rem; margin: 0 0 4px; color: #0e5b66; }
+  .meta { color: #5a747a; font-size: .85rem; margin: 0 0 26px; }
+  figure {
+    margin: 0 0 22px; background: #fff; border: 1px solid #cfe0e2;
+    border-radius: 12px; padding: 18px 20px 16px; box-shadow: 0 1px 3px rgba(14,91,102,.08);
+  }
+  .chart {
+    display: flex; align-items: flex-end; gap: 14px; height: 180px;
+    padding: 8px 6px 0; border-bottom: 2px solid #b7cdd0; margin-bottom: 10px;
+  }
+  .bar { flex: 1; background: linear-gradient(#2a97a3,#0e5b66); border-radius: 4px 4px 0 0; position: relative; }
+  .bar span {
+    position: absolute; top: -20px; left: 0; right: 0; text-align: center;
+    font-size: .72rem; color: #0e5b66; font-weight: 600;
+  }
+  .bar small {
+    position: absolute; bottom: -22px; left: 0; right: 0; text-align: center;
+    font-size: .72rem; color: #5a747a;
+  }
+  figcaption { font-size: .95rem; color: #244b52; margin-top: 26px; }
+  figcaption a {
+    color: #0e5b66; font-weight: 700; text-decoration: underline; text-underline-offset: 2px;
+  }
+  figcaption a:hover, figcaption a:focus { color: #093f47; }
+  p.body { margin: 0 0 14px; }
+</style>
+</head>
+<body>
+  <header class="appbar">
+    <span class="mark">VitalView</span>
+    <span class="crumb">Population Health · County View</span>
+  </header>
+
+  <main>
+    <h1>Childhood Immunization Coverage</h1>
+    <p class="meta">Marion County · Reporting period: 2021&ndash;2025</p>
+
+    <p class="body">
+      Coverage estimates are drawn from the county immunization registry and reflect
+      children fully vaccinated by 24 months of age.
+    </p>
+
+    <!-- BORDERLINE PASS: "Learn more" is generic, BUT it is inside the figcaption,
+         which is the link's containing block. The figcaption sentence names the
+         destination's subject ("the 2025 dip in MMR coverage") right before the link,
+         so the same-block context supplies purpose. A judge must READ the caption to
+         decide it rescues the generic phrase. -->
+    <figure aria-labelledby="figcap">
+      <div class="chart" role="img" aria-label="Bar chart of MMR coverage by year: 2021 94 percent, 2022 93 percent, 2023 92 percent, 2024 90 percent, 2025 86 percent.">
+        <div class="bar" style="height:94%"><span>94%</span><small>2021</small></div>
+        <div class="bar" style="height:93%"><span>93%</span><small>2022</small></div>
+        <div class="bar" style="height:92%"><span>92%</span><small>2023</small></div>
+        <div class="bar" style="height:90%"><span>90%</span><small>2024</small></div>
+        <div class="bar" style="height:86%"><span>86%</span><small>2025</small></div>
+      </div>
+      <figcaption id="figcap">
+        Figure 1. MMR (measles, mumps, rubella) coverage fell to 86% in 2025, the
+        county's first year below the 90% herd-immunity target. For the methodology and
+        clinic-level breakdown behind this 2025 dip in MMR coverage,
+        <a href="/reports/mmr-2025-methodology">learn more</a>.
+      </figcaption>
+    </figure>
+
+    <p class="body">
+      Public-health staff review these figures quarterly and coordinate catch-up clinics
+      in neighborhoods where coverage trails the county average.
+    </p>
+
+    <!--
+      WHY THIS IS THE HARD BORDERLINE CASE (and passes):
+      "Learn more" is generic boilerplate that a blocklist tool would flag (false positive).
+      But the link lives INSIDE the <figcaption>, which is the link's containing block, and
+      the caption sentence names the destination's subject — "the methodology and
+      clinic-level breakdown behind this 2025 dip in MMR coverage" — immediately BEFORE the
+      generic phrase. Per the 2.4.4 same-block rule and G53, that context supplies the
+      purpose: the link goes to the methodology for the 2025 MMR dip. To reach the correct
+      PASS verdict a human must actually READ the caption and judge that it rescues "learn
+      more." No automated tool can perform that reading; a blocklist tool gets it WRONG by
+      flagging the generic phrase, and a name-presence tool gets it RIGHT only by accident.
+    -->
+  </main>
+</body>
+</html>

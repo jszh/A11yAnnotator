@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout — Maillot Cyclery</title>
+  <style>
+    :root { --ink:#1c1c1e; --muted:#6b6b70; --line:#d7d7dc; --brand:#111827; --accent:#ea580c; --red:#b91c1c; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue", Arial, sans-serif; color:var(--ink);
+           background:#fafafa; line-height:1.5; }
+    .topbar { background:var(--brand); color:#fff; padding:12px 22px; font-weight:700; letter-spacing:1px; }
+    .layout { max-width:760px; margin:26px auto; display:grid; grid-template-columns:1fr 230px; gap:28px; padding:0 18px; }
+    h1 { font-size:22px; margin:0 0 18px; }
+    .field { margin:0 0 18px; }
+    label { display:block; font-weight:600; font-size:14px; margin:0 0 6px; }
+    input { width:100%; font-size:16px; padding:11px 12px; border:1px solid var(--line); border-radius:6px; }
+    input.err { border-color:var(--red); background:#fff5f5; }
+    .pair { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .err-msg { color:var(--red); font-size:13px; margin:6px 0 0; display:none; }
+    .summary { background:#fff; border:1px solid var(--line); border-radius:8px; padding:16px; height:max-content; }
+    .summary h2 { font-size:14px; margin:0 0 10px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
+    .summary .li { display:flex; justify-content:space-between; font-size:14px; margin:0 0 8px; }
+    .total { border-top:1px solid var(--line); padding-top:10px; font-weight:700; }
+    button { background:var(--accent); color:#fff; border:0; border-radius:6px; font-size:16px;
+             font-weight:700; padding:13px 18px; width:100%; cursor:pointer; margin-top:8px; }
+    .note { max-width:760px; margin:0 auto 40px; font-size:13px; color:var(--muted); padding:0 18px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">MAILLOT CYCLERY</div>
+  <div class="layout">
+    <form id="pay" novalidate>
+      <h1>Payment</h1>
+
+      <div class="field">
+        <label for="name-on-card">Name on card</label>
+        <input type="text" id="name-on-card" name="name-on-card" autocomplete="cc-name">
+      </div>
+
+      <!-- ISSUE: the label is the correct topic noun "Card number" with no statement of the
+           accepted format. The handler strips nothing and validates with /^\d{16}$/ — it accepts
+           ONLY 16 bare digits. The near-universal human habit (and what the card itself prints) is
+           grouped digits "4111 1111 1111 1111"; this field rejects the spaces. No "no spaces" or
+           "16 digits" cue appears anywhere until the after-submit error. There is no input masking
+           or auto-formatting to hint at the expected shape. -->
+      <div class="field">
+        <label for="card-number">Card number</label>
+        <input type="text" id="card-number" name="card-number" inputmode="numeric"
+               autocomplete="cc-number" maxlength="19">
+        <p class="err-msg" id="card-err">Card number must be 16 digits with no spaces.</p>
+      </div>
+
+      <div class="pair">
+        <div class="field">
+          <label for="exp">Expiry (MM/YY)</label>
+          <input type="text" id="exp" name="exp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY">
+        </div>
+        <div class="field">
+          <label for="cvc">Security code (3 digits)</label>
+          <input type="text" id="cvc" name="cvc" inputmode="numeric" autocomplete="cc-csc">
+        </div>
+      </div>
+
+      <button type="submit">Pay $128.00</button>
+    </form>
+
+    <aside class="summary">
+      <h2>Order</h2>
+      <div class="li"><span>Bib shorts (M)</span><span>$98.00</span></div>
+      <div class="li"><span>Shipping</span><span>$8.00</span></div>
+      <div class="li"><span>Tax</span><span>$22.00</span></div>
+      <div class="li total"><span>Total</span><span>$128.00</span></div>
+    </aside>
+  </div>
+
+  <p class="note">Demo note (not shown to users): This page fails WCAG 2.4.6 Test 5.B. Notice the
+    contrast with the sibling fields: "Expiry (MM/YY)" and "Security code (3 digits)" both carry their
+    format inline, but "Card number" does not — yet it has the strictest constraint (exactly 16 digits,
+    no spaces). The label names the topic correctly and the field is properly associated and non-empty,
+    so axe-core/WAVE/Lighthouse pass it. No automated tool reads the <code>/^\d{16}$/</code> validator
+    to know spaces are rejected, and none can judge that "Card number" alone fails to tell the user the
+    accepted format while its own siblings show theirs.</p>
+
+  <script>
+    var form = document.getElementById('pay');
+    var card = document.getElementById('card-number');
+    var cardErr = document.getElementById('card-err');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      // Accept ONLY 16 bare digits. Spaces (how the number is printed on the card) are rejected.
+      var ok = /^\d{16}$/.test(card.value);
+      if (!ok) {
+        card.classList.add('err');
+        cardErr.style.display = 'block';   // format disclosed here for the first time
+      } else {
+        card.classList.remove('err');
+        cardErr.style.display = 'none';
+        alert('Payment authorised — thank you!');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book a meeting room · Atrium Coworking</title>
+<style>
+  :root { --ink:#19212b; --muted:#5b6571; --line:#d9dee5; --brand:#0f5e57; --brand-d:#0b463f; --accent:#e8f3f1; --bg:#f4f6f7; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.55 "Helvetica Neue",Arial,sans-serif; color: var(--ink); margin: 0; background: var(--bg); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 28px 20px 90px; }
+  header.site { display:flex; align-items:center; gap:10px; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+  header.site .logo { width: 28px; height: 28px; border-radius: 7px; background: var(--brand); }
+  header.site .brand { font-weight: 700; letter-spacing:.3px; color: var(--brand); }
+  h1 { font-size: 23px; margin: 26px 0 4px; }
+  p.lead { color: var(--muted); margin: 0 0 22px; }
+  .card { background:#fff; border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; }
+  label.fld { display:block; font-size: 13px; font-weight: 600; margin: 14px 0 5px; }
+  input.txt, select.txt { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background:#fff; }
+  input.txt:focus-visible, select.txt:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+  .picker { margin: 6px 0 4px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background:#fcfdfd; }
+  .picker .head { display:flex; align-items:center; justify-content: space-between; margin-bottom: 10px; }
+  .picker .month { font-weight: 700; font-size: 14px; }
+  .nav { background:#fff; border:1px solid var(--line); border-radius:7px; padding:5px 10px; font: inherit; cursor:pointer; }
+  .nav:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+  table.grid { border-collapse: collapse; width: 100%; }
+  table.grid th { font-size: 11px; color: var(--muted); font-weight: 600; padding: 4px 0; text-transform: uppercase; letter-spacing:.4px; }
+  table.grid td { text-align:center; padding: 2px; }
+  .day { width: 100%; aspect-ratio: 1/1; min-height: 36px; border: 1px solid transparent; border-radius: 8px;
+         background: transparent; font: inherit; cursor: pointer; color: var(--ink); }
+  .day:hover { background: var(--accent); }
+  .day[aria-selected=true] { background: var(--brand); color:#fff; }
+  .day:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+  .day.out { color:#c2c8cf; }
+
+  .btn { background: var(--brand); color:#fff; border: 1px solid var(--brand-d); padding: 11px 20px; border-radius: 8px;
+         font: inherit; font-weight: 600; cursor: pointer; margin-top: 18px; }
+  .btn:focus-visible { outline: 2px solid var(--brand-d); outline-offset: 2px; }
+  .summary { margin-top: 12px; font-size: 13px; color: var(--muted); }
+
+  .note { margin-top: 46px; padding: 16px 18px; background:#eef4f3; border-left: 4px solid var(--brand); border-radius: 8px; font-size: 12.5px; color:#33403c; }
+  .note code { background:#dce9e6; padding: 1px 5px; border-radius: 4px; }
+  kbd { font: 11px/1 "SFMono-Regular",Consolas,monospace; background:#fff; border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:1px 5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <span class="logo" aria-hidden="true"></span>
+    <span class="brand">Atrium Coworking</span>
+  </header>
+
+  <h1>Book a meeting room</h1>
+  <p class="lead">Reserve the Birchwood room. Pick a date on the calendar, choose a start time, then confirm.</p>
+
+  <form class="card" id="bookingForm" novalidate>
+    <label class="fld" for="who">Your name</label>
+    <input class="txt" id="who" type="text" autocomplete="name" placeholder="e.g. Priya Anand">
+
+    <label class="fld" id="dateLbl">Date</label>
+    <div class="picker" role="group" aria-labelledby="dateLbl">
+      <div class="head">
+        <button type="button" class="nav" id="prevM" aria-label="Previous month">&lsaquo;</button>
+        <span class="month" id="monthLbl">July 2026</span>
+        <button type="button" class="nav" id="nextM" aria-label="Next month">&rsaquo;</button>
+      </div>
+      <table class="grid" role="grid" aria-labelledby="monthLbl" id="calGrid">
+        <thead>
+          <tr>
+            <th scope="col" abbr="Sunday">Su</th>
+            <th scope="col" abbr="Monday">Mo</th>
+            <th scope="col" abbr="Tuesday">Tu</th>
+            <th scope="col" abbr="Wednesday">We</th>
+            <th scope="col" abbr="Thursday">Th</th>
+            <th scope="col" abbr="Friday">Fr</th>
+            <th scope="col" abbr="Saturday">Sa</th>
+          </tr>
+        </thead>
+        <tbody id="calBody"><!-- days injected --></tbody>
+      </table>
+    </div>
+
+    <label class="fld" for="start">Start time</label>
+    <select class="txt" id="start">
+      <option>09:00</option><option>10:00</option><option>11:00</option>
+      <option>13:00</option><option>14:00</option><option>15:00</option>
+    </select>
+
+    <div class="summary" id="summary">No date chosen yet.</div>
+
+    <button class="btn" id="confirm" type="submit">Confirm booking</button>
+  </form>
+
+  <aside class="note">
+    <p><strong>Why automated checkers miss this FAIL:</strong> The date picker is a structurally valid
+    APG-style date grid: <code>role="grid"</code>, roving <kbd>tabindex</kbd>, one tab stop, and arrow
+    keys to move between days. Static scanners (axe / WAVE / Lighthouse) see correct roles and a single
+    tab stop and report no issue. The defect is purely behavioural: <em>every</em> focusable day cell
+    intercepts <kbd>Tab</kbd>, <kbd>Shift+Tab</kbd>, the arrow keys at the grid edges, and <kbd>Esc</kbd>
+    with <code>preventDefault()</code>, but the only forward/backward handling that exists keeps focus
+    <em>inside</em> the grid. Once a keyboard user lands on a day, no standard exit method moves focus
+    out to the Start-time select or back to the name field, and no advice text names any escape key. The
+    only way out is the mouse. Confirming this requires a human to actually drive the keyboard from a day
+    cell and try each standard exit — exactly what a static scan cannot do.</p>
+  </aside>
+</div>
+
+<script>
+(function () {
+  var body = document.getElementById('calBody');
+  var grid = document.getElementById('calGrid');
+  var summary = document.getElementById('summary');
+
+  // July 2026 starts on a Wednesday (col index 3), 31 days.
+  var firstCol = 3, days = 31;
+  var cells = [];
+  var rowCells = [];
+  var col = 0;
+  // leading blanks
+  for (var b = 0; b < firstCol; b++) { rowCells.push('<td></td>'); col++; }
+  for (var d = 1; d <= days; d++) {
+    var ti = (d === 1) ? '0' : '-1'; // roving tabindex: only day 1 is in the tab order
+    rowCells.push('<td><button type="button" class="day" role="gridcell" data-day="' + d +
+                  '" aria-selected="false" tabindex="' + ti + '">' + d + '</button></td>');
+    col++;
+    if (col === 7) { body.insertAdjacentHTML('beforeend', '<tr>' + rowCells.join('') + '</tr>'); rowCells = []; col = 0; }
+  }
+  if (rowCells.length) {
+    while (col < 7) { rowCells.push('<td></td>'); col++; }
+    body.insertAdjacentHTML('beforeend', '<tr>' + rowCells.join('') + '</tr>');
+  }
+  cells = Array.prototype.slice.call(grid.querySelectorAll('.day'));
+
+  function focusDay(i) {
+    if (i < 0) i = 0;
+    if (i > cells.length - 1) i = cells.length - 1;
+    cells.forEach(function (c) { c.tabIndex = -1; });
+    cells[i].tabIndex = 0;
+    cells[i].focus();
+  }
+  function indexOf(el) { return cells.indexOf(el); }
+
+  cells.forEach(function (cell) {
+    cell.addEventListener('click', function () {
+      cells.forEach(function (c) { c.setAttribute('aria-selected', 'false'); });
+      cell.setAttribute('aria-selected', 'true');
+      summary.textContent = 'Birchwood room · July ' + cell.dataset.day + ', 2026';
+    });
+  });
+
+  // DEFECT: the grid keydown handler swallows ALL navigation keys (including Tab, Shift+Tab,
+  // and Esc) and only ever moves focus to ANOTHER day. Arrow keys are CLAMPED at the grid
+  // edges (no roll-out to the next/previous control). The author believed "arrow keys are the
+  // standard way to move in a grid" and forgot that Tab must still be able to LEAVE the grid.
+  // There is no documented escape key. Result: focus is trapped on the calendar.
+  grid.addEventListener('keydown', function (e) {
+    var cur = indexOf(document.activeElement);
+    if (cur < 0) return;
+    switch (e.key) {
+      case 'ArrowRight': e.preventDefault(); if (cur < cells.length - 1) focusDay(cur + 1); break;
+      case 'ArrowLeft':  e.preventDefault(); if (cur > 0) focusDay(cur - 1); break;
+      case 'ArrowDown':  e.preventDefault(); focusDay(Math.min(cur + 7, cells.length - 1)); break;
+      case 'ArrowUp':    e.preventDefault(); focusDay(Math.max(cur - 7, 0)); break;
+      case 'Home':       e.preventDefault(); focusDay(0); break;
+      case 'End':        e.preventDefault(); focusDay(cells.length - 1); break;
+      // The trap: Tab / Shift+Tab are captured and redirected back into the grid instead of
+      // being allowed to move focus to the next/previous form control.
+      case 'Tab':
+        e.preventDefault();
+        if (e.shiftKey) focusDay(Math.max(cur - 1, 0));
+        else focusDay(Math.min(cur + 1, cells.length - 1));
+        break;
+      // Esc is captured but does nothing useful (no exit wired) — the standard exit method fails.
+      case 'Escape':
+        e.preventDefault();
+        break;
+      default:
+        break;
+    }
+  });
+})();
+</script>
+</body>
+</html>

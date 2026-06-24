@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réserver une table — Bistro Saint-Marc</title>
+<style>
+  body { font:16px/1.55 "Avenir Next","Segoe UI",sans-serif; color:#2a2520;
+         background:#f3ede4; margin:0; }
+  .frame { max-width:600px; margin:0 auto; padding:40px 24px 64px; }
+  h1 { font-family:Georgia,serif; font-size:1.7rem; margin:0 0 4px; }
+  .tag { color:#7a6f60; margin:0 0 30px; font-style:italic; }
+  form { background:#fff; border:1px solid #e0d6c7; border-radius:10px;
+         padding:26px 28px 32px; }
+  .grp { margin:0 0 20px; }
+  .grp > label { display:block; font-weight:600; margin:0 0 6px; }
+  input[type=text], input[type=date] {
+    width:100%; box-sizing:border-box; padding:10px 12px; font-size:1rem;
+    border:1px solid #cfc4b3; border-radius:6px; background:#fff; }
+  fieldset { border:1px solid #cfc4b3; border-radius:8px; margin:0 0 22px; padding:14px 16px 4px; }
+  legend { font-weight:600; padding:0 6px; }
+  /* The seating fieldset was left unanswered. On re-display the legend turns red. That
+     reddened legend is the only thing flagging that a choice is required. */
+  legend.flagged { color:#c11a22; }
+  .opt { display:flex; align-items:center; gap:9px; margin:0 0 12px; }
+  .opt label { font-weight:400; }
+  .book { background:#7c1f24; color:#fff; border:0; border-radius:6px;
+          padding:12px 26px; font-size:1rem; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <h1>Réserver une table</h1>
+  <p class="tag">Bistro Saint-Marc · cuisine de saison · Vieux-Lyon</p>
+
+  <!-- Booking form re-rendered after the guest submitted without choosing a seating area.
+       The server flagged the radio group by reddening its <legend> only. No text says a
+       selection is required or that the group is in error; no message, no hidden text,
+       no aria-invalid on the group. The visible labels stay neutral. -->
+  <form action="/reservations" method="post" novalidate lang="fr">
+    <div class="grp">
+      <label for="nom">Nom de la réservation</label>
+      <input type="text" id="nom" name="nom" value="Famille Castellane">
+    </div>
+
+    <div class="grp">
+      <label for="date">Date</label>
+      <input type="date" id="date" name="date" value="2026-07-18">
+    </div>
+
+    <div class="grp">
+      <label for="couverts">Nombre de couverts</label>
+      <input type="text" id="couverts" name="couverts" value="4" inputmode="numeric">
+    </div>
+
+    <fieldset>
+      <legend class="flagged">Préférence de salle</legend>
+      <div class="opt">
+        <input type="radio" id="s1" name="salle" value="terrasse">
+        <label for="s1">Terrasse</label>
+      </div>
+      <div class="opt">
+        <input type="radio" id="s2" name="salle" value="interieur">
+        <label for="s2">Salle intérieure</label>
+      </div>
+      <div class="opt">
+        <input type="radio" id="s3" name="salle" value="cave">
+        <label for="s3">Cave voûtée</label>
+      </div>
+    </fieldset>
+
+    <button type="submit" class="book">Confirmer la réservation</button>
+  </form>
+</div>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  The radio group is correctly built: a real <fieldset>/<legend>, every radio has a label,
+  the group is keyboard operable, contrast is fine. The only error signal is that the legend
+  text "Préférence de salle" is rendered red instead of black. Colour-difference detection
+  (F81) is unreliable and, even if a tool noticed the colour, it cannot know the colour MEANS
+  "this group is in error / a choice is required" rather than mere theming. There is no
+  required text, no error message, no aria-required/aria-invalid, no hidden text — so a
+  screen-reader user navigating the group hears "Préférence de salle, Terrasse radio button
+  not checked, 1 of 3" with no hint that the field errored. Judging that the reddened legend
+  is the SOLE cue and that the requirement/error is unstated in text needs a human looking at
+  the rendered French form.
+-->
+</body>
+</html>

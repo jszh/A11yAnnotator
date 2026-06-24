@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Osteria del Ponte — Menu &amp; Reservations</title>
+<!--
+  SC 2.4.7 Focus Visible (AA) — MAGNITUDE limb, GEOMETRY-nudge facet: a focus
+  change that moves only a handful of anti-aliased edge pixels.
+
+  THE DEFECT (a real but imperceptible geometric change, not absence):
+  The menu's category links get a "subtle kinetic" focus treatment. The ONLY
+  thing :focus changes is letter-spacing, by a fraction of a pixel:
+        .menu-link            { letter-spacing: 0.00em; }
+        .menu-link:focus      { letter-spacing: 0.012em; }   /* ~0.19px @16px */
+  outline is removed. At 0.012em the word's total width grows by well under one
+  pixel for a short label, so the glyphs barely shift — a few anti-aliased edge
+  pixels change value. That is a NON-ZERO pixel diff (oj04fd PASSES) but there is
+  no color change, no border, no size box, no weight change: nothing a human can
+  point to as "this link has focus." Tabbing the list produces no perceptible cue.
+
+  HOW IT AROSE: the studio that built the site loves micro-interactions; the
+  designer wanted focus to feel like the word "breathes" and dialed letter-
+  spacing down until the animation was "barely there" — past the point of being
+  perceivable as a focus indicator at all. They removed outline because the
+  spacing was "the interaction."
+
+  WHY AUTOMATED TOOLS MISS IT: there IS a :focus rule and it changes a real
+  layout property, so no missing-focus-style heuristic fires; outline:none has an
+  author-supplied (if useless) replacement. axe/WAVE/Lighthouse cannot rasterize
+  two focus states, diff them, and decide the sub-pixel reflow is below human
+  perception — and a pixel-diff checker only confirms "yes, edge pixels changed."
+  Whether a ~0.19px letter-spacing nudge is a perceptible focus indicator is a
+  pure human visual judgment.
+-->
+<style>
+  :root{
+    --paper:#fbf7ef; --ink:#2a2018; --gold:#8a6d2f; --rule:#e4d8c2;
+    --serif:"Cormorant Garamond",Georgia,serif; --sans:"Inter",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); color:var(--ink);
+       font:17px/1.6 Georgia,"Times New Roman",serif;}
+  header{text-align:center; padding:42px 20px 16px;}
+  header .name{font-size:2.4rem; letter-spacing:.06em;}
+  header .loc{font:600 .72rem/1 system-ui,sans-serif; letter-spacing:.22em;
+              text-transform:uppercase; color:var(--gold); margin-top:8px;}
+  nav.cats{display:flex; justify-content:center; flex-wrap:wrap; gap:26px;
+           padding:18px 16px; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule);
+           font:600 .8rem/1 system-ui,sans-serif; letter-spacing:.12em; text-transform:uppercase;}
+  main{max-width:680px; margin:0 auto; padding:34px 22px 70px;}
+  section h2{font-size:1.6rem; letter-spacing:.03em; margin:30px 0 6px; color:var(--gold);}
+  .dish{display:flex; justify-content:space-between; gap:18px; padding:11px 0; border-bottom:1px dotted var(--rule);}
+  .dish .nm{font-weight:600;}
+  .dish .desc{display:block; font-size:.9rem; color:#5d5044; font-style:italic;}
+  .dish .price{white-space:nowrap; color:var(--gold);}
+
+  /* The category nav links: the ONLY focus change is a fractional letter-spacing
+     nudge. No outline, no color, no border. */
+  nav.cats a{ color:var(--ink); text-decoration:none; letter-spacing:.12em; outline:0; }
+  nav.cats a:focus{ letter-spacing:.132em; }   /* +0.012em ≈ sub-pixel reflow */
+
+  footer{max-width:680px; margin:0 auto; padding:22px; border-top:1px solid var(--rule);
+         color:#6d5f50; font-size:.8rem; text-align:center;}
+</style>
+</head>
+<body>
+<header>
+  <div class="name">Osteria del Ponte</div>
+  <div class="loc">Trastevere &middot; Roma</div>
+</header>
+
+<nav class="cats" aria-label="Menu sections">
+  <a href="#antipasti">Antipasti</a>
+  <a href="#primi">Primi</a>
+  <a href="#secondi">Secondi</a>
+  <a href="#dolci">Dolci</a>
+  <a href="#reservations">Reservations</a>
+</nav>
+
+<main>
+  <section id="primi">
+    <h2>Primi</h2>
+    <div class="dish">
+      <span class="nm">Cacio e Pepe
+        <span class="desc">Tonnarelli, Pecorino Romano DOP, cracked black pepper</span></span>
+      <span class="price">&euro;16</span>
+    </div>
+    <div class="dish">
+      <span class="nm">Rigatoni all&rsquo;Amatriciana
+        <span class="desc">Guanciale, San Marzano, Pecorino, a whisper of chilli</span></span>
+      <span class="price">&euro;17</span>
+    </div>
+    <div class="dish">
+      <span class="nm">Gnocchi di Patate al Pomodoro
+        <span class="desc">Hand-rolled potato gnocchi, slow tomato, torn basil</span></span>
+      <span class="price">&euro;15</span>
+    </div>
+  </section>
+
+  <section id="secondi">
+    <h2>Secondi</h2>
+    <div class="dish">
+      <span class="nm">Saltimbocca alla Romana
+        <span class="desc">Veal, prosciutto, sage, white wine</span></span>
+      <span class="price">&euro;24</span>
+    </div>
+    <div class="dish">
+      <span class="nm">Branzino al Forno
+        <span class="desc">Whole sea bass, lemon, Ligurian olive oil</span></span>
+      <span class="price">&euro;27</span>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Tab through the menu sections above; the focused section name has a refined
+  letter-spacing treatment. &middot; Osteria del Ponte, Vicolo del Cinque 12.
+</footer>
+</body>
+</html>

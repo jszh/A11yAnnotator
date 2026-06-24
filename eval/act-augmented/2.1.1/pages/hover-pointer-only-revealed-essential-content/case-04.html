@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quarterly Sales &amp; Use Tax Return — Form ST-100</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Public Sans", Arlington, "Segoe UI", Arial, sans-serif;
+    background: #f3f4f6;
+    color: #1b1b1b;
+    line-height: 1.5;
+  }
+  .gov-banner { background: #1b2a4a; color: #fff; font-size: 12px; padding: 5px 24px; }
+  header.dept { background: #fff; border-bottom: 3px solid #1b2a4a; padding: 16px 24px; }
+  header.dept h1 { margin: 0; font-size: 18px; }
+  header.dept .sub { font-size: 13px; color: #555; }
+  main { max-width: 680px; margin: 26px auto 70px; padding: 0 22px; }
+  .form-card { background: #fff; border: 1px solid #d8dadd; border-radius: 6px; padding: 26px 28px; }
+  h2 { font-size: 17px; margin: 0 0 4px; }
+  .step { color: #5a5f66; font-size: 13px; margin: 0 0 22px; }
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 5px; }
+  .field .hint { font-size: 13px; color: #5a5f66; margin-bottom: 6px; }
+  .field input[type=text] {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid #767a80;
+    border-radius: 4px;
+    font-size: 15px;
+  }
+  /* "help" marker — a styled span carrying a title attribute. cursor:help, looks
+     like the standard government "?" affordance. */
+  .help {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 17px; height: 17px; margin-left: 5px;
+    border: 1px solid #1b2a4a; color: #1b2a4a; border-radius: 50%;
+    font-size: 11px; font-weight: 700; cursor: help; vertical-align: middle;
+  }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .actions { margin-top: 24px; display: flex; gap: 12px; }
+  .btn-primary { background: #1b2a4a; color: #fff; border: 0; padding: 11px 22px; border-radius: 4px; font-weight: 600; cursor: pointer; }
+  .btn-secondary { background: #fff; color: #1b2a4a; border: 1px solid #1b2a4a; padding: 11px 22px; border-radius: 4px; font-weight: 600; cursor: pointer; }
+  footer { max-width: 680px; margin: 0 auto 60px; padding: 0 22px; color: #5a5f66; font-size: 12px; }
+</style>
+</head>
+<body>
+  <div class="gov-banner">An official return of the State of Mariott Department of Taxation</div>
+  <header class="dept">
+    <h1>Quarterly Sales &amp; Use Tax Return — Form ST-100</h1>
+    <span class="sub">Filing period: Q2 (April 1 – June 30)</span>
+  </header>
+
+  <main>
+    <form class="form-card" aria-labelledby="form-h">
+      <h2 id="form-h">Part 2 — Taxable sales and purchases</h2>
+      <p class="step">Step 2 of 5 · Enter whole dollars only.</p>
+
+      <div class="field">
+        <label for="gross">Gross sales and services</label>
+        <p class="hint">Total receipts from all sales this quarter.</p>
+        <input type="text" id="gross" name="gross" inputmode="numeric">
+      </div>
+
+      <div class="field">
+        <label for="exempt">
+          Nontaxable / exempt sales
+          <span class="help" title="Enter the dollar amount of sales that are exempt from tax (resale certificates, sales to exempt organizations, and out-of-state shipments). Do NOT include sales tax you collected here — that goes on Line 5. Entering collected tax on this line is the most common cause of a rejected return.">?</span>
+        </label>
+        <p class="hint">Subtracted from gross to compute the taxable base.</p>
+        <input type="text" id="exempt" name="exempt" inputmode="numeric">
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="juris">
+            Jurisdiction code
+            <span class="help" title="Use the 4-digit code for the county where the sale was delivered, NOT where your business is located. Delivery-based sourcing is required; using your business county is the second most common filing error and will misallocate the tax.">?</span>
+          </label>
+          <input type="text" id="juris" name="juris" inputmode="numeric" maxlength="4">
+        </div>
+        <div class="field">
+          <label for="rate">Combined rate</label>
+          <input type="text" id="rate" name="rate" value="8.875%" readonly>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn-secondary">Save draft</button>
+        <button type="submit" class="btn-primary">Continue to Part 3</button>
+      </div>
+    </form>
+  </main>
+
+  <footer>
+    Need help? The full line-by-line instructions are available in Publication 750 (PDF).
+    Form ST-100 · Rev. 2/25
+  </footer>
+
+  <!--
+    WHY THIS FAILS SC 2.1.1 (keyboard, essential-information branch) AND WHY TOOLS MISS IT:
+
+    Two fields carry essential filing instructions ONLY inside a `title` attribute on a
+    decorative "?" span:
+
+      • "Nontaxable / exempt sales": the title warns NOT to include collected sales tax here
+        ("the most common cause of a rejected return"). Getting this wrong rejects the return.
+      • "Jurisdiction code": the title states the code must be the DELIVERY county, not the
+        business county ("the second most common filing error").
+
+    This information is essential to completing the form correctly and appears nowhere else on
+    the page (the footer only points to an external PDF, which is off-page). The "?" markers
+    are non-interactive <span>s: no tabindex, so Tab never lands on them; and even if focus
+    could reach them, a title attribute is NOT reliably surfaced as a tooltip on keyboard
+    focus (only on mouse hover) — per the Trusted Tester two-second rule, focus will not reveal
+    the title. There is no aria-describedby tying the title text to the input, so screen reader
+    users typing in the field never hear the warning either.
+
+    Automated tools PASS this: every input has an associated <label>, the title attributes are
+    non-empty, there are no missing/empty attributes, and contrast is fine. A static checker
+    cannot judge that the title text is ESSENTIAL (return-rejecting) rather than a nicety,
+    cannot determine that a title on a non-focusable span won't surface on keyboard focus, and
+    cannot confirm the instruction is absent elsewhere on the page. Verdict: FAILED.
+  -->
+</body>
+</html>

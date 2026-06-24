@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الإعدادات — تطبيق نقل المدينة</title>
+<!--
+  ACCESSIBILITY DEFECT (SC 1.4.11 Non-text Contrast, Level AA) — present-but-wrong.
+  GEOMETRY ASPECT: an INNER focus indicator on a custom switch must contrast with the
+  adjacent colour(s) WITHIN the component (here, the switch TRACK fill), not with the page.
+
+  This is an RTL Arabic settings page for a city-transit app. The "تنبيهات التأخير"
+  (delay alerts) switch is a custom toggle: an ON track filled brand-blue (#4189B9) on a
+  white card. On focus the switch draws a 3px INSET border INSIDE the track (via
+  box-shadow inset) coloured dark green #008000.
+    inner green #008000  vs  blue track #4189B9 = 1.35:1 -> the focus indicator is invisible
+    against the track it sits inside. SC 1.4.11 FAIL.
+  (Green vs the white card outside the track would be 5.14:1, but the indicator is INSIDE the
+  component, so the relevant adjacency is the blue track — and it fails there.)
+
+  WHY AUTOMATED TOOLS MISS IT: the switch has correct role="switch"/aria-checked and a
+  visible focus change, so role/name and focus-visible heuristics pass. axe/WAVE/Lighthouse
+  cannot tell that the inset border is INSIDE the track and therefore must beat the blue
+  track fill rather than the white card; a checker sampling the green against the nearest
+  white card pixels would even read 5.14:1 and call it fine — the wrong adjacency. RTL/Arabic
+  does not change the geometry analysis, but adds realistic distance from the spec figures.
+-->
+<style>
+  :root { --ink:#1c2530; --blue:#4189B9; }
+  body { font:16px/1.6 "Segoe UI","Tahoma",system-ui,sans-serif; color:var(--ink);
+         background:#eef1f5; margin:0; }
+  .card { max-width:440px; margin:34px auto; background:#fff; border:1px solid #dfe4ea;
+          border-radius:14px; padding:10px 6px; }
+  h1 { font-size:1.15rem; margin:14px 18px 4px; }
+  .group-label { color:#6a7686; font-size:.82rem; margin:0 18px 8px; }
+  .item { display:flex; align-items:center; justify-content:space-between;
+          gap:14px; padding:14px 18px; border-top:1px solid #eef1f4; }
+  .item:first-of-type { border-top:0; }
+  .item .txt b { display:block; font-weight:600; }
+  .item .txt small { color:#74808f; }
+
+  /* Custom switch built as a <button role="switch">. ON = blue track + white thumb. */
+  .switch {
+    appearance:none; cursor:pointer; position:relative; flex:0 0 auto;
+    width:52px; height:30px; border-radius:15px; border:0;
+    background:#c4cad2;                 /* OFF track */
+    transition:background .15s;
+  }
+  .switch[aria-checked="true"] { background:var(--blue); } /* ON track = brand blue */
+  .switch .thumb {
+    position:absolute; top:3px; inset-inline-start:3px; width:24px; height:24px;
+    border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.3);
+    transition:inset-inline-start .15s;
+  }
+  .switch[aria-checked="true"] .thumb { inset-inline-start:25px; }
+
+  /* THE DEFECT: focus draws a 3px INSET border INSIDE the track. On the ON (blue) switch
+     the green inset sits on the blue track at 1.35:1 -> invisible. */
+  .switch:focus { outline:none; box-shadow: inset 0 0 0 3px #008000; }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>الإعدادات</h1>
+  <p class="group-label">التنبيهات والإشعارات</p>
+
+  <div class="item">
+    <span class="txt"><b>تنبيهات التأخير</b><small>إشعار عند تأخر الحافلة أو المترو</small></span>
+    <button class="switch" type="button" role="switch" aria-checked="true"
+            aria-label="تنبيهات التأخير"><span class="thumb"></span></button>
+  </div>
+
+  <div class="item">
+    <span class="txt"><b>تذكير المغادرة</b><small>تنبيه قبل موعد رحلتك بعشر دقائق</small></span>
+    <button class="switch" type="button" role="switch" aria-checked="true"
+            aria-label="تذكير المغادرة"><span class="thumb"></span></button>
+  </div>
+
+  <div class="item">
+    <span class="txt"><b>العروض والتخفيضات</b><small>رسائل ترويجية من المشغّل</small></span>
+    <button class="switch" type="button" role="switch" aria-checked="false"
+            aria-label="العروض والتخفيضات"><span class="thumb"></span></button>
+  </div>
+</main>
+</body>
+</html>

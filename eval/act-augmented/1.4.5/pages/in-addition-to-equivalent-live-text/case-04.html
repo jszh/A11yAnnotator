@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today's Specials — The Copper Kettle</title>
+<!--
+  SC 1.4.5 ASPECT: "In addition to" — equivalence broken by STALE content => FAIL.
+  A café photographs its handwritten chalkboard of TODAY'S specials and uploads it daily as an
+  image of text. Below it, a live <ul> is supposed to repeat the same specials as real text.
+  But the live list was NOT updated this week — it still shows LAST week's specials (and last
+  week's prices). So both an image and live text are presented, but they DON'T convey the same
+  information: the image says Thursday's menu, the text says last Thursday's menu. The
+  in-addition-to text must convey "the same information"; stale text doesn't => FAIL.
+
+  WHY AUTOMATED TOOLS MISS THIS: there is nothing malformed. The board photo has a sensible alt,
+  the <ul> is valid, contrast is fine. No tool OCRs the chalkboard to learn it says "Leek &
+  Potato / Wild Mushroom Risotto / Sticky Toffee" at this week's prices, and none compares that
+  to the live list's "Carrot & Coriander / Beef Lasagne / Lemon Cheesecake." Detecting that the
+  two disagree (and which is current) is human reading + comparison + freshness judgment.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; background:#f7f3ec; color:#332d24; }
+  header { background:#5a3b22; color:#f7f3ec; padding:16px 22px; }
+  header b { letter-spacing:.5px; }
+  main { max-width:760px; margin:28px auto; padding:0 18px; }
+  h1 { font-size:1.5rem; margin:.2em 0 .1em; }
+  .updated { color:#7d6b50; font-size:.9rem; margin:0 0 18px; }
+  .board { text-align:center; background:#2c241a; padding:14px; border-radius:10px; }
+  .board img { max-width:100%; height:auto; border-radius:6px; }
+  .live-specials { background:#fff; border:1px solid #e4dccd; border-radius:10px; padding:20px 24px; margin-top:22px; }
+  .live-specials h2 { margin:0 0 12px; font-size:1.1rem; color:#5a3b22; }
+  .live-specials ul { list-style:none; margin:0; padding:0; }
+  .live-specials li { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px dotted #e4dccd; }
+  .live-specials li:last-child { border-bottom:0; }
+  .price { font-weight:700; color:#5a3b22; }
+  .note { font-size:.82rem; color:#8a7a60; margin-top:22px; border-top:1px dashed #e4dccd; padding-top:14px; }
+</style>
+</head>
+<body>
+<header><b>THE COPPER KETTLE</b> &nbsp;·&nbsp; café &amp; bakehouse</header>
+
+<main>
+  <h1>Today's Specials</h1>
+  <p class="updated">Thursday 11 June 2026 — freshly chalked this morning</p>
+
+  <div class="board">
+    <!--
+      IMAGE OF TEXT: a photo of today's handwritten specials board (raster-equivalent SVG).
+      TODAY (Thu 11 Jun): Spiced Parsnip Soup £6.50 / Wild Mushroom Risotto £12.50 /
+      Sticky Toffee Pudding £6.00. These are pixels.
+      NOTE: the image SVG avoids a literal "&"/"&amp;" because, inside an unencoded
+      data:image/svg+xml;utf8, URI placed in an HTML src="" attribute, the HTML parser
+      decodes "&amp;" to a bare "&", which then truncates the SVG XML and the image fails
+      to load. The live (stale) list below still uses "&amp;" normally in real HTML.
+    -->
+    <img width="520" height="360" alt="Photo of today's handwritten specials chalkboard"
+      src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='520' height='360' viewBox='0 0 520 360'><rect width='520' height='360' fill='%231f1913'/><rect x='14' y='14' width='492' height='332' fill='%232a2219' stroke='%23b78a4e' stroke-width='6' rx='8'/><text x='260' y='66' fill='%23f4e7cf' font-family='Georgia, serif' font-size='30' font-style='italic' text-anchor='middle'>Today’s Specials</text><line x1='150' y1='84' x2='370' y2='84' stroke='%23b78a4e' stroke-width='2'/><text x='52' y='136' fill='%23ffffff' font-family='Georgia, serif' font-size='22'>Spiced Parsnip Soup</text><text x='468' y='136' fill='%23f4d79a' font-family='Georgia, serif' font-size='22' text-anchor='end'>£6.50</text><text x='52' y='196' fill='%23ffffff' font-family='Georgia, serif' font-size='22'>Wild Mushroom Risotto</text><text x='468' y='196' fill='%23f4d79a' font-family='Georgia, serif' font-size='22' text-anchor='end'>£12.50</text><text x='52' y='256' fill='%23ffffff' font-family='Georgia, serif' font-size='22'>Sticky Toffee Pudding</text><text x='468' y='256' fill='%23f4d79a' font-family='Georgia, serif' font-size='22' text-anchor='end'>£6.00</text><text x='260' y='312' fill='%23cbb485' font-family='Georgia, serif' font-size='16' text-anchor='middle'>Served 12–3 while they last</text></svg>">
+  </div>
+
+  <section class="live-specials" aria-labelledby="ls-h">
+    <!--
+      "IN ADDITION TO" the board photo: a live, restyleable list of the specials. GOOD INTENT.
+      BUT it was not updated — these are LAST week's specials (Carrot & Coriander / Beef Lasagne /
+      Lemon Cheesecake) at last week's prices. The image and the text disagree; the text is stale,
+      so it is NOT "the same information" the board conveys => 1.4.5 not met.
+    -->
+    <h2 id="ls-h">Specials (text version)</h2>
+    <ul>
+      <li><span>Carrot &amp; Coriander Soup</span><span class="price">£6.00</span></li>
+      <li><span>Beef Lasagne</span><span class="price">£11.95</span></li>
+      <li><span>Lemon Cheesecake</span><span class="price">£5.50</span></li>
+    </ul>
+  </section>
+
+  <p class="note">
+    Our routine: every morning the kitchen photographs the chalkboard and the front-of-house team
+    uploads it. The text list below is meant to mirror it for screen-reader customers, but it is
+    edited by hand in a separate field and sometimes gets missed on busy mornings.
+  </p>
+</main>
+</body>
+</html>

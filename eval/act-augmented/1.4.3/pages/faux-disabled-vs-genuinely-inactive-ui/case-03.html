@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.3 FAILURE — a rich-text toolbar where three icon buttons share ONE dimmed look
+    but split on exemption.
+
+    The toolbar uses text+icon "chips" (label visible next to the glyph). THREE chips render
+    in the identical dim style (#8d8d8d on #f2f2f2 ≈ 3.0:1):
+      • "Strikethrough" — aria-disabled="true" AND its handler is guarded (genuinely inert) → EXEMPT
+      • "Subscript"     — aria-disabled="true" AND its handler is guarded (genuinely inert) → EXEMPT
+      • "Insert table"  — NO aria-disabled, handler is LIVE — it really inserts a table → IN SCOPE,
+                          must meet 4.5:1, and at 2.4:1 it FAILS 1.4.3.
+
+    Same pixels, three controls, different exemption status. The judge must drive each control
+    to learn which one fires.
+
+    WHY AUTOMATED TOOLS MISS IT: all three look disabled and have the same colors. A scanner
+    keying on aria-disabled will (correctly) skip the two inert ones and ALSO tends to skip
+    "Insert table" because it is visually identical and many tools cluster by computed style or
+    treat any aria-disabled-neighbor toolbar item as a disabled group. Determining that exactly
+    one of three identical-looking chips is operable needs interaction, not pixels.
+  -->
+  <title>Compose note — Trellis Wiki</title>
+  <style>
+    :root { --ink:#1f2328; --line:#d8dce1; --bar:#f2f2f2; --brand:#1f6feb; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:#fbfbfc; }
+    .editor { max-width:760px; margin:36px auto; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fff; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:6px; padding:8px 10px; background:var(--bar); border-bottom:1px solid var(--line); }
+    .chip {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:6px; font-size:13px; font-weight:600;
+      border:1px solid transparent; background:transparent; color:#21262c; cursor:pointer;
+    }
+    .chip:hover { background:#e9ecef; }
+    .chip:focus-visible { outline:2px solid var(--brand); outline-offset:1px; }
+    .chip svg { width:15px; height:15px; fill:currentColor; }
+    /* the single dim style shared by all three "muted" chips */
+    .chip.muted { background:#f2f2f2; color:#8d8d8d; }   /* #8d8d8d on #f2f2f2 ≈ 3.0:1 */
+    .chip[aria-disabled="true"] { cursor:default; }
+    .body { min-height:240px; padding:18px 20px; font-size:15px; line-height:1.6; }
+    table.inserted { border-collapse:collapse; margin-top:12px; }
+    table.inserted td { border:1px solid #c9ced4; width:70px; height:30px; }
+    .status { padding:6px 20px 14px; color:#57606a; font-size:12px; }
+  </style>
+</head>
+<body>
+  <main class="editor">
+    <div class="toolbar" role="toolbar" aria-label="Formatting">
+      <button type="button" class="chip" data-cmd="bold">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h6a4 4 0 0 1 0 8H7V5Zm0 8h7a4 4 0 0 1 0 8H7v-8Z"/></svg>Bold
+      </button>
+      <button type="button" class="chip" data-cmd="italic">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h8v2h-3l-4 12h3v2H6v-2h3l4-12h-3V4Z"/></svg>Italic
+      </button>
+
+      <!-- genuinely inert: aria-disabled + guarded handler -> EXEMPT from 1.4.3 -->
+      <button type="button" class="chip muted" data-cmd="strike" aria-disabled="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18v2H3v-2Zm6-6h9v2H9V6Zm-3 8h9v2H6v-2Z"/></svg>Strikethrough
+      </button>
+      <!-- genuinely inert: aria-disabled + guarded handler -> EXEMPT from 1.4.3 -->
+      <button type="button" class="chip muted" data-cmd="sub" aria-disabled="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h3l3 5 3-5h3l-4.5 7L19 19h-3l-3-5-3 5H4l4.5-7L4 5Z"/></svg>Subscript
+      </button>
+
+      <!--
+        LOOKS identical to the two inert chips, but NO aria-disabled and a LIVE handler:
+        it really inserts a table. Operable => in scope => must meet 4.5:1 (it is ~2.4:1) => FAILS.
+      -->
+      <button type="button" class="chip muted" data-cmd="table" id="tableBtn">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3V4Zm2 4v3h6V8H5Zm8 0v3h6V8h-6Zm-8 5v3h6v-3H5Zm8 0v3h6v-3h-6Z"/></svg>Insert table
+      </button>
+    </div>
+
+    <div class="body" contenteditable="true" aria-label="Note body" spellcheck="false">
+      <p>Sprint retro notes. Use the toolbar to format. (Strikethrough and Subscript are
+         turned off for plain-text notes.)</p>
+    </div>
+    <p class="status" id="status" role="status">Ready.</p>
+  </main>
+
+  <script>
+    document.querySelectorAll('.chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        // guard: genuinely-inert chips do nothing
+        if (chip.getAttribute('aria-disabled') === 'true') return;
+        var cmd = chip.getAttribute('data-cmd');
+        if (cmd === 'table') {
+          var body = document.querySelector('.body');
+          var t = document.createElement('table');
+          t.className = 'inserted';
+          t.innerHTML = '<tr><td></td><td></td></tr><tr><td></td><td></td></tr>';
+          body.appendChild(t);
+          document.getElementById('status').textContent = 'Inserted a 2×2 table.';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

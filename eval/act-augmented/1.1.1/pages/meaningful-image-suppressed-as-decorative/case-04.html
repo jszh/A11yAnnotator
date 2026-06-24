@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 FAILURE — informative (safety-critical) image suppressed as decorative,
+    with a PARTIAL-restatement trap.
+
+    A pharmacy patient-portal prescription detail. The full DOSING REGIMEN is conveyed by a
+    pictogram (inline <svg>): Morning = 2 tablets, Midday = 1 tablet, Night = 1 tablet, plus a
+    "TAKE WITH FOOD" warning glyph and a "DO NOT crush — swallow whole" warning glyph. The
+    whole <svg> carries aria-hidden="true", which DOES remove the element AND its entire
+    subtree (including every <text> node) from the accessibility tree — so AT receives none
+    of the picture's content.
+
+    The trap: a visible caption beneath the picture restates ONLY PART of the regimen in text —
+    "Morning and midday doses as shown." It silently omits (a) the actual tablet counts,
+    (b) the night dose entirely, (c) the safety-critical "take with food" requirement, and
+    (d) the "do not crush" warning. So a screen-reader user receives a plausible-sounding but
+    dangerously incomplete instruction, while the picture (which they cannot reach) is the
+    ONLY place the counts, the night dose, and both safety warnings appear.
+
+    WHY AUTOMATED TOOLS MISS IT: aria-hidden="true" on a graphic is valid, internally
+    consistent markup; ACT 46ca7f / e88epe PASS it by construction (decorative element
+    correctly not exposed). The page also has real caption TEXT, so any "image conveys text
+    that is missing" heuristic is defeated — text IS present. No tool can OCR the pictogram,
+    know that the counts/night-dose/warnings appear nowhere else, or weigh that the omitted
+    content is safety-critical dosing. Only a human who reads the picture, reads the partial
+    caption, and compares them field-by-field can see that the text equivalent is incomplete.
+  -->
+  <title>Warfarin 5 mg — Prescription details | NorthBay Pharmacy Portal</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; color:#1c2733;
+           background:#eef2f5; line-height:1.55; }
+    header { background:#0a5c7a; color:#fff; padding:.8rem 1.2rem; display:flex; align-items:center; gap:.6rem; }
+    header strong { font-size:1.1rem; }
+    main { max-width:44rem; margin:1.6rem auto; padding:0 1rem; }
+    .rx { background:#fff; border:1px solid #d3dde4; border-radius:10px; padding:1.5rem; }
+    .drug { font-size:1.4rem; font-weight:700; margin:0 0 .1rem; }
+    .generic { color:#5a6b78; margin:0 0 1.2rem; }
+    .row { display:flex; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid #eef1f4; font-size:.95rem; }
+    .row .k { color:#5a6b78; }
+    h2 { font-size:1.05rem; margin:1.5rem 0 .6rem; }
+    .schedule { background:#f7fafb; border:1px solid #dceaef; border-radius:8px; padding:1rem; text-align:center; }
+    .takeas { font-weight:600; margin:.9rem 0 0; }
+    .refill { margin-top:1.4rem; }
+    button { background:#0a5c7a; color:#fff; border:none; padding:.65rem 1.3rem;
+             border-radius:7px; font-size:1rem; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <span aria-hidden="true">+</span><strong>NorthBay Pharmacy</strong>
+  </header>
+  <main>
+    <section class="rx" aria-labelledby="drugh">
+      <h1 class="drug" id="drugh">Warfarin 5&nbsp;mg</h1>
+      <p class="generic">Tablet · Anticoagulant · Generic for Coumadin®</p>
+
+      <div class="row"><span class="k">Prescriber</span><span>Dr. P. Adeyemi</span></div>
+      <div class="row"><span class="k">Rx number</span><span>RX-4471902</span></div>
+      <div class="row"><span class="k">Quantity</span><span>120 tablets</span></div>
+      <div class="row"><span class="k">Refills remaining</span><span>3</span></div>
+
+      <h2>Dosing schedule</h2>
+      <div class="schedule">
+        <!--
+          The full regimen — Morning 2 tablets, Midday 1 tablet, Night 1 tablet, TAKE WITH
+          FOOD, DO NOT crush — lives ONLY in this pictogram. aria-hidden="true" removes the
+          SVG and ALL its <text> descendants from the a11y tree, so AT gets none of it.
+          The caption below restates ONLY "morning and midday … as shown" — it omits the
+          counts, the night dose, and both safety warnings.
+        -->
+        <svg aria-hidden="true" width="480" height="170" viewBox="0 0 480 170"
+             style="max-width:100%;height:auto;font-family:Segoe UI,Arial,sans-serif">
+          <!-- Morning -->
+          <g transform="translate(30,0)">
+            <circle cx="40" cy="38" r="18" fill="#f6c344"></circle>
+            <g stroke="#f6c344" stroke-width="3" stroke-linecap="round">
+              <line x1="40" y1="6"  x2="40" y2="14"></line>
+              <line x1="40" y1="62" x2="40" y2="70"></line>
+              <line x1="8"  y1="38" x2="16" y2="38"></line>
+              <line x1="64" y1="38" x2="72" y2="38"></line>
+            </g>
+            <text x="40" y="100" font-size="14" text-anchor="middle" fill="#1c2733">Morning</text>
+            <text x="40" y="124" font-size="20" font-weight="bold" text-anchor="middle" fill="#0a5c7a">2 tablets</text>
+          </g>
+          <!-- Midday -->
+          <g transform="translate(170,0)">
+            <circle cx="40" cy="38" r="16" fill="#f29c1f"></circle>
+            <rect x="14" y="48" width="52" height="6" rx="3" fill="#c9d3da"></rect>
+            <text x="40" y="100" font-size="14" text-anchor="middle" fill="#1c2733">Midday</text>
+            <text x="40" y="124" font-size="20" font-weight="bold" text-anchor="middle" fill="#0a5c7a">1 tablet</text>
+          </g>
+          <!-- Night -->
+          <g transform="translate(310,0)">
+            <path d="M52 30 a18 18 0 1 0 4 24 a14 14 0 0 1 -4 -24 z" fill="#5a6b78"></path>
+            <text x="40" y="100" font-size="14" text-anchor="middle" fill="#1c2733">Night</text>
+            <text x="40" y="124" font-size="20" font-weight="bold" text-anchor="middle" fill="#0a5c7a">1 tablet</text>
+          </g>
+          <!-- with-food warning: fork + knife glyph + label -->
+          <g transform="translate(70,144)">
+            <g stroke="#b23a2e" stroke-width="2" stroke-linecap="round">
+              <line x1="0" y1="2" x2="0" y2="9"></line>
+              <line x1="4" y1="2" x2="4" y2="9"></line>
+              <line x1="8" y1="2" x2="8" y2="9"></line>
+            </g>
+            <line x1="4" y1="9" x2="4" y2="16" stroke="#b23a2e" stroke-width="2" stroke-linecap="round"></line>
+            <line x1="14" y1="2" x2="14" y2="16" stroke="#b23a2e" stroke-width="2" stroke-linecap="round"></line>
+            <text x="26" y="14" font-size="13" fill="#b23a2e" font-weight="bold">TAKE WITH FOOD</text>
+          </g>
+          <!-- do-not-crush warning: pill + slash + label -->
+          <g transform="translate(260,144)">
+            <ellipse cx="6" cy="9" rx="9" ry="5" fill="none" stroke="#b23a2e" stroke-width="2"></ellipse>
+            <line x1="-2" y1="17" x2="14" y2="1" stroke="#b23a2e" stroke-width="2" stroke-linecap="round"></line>
+            <text x="22" y="14" font-size="13" fill="#b23a2e" font-weight="bold">DO NOT crush — swallow whole</text>
+          </g>
+        </svg>
+        <p class="takeas">Take your morning and midday doses as shown above. Do not skip doses.</p>
+      </div>
+
+      <div class="refill">
+        <button type="button">Request refill</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

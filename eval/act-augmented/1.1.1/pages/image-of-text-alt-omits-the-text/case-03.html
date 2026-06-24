@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 FAILURE — inline SVG treated as a single image (role="img") whose accessible
+    name omits the meaningful text drawn inside it (TT 7.A.1.d; F30 / G94 check #4).
+
+    An internal recognition page shows an "Employee of the Quarter" certificate built as a
+    decorative inline <svg role="img">. The SVG is named by a single <title> element:
+    "Award badge". Because the SVG carries an explicit role="img" with that <title>, the
+    accessibility tree collapses it into ONE image node named "Award badge" and the inner
+    <text> elements — which spell out the actual award, the recipient, and the date —
+    are NOT exposed. The visible pixels read:
+        EMPLOYEE OF THE QUARTER
+        Awarded to Dana Okafor
+        Q2 2026 · Customer Success
+    A sighted colleague reads exactly who won and when; a screen-reader user hears only
+    "Award badge, image" and never learns the recipient is Dana Okafor.
+
+    WHY AUTOMATED TOOLS MISS IT: ACT rule 7d6734 ("SVG element with explicit role has a
+    non-empty accessible name") PASSES — the <title> gives a non-empty name. axe's
+    "svg-img-alt" likewise passes. No checker reads the inner <text> glyphs, recognises
+    they constitute the meaningful content, and verifies the name reproduces them. The
+    <text> nodes are present in the DOM as drawing instructions but are suppressed from the
+    a11y tree because the parent SVG is role="img" with its own name — so a tool that DID
+    walk the DOM would still not treat them as the alternative. Confirming the name must
+    contain the recipient/date is a manual transcription-equivalence judgment.
+  -->
+  <title>Recognition wall — Northwind internal</title>
+  <style>
+    :root { --ink:#23272e; --muted:#5b6573; --line:#dce1e8; --bg:#eef1f5; --gold:#b8860b; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    header { background:#fff; border-bottom:1px solid var(--line); padding:14px 24px; font-weight:700; }
+    main { max-width:760px; margin:28px auto; padding:0 20px; }
+    .intro { color:var(--muted); margin-bottom:20px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px; box-shadow:0 1px 4px rgba(20,30,50,.06); }
+    .card svg { display:block; width:100%; height:auto; }
+    .meta { margin-top:14px; color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+  <header>Northwind · Recognition wall</header>
+  <main>
+    <h1>This quarter's award</h1>
+    <p class="intro">Congratulations to our latest honoree. The certificate is shown below;
+       it will be added to the printed wall in the east lobby on Friday.</p>
+
+    <div class="card">
+      <!--
+        Inline SVG with role="img" + a single <title>. The accessible name is the <title>
+        ("Award badge"). The <text> elements below DRAW the real, load-bearing content
+        (award name, recipient, quarter/team) but are not part of the accessible name and
+        are suppressed because the SVG is a named image.
+      -->
+      <svg role="img" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg">
+        <title>Award badge</title>
+        <rect x="6" y="6" width="588" height="308" rx="10" fill="#fffdf6" stroke="#b8860b" stroke-width="3"/>
+        <circle cx="300" cy="70" r="34" fill="none" stroke="#b8860b" stroke-width="3"/>
+        <path d="M300 48 l7 14 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2 Z" fill="#b8860b"/>
+        <text x="300" y="140" text-anchor="middle" font-family="Georgia, serif" font-size="30" font-weight="bold" fill="#23272e">EMPLOYEE OF THE QUARTER</text>
+        <text x="300" y="190" text-anchor="middle" font-family="Georgia, serif" font-size="24" fill="#23272e">Awarded to Dana Okafor</text>
+        <text x="300" y="232" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#5b6573">Q2 2026 · Customer Success</text>
+        <text x="300" y="282" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#8a93a1">Presented by the People Team · Northwind</text>
+      </svg>
+      <p class="meta">Nominations for next quarter open July 1.</p>
+    </div>
+  </main>
+</body>
+</html>

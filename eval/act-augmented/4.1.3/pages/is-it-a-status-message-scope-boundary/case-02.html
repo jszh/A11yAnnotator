@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Refill Request — Prescription #RX-44821 | Cedar Mesa Pharmacy</title>
+<!--
+  ASPECT: is-it-a-status-message-scope-boundary
+  INTENDED CLASSIFICATION: failed
+  The submit error is ALREADY surfaced as a change of context: it opens a real
+  role="alertdialog" that takes focus. That alone fully satisfies the user's
+  need (and would be N/A for 4.1.3 on its own — see case-01). But the author,
+  trying to be "extra accessible", ALSO copies the same error text into a
+  persistent role="alert" live region OUTSIDE the dialog. A screen reader user
+  now hears the error TWICE: once because focus moved into the alertdialog, and
+  again because the assertive live region fires. This is the over-announcement
+  failure direction of this aspect: forcing a status role onto a message that
+  is already delivered by a change of context makes the application "too chatty"
+  — exactly what the Understanding's "Other uses of live regions or alerts"
+  note warns against.
+-->
+<style>
+  :root { --plum:#5a2a82; --green:#2e7d4f; --ink:#23222b; --muted:#666170; --line:#e7e2ef; --alert:#b3261e; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Public Sans","Segoe UI",system-ui,sans-serif; color:var(--ink); background:#f6f3fa; }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:14px 26px; display:flex; align-items:center; gap:12px; }
+  header .rx { width:32px; height:32px; border-radius:8px; background:var(--plum); color:#fff; display:grid; place-items:center; font-weight:800; }
+  header strong { font-size:1.05rem; }
+  header .who { margin-left:auto; color:var(--muted); font-size:.85rem; }
+  main { max-width:660px; margin:28px auto; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:26px 30px; }
+  h1 { font-size:1.3rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 22px; }
+  .med { display:flex; gap:16px; align-items:center; padding:16px; border:1px solid var(--line); border-radius:10px; background:#faf8fd; }
+  .med .pill { width:46px; height:46px; border-radius:50%; background:#ece3f6; display:grid; place-items:center; font-size:1.4rem; }
+  .med h2 { margin:0; font-size:1.02rem; }
+  .med p { margin:2px 0 0; color:var(--muted); font-size:.88rem; }
+  fieldset { border:1px solid var(--line); border-radius:10px; margin:22px 0 0; padding:16px 18px; }
+  legend { font-weight:600; padding:0 6px; }
+  .opt { display:flex; align-items:center; gap:10px; padding:7px 0; }
+  .actions { margin-top:24px; display:flex; gap:12px; }
+  button { font:inherit; cursor:pointer; border-radius:8px; padding:12px 22px; border:1px solid transparent; }
+  .primary { background:var(--plum); color:#fff; font-weight:600; }
+  .ghost { background:#fff; border-color:#c8c0d4; color:var(--ink); }
+  /* The duplicate, OUTSIDE-the-dialog assertive live region */
+  .banner { margin:0 0 18px; padding:14px 16px; border-radius:10px; border:1px solid #f4c7c3; background:#fdecea; color:#7d1610; font-size:.92rem; display:none; }
+  .banner.show { display:block; }
+  .banner strong { display:block; margin-bottom:2px; color:var(--alert); }
+  /* Modal alertdialog */
+  .scrim { position:fixed; inset:0; background:rgba(35,34,43,.55); display:none; align-items:center; justify-content:center; padding:20px; }
+  .scrim.open { display:flex; }
+  .dialog { background:#fff; max-width:430px; width:100%; border-radius:12px; padding:24px 26px; box-shadow:0 18px 50px rgba(0,0,0,.3); }
+  .dialog h2 { margin:0 0 6px; font-size:1.12rem; color:var(--alert); }
+  .dialog p { margin:6px 0 0; color:var(--muted); }
+  .dialog .dlg-actions { margin-top:20px; display:flex; justify-content:flex-end; gap:10px; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:3px solid #3a86ff; outline-offset:2px; }
+  footer { max-width:660px; margin:18px auto 50px; color:var(--muted); font-size:.78rem; }
+  .why { background:#fff; border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin-top:18px; font-size:.8rem; color:#4a4458; }
+</style>
+</head>
+<body data-intended-classification="failed" data-sc="4.1.3">
+<header>
+  <span class="rx">Rx</span>
+  <strong>Cedar Mesa Pharmacy</strong>
+  <span class="who">Patient: Daniel O'Connor · DOB 03/1971</span>
+</header>
+
+<main>
+  <!-- Duplicate assertive live region that ALSO announces the error. It is empty on load and
+       gets populated at the same moment the alertdialog opens. -->
+  <div class="banner" id="banner" role="alert" aria-live="assertive"></div>
+
+  <div class="card">
+    <h1>Request a refill</h1>
+    <p class="sub">Submit a refill for the prescription below. Your pharmacist will review controlled medications.</p>
+
+    <div class="med">
+      <span class="pill" aria-hidden="true">💊</span>
+      <div>
+        <h2>Oxycodone HCl 5 mg tablet</h2>
+        <p>Prescription #RX-44821 · 2 refills on file · Last filled 41 days ago</p>
+      </div>
+    </div>
+
+    <form id="refill" novalidate>
+      <fieldset>
+        <legend>Pickup method</legend>
+        <div class="opt"><input type="radio" id="store" name="pickup" checked><label for="store">In-store pickup (Cedar Mesa, 4th St)</label></div>
+        <div class="opt"><input type="radio" id="mail" name="pickup"><label for="mail">Mail to address on file</label></div>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" class="primary" id="sendBtn">Submit refill request</button>
+        <button type="button" class="ghost">Save for later</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="why">
+    Why automated tools cannot judge this page: the <code>role="alert"</code> region is textbook-valid
+    ARIA, populated correctly after an action — axe/WAVE would treat it as a model 4.1.3 implementation
+    and pass it. They cannot detect that the SAME error is <em>also</em> delivered by the focus-taking
+    <code>role="alertdialog"</code>, so the screen-reader user hears it twice. Recognizing the redundant,
+    over-chatty announcement requires understanding that the dialog (a change of context) had already
+    surfaced the message, and that piling an assertive live region on top is the over-announcement the
+    Understanding warns about. That is human contextual judgment, not a markup rule.
+  </div>
+</main>
+
+<footer>
+  Cedar Mesa Pharmacy · Controlled-substance refills subject to pharmacist review · NPI 1538291047.
+</footer>
+
+<div class="scrim" id="scrim">
+  <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgBody" id="dlg">
+    <h2 id="dlgTitle">Refill could not be submitted</h2>
+    <p id="dlgBody">This controlled medication was last filled 41 days ago. A 30-day supply cannot be
+      refilled until day 60. Please contact the pharmacy if this is an emergency.</p>
+    <div class="dlg-actions">
+      <button type="button" class="primary" id="dlgClose">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // On submit we open an alertdialog AND move focus into it (change of context -> already announced).
+  // We THEN ALSO copy the same text into the persistent role="alert" banner. The double surfacing is
+  // the over-announcement failure: the message is heard twice by AT.
+  var scrim = document.getElementById('scrim');
+  var dlg = document.getElementById('dlg');
+  var banner = document.getElementById('banner');
+  var sendBtn = document.getElementById('sendBtn');
+  var MSG = 'Refill could not be submitted. This controlled medication cannot be refilled until day 60.';
+
+  document.getElementById('refill').addEventListener('submit', function (e) {
+    e.preventDefault();
+    // (1) Open the alertdialog and move focus in -> change of context, announced by AT.
+    scrim.classList.add('open');
+    document.getElementById('dlgClose').focus();
+    // (2) ALSO write the same error into the assertive live region -> SECOND announcement.
+    banner.innerHTML = '<strong>Refill could not be submitted</strong>' + MSG;
+    banner.classList.add('show');
+  });
+
+  function closeDialog() {
+    scrim.classList.remove('open');
+    sendBtn.focus();
+    // The banner persists (and re-announces on any later mutation), compounding the chattiness.
+  }
+  document.getElementById('dlgClose').addEventListener('click', closeDialog);
+  document.addEventListener('keydown', function (e) {
+    if (scrim.classList.contains('open') && e.key === 'Escape') closeDialog();
+  });
+</script>
+</body>
+</html>

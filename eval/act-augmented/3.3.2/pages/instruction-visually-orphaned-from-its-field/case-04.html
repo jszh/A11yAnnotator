@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graduate financial aid — Taxpayer information | Lakemont State University</title>
+<style>
+  :root { --ink:#22252b; --muted:#5e6671; --line:#d6dae0; --crimson:#7a1f2b; --gold:#c9a227; }
+  * { box-sizing:border-box; }
+  body { font-family:Georgia,"Times New Roman",serif; color:var(--ink); background:#f3f1ec;
+         margin:0; padding:30px 16px; }
+  .masthead { max-width:680px; margin:0 auto 16px; display:flex; align-items:center; gap:12px; }
+  .crest { width:34px; height:34px; background:var(--crimson); border-radius:50%;
+           border:2px solid var(--gold); }
+  .masthead h2 { font-size:1rem; margin:0; font-variant:small-caps; letter-spacing:.04em; }
+  .sheet { max-width:680px; margin:0 auto; background:#fff; border:1px solid var(--line);
+           padding:34px 36px 30px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; color:var(--crimson); }
+  .step { color:var(--muted); font-size:.85rem; margin:0 0 24px; font-family:Arial,sans-serif; }
+  .field { margin:0 0 20px; }
+  label { display:block; font-weight:bold; font-size:.9rem; margin:0 0 6px; font-family:Arial,sans-serif; }
+  input, select { width:100%; font-size:.95rem; padding:9px 11px; border:1px solid var(--line);
+        border-radius:4px; font-family:Arial,sans-serif; }
+  .two { display:flex; gap:18px; }
+  .two .field { flex:1; }
+  .actions { margin:26px 0 0; padding-top:20px; border-top:1px solid var(--line); }
+  .submit { background:var(--crimson); color:#fff; border:0; border-radius:5px; font-weight:bold;
+            font-size:1rem; padding:12px 28px; cursor:pointer; font-family:Arial,sans-serif; }
+  /* The "Notes" block where ALL field instructions were collected — placed AFTER the submit button. */
+  .post-notes { margin:22px 0 0; font-family:Arial,sans-serif; font-size:.82rem; color:var(--muted);
+                line-height:1.5; }
+  .post-notes h3 { font-size:.82rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink);
+                   margin:0 0 8px; }
+  .post-notes ul { margin:0; padding-left:18px; }
+  .post-notes li { margin:0 0 6px; }
+</style>
+</head>
+<body>
+  <div class="masthead"><span class="crest" aria-hidden="true"></span><h2>Lakemont State University</h2></div>
+
+  <main class="sheet">
+    <h1>Taxpayer information</h1>
+    <p class="step">Graduate financial aid · Section 4 of 6 · Required for 1098-T and assistantship payroll</p>
+
+    <form action="#" novalidate>
+      <div class="field">
+        <label for="legal-name">Legal name (as on your Social Security card)</label>
+        <input type="text" id="legal-name" name="legal-name" autocomplete="name">
+      </div>
+
+      <div class="two">
+        <!-- THE GOVERNED FIELD. The TIN/SSN entry forbids dashes and requires exactly 9 digits.
+             That rule is NOT stated beside the field — it is in the Notes block AFTER the button. -->
+        <div class="field">
+          <label for="tin">Taxpayer identification number (SSN or ITIN)</label>
+          <input type="text" id="tin" name="tin" inputmode="numeric" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="tin-type">Number type</label>
+          <select id="tin-type" name="tin-type">
+            <option>SSN</option><option>ITIN</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="citizenship">Citizenship status</label>
+        <select id="citizenship" name="citizenship">
+          <option>U.S. citizen</option><option>Permanent resident</option>
+          <option>Nonresident alien</option><option>Resident alien for tax purposes</option>
+        </select>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="submit">Save and continue to Section 5</button>
+      </div>
+
+      <!-- Instruction lives here, AFTER the action. In reading and visual order it follows the
+           button, so it informs nothing at the point of entry. -->
+      <div class="post-notes">
+        <h3>Notes</h3>
+        <ul>
+          <li>Your legal name must match your Social Security card exactly, including hyphens and suffixes.</li>
+          <li>Enter your taxpayer identification number as <strong>9 digits with no dashes or spaces</strong> (for example, 123456789, not 123-45-6789). Entries containing dashes are rejected by the IRS reporting system.</li>
+          <li>Nonresident aliens without an SSN should select ITIN and contact the International Student Office before continuing.</li>
+        </ul>
+      </div>
+    </form>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT
+    The TIN format instruction ("9 digits with no dashes or spaces") is present in the DOM, is a
+    complete and accurate sentence, and is high-contrast and readable — so every "instruction
+    exists?" check passes. The TIN field also has a proper visible <label>, so no missing-label
+    rule fires. The defect is ordering/position: the instruction is collected in a "Notes" block
+    that comes AFTER the submit button, so in both visual order and DOM reading order it FOLLOWS
+    the action rather than informing the field. A user who fills the fields top-to-bottom and
+    presses "Save and continue" never sees it. axe/WAVE/Lighthouse do not model "is this
+    instruction positioned before or after the control/action it governs" and cannot tell that the
+    note explains a field rendered far above it. Detecting that the instruction is positioned where
+    it cannot inform the field is a reading-order / layout judgment on the rendered page.
+  -->
+</body>
+</html>

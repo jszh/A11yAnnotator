@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add your insurance — Cedar Park Health patient portal</title>
+<style>
+  :root { --ink:#15212b; --muted:#5c6b78; --line:#dbe2e8; --teal:#0d7a86; }
+  * { box-sizing:border-box; }
+  body { font-family:"Public Sans","Segoe UI",system-ui,sans-serif; color:var(--ink);
+         background:#f5f8fa; margin:0; padding:30px 16px; }
+  .shell { max-width:600px; margin:0 auto; }
+  .brand { display:flex; align-items:center; gap:10px; margin:0 0 18px; }
+  .brand .dot { width:26px; height:26px; border-radius:7px; background:var(--teal); }
+  .brand strong { font-size:1rem; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px;
+          padding:28px 28px 32px; box-shadow:0 1px 3px rgba(20,40,60,.06); }
+  h1 { font-size:1.3rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:.88rem; margin:0 0 24px; }
+  .field { margin:0 0 18px; }
+  label { display:block; font-weight:600; font-size:.86rem; margin:0 0 6px; }
+  input, select { width:100%; font-size:.95rem; padding:10px 12px; border:1px solid var(--line);
+        border-radius:7px; }
+  /* The format instruction is present DIRECTLY under the field — but it is rendered tiny and
+     in a near-background grey, so it is not readable as the field's instruction. */
+  .microhint {
+        display:block;
+        margin-top:4px;
+        font-size:9px;          /* far below body text */
+        line-height:1.1;
+        color:#cdd4da;          /* ~1.3:1 on white — effectively invisible as text */
+        letter-spacing:.1px;
+  }
+  .normalhint { display:block; margin-top:5px; font-size:.8rem; color:var(--muted); }
+  .submit { background:var(--teal); color:#fff; border:0; border-radius:8px; font-weight:700;
+            font-size:.95rem; padding:12px 24px; margin-top:8px; cursor:pointer; }
+  .legal { color:var(--muted); font-size:.76rem; margin-top:16px; line-height:1.4; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="brand"><span class="dot" aria-hidden="true"></span><strong>Cedar Park Health</strong></div>
+    <div class="card">
+      <h1>Add your insurance</h1>
+      <p class="sub">We use this to verify coverage before your visit. You can update it anytime.</p>
+
+      <form action="#" novalidate>
+        <div class="field">
+          <label for="payer">Insurance carrier</label>
+          <select id="payer" name="payer">
+            <option>Aetna</option><option>Blue Cross Blue Shield</option>
+            <option>Cigna</option><option>UnitedHealthcare</option><option>Other</option>
+          </select>
+        </div>
+
+        <!-- THE GOVERNED FIELD. The member-ID format is non-obvious (carrier prefix + 9 digits,
+             no spaces). The instruction text EXISTS immediately beneath the field — but it is set
+             at 9px in #cdd4da, far too small and low-contrast to read as the field's instruction. -->
+        <div class="field">
+          <label for="member">Member ID</label>
+          <input type="text" id="member" name="member" aria-describedby="member-hint" autocomplete="off">
+          <span class="microhint" id="member-hint">Enter the 3-letter carrier prefix followed by all 9 digits, no spaces or dashes — exactly as printed on the front of your card (e.g. ABC123456789).</span>
+        </div>
+
+        <div class="field">
+          <label for="group">Group number</label>
+          <input type="text" id="group" name="group" autocomplete="off">
+          <span class="normalhint">Found near your name on the card. Leave blank if not listed.</span>
+        </div>
+
+        <div class="field">
+          <label for="holder">Policy holder name</label>
+          <input type="text" id="holder" name="holder" autocomplete="name">
+        </div>
+
+        <button type="submit" class="submit">Save insurance</button>
+        <p class="legal">Cedar Park Health is required to verify your benefits with your carrier. Submitting incorrect identifiers may delay your appointment.</p>
+      </form>
+    </div>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT
+    The Member ID format instruction is present in the DOM (#member-hint), is a complete and
+    accurate sentence, and is even wired with aria-describedby — so a screen reader announces it,
+    and every "instruction exists / is associated" check passes. The defect is VISUAL: it is
+    rendered at 9px in #cdd4da on #fff (~1.3:1), far below readable size and contrast, so a typical
+    sighted user does not perceive it as the field's instruction — to them the field has no usable
+    format guidance. Note this is NOT a clean 1.4.3 catch: SC 1.4.3 exempts text below its size
+    thresholds and tools key contrast checks to computed font-size + foreground/background; here
+    the failure that MATTERS is 3.3.2 — the *instruction is not presented perceivably to sighted
+    users*, a meaning-level judgment about whether the text functions as the field's instruction.
+    A contrast scanner may or may not emit a generic low-contrast note, but it cannot conclude
+    "this unreadable text is the field's required-format instruction, so the field effectively
+    lacks an instruction." That requires reading the text, judging legibility, and tying it to the
+    control's need.
+  -->
+</body>
+</html>

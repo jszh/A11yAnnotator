@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Zoom allowed. The PROSE reflows fine. But a position:sticky editor toolbar fails on
+       BOTH reflow axes: (1) it is a single nowrap row wider than 320px, so its right-hand
+       buttons run off-canvas and the toolbar introduces a horizontal scrollbar at the 320px
+       WIDTH; (2) it is ~104px tall and sticky, so it also eats the 256px HEIGHT. The editable
+       text area is NOT itself an excepted two-dimensional layout — it is ordinary prose. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit: Getting Started Guide — DocForge CMS</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { font: 15px/1.55 "Inter", "Segoe UI", Arial, sans-serif; color: #1d2229; background: #f3f5f8; }
+    .appbar { background: #20262e; color: #e7ecf2; padding: 8px 14px; font-size: 14px; }
+    .appbar .doc { font-weight: 600; }
+    .appbar .meta { font-size: 12px; opacity: .75; }
+
+    /* The formatting toolbar is sticky and laid out as ONE non-wrapping row. With ~16
+       buttons plus a font-size select and a style dropdown, the row is ~640px wide. It does
+       NOT wrap (white-space:nowrap; overflow:auto), so at the 320px reflow viewport its
+       right half (link, image, code block, table, undo, redo, publish) is off-screen behind
+       a horizontal scrollbar — the user must scroll sideways inside the toolbar to reach
+       them. It is also min-height:104px (two visual rows of chrome), eating vertical space. */
+    .toolbar {
+      position: sticky; top: 0; z-index: 25;
+      background: #fff; border-bottom: 1px solid #d3dae2;
+      min-height: 104px;
+      box-shadow: 0 2px 5px rgba(0,0,0,.08);
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px;
+      white-space: nowrap;
+      overflow-x: auto;           /* horizontal scroll appears at 320px */
+    }
+    .toolbar .grp { display: inline-flex; gap: 4px; padding-right: 8px; border-right: 1px solid #e3e8ee; }
+    .toolbar button, .toolbar select {
+      flex: 0 0 auto;
+      font: 13px/1 "Inter", Arial, sans-serif; cursor: pointer;
+      background: #f2f5f9; border: 1px solid #cdd6df; border-radius: 5px;
+      padding: 8px 10px; color: #2a3340; min-width: 40px;
+    }
+    .toolbar button:focus, .toolbar select:focus { outline: 2px solid #2f6df0; outline-offset: 1px; }
+    .toolbar .publish { background: #2f8f4e; color: #fff; border-color: #267a42; font-weight: 600; }
+
+    main { padding: 16px 14px 50px; max-width: 680px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 4px 0 10px; }
+    .editor {
+      background: #fff; border: 1px solid #d3dae2; border-radius: 8px; padding: 16px;
+      min-height: 300px;
+    }
+    .editor h2 { font-size: 18px; margin: 14px 0 6px; }
+    .editor p { margin: 0 0 14px; }
+    .editor[contenteditable] { outline: none; }
+    .editor:focus-within { box-shadow: 0 0 0 3px rgba(47,109,240,.25); }
+  </style>
+</head>
+<body>
+  <!-- WHY AUTOMATED TOOLS MISS THIS:
+       overflow-x:auto + white-space:nowrap is a normal pattern; every toolbar button has a
+       name and good contrast. axe/WAVE/Lighthouse do not measure the rendered toolbar width
+       against 320px, do not detect that controls have scrolled off-canvas, and do not judge
+       that the editable region is ordinary prose (NOT an excepted persistent-toolbar editing
+       canvas that legitimately needs to stay visible). A human at 320px sees the right-hand
+       toolbar controls vanish behind a horizontal scrollbar AND the sticky bar eating the
+       short viewport — a dual-axis Reflow failure no static rule can assert. -->
+  <header class="appbar">
+    <span class="doc">Editing: Getting Started Guide</span>
+    <span class="meta"> · draft · last saved 2 min ago by you</span>
+  </header>
+
+  <div class="toolbar" role="toolbar" aria-label="Formatting">
+    <span class="grp">
+      <select aria-label="Paragraph style">
+        <option>Paragraph</option><option>Heading 1</option><option>Heading 2</option>
+      </select>
+    </span>
+    <span class="grp">
+      <button type="button" aria-label="Bold"><b>B</b></button>
+      <button type="button" aria-label="Italic"><i>I</i></button>
+      <button type="button" aria-label="Underline"><u>U</u></button>
+      <button type="button" aria-label="Strikethrough"><s>S</s></button>
+    </span>
+    <span class="grp">
+      <button type="button" aria-label="Bulleted list">• ≡</button>
+      <button type="button" aria-label="Numbered list">1. ≡</button>
+      <button type="button" aria-label="Decrease indent">⇤</button>
+      <button type="button" aria-label="Increase indent">⇥</button>
+    </span>
+    <span class="grp">
+      <button type="button" aria-label="Insert link">🔗</button>
+      <button type="button" aria-label="Insert image">🖼</button>
+      <button type="button" aria-label="Insert code block">&lt;/&gt;</button>
+      <button type="button" aria-label="Insert table">▦</button>
+    </span>
+    <span class="grp">
+      <button type="button" aria-label="Undo">↶</button>
+      <button type="button" aria-label="Redo">↷</button>
+    </span>
+    <button class="publish" type="button">Publish</button>
+  </div>
+
+  <main>
+    <h1>Document body</h1>
+    <div class="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Document body">
+      <h2>Getting Started with DocForge</h2>
+      <p>Welcome to DocForge. This guide walks you through creating your first space, inviting
+        teammates, and publishing a page that the whole organisation can read. None of the
+        steps require code, and most can be undone, so feel free to experiment as you go.</p>
+      <p>Begin by creating a space from the left sidebar. A space is simply a container for
+        related pages — most teams start with one per project or per department. Give it a
+        clear name, because that name appears in every breadcrumb and search result.</p>
+      <p>Once your space exists, create a page inside it and start typing. The toolbar above
+        gives you the usual formatting controls; everything you write is saved automatically a
+        few seconds after you stop typing, so there is no separate save step to remember.</p>
+      <p>When the page is ready, choose Publish. Until you do, only you can see the draft.
+        After publishing, anyone with access to the space can read it, comment, and — if you
+        allow it — suggest edits of their own.</p>
+    </div>
+  </main>
+</body>
+</html>

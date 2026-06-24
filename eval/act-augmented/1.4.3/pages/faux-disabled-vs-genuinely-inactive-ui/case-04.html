@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.3 — LEGITIMATE EXEMPTION (boundary PASS case).
+
+    A two-step checkout wizard. The "Continue to payment" button is genuinely disabled
+    (native `disabled` attribute) until the shipping form validates, then it is enabled and
+    its color flips to a high-contrast brand fill. While disabled it is greyed
+    (#9b9b9b on #ededed ≈ 2.4:1) — and because it is TRULY not available for interaction
+    (disabled attr, removed from tab order, no handler reachable), the inactive-UI exemption
+    DOES apply: the greyed label is NOT required to meet 4.5:1.
+
+    Every OTHER piece of text on the page (labels, the enabled "Back" link, body copy, the
+    enabled brand button after validation) meets contrast. So this page is the honest
+    counterpart to the faux-disabled failures: the dim text here is exempt because the
+    control is really inactive. Expected: PASSED.
+
+    WHY THIS SHARPENS THE ASPECT: it is pixel-similar to the failing cases (a sub-2.5:1 grey
+    button), yet it PASSES — proving the verdict is driven by operability, not appearance. A
+    tool that blindly flags every grey button would FALSE-POSITIVE here; a tool that blindly
+    exempts every grey button would FALSE-NEGATIVE on case-01/02/03. Only behavior decides.
+  -->
+  <title>Checkout — step 1 of 2 — Maple &amp; Birch</title>
+  <style>
+    :root { --ink:#241f1b; --line:#ddd6cf; --brand:#7a4a1e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Georgia,"Times New Roman",serif; color:var(--ink); background:#faf7f2; }
+    .wrap { max-width:540px; margin:40px auto; background:#fff; border:1px solid var(--line); border-radius:8px; padding:26px 30px; }
+    .steps { font-size:13px; color:#6b6258; margin:0 0 14px; }
+    h1 { font-size:21px; margin:0 0 16px; }
+    label { display:block; font-weight:bold; margin:12px 0 4px; font-size:14px; }
+    input { width:100%; padding:9px 10px; border:1px solid #b7ada1; border-radius:5px; font-size:15px; }
+    .err { color:#9a2a1e; font-size:13px; min-height:16px; margin-top:3px; }
+    .actions { display:flex; align-items:center; justify-content:space-between; margin-top:22px; }
+    .back { color:var(--brand); text-decoration:underline; font-size:14px; }   /* enabled link — passes */
+    .next {
+      padding:11px 22px; border-radius:6px; font-size:15px; font-weight:bold;
+      border:1px solid transparent; font-family:inherit;
+    }
+    /* DISABLED resting state — truly inert, so this low contrast is EXEMPT */
+    .next[disabled] { background:#ededed; color:#9b9b9b; cursor:not-allowed; border-color:#e0e0e0; }
+    /* ENABLED state — high contrast, passes on its own */
+    .next:not([disabled]) { background:var(--brand); color:#fff; cursor:pointer; }  /* white on #7a4a1e ≈ 7.4:1 */
+    .helper { color:#6b6258; font-size:13px; margin-top:14px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <p class="steps">Step 1 of 2 · Shipping</p>
+    <h1>Where should we send it?</h1>
+
+    <form id="ship" novalidate>
+      <label for="addr">Street address</label>
+      <input id="addr" name="addr" type="text" autocomplete="address-line1" required>
+      <div class="err" id="addrErr" aria-live="polite"></div>
+
+      <label for="zip">Postal code</label>
+      <input id="zip" name="zip" type="text" inputmode="numeric" autocomplete="postal-code" required>
+      <div class="err" id="zipErr" aria-live="polite"></div>
+
+      <div class="actions">
+        <a class="back" href="#cart">&larr; Back to cart</a>
+        <!--
+          Genuinely disabled until the form validates. Native `disabled` attr means it is NOT
+          available for interaction (not focusable, no activation). Its low-contrast resting
+          label is EXEMPT. Once both fields are filled, JS removes `disabled`, the fill flips
+          to the high-contrast brand color, and it passes on its own.
+        -->
+        <button type="submit" class="next" id="next" disabled>Continue to payment</button>
+      </div>
+      <p class="helper">Enter a street address and postal code to continue.</p>
+    </form>
+  </main>
+
+  <script>
+    var form = document.getElementById('ship');
+    var next = document.getElementById('next');
+    var addr = document.getElementById('addr');
+    var zip  = document.getElementById('zip');
+
+    function revalidate() {
+      var ok = addr.value.trim().length > 3 && /^\d{4,6}$/.test(zip.value.trim());
+      // toggle the REAL disabled attribute — this is what makes the exemption legitimate
+      next.disabled = !ok;
+    }
+    addr.addEventListener('input', revalidate);
+    zip.addEventListener('input', revalidate);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!next.disabled) next.textContent = 'Loading payment…';
+    });
+    revalidate();
+  </script>
+</body>
+</html>

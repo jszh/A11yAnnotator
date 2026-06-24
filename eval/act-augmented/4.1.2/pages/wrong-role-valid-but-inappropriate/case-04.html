@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — the "Role" limb, valid-but-INAPPROPRIATE role.
+
+    Aspect: wrong-role-valid-but-inappropriate.
+
+    "Meadowbrook Veterinary Clinic" — a CMS-built FAQ page with an ACCORDION. Each item
+    has a clickable header bar showing the question, a rotating disclosure triangle (▸ →
+    ▾), and an answer panel that expands/collapses on click. The header is operable: it
+    has tabindex, a click + key handler, and aria-expanded that flips. Visually and
+    behaviourally it is an interactive DISCLOSURE BUTTON.
+
+    THE DEFECT: the header is coded
+        <div role="heading" aria-level="3" aria-expanded="false" tabindex="0" ...>
+    role="heading" is a valid token, so 674b10 PASSES; heading needs aria-level which is
+    present, so 4e8ab6 PASSES. The accessible name (the question text) is correct. But
+    role="heading" tells AT this is a STATIC section title — a navigation landmark, not an
+    operable control. The element actually expands/collapses content, which is the
+    behaviour of a button (the APG disclosure pattern is a button, optionally wrapped IN a
+    heading). By giving the operable control the heading role and NO button semantics, AT
+    announces a static heading that — surprisingly — does something when activated.
+
+    WHAT AT EXPERIENCES: a screen-reader user navigating by heading (H key) lands on
+    "Do you offer weekend appointments?, heading level 3." Headings are expected to be
+    inert labels you read, not controls you operate. There is no "button" announced, no
+    "collapsed/expanded" affordance tied to a button. A user reading headings to survey
+    the page has no cue that activating this heading reveals content; conversely a user
+    expecting an operable control gets a heading. The aria-expanded is present but, on a
+    heading role, AT support for announcing it as an operable disclosure is poor — the
+    role contradicts the behaviour.
+
+    WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse confirm role="heading" is
+    valid and aria-level is present; a focusable heading is unusual but not an automatic
+    violation. No tool renders the disclosure triangle, observes the click-to-expand
+    behaviour, and decides the operable control should be a button rather than a heading.
+    Recognising "operable disclosure mis-coded as a static heading" is human judgment.
+  -->
+  <title>Frequently asked questions — Meadowbrook Veterinary Clinic</title>
+  <style>
+    :root { --ink:#22311f; --muted:#5d6b59; --line:#dde4d8; --brand:#3f7d3a; --bg:#f4f7f1; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Georgia",Cambria,serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .wrap { max-width:680px; margin:2.4rem auto; padding:0 1.2rem; }
+    h1 { font-size:1.7rem; margin:0 0 .3rem; }
+    p.intro { color:var(--muted); margin:0 0 1.6rem; }
+    .acc { background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    .item { border-bottom:1px solid var(--line); }
+    .item:last-child { border-bottom:0; }
+    /* clickable accordion header — visually + behaviourally a disclosure control */
+    .head { display:flex; align-items:center; gap:.7rem; padding:1.05rem 1.3rem; cursor:pointer;
+            font-weight:700; font-family:"Helvetica Neue",Arial,sans-serif; font-size:1.02rem; }
+    .head:hover { background:#f3f7ef; }
+    .head:focus-visible { outline:2px solid var(--brand); outline-offset:-2px; }
+    .tri { display:inline-block; transition:transform .18s ease; color:var(--brand); font-size:.9em; }
+    .head[aria-expanded="true"] .tri { transform:rotate(90deg); }
+    .panel { padding:0 1.3rem; max-height:0; overflow:hidden; transition:max-height .2s ease; color:var(--muted); }
+    .panel.open { max-height:300px; padding:0 1.3rem 1.1rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Frequently asked questions</h1>
+    <p class="intro">Answers to the questions our front desk hears most often.</p>
+
+    <div class="acc">
+      <div class="item">
+        <!-- DEFECT: an operable disclosure control coded role="heading" (valid token,
+             aria-level present) with NO button semantics — should be role="button"
+             (optionally wrapped in a heading). -->
+        <div class="head" role="heading" aria-level="3" tabindex="0" aria-expanded="false" data-target="p1">
+          <span class="tri">▸</span> Do you offer weekend appointments?
+        </div>
+        <div class="panel" id="p1">
+          <p>Yes — we hold Saturday clinic hours from 9am to 1pm for vaccinations,
+          wellness checks, and urgent concerns. Sunday is reserved for emergencies only,
+          by phone triage first.</p>
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="head" role="heading" aria-level="3" tabindex="0" aria-expanded="false" data-target="p2">
+          <span class="tri">▸</span> How do I refill my pet's prescription?
+        </div>
+        <div class="panel" id="p2">
+          <p>Request refills through the client portal or by calling the front desk.
+          Allow two business days for medications we compound in-house. Refrigerated
+          items must be collected the same day.</p>
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="head" role="heading" aria-level="3" tabindex="0" aria-expanded="false" data-target="p3">
+          <span class="tri">▸</span> What should I bring to a first visit?
+        </div>
+        <div class="panel" id="p3">
+          <p>Please bring any prior medical records, a current medication list, and a
+          stool sample if your pet is due for a parasite screen. New puppies and kittens
+          should arrive in a secure carrier.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.head').forEach(function (head) {
+      function toggle() {
+        var open = head.getAttribute('aria-expanded') === 'true';
+        head.setAttribute('aria-expanded', open ? 'false' : 'true');
+        document.getElementById(head.getAttribute('data-target')).classList.toggle('open', !open);
+      }
+      head.addEventListener('click', toggle);
+      head.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Select your seats — Aurora Concert Hall</title>
+<style>
+  :root { --ink:#20242b; --muted:#6a7280; --stage:#2d3a8c; --free:#dfeaf6; --freeline:#9bbbdd; --sel:#1f9d57; --taken:#cdd2da; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI", system-ui, sans-serif; color:var(--ink); background:#eef2f6; }
+  header { background:#10131a; color:#fff; padding:14px 24px; }
+  header h1 { margin:0; font-size:1.25rem; }
+  header .ev { color:#9aa6b8; font-size:.86rem; margin-top:2px; }
+  main { max-width:760px; margin:26px auto; padding:0 20px; }
+  .stage-bar { background:var(--stage); color:#fff; text-align:center; border-radius:8px; padding:8px; font-size:.8rem; letter-spacing:.18em; text-transform:uppercase; margin-bottom:22px; }
+  .map { display:flex; flex-direction:column; gap:8px; align-items:center; }
+  .row { display:flex; align-items:center; gap:6px; }
+  .row .rowlabel { width:22px; text-align:center; font-weight:700; color:var(--muted); font-size:.8rem; }
+  .seat { width:34px; height:30px; border-radius:6px 6px 4px 4px; border:1px solid var(--freeline);
+          background:var(--free); cursor:pointer; font-size:.66rem; color:#3a567a; display:grid; place-items:center; }
+  .seat[aria-pressed="true"] { background:var(--sel); border-color:#177a43; color:#fff; font-weight:700; }
+  .seat:disabled { background:var(--taken); border-color:#bbc0c9; color:#9aa0aa; cursor:not-allowed; }
+  .seat:focus-visible { outline:3px solid #ffb020; outline-offset:2px; }
+  .gap { width:18px; }
+  .legend { display:flex; gap:18px; justify-content:center; margin-top:18px; font-size:.8rem; color:var(--muted); }
+  .legend span::before { content:""; display:inline-block; width:14px; height:14px; border-radius:3px; margin-right:6px; vertical-align:-2px; }
+  .legend .l-free::before { background:var(--free); border:1px solid var(--freeline); }
+  .legend .l-sel::before { background:var(--sel); }
+  .legend .l-taken::before { background:var(--taken); }
+  .statusbar { max-width:760px; margin:18px auto 0; padding:10px 20px; }
+  #seatStatus { display:inline-block; min-height:1.2em; font-weight:600; color:var(--sel); }
+  .note { max-width:760px; margin:22px auto; background:#fff; border:1px solid #dde3ea; border-left:4px solid var(--stage); border-radius:8px; padding:16px 18px; font-size:.85rem; color:#3c4654; }
+  .note code { background:#eef2f6; padding:1px 4px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Select your seats</h1>
+  <div class="ev">Aurora Concert Hall &middot; Philharmonic: Mahler 5 &middot; Sat 8 Nov, 7:30pm</div>
+</header>
+
+<main>
+  <div class="stage-bar">Stage</div>
+  <div class="map" id="map" role="group" aria-label="Seat map, rows 12 to 15"></div>
+
+  <div class="legend">
+    <span class="l-free">Available</span>
+    <span class="l-sel">Selected</span>
+    <span class="l-taken">Taken</span>
+  </div>
+</main>
+
+<div class="statusbar">
+  <!-- Shared live region for seat-selection feedback. -->
+  <span id="seatStatus" role="status" aria-live="polite" aria-atomic="true"></span>
+</div>
+
+<div class="note">
+  <strong>Why automated tools pass this page.</strong>
+  Each seat <code>&lt;button&gt;</code> has a full accessible name (e.g. "Row 14, seat C, available")
+  and a valid <code>aria-pressed</code> state, so 4.1.2 passes. The selection feedback region is a
+  valid, present <code>role="status"</code> / <code>aria-atomic="true"</code> live region and announces
+  its whole contents. The defect: on selecting a seat the region is set to just <strong>"Selected"</strong>
+  &mdash; not "Seat 14C selected." Which seat is conveyed only by which cell in the visual grid turns
+  green. A screen-reader user who pressed Enter on a seat hears a disembodied "Selected" and cannot
+  confirm <em>which</em> seat. Linters see a valid live region announcing non-empty text and report
+  nothing; they cannot judge that the announced string lost the seat coordinate the visual map carries.
+</div>
+
+<script>
+  var rows = [
+    { label:'12', taken:['12B','12C'] },
+    { label:'13', taken:['13F'] },
+    { label:'14', taken:['14A'] },
+    { label:'15', taken:[] }
+  ];
+  var cols = ['A','B','C','D','E','F','G','H'];
+  var map = document.getElementById('map');
+  var statusEl = document.getElementById('seatStatus');
+
+  rows.forEach(function(r){
+    var rowEl = document.createElement('div');
+    rowEl.className = 'row';
+    var lbl = document.createElement('span');
+    lbl.className = 'rowlabel'; lbl.textContent = r.label; lbl.setAttribute('aria-hidden','true');
+    rowEl.appendChild(lbl);
+    cols.forEach(function(c, i){
+      if (i === 4) { var gap=document.createElement('span'); gap.className='gap'; gap.setAttribute('aria-hidden','true'); rowEl.appendChild(gap); }
+      var seatId = r.label + c;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'seat';
+      b.textContent = c;
+      var taken = r.taken.indexOf(seatId) !== -1;
+      if (taken) {
+        b.disabled = true;
+        b.setAttribute('aria-label', 'Row ' + r.label + ', seat ' + c + ', taken');
+      } else {
+        // Fully descriptive accessible name on the control — 4.1.2 is satisfied.
+        b.setAttribute('aria-label', 'Row ' + r.label + ', seat ' + c + ', available');
+        b.setAttribute('aria-pressed', 'false');
+        b.addEventListener('click', function(){
+          var nowSel = b.getAttribute('aria-pressed') !== 'true';
+          b.setAttribute('aria-pressed', nowSel ? 'true' : 'false');
+          // BUG: the status region announces only the bare verb, no seat coordinate.
+          statusEl.textContent = nowSel ? 'Selected' : 'Removed';
+        });
+      }
+      rowEl.appendChild(b);
+    });
+    map.appendChild(rowEl);
+  });
+</script>
+</body>
+</html>

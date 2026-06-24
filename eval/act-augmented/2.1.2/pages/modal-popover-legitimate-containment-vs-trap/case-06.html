@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify your identity — Cobalt Bank</title>
+<!--
+  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-06 (FAIL)
+
+  An identity-verification modal that is CONFORMANT containment on its own: it is a real
+  role=dialog aria-modal=true, Esc closes it (handler on the parent document), the header
+  "Close" button is focusable and in the Tab cycle, and focus restores to the opener. If you
+  only Tab among the OUTER modal's own controls it behaves exactly like the permitted
+  modal-dialog carve-out.
+
+  The trap is the EMBEDDED FORMAT inside the modal body: a third-party KYC / biometric
+  "Verify with SecureScan" widget delivered as a same-page <iframe srcdoc>. It is a second
+  document with its OWN keyboard handling. Once the user Tabs INTO the iframe, the widget runs
+  its own Tab-wrap + focusin re-grab so Tab / Shift+Tab cannot leave it, and — crucially —
+  the modal's Esc-to-close listener lives on the PARENT document, which never receives the
+  keydown while focus is inside the cross-document iframe. The widget advises no escape of its
+  own. A keyboard user who enters the verification step is stranded inside the embedded
+  format: this is WCAG Failure F10 (combining content formats so the user can enter but not
+  exit one format with the keyboard).
+
+  WHY AUTOMATED TOOLS MISS IT: the outer dialog is textbook-valid (role, aria-modal, name,
+  focusable Close, wired Esc, focus restore) and the iframe has a title; every static check
+  passes. A shallow keyboard test of the OUTER modal alone (Esc closes, Close reachable) also
+  passes. The trap appears only when keyboard focus crosses the document boundary into the
+  embedded widget — a stateful, cross-frame interaction no scanner models.
+-->
+<style>
+  :root { font-family: "Inter", system-ui, sans-serif; color: #16202c; }
+  body { margin: 0; background: #f3f5f8; }
+  header.bk { background: #0b3d2e; color: #fff; padding: 14px 26px; font-weight: 700; letter-spacing: .2px; }
+  main { max-width: 720px; margin: 26px auto; padding: 0 26px; }
+  .cta { background: #0b3d2e; color: #fff; border: none; border-radius: 7px; padding: 11px 18px; font-weight: 600; cursor: pointer; }
+
+  .scrim { position: fixed; inset: 0; background: rgba(8,18,14,.55); display: none; align-items: center; justify-content: center; z-index: 10; }
+  .scrim.show { display: flex; }
+  .dialog { background: #fff; border-radius: 12px; width: min(520px, 94vw); box-shadow: 0 18px 52px rgba(0,0,0,.34); overflow: hidden; }
+  .dialog .head { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #e3e8ee; }
+  .dialog .head h2 { margin: 0; font-size: 1.12rem; }
+  .dialog .head .x { background: #eef2f6; border: 1px solid #d3dbe4; border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; }
+  .dialog .body { padding: 18px 20px; }
+  .dialog .body p { margin: 0 0 12px; line-height: 1.5; }
+  .kyc { width: 100%; height: 168px; border: 1px solid #cfd7e0; border-radius: 9px; }
+  .dialog .foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid #e3e8ee; }
+  .dialog .foot button { border-radius: 8px; padding: 10px 16px; font-weight: 600; cursor: pointer; font: inherit; }
+  .btn-primary { background: #0b3d2e; color: #fff; border: none; }
+  .btn-ghost { background: #fff; color: #0b3d2e; border: 1px solid #0b3d2e; }
+  button:focus-visible, a:focus-visible { outline: 3px solid #f2b134; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<header class="bk">Cobalt Bank</header>
+<main>
+  <h1>Open a high-yield savings account</h1>
+  <p>Before we can fund your account, federal rules require us to confirm your identity.
+     It only takes a minute.</p>
+  <button class="cta" id="open-modal" type="button">Verify your identity</button>
+  <p><a href="#help" id="help-link">Need help? Visit our support centre</a></p>
+</main>
+
+<!-- Identity-verification modal: conformant containment on its own. The TRAP is the embedded widget in .body. -->
+<div class="scrim" id="scrim">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title" id="dialog">
+    <div class="head">
+      <h2 id="dlg-title">Verify your identity</h2>
+      <button class="x" id="dlg-x" type="button" aria-label="Close identity verification">Close</button>
+    </div>
+    <div class="body">
+      <p>Complete the secure scan below to continue. Your document never leaves this session.</p>
+      <!-- Embedded THIRD-PARTY widget = a second content format. Same-origin srcdoc with its own keyboard logic. -->
+      <iframe class="kyc" id="kyc" title="SecureScan identity verification"
+        srcdoc='&lt;!DOCTYPE html&gt;&lt;html lang=&quot;en&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;UTF-8&quot;&gt;&lt;style&gt;
+          body{font:14px/1.5 system-ui,sans-serif;margin:0;padding:14px;color:#16202c;background:#f8fafc}
+          h3{margin:0 0 8px;font-size:1rem}
+          label{display:block;font-weight:600;margin:10px 0 4px;font-size:.85rem}
+          input{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #aab4c0;border-radius:6px;font:inherit}
+          .row{display:flex;gap:8px;margin-top:12px}
+          button{flex:1;border:none;border-radius:6px;padding:9px;font:inherit;font-weight:600;cursor:pointer;background:#0b3d2e;color:#fff}
+          button.sec{background:#fff;color:#0b3d2e;border:1px solid #0b3d2e}
+          :focus-visible{outline:3px solid #f2b134;outline-offset:2px}
+        &lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+          &lt;h3&gt;SecureScan&lt;/h3&gt;
+          &lt;label for=&quot;dl&quot;&gt;Document number&lt;/label&gt;
+          &lt;input id=&quot;dl&quot; type=&quot;text&quot; placeholder=&quot;Driver&#39;s licence / passport&quot;&gt;
+          &lt;label for=&quot;dob&quot;&gt;Date of birth&lt;/label&gt;
+          &lt;input id=&quot;dob&quot; type=&quot;text&quot; placeholder=&quot;MM / DD / YYYY&quot;&gt;
+          &lt;div class=&quot;row&quot;&gt;
+            &lt;button class=&quot;sec&quot; id=&quot;rescan&quot; type=&quot;button&quot;&gt;Rescan&lt;/button&gt;
+            &lt;button id=&quot;submit&quot; type=&quot;button&quot;&gt;Confirm identity&lt;/button&gt;
+          &lt;/div&gt;
+          &lt;script&gt;
+            // Third-party widget keyboard logic, scoped to ITS OWN document.
+            function items(){return Array.from(document.querySelectorAll(&quot;input,button&quot;));}
+            // Tab-wrap inside the widget: last->first, first->last. Never yields focus to the parent frame.
+            document.addEventListener(&quot;keydown&quot;,function(e){
+              if(e.key!==&quot;Tab&quot;)return;            // NB: no Escape handling here at all
+              var f=items(),first=f[0],last=f[f.length-1];
+              if(e.shiftKey&amp;&amp;document.activeElement===first){e.preventDefault();last.focus();}
+              else if(!e.shiftKey&amp;&amp;document.activeElement===last){e.preventDefault();first.focus();}
+            });
+            // focusin re-grab: if focus ever lands on &lt;body&gt; (edge of frame), pull it back to the first field.
+            document.addEventListener(&quot;focusin&quot;,function(e){
+              if(e.target===document.body){document.getElementById(&quot;dl&quot;).focus();}
+            });
+            document.getElementById(&quot;submit&quot;).addEventListener(&quot;click&quot;,function(){
+              parent.postMessage(&quot;securescan:done&quot;,&quot;*&quot;);
+            });
+          &lt;/script&gt;
+        &lt;/body&gt;&lt;/html&gt;'></iframe>
+    </div>
+    <div class="foot">
+      <button class="btn-ghost" id="dlg-cancel" type="button">Cancel</button>
+      <button class="btn-primary" id="dlg-continue" type="button">Continue</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const scrim  = document.getElementById('scrim');
+  const dialog = document.getElementById('dialog');
+  let opener = null;
+
+  function focusablesIn(dlg) {
+    // Outer-modal cycle: the dialog's OWN controls plus the iframe itself.
+    return Array.from(dlg.querySelectorAll('button, input, select, iframe, [href]'))
+      .filter(el => !el.disabled && el.offsetParent !== null);
+  }
+
+  function openModal() {
+    opener = document.activeElement;
+    scrim.classList.add('show');
+    document.getElementById('dlg-x').focus();   // initial focus on Close — conformant
+  }
+  function closeModal() {
+    scrim.classList.remove('show');
+    if (opener) opener.focus();                 // focus restore — conformant
+  }
+  document.getElementById('open-modal').addEventListener('click', openModal);
+  document.getElementById('dlg-x').addEventListener('click', closeModal);
+  document.getElementById('dlg-cancel').addEventListener('click', closeModal);
+  document.getElementById('dlg-continue').addEventListener('click', closeModal);
+
+  // Outer-modal keyboard handling lives on the PARENT document. It works for the modal's own
+  // controls, but the browser does NOT deliver keydown here while focus is inside the iframe
+  // (cross-document) — so Esc cannot rescue a user who has Tabbed into the embedded widget.
+  document.addEventListener('keydown', function (e) {
+    if (!scrim.classList.contains('show')) return;
+    if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
+    if (e.key !== 'Tab') return;
+    const items = focusablesIn(dialog);
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+
+  window.addEventListener('message', function (e) {
+    if (e.data === 'securescan:done') closeModal();   // only a MOUSE-completable success closes it
+  });
+</script>
+</body>
+</html>

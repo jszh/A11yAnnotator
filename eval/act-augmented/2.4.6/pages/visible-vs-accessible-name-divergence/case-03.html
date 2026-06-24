@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Industries — Investor Relations</title>
+<style>
+  :root { --ink:#1d222b; --muted:#5f6b7a; --line:#dce2ea; --accent:#1f4e8c; --bg:#f5f7fa; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 Georgia, "Times New Roman", serif; color:var(--ink); background:var(--bg); }
+  .wrap { max-width:760px; margin:0 auto; padding:30px 22px 70px; }
+  .masthead { border-bottom:3px solid var(--accent); padding-bottom:10px; margin-bottom:8px; }
+  .masthead .co { font:700 13px/1 Arial, sans-serif; letter-spacing:.12em; color:var(--accent); text-transform:uppercase; }
+  .masthead .sec { font:400 13px/1 Arial, sans-serif; color:var(--muted); margin-top:4px; }
+  h1 { font-size:30px; margin:16px 0 4px; }
+  h2 { font-size:23px; margin:34px 0 6px; }
+  .note { font:400 14px/1.5 Arial, sans-serif; color:var(--muted); margin:0 0 18px; }
+  p { margin:0 0 14px; }
+  /* The footnote marker is a small superscript "Q" cross-referencing the glossary. */
+  sup.fn { font:700 11px Arial, sans-serif; color:var(--accent); vertical-align:super; }
+  .figure { background:#fff; border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin:14px 0; font:400 14px/1.5 Arial,sans-serif; }
+  .figure dt { font-weight:700; }
+  .figure dd { margin:0 0 8px; }
+  .glossary { margin-top:40px; font:400 14px/1.55 Arial,sans-serif; }
+  .glossary h2 { font-family:Arial, sans-serif; font-size:18px; }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="masthead">
+      <div class="co">Northwind Industries plc</div>
+      <div class="sec">Investor Relations &middot; Filings &amp; Reports</div>
+    </div>
+
+    <h1>FY2025 Results Center</h1>
+    <p class="note">Audited figures for the financial year ended 31 December 2025.</p>
+
+    <!-- THE DEFECT IS ON THIS HEADING.
+         VISIBLE heading text reads "Quarterly Earnings" (with a small superscript footnote
+         marker "Q" linking to the glossary). The author wanted the footnote marker reachable, so
+         they wrapped the marker in <span id="fnq">Q</span> and — by mistake — pointed the heading's
+         aria-labelledby at THAT span instead of at the heading's own text node. aria-labelledby
+         takes ABSOLUTE precedence, so the computed accessible name of the <h2> is just "Q".
+         A screen-reader user navigating by heading (the H key) hears "Q, heading level 2" — a
+         single stray letter that does not describe the section's topic at all, while the sighted
+         user reads the perfectly descriptive "Quarterly Earnings".
+         The heading is a real <h2> with a non-empty accessible name and a resolvable IDREF, so
+         1.3.1 (it IS a heading) and 4.1.2 (it HAS a name) both pass; only 2.4.6's "the heading
+         describes the topic or purpose of its content" fails on the announced surface. -->
+    <h2 aria-labelledby="fnq">Quarterly Earnings<sup class="fn"><span id="fnq">Q</span></sup></h2>
+    <p>Group revenue rose 6.2% year on year, with the strongest contribution from the
+       Industrial Automation segment. Operating margin expanded to 14.8% as the cost-reduction
+       program completed ahead of schedule.</p>
+    <dl class="figure">
+      <dt>Q4 revenue</dt><dd>$1.84bn (Q4 2024: $1.71bn)</dd>
+      <dt>Q4 diluted EPS</dt><dd>$0.97 (Q4 2024: $0.86)</dd>
+      <dt>Free cash flow</dt><dd>$612m</dd>
+    </dl>
+
+    <h2>Outlook for FY2026</h2>
+    <p>Management expects mid-single-digit organic revenue growth and continued margin
+       discipline, subject to macroeconomic conditions in our European end markets.</p>
+
+    <section class="glossary">
+      <h2>Notes to the figures</h2>
+      <p><sup class="fn">Q</sup> Quarterly figures are unaudited and presented on a constant-currency
+         basis unless otherwise stated.</p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Activate your line — Meridian Mobile</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  This page renders the POST-SUBMIT error state on load. The phone <input> has a
+  correctly associated, visible error message via aria-describedby ("error-phone").
+  The message is non-empty, names the field ("Mobile number"), and states a concrete
+  cause/fix ("Remove letters and parentheses..."). It therefore PASSES every structural
+  facet of ACT rule 36b590: an indicator exists, it identifies the field, and it
+  "describes the cause of the error or how to resolve it" as a self-contained visible
+  string that is in the accessibility tree. axe/WAVE/Lighthouse confirm: label present,
+  aria-describedby resolves, contrast fine, role textbox, nothing hidden.
+  THE DEFECT IS SEMANTIC: the retained value is "12025550143" — eleven ASCII digits,
+  NO letters and NO parentheses. The asserted cause did not occur. The real reason the
+  carrier rejected it (an 11-digit string that is missing the country prefix / is one
+  digit too long for a US 10-digit subscriber number) is never described. A non-visual
+  or cognitively-loaded user reads a fluent, authoritative instruction that does not
+  apply to what they typed and cannot "determine what is wrong." No checker reads the
+  value, the field's stated constraint, and the message TOGETHER to judge agreement.
+-->
+<style>
+  :root{ --ink:#101820; --muted:#5a6470; --line:#cdd4db; --brand:#0b6b5a; --danger:#b3261e; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#eef2f4; }
+  .wrap{ max-width:560px; margin:40px auto; padding:0 18px; }
+  header.brand{ display:flex; align-items:center; gap:10px; margin-bottom:22px; }
+  header.brand .logo{ width:30px; height:30px; border-radius:8px; background:var(--brand); }
+  header.brand strong{ font-size:1.1rem; letter-spacing:.2px; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:12px;
+         padding:28px 26px; box-shadow:0 4px 18px rgba(16,30,40,.06); }
+  h1{ font-size:1.35rem; margin:0 0 4px; }
+  .lede{ color:var(--muted); margin:0 0 22px; font-size:.94rem; }
+  .field{ margin-bottom:18px; }
+  label{ display:block; font-weight:600; font-size:.9rem; margin-bottom:6px; }
+  .hint{ color:var(--muted); font-size:.82rem; margin:0 0 8px; }
+  input[type=tel]{ width:100%; padding:11px 12px; font-size:1.05rem; letter-spacing:.5px;
+        border:2px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .err{ display:flex; gap:7px; align-items:flex-start; margin-top:8px;
+        color:var(--danger); font-size:.86rem; }
+  .err svg{ flex:0 0 auto; margin-top:2px; }
+  button{ margin-top:8px; width:100%; padding:12px; font-size:1rem; font-weight:600;
+          color:#fff; background:var(--brand); border:0; border-radius:8px; cursor:pointer; }
+  .foot{ margin-top:18px; color:var(--muted); font-size:.8rem; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand"><span class="logo" aria-hidden="true"></span><strong>Meridian Mobile</strong></header>
+    <main class="card">
+      <h1>Activate your new line</h1>
+      <p class="lede">Step 2 of 4 — confirm the mobile number you want to port.</p>
+
+      <form action="#" method="post" novalidate>
+        <div class="field">
+          <label for="phone">Mobile number</label>
+          <p class="hint" id="phone-hint">Enter digits only — no spaces, dashes, or symbols.</p>
+          <!--
+            Retained value is ALL DIGITS: 1 2 0 2 5 5 5 0 1 4 3 (eleven digits).
+            The error names letters/parentheses that are not present.
+          -->
+          <input type="tel" id="phone" name="phone"
+                 aria-describedby="phone-hint error-phone"
+                 aria-invalid="true"
+                 value="12025550143"
+                 autocomplete="tel-national">
+          <p class="err" id="error-phone">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <span>Mobile number is invalid. Remove letters and parentheses from your phone number, then try again.</span>
+          </p>
+        </div>
+
+        <button type="submit">Continue</button>
+      </form>
+    </main>
+    <p class="foot">Meridian Mobile · Port-in support 1-800-555-0100 · Renders from file://</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>14 Marsh Wren Lane — For Sale | Tidewater Homes</title>
+<!--
+  SC 1.4.13 Dismissible — the LARGE-TRIGGER nuance (FAIL, but Method 1 is NOT the cure).
+
+  The trigger here is a LARGE hero card (the whole "Walk Score / Commute" hero tile is the
+  hover/focus trigger). On hover/focus it reveals an explainer popover.
+
+  The author tried to satisfy Method 1 by positioning the popover FAR BELOW the giant
+  trigger so it "doesn't overlap the trigger." But because the trigger is large, the
+  popover now appears well away from where the user is looking/pointing, AND it lands on
+  top of the listing's information-bearing "Monthly cost estimate" breakdown (principal,
+  interest, taxes, HOA). Two problems compound:
+
+    1. Discoverability: the Understanding says that for a LARGE trigger, content appearing
+       AWAY from the trigger may not be noticed — "only the second method may be
+       appropriate." So moving content away to avoid overlap is itself the wrong fix here.
+    2. The relocated popover still obscures meaningful content (the cost breakdown), so the
+       "non-obscuring" Method 1 isn't even achieved.
+
+  And there is NO Esc / dismiss mechanism (Method 2), which is precisely the method the
+  Understanding says SHOULD be used for a large trigger. So the page FAILS Dismissible.
+
+  WHY AUTOMATED TOOLS MISS IT: the markup is valid (real <button> wrapping the hero,
+  role="tooltip", aria-describedby, focus styles, passing contrast). No tool can reason
+  that "trigger is large -> away-positioning harms discoverability -> Method 2 was
+  required -> and Method 2 is absent." That trigger-size-vs-method reasoning, plus seeing
+  that the relocated popover lands on the cost table, is human visual + semantic judgment.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f4f6f8; color:#1b2733;
+    font:16px/1.55 -apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  header.site { background:#13344f; color:#fff; padding:14px 24px; font-weight:700; letter-spacing:.02em; }
+  .listing { max-width:860px; margin:24px auto; padding:0 20px 80px; }
+  .gallery { height:240px; border-radius:14px; background:linear-gradient(135deg,#b9cad6,#8aa6b8); display:grid; place-items:center; color:#243b4e; font-weight:700; }
+  h1 { font-size:26px; margin:18px 0 2px; }
+  .addr { color:#56697a; margin:0 0 4px; }
+  .price { font-size:24px; font-weight:800; color:#13344f; margin:6px 0 22px; }
+
+  .grid { display:grid; grid-template-columns:1fr 320px; gap:26px; align-items:start; }
+  @media (max-width:760px){ .grid{ grid-template-columns:1fr; } }
+
+  /* ---- LARGE hero trigger ---- */
+  .hero-trigger {
+    display:block; width:100%; text-align:left;
+    border:1px solid #cdd8e1; border-radius:14px; background:#fff;
+    padding:22px 24px; cursor:pointer; font:inherit; color:inherit;
+    position:relative;            /* anchors the popover */
+  }
+  .hero-trigger:focus-visible { outline:3px solid #1f6fd6; outline-offset:3px; }
+  .hero-trigger .big { font-size:46px; font-weight:800; color:#13344f; line-height:1; }
+  .hero-trigger .lab { font-size:13px; color:#56697a; text-transform:uppercase; letter-spacing:.1em; margin-top:8px; }
+  .hero-trigger .scores { display:flex; gap:30px; margin-top:14px; }
+  .hero-trigger .scores div span { display:block; font-size:22px; font-weight:700; color:#13344f; }
+  .hint { font-size:12px; color:#8295a4; margin-top:14px; }
+
+  /* The popover is pushed AWAY from the large trigger (to its right, into the next column),
+     so it does not overlap the trigger — but it now lands squarely on the "Monthly cost
+     estimate" breakdown and appears far from where the user is looking/pointing. */
+  .hero-trigger .pop {
+    display:none;
+    position:absolute;
+    top:54px;                          /* aligns with the cost-table rows */
+    left:calc(100% + 26px);            /* jumps the 26px grid gap into the cost column */
+    width:316px; max-width:90vw;
+    background:#0c2a40; color:#eaf2f8;
+    border-radius:12px; padding:14px 16px;
+    font-size:13.5px; line-height:1.5;
+    box-shadow:0 14px 36px rgba(8,30,48,.42);
+    z-index:40;
+  }
+  .hero-trigger:hover .pop,
+  .hero-trigger:focus .pop { display:block; }
+
+  .costs { border:1px solid #cdd8e1; border-radius:14px; background:#fff; padding:18px 20px; }
+  .costs h2 { font-size:16px; margin:0 0 12px; }
+  .costs table { width:100%; border-collapse:collapse; font-size:14.5px; }
+  .costs td { padding:7px 0; border-bottom:1px solid #eef2f5; }
+  .costs td.amt { text-align:right; font-variant-numeric:tabular-nums; }
+  .costs tr.total td { font-weight:800; border-bottom:0; padding-top:12px; }
+</style>
+</head>
+<body>
+  <header class="site">Tidewater Homes</header>
+
+  <main class="listing">
+    <div class="gallery">Front elevation &mdash; 3 photos</div>
+    <h1>14 Marsh Wren Lane</h1>
+    <p class="addr">Beaufort, SC 29902 &middot; 3 bed &middot; 2.5 bath &middot; 2,140 sq ft</p>
+    <p class="price">$465,000</p>
+
+    <div class="grid">
+      <!-- LARGE trigger: the entire Walk Score hero is the hover/focus trigger -->
+      <button type="button" class="hero-trigger" aria-describedby="ws-pop">
+        <div class="big">88</div>
+        <div class="lab">Walk Score</div>
+        <div class="scores">
+          <div>Transit<span>54</span></div>
+          <div>Bike<span>71</span></div>
+          <div>Commute<span>26 min</span></div>
+        </div>
+        <div class="hint">Hover or focus for how these scores are calculated</div>
+
+        <span role="tooltip" id="ws-pop" class="pop">
+          <strong>How scores are calculated.</strong> Walk Score measures walkability to
+          nearby amenities (groceries, schools, parks). Transit reflects route frequency
+          and proximity; Commute is the typical peak-hour drive to the regional employment
+          center. Scores update monthly from third-party data.
+        </span>
+      </button>
+
+      <section class="costs" aria-label="Monthly cost estimate">
+        <h2>Monthly cost estimate</h2>
+        <table>
+          <tbody>
+            <tr><td>Principal &amp; interest</td><td class="amt">$2,612</td></tr>
+            <tr><td>Property taxes</td><td class="amt">$418</td></tr>
+            <tr><td>Homeowner&rsquo;s insurance</td><td class="amt">$143</td></tr>
+            <tr><td>HOA dues</td><td class="amt">$0</td></tr>
+            <tr class="total"><td>Estimated total</td><td class="amt">$3,173/mo</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // No Escape handler and no close button anywhere. For a LARGE trigger the Understanding
+    // says Method 2 (dismiss, e.g. Esc) is the appropriate method — and it is absent. The
+    // author's attempt at Method 1 (push the popover far away) both harms discoverability
+    // and still overlaps the cost table, so Method 1 is not achieved either.
+    document.addEventListener('keydown', function () { /* intentionally no dismiss path */ });
+  </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply for a Resident Parking Permit — City of Hartwell</title>
+<style>
+  :root { --ink:#1a1a2e; --muted:#5a6173; --line:#c8ccd6; --gov:#19437a; --bg:#eef1f6; }
+  * { box-sizing: border-box; }
+  body { font-family: "Public Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+         color: var(--ink); background: var(--bg); margin:0; padding:0; }
+  .banner { background:var(--gov); color:#fff; font-size:.78rem; padding:7px 16px; }
+  .wrap { max-width: 720px; margin:0 auto; padding:28px 16px 48px; }
+  h1 { font-size:1.4rem; margin:18px 0 4px; }
+  .lede { color:var(--muted); font-size:.9rem; margin:0 0 26px; }
+  form { background:#fff; border:1px solid var(--line); border-radius:10px;
+         padding:26px 26px 30px; box-shadow:0 1px 2px rgba(20,30,60,.05); }
+  fieldset { border:1px solid var(--line); border-radius:9px; margin:0 0 22px; padding:16px 18px 20px; }
+  legend { font-weight:700; font-size:.95rem; padding:0 6px; color:var(--gov); }
+  .field { margin-bottom:16px; }
+  label { display:block; font-weight:600; font-size:.82rem; margin:0 0 6px; }
+  input { width:100%; padding:10px 11px; font-size:.93rem; border:1px solid var(--line); border-radius:7px; }
+  /* The three date selects are laid out in a tight inline row. */
+  .date-row { display:flex; gap:10px; }
+  .date-row .seg { display:flex; flex-direction:column; }
+  .date-row .seg.day  { width:90px; }
+  .date-row .seg.mon  { width:160px; }
+  .date-row .seg.year { width:110px; }
+  .date-row label { font-size:.82rem; font-weight:600; margin:0 0 6px; }
+  select { padding:10px 11px; font-size:.93rem; border:1px solid var(--line); border-radius:7px; background:#fff; }
+  input:focus, select:focus { outline:2px solid var(--gov); outline-offset:1px; }
+  .actions { margin-top:8px; }
+  button { background:var(--gov); color:#fff; border:0; border-radius:8px;
+           padding:12px 24px; font-size:.95rem; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+  <div class="banner">An official application of the City of Hartwell. Sessions time out after 20 minutes.</div>
+  <div class="wrap">
+    <h1>Apply for a Resident Parking Permit</h1>
+    <p class="lede">Section 2 of 4 — Applicant details. All fields are required unless marked optional.</p>
+
+    <form action="#" novalidate aria-label="Applicant details">
+      <!-- A correctly-grouped, correctly-labeled set: NOT the defect. Here as honest context. -->
+      <fieldset>
+        <legend>Your legal name</legend>
+        <div class="field">
+          <label for="given">Given name</label>
+          <input id="given" name="given" type="text" autocomplete="given-name" value="Mariam">
+        </div>
+        <div class="field">
+          <label for="family">Family name</label>
+          <input id="family" name="family" type="text" autocomplete="family-name" value="Haddad">
+        </div>
+      </fieldset>
+
+      <!-- THE DEFECT: three selects collect one date of birth, but their collective
+           purpose ("Date of birth") is never stated. Each select is individually
+           labeled Day / Month / Year and individually passes every label check. -->
+      <div class="field">
+        <div class="date-row">
+          <div class="seg day">
+            <label for="dob-day">Day</label>
+            <select id="dob-day" name="dob_day" autocomplete="bday-day">
+              <option value="">--</option>
+              <option>01</option><option>02</option><option>03</option><option>04</option>
+              <option selected>05</option><option>06</option><option>07</option>
+            </select>
+          </div>
+          <div class="seg mon">
+            <label for="dob-month">Month</label>
+            <select id="dob-month" name="dob_month" autocomplete="bday-month">
+              <option value="">--</option>
+              <option>January</option><option>February</option><option selected>March</option>
+              <option>April</option><option>May</option><option>June</option>
+            </select>
+          </div>
+          <div class="seg year">
+            <label for="dob-year">Year</label>
+            <select id="dob-year" name="dob_year" autocomplete="bday-year">
+              <option value="">--</option>
+              <option>1992</option><option selected>1990</option><option>1988</option>
+              <option>1986</option><option>1984</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="plate">Vehicle license plate</label>
+        <input id="plate" name="plate" type="text" autocomplete="off" value="">
+      </div>
+
+      <div class="actions">
+        <button type="submit">Continue to vehicle details</button>
+      </div>
+    </form>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT
+    Each of the three selects has a correctly associated <label> (Day, Month, Year) and even
+    correct autocomplete tokens (bday-day / bday-month / bday-year), so axe/WAVE/Lighthouse
+    report every control as labeled and pass. There is no missing/empty label to flag.
+
+    The defect: this trio collects ONE value — the applicant's date of birth — yet that
+    collective purpose is never stated anywhere on the page. "Day", "Month" and "Year" read
+    alone are ambiguous: day/month/year of WHAT? A move-in date? A permit start date? The
+    fields sit between a name fieldset and a license-plate field, so context does not resolve
+    it. Per the Understanding, controls that provide options must be labeled "so that users
+    know what they are actually selecting"; per H71 a group description specific to this set
+    is required here. It is absent — there is no "Date of birth" legend, heading, or text.
+    A screen-reader user hears "Day, combo box; Month, combo box; Year, combo box" with no
+    indication these three compose a birth date. Recognizing that the set NEEDS a group
+    label, and that none exists, is a contextual judgment no automated checker makes — the
+    autocomplete tokens hint at it but are invisible to users and not what 3.3.2 evaluates.
+  -->
+</body>
+</html>

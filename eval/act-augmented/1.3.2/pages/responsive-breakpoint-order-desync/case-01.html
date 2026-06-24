@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.2 FAILURE — Responsive-breakpoint order desync (conditional on viewport).
+
+    This is a 3-step checkout progress wizard. The steps are an ORDERED, meaningful
+    sequence: 1 Shipping -> 2 Payment -> 3 Review. Source/DOM order is correct (1,2,3),
+    and the desktop render is correct (1,2,3 left-to-right).
+
+    The visible numerals "1 / 2 / 3" are HARD-CODED into each <li> in the DOM, so the
+    number stays glued to its step (Shipping is always badged "1", Payment "2", Review
+    "3"). That is intentional: the numerals are the meaning carrier and must NOT move
+    with layout.
+
+    But the mobile media query (max-width:600px) reorders the flex items with CSS
+    `order:` so they STACK in the visual order Payment, Shipping, Review:
+        .step--payment  { order: 1; }   /* Payment box shown FIRST */
+        .step--shipping { order: 2; }   /* Shipping box shown SECOND */
+        .step--review   { order: 3; }   /* Review box last (unchanged) */
+    Because the badges are pinned to their content, a mobile user now reads the column
+    top-to-bottom as "2 Payment, 1 Shipping, 3 Review" — the badge numbers are visibly
+    OUT OF ORDER (2 above 1), and the *visual* process order asserts you pay before you
+    have given a shipping address. A sighted desktop user and a screen-reader user (who
+    follow DOM order: 1 Shipping, 2 Payment, 3 Review) get the correct sequence; a
+    sighted mobile user sees the first two steps swapped. The meaningful sequence is
+    contradicted at exactly one viewport.
+
+    WHY AUTOMATED TOOLS MISS IT: every element is valid, labelled, and the DOM order is
+    the CORRECT one. axe/WAVE/Lighthouse run at a single viewport, do not compute
+    rendered geometry across breakpoints, and have no model that "Payment before
+    Shipping" is a meaning-changing reorder. The CSS `order` property is perfectly legal,
+    and "1 / 2 / 3" are just static text characters an automated checker cannot reason
+    about as a sequence. Catching this requires RENDERING at <=600px, recognizing the
+    steps are an order-dependent sequence, and seeing that the visual order (and the
+    now-descending badge numbers 2,1,3) diverges from the meaningful source order.
+  -->
+  <title>Checkout — Northwind Outfitters</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: "Segoe UI", system-ui, sans-serif; color:#16242e;
+           background:#f4f6f8; line-height:1.6; }
+    header { background:#0e4d64; color:#fff; padding:.9rem 1.4rem; }
+    header .brand { font-weight:700; letter-spacing:.02em; font-size:1.15rem; }
+    main { max-width:60rem; margin:1.6rem auto; padding:0 1.2rem; }
+    h1 { font-size:1.35rem; margin:.2rem 0 1.2rem; }
+
+    /* The wizard. Steps are an ORDERED sequence; each step's number is hard-coded
+       in the markup (.step__num) so it travels with its content, not its position. */
+    .wizard { display:flex; gap:1rem; align-items:stretch;
+              list-style:none; margin:0 0 1.6rem; padding:0; }
+    .step { flex:1; background:#fff; border:1px solid #d6dde2; border-radius:10px;
+            padding:1rem 1.1rem 1.2rem; position:relative; }
+    .step__num {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:1.9rem; height:1.9rem; border-radius:50%;
+      background:#0e4d64; color:#fff; font-weight:700; margin-bottom:.5rem;
+    }
+    .step h2 { font-size:1rem; margin:.2rem 0 .3rem; }
+    .step p { font-size:.86rem; color:#54636d; margin:0; }
+    .step--current { border-color:#0e4d64; box-shadow:0 0 0 2px #0e4d64 inset; }
+
+    fieldset { border:1px solid #d6dde2; border-radius:10px; padding:1rem 1.2rem 1.3rem;
+               background:#fff; }
+    legend { font-weight:700; padding:0 .4rem; }
+    label { display:block; font-size:.85rem; margin:.7rem 0 .25rem; }
+    input { width:100%; padding:.5rem .6rem; border:1px solid #c2ccd2; border-radius:6px;
+            font-size:.95rem; }
+    .actions { margin-top:1.2rem; display:flex; gap:.7rem; }
+    button { padding:.6rem 1.1rem; border-radius:8px; border:0; font-weight:600; cursor:pointer; }
+    .next { background:#0e4d64; color:#fff; }
+    .back { background:#e7ecef; color:#16242e; }
+
+    /* ===== MOBILE BREAKPOINT — the bug lives here ===== */
+    @media (max-width: 600px) {
+      .wizard { flex-direction: column; }
+      /* Re-order the steps so Payment is presented BEFORE Shipping on small screens.
+         Source order stays 1=Shipping, 2=Payment, 3=Review, but the visual stacking
+         becomes Payment, Shipping, Review — and because each badge number is glued to
+         its step, the badges now read 2, 1, 3 down the column (out of order). */
+      .step--payment  { order: 1; }
+      .step--shipping { order: 2; }
+      .step--review   { order: 3; }
+    }
+  </style>
+</head>
+<body>
+  <header><span class="brand">Northwind Outfitters</span></header>
+
+  <main>
+    <h1>Secure checkout</h1>
+
+    <!-- Source order is the CORRECT process order: 1 Shipping -> 2 Payment -> 3 Review.
+         Each step's number is hard-coded so it stays attached to that step. -->
+    <ol class="wizard" aria-label="Checkout progress">
+      <li class="step step--shipping step--current">
+        <span class="step__num" aria-hidden="true">1</span>
+        <h2>Shipping</h2>
+        <p>Where should we send your order?</p>
+      </li>
+      <li class="step step--payment">
+        <span class="step__num" aria-hidden="true">2</span>
+        <h2>Payment</h2>
+        <p>How would you like to pay?</p>
+      </li>
+      <li class="step step--review">
+        <span class="step__num" aria-hidden="true">3</span>
+        <h2>Review &amp; place order</h2>
+        <p>Confirm everything looks right.</p>
+      </li>
+    </ol>
+
+    <form>
+      <fieldset>
+        <legend>Step 1 — Shipping address</legend>
+        <label for="name">Full name</label>
+        <input id="name" name="name" autocomplete="name">
+        <label for="addr">Street address</label>
+        <input id="addr" name="addr" autocomplete="street-address">
+        <label for="city">City</label>
+        <input id="city" name="city" autocomplete="address-level2">
+        <div class="actions">
+          <button type="button" class="next">Continue to payment</button>
+        </div>
+      </fieldset>
+    </form>
+  </main>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confirm transfer — Meridian Credit Union</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.1, F54 — focusable but keyboard-dead):
+    The final "Confirm & send" tile is a <div role="button" tabindex="0"> with a non-empty
+    accessible name. axe-core / WAVE / Lighthouse therefore PASS it on every check they run:
+    it has a button role, it has an accessible name, and it is focusable. The trap is that
+    activation is wired ONLY to pointer events — a "double-click to confirm" guard
+    (dblclick) plus a pointerup fallback — and there is NO keydown/keyup handler. So a
+    keyboard user CAN Tab to the tile and see the focus ring, but pressing Enter or Space
+    does nothing: the transfer can never be confirmed from the keyboard. This is subtler than
+    a div-with-onclick (which lacks a role and is linter-catchable) — here the element looks
+    fully ARIA-correct and focusable, so the only way to detect the failure is to focus it
+    and actually press Enter/Space and observe nothing happens. The "Cancel" control beside
+    it is a real <button> that works by keyboard, so the page is otherwise sound.
+  -->
+  <style>
+    :root { --ink:#11203a; --muted:#566079; --line:#d9dee8; --brand:#0a4a8f; --ok:#1f7a4d; --warn:#9a3324; }
+    * { box-sizing: border-box; }
+    body { font: 15px/1.55 "Segoe UI", system-ui, Arial, sans-serif; color: var(--ink); margin: 0; background: #eef2f7; }
+    header { background: var(--brand); color: #eaf2fb; padding: 14px 24px; display: flex; align-items: center; gap: 10px; }
+    header .mark { font-weight: 800; letter-spacing: .4px; }
+    header .secure { font-size: .8rem; opacity: .85; margin-left: auto; }
+    main { max-width: 560px; margin: 30px auto; padding: 0 18px; }
+    h1 { font-size: 1.4rem; margin: 0 0 4px; }
+    .step { color: var(--muted); margin: 0 0 22px; font-size: .9rem; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+    .review { list-style: none; padding: 0; margin: 0 0 22px; }
+    .review li { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #eef1f6; }
+    .review li:last-child { border-bottom: 0; }
+    .review .k { color: var(--muted); }
+    .review .v { font-weight: 700; }
+    .review .amt { color: var(--brand); font-size: 1.15rem; }
+    .note { background: #fff8ec; border: 1px solid #f0dcae; border-radius: 8px; padding: 11px 13px; color: #6b4e12; font-size: .86rem; margin: 0 0 20px; }
+    .actions { display: flex; gap: 12px; align-items: stretch; }
+    /* The confirm tile — styled exactly like a primary button */
+    .confirm {
+      flex: 1; text-align: center; font-weight: 700; color: #fff; background: var(--ok);
+      border-radius: 9px; padding: 13px 18px; cursor: pointer; user-select: none;
+    }
+    .confirm:hover { filter: brightness(1.05); }
+    .confirm:focus-visible { outline: 3px solid #ffce4a; outline-offset: 2px; }
+    button.cancel {
+      font: inherit; font-weight: 700; color: var(--brand); background: #eaf1fb;
+      border: 1px solid #c4d6ee; border-radius: 9px; padding: 13px 18px; cursor: pointer;
+    }
+    button.cancel:focus-visible { outline: 3px solid #ffce4a; outline-offset: 2px; }
+    .confirm-hint { color: var(--muted); font-size: .78rem; margin: 10px 0 0; text-align: center; }
+    .result { margin-top: 16px; font-weight: 700; color: var(--ok); min-height: 1.3em; }
+    footer { color: var(--muted); font-size: .78rem; text-align: center; margin: 30px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="mark">Meridian Credit Union</span>
+    <span class="secure">&#128274; Encrypted session</span>
+  </header>
+
+  <main>
+    <h1>Confirm your transfer</h1>
+    <p class="step">Step 2 of 2 — review the details below and confirm to send.</p>
+
+    <div class="panel">
+      <ul class="review">
+        <li><span class="k">From</span><span class="v">Everyday Checking ••4471</span></li>
+        <li><span class="k">To</span><span class="v">Jordan Ellery · Savings ••8820</span></li>
+        <li><span class="k">When</span><span class="v">Today, 21 June</span></li>
+        <li><span class="k">Amount</span><span class="v amt">£420.00</span></li>
+      </ul>
+
+      <p class="note">Once confirmed, this transfer cannot be reversed. Please check the recipient and amount.</p>
+
+      <div class="actions">
+        <!-- Cancel is a real, keyboard-operable <button>. -->
+        <button type="button" class="cancel" onclick="cancelTransfer()">Cancel</button>
+
+        <!--
+          The confirm control LOOKS fully accessible: role="button", tabindex="0",
+          and a clear accessible name. It is focusable and axe passes it. But it is wired
+          to confirm ONLY on a double-click / pointerup — there is NO keydown handler, so
+          Enter and Space do nothing. A keyboard user can focus it but cannot confirm.
+        -->
+        <div class="confirm" role="button" tabindex="0"
+             aria-describedby="confirm-hint" id="confirmTile">
+          Confirm &amp; send £420.00
+        </div>
+      </div>
+      <p class="confirm-hint" id="confirm-hint">Double-click to confirm and send the transfer.</p>
+
+      <p class="result" id="result" role="status" aria-live="polite"></p>
+    </div>
+  </main>
+
+  <footer>Meridian Credit Union · Member-owned · Transfers are subject to daily limits.</footer>
+
+  <script>
+    var confirmed = false;
+
+    function doConfirm() {
+      if (confirmed) return;
+      confirmed = true;
+      document.getElementById('result').textContent =
+        'Transfer of £420.00 to Jordan Ellery sent. Reference MCU-5571-220.';
+      var tile = document.getElementById('confirmTile');
+      tile.style.background = '#0a4a8f';
+      tile.textContent = 'Sent ✓';
+    }
+
+    var tile = document.getElementById('confirmTile');
+    // Pointer-only activation: a "double-click to confirm" guard plus a pointerup
+    // fallback. Deliberately NO keydown/keyup handler — Enter and Space are dead.
+    tile.addEventListener('dblclick', doConfirm);
+    tile.addEventListener('pointerup', function (e) {
+      // require a real pointer (mouse/touch/pen), not a synthetic keyboard "click"
+      if (e.pointerType === 'mouse' || e.pointerType === 'touch' || e.pointerType === 'pen') {
+        // single pointerup arms; a second confirms — mouse users naturally double-click
+        if (tile.dataset.armed === '1') { doConfirm(); }
+        else { tile.dataset.armed = '1'; }
+      }
+    });
+
+    function cancelTransfer() {
+      document.getElementById('result').textContent = 'Transfer cancelled. No money was moved.';
+    }
+  </script>
+</body>
+</html>

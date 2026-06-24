@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account activity — Meridian Bank</title>
+<style>
+  :root { --ink:#1b1b1f; --rule:#d7d9de; --bg:#ffffff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+         color:var(--ink); background:#f4f5f7; }
+  .wrap { max-width:760px; margin:0 auto; padding:24px 20px 64px; }
+  header h1 { font-size:22px; margin:0 0 2px; }
+  header p { margin:0 0 20px; color:#5a5e66; }
+  .balance { background:var(--bg); border:1px solid var(--rule); border-radius:12px;
+             padding:16px 18px; margin:0 0 20px; display:flex; justify-content:space-between; align-items:baseline; }
+  .balance .amt { font-size:26px; font-weight:700; }
+  table { width:100%; border-collapse:collapse; background:var(--bg);
+          border:1px solid var(--rule); border-radius:12px; overflow:hidden; }
+  caption { text-align:left; font-weight:600; padding:14px 18px 0; }
+  th, td { padding:12px 18px; text-align:left; border-top:1px solid var(--rule); }
+  thead th { border-top:none; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:#5a5e66; }
+  /* Amounts are LARGE BOLD text (>=18.66px bold), so SC 1.4.3 threshold is 3:1, not 4.5:1. */
+  td.amount { text-align:right; font-variant-numeric:tabular-nums; font-weight:700; font-size:19px; }
+  /* The ONLY differentiator of credit vs debit is the text colour.
+     Credit  = light green  #3a9d4e  (relative luminance high)
+     Debit   = dark red     #7a1414  (relative luminance low)
+     These differ in HUE *and* by >=3:1 in lightness against EACH OTHER
+     (green/red contrast ~3.15:1), so per the 1.4.1 lightness escape hatch this lightness
+     difference counts as an ADDITIONAL visual distinction.
+     Each also meets SC 1.4.3 against the white surface (green 3.44:1 as large-bold text;
+     dark red 10.84:1), so contrast minimums are not the issue here. */
+  td.credit { color:#3a9d4e; }
+  td.debit  { color:#7a1414; }
+  footer { margin-top:28px; color:#74787f; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Account activity</h1>
+    <p>Everyday Checking ···4821 · Last 7 days</p>
+  </header>
+
+  <section class="balance" aria-label="Current balance">
+    <span>Available balance</span>
+    <span class="amt">$3,142.88</span>
+  </section>
+
+  <table>
+    <caption>Recent transactions</caption>
+    <thead>
+      <tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Amount</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Jun 18</td><td>Payroll — Helix Robotics Inc.</td><td class="amount credit">+$2,410.00</td></tr>
+      <tr><td>Jun 17</td><td>Blue Bottle Coffee</td><td class="amount debit">−$6.75</td></tr>
+      <tr><td>Jun 16</td><td>Refund — Patagonia.com</td><td class="amount credit">+$89.50</td></tr>
+      <tr><td>Jun 15</td><td>Con Edison — autopay</td><td class="amount debit">−$214.30</td></tr>
+      <tr><td>Jun 14</td><td>Zelle from R. Okafor</td><td class="amount credit">+$120.00</td></tr>
+      <tr><td>Jun 13</td><td>Whole Foods Market</td><td class="amount debit">−$74.92</td></tr>
+    </tbody>
+  </table>
+
+  <footer>
+    <p>Money in is shown in green and includes a leading plus sign; money out is shown in
+       dark red with a leading minus sign.</p>
+  </footer>
+</div>
+
+<!--
+  WHY THIS PASSES (1.4.1 lightness escape hatch):
+  Credit/debit direction is signalled by colour (green vs red). Taken alone that would be a
+  use-of-colour concern. BUT the two colours differ in lightness with a contrast ratio >= 3:1
+  between them (light green #3a9d4e vs dark red #7a1414, ~3.15:1), so per the Understanding note
+  this lightness difference counts as an ADDITIONAL visual distinction and the criterion is
+  satisfied. (The +/- signs are a further non-colour cue, but the escape hatch alone is what
+  governs the verdict.)
+
+  WHY AUTOMATED TOOLS GET THIS WRONG: a naive "any colour cue = fail" heuristic would flag the
+  green/red columns. axe/WAVE/Lighthouse do not compute the INTER-element lightness ratio between
+  two foreground colours used for meaning, so they cannot recognise that the >=3:1 lightness
+  difference discharges the obligation. Reaching the correct PASS requires computing that ratio
+  and applying the specific escape-hatch rule — human judgement, not a linter rule.
+-->
+</body>
+</html>

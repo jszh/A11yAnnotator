@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set Your Risk Tolerance — Meridian Wealth</title>
+<style>
+  :root { --brand:#0b3d5c; --accent:#1c9c6b; --track:#d7dde2; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color:#1b242b; margin:0; background:#f4f6f8; }
+  header { background:var(--brand); color:#fff; padding:18px 28px; }
+  header .logo { font-weight:700; letter-spacing:.5px; }
+  main { max-width:680px; margin:32px auto; background:#fff; padding:32px 36px; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  h1 { font-size:1.5rem; margin:0 0 6px; color:var(--brand); }
+  p.lead { color:#566; margin-top:0; }
+  .field { margin:34px 0 10px; }
+  .field-label { font-weight:600; display:block; margin-bottom:14px; }
+  /* custom slider */
+  .slider {
+    position:relative; height:34px; width:100%; cursor:pointer;
+    outline-offset:4px;
+  }
+  .slider:focus-visible { outline:3px solid #1c6fb8; }
+  .slider .rail { position:absolute; top:15px; left:0; right:0; height:6px; background:var(--track); border-radius:3px; }
+  .slider .fill { position:absolute; top:15px; left:0; height:6px; background:var(--accent); border-radius:3px; }
+  .slider .thumb {
+    position:absolute; top:4px; width:28px; height:28px; margin-left:-14px;
+    background:#fff; border:3px solid var(--accent); border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+  .scale { display:flex; justify-content:space-between; font-size:.78rem; color:#789; margin-top:8px; }
+  .readout { margin-top:18px; font-size:.95rem; }
+  .readout b { color:var(--brand); }
+  .submit { margin-top:30px; background:var(--accent); color:#fff; border:0; padding:12px 26px; border-radius:6px; font-size:1rem; cursor:pointer; }
+  footer { max-width:680px; margin:18px auto 60px; color:#8a97a2; font-size:.8rem; }
+</style>
+</head>
+<body>
+<header><span class="logo">MERIDIAN WEALTH</span></header>
+<main>
+  <h1>Step 3 of 5 — Set your risk tolerance</h1>
+  <p class="lead">Drag the handle to tell us how much investment risk you are comfortable with. This shapes the portfolio we recommend.</p>
+
+  <div class="field">
+    <span class="field-label" id="riskLbl">Risk tolerance</span>
+    <div
+      id="riskSlider"
+      class="slider"
+      role="slider"
+      tabindex="0"
+      aria-labelledby="riskLbl"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="30"
+      aria-valuetext="30 — Conservative">
+      <div class="rail"></div>
+      <div class="fill" id="fill" style="width:30%"></div>
+      <div class="thumb" id="thumb" style="left:30%"></div>
+    </div>
+    <div class="scale"><span>Conservative</span><span>Balanced</span><span>Aggressive</span></div>
+    <p class="readout">Selected level: <b id="visText">30 — Conservative</b></p>
+  </div>
+
+  <button class="submit" type="button">Save &amp; continue</button>
+</main>
+<footer>Meridian Wealth Advisors — investing involves risk, including possible loss of principal.</footer>
+
+<script>
+/*
+  Junior dev built this slider from a Codepen mouse-drag demo. The drag math updates
+  the VISIBLE fill/thumb AND the visible readout text, and even recomputes a label
+  ("Conservative"/"Balanced"/"Aggressive"). But every update touches only the DOM
+  geometry + the .readout text node. aria-valuenow / aria-valuetext are written ONCE
+  in the HTML and never reassigned. There is NO keydown handler at all, so an
+  AT/keyboard user who focuses the slider and presses Arrow keys gets nothing: the
+  value cannot be set via AT, and even the mouse-driven change is never notified
+  (aria-valuenow stays frozen at 30).
+*/
+(function () {
+  var slider = document.getElementById('riskSlider');
+  var fill = document.getElementById('fill');
+  var thumb = document.getElementById('thumb');
+  var visText = document.getElementById('visText');
+
+  function labelFor(v) {
+    if (v < 34) return 'Conservative';
+    if (v < 67) return 'Balanced';
+    return 'Aggressive';
+  }
+
+  function applyVisual(pct) {
+    pct = Math.max(0, Math.min(100, Math.round(pct)));
+    fill.style.width = pct + '%';
+    thumb.style.left = pct + '%';
+    // Visible text IS updated...
+    visText.textContent = pct + ' — ' + labelFor(pct);
+    // ...but aria-valuenow / aria-valuetext are deliberately NOT touched here.
+  }
+
+  function fromEvent(e) {
+    var rect = slider.getBoundingClientRect();
+    var x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    return (x / rect.width) * 100;
+  }
+
+  var dragging = false;
+  slider.addEventListener('mousedown', function (e) { dragging = true; applyVisual(fromEvent(e)); });
+  window.addEventListener('mousemove', function (e) { if (dragging) applyVisual(fromEvent(e)); });
+  window.addEventListener('mouseup', function () { dragging = false; });
+  // No keydown handler — arrow keys do nothing, and aria-valuenow never moves.
+})();
+</script>
+</body>
+</html>

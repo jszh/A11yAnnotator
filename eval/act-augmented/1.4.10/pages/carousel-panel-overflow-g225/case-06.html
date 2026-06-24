@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brambleway Kitchen — Weeknight Dinners</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 1.4.10 Reflow, G225)
+  A recipe carousel: a horizontally-scrolling strip of recipe cards. The STRIP scroll
+  is the allowed carousel navigation. Each card is width:280px and reads top-to-bottom:
+  hero image, title, blurb, then a "stats bar" of small metric tiles (time, servings,
+  calories, etc.). The stats bar is a flex row set to flex-wrap:nowrap with each tile
+  flex:0 0 auto, so the tiles never wrap onto a second line.
+
+  For most cards there are four short tiles and the row is ~260px — it fits the panel.
+  For ONE card (the "Slow-Braised Lamb Ragù") the recipe carries SIX metric tiles
+  (Prep, Cook, Total, Serves, Calories, Difficulty), and because the row cannot wrap,
+  that single card's stats bar is ~470px wide. It pushes that ONE card wider than 280px
+  AND past the 320px viewport, so the page itself gains a horizontal scrollbar and that
+  card cannot be read without scrolling left-and-right.
+
+  The defect is PRESENT-BUT-WRONG: every metric value is in the DOM and correct; the
+  rendering rule (a no-wrap flex stats bar) is what breaks reflow for the one card that
+  has enough tiles to exceed 320px. The stats are a plain linear set of facts (NOT a
+  table or grid whose 2-D layout carries meaning), so the Reflow exception does NOT
+  apply — judging that is the human call.
+
+  axe-core / WAVE / Lighthouse cannot detect this:
+   - No markup error: imgs have alt, headings nest, contrast is fine, roles are valid.
+   - flex-wrap:nowrap + flex:0 0 auto is legal CSS; whether the row exceeds 320px
+     depends on HOW MANY tiles this card has AT 320px — a rendered, content-dependent
+     measurement no static analyzer performs.
+   - An overflow detector sees the allowed strip scroll and, on hitting the stats bar,
+     cannot decide the load-bearing question: is this an excepted 2-D grid (pass) or a
+     plain stats list that should wrap (fail)? That meaning judgment is the human's.
+  To reproduce: render at width:320px, scroll to the "Slow-Braised Lamb Ragù" card;
+  its six-tile stats bar pushes the card past the viewport, forcing horizontal scroll.
+-->
+<style>
+  :root { --ink:#2a241d; --leaf:#3f6b3a; --cream:#f6f1e7; --line:#e0d6c4; --chip:#eef3e9; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink);
+         background:#fcfaf4; line-height:1.5; }
+  header.site { background:var(--leaf); color:#f3f7ef; padding:14px 20px;
+                display:flex; align-items:baseline; gap:10px; }
+  header.site .brand { font-size:19px; font-weight:800; letter-spacing:.4px; }
+  header.site .tag { font-size:12.5px; color:#d7e6cf; }
+  main { padding:16px 14px 56px; }
+  h1 { font-size:22px; margin:6px 0 4px; }
+  .lead { color:#5e574c; max-width:60ch; margin:0 0 16px; }
+  h2 { font-size:16px; margin:22px 0 8px; color:var(--leaf); }
+
+  .rail {
+    display:flex;
+    gap:14px;
+    overflow-x:auto;            /* allowed carousel strip navigation */
+    padding:6px 2px 18px;
+    scroll-snap-type:x mandatory;
+  }
+  article.recipe {
+    flex:0 0 auto;
+    /* The card is sized BY ITS CONTENT (max-content), not a fixed width. The image
+       and the text block are pinned to 280px, so a normal card is 280px wide and fits
+       a 320px viewport. But the no-wrap stats bar is laid out at its natural width, so
+       a card with enough tiles is driven WIDER than 280px — and wider than 320px. */
+    width:max-content;
+    scroll-snap-align:start;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:8px;
+    display:flex;
+    flex-direction:column;      /* read top-to-bottom inside the card */
+  }
+  /* NOTE: the card is NOT a scroll/clip container (no overflow set), so the over-wide
+     stats bar actually widens the card itself — it is not hidden or given its own
+     scrollbar. The card becomes too wide for the 320px viewport. */
+  article.recipe img { width:280px; height:150px; object-fit:cover; display:block;
+                       border-radius:7px 7px 0 0; }
+  article.recipe .body { padding:11px 13px 14px; }
+  article.recipe .head { width:280px; }   /* title + blurb stay 280px, like the image */
+  article.recipe .ttl { font-size:15px; font-weight:800; }
+  article.recipe .blurb { font-size:13px; color:#4a4339; margin:5px 0 10px; }
+
+  /* THE ROGUE RULE.
+     The stats bar is a flex row that never wraps (flex-wrap:nowrap) and whose tiles
+     never shrink (flex:0 0 auto). With four tiles the row is ~252px, narrower than the
+     280px card. The lamb-ragù card has SIX tiles, so its row is ~428px — wider than
+     280px, which (because the card is sized to its content) drives that one card past
+     the 320px viewport. Reading that card then needs left-right scrolling. */
+  .stats {
+    display:flex;
+    flex-wrap:nowrap;           /* <-- tiles can never wrap to a second line */
+    gap:8px;
+  }
+  .stats .tile {
+    flex:0 0 auto;              /* <-- tiles keep their natural width, never shrink */
+    min-width:64px;
+    background:var(--chip);
+    border:1px solid #d7e3cf;
+    border-radius:6px;
+    padding:6px 8px;
+    text-align:center;
+  }
+  .stats .tile .k { display:block; font-size:10px; letter-spacing:.4px;
+                    text-transform:uppercase; color:#6b7a63; }
+  .stats .tile .v { display:block; font-size:13px; font-weight:700; white-space:nowrap; }
+  footer.site { background:#23341f; color:#cfe0c6; font-size:12.5px; padding:14px 20px; }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="brand">Brambleway Kitchen</span>
+  <span class="tag">honest food, on a weeknight</span>
+</header>
+
+<main>
+  <h1>Weeknight Dinners</h1>
+  <p class="lead">Swipe through this week's picks. Each card has the gist and the numbers;
+  tap a card for the full method.</p>
+
+  <h2>This week's picks</h2>
+  <div class="rail" role="list" aria-label="Weeknight dinner recipes">
+
+    <article class="recipe" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='150'><rect width='280' height='150' fill='%23b8542f'/><text x='140' y='82' font-size='15' fill='%23fbe9dc' text-anchor='middle'>Tomato Soup</text></svg>" alt="Bowl of roasted tomato soup with a swirl of cream and basil">
+      <div class="body">
+        <div class="head">
+          <div class="ttl">Roasted Tomato Soup</div>
+          <p class="blurb">Sweet roasted tomatoes blended smooth, finished with basil oil.</p>
+        </div>
+        <div class="stats" aria-label="Recipe stats">
+          <div class="tile"><span class="k">Prep</span><span class="v">10 min</span></div>
+          <div class="tile"><span class="k">Cook</span><span class="v">35 min</span></div>
+          <div class="tile"><span class="k">Serves</span><span class="v">4</span></div>
+          <div class="tile"><span class="k">Cal</span><span class="v">210</span></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="recipe" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='150'><rect width='280' height='150' fill='%23375a3a'/><text x='140' y='82' font-size='15' fill='%23e4f0e2' text-anchor='middle'>Pesto Pasta</text></svg>" alt="Plate of green pesto pasta with toasted pine nuts">
+      <div class="body">
+        <div class="head">
+          <div class="ttl">Ten-Minute Pesto Pasta</div>
+          <p class="blurb">Bright basil pesto tossed through hot pasta. Dinner, sorted.</p>
+        </div>
+        <div class="stats" aria-label="Recipe stats">
+          <div class="tile"><span class="k">Prep</span><span class="v">5 min</span></div>
+          <div class="tile"><span class="k">Cook</span><span class="v">10 min</span></div>
+          <div class="tile"><span class="k">Serves</span><span class="v">2</span></div>
+          <div class="tile"><span class="k">Cal</span><span class="v">540</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ROGUE CARD: SIX no-wrap stats tiles make this card's stats bar ~470px,
+         wider than the 280px card and the 320px viewport, so this card overflows
+         the page horizontally and cannot be read with vertical scrolling alone. -->
+    <article class="recipe" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='150'><rect width='280' height='150' fill='%235a3320'/><text x='140' y='82' font-size='15' fill='%23f3e3d4' text-anchor='middle'>Lamb Ragu</text></svg>" alt="Bowl of slow-braised lamb ragu over wide pappardelle pasta">
+      <div class="body">
+        <div class="head">
+          <div class="ttl">Slow-Braised Lamb Ragù</div>
+          <p class="blurb">A low-and-slow Sunday-style ragù you can start before work.</p>
+        </div>
+        <div class="stats" aria-label="Recipe stats">
+          <div class="tile"><span class="k">Prep</span><span class="v">20 min</span></div>
+          <div class="tile"><span class="k">Cook</span><span class="v">3 hr</span></div>
+          <div class="tile"><span class="k">Total</span><span class="v">3 hr 20</span></div>
+          <div class="tile"><span class="k">Serves</span><span class="v">6</span></div>
+          <div class="tile"><span class="k">Cal</span><span class="v">680</span></div>
+          <div class="tile"><span class="k">Level</span><span class="v">Medium</span></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="recipe" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='150'><rect width='280' height='150' fill='%23715a23'/><text x='140' y='82' font-size='15' fill='%23f4ecd6' text-anchor='middle'>Sheet Pan</text></svg>" alt="Sheet pan of roasted chicken thighs with lemon and potatoes">
+      <div class="body">
+        <div class="head">
+          <div class="ttl">Sheet-Pan Lemon Chicken</div>
+          <p class="blurb">Everything roasts on one tray, so there's barely any washing up.</p>
+        </div>
+        <div class="stats" aria-label="Recipe stats">
+          <div class="tile"><span class="k">Prep</span><span class="v">15 min</span></div>
+          <div class="tile"><span class="k">Cook</span><span class="v">40 min</span></div>
+          <div class="tile"><span class="k">Serves</span><span class="v">4</span></div>
+          <div class="tile"><span class="k">Cal</span><span class="v">610</span></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="recipe" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='150'><rect width='280' height='150' fill='%233a4f6b'/><text x='140' y='82' font-size='15' fill='%23e3ecf6' text-anchor='middle'>Fish Tacos</text></svg>" alt="Two fish tacos with shredded cabbage and lime crema">
+      <div class="body">
+        <div class="head">
+          <div class="ttl">Crispy Fish Tacos</div>
+          <p class="blurb">Pan-crisped fish, quick slaw, and a squeeze of lime. Done.</p>
+        </div>
+        <div class="stats" aria-label="Recipe stats">
+          <div class="tile"><span class="k">Prep</span><span class="v">12 min</span></div>
+          <div class="tile"><span class="k">Cook</span><span class="v">8 min</span></div>
+          <div class="tile"><span class="k">Serves</span><span class="v">3</span></div>
+          <div class="tile"><span class="k">Cal</span><span class="v">430</span></div>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</main>
+
+<footer class="site">© 2026 Brambleway Kitchen · New picks every Monday</footer>
+</body>
+</html>

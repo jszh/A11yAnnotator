@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plan a trip — Riverside Metro Transit</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font: 15px/1.5 "Helvetica Neue", Arial, sans-serif;
+      margin: 0; color: #1b1f24; background: #f0f3f6;
+    }
+    .masthead { background: #0b5d3b; color: #fff; padding: .9rem 1.25rem; }
+    .masthead .logo { font-weight: 800; letter-spacing: .02em; }
+    .masthead .logo span { font-weight: 400; opacity: .8; }
+    main { max-width: 860px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+    h1 { font-size: 1.4rem; margin: 0 0 1rem; }
+    .toolbar {
+      background: #fff; border: 1px solid #d3dae1; border-radius: 10px;
+      padding: 1rem 1.1rem; display: flex; flex-wrap: wrap; gap: 1.1rem; align-items: flex-end;
+    }
+    .field { display: flex; flex-direction: column; gap: .25rem; }
+    .field label { font-size: .78rem; font-weight: 700; color: #45525e; text-transform: uppercase; letter-spacing: .03em; }
+    .field input {
+      font: inherit; padding: .5rem .6rem; border: 1px solid #b9c3cc; border-radius: 6px; min-width: 9.5rem;
+    }
+    .grp { display: flex; gap: .4rem; align-items: flex-end; }
+    .btn {
+      font: inherit; font-weight: 700; cursor: pointer;
+      background: #0b5d3b; color: #fff; border: 0; border-radius: 6px; padding: .55rem 1.1rem;
+    }
+    .btn.alt { background: #5b6873; }
+    .btn:focus-visible { outline: 3px solid #ffb000; outline-offset: 2px; }
+    .results { margin-top: 1.5rem; color: #56636e; }
+    .results p { background: #fff; border: 1px dashed #cdd5dd; border-radius: 8px; padding: 1.2rem; }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="logo">Riverside Metro <span>Transit</span></div>
+  </header>
+
+  <main>
+    <h1>Plan a trip</h1>
+
+    <!--
+      ISSUE: a toolbar of three TEXT buttons, all labeled "Go", each performing a
+      different function:
+        1. the first "Go" runs the trip search (submits the From/To fields),
+        2. the second "Go" CLEARS the form back to empty,
+        3. the third "Go" opens the rider settings/preferences panel.
+      Each "Go" is plausibly readable in isolation, but the single word never says
+      which function it triggers; clearing the form and opening settings are NOT
+      "go and search".
+    -->
+    <div class="toolbar" role="toolbar" aria-label="Trip planner controls">
+      <div class="field">
+        <label for="from">From stop</label>
+        <input id="from" type="text" value="Birchwood &amp; 4th">
+      </div>
+      <div class="field">
+        <label for="to">To stop</label>
+        <input id="to" type="text" value="Riverside Transit Center">
+      </div>
+
+      <div class="grp">
+        <!-- runs the search -->
+        <button type="button" class="btn" onclick="return false">Go</button>
+        <!-- clears the From/To fields back to empty -->
+        <button type="button" class="btn alt" onclick="return false">Go</button>
+        <!-- opens the rider preferences / settings panel -->
+        <button type="button" class="btn alt" onclick="return false">Go</button>
+      </div>
+    </div>
+
+    <div class="results" aria-live="off">
+      <p>Enter a start and destination stop, then run the planner to see departures,
+         transfers, and estimated arrival times for the next two hours.</p>
+    </div>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    All three <button> elements have a non-empty accessible name ("Go") and a valid
+    button role inside a labelled toolbar, so axe "button-name", WAVE, and Lighthouse
+    pass — there is no empty-label or missing-name finding. Three identical names are
+    not, by themselves, a violation. The defect is semantic: "Go" reads as "submit the
+    search," yet two of the three buttons CLEAR the form and OPEN settings — functions
+    that "Go" actively misdescribes, and that nothing in any button's label conveys. A
+    screen-reader user moving through the toolbar hears "Go, Go, Go" and cannot tell
+    search from clear from settings; activating the wrong one wipes their entered stops
+    or jumps them out to a preferences panel. Detecting this requires reading the
+    toolbar, understanding each button's distinct function, and judging that one
+    generic verb cannot describe three different actions — a human meaning judgment.
+  -->
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyHop — Search round-trip flights</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order):
+  A round-trip flight search has two semantic groups: the OUTBOUND leg (From, To, Depart
+  date, Passengers) and the RETURN leg (From, To, Return date, Cabin). Visually they are
+  two stacked, clearly headed panels — "Outbound flight" then "Return flight" — each with
+  its four fields in order. Every control has a real label, correct name/role, and is
+  keyboard-operable; there is NO tabindex. But the DOM emits the eight fields in
+  ALTERNATING legs: outbound-from, return-from, outbound-to, return-to, outbound-date,
+  return-date, outbound-pax, return-cabin. The CSS grid routes each field back into its
+  visual panel, so a sighted user sees two tidy stacked cards. Only by tabbing (and by
+  understanding that "Depart date" belongs with the outbound From/To, not between the
+  outbound and return cities) can a person see the focus jumping between the two legs.
+  Automated tools have no concept that the four outbound fields are one trip leg and the
+  four return fields another, so they report a clean, valid form.
+-->
+<style>
+  :root { --ink:#101826; --brand:#1c5fd6; --line:#dde3ec; --muted:#5a6577; --bg:#eef2f8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:#0d2a63; color:#fff; padding:24px 28px; display:flex; align-items:baseline; gap:14px; }
+  header h1 { margin:0; font-size:1.5rem; }
+  header span { opacity:.8; font-size:.95rem; }
+  main { max-width:760px; margin:0 auto; padding:30px 22px 80px; }
+  .tagline { color:var(--muted); margin:0 0 26px; }
+
+  /* One CSS grid for the whole search form. Two stacked panels (outbound rows, then
+     return rows). Each field is pinned to a named area so DOM order != visual order. */
+  form { display:grid;
+         grid-template-columns:1fr 1fr;
+         grid-template-areas:
+           "o-head o-head"
+           "o-from o-to"
+           "o-date o-pax"
+           "r-head r-head"
+           "r-from r-to"
+           "r-date r-cabin"
+           "go     go";
+         gap:14px 22px; }
+
+  .panel { grid-column:1 / -1; display:contents; }
+  .head { padding:14px 16px; border-radius:10px 10px 0 0; font-weight:700;
+          background:#dfe9fb; color:#0d2a63; border:1px solid var(--line); border-bottom:0; }
+  .o-head { grid-area:o-head; } .r-head { grid-area:r-head; margin-top:20px; }
+
+  .cell { background:#fff; border:1px solid var(--line); padding:14px 16px; }
+  .o-from{grid-area:o-from} .o-to{grid-area:o-to} .o-date{grid-area:o-date} .o-pax{grid-area:o-pax}
+  .r-from{grid-area:r-from} .r-to{grid-area:r-to} .r-date{grid-area:r-date} .r-cabin{grid-area:r-cabin}
+
+  label { display:block; font-weight:600; font-size:.85rem; margin-bottom:5px; color:#2a3445; }
+  input, select { width:100%; padding:9px 11px; border:1px solid #b6c0d0; border-radius:7px; font-size:.95rem; background:#fff; }
+  :focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+
+  .go { grid-area:go; margin-top:22px; }
+  button { background:var(--brand); color:#fff; border:0; border-radius:9px;
+           padding:13px 30px; font-size:1.02rem; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+<header><h1>SkyHop</h1><span>Find your next trip</span></header>
+<main>
+  <p class="tagline">Round trip · 1 destination · search hundreds of airlines at once.</p>
+
+  <!--
+    DOM / TAB ORDER (no tabindex, pure source order) is INTERLEAVED between legs:
+      outbound-From -> return-From -> outbound-To -> return-To ->
+      outbound-Depart -> return-Return -> outbound-Passengers -> return-Cabin
+    Each field is grid-area-pinned into its visual panel, so on screen the form reads as
+    two clean stacked cards ("Outbound flight" above "Return flight"), but keyboard focus
+    bounces between the two legs on every Tab.
+  -->
+  <form action="#" method="get" novalidate aria-label="Round-trip flight search">
+
+    <h2 class="head o-head">Outbound flight</h2>
+    <h2 class="head r-head">Return flight</h2>
+
+    <!-- interleaved field pairs: outbound then return, per row -->
+    <div class="cell o-from"><label for="o-from">From</label>
+      <input id="o-from" name="out_from" type="text" placeholder="City or airport" autocomplete="off"></div>
+    <div class="cell r-from"><label for="r-from">From</label>
+      <input id="r-from" name="ret_from" type="text" placeholder="City or airport" autocomplete="off"></div>
+
+    <div class="cell o-to"><label for="o-to">To</label>
+      <input id="o-to" name="out_to" type="text" placeholder="City or airport" autocomplete="off"></div>
+    <div class="cell r-to"><label for="r-to">To</label>
+      <input id="r-to" name="ret_to" type="text" placeholder="City or airport" autocomplete="off"></div>
+
+    <div class="cell o-date"><label for="o-date">Depart date</label>
+      <input id="o-date" name="out_date" type="date"></div>
+    <div class="cell r-date"><label for="r-date">Return date</label>
+      <input id="r-date" name="ret_date" type="date"></div>
+
+    <div class="cell o-pax"><label for="o-pax">Passengers</label>
+      <select id="o-pax" name="pax">
+        <option>1 adult</option><option>2 adults</option><option>2 adults, 1 child</option>
+      </select></div>
+    <div class="cell r-cabin"><label for="r-cabin">Cabin</label>
+      <select id="r-cabin" name="cabin">
+        <option>Economy</option><option>Premium economy</option><option>Business</option>
+      </select></div>
+
+    <div class="go"><button type="submit">Search flights</button></div>
+  </form>
+</main>
+</body>
+</html>

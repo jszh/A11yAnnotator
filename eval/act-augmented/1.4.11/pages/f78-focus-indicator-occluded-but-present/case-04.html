@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Northvale Health — Schedule an Appointment</title>
+<!--
+  SC 1.4.11 Non-text Contrast — F78 (focus indicator present but
+  indistinguishable, here CONFUSED WITH a selection indicator that uses the
+  identical treatment).
+
+  This patient-portal "appointment type" picker is a segmented control (radio
+  group) of three options. The SELECTED segment is marked with a 3px solid teal
+  border. The author re-used that exact same 3px solid teal border as the :focus
+  indicator for the segments:
+
+      .seg[aria-checked="true"] { border: 3px solid #0f8a8a; }   /* selected   */
+      .seg:focus                { border: 3px solid #0f8a8a; }   /* focus ring */
+
+  The page is rendered with the SECOND option ("Video visit") selected, and
+  keyboard focus on the FIRST option ("In-person visit"), which is NOT selected.
+  Both now show the identical 3px teal border. A sighted keyboard user therefore
+  sees two teal-bordered segments and cannot tell which is the chosen value and
+  which merely has focus — and as they arrow across, the focused segment is
+  indistinguishable from the persistently-selected one, so focus movement is not
+  perceivable as distinct from selection.
+
+  WHY AUTOMATED TOOLS MISS IT: the markup is correct (role=radiogroup,
+  aria-checked exposed, real focus styles present). A focus style exists and has
+  fine contrast (teal #0f8a8a on white ~3.3:1). axe/WAVE/Lighthouse cannot judge
+  that the focus treatment is identical to the selection treatment and therefore
+  fails to distinguish "focused" from "selected." Only a human comparing the
+  selected segment, the focused segment, and the resting segments can see the
+  collision.
+-->
+<style>
+  :root{
+    --ink:#16202b; --muted:#5d6b78; --teal:#0f8a8a; --bg:#eef4f4; --card:#fff; --line:#d3dde0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 "Source Sans 3","Segoe UI",system-ui,sans-serif;}
+  header{background:var(--card); border-bottom:1px solid var(--line); padding:14px 22px; display:flex; align-items:center; gap:12px;}
+  header .mark{width:30px; height:30px; border-radius:7px; background:var(--teal); color:#fff; display:grid; place-items:center; font-weight:800;}
+  header h1{font-size:1.1rem; margin:0;}
+  main{max-width:680px; margin:0 auto; padding:26px 22px 60px;}
+  .progress{font-size:.78rem; letter-spacing:.05em; text-transform:uppercase; color:var(--teal); font-weight:700; margin:0 0 4px;}
+  h2{font-size:1.45rem; margin:0 0 6px;}
+  .hint{color:var(--muted); margin:0 0 22px;}
+  fieldset{border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin:0 0 22px; background:var(--card);}
+  legend{font-weight:700; padding:0 6px;}
+
+  .segmented{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:6px;}
+
+  /* The segmented radio "buttons". The selected state and the focus state both
+     use a 3px solid teal border — so a focused-but-unselected segment looks the
+     same as the selected one, and focus is not distinguishable from selection. */
+  .seg{
+    appearance:none; background:var(--card); cursor:pointer; text-align:left;
+    border:1px solid var(--line); border-radius:9px; padding:14px 14px;
+    font:inherit; color:var(--ink);
+  }
+  .seg .t{font-weight:700; display:block;}
+  .seg .d{font-size:.85rem; color:var(--muted); margin-top:3px;}
+
+  .seg[aria-checked="true"]{ border:3px solid #0f8a8a; }   /* SELECTED indicator */
+  .seg:focus{ border:3px solid #0f8a8a; outline:none; }    /* FOCUS == SELECTED  */
+
+  .seg[aria-checked="true"] .check{color:var(--teal); font-weight:800;}
+
+  .row{display:flex; gap:14px; flex-wrap:wrap; margin-top:8px;}
+  .btn{font:700 1rem/1 inherit; cursor:pointer; padding:12px 20px; border-radius:8px; border:1px solid var(--teal);}
+  .btn.primary{background:var(--teal); color:#fff; border-color:var(--teal);}
+  .btn.ghost{background:#fff; color:var(--teal);}
+  footer{max-width:680px; margin:0 auto; padding:16px 22px; color:var(--muted); font-size:.8rem;}
+</style>
+</head>
+<body>
+<header>
+  <div class="mark">N</div>
+  <h1>Northvale Health &middot; MyChart</h1>
+</header>
+
+<main>
+  <p class="progress">Step 2 of 5</p>
+  <h2>How would you like to see Dr. Okafor?</h2>
+  <p class="hint">Choose a visit type. You can change this later before confirming.</p>
+
+  <fieldset>
+    <legend>Appointment type</legend>
+    <div class="segmented" role="radiogroup" aria-label="Appointment type">
+      <!-- Focused (autofocus) but NOT selected -->
+      <button type="button" class="seg" role="radio" aria-checked="false" autofocus>
+        <span class="t">In-person visit</span>
+        <span class="d">Northvale Clinic, 4th floor</span>
+      </button>
+      <!-- Selected, not focused -->
+      <button type="button" class="seg" role="radio" aria-checked="true">
+        <span class="t">Video visit <span class="check">&#10003;</span></span>
+        <span class="d">Secure video from home</span>
+      </button>
+      <button type="button" class="seg" role="radio" aria-checked="false">
+        <span class="t">Phone visit</span>
+        <span class="d">Provider calls you</span>
+      </button>
+    </div>
+  </fieldset>
+
+  <div class="row">
+    <button type="button" class="btn ghost">Back</button>
+    <button type="button" class="btn primary">Continue</button>
+  </div>
+</main>
+
+<footer>
+  Loaded with the <em>In-person visit</em> option focused and the <em>Video visit</em> option selected.
+</footer>
+</body>
+</html>

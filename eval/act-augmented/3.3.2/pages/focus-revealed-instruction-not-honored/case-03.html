@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  ASPECT: focus-revealed-instruction-not-honored (SC 3.3.2 Labels or Instructions, Level A)
+  PAGE STATE TO JUDGE: tab into the "Travel date" field. The date-format hint DOES un-hide on focus,
+  but it renders fully hidden BEHIND the fixed booking-summary footer bar — so the focused user sees
+  no instruction.
+
+  WHAT THIS PAGE IS: a flight-booking date step (Aerolink). The travel-date field requires the format
+  "DD/MM/YYYY" (day-first, the airline's locale). That format is the field's only instruction — the
+  visible <label> is just "Travel date", which does not state the format. Per the focus-revealed
+  pattern, the hint is shown on focus.
+
+  THE DEFECT (present, not absent): the hint is built as a "floating help bar" — position:fixed pinned
+  to bottom:0 of the viewport — and DOES become display:block / visible on focus. But the page ALSO
+  has a position:fixed booking-summary footer pinned to bottom:0 with a HIGHER z-index and an opaque
+  background. Both bars occupy the very bottom of the viewport, so the revealed help bar always paints
+  directly BEHIND the opaque summary footer — in EVERY viewport size, not by coincidence. On focus the
+  hint un-hides but is fully occluded behind the footer: the user sees the footer, not the
+  instruction. The hint is a real populated node that genuinely becomes visible; it is simply rendered
+  where the footer paints over it.
+
+  WHY AUTOMATED TOOLS MISS IT: the input has a correct <label> ("Travel date"), so the form-label
+  check passes. The hint node exists, is display:none -> display:block on focus, and is even wired via
+  aria-describedby, so a static scan sees an instruction that "appears on focus." No linter computes
+  the painted stacking/overlap of two fixed bottom bars, drives focus, or visually judges that the
+  revealed instruction is hidden behind another element. Detecting the occlusion needs rendering the
+  focused state and looking.
+-->
+<title>Choose your travel date — Aerolink</title>
+<style>
+  :root { --ink:#10243a; --muted:#5a6b80; --line:#dbe3ec; --brand:#0a4d8c; --bg:#eef3f8; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:center; gap:10px; }
+  header .mark { width:28px; height:28px; border-radius:7px; background:var(--brand); color:#fff; display:grid; place-items:center; font-weight:800; }
+  main { max-width:540px; margin:30px auto; padding:0 20px 220px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:28px 30px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 24px; font-size:.92rem; }
+  .route { font-size:.86rem; color:var(--muted); margin:0 0 22px; }
+  .route strong { color:var(--ink); }
+  .field { margin:0 0 20px; position:relative; }
+  label { display:block; font-weight:600; margin-bottom:6px; font-size:.92rem; }
+  input[type=text] { width:100%; padding:11px 12px; border:1px solid #b7c0cc; border-radius:8px; font-size:1rem; }
+  input:focus { outline:2px solid var(--brand); outline-offset:1px; }
+  fieldset.fare { border:1px solid var(--line); border-radius:10px; padding:14px 16px 6px; margin:0 0 20px; }
+  fieldset.fare legend { font-weight:600; font-size:.92rem; padding:0 6px; }
+  .fare-opt { display:flex; align-items:center; gap:10px; padding:8px 4px; font-size:.92rem; border-bottom:1px solid #f0f3f7; cursor:pointer; }
+  .fare-opt:last-child { border-bottom:0; }
+  .fare-opt input { width:auto; margin:0; }
+  /* The date-format hint, built as a "floating help bar" pinned to the bottom of the viewport.
+     display:none by default; becomes display:block (and visible) when the input is focused (the
+     focus reveal genuinely fires). Its z-index is LOWER than the summary bar's. */
+  .date-hint {
+    display:none; position:fixed; left:0; right:0; bottom:0; z-index:10;
+    padding:13px 24px; background:#eaf2fb; border-top:1px solid #b9d4f0;
+    font-size:.86rem; color:#1d4e82;
+  }
+  #travel:focus ~ .date-hint { display:block; }
+  /* The fixed booking-summary footer. position:fixed, pinned to bottom:0, OPAQUE, z-index HIGHER
+     than the help bar. Both bars occupy the bottom of the viewport, so the revealed help bar always
+     paints directly behind this footer — in every viewport size — and the footer fully occludes it. */
+  .summary-bar {
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    background:#0a3766; color:#fff; padding:16px 24px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    box-shadow:0 -6px 18px rgba(0,0,0,.18);
+  }
+  .summary-bar .total { font-size:1.05rem; font-weight:700; }
+  .summary-bar .sub { font-size:.78rem; opacity:.85; }
+  .summary-bar button { background:#37b27a; color:#06301e; border:0; border-radius:8px; padding:11px 22px; font-size:1rem; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+<header>
+  <span class="mark">A</span>
+  <strong>Aerolink</strong>
+</header>
+
+<main>
+  <div class="card">
+    <h1>Choose your travel date</h1>
+    <p class="lead">Step 2 of 4 — when would you like to fly?</p>
+    <p class="route"><strong>EDI</strong> Edinburgh &rarr; <strong>LHR</strong> London Heathrow · 1 adult · Economy</p>
+
+    <form action="/book/date" method="post" novalidate>
+      <div class="field">
+        <label for="pax">Passenger name (as on passport)</label>
+        <input type="text" id="pax" name="pax" autocomplete="name" value="R. Mhlanga">
+      </div>
+
+      <!-- Realistic fare-class options sit between the passenger field and the travel-date field, so
+           on a standard-height viewport the date input falls into the lower part of the page and its
+           focus-revealed hint (top:100% of the input) lands in the band the fixed footer covers. -->
+      <fieldset class="fare">
+        <legend>Fare class</legend>
+        <label class="fare-opt"><input type="radio" name="fare" value="economy" checked> Economy — £128.40</label>
+        <label class="fare-opt"><input type="radio" name="fare" value="economy-plus"> Economy Plus — £171.00</label>
+        <label class="fare-opt"><input type="radio" name="fare" value="flex"> Economy Flex (free changes) — £214.60</label>
+        <label class="fare-opt"><input type="radio" name="fare" value="business"> Business — £498.00</label>
+      </fieldset>
+
+      <div class="field">
+        <!-- Visible label is just "Travel date". It does NOT state the day-first format, so the
+             .date-hint below is this field's only instruction. -->
+        <label for="travel">Travel date</label>
+        <input type="text" id="travel" name="travel" inputmode="numeric" autocomplete="off"
+               aria-describedby="travel-hint">
+        <!-- Real, populated format hint. Becomes display:block on focus (the reveal genuinely fires)
+             but is absolutely positioned in the band covered by the fixed .summary-bar, which paints
+             on top of it. On focus it un-hides but is fully occluded. -->
+        <div class="date-hint" id="travel-hint">
+          Use day-first format <strong>DD/MM/YYYY</strong> — for example 09/03/2026 for 9 March 2026.
+        </div>
+      </div>
+    </form>
+  </div>
+</main>
+
+<!-- Fixed, opaque booking summary pinned to the bottom of the viewport, above the hint in z-order. -->
+<div class="summary-bar" role="contentinfo">
+  <div>
+    <div class="total">£128.40</div>
+    <div class="sub">Total for 1 passenger · includes taxes</div>
+  </div>
+  <button type="button">Continue</button>
+</div>
+</body>
+</html>

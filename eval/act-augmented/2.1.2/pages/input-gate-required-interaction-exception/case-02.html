@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get a car insurance quote — Thornbury Direct</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — genuine trap masquerading as a validation gate):
+    Visually and structurally this is identical to a conformant required-field gate (see the
+    sibling PASS case). The "Postcode" field is the first step of a quote form and is meant to
+    hold focus until filled. But the developer wired the hold with a `blur` handler that
+    UNCONDITIONALLY re-focuses the postcode field whenever focus tries to leave it — it never
+    checks whether the value is valid. So even AFTER the user types a perfectly valid UK
+    postcode by keyboard, every Tab / Shift+Tab / click-away immediately yanks focus back to
+    the field. Focus can NEVER reach the date-of-birth field, the "Continue" button, or
+    anything else: the required interaction is satisfiable, but satisfying it does NOT release
+    the gate. That is the precise FAIL the input-gate exception does NOT cover.
+    axe / WAVE / Lighthouse see a labelled <input> with valid attributes and never fire; they
+    do not run the blur handler or press keys, so the inescapable loop is invisible to them.
+    A human must (1) recognise the field is meant as a gate, (2) complete it by keyboard, and
+    (3) discover focus STILL cannot leave — proving it is a trap, not the exception.
+  -->
+  <style>
+    :root { --ink:#1a1d24; --muted:#5b6270; --line:#d3d8e0; --brand:#0b3d6e; --accent:#0b6e4f; --bg:#eef2f6; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 Arial, Helvetica, sans-serif; color: var(--ink); margin: 0; background: var(--bg); }
+    header { background: var(--brand); color: #eaf3ff; padding: 16px 26px; }
+    header .brand { font-weight: 800; font-size: 1.2rem; letter-spacing: .3px; }
+    header .tag { font-size: .82rem; opacity: .85; }
+    .steps { background: #0a3360; color: #cfe2ff; font-size: .8rem; padding: 8px 26px; }
+    .steps b { color: #fff; }
+    main { max-width: 600px; margin: 30px auto; padding: 0 18px; }
+    h1 { font-size: 1.5rem; margin: 0 0 4px; }
+    .lede { color: var(--muted); margin: 0 0 22px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 24px 26px; }
+    .row { margin: 0 0 18px; }
+    label { display: block; font-weight: 700; margin: 0 0 6px; }
+    input[type="text"], input[type="date"] {
+      width: 100%; font: inherit; padding: 11px 12px; text-transform: uppercase;
+      border: 1px solid #aab4c2; border-radius: 8px; background: #fbfdff;
+    }
+    input[type="date"] { text-transform: none; }
+    input:focus-visible { outline: 3px solid #b8420f; outline-offset: 1px; }
+    .hint { color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
+    .gatemsg { font-size: .85rem; margin: 6px 0 0; min-height: 1.2em; color: var(--accent); }
+    .actions { margin-top: 10px; }
+    button.continue {
+      font: inherit; font-weight: 700; color: #fff; background: var(--accent);
+      border: 0; border-radius: 8px; padding: 12px 26px; cursor: pointer;
+    }
+    button.continue:focus-visible { outline: 3px solid #b8420f; outline-offset: 2px; }
+    footer { color: var(--muted); font-size: .8rem; text-align: center; margin: 28px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Thornbury Direct</div>
+    <div class="tag">Car insurance, sorted</div>
+  </header>
+  <div class="steps">Step <b>1</b> of 4 · Your address &nbsp;›&nbsp; Step 2 Your details &nbsp;›&nbsp; Step 3 Your car &nbsp;›&nbsp; Step 4 Quote</div>
+
+  <main>
+    <h1>Let's start with where you live</h1>
+    <p class="lede">Your postcode lets us factor in local claims data. It takes about three minutes to get a quote.</p>
+
+    <form class="card" action="#" method="post" aria-labelledby="q-h" novalidate>
+      <h2 id="q-h" style="margin:0 0 16px;font-size:1.1rem;">Your address</h2>
+
+      <div class="row">
+        <label for="postcode">Postcode (required)</label>
+        <!--
+          Intended as a required gate: hold focus on postcode until it is filled.
+          BUG: the blur handler re-focuses UNCONDITIONALLY (no validity check), so focus
+          can never leave this field — even after a valid postcode is typed. Trap.
+        -->
+        <input type="text" id="postcode" name="postcode" inputmode="text"
+               autocomplete="postal-code" aria-describedby="pc-gate" maxlength="8" required>
+        <p class="hint">For example, BS35 1HJ.</p>
+        <p class="gatemsg" id="pc-gate" role="status">Enter your postcode to continue.</p>
+      </div>
+
+      <div class="row">
+        <label for="dob">Date of birth (required)</label>
+        <input type="date" id="dob" name="dob" required>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="continue">Continue to your details</button>
+      </div>
+    </form>
+  </main>
+
+  <footer>Thornbury Direct is a trading name of Thornbury Insurance Services Ltd, authorised and regulated by the FCA.</footer>
+
+  <script>
+    // The developer wanted to "keep people on the postcode until they fill it in".
+    // They reached for a blur handler and re-focused the field — but forgot to gate the
+    // re-focus on validity. Result: focus is forced back to #postcode on EVERY blur,
+    // forever, regardless of what has been typed. The required interaction (typing a valid
+    // postcode by keyboard) can be done, but doing it does NOT release focus. Genuine trap.
+    var pc   = document.getElementById('postcode');
+    var gate = document.getElementById('pc-gate');
+    var UK = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i; // valid UK postcode pattern
+
+    pc.addEventListener('input', function () {
+      if (UK.test(pc.value.trim())) {
+        gate.textContent = 'Postcode recognised.';
+      } else {
+        gate.textContent = 'Enter your postcode to continue.';
+      }
+    });
+
+    // BUG: unconditional re-focus. Note there is no `if (valid) return;` guard, so even a
+    // recognised postcode cannot release focus. setTimeout re-asserts focus after the
+    // browser would have moved it on Tab.
+    pc.addEventListener('blur', function () {
+      setTimeout(function () { pc.focus(); }, 0);
+    });
+  </script>
+</body>
+</html>

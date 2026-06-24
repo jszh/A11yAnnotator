@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidewater Bank — Accounts</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter", system-ui, sans-serif; background:#eef1f5; color:#1c2330; }
+  .topbar {
+    display:flex; align-items:center; gap:14px; background:#0b2545; color:#fff;
+    padding:0 20px; height:58px;
+  }
+  .brand { font-weight:700; letter-spacing:.3px; }
+  .brand span { color:#7fb2ff; }
+  .nav { display:flex; gap:18px; margin-left:24px; font-size:14px; }
+  .nav a { color:#cdd9ee; text-decoration:none; }
+  .nav a[aria-current] { color:#fff; font-weight:600; }
+  .acct { margin-left:auto; display:flex; align-items:center; gap:12px; }
+  .acct .who { font-size:13px; color:#cdd9ee; }
+  .iconbtn {
+    width:38px; height:38px; border:0; background:transparent; color:#cdd9ee;
+    display:inline-flex; align-items:center; justify-content:center; border-radius:8px; cursor:pointer;
+  }
+  .iconbtn:hover { background:#143869; color:#fff; }
+  .iconbtn:focus-visible { outline:2px solid #7fb2ff; outline-offset:1px; }
+  .iconbtn svg { width:21px; height:21px; }
+  main { max-width:880px; margin:28px auto; padding:0 18px; }
+  h1 { font-size:22px; }
+  .acctcard { background:#fff; border:1px solid #dde3ec; border-radius:12px; padding:18px 20px; margin-bottom:14px; }
+  .acctcard .name { font-weight:600; }
+  .acctcard .num { color:#6b7588; font-size:13px; }
+  .acctcard .bal { float:right; font-size:20px; font-weight:700; }
+  .clearfix::after { content:""; display:block; clear:both; }
+  .note { font-size:12px; color:#6b7588; margin-top:18px; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">Tidewater<span>Bank</span></div>
+  <nav class="nav" aria-label="Primary">
+    <a href="#" aria-current="page">Accounts</a>
+    <a href="#">Transfers</a>
+    <a href="#">Pay bills</a>
+    <a href="#">Statements</a>
+  </nav>
+  <div class="acct">
+    <span class="who">Signed in as R. Okonkwo</span>
+
+    <!-- THE FAILING CONTROL:
+         glyph = gear (universally read as "Settings"),
+         accessible name = literally "gear" (the name names the GLYPH, not the FUNCTION),
+         action = LOG OUT / end session.
+         So both the glyph AND the literal name point away from the real function. -->
+    <button type="button" class="iconbtn" aria-label="gear" onclick="logout()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+        <!-- gear / cog glyph -->
+        <circle cx="12" cy="12" r="3.2"/>
+        <path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1M18.4 18.4l-2.1-2.1M7.7 7.7L5.6 5.6"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <h1>Your accounts</h1>
+
+  <section class="acctcard clearfix">
+    <span class="bal">$8,412.06</span>
+    <div class="name">Everyday Chequing</div>
+    <div class="num">•••• 4471</div>
+  </section>
+  <section class="acctcard clearfix">
+    <span class="bal">$26,930.18</span>
+    <div class="name">High-Interest Savings</div>
+    <div class="num">•••• 9920</div>
+  </section>
+  <section class="acctcard clearfix">
+    <span class="bal">−$1,204.55</span>
+    <div class="name">Tidewater Rewards Visa</div>
+    <div class="num">•••• 0036</div>
+  </section>
+
+  <p class="note">To end your secure session, use the control at the top right of the page.</p>
+</main>
+
+<script>
+  function logout(){
+    if (confirm('End your secure banking session and sign out?')) {
+      document.body.innerHTML = '<main style="max-width:880px;margin:60px auto;padding:0 18px;font-family:inherit">' +
+        '<h1>You have been signed out</h1><p>Thank you for banking with Tidewater.</p></main>';
+    }
+  }
+</script>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  The button has role "button" and a non-empty accessible name ("gear"), so axe-core button-name,
+  WAVE, and Lighthouse all pass it. Two separate human judgments fail here, neither detectable by a
+  tool: (1) the accessible name "gear" names the GLYPH a developer saw, not the FUNCTION the control
+  performs — a screen-reader user hears "gear, button" and learns nothing about logging out; and
+  (2) the gear glyph itself is the near-universal cue for "Settings," so a sighted user reading the
+  icon expects a settings/preferences panel, not session termination — a high-stakes mismatch in a
+  banking context. No tool rasterises the SVG to recognise a cog, knows that "gear conventionally
+  means settings," or reasons that "gear" the string fails to describe a log-out action. This is the
+  SC 2.4.6 graphical-label judgment (TT 5.B), and specifically the Understanding caveat that a name
+  can be programmatically present yet still fail to be descriptive.
+-->
+</body>
+</html>

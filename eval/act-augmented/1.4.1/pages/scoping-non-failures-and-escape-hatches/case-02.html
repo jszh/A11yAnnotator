@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lunch menu — Saffron House</title>
+<style>
+  body { margin:0; font:16px/1.55 Georgia,"Times New Roman",serif; color:#241f1a; background:#fbf7f0; }
+  .menu { max-width:680px; margin:0 auto; padding:32px 24px 72px; }
+  h1 { font-family:Georgia,serif; font-size:30px; letter-spacing:.02em; margin:0 0 2px; text-align:center; }
+  .tag { text-align:center; color:#7a6f5f; font-style:italic; margin:0 0 28px; }
+  h2 { font-size:14px; text-transform:uppercase; letter-spacing:.14em; color:#9a6a2f;
+       border-bottom:1px solid #e3d8c5; padding-bottom:6px; margin:30px 0 14px; }
+  .dish { display:flex; justify-content:space-between; gap:16px; align-items:baseline; margin:0 0 16px; }
+  .dish .name { font-weight:600; }
+  .dish .desc { display:block; font-size:14px; color:#5e564b; font-style:italic; font-weight:400; }
+  .dish .price { white-space:nowrap; color:#5e564b; }
+  /* Spice level is conveyed ONLY by the colour of the dish name.
+     mild  = green #2e7d32   hot = red #c0392b
+     Both greens/reds sit at the SAME lightness: contrast between them is ~1.06:1 (<3:1),
+     so there is NO lightness escape hatch. Each colour individually has fine contrast
+     against the cream page (~5:1), so this is NOT a 1.4.3 problem — it is a pure
+     use-of-colour failure: hue alone carries the spice meaning, with no second cue. */
+  .mild { color:#2e7d32; }
+  .hot  { color:#c0392b; }
+  .legend { margin-top:30px; padding:14px 16px; background:#f5efe4;
+            border-radius:8px; font-size:14px; color:#5e564b; }
+  .legend .mild, .legend .hot { font-weight:600; }
+</style>
+</head>
+<body>
+<main class="menu">
+  <h1>Saffron House</h1>
+  <p class="tag">Modern South-Indian kitchen &middot; Weekday lunch</p>
+
+  <section aria-labelledby="sec-small">
+    <h2 id="sec-small">Small plates</h2>
+    <div class="dish">
+      <span class="name mild">Coconut sambar idli
+        <span class="desc">Steamed rice cakes, lentil broth, curry leaf</span></span>
+      <span class="price">$9</span>
+    </div>
+    <div class="dish">
+      <span class="name hot">Gunpowder potato roast
+        <span class="desc">Crushed potato, idli-podi, sesame</span></span>
+      <span class="price">$11</span>
+    </div>
+    <div class="dish">
+      <span class="name mild">Beetroot pachadi
+        <span class="desc">Yoghurt, roasted coconut, mustard temper</span></span>
+      <span class="price">$8</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="sec-mains">
+    <h2 id="sec-mains">Mains</h2>
+    <div class="dish">
+      <span class="name hot">Chettinad chicken
+        <span class="desc">Black pepper, star anise, shallot masala</span></span>
+      <span class="price">$19</span>
+    </div>
+    <div class="dish">
+      <span class="name mild">Avial vegetable curry
+        <span class="desc">Mixed vegetables, coconut, green chilli (mild)</span></span>
+      <span class="price">$16</span>
+    </div>
+    <div class="dish">
+      <span class="name hot">Andhra lamb fry
+        <span class="desc">Guntur chilli, ginger, fenugreek</span></span>
+      <span class="price">$23</span>
+    </div>
+  </section>
+
+  <p class="legend">
+    Dishes shown in <span class="mild">green</span> are mild; dishes shown in
+    <span class="hot">red</span> are spicy. Please tell your server about any allergies.
+  </p>
+</main>
+
+<!--
+  WHY THIS FAILS (1.4.1, no escape hatch):
+  Spice level (mild vs spicy) is conveyed SOLELY by the hue of the dish name. The mild green
+  (#2e7d32) and the hot red (#c0392b) are deliberately at the SAME lightness, so the contrast
+  ratio BETWEEN them is ~1.06:1 — far below 3:1. The lightness escape hatch therefore does NOT
+  apply: a user who cannot distinguish red from green (e.g. deuteranopia) perceives two
+  identically-dark dish names and cannot tell mild from spicy. The legend only restates the
+  colour code ("green = mild, red = spicy"), which is useless to someone who can't see the hue.
+  There is no icon, no word "mild"/"spicy", no chilli count beside each dish. This is the
+  discriminating twin of case-01: same concept, but no lightness gap, so it fails.
+
+  WHY AUTOMATED TOOLS MISS IT: every colour here passes SC 1.4.3 (~5:1 against the cream page),
+  so contrast checkers report no problem. axe/WAVE/Lighthouse have no rule that detects
+  "two foreground hues at the same lightness are the only carrier of a semantic category."
+  Recognising that the green/red distinction encodes spice level — and that the legend doesn't
+  rescue it — requires reading the menu's meaning and reasoning about colour perception.
+-->
+</body>
+</html>

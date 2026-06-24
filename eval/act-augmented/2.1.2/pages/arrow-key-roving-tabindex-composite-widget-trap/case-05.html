@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>محرر المقالات — منصّة نشر</title>
+<style>
+  :root { --ink:#1f2430; --teal:#0d6e6e; --teal-dk:#0a5252; --line:#dfe4e8; --bg:#f3f6f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Noto Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif; color:var(--ink);
+         background:var(--bg); direction:rtl; }
+  header { background:var(--teal); color:#fff; padding:12px 26px; display:flex; align-items:center; gap:14px; }
+  header .brand { font-weight:800; }
+  header .right { margin-inline-start:auto; }
+  header a { color:#dff0f0; text-decoration:none; font-size:.9rem; }
+  header a:focus { outline:3px solid #ffd24a; outline-offset:3px; }
+
+  main { max-width:780px; margin:26px auto; padding:0 22px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; color:var(--teal-dk); }
+  p.sub { color:#5d6470; margin:0 0 20px; }
+
+  .editor { background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden;
+            box-shadow:0 2px 10px rgba(13,110,110,.06); }
+  [role="toolbar"] {
+    display:flex; gap:4px; padding:8px; border-bottom:1px solid var(--line); background:#f8fafa;
+  }
+  [role="toolbar"] button {
+    appearance:none; min-width:38px; height:34px; border:1px solid transparent; border-radius:7px;
+    background:transparent; font-size:1rem; cursor:pointer; color:var(--ink); outline:none;
+  }
+  [role="toolbar"] button[aria-pressed="true"] { background:#e3f1f1; border-color:#bfe0e0; }
+  [role="toolbar"] button:focus { box-shadow:inset 0 0 0 2px var(--teal); }
+
+  .doctitle { width:100%; padding:12px 14px; border:0; border-bottom:1px solid var(--line);
+              font-size:1.1rem; font-weight:700; }
+  .doctitle:focus { outline:3px solid #2f80c8; outline-offset:-3px; }
+  .body { padding:14px; min-height:160px; line-height:1.8; }
+  .body:focus { outline:3px solid #2f80c8; outline-offset:-3px; }
+
+  .footerbar { display:flex; gap:10px; padding:14px 0; }
+  .publish { padding:11px 24px; border:0; border-radius:8px; background:var(--teal); color:#fff;
+             font-weight:700; cursor:pointer; }
+  .publish:focus { outline:3px solid #ffd24a; outline-offset:2px; }
+  .draft { padding:11px 20px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
+  .draft:focus { outline:3px solid #2f80c8; outline-offset:2px; }
+
+  .note { background:#fffbe9; border:1px solid #f0e3a8; border-radius:8px; padding:12px 14px;
+          font-size:.82rem; color:#6b5e23; margin-top:22px; direction:rtl; }
+  .note code, .note kbd { direction:ltr; unicode-bidi:isolate; }
+  .en { direction:ltr; unicode-bidi:isolate; display:inline-block; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">منصّة نشر</span>
+  <span class="right"><a href="#account">مرحبًا، ليلى</a></span>
+</header>
+
+<main>
+  <h1>محرر المقالات</h1>
+  <p class="sub">مسودة غير منشورة · حُفظت تلقائيًا قبل دقيقتين</p>
+
+  <div class="editor">
+    <div role="toolbar" aria-label="تنسيق النص" id="fmtbar">
+      <button type="button" aria-pressed="false" aria-label="عريض"  tabindex="0">B</button>
+      <button type="button" aria-pressed="false" aria-label="مائل"  tabindex="-1"><em>I</em></button>
+      <button type="button" aria-pressed="false" aria-label="تسطير" tabindex="-1"><u>U</u></button>
+      <button type="button" aria-pressed="false" aria-label="قائمة نقطية" tabindex="-1">• •</button>
+      <button type="button" aria-pressed="false" aria-label="رابط" tabindex="-1">🔗</button>
+    </div>
+
+    <input class="doctitle" id="title" type="text" value="عشرُ وصفاتٍ شتويةٍ سريعة" aria-label="عنوان المقال">
+    <div class="body" id="bodyarea" contenteditable="true" aria-label="نص المقال" role="textbox" aria-multiline="true">
+      ابدأ بكتابة مقالك هنا. استخدم شريط الأدوات أعلاه لتنسيق النص.
+    </div>
+  </div>
+
+  <div class="footerbar">
+    <button class="publish" id="publishBtn">نشر المقال</button>
+    <button class="draft" id="draftBtn">حفظ كمسودة</button>
+  </div>
+
+  <p class="note">
+    <strong>لماذا تُخطئ الأدوات الآلية:</strong>
+    هذا شريط أدوات صحيح وفق نمط APG —
+    <code class="en">role="toolbar"</code>،
+    <code class="en">tabindex</code> متنقّل (زر واحد <code class="en">0</code> والبقية <code class="en">-1</code>)،
+    وأسماء يمكن الوصول إليها، وأزرار <code class="en">aria-pressed</code>. تتنقّل أسهم لوحة المفاتيح
+    بين الأزرار كما هو متوقّع. لكن المعالج <code class="en">keydown</code> يلتقط أيضًا مفتاح
+    <kbd>Tab</kbd>، وعند آخر زر يلتفّ التركيز إلى أوّل زر بدل الخروج — حلقة داخلية مغلقة بلا
+    <kbd>Esc</kbd> ولا تعليمات للخروج. لذا لا يصل المستخدم أبدًا إلى حقل العنوان أو زر «نشر المقال».
+    لا يمكن للماسح الآلي أن يميّز شريطًا يلتقط الأسهم فقط (سليم) من شريطٍ يبتلع <kbd>Tab</kbd>
+    ويلتفّ داخل نفسه (مصيدة) دون الضغط فعليًا على <kbd>Tab</kbd> ومراقبة أنّ التركيز لا يغادر.
+  </p>
+</main>
+
+<script>
+(function () {
+  var bar = document.getElementById('fmtbar');
+  var btns = Array.prototype.slice.call(bar.querySelectorAll('button'));
+  var idx = 0;
+
+  function rove(n) {
+    n = (n + btns.length) % btns.length; // wrap — loops within the toolbar
+    btns[idx].tabIndex = -1;
+    btns[n].tabIndex = 0;
+    btns[n].focus();
+    idx = n;
+  }
+
+  btns.forEach(function (b, i) {
+    b.addEventListener('click', function () {
+      var pressed = b.getAttribute('aria-pressed') === 'true';
+      b.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+    });
+  });
+
+  // In RTL, ArrowLeft advances and ArrowRight goes back (toolbar follows visual direction).
+  // BUG: Tab is captured too, and at the last button focus WRAPS to the first instead of
+  // exiting. This is a within-widget loop trap distinct from a single self-refocus — there is
+  // simply no index at which Tab leaves the toolbar. No Esc, no documented escape.
+  bar.addEventListener('keydown', function (e) {
+    switch (e.key) {
+      case 'ArrowLeft':  e.preventDefault(); rove(idx + 1); break; // RTL: left = next
+      case 'ArrowRight': e.preventDefault(); rove(idx - 1); break; // RTL: right = prev
+      case 'Home':       e.preventDefault(); rove(0); break;
+      case 'End':        e.preventDefault(); rove(btns.length - 1); break;
+      case 'Tab':
+        // "Make Tab behave like the arrows so the toolbar feels self-contained."
+        e.preventDefault();
+        rove(e.shiftKey ? idx - 1 : idx + 1); // wraps -> never exits
+        break;
+    }
+  });
+})();
+</script>
+</body>
+</html>

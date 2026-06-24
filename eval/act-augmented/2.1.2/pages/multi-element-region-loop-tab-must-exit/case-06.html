@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Match Centre — Riverside FC</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; color:#101820; background:#eef2f1; }
+  a { color:#157347; }
+  header.site { background:#0b2e1c; color:#e8f3ec; padding:14px 24px; display:flex; gap:22px; align-items:center; }
+  header.site .brand { font-weight:700; }
+  header.site nav a { color:#bfe0cd; text-decoration:none; font-size:.92rem; }
+  header.site nav a:focus { outline:3px solid #ffd24a; outline-offset:2px; }
+  .layout { max-width:1040px; margin:0 auto; padding:24px; display:grid; grid-template-columns:1fr 300px; gap:24px; }
+  main h1 { font-size:1.5rem; margin:.1em 0 .5em; }
+  main p { line-height:1.6; }
+  .report { background:#fff; border:1px solid #d6e2db; border-radius:10px; padding:16px 18px; margin:0 0 16px; }
+  .report a:focus { outline:3px solid #157347; outline-offset:2px; }
+  aside.live { background:#0f3d27; color:#eafff2; border-radius:10px; padding:14px 16px; align-self:start; }
+  aside.live h2 { margin:.1em 0 .3em; font-size:1.05rem; }
+  aside.live .hint { font-size:.8rem; color:#bfe6cf; margin:0 0 12px; padding:7px 9px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); border-radius:6px; }
+  aside.live .hint kbd { background:#fff; color:#0f3d27; border-radius:4px; padding:1px 6px; font-weight:700; }
+  aside.live .ctrl { display:block; width:100%; text-align:left; margin:6px 0; padding:9px 11px; border:1px solid rgba(255,255,255,.25); border-radius:7px; background:rgba(255,255,255,.06); color:#eafff2; cursor:pointer; font-size:.9rem; }
+  aside.live .ctrl:focus { outline:3px solid #ffd24a; outline-offset:2px; }
+  footer.site { border-top:1px solid #d6e2db; margin-top:6px; padding:20px 24px; background:#e3ebe7; }
+  footer.site nav { display:flex; gap:20px; flex-wrap:wrap; }
+  footer.site a { color:#157347; text-decoration:none; font-size:.92rem; }
+  footer.site a:focus { outline:3px solid #157347; outline-offset:2px; }
+  .docnote { max-width:1040px; margin:14px auto 40px; padding:14px 18px; background:#eafaf0; border:1px dashed #9bd3ad; border-radius:8px; font-size:.82rem; color:#234b32; }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="brand">Riverside FC</span>
+  <nav aria-label="Primary">
+    <a href="#fixtures">Fixtures</a>
+    <a href="#table">League table</a>
+    <a href="#tickets">Tickets</a>
+    <a href="#shop">Club shop</a>
+  </nav>
+</header>
+
+<div class="layout">
+  <main>
+    <h1>Live Match Centre — Riverside 1–0 Ashford</h1>
+    <div class="report">
+      <p>Second half under way at the Riverside Ground. A first-half header from the captain
+      separates the sides. Conditions are dry, the pitch holding up well after midweek rain.</p>
+      <p>Continue below for the full match report and post-match interviews.</p>
+      <p><a href="#fullreport">Read the full match report</a></p>
+    </div>
+  </main>
+
+  <aside class="live" aria-label="Live commentary controls" id="livePanel">
+    <h2>Live commentary</h2>
+    <p class="hint" id="skipHint">This live panel keeps keyboard focus while updates stream in.
+      Press <kbd>Ctrl</kbd>+<kbd>M</kbd> at any time to skip past the panel and continue down the page.</p>
+    <button class="ctrl" type="button" id="lvFirst">Auto-refresh: On</button>
+    <button class="ctrl" type="button">Show key events only</button>
+    <button class="ctrl" type="button">Pin player: #9 Adeyemi</button>
+    <button class="ctrl" type="button">Mute goal alerts</button>
+    <button class="ctrl" type="button" id="lvLast">Commentary text size: M</button>
+  </aside>
+</div>
+
+<footer class="site">
+  <nav aria-label="Footer">
+    <a href="#report" id="footerFirst">Full match report</a>
+    <a href="#stats">Match stats</a>
+    <a href="#interviews">Post-match interviews</a>
+    <a href="#fixtures2">Next fixture</a>
+  </nav>
+</footer>
+
+<p class="docnote"><strong>Boundary (PASS via G21 mechanism #2).</strong> This live-commentary panel
+DOES loop Tab internally — the five controls cycle and plain Tab/Shift+Tab will not leave the panel —
+which on its own would be a trap. But a visible instruction inside the panel tells the user to press
+<kbd>Ctrl</kbd>+<kbd>M</kbd> to skip past it, and that documented custom keystroke actually works
+(it moves focus to the footer). Per SC 2.1.2 this passes: focus can be moved away using a custom
+keystroke that is documented and available. The judge must read the advice, verify the Ctrl+M
+handler genuinely moves focus out, and contrast this with the no-advice loops (cases 01/04) that fail.</p>
+
+<script>
+  // Live commentary panel intentionally keeps focus while updates stream (like the WCAG "applet"
+  // example). Plain Tab cycles within the panel; the documented Ctrl+M escape moves focus out.
+  (function () {
+    var first = document.getElementById('lvFirst');
+    var last = document.getElementById('lvLast');
+    var footer = document.getElementById('footerFirst');
+    var panel = document.getElementById('livePanel');
+
+    // Loop Tab within the panel (this is the "trap" — but it is advised, so it passes).
+    last.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); first.focus(); }
+    });
+    first.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); last.focus(); }
+    });
+
+    // Documented standard exit: Ctrl+M moves focus out of the panel to the footer. Works from
+    // anywhere within the panel, matching the visible Ctrl+M instruction.
+    panel.addEventListener('keydown', function (e) {
+      if ((e.key === 'm' || e.key === 'M') && e.ctrlKey) {
+        e.preventDefault();
+        footer.focus();
+      }
+    });
+  })();
+</script>
+</body>
+</html>

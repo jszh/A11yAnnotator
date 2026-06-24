@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set a new password — Helmsworth Bank online</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (expected: FAILED — over-disclosure):
+  This is the INVERSE failure. The security exception SHOULD apply (a password field
+  is the textbook security-sensitive field), and the author tried to be "helpful" by
+  giving a very specific suggestion for correcting the rejected new password. But the
+  specific suggestion LEAKS security-sensitive content: the password was rejected for
+  reuse/dictionary reasons, and the helpful tip reads:
+    "Your new password can't contain the answer to your security question
+     ('Hawthorne') or your previous password ('Maple2021!'). Pick something else."
+  By quoting the user's security-question ANSWER and their PREVIOUS password verbatim,
+  the page jeopardizes the security of the content — exactly what the 3.3.3 exception
+  is meant to prevent. A specific, fluent, well-associated suggestion is present; that
+  is the trap. The defect is that the suggestion's CONTENT discloses secrets it must
+  not. This FAILS the spirit/letter of 3.3.3 (and security) because the exception is
+  triggered and the author violated it by disclosing.
+  Why automated tools miss it: the message is grammatical, named, programmatically
+  associated, high-contrast, and structurally a model error suggestion — axe/WAVE/
+  Lighthouse would PRAISE it. Recognising that the QUOTED STRINGS are the user's
+  security answer and prior password (and that printing them jeopardizes security) is
+  pure semantic/contextual judgment no checker performs. A "did the page suggest a
+  correction?" heuristic would mark this PASS — the opposite of correct.
+-->
+<style>
+  :root{ --ink:#161a20; --muted:#5a6470; --line:#d2d8e0; --brand:#13315c; --accent:#1d5fa6;
+         --danger:#a6232b; --ok:#1c7a4d; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#eceff4; }
+  .wrap{ max-width:460px; margin:48px auto; padding:0 18px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .brand .crest{ width:30px; height:30px; border-radius:6px;
+                 background:linear-gradient(135deg,var(--brand),var(--accent)); }
+  .brand strong{ font-size:1.1rem; letter-spacing:.2px; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:13px;
+         padding:30px 28px; box-shadow:0 5px 20px rgba(16,26,40,.07); }
+  h1{ font-size:1.28rem; margin:0 0 4px; }
+  .sub{ color:var(--muted); font-size:.88rem; margin:0 0 22px; }
+  .field{ margin-bottom:18px; }
+  label{ display:block; font-weight:600; font-size:.88rem; margin-bottom:6px; }
+  .hint{ color:var(--muted); font-size:.81rem; margin:0 0 8px; }
+  input{ width:100%; padding:11px 12px; font-size:1rem; border:2px solid var(--line);
+         border-radius:8px; background:#fff; color:var(--ink); }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .err{ display:flex; gap:8px; align-items:flex-start; margin-top:8px;
+        color:var(--danger); font-size:.85rem; }
+  .err svg{ flex:0 0 auto; margin-top:2px; }
+  button{ margin-top:8px; width:100%; padding:12px; font-size:1rem; font-weight:700;
+          color:#fff; background:var(--brand); border:0; border-radius:9px; cursor:pointer; }
+  .foot{ margin-top:18px; color:var(--muted); font-size:.78rem; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="crest" aria-hidden="true"></span><strong>Helmsworth Bank</strong></div>
+    <main class="card">
+      <h1>Set a new password</h1>
+      <p class="sub">Choose a new password for your online banking login.</p>
+
+      <form action="#" method="post" novalidate>
+        <div class="field">
+          <label for="newpw">New password</label>
+          <p class="hint" id="newpw-hint">At least 12 characters, with a number and a symbol.</p>
+          <input type="password" id="newpw" name="newpw" value="Hawthorne1!"
+                 aria-invalid="true" aria-describedby="newpw-hint newpw-error"
+                 autocomplete="new-password">
+          <!-- OVER-DISCLOSURE: the "helpful" suggestion quotes the user's security-question
+               answer ("Hawthorne") and their previous password ("Maple2021!") verbatim. -->
+          <p class="err" id="newpw-error" role="alert">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <span>That password can't be used. It can't contain the answer to your security question (&ldquo;Hawthorne&rdquo;) or repeat your previous password (&ldquo;Maple2021!&rdquo;). Please choose something different.</span>
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="confirmpw">Confirm new password</label>
+          <input type="password" id="confirmpw" name="confirmpw" value=""
+                 aria-describedby="newpw-hint" autocomplete="new-password">
+        </div>
+
+        <button type="submit">Save new password</button>
+      </form>
+    </main>
+    <p class="foot">Helmsworth Bank · Online banking · Renders from file://</p>
+  </div>
+</body>
+</html>

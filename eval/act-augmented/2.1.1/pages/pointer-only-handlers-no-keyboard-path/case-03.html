@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>In pictures: the harbour at dawn — The Coastal Courier</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.1, F54 — exact <img onmousedown> example):
+    The "next photo" carousel control is an <img alt="Next photo" onmousedown="advance(1)">.
+    It mirrors F54's canonical example verbatim in shape. The image HAS alt text (non-empty),
+    so axe/WAVE/Lighthouse raise no missing-alt error; an <img> is not a natively focusable
+    control, has no role asserting it is a button, and the handler is onmousedown — a
+    pointing-device-only event with no keyboard analogue. The PREVIOUS-photo control on the
+    very same carousel is a proper <button> with a keydown-capable native role, and there is
+    a keyboard-operable "View all 8 photos" link below — matched accessible affordances — so
+    the page is otherwise sound and a scanner sees a clean, captioned gallery. A human must
+    notice that the right-hand arrow advances the gallery on click yet cannot be focused or
+    activated by keyboard, while its left-hand twin can — the localized F54 failure.
+  -->
+  <style>
+    :root { --ink:#161a1d; --muted:#5b6168; --line:#dfe3e7; --brand:#0b3d5c; --rule:#c7cdd3; }
+    * { box-sizing: border-box; }
+    body { font: 17px/1.6 Georgia, "Times New Roman", serif; color: var(--ink); margin: 0; background: #fbfcfd; }
+    header { border-bottom: 3px double var(--rule); padding: 14px 24px; }
+    .masthead { font-weight: 800; letter-spacing: .5px; color: var(--brand); font-size: 1.25rem; }
+    .kicker { color: var(--muted); font-size: .82rem; text-transform: uppercase; letter-spacing: .12em; }
+    main { max-width: 760px; margin: 26px auto; padding: 0 18px; }
+    h1 { font-size: 2rem; line-height: 1.15; margin: 6px 0 6px; }
+    .byline { color: var(--muted); font-size: .9rem; margin: 0 0 22px; font-style: italic; }
+    figure { margin: 0 0 10px; }
+    .stage {
+      position: relative; background: #0e1417; border-radius: 10px; overflow: hidden;
+      aspect-ratio: 3 / 2; display: flex; align-items: center; justify-content: center;
+    }
+    .stage .photo {
+      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+      color: #eef3f6; font-family: system-ui, sans-serif; font-size: 1.1rem; text-align: center; padding: 20px;
+    }
+    .p1 { background: linear-gradient(135deg,#13384f,#256d8a); }
+    .p2 { background: linear-gradient(135deg,#3a2f5a,#6d5a9c); }
+    .p3 { background: linear-gradient(135deg,#553521,#a06a3c); }
+    .nav-prev, .nav-next {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,.92);
+      display: flex; align-items: center; justify-content: center; cursor: pointer; border: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3); font-size: 1.4rem; color: #161a1d;
+    }
+    .nav-prev { left: 12px; } .nav-next { right: 12px; }
+    .nav-prev:focus-visible { outline: 3px solid #ffd24a; outline-offset: 3px; }
+    .nav-next img { width: 22px; height: 22px; display: block; pointer-events: none; }
+    figcaption { color: var(--muted); font-size: .9rem; margin-top: 8px; }
+    .counter { font-variant-numeric: tabular-nums; }
+    .viewall { display: inline-block; margin: 6px 0 26px; color: var(--brand); font-weight: 700; }
+    .viewall:focus-visible { outline: 3px solid #ffd24a; outline-offset: 2px; }
+    p.body { margin: 0 0 18px; }
+    footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; padding: 18px 24px; margin-top: 30px; }
+    a { color: var(--brand); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="masthead">The Coastal Courier</div>
+    <div class="kicker">Photo essay</div>
+  </header>
+
+  <main>
+    <h1>In pictures: the harbour at dawn</h1>
+    <p class="byline">By Marisol Vance · Photographs by the Courier picture desk · 14 March</p>
+
+    <figure>
+      <div class="stage">
+        <!-- Previous: a real <button> — natively focusable and Enter/Space operable. -->
+        <button type="button" class="nav-prev" aria-label="Previous photo" onclick="advance(-1)">&#8592;</button>
+
+        <div class="photo p1" id="photo" role="img"
+             aria-label="Photo 1 of 3: fishing boats moored under a pink dawn sky.">
+          Fishing boats moored under a pink dawn sky.
+        </div>
+
+        <!--
+          F54 (exact canonical shape): the "next" control is an <img> with a
+          pointing-device-only onmousedown handler. Non-empty alt, but no role=button,
+          no tabindex, no key handler. Keyboard users cannot advance the gallery.
+        -->
+        <span class="nav-next" role="presentation">
+          <img src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'&gt;&lt;path d='M8 4l8 8-8 8' fill='none' stroke='%23161a1d' stroke-width='3'/&gt;&lt;/svg&gt;"
+               alt="Next photo" onmousedown="advance(1)">
+        </span>
+      </div>
+      <figcaption>
+        <span class="counter" id="counter">Photo 1 of 3</span> ·
+        Fishing boats moored under a pink dawn sky.
+      </figcaption>
+    </figure>
+
+    <!-- Matched keyboard-accessible route to the same content -->
+    <a class="viewall" href="#gallery-full">View all 8 photos in a single list &#8595;</a>
+
+    <p class="body">
+      The trawlers slip their moorings before the first light reaches the breakwater. For
+      three generations the Penhallow family has worked this stretch of coast, and the
+      pre-dawn ritual has barely changed: nets checked by torchlight, flasks filled,
+      the diesel cough of an engine carrying across still water.
+    </p>
+    <p class="body">
+      Our picture desk spent a week documenting the fleet. The full set of eight images
+      is published below the slideshow for readers who prefer to scroll.
+    </p>
+
+    <h2 id="gallery-full" style="font-size:1.2rem;">All photos</h2>
+    <ol>
+      <li>Fishing boats moored under a pink dawn sky.</li>
+      <li>A lone gull on the harbour wall at first light.</li>
+      <li>Nets coiled on the quayside, ready for loading.</li>
+    </ol>
+  </main>
+
+  <footer>© The Coastal Courier · Reader pictures may be reused with credit.</footer>
+
+  <script>
+    var photos = [
+      { cls: 'p1', txt: 'Fishing boats moored under a pink dawn sky.' },
+      { cls: 'p2', txt: 'A lone gull on the harbour wall at first light.' },
+      { cls: 'p3', txt: 'Nets coiled on the quayside, ready for loading.' }
+    ];
+    var idx = 0;
+    function advance(step) {
+      idx = (idx + step + photos.length) % photos.length;
+      var photo = document.getElementById('photo');
+      photo.className = 'photo ' + photos[idx].cls;
+      photo.textContent = photos[idx].txt;
+      photo.setAttribute('aria-label',
+        'Photo ' + (idx + 1) + ' of ' + photos.length + ': ' + photos[idx].txt);
+      document.getElementById('counter').textContent =
+        'Photo ' + (idx + 1) + ' of ' + photos.length;
+    }
+  </script>
+</body>
+</html>

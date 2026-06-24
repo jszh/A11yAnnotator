@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Select your seats — Hexagon Arena Box Office</title>
+<!--
+  SC 2.4.3 — modal-focus-not-contained-both-directions — case-02 (FAIL)
+  FORWARD LEAK AT THE END. A jQuery-UI-style "Promo code" dialog opens over a dim
+  overlay. Its focus management was implemented by remembering the trigger and restoring
+  focus on close, plus moving initial focus in — but the author NEVER wrote a wrap on the
+  last control. So Tab on the dialog's final control (the "Apply" button) does NOT cycle
+  back to the first dialog control; it follows DOM order to the very first focusable
+  element on the page, a visually-hidden "Skip to footer" skip-link that lives before the
+  header. Focus leaves the open modal entirely and lands on invisible page chrome.
+  WHY AUTOMATED TOOLS MISS IT: the dialog has role=dialog, aria-modal=true, an accessible
+  name, labelled fields; the skip-link is a perfectly valid, visible-on-focus anchor (good
+  practice on its own). No attribute is missing or empty. Only a human pressing Tab from
+  the LAST dialog control and watching focus jump to the off-screen skip-link — outside the
+  modal — can detect that forward containment is broken at the boundary.
+-->
+<style>
+  :root { font-family: "Helvetica Neue", system-ui, sans-serif; color: #1c1230; }
+  body { margin: 0; background: #faf7ff; }
+  .skip { position: absolute; left: -9999px; top: 0; background: #2a0f5c; color: #fff; padding: 8px 14px; border-radius: 0 0 8px 0; z-index: 100; }
+  .skip:focus { left: 0; }
+  header.box { background: #2a0f5c; color: #fff; padding: 14px 26px; display: flex; gap: 22px; align-items: center; }
+  header.box .brand { font-weight: 800; letter-spacing: .5px; }
+  header.box nav a { color: #d7c8f5; text-decoration: none; font-size: .9rem; }
+  main { max-width: 760px; margin: 0 auto; padding: 26px; }
+  .seatmap { background: #fff; border: 1px solid #e3d9f5; border-radius: 12px; padding: 18px; }
+  .seatmap h2 { margin-top: 0; }
+  footer.box { background: #efe7fb; padding: 18px 26px; margin-top: 30px; font-size: .85rem; }
+  .overlay { position: fixed; inset: 0; background: rgba(28,18,48,.55); display: flex; align-items: center; justify-content: center; }
+  .dialog { background: #fff; width: min(440px, 92vw); border-radius: 12px; box-shadow: 0 22px 55px rgba(28,18,48,.4); }
+  .dialog .titlebar { background: #4a1f8f; color: #fff; padding: 14px 20px; border-radius: 12px 12px 0 0; font-weight: 700; }
+  .dialog .content { padding: 20px; }
+  .dialog label { display: block; font-weight: 600; font-size: .85rem; margin: 12px 0 6px; }
+  .dialog input, .dialog select { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #b8a6dd; border-radius: 8px; font-size: .95rem; }
+  .dialog .actions { padding: 0 20px 20px; display: flex; gap: 10px; justify-content: flex-end; }
+  .btn { border: none; border-radius: 8px; padding: 10px 18px; font-weight: 600; font-size: .9rem; cursor: pointer; }
+  .btn.apply { background: #4a1f8f; color: #fff; }
+  .btn.close { background: #e7ddf7; color: #1c1230; }
+</style>
+</head>
+<body>
+<!-- Legitimate skip-link (good practice). It is the FIRST focusable element in DOM order. -->
+<a href="#main" class="skip" id="skip-footer">Skip to footer</a>
+
+<header class="box">
+  <span class="brand">HEXAGON ARENA</span>
+  <nav>
+    <a href="#events">Events</a>
+    <a href="#myorders">My Orders</a>
+  </nav>
+</header>
+
+<main id="main">
+  <h1>Select your seats — The Midnight, Sat 8 Nov</h1>
+  <div class="seatmap">
+    <h2>Lower Bowl · Section 104</h2>
+    <p>You have 2 seats held: <strong>Row F, 11–12</strong>. Holds expire in 6:42.</p>
+  </div>
+</main>
+
+<footer class="box">
+  <p>Hexagon Arena · Box Office open 10am–6pm · <a href="#refunds">Refund policy</a></p>
+</footer>
+
+<!--
+  Promo-code dialog. Focus is moved IN on open and restored on close (the dev did that
+  right). But there is no wrap on the LAST control, and the background is not inert.
+-->
+<div class="overlay" id="overlay">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="promo-title" id="dialog">
+    <div class="titlebar" id="promo-title">Have a promo code?</div>
+    <div class="content">
+      <p>Apply a code to seats Row F, 11–12 before checkout.</p>
+      <label for="code">Promo code</label>
+      <input id="code" name="code" type="text" placeholder="e.g. MIDNIGHT24">
+      <label for="email">Email for receipt</label>
+      <input id="email" name="email" type="email" placeholder="you@example.com">
+    </div>
+    <div class="actions">
+      <button type="button" class="btn close" id="dlg-close">Close</button>
+      <!-- Forward Tab from THIS button leaks to #skip-footer (first in DOM), not back to #code -->
+      <button type="button" class="btn apply" id="dlg-apply">Apply code</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Focus management: move focus in on open, restore on close. The author believed this
+  // was "complete" dialog focus handling. There is intentionally NO containment wrap, so
+  // the browser's natural Tab order carries focus out the END of the dialog.
+  const dialog = document.getElementById('dialog');
+  const overlay = document.getElementById('overlay');
+  window.addEventListener('load', () => document.getElementById('code').focus());
+
+  function closeDialog() { overlay.remove(); }
+  document.getElementById('dlg-close').addEventListener('click', closeDialog);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDialog(); }); // Esc works -> not a 2.1.2 trap
+
+  document.getElementById('dlg-apply').addEventListener('click', () => {
+    document.getElementById('dlg-apply').textContent = 'Applied ✓';
+  });
+  // NOTE: no keydown handler that wraps Tab/Shift+Tab. Tab on "Apply code" -> #skip-footer.
+</script>
+</body>
+</html>

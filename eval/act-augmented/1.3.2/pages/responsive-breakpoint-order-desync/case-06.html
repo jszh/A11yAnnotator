@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.2 PASS (boundary trap) — Responsive-breakpoint reorder that does NOT change meaning.
+
+    This page deliberately uses the SAME mechanism as the failing cases — a max-width media
+    query that applies CSS `order` to flex items, reordering them on mobile — but here the
+    reorder is HARMLESS, so it must NOT be flagged.
+
+    The dashboard "Overview" row contains three INDEPENDENT KPI summary cards (Visitors,
+    Revenue, Conversion) plus a decorative promotional banner ("Try the new export tool").
+    None of these depends on the others for meaning: each card is a self-contained statistic,
+    and the banner is decorative/marketing. Per WCAG 1.3.2, "the order of content in a
+    sequence is not always meaningful" — independent cards may occur in either order without
+    affecting meaning.
+
+    Desktop source/visual order: Banner, Visitors, Revenue, Conversion.
+    Mobile (max-width:640px) uses `order` to move the decorative banner to the BOTTOM and to
+    stack the three cards (still each self-contained). The reordered sequence still parses:
+    each card is read whole, in some order, and the banner — being decorative — can sit
+    anywhere. No instruction is split, no step sequence is inverted, no cross-reference is
+    broken, no directional convention is violated. The meaning is identical at both viewports.
+
+    WHY THIS IS A PASS / why over-flagging is the risk: an evaluator who flags ANY breakpoint
+    `order` reorder would wrongly fail this page. The correct judgment requires recognizing
+    that THIS particular sequence is NOT order-dependent (independent statistics + decorative
+    banner), per the Understanding doc's "magazine article with callout sidebars" example.
+    This trap penalizes blind flagging of responsive reorders.
+  -->
+  <title>Overview — Lattice Analytics</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter", system-ui, sans-serif; color:#1b2430;
+           background:#eef2f6; line-height:1.55; }
+    header { background:#fff; border-bottom:1px solid #dde4ea; padding:.9rem 1.4rem;
+             display:flex; justify-content:space-between; align-items:center; }
+    .brand { font-weight:800; letter-spacing:.01em; }
+    .who { font-size:.85rem; color:#5b6772; }
+    main { max-width:64rem; margin:1.6rem auto; padding:0 1.2rem; }
+    h1 { font-size:1.3rem; margin:.2rem 0 1rem; }
+
+    .overview { display:flex; flex-wrap:wrap; gap:1rem; align-items:stretch; }
+
+    /* Each KPI card is a self-contained, independent statistic. */
+    .card { flex:1 1 12rem; background:#fff; border:1px solid #dde4ea; border-radius:12px;
+            padding:1.1rem 1.2rem; }
+    .card .k { font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; color:#7a8794; }
+    .card .v { font-size:1.7rem; font-weight:800; margin:.25rem 0 .1rem; }
+    .card .d { font-size:.82rem; color:#3a8f5e; }
+    .card .d.neg { color:#c0473b; }
+
+    /* Decorative marketing banner — not informational to the dashboard's meaning. */
+    .promo { flex:1 1 100%; order:0; background:linear-gradient(100deg,#3b5bdb,#5c7cfa);
+             color:#fff; border-radius:12px; padding:1rem 1.2rem; display:flex;
+             justify-content:space-between; align-items:center; gap:1rem; }
+    .promo .msg { font-weight:600; }
+    .promo a { color:#fff; font-weight:700; text-decoration:underline; white-space:nowrap; }
+
+    .card-visitors { order:1; }
+    .card-revenue { order:2; }
+    .card-conversion { order:3; }
+
+    .note { font-size:.8rem; color:#7a8794; margin-top:1.4rem; }
+
+    /* ===== MOBILE BREAKPOINT — a reorder that does NOT change meaning ===== */
+    @media (max-width: 640px) {
+      .overview { flex-direction:column; }
+      /* Push the decorative banner to the bottom on phones so the numbers come first.
+         The three KPI cards are independent statistics; their relative order does not
+         affect meaning. No order-dependent sequence exists here. */
+      .promo { order:9; }
+      .card-revenue { order:1; }     /* harmless reshuffle of self-contained cards */
+      .card-visitors { order:2; }
+      .card-conversion { order:3; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Lattice Analytics</span>
+    <span class="who">Acme Co · last 7 days</span>
+  </header>
+
+  <main>
+    <h1>Overview</h1>
+
+    <div class="overview">
+      <!-- Decorative marketing banner: order is immaterial to meaning. -->
+      <aside class="promo" aria-label="Product announcement">
+        <span class="msg">New: schedule and email your reports automatically.</span>
+        <a href="#export">Try the export tool</a>
+      </aside>
+
+      <!-- Three INDEPENDENT KPI cards. Each is self-contained; relative order is not meaningful. -->
+      <section class="card card-visitors" aria-label="Visitors">
+        <div class="k">Visitors</div>
+        <div class="v">48,210</div>
+        <div class="d">▲ 6.4% vs. prior week</div>
+      </section>
+
+      <section class="card card-revenue" aria-label="Revenue">
+        <div class="k">Revenue</div>
+        <div class="v">$92,540</div>
+        <div class="d">▲ 3.1% vs. prior week</div>
+      </section>
+
+      <section class="card card-conversion" aria-label="Conversion rate">
+        <div class="k">Conversion rate</div>
+        <div class="v">2.78%</div>
+        <div class="d neg">▼ 0.2% vs. prior week</div>
+      </section>
+    </div>
+
+    <p class="note">Figures refresh every 15 minutes. Each metric is independent; cards may be
+    rearranged without changing the dashboard's meaning.</p>
+  </main>
+</body>
+</html>

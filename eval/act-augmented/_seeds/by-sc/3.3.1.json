@@ -1,0 +1,202 @@
+{
+  "sc": "3.3.1",
+  "count": 13,
+  "patterns": [
+    {
+      "platform": "Squarespace Form Block (AJAX same-page submit)",
+      "name": "Success/confirmation message injected without a live region",
+      "description": "On submit, the form swaps in a visible 'Thank you, your message has been sent' confirmation in place of the form, but the inserted node is not a role=status / aria-live region and focus is not moved to it. Sighted users see success; screen-reader users hear nothing and may believe the submission failed and re-submit.",
+      "wcagScs": [
+        "4.1.3",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<div class=\"form-submission-text\">Thank you! Your message has been sent.</div>\n<!-- no role=\"status\", no aria-live, focus stays on the now-removed submit button -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The message is valid visible text in the DOM; a static scan sees correct markup and no error. Catching it requires dynamically submitting the form AND observing (with AT or by checking for a live region / focus move) that the status change is never announced — a behavioral, human-in-the-loop check.",
+      "realWorldNote": "Amy Carney's Squarespace audit: 'Same-page confirmation messages don't alert screen reader users of state changes' and 'error lists aren't linked to inputs or focused.' https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Squarespace / Wix contact & booking forms (custom-styled fields)",
+      "name": "Placeholder used as the only label; errors not programmatically tied to fields",
+      "description": "Custom-styled form fields rely on the placeholder as the visible label (no <label>), so the field's name vanishes once the user types, and error messages are shown as text near the form rather than associated with the offending input (no aria-describedby, no aria-invalid, no focus to the error).",
+      "wcagScs": [
+        "3.3.2",
+        "1.3.1",
+        "4.1.2",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<input type=\"email\" placeholder=\"Email\">\n<div class=\"form-error\">Please enter a valid email.</div>\n<!-- no <label for>, no aria-describedby/aria-invalid linking the message -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe can catch an input with NO accessible name, but a placeholder often supplies a name so the input 'passes'; that the label disappears on input and that the visible error isn't programmatically linked to its field are judgment/behavioral checks. Whether helper text constitutes adequate instructions is semantic.",
+      "realWorldNote": "Wix accessibility guides warn that Wix Forms/Bookings with custom field styling can leave 'labels and error messages not programmatically associated'; Amy Carney found Squarespace form errors not linked to inputs or focused. https://accessibe.com/blog/knowledgebase/wix-website-accessibility",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Elementor Form widget / Divi Contact Form / WPForms — submission feedback",
+      "name": "Success/error toast not in a live region; errors flagged by color only",
+      "description": "After AJAX form submit, the success or error message is injected into a <div> that is not a live region and not focused, so screen readers never announce it. Inline validation marks invalid fields with a red border/red text only, with no programmatic error association and no text describing what's wrong or how to fix it.",
+      "wcagScs": [
+        "4.1.3",
+        "3.3.1",
+        "3.3.3",
+        "1.4.1"
+      ],
+      "typicalMarkup": "<div class=\"elementor-message elementor-message-success\" style=\"color:green\">\n  Your message was sent!\n</div>  <!-- no role=status / aria-live; injected after submit -->\n<input class=\"elementor-field has-error\" aria-invalid=\"\" style=\"border-color:red\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The success div is valid HTML; nothing in the static DOM signals it should announce on change. Detecting that a dynamically-inserted status isn't announced requires triggering the submit and observing AT silence. Color-only error indication also needs visual judgment that no text/icon backs the red.",
+      "realWorldNote": "ARIA live-region guidance: 'create an empty element and then update its content' — builder messages don't. https://a11y-blog.dev/en/articles/aria-live-regions/ ; matches harness 4.1.3 / 3.3.x shadow lanes.",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "WooCommerce / Magento — checkout form validation",
+      "name": "Field errors shown as red text only, not associated with the input",
+      "description": "On checkout submit, invalid fields turn red and a message like 'This field is required' appears, but the message is a sibling div not linked via aria-describedby/aria-errormessage, the input has no aria-invalid, and color is the only cue marking which fields failed. Screen reader users tabbing the form don't hear which fields are in error or why.",
+      "wcagScs": [
+        "3.3.1",
+        "1.4.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<p class=\"form-row form-row--error\">\n  <label for=\"billing_postcode\">ZIP code</label>\n  <input id=\"billing_postcode\" style=\"border-color:red\">\n</p>\n<div class=\"error\" style=\"color:#d00\">This field is required.</div>\n<!-- no aria-invalid, no aria-describedby linking input to the error -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The error text exists and the label is associated, so structural scanners pass. They cannot verify at runtime that submitting produced an error that is (a) tied to the right field programmatically and (b) not communicated by red color alone. Confirming the association and that the message is meaningful requires submitting the form and inspecting the error/field relationship — a human/runtime judgment.",
+      "realWorldNote": "Generic but rampant in ecommerce checkout; DigitalA11y and AccessiCart describe exactly this 3.3.1 pattern (red-only, unassociated errors) and call it out for checkout flows. https://accessicart.com/wcag-level-a-sc-3-3-1-error-identification/ ; https://www.digitala11y.com/understanding-sc-3-3-1-error-identification/",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Bubble.io input element + 'placeholder as label'",
+      "name": "Form inputs labeled only by placeholder; aria-label mismatches visible text",
+      "description": "Bubble inputs commonly ship with a placeholder instead of a programmatic label, or developers paste an aria-label that differs from the visible text. On submit, native required/format errors are not associated with the field (no aria-describedby), so error identification and suggestion are absent for screen-reader users.",
+      "wcagScs": [
+        "3.3.2",
+        "4.1.2",
+        "3.3.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<input type=\"email\" placeholder=\"Email address\"\n       aria-label=\"Work email\" class=\"bubble-element Input\">\n<div class=\"error-msg\" style=\"display:block\">Invalid</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "If an aria-label is present, axe sees 'input has an accessible name' and passes — it can't know the placeholder disappeared on input or that the aria-label ('Work email') contradicts the visible 'Email address' (a Label-in-Name mismatch). Confirming the error div isn't programmatically tied to the field and isn't announced requires interaction.",
+      "realWorldNote": "Bubble accessibility guidance flags placeholder-as-label and warns that replacing visible labels with aria-label causes a screen-reader/visible-text mismatch; Bubble's own marketplace app audited ~60% accessible: https://www.rapidevelopers.com/bubble-tutorial/designing-accessibility-mind-bubble and https://forum.bubble.io/t/is-bubble-accessible-does-it-comply-with-ada-and-wcag/287361",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow / Bubble form success 'toast' or inline confirmation block",
+      "name": "Submission success/error message not in a live region",
+      "description": "After form submit, Webflow swaps in its success div (or Bubble shows an alert element) by toggling display, but the message is not a status/live region. Sighted users see 'Thanks, we got it!' or an error banner; screen-reader users get no announcement that submission succeeded or failed.",
+      "wcagScs": [
+        "4.1.3",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<div class=\"w-form-done\" style=\"display:block\">\n  <div>Thank you! Your submission has been received!</div>\n</div>\n<div class=\"w-form-fail\" style=\"display:none\">Something went wrong</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The success/fail divs exist in the DOM at page load with display:none and no role=status / aria-live, which is valid markup. A static scan can't know that toggling display later is a 'status message' that should be announced; verifying the absence of an announcement requires submitting the form with a screen reader running.",
+      "realWorldNote": "Webflow's default form success/fail blocks have no live region; accessible practice is role=status/aria-live for submission feedback (4.1.3). Background: https://www.w3.org/WAI/tutorials/forms/notifications/ and toast/live-region gap discussion: https://a11y-blog.dev/en/articles/aria-live-regions/",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Ant Design Form / Form.Item",
+      "name": "Validation error not programmatically associated with the field",
+      "description": "Ant Design's Form renders inline validation errors visually beneath the input, but historically did not set aria-invalid on the control nor aria-describedby pointing at the error text, and labels were not always tied to inputs. The error appears in red text but is not announced when the field is focused, and the field is not exposed as invalid.",
+      "wcagScs": [
+        "3.3.1",
+        "1.3.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<div class=\"ant-form-item-has-error\">\n  <label>Email</label>\n  <input class=\"ant-input\"> <!-- no aria-invalid, no aria-describedby -->\n  <div class=\"ant-form-item-explain-error\">Please enter a valid email</div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The error text exists in the DOM, so it is visible to a scanner, but verifying that it is PROGRAMMATICALLY tied to the right input (and announced on focus / on submit) requires triggering validation and inspecting the runtime aria relationships; the visual-only error with a missing association is not reliably flagged by static rules.",
+      "realWorldNote": "Ant Design issues #36730 (set aria-invalid/aria-describedby on invalid inputs), #28748 (link error messages to field), and #16268 (\"Forms in Ant Design are not accessible\"). https://github.com/ant-design/ant-design/issues/36730",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "React conditionally-rendered form error summary / aria-live status",
+      "name": "Submit-time errors rendered but not announced; focus not moved",
+      "description": "On form submit, a React app conditionally renders an error summary or per-field messages into the DOM, but the container is not a live region and focus is not moved to it. Sighted users see red errors; screen-reader users get no announcement and remain focused on the submit button, unaware the submission failed.",
+      "wcagScs": [
+        "3.3.1",
+        "4.1.3",
+        "3.3.3"
+      ],
+      "typicalMarkup": "{errors.length > 0 && (\n  <div className=\"error-summary\">  {/* no role/aria-live, no tabindex */}\n    <h2>There were 2 problems</h2>\n    <ul><li>Email is required</li>...</ul>\n  </div>\n)}",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The error text is present in the post-submit DOM, so a snapshot scan sees content, not a failure. Whether it was ANNOUNCED (live region) or focus was moved to it is a dynamic, interaction-and-timing property invisible to static/single-snapshot tools.",
+      "realWorldNote": "TetraLogical and Up Your A11y describe accessible error-summary patterns requiring focus management or a live region; conditionally-rendered React errors routinely omit both. https://tetralogical.com/blog/2024/10/21/foundations-form-validation-and-error-messages/",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Toast / snackbar (MUI Snackbar misused, hand-rolled notifications, Toastify)",
+      "name": "Toast rendered into a plain div, not a live region",
+      "description": "A 'Saved!' or 'Error: try again' toast is injected into a positioned <div> with no role=\"status\"/role=\"alert\" and no aria-live. The message animates in visually but is never announced, so screen reader users never learn the action succeeded or failed.",
+      "wcagScs": [
+        "4.1.3",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<div class=\"toast toast--success\">\n  Changes saved successfully\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The toast container is valid HTML with valid contrast and valid markup — there is nothing structurally wrong for a linter to flag. Whether the absence of aria-live constitutes a violation depends on the div being a dynamically-injected status message, which a static scan of the final DOM cannot infer; you must observe that new content appeared without an announcement, a runtime + semantic judgment.",
+      "realWorldNote": "Adrian Roselli's 'Defining Toast Messages' and the elastic/eui issue #715 'Toast Messages Should Be Read by the Screen Reader on Display' document toasts shipping without live regions in production component libraries. https://adrianroselli.com/2020/01/defining-toast-messages.html and https://github.com/elastic/eui/issues/715",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "MUI Snackbar, react-hot-toast, Bootstrap toasts, Shopify/WordPress 'added to cart' confirmations",
+      "name": "Toast / status confirmation not in a live region",
+      "description": "A success/error toast or 'Added to cart' / 'Form submitted' confirmation appears visually but is injected into a plain <div> with no role=status/alert and no aria-live, so screen readers announce nothing. The toast then auto-dismisses, so the information is gone before a non-visual user could ever discover it.",
+      "wcagScs": [
+        "4.1.3",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<div class=\"toast toast--success\">Item added to your cart</div>\n<!-- no role=status, no aria-live=polite; vanishes after 3s -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The toast container often does not exist in the DOM at scan time (injected on an action) and, when present, a missing aria-live is not flagged because a div with text is perfectly valid HTML. Determining that THIS particular transient message needed to be announced is a semantic judgment about what the content means to the user, not a structural rule.",
+      "realWorldNote": "MUI Snackbar accessibility gaps are tracked upstream (focus/ESC/announce issues): https://github.com/mui/material-ui/issues/22354 . Sara Soueidan on live-region notification pitfalls: https://www.sarasoueidan.com/blog/accessible-notifications-with-aria-live-regions-part-1/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Contact/checkout forms in Gravity Forms, Wix Forms, Shopify checkout, HubSpot forms",
+      "name": "Required state and errors conveyed by color/asterisk only, not programmatically",
+      "description": "Required fields are marked with a red asterisk or red border (color/symbol only) with no required/aria-required and no legend explaining the asterisk. On submit, errors are shown as red text near fields but not associated via aria-describedby and the field gets no aria-invalid, so screen readers never learn the field is required, that it errored, or what the message says.",
+      "wcagScs": [
+        "1.4.1",
+        "3.3.1",
+        "3.3.2",
+        "3.3.3",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<label>Email <span style=\"color:red\">*</span></label>\n<input type=\"email\" name=\"email\">\n<!-- after submit: --> <p style=\"color:red\">Invalid email</p> <!-- not tied to input, no aria-invalid -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A bare visible label may satisfy the form-label check, but tools cannot tell that requiredness/error is conveyed by COLOR alone (1.4.1), cannot verify an error message is the CORRECT suggestion (3.3.3), and cannot confirm the on-submit error text is programmatically tied to the field — these need a human to submit the form and inspect the associations and meaning.",
+      "realWorldNote": "WebAIM Million 2026: missing form labels on 51% of pages (top error): https://webaim.org/projects/million/ ; required-field color-only guidance: https://www.deque.com/blog/aria-requiredtrue-wcag-2-compliance-practice/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Required fields and inline validation in form builders / SPA forms where required and error state are visual-only (red border, red asterisk) without aria-required / aria-invalid / aria-describedby",
+      "name": "form error and required state not programmatically associated",
+      "description": "A field is marked required with a red asterisk and, on submit, an error appears as red text below it — but the input has no aria-required, no aria-invalid=\"true\", and the error message is not tied via aria-describedby. Screen-reader users do not learn the field is required, that it errored, or what the suggested fix is.",
+      "wcagScs": [
+        "3.3.1",
+        "3.3.3",
+        "4.1.2",
+        "1.4.1"
+      ],
+      "typicalMarkup": "<label>Email *</label>\n<input type=\"email\" class=\"error\">\n<span class=\"err\">Enter a valid email</span>\n<!-- no aria-required, aria-invalid, or aria-describedby -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The error markup is valid HTML and the field has a label, so structural scans pass. The failure is the missing programmatic ASSOCIATION between input, its required/invalid state, and the message text — which only surfaces by submitting the form (a dynamic step) and judging whether the announced output conveys the error and a suggestion; scanners do not trigger validation or evaluate message quality.",
+      "realWorldNote": "WCAG 3.3.1/3.3.3 and reform.app 'Common ARIA Mistakes in Forms'; red-asterisk-only required and unassociated inline errors are among the most common audited form failures. https://www.reform.app/blog/common-aria-mistakes-in-forms-and-fixes",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Multilingual sites / auto-translate widgets (Weglot, WPML, Google Website Translator)",
+      "name": "Foreign-language passage with no lang, or stale html lang after translation",
+      "description": "A page in one primary language embeds quotes, names, product blurbs, or whole machine-translated sections in another language without a lang attribute on those parts; or a translation layer swaps visible text but leaves <html lang=\"en\"> unchanged. The screen reader reads French/Arabic/Japanese text with English phonetics (or vice versa), producing gibberish pronunciation. Often the page title/nav stays untranslated while the body is translated.",
+      "wcagScs": [
+        "1.3.1",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<html lang=\"en\">\n  <p>Our motto: <span>Liberté, égalité, fraternité</span></p>\n  <!-- translated body but lang still en -->\n</html>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Tools verify that an html lang exists and that lang values are valid BCP-47 tags, but they cannot read the text and detect that a passage is in a different language than its declared lang, nor that the declared page language no longer matches the rendered (translated) content. That requires language identification of the visible text.",
+      "realWorldNote": "Missing lang on parts / mismatched page lang causes screen readers to mispronounce; documented for multilingual sites. https://benmyers.dev/blog/multilingual-web-accessibility/ and https://www.w3.org/TR/UNDERSTANDING-WCAG20/meaning-other-lang-id.html",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

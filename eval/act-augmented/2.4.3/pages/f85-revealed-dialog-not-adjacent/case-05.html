@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northgate State University — Admissions</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: "Source Sans 3", system-ui, sans-serif; color:#1c1c1c; background:#fff; line-height:1.55; }
+  a { color:#7a1f2b; }
+  .utility { background:#3a1118; color:#fff; font-size:.82rem; padding:6px 26px; text-align:right; }
+  .utility a { color:#fff; margin-left:14px; text-decoration:underline; }
+  header.masthead { background:#7a1f2b; color:#fff; padding:14px 26px; display:flex; align-items:center; gap:22px; }
+  header.masthead .brand { font-weight:700; font-size:1.15rem; }
+  header.masthead nav { margin-left:auto; }
+  .megabtn {
+    font:inherit; font-size:1rem; cursor:pointer; background:#fff; color:#7a1f2b;
+    border:1px solid #fff; border-radius:6px; padding:8px 16px; font-weight:600;
+  }
+  .megabtn:focus { outline:3px solid #ffd24a; outline-offset:2px; }
+  main { max-width:900px; margin:0 auto; padding:28px 26px; }
+  h1 { font-size:1.9rem; margin:.1em 0 .4em; }
+  .intro { font-size:1.08rem; max-width:64ch; }
+  .quicklinks { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin:24px 0; }
+  .ql { border:1px solid #c9b3b6; border-radius:8px; padding:16px; }
+  .ql h2 { font-size:1.05rem; margin:.1em 0 .4em; }
+  .deadlines { background:#faf3f4; border-left:4px solid #7a1f2b; padding:14px 18px; margin:22px 0; }
+  footer.sitefoot { background:#2b0d12; color:#fff; padding:26px; font-size:.9rem; }
+  footer.sitefoot a { color:#fff; margin-right:16px; }
+
+  /* The "Explore" panel is rendered by the SAME footer theme include as the footer nav,
+     so its markup is emitted near the END of the DOM — but it sits OUTSIDE the footer
+     landmark, and CSS (position:absolute; top:96px; right:26px) floats it up under the
+     header so it LOOKS attached to the trigger. */
+  .explore-panel {
+    display:none; position:absolute; top:96px; right:26px; width:520px; z-index:60;
+    background:#fff; color:#1c1c1c; border:1px solid #b89197; border-radius:10px;
+    box-shadow:0 18px 46px rgba(0,0,0,.22); padding:22px;
+    grid-template-columns:1fr 1fr; gap:18px;
+  }
+  .explore-panel.open { display:grid; }
+  .explore-panel h3 { margin:0 0 8px; font-size:.95rem; text-transform:uppercase; letter-spacing:.04em; color:#7a1f2b; }
+  /* High-contrast link color, scoped to the panel; ~15:1 on white. */
+  .explore-panel a { display:block; padding:5px 0; color:#1c1c1c; text-decoration:none; }
+  .explore-panel a:hover, .explore-panel a:focus { color:#7a1f2b; text-decoration:underline; }
+</style>
+</head>
+<body>
+<!-- ===== header.html partial (theme) ===== -->
+<nav class="utility" aria-label="Audiences">
+  <a href="#current">Current Students</a>
+  <a href="#faculty">Faculty &amp; Staff</a>
+  <a href="#give">Give</a>
+</nav>
+<header class="masthead">
+  <span class="brand">Northgate State University</span>
+  <nav aria-label="Sections">
+    <!-- The "Explore" disclosure trigger lives in the header partial; the PANEL it
+         controls is emitted by the FOOTER partial (see bottom of body). -->
+    <button class="megabtn" id="exploreBtn" aria-expanded="false"
+            aria-controls="exploreMega">Explore Northgate ▾</button>
+  </nav>
+</header>
+
+<!-- ===== page-body.html partial (admissions landing content) ===== -->
+<main>
+  <h1>Undergraduate Admissions</h1>
+  <p class="intro">Northgate reviews every application holistically. There is no minimum GPA or test
+     score, and we are test-optional through Fall 2027. Below are the fastest ways to get started.</p>
+
+  <div class="deadlines">
+    <strong>Key dates:</strong> Early Action — Nov 1 · Regular Decision — Jan 15 ·
+    Transfer priority — Mar 1.
+  </div>
+
+  <div class="quicklinks">
+    <section class="ql">
+      <h2>Apply Now</h2>
+      <p>Start or continue your application in the Northgate Portal.</p>
+      <a href="#apply">Go to the application</a>
+    </section>
+    <section class="ql">
+      <h2>Visit Campus</h2>
+      <p>Daily info sessions and student-led tours.</p>
+      <a href="#visit">Schedule a visit</a>
+    </section>
+    <section class="ql">
+      <h2>Cost &amp; Aid</h2>
+      <p>Net-price calculator, scholarships, and FAFSA help.</p>
+      <a href="#aid">Estimate your cost</a>
+    </section>
+    <section class="ql">
+      <h2>Request Info</h2>
+      <p>Get a viewbook and hear from your admissions counselor.</p>
+      <a href="#request">Request information</a>
+    </section>
+  </div>
+
+  <h2 id="contact">Contact Admissions</h2>
+  <p>Email <a href="#mail">admissions@northgate.example</a> · Call (555) 010-9090 ·
+     Visit the Welcome Center, Hartwell Hall, Room 100.</p>
+</main>
+
+<!-- ===== footer.html partial (theme) ===== -->
+<footer class="sitefoot">
+  <nav aria-label="Footer">
+    <a href="#academics">Academics</a>
+    <a href="#research">Research</a>
+    <a href="#athletics">Athletics</a>
+    <a href="#library">Library</a>
+    <a href="#maps">Maps &amp; Directions</a>
+    <a href="#jobs">Careers</a>
+    <a href="#accessibility">Accessibility</a>
+    <a href="#privacy">Privacy</a>
+  </nav>
+  <p>1 University Way · © 2026 Northgate State University.</p>
+</footer>
+
+<!--
+  THE BUG (F85, open branch): the "Explore" PANEL markup is emitted by the SAME footer
+  theme partial as the footer above, so it lands near the END of the DOM — even though its
+  trigger ("Explore Northgate ▾") is up in the header. CSS (position:absolute; top:96px;
+  right:26px) floats it up under the header so it LOOKS attached to the trigger. The toggle
+  only flips .open + aria-expanded; no focus move. After activating the trigger a keyboard
+  user stays in the header; the next Tab goes to the utility / main-content links in source
+  order, NOT into the panel. To reach "Majors & Programs" they must Tab through the whole
+  page and the footer nav first. (The panel is a disclosure with a labelled <nav> landmark
+  and plain links — no role=menu — so it is fully valid markup; only the open-then-Tab
+  traversal fails.)
+-->
+<nav class="explore-panel" id="exploreMega" aria-label="Explore Northgate">
+  <div>
+    <h3 id="mh1">Academics</h3>
+    <a href="#majors">Majors &amp; Programs</a>
+    <a href="#colleges">Colleges &amp; Schools</a>
+    <a href="#honors">Honors College</a>
+    <a href="#online">Online &amp; Continuing Ed</a>
+  </div>
+  <div>
+    <h3 id="mh2">Campus Life</h3>
+    <a href="#housing">Housing &amp; Dining</a>
+    <a href="#orgs">Clubs &amp; Organizations</a>
+    <a href="#rec">Recreation</a>
+    <a href="#health">Health &amp; Wellness</a>
+  </div>
+</nav>
+
+<script>
+  (function () {
+    var btn = document.getElementById('exploreBtn');
+    var panel = document.getElementById('exploreMega');
+    btn.addEventListener('click', function () {
+      var open = panel.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      // No focus move into the panel; no focus trap. The panel is near the end of the DOM.
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { panel.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make a Gift — Riverbend Wildlife Trust</title>
+<style>
+  :root { --ink:#1c2b22; --leaf:#2f6b3f; --paper:#f7f5ef; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Georgia, "Times New Roman", serif; color:var(--ink);
+         background:var(--paper); line-height:1.5; }
+  .wrap { max-width:560px; margin:0 auto; padding:32px 20px 64px; }
+  header.brand { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+  header.brand .logo { width:40px; height:40px; border-radius:50%; background:var(--leaf);
+        color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; }
+  header.brand h1 { font-size:1.25rem; margin:0; }
+  .lede { color:#3a4a40; margin:0 0 28px; }
+  form { background:#fff; border:1px solid #e2ded3; border-radius:8px; padding:24px; }
+  fieldset { border:0; margin:0 0 8px; padding:0; }
+  legend { font-size:1.05rem; font-weight:bold; margin-bottom:14px; padding:0; }
+  .field { margin-bottom:18px; }
+  label { display:block; font-weight:bold; margin-bottom:6px; }
+  input[type=text], input[type=email], select {
+        width:100%; padding:10px 12px; font:inherit; border:1px solid #b9b3a4;
+        border-radius:5px; background:#fff; }
+  .amounts { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .amounts button { font:inherit; padding:10px 16px; border:1px solid #b9b3a4;
+        border-radius:20px; background:#fff; cursor:pointer; }
+  .amounts button[aria-pressed=true] { background:var(--leaf); color:#fff; border-color:var(--leaf); }
+  .submit { background:var(--leaf); color:#fff; border:0; padding:12px 24px; font:inherit;
+        font-weight:bold; border-radius:6px; cursor:pointer; width:100%; }
+  /* The ONLY thing the developer added for the error state: a red label + red box. */
+  .field.is-error label { color:#c0392b; }
+  .field.is-error input { border-color:#c0392b; border-width:2px; background:#fdecec; }
+  footer { margin-top:28px; font-size:.85rem; color:#6a6356; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="brand">
+    <span class="logo" aria-hidden="true">RW</span>
+    <h1>Riverbend Wildlife Trust</h1>
+  </header>
+  <p class="lede">Your gift protects 4,000 acres of wetland and the cranes that nest there.
+     Thank you for standing with us.</p>
+
+  <!-- POST-SUBMIT STATE: the server re-rendered the page after rejecting the submission.
+       The "Gift amount" field was rejected because the entered value (3) is below the
+       £5 minimum the payment processor enforces. The server marked the field with the
+       .is-error class (red label + red 2px border + pink fill) and re-sent the form.
+       It emitted NO text: no summary, no inline message, no aria-invalid, no hidden
+       text, no title. The red styling is the entire conveyance of BOTH "this is wrong"
+       and (implicitly) "make it bigger". -->
+  <form action="/donate" method="post" novalidate>
+    <fieldset>
+      <legend>Make a one-time gift</legend>
+
+      <div class="amounts" role="group" aria-label="Suggested amounts">
+        <button type="button" aria-pressed="false">£15</button>
+        <button type="button" aria-pressed="false">£30</button>
+        <button type="button" aria-pressed="false">£75</button>
+        <button type="button" aria-pressed="false">£150</button>
+      </div>
+
+      <div class="field is-error">
+        <label for="amount">Other amount (£)</label>
+        <input type="text" id="amount" name="amount" value="3" inputmode="decimal" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" name="name" value="Maureen Aldous" autocomplete="name">
+      </div>
+
+      <div class="field">
+        <label for="email">Email for your receipt</label>
+        <input type="email" id="email" name="email" value="m.aldous@example.org" autocomplete="email">
+      </div>
+
+      <div class="field">
+        <label for="freq">Make this a monthly gift?</label>
+        <select id="freq" name="freq">
+          <option value="once" selected>No, one time</option>
+          <option value="monthly">Yes, every month</option>
+        </select>
+      </div>
+    </fieldset>
+
+    <button type="submit" class="submit">Continue to payment</button>
+  </form>
+
+  <footer>
+    Riverbend Wildlife Trust is a registered charity (no. 1043872). Gifts are processed securely.
+  </footer>
+</div>
+
+<!--
+  WHY THIS FAILS SC 3.3.3 (Error Suggestion, the "in text" limb):
+  The submission was rejected (an input error WAS automatically detected) and the
+  correction is knowable and trivial ("the minimum gift is £5 — please enter £5 or
+  more"). That suggestion exists nowhere on the page. The red label + red/pink box is
+  the sole carrier, and per G84 an asterisk or red label does NOT satisfy the SC — a
+  text description of the problem and how to fix it is required.
+
+  WHY THIS IS DISTINCT FROM 3.3.1: a 3.3.1-only failure is "no error is identified."
+  Here it is the suggestion limb specifically — even a user who realises "amount is
+  wrong" is given no text telling them WHAT is acceptable (the £5 floor). Knowing the
+  floor is the whole job, and it is invisible.
+
+  WHY AUTOMATED TOOLS MISS IT:
+  - The DOM is valid HTML5; every input has a programmatic <label>; nothing is empty.
+  - The input is plain type="text" with a well-formed value ("3"), so the browser's
+    constraint-validation API reports validity.valid === true and the accessibility
+    tree exposes invalid:false — identical to a passing field. No aria-invalid to flag.
+  - axe/WAVE/Lighthouse have no rule that asserts "a detected input error must carry a
+    TEXT correction suggestion," because they cannot know an error was detected, cannot
+    know the £5 business rule, and cannot judge that the red styling is the only carrier.
+    Determining the missing element is specifically the *correction text* requires
+    submitting the form, reading the rendered page, and reasoning about meaning.
+-->
+</body>
+</html>

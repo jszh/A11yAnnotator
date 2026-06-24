@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New arrivals — Loom &amp; Larder Homeware</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.1, F54):
+    Each product card is a <div role="link"> with a non-empty aria-label, so axe-core's
+    "interactive controls must be operable" / "elements must have valid roles" / "named
+    control" checks all PASS — the card has a role and a name. But the whole card is made
+    navigable ONLY by a pointerup listener attached at runtime via addEventListener
+    (capture_full_page DOM snapshots show no inline onclick), there is NO tabindex (so the
+    card is not focusable / not in the tab order), and there is NO keydown handler (so even
+    if focused, Enter would do nothing). The page ALSO contains, inside each card, a real
+    "Quick view" <button> that IS keyboard operable — a matched accessible control — so a
+    scanner sees focusable buttons and named link-role divs and reports a clean page.
+    A human must mouse over a card, see the whole tile is clickable (cursor:pointer, lift
+    on hover) and navigates on click, then Tab through the page and discover the card body
+    itself is unreachable and Enter never triggers the navigation. That mapping of
+    "this tile does something on click" to "no keyboard path to it" is the F54 judgment.
+  -->
+  <style>
+    :root { --ink:#1f2430; --muted:#5e6675; --line:#e3e6ee; --brand:#2f5d50; --accent:#c2603b; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.5 "Helvetica Neue", Arial, sans-serif; color: var(--ink); margin: 0; background: #f7f8fa; }
+    header { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 24px; display: flex; align-items: center; gap: 18px; }
+    header .brand { font-weight: 800; letter-spacing: .3px; color: var(--brand); }
+    header nav a { color: var(--muted); text-decoration: none; margin-right: 16px; font-size: .92rem; }
+    header nav a:hover, header nav a:focus-visible { color: var(--ink); text-decoration: underline; }
+    main { max-width: 1040px; margin: 28px auto; padding: 0 18px; }
+    h1 { font-size: 1.5rem; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+    .card {
+      background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+      cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; display: flex; flex-direction: column;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(31,36,48,.10); }
+    .thumb { height: 150px; display: flex; align-items: center; justify-content: center; font-size: 2.6rem; }
+    .t-clay { background: #efe2d6; } .t-sage { background: #e1ebe1; } .t-slate { background: #dde3ec; } .t-rose { background: #f3e0e3; }
+    .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .name { font-weight: 700; }
+    .price { color: var(--accent); font-weight: 700; }
+    .meta { color: var(--muted); font-size: .85rem; }
+    .qv {
+      margin-top: 8px; align-self: flex-start; font: inherit; font-size: .85rem; font-weight: 600;
+      color: var(--brand); background: #eef4f1; border: 1px solid #cfe0d8; border-radius: 7px; padding: 6px 12px; cursor: pointer;
+    }
+    .qv:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
+    a:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
+    footer { color: var(--muted); font-size: .8rem; text-align: center; margin: 36px 0; }
+    .live { position: absolute; left: -9999px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Loom &amp; Larder</span>
+    <nav aria-label="Primary">
+      <a href="#new">New</a><a href="#kitchen">Kitchen</a><a href="#textiles">Textiles</a><a href="#sale">Sale</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1 id="new">New arrivals</h1>
+    <p class="sub">Hand-selected pieces for the season. Tap a card for the full product page.</p>
+
+    <div class="grid" id="grid">
+      <!--
+        Each card is role="link" with an aria-label (so it HAS a name + role and passes
+        axe), but: no tabindex (not focusable), no keydown, and the navigation is bound
+        only via addEventListener('pointerup', ...) below. Keyboard users can never open
+        a product page through the card.
+      -->
+      <div class="card" role="link" aria-label="Stoneware mug, Clay, £18 — view product" data-href="/p/stoneware-mug-clay">
+        <div class="thumb t-clay" aria-hidden="true">&#9749;</div>
+        <div class="body">
+          <span class="name">Stoneware mug</span>
+          <span class="meta">Clay · 300ml</span>
+          <span class="price">£18</span>
+          <button type="button" class="qv" data-name="Stoneware mug">Quick view</button>
+        </div>
+      </div>
+
+      <div class="card" role="link" aria-label="Linen tea towel, Sage, £12 — view product" data-href="/p/linen-tea-towel-sage">
+        <div class="thumb t-sage" aria-hidden="true">&#129532;</div>
+        <div class="body">
+          <span class="name">Linen tea towel</span>
+          <span class="meta">Sage · 50×70cm</span>
+          <span class="price">£12</span>
+          <button type="button" class="qv" data-name="Linen tea towel">Quick view</button>
+        </div>
+      </div>
+
+      <div class="card" role="link" aria-label="Cast-iron trivet, Slate, £24 — view product" data-href="/p/cast-iron-trivet-slate">
+        <div class="thumb t-slate" aria-hidden="true">&#128293;</div>
+        <div class="body">
+          <span class="name">Cast-iron trivet</span>
+          <span class="meta">Slate · 18cm</span>
+          <span class="price">£24</span>
+          <button type="button" class="qv" data-name="Cast-iron trivet">Quick view</button>
+        </div>
+      </div>
+
+      <div class="card" role="link" aria-label="Glazed bud vase, Rose, £16 — view product" data-href="/p/glazed-bud-vase-rose">
+        <div class="thumb t-rose" aria-hidden="true">&#127801;</div>
+        <div class="body">
+          <span class="name">Glazed bud vase</span>
+          <span class="meta">Rose · 14cm</span>
+          <span class="price">£16</span>
+          <button type="button" class="qv" data-name="Glazed bud vase">Quick view</button>
+        </div>
+      </div>
+    </div>
+
+    <p id="status" class="live" role="status" aria-live="polite"></p>
+  </main>
+
+  <footer>Loom &amp; Larder · Free UK delivery over £40 · 30-day returns</footer>
+
+  <script>
+    // Whole-card navigation is wired ONLY through a pointer event, at runtime, with no
+    // keyboard equivalent and no tabindex. This is the F54 failure dressed up with a
+    // role + aria-label so static scanners see a "named link" and pass it.
+    document.querySelectorAll('#grid .card').forEach(function (card) {
+      card.addEventListener('pointerup', function (e) {
+        // Don't hijack the genuinely-accessible Quick view button.
+        if (e.target.closest('.qv')) return;
+        // In production this would navigate; here we just record the intent.
+        document.getElementById('status').textContent =
+          'Opening ' + card.getAttribute('aria-label');
+        // location.href = card.dataset.href;
+      });
+    });
+
+    // The Quick view button is a real, keyboard-operable control (matched accessible
+    // affordance) so the page is otherwise sound and the failure is localized to the card body.
+    document.querySelectorAll('.qv').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.getElementById('status').textContent =
+          'Quick view: ' + btn.dataset.name;
+      });
+    });
+  </script>
+</body>
+</html>

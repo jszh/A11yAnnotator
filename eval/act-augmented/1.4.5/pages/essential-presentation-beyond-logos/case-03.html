@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.5 FAILURE — ABUSE of the "representation of a letter / original format essential"
+    exception.
+
+    The Understanding doc lists a genuine PASS: "A web page contains a representation of an
+    original letter. The depiction of the letter in its original format is essential to
+    information being conveyed about the time period in which it was written." A heritage-site
+    content editor over-applied that: they took a MODERN, NEWLY-WRITTEN museum blurb (a 2024
+    visitor note about opening hours and a donor appeal), typed it themselves, then ran it
+    through a "parchment" Photoshop action — torn edges, sepia, a faux-quill font — and saved
+    it as a PNG "to give the page a historic feel." There is NO original artefact here; the
+    text was authored today. Its original format is HTML, not a 1700s letter. So the
+    "historic look" is pure decoration applied to ordinary informational text — exactly the
+    avoidable image-of-text 1.4.5 forbids. The reader cannot resize, recolour, or reflow the
+    opening hours; it pixelates on zoom; and the faux-antique styling actually HURTS legibility.
+
+    The discriminator vs. a genuine scanned-original (case is the opposite of a real PASS):
+    here re-typesetting in live HTML would lose NOTHING essential — there is no historical
+    artefact whose original format carries information about a time period.
+
+    WHY AUTOMATED TOOLS MISS IT: the image has an accurate, full alt; the page has a title,
+    headings, landmarks, good surrounding contrast. No linter can OCR the parchment, and none
+    can know the "antique" text was authored this year and has no original-format rationale.
+    Judging that the historic styling is a costume on modern prose — not an essential
+    depiction of an original — is a human contextual judgment.
+  -->
+  <title>Visit us — Harrowby Hall Museum</title>
+  <style>
+    :root { --ink:#26201a; --muted:#6a5f52; --line:#ded2c0; --bg:#f7f1e6; --accent:#5a3e2b; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .wrap { max-width:760px; margin:0 auto; padding:0 22px 60px; }
+    header.m { display:flex; align-items:center; gap:14px; padding:18px 0; border-bottom:2px solid var(--accent); }
+    header.m .crest { width:34px; height:34px; border-radius:6px; background:var(--accent); }
+    header.m .t { font-weight:700; letter-spacing:.03em; }
+    header.m nav { margin-left:auto; }
+    header.m nav a { color:var(--muted); text-decoration:none; margin-left:16px; font-size:14px; }
+    h1 { font-size:28px; margin:28px 0 6px; }
+    .lede { color:var(--muted); margin:0 0 24px; }
+    figure { margin:24px 0; }
+    figure img { display:block; max-width:100%; height:auto; border-radius:6px; box-shadow:0 1px 6px rgba(0,0,0,.12); }
+    figcaption { color:var(--muted); font-size:13px; margin-top:8px; }
+    .info { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:24px; }
+    .info .card { background:#fff; border:1px solid var(--line); border-radius:8px; padding:14px 16px; }
+    .info h2 { font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px; }
+    footer { border-top:1px solid var(--line); margin-top:36px; padding-top:16px; color:var(--muted); font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="m">
+      <span class="crest" aria-hidden="true"></span>
+      <span class="t">Harrowby Hall Museum</span>
+      <nav aria-label="Primary">
+        <a href="https://example.org/collections">Collections</a>
+        <a href="https://example.org/events">Events</a>
+        <a href="https://example.org/visit">Visit</a>
+      </nav>
+    </header>
+
+    <main>
+      <h1>Plan your visit</h1>
+      <p class="lede">Everything you need to know before you arrive at the Hall this season.</p>
+
+      <!--
+        THE VIOLATION: this "parchment" graphic is NOT a scanned historical artefact. It is a
+        modern 2024 visitor note (opening hours + a donor appeal) the editor typed today and
+        styled to look antique. Original format is HTML, not a period letter — no essential-
+        presentation rationale. The alt transcribes it faithfully (1.1.1 met), but the hours
+        cannot be resized/recoloured/reflowed and blur on zoom. That is the 1.4.5 failure.
+      -->
+      <figure>
+        <img width="720" height="380"
+             alt="A note to our visitors. Harrowby Hall is open Wednesday to Sunday, ten in the morning until five in the afternoon, from the first of April to the thirty-first of October. Admission is by donation; we suggest eight pounds for adults and three pounds for children. The Hall is a registered charity and relies on your generosity to keep its doors open. Thank you for supporting two centuries of local history."
+             src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='720'%20height='380'%20viewBox='0%200%20720%20380'%3E%3Crect%20width='720'%20height='380'%20fill='%23efe2c6'/%3E%3Crect%20x='10'%20y='10'%20width='700'%20height='360'%20fill='none'%20stroke='%23b89a6a'%20stroke-width='3'/%3E%3Cg%20fill='%234a3a26'%20font-family='%22Brush%20Script%20MT%22,%22Segoe%20Script%22,cursive'%20font-size='25'%3E%3Ctext%20x='40'%20y='62'%3EA%20note%20to%20our%20visitors.%3C/text%3E%3Ctext%20x='40'%20y='108'%3EHarrowby%20Hall%20is%20open%20Wednesday%20to%20Sunday,%20ten%20in%20the%3C/text%3E%3Ctext%20x='40'%20y='142'%3Emorning%20until%20five,%20from%20the%201st%20of%20April%20to%20the%2031st%20of%20October.%3C/text%3E%3Ctext%20x='40'%20y='192'%3EAdmission%20is%20by%20donation;%20we%20suggest%20%C2%A38%20for%20adults%20and%20%C2%A33%3C/text%3E%3Ctext%20x='40'%20y='226'%3Efor%20children.%20The%20Hall%20is%20a%20registered%20charity%20and%20relies%20on%3C/text%3E%3Ctext%20x='40'%20y='260'%3Eyour%20generosity%20to%20keep%20its%20doors%20open.%3C/text%3E%3Ctext%20x='40'%20y='310'%3EThank%20you%20for%20supporting%20two%20centuries%20of%20local%20history.%3C/text%3E%3C/g%3E%3C/svg%3E">
+        <figcaption>A welcome note from the Hall.</figcaption>
+      </figure>
+
+      <div class="info">
+        <div class="card">
+          <h2>Getting here</h2>
+          <p>Harrowby Hall, Mill Lane, Grantham. Free parking on site; bus 27 stops at the gate.</p>
+        </div>
+        <div class="card">
+          <h2>Accessibility</h2>
+          <p>Step-free entrance, accessible WC, and large-print guides available at reception.</p>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      Harrowby Hall Museum is a registered charity (no. 1029384). © 2024.
+    </footer>
+  </div>
+</body>
+</html>

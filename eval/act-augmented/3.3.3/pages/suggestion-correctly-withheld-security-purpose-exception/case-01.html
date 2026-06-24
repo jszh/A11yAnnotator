@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — Northwind Webmail</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (expected: PASS):
+  This page renders the POST-SUBMIT failed-login state. The single error string is
+  "Email or password is incorrect." It deliberately does NOT say WHICH of the two
+  was wrong, nor offer any specific correction (no "did you mean", no "your password
+  is too short", no "no account with that email"). A naive heuristic — "an input
+  error was detected but NO suggestion for correction is provided => 3.3.3 fail" —
+  would FLAG this page. That heuristic is WRONG here.
+  SC 3.3.3 carves out "unless it would jeopardize the SECURITY or PURPOSE of the
+  content." A login credential pair is the canonical security-sensitive field: telling
+  the user which half was wrong (account enumeration / confirming a valid email, or
+  confirming a password is "close") is exactly the disclosure the exception forbids.
+  Withholding the suggestion is the CORRECT, conformant outcome.
+  An automated tool cannot classify this field as security-sensitive, cannot know the
+  exception applies, and cannot weigh "is the missing suggestion required or forbidden
+  here?" — that is a purely contextual human judgment. Structurally the error is a
+  perfect, programmatically-associated, named, visible message (axe/WAVE/Lighthouse
+  see a clean associated error and would never object). The judgment the human must
+  make is that the ABSENCE of a specific suggestion is conformant, not a defect.
+-->
+<style>
+  :root{ --ink:#14181d; --muted:#5b6571; --line:#d3d9e0; --brand:#1f5fbf; --danger:#b21f2d; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#eaeef3; }
+  .wrap{ max-width:420px; margin:56px auto; padding:0 18px; }
+  .brand{ display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:24px; }
+  .brand .logo{ width:34px; height:34px; border-radius:9px;
+                background:linear-gradient(135deg,#1f5fbf,#2aa1d6); }
+  .brand strong{ font-size:1.15rem; letter-spacing:.2px; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:14px;
+         padding:30px 28px; box-shadow:0 6px 22px rgba(20,30,45,.07); }
+  h1{ font-size:1.3rem; margin:0 0 22px; text-align:center; }
+  .field{ margin-bottom:16px; }
+  label{ display:block; font-weight:600; font-size:.88rem; margin-bottom:6px; }
+  input{ width:100%; padding:11px 12px; font-size:1rem; border:2px solid var(--line);
+         border-radius:9px; background:#fff; color:var(--ink); }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .formerr{ display:flex; gap:8px; align-items:flex-start; margin:0 0 18px;
+            padding:11px 13px; border:1px solid #f0c4c8; background:#fcf0f1;
+            border-radius:9px; color:var(--danger); font-size:.9rem; }
+  .formerr svg{ flex:0 0 auto; margin-top:1px; }
+  button{ width:100%; padding:12px; font-size:1rem; font-weight:600; color:#fff;
+          background:var(--brand); border:0; border-radius:9px; cursor:pointer; }
+  .links{ display:flex; justify-content:space-between; margin-top:16px; font-size:.84rem; }
+  .links a{ color:var(--brand); text-decoration:none; }
+  .foot{ margin-top:22px; color:var(--muted); font-size:.78rem; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="logo" aria-hidden="true"></span><strong>Northwind Webmail</strong></div>
+    <main class="card">
+      <h1>Sign in to your account</h1>
+
+      <!-- Page is in the post-submit failed-login state. One generic, deliberately
+           non-revealing error governs the whole credential pair. -->
+      <div class="formerr" role="alert" id="login-error">
+        <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M8 4.2v4.6M8 11.2h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Email or password is incorrect. Please try again.</span>
+      </div>
+
+      <form action="#" method="post" novalidate>
+        <div class="field">
+          <label for="email">Email address</label>
+          <input type="email" id="email" name="email"
+                 value="dana.okafor@example.com"
+                 aria-invalid="true" aria-describedby="login-error"
+                 autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password"
+                 value=""
+                 aria-invalid="true" aria-describedby="login-error"
+                 autocomplete="current-password">
+        </div>
+        <button type="submit">Sign in</button>
+        <div class="links">
+          <a href="#">Forgot password?</a>
+          <a href="#">Create account</a>
+        </div>
+      </form>
+    </main>
+    <p class="foot">Northwind Webmail · For your security we never reveal which detail was wrong · Renders from file://</p>
+  </div>
+</body>
+</html>

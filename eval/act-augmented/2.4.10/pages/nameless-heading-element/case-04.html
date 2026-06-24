@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulse Analytics — Acquisition Overview</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.10, aspect nameless-heading-element):
+  The third panel's heading is a custom widget: <div role="heading" aria-level="2"> whose
+  ONLY content is the dingbat string "———" (three em-dashes) used by the design system as a
+  visual divider. Because the element has role=heading, a valid aria-level, is visible, and
+  has a non-empty text node ("———"), axe-core does NOT fire empty-heading (there IS text),
+  WAVE sees a structurally valid ARIA heading, and Lighthouse's heading checks pass. But the
+  accessible name is literally "em dash em dash em dash" — punctuation, not a section name.
+  A screen-reader heading list reads "heading, level 2, em dash em dash em dash" between two
+  named panels, orienting nobody. No tool can tell that a run of valid punctuation glyphs is
+  not a section name — that the divider was promoted to a heading by mistake — which is a
+  human semantic judgment.
+-->
+<style>
+  :root { --bg:#0f1420; --panel:#161d2e; --ink:#e7ecf5; --muted:#8b97ad; --line:#26304a;
+          --accent:#4f8cff; --good:#39d98a; --bad:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter", "Segoe UI", system-ui, sans-serif; background:var(--bg);
+         color:var(--ink); line-height:1.5; }
+  .app { display:grid; grid-template-columns:210px 1fr; min-height:100vh; }
+  aside { background:#0b101a; border-right:1px solid var(--line); padding:18px 14px; }
+  aside .brand { font-weight:800; letter-spacing:.04em; margin:0 0 20px; font-size:1.05rem; }
+  aside nav a { display:block; color:var(--muted); text-decoration:none; padding:8px 10px;
+                border-radius:7px; font-size:.9rem; }
+  aside nav a[aria-current="page"] { background:var(--panel); color:var(--ink); }
+  main { padding:26px 30px 60px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:.9rem; margin:0 0 24px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+           padding:18px 20px; margin:0 0 22px; }
+  .panel h2, .panel .h-divider { font-size:1.08rem; margin:0 0 14px; font-weight:700; }
+  /* Design-system "section divider" token — rendered as a faint dashed rule */
+  .h-divider { color:var(--muted); letter-spacing:.5em; user-select:none; }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .kpi .label { color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; }
+  .kpi .val { font-size:1.6rem; font-weight:800; margin-top:4px; }
+  .kpi .delta.up { color:var(--good); } .kpi .delta.down { color:var(--bad); }
+  .kpi .delta { font-size:.82rem; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  th, td { text-align:left; padding:9px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; }
+  .bar { height:8px; background:#243049; border-radius:4px; overflow:hidden; }
+  .bar > span { display:block; height:100%; background:var(--accent); }
+  footer { color:var(--muted); font-size:.78rem; padding:0 30px 30px; grid-column:2; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <p class="brand">Pulse</p>
+    <nav aria-label="Primary">
+      <a href="#" aria-current="page">Acquisition</a>
+      <a href="#">Engagement</a>
+      <a href="#">Retention</a>
+      <a href="#">Revenue</a>
+    </nav>
+  </aside>
+
+  <main>
+    <h1>Acquisition Overview</h1>
+    <p class="sub">Last 30 days &middot; compared to previous period &middot; UTC</p>
+
+    <section class="panel" aria-labelledby="p1">
+      <h2 id="p1">Top-line KPIs</h2>
+      <div class="kpis">
+        <div class="kpi"><div class="label">New users</div><div class="val">18,402</div><div class="delta up">&#9650; 12.4%</div></div>
+        <div class="kpi"><div class="label">Signups</div><div class="val">2,910</div><div class="delta up">&#9650; 8.1%</div></div>
+        <div class="kpi"><div class="label">Cost / acq.</div><div class="val">$14.20</div><div class="delta down">&#9660; 3.0%</div></div>
+        <div class="kpi"><div class="label">Conv. rate</div><div class="val">15.8%</div><div class="delta up">&#9650; 0.6pt</div></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="p2">
+      <h2 id="p2">Channels by signups</h2>
+      <table>
+        <thead><tr><th>Channel</th><th>Signups</th><th>Share</th></tr></thead>
+        <tbody>
+          <tr><td>Organic search</td><td>1,140</td><td><div class="bar"><span style="width:39%"></span></div></td></tr>
+          <tr><td>Paid social</td><td>820</td><td><div class="bar"><span style="width:28%"></span></div></td></tr>
+          <tr><td>Referral</td><td>560</td><td><div class="bar"><span style="width:19%"></span></div></td></tr>
+          <tr><td>Direct</td><td>390</td><td><div class="bar"><span style="width:14%"></span></div></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- A front-end dev needed a visual break before the geo breakdown and reached for the
+         design system's <SectionDivider> component, which renders role="heading" so it picks
+         up the dashboard's panel-title styling — but its content is just em-dashes. -->
+    <section class="panel" aria-labelledby="p3">
+      <div class="h-divider" role="heading" aria-level="2" id="p3">&#8212;&#8212;&#8212;</div>
+      <table>
+        <thead><tr><th>Country</th><th>New users</th><th>Conv. rate</th></tr></thead>
+        <tbody>
+          <tr><td>United States</td><td>7,120</td><td>16.9%</td></tr>
+          <tr><td>United Kingdom</td><td>2,340</td><td>15.2%</td></tr>
+          <tr><td>Germany</td><td>1,880</td><td>14.0%</td></tr>
+          <tr><td>India</td><td>1,510</td><td>11.3%</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>Pulse Analytics &middot; data refreshed 06:00 UTC &middot; internal beta dashboard</footer>
+</div>
+</body>
+</html>

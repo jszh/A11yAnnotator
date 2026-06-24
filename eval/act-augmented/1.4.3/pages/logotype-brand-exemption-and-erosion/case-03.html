@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mercato — handmade marketplace</title>
+  <style>
+    :root { font-family: "Helvetica Neue", Arial, sans-serif; }
+    body { margin: 0; background: #ffffff; color: #1d1d1f; line-height: 1.55; }
+
+    /* Top app bar. The ONLY home affordance is the brand mark on the left:
+       there is no separate "Home" nav item and no logo <img>. The brand mark
+       is an inline SVG <text> wordmark wrapped in <a href="/">, so the logotype
+       is acting as an interactive UI component (the home link). */
+    header.bar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 12px 22px; border-bottom: 1px solid #ececec;
+      position: sticky; top: 0; background: #ffffff;
+    }
+    a.brand-home { display: inline-flex; align-items: center; text-decoration: none; }
+    a.brand-home:focus-visible { outline: 3px solid #0a66ff; outline-offset: 3px; }
+    /* The wordmark renders via SVG <text> with a rose-gold linearGradient fill on
+       white. Least-contrast pixel (the lighter stop #e0b483 on #fff) ≈ 1.91:1;
+       the darker stop #d9a86b ≈ 2.15:1. Both are below 4.5:1 AND below the 3:1
+       large-text threshold. The mark is ~34px ≈ 25.5pt, i.e. large-scale text. */
+    .brand-svg { height: 34px; width: auto; display: block; }
+
+    nav.acct { display: flex; gap: 18px; align-items: center; }
+    nav.acct a { color: #1d1d1f; text-decoration: none; font-size: 14px; }
+    nav.acct a:hover { text-decoration: underline; }
+
+    main { max-width: 1040px; margin: 0 auto; padding: 26px 22px 60px; }
+    h1.page { font-size: 22px; margin: 6px 0 18px; color: #1d1d1f; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .card { border: 1px solid #ececec; border-radius: 10px; overflow: hidden; }
+    .card .ph { height: 132px; background: #f3f1ee; }
+    .card .body { padding: 12px 14px 16px; }
+    .card .ttl { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+    .card .price { font-size: 15px; color: #1d1d1f; margin: 0; }
+    .card .seller { font-size: 13px; color: #5a5a5f; margin: 2px 0 0; }
+    footer { max-width: 1040px; margin: 0 auto; padding: 24px 22px;
+      color: #5a5a5f; font-size: 13px; border-top: 1px solid #ececec; }
+  </style>
+</head>
+<body>
+  <header class="bar">
+    <!-- SOLE home control: the SVG wordmark is the only way back to the storefront
+         home. No text "Home" link exists; the logotype IS the interactive control. -->
+    <a class="brand-home" href="/" aria-label="Mercato, home">
+      <svg class="brand-svg" viewBox="0 0 168 36" role="img" aria-hidden="true"
+           xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="rosegold" x1="0" y1="0" x2="1" y2="0">
+            <!-- darker stop ~2.15:1, lighter stop ~1.91:1 — both fail on white -->
+            <stop offset="0%"  stop-color="#d9a86b"/>
+            <stop offset="100%" stop-color="#e0b483"/>
+          </linearGradient>
+        </defs>
+        <text x="0" y="27" font-family="Georgia, 'Times New Roman', serif"
+              font-size="30" font-weight="700" letter-spacing="1"
+              fill="url(#rosegold)">Mercato</text>
+      </svg>
+    </a>
+
+    <nav class="acct" aria-label="Account">
+      <a href="/sell">Sell</a>
+      <a href="/cart">Cart</a>
+      <a href="/account">Account</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1 class="page">Handmade &amp; vintage finds</h1>
+    <div class="grid">
+      <article class="card">
+        <div class="ph"></div>
+        <div class="body">
+          <p class="ttl">Stoneware pour-over set</p>
+          <p class="price">£48.00</p>
+          <p class="seller">by NorthKilnStudio</p>
+        </div>
+      </article>
+      <article class="card">
+        <div class="ph"></div>
+        <div class="body">
+          <p class="ttl">Linen apron, natural</p>
+          <p class="price">£32.00</p>
+          <p class="seller">by FlaxAndThread</p>
+        </div>
+      </article>
+      <article class="card">
+        <div class="ph"></div>
+        <div class="body">
+          <p class="ttl">Brass desk lamp, restored</p>
+          <p class="price">£120.00</p>
+          <p class="seller">by ReclaimWorks</p>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <footer>
+    Mercato is a marketplace for independent makers. Prices include VAT.
+  </footer>
+
+  <!--
+    WHY AUTOMATED TOOLS REACH THE WRONG ANSWER HERE (the inversion the reviewer asked for):
+
+    The brand wordmark "Mercato" is the page's SOLE home control: it is an SVG <text>
+    element wrapped in <a href="/">, with no separate "Home" link and no logo <img>.
+    Because the logotype is acting as an interactive UI component, the SC 1.4.3 logotype
+    exemption is ERODED — a sufficient-contrast variant or equivalent control is required,
+    and none is provided. The correct human verdict is therefore FAILED.
+
+    But the failing contrast lives where contrast scanners are blind:
+      (a) It is SVG <text>, and axe-core "ignores all SVG elements as an image" for the
+          color-contrast rule — so axe does not even evaluate it.
+      (b) The fill is a linearGradient, and when a color cannot be resolved to a single
+          value axe reports the element as INCOMPLETE / "could not be determined," not a
+          violation. WAVE and Lighthouse likewise do not raise a contrast error on SVG
+          text with a gradient fill.
+    Net effect: axe/WAVE/Lighthouse produce NO 1.4.3 violation here — an automated PASS
+    (or "needs review" that is routinely dismissed). The correct answer is the OPPOSITE.
+
+    To reach FAILED a human must do two things no tool does:
+      1. Recognize that the wordmark is the only home control, so the brand exemption is
+         eroded (it no longer covers this interactive logotype); and
+      2. Per Trusted Tester 13.C, eyedropper the LEAST-CONTRAST pixel of the gradient text
+         against white — the lighter stop #e0b483 on #ffffff ≈ 1.91:1. The mark is ~30px
+         bold display text (large-scale, so the relaxed 3:1 threshold applies), yet 1.91:1
+         fails even 3:1. Below the applicable threshold => 1.4.3 FAILED.
+
+    So this case is NOT "tools and humans agree it fails." Tools see no flagged contrast
+    text at all; only a human reasoning about the eroded exemption AND eyedroppering the
+    gradient SVG text reaches the correct FAILED. Note the large-text 3:1 bar (not 4.5:1)
+    is the one that governs at this size — the page fails it regardless.
+  -->
+</body>
+</html>

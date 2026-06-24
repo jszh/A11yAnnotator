@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tidewater FM — Episodes</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { font:16px/1.55 -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+           color:#1b1b1b; background:#fafafa; margin:0; }
+    header { background:#0f2e3d; color:#ffffff; padding:20px 28px; }
+    header h1 { margin:0; font-size:1.35rem; }
+    header p { margin:4px 0 0; color:#cfe3ec; font-size:.9rem; }
+    main { max-width:760px; margin:28px auto; padding:0 22px 64px; }
+    .lede { color:#333333; margin:0 0 22px; }
+    ul.episodes { list-style:none; margin:0; padding:0; display:grid; gap:14px; }
+
+    /* "Stretched-link" card pattern (Bootstrap-style). The card's primary <a class="cover">
+       is absolutely positioned to fill the WHOLE card, so a mouse user can click anywhere on
+       the card to open the episode. The card ALSO shows a real "Listen now" <a> pointing to the
+       SAME episode page. Both are valid, focusable <a href> elements to one destination, so
+       every episode produces TWO focus stops for ONE place. */
+    li.episode { position:relative; background:#ffffff; border:1px solid #d7dde0;
+                 border-radius:10px; padding:16px 18px 14px; }
+    a.cover { position:absolute; inset:0; border-radius:10px; }
+    a.cover:focus-visible { outline:3px solid #b5471d; outline-offset:2px; }
+    li.episode:hover { box-shadow:0 4px 14px rgba(0,0,0,.08); }
+    .num { font:600 .72rem/1 Arial, sans-serif; letter-spacing:.05em; text-transform:uppercase;
+           color:#0f5d7a; }
+    .episode h2 { font-size:1.05rem; margin:4px 0 6px; }
+    .meta { font:.8rem/1 Arial, sans-serif; color:#5a5a5a; margin:0 0 10px; }
+    .episode p.desc { margin:0 0 14px; font-size:.93rem; color:#333333; }
+    /* "Listen now" sits ABOVE the stretched cover link so it stays separately clickable. */
+    a.listen { position:relative; z-index:1; display:inline-block;
+               font:600 .85rem/1 Arial, sans-serif; color:#0f5d7a; text-decoration:none; }
+    a.listen:hover { text-decoration:underline; }
+    a.listen:focus-visible { outline:3px solid #b5471d; outline-offset:2px; }
+    a.listen::after { content:" \25B8"; }
+    footer { border-top:1px solid #d7dde0; padding:18px 28px;
+             font:.82rem/1.4 Arial, sans-serif; color:#555555; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Tidewater FM</h1>
+    <p>Coastal stories, weekly</p>
+  </header>
+
+  <main>
+    <p class="lede">Catch up on the latest episodes from the Tidewater newsroom.</p>
+
+    <!--
+      THE DEFECT (repeated per episode): the card-filling <a class="cover"> (the whole-card
+      "stretched link") AND the visible "Listen now" <a> both link to the SAME episode page.
+      Tab lands on the card-cover link, announcing the full episode title; Tab again lands on
+      "Listen now" to the identical destination. Across the list the user passes through every
+      episode twice — a confusing double focus stop per item from two focusable elements that
+      resolve to one place.
+    -->
+    <ul class="episodes">
+      <li class="episode">
+        <a class="cover" href="#ep-142" aria-label="Episode 142: The night the harbor lights went out"></a>
+        <span class="num">Episode 142</span>
+        <h2>The night the harbor lights went out</h2>
+        <p class="meta">38 min &middot; June 18, 2026</p>
+        <p class="desc">A 1991 blackout that left the whole waterfront dark — and the volunteers who guided the ferries home.</p>
+        <a class="listen" href="#ep-142">Listen now</a>
+      </li>
+
+      <li class="episode">
+        <a class="cover" href="#ep-141" aria-label="Episode 141: Rebuilding the oyster beds"></a>
+        <span class="num">Episode 141</span>
+        <h2>Rebuilding the oyster beds</h2>
+        <p class="meta">41 min &middot; June 11, 2026</p>
+        <p class="desc">How a handful of fishers and a marine biologist are coaxing the bay's oyster reefs back to life.</p>
+        <a class="listen" href="#ep-141">Listen now</a>
+      </li>
+
+      <li class="episode">
+        <a class="cover" href="#ep-140" aria-label="Episode 140: The last drive-in on the coast"></a>
+        <span class="num">Episode 140</span>
+        <h2>The last drive-in on the coast</h2>
+        <p class="meta">35 min &middot; June 4, 2026</p>
+        <p class="desc">One family has kept the projector running for sixty summers. We spend a night behind the screen.</p>
+        <a class="listen" href="#ep-140">Listen now</a>
+      </li>
+
+      <li class="episode">
+        <a class="cover" href="#ep-139" aria-label="Episode 139: Charting the salt marsh"></a>
+        <span class="num">Episode 139</span>
+        <h2>Charting the salt marsh</h2>
+        <p class="meta">44 min &middot; May 28, 2026</p>
+        <p class="desc">Cartographers and birders walk the tidal flats to map a landscape that redraws itself twice a day.</p>
+        <a class="listen" href="#ep-139">Listen now</a>
+      </li>
+    </ul>
+  </main>
+
+  <footer>
+    <p>Tidewater FM &middot; Public radio for the coast &middot; Listener supported</p>
+  </footer>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT:
+    Both links per card are ordinary, fully valid <a href> elements. The card-cover link has a
+    descriptive aria-label; the "Listen now" link has href + visible text. No role is misapplied
+    (no role attribute at all), nothing is empty, hidden, mis-roled, or low-contrast. axe-core,
+    WAVE, and Lighthouse have no rule for "two focusable links in one card resolving to the same
+    destination." Catching the doubled stop requires tabbing the list, noticing every episode is
+    reached twice (card title link, then 'Listen now' to the same place), and judging that the
+    duplicate nested focus stop is confusing per the Understanding note's nested-focusable example
+    — contextual human judgment, not a static signature.
+  -->
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.3 — PASS (multiple-valid-orders limb).
+    A campus class-availability picker. The visual grid is a weekly timetable:
+    ROWS are time slots (08:00, 10:00, 13:00, 15:00) and COLUMNS are the five
+    weekdays (Mon-Fri). Each cell is a checkbox "I can attend this section."
+    The student's real task is: "pick my schedule one DAY at a time" — decide
+    everything for Monday, then everything for Tuesday, etc. So tab moves DOWN
+    each day column (all four Monday slots, then all four Tuesday slots, ...).
+
+    Here the column-major order is created with sequential, contiguous tabindex
+    values (10..29) assigned column-first. Unlike F44 (where tabindex scrambles
+    the order so it no longer follows ANY relationship), these tabindex values
+    DO follow a relationship — the by-day grouping — so this is NOT an F44 failure.
+    The Understanding text says either row-at-a-time or column-at-a-time satisfies
+    the SC, and only one valid order need be provided. Verdict: PASS.
+
+    Why automated tools miss it: axe/WAVE/Lighthouse will see positive tabindex
+    and (at most) emit a generic "avoid positive tabindex" best-practice notice —
+    NOT a 2.4.3 failure, and many configs stay silent. They cannot evaluate
+    whether the resulting order "reflects a logical relationship." Telling a valid
+    by-day column order from a meaning-destroying scramble is a human judgment;
+    an over-eager checker that flagged all positive tabindex would mislabel this
+    legitimate pass.
+  -->
+  <title>Pick your seminar times — Lakemere University</title>
+  <style>
+    :root { --ink:#16202b; --muted:#5d6b78; --line:#cfd8e0; --brand:#1f4e79; --accent:#e8f0f8; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI", system-ui, sans-serif; color:var(--ink); background:#f4f7fa; line-height:1.5; }
+    header { background:#fff; border-bottom:3px solid var(--brand); padding:16px 28px; }
+    header h1 { margin:0; font-size:19px; color:var(--brand); }
+    header p { margin:3px 0 0; font-size:13px; color:var(--muted); }
+    main { max-width:840px; margin:24px auto; padding:0 20px 48px; }
+    .lead { font-size:14px; color:var(--muted); margin:0 0 18px; }
+    form { background:#fff; border:1px solid var(--line); border-radius:10px; padding:20px; }
+    table { border-collapse:collapse; width:100%; }
+    caption { caption-side:top; text-align:left; font-weight:700; font-size:15px; padding-bottom:12px; color:var(--brand); }
+    th, td { border:1px solid var(--line); padding:10px; text-align:center; font-size:13px; }
+    thead th { background:var(--accent); color:var(--brand); }
+    tbody th { background:#fafcfe; text-align:right; color:var(--muted); white-space:nowrap; }
+    td label { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; }
+    td input { width:18px; height:18px; }
+    td input:focus { outline:3px solid #4f8cc9; outline-offset:2px; }
+    .secid { font-size:11px; color:var(--muted); }
+    .actions { margin-top:18px; }
+    button { background:var(--brand); color:#fff; border:0; padding:11px 20px; border-radius:7px; font-size:15px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Lakemere University — Seminar Availability</h1>
+    <p>SOCI-204 Discussion Sections · Spring term · choose all times you can attend</p>
+  </header>
+  <main>
+    <p class="lead">
+      Work through your week <strong>one day at a time</strong>: tick the slots you
+      can make on Monday, then move on to Tuesday, and so on. Tab walks down each
+      day in turn.
+    </p>
+    <form aria-labelledby="avail-h">
+      <table>
+        <caption id="avail-h">Weekly availability for SOCI-204 sections</caption>
+        <thead>
+          <tr>
+            <th scope="col">Time</th>
+            <th scope="col">Monday</th>
+            <th scope="col">Tuesday</th>
+            <th scope="col">Wednesday</th>
+            <th scope="col">Thursday</th>
+            <th scope="col">Friday</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!--
+            DOM/visual layout is row-major (each <tr> is a time row).
+            tabindex makes the FOCUS order column-major (by day):
+            Mon column = 10,11,12,13 ; Tue = 14..17 ; Wed = 18..21 ;
+            Thu = 22..25 ; Fri = 26..29. Contiguous + grouped by day = logical.
+          -->
+          <tr>
+            <th scope="row">08:00</th>
+            <td><label>Mon 08:00 <input type="checkbox" name="mon_0800" tabindex="10"><span class="secid">§A1</span></label></td>
+            <td><label>Tue 08:00 <input type="checkbox" name="tue_0800" tabindex="14"><span class="secid">§B1</span></label></td>
+            <td><label>Wed 08:00 <input type="checkbox" name="wed_0800" tabindex="18"><span class="secid">§C1</span></label></td>
+            <td><label>Thu 08:00 <input type="checkbox" name="thu_0800" tabindex="22"><span class="secid">§D1</span></label></td>
+            <td><label>Fri 08:00 <input type="checkbox" name="fri_0800" tabindex="26"><span class="secid">§E1</span></label></td>
+          </tr>
+          <tr>
+            <th scope="row">10:00</th>
+            <td><label>Mon 10:00 <input type="checkbox" name="mon_1000" tabindex="11"><span class="secid">§A2</span></label></td>
+            <td><label>Tue 10:00 <input type="checkbox" name="tue_1000" tabindex="15"><span class="secid">§B2</span></label></td>
+            <td><label>Wed 10:00 <input type="checkbox" name="wed_1000" tabindex="19"><span class="secid">§C2</span></label></td>
+            <td><label>Thu 10:00 <input type="checkbox" name="thu_1000" tabindex="23"><span class="secid">§D2</span></label></td>
+            <td><label>Fri 10:00 <input type="checkbox" name="fri_1000" tabindex="27"><span class="secid">§E2</span></label></td>
+          </tr>
+          <tr>
+            <th scope="row">13:00</th>
+            <td><label>Mon 13:00 <input type="checkbox" name="mon_1300" tabindex="12"><span class="secid">§A3</span></label></td>
+            <td><label>Tue 13:00 <input type="checkbox" name="tue_1300" tabindex="16"><span class="secid">§B3</span></label></td>
+            <td><label>Wed 13:00 <input type="checkbox" name="wed_1300" tabindex="20"><span class="secid">§C3</span></label></td>
+            <td><label>Thu 13:00 <input type="checkbox" name="thu_1300" tabindex="24"><span class="secid">§D3</span></label></td>
+            <td><label>Fri 13:00 <input type="checkbox" name="fri_1300" tabindex="28"><span class="secid">§E3</span></label></td>
+          </tr>
+          <tr>
+            <th scope="row">15:00</th>
+            <td><label>Mon 15:00 <input type="checkbox" name="mon_1500" tabindex="13"><span class="secid">§A4</span></label></td>
+            <td><label>Tue 15:00 <input type="checkbox" name="tue_1500" tabindex="17"><span class="secid">§B4</span></label></td>
+            <td><label>Wed 15:00 <input type="checkbox" name="wed_1500" tabindex="21"><span class="secid">§C4</span></label></td>
+            <td><label>Thu 15:00 <input type="checkbox" name="thu_1500" tabindex="25"><span class="secid">§D4</span></label></td>
+            <td><label>Fri 15:00 <input type="checkbox" name="fri_1500" tabindex="29"><span class="secid">§E4</span></label></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="actions">
+        <button type="submit">Save my availability</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

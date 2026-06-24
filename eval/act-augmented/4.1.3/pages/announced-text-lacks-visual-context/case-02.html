@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline — Leads · Northwind CRM</title>
+<style>
+  :root { --ink:#1c2530; --muted:#64707e; --line:#e3e8ee; --brand:#3858e9; --ok:#15924a; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter", system-ui, sans-serif; color:var(--ink); background:#f6f8fb; }
+  header { background:#0f1b2d; color:#fff; padding:12px 22px; display:flex; align-items:center; gap:14px; }
+  header .logo { font-weight:800; letter-spacing:.4px; }
+  header .crumb { color:#9fb0c6; font-size:.85rem; margin-left:6px; }
+  main { max-width:920px; margin:26px auto; padding:0 22px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 22px; font-size:.92rem; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  caption { text-align:left; font-size:.85rem; color:var(--muted); padding:0 0 8px; }
+  th, td { text-align:left; padding:13px 16px; border-top:1px solid var(--line); font-size:.92rem; vertical-align:middle; }
+  thead th { background:#f1f4f9; font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); border-top:0; }
+  tbody tr:hover { background:#fafbfd; }
+  .lead-name { font-weight:600; }
+  .lead-co { color:var(--muted); font-size:.82rem; }
+  select.stage { padding:6px 8px; border:1px solid #cbd3dd; border-radius:6px; font:inherit; background:#fff; }
+  /* The per-row status cell + its live region */
+  .rowstatus { min-width:96px; }
+  .badge-saved { display:inline-flex; align-items:center; gap:5px; color:var(--ok); font-weight:600; font-size:.85rem; }
+  .badge-saved .check { font-size:1rem; }
+  .note { background:#fff; border:1px solid var(--line); border-left:4px solid var(--brand); border-radius:8px; padding:16px 18px; margin-top:26px; font-size:.85rem; color:#3a4654; }
+  .note code { background:#eef1f6; padding:1px 4px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">Northwind CRM</span>
+  <span class="crumb">Sales &rsaquo; Pipeline &rsaquo; Leads</span>
+</header>
+
+<main>
+  <h1>Open leads</h1>
+  <p class="sub">Change a lead's stage to autosave. A confirmation appears in that lead's row.</p>
+
+  <table>
+    <caption>12 open leads · sorted by last activity</caption>
+    <thead>
+      <tr>
+        <th scope="col">Lead</th>
+        <th scope="col">Value</th>
+        <th scope="col">Stage</th>
+        <th scope="col">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><div class="lead-name">Priya Nair</div><div class="lead-co">Helio Logistics</div></td>
+        <td>$42,000</td>
+        <td>
+          <select class="stage" aria-label="Stage for Priya Nair, Helio Logistics" onchange="save(this,'r1')">
+            <option>Qualified</option><option>Proposal</option><option>Negotiation</option><option>Won</option>
+          </select>
+        </td>
+        <!-- Per-row live region. On save it injects "Saved ✓" — but never WHICH lead. -->
+        <td class="rowstatus"><span id="r1" role="status" aria-live="polite" aria-atomic="true"></span></td>
+      </tr>
+      <tr>
+        <td><div class="lead-name">Marcus Boateng</div><div class="lead-co">Vantage Foods</div></td>
+        <td>$18,500</td>
+        <td>
+          <select class="stage" aria-label="Stage for Marcus Boateng, Vantage Foods" onchange="save(this,'r2')">
+            <option>Qualified</option><option>Proposal</option><option>Negotiation</option><option>Won</option>
+          </select>
+        </td>
+        <td class="rowstatus"><span id="r2" role="status" aria-live="polite" aria-atomic="true"></span></td>
+      </tr>
+      <tr>
+        <td><div class="lead-name">Dana Whitfield</div><div class="lead-co">Cobalt Health</div></td>
+        <td>$96,200</td>
+        <td>
+          <select class="stage" aria-label="Stage for Dana Whitfield, Cobalt Health" onchange="save(this,'r3')">
+            <option>Qualified</option><option>Proposal</option><option>Negotiation</option><option>Won</option>
+          </select>
+        </td>
+        <td class="rowstatus"><span id="r3" role="status" aria-live="polite" aria-atomic="true"></span></td>
+      </tr>
+      <tr>
+        <td><div class="lead-name">Theo Lindqvist</div><div class="lead-co">Norse Robotics</div></td>
+        <td>$210,000</td>
+        <td>
+          <select class="stage" aria-label="Stage for Theo Lindqvist, Norse Robotics" onchange="save(this,'r4')">
+            <option>Qualified</option><option>Proposal</option><option>Negotiation</option><option>Won</option>
+          </select>
+        </td>
+        <td class="rowstatus"><span id="r4" role="status" aria-live="polite" aria-atomic="true"></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>Why automated tools pass this page.</strong>
+    Each row's status cell is a correct live region (<code>role="status"</code>, <code>aria-atomic="true"</code>)
+    and is empty <em>before</em> the update, then filled atomically — so the whole "Saved ✓" string is
+    announced. The select controls all have descriptive accessible names that include the lead. The bug
+    is that the <em>announced status string</em> identifies the action ("Saved") but not its subject:
+    which lead was saved is conveyed only by which row the green checkmark visually appears in. A
+    screen-reader user who changed the Negotiation value for Dana Whitfield hears a disembodied "Saved"
+    with no row context. Linters see a valid, non-empty, correctly-roled live region and report nothing.
+  </div>
+</main>
+
+<script>
+  function save(sel, id) {
+    var cell = document.getElementById(id);
+    // Inject the volatile confirmation atomically — but with no lead/row identity.
+    cell.innerHTML = '<span class="badge-saved"><span class="check" aria-hidden="true">&#10003;</span>Saved</span>';
+    clearTimeout(cell._t);
+    cell._t = setTimeout(function(){ cell.innerHTML = ''; }, 4000);
+  }
+</script>
+</body>
+</html>

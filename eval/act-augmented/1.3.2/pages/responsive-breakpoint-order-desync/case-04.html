@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.2 FAILURE — Responsive-breakpoint order desync (conditional on viewport).
+
+    A canning recipe. The METHOD is a single, sentence-ordered paragraph block split into
+    two prose pieces that MUST be read consecutively, because a critical safety instruction
+    spans them: "...do NOT seal the jars until the headspace has cooled to room temperature."
+    A short "Tip" callout (about labelling jars) is unrelated filler.
+
+    Desktop: a CSS grid lays out [method-part-1][method-part-2] reading naturally, with the
+    tip in a side cell. Source order is: method-1, method-2, tip. Reading the two method
+    pieces back to back gives the correct, safe instruction.
+
+    On mobile (max-width:620px) the author redefines grid-template-areas to a single column
+    and — to "break up the long text with a tip in the middle" — places the TIP cell
+    BETWEEN method-1 and method-2:
+        "m1"
+        "tip"
+        "m2"
+    Source order is unchanged (m1, m2, tip), but the grid now INTERLEAVES the tip into the
+    middle of the safety sentence. A mobile reader sees:
+        "...ladle the hot relish into sterilized jars, leaving 1 cm of headspace, then"
+        [TIP: write the date on each lid with a grease pencil...]
+        "do NOT seal the jars until the headspace has cooled to room temperature."
+    The instruction is broken across an interruption; a hurried cook reads the first half
+    ("...then") and may seal hot jars, the exact danger the sentence warns against.
+
+    WHY AUTOMATED TOOLS MISS IT: source order is correct (m1, m2, tip), the markup is valid,
+    grid-template-areas is legal CSS. A single-viewport scan never renders the interleaved
+    mobile grid; even rendered, no rule knows that the tip is dropped mid-sentence between two
+    halves of one safety instruction. It takes a human reading the rendered mobile order and
+    recognizing the sentence has been split by unrelated content.
+  -->
+  <title>Spiced Tomato Relish — Preserves &amp; Pantry</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Source Serif Pro", Georgia, serif; color:#2a2320;
+           background:#fdf8f1; line-height:1.7; }
+    header { background:#7a3b1d; color:#fff; padding:1rem 1.4rem; }
+    header .site { font-weight:700; letter-spacing:.02em; }
+    main { max-width:50rem; margin:1.6rem auto 4rem; padding:0 1.3rem; }
+    h1 { font-size:1.7rem; margin:.2rem 0 .2rem; }
+    .meta { font-size:.85rem; color:#8a6f5e; margin:0 0 1.4rem; }
+    h2 { font-size:1.2rem; margin:1.6rem 0 .5rem; color:#7a3b1d; }
+    p { margin:0 0 1rem; }
+
+    /* Desktop grid: the two method halves read consecutively; tip sits to the side. */
+    .method-grid {
+      display:grid;
+      grid-template-columns: 2fr 1fr;
+      grid-template-areas:
+        "m1 tip"
+        "m2 tip";
+      gap:1rem 1.4rem;
+      align-items:start;
+    }
+    .m1 { grid-area:m1; }
+    .m2 { grid-area:m2; }
+    .tip {
+      grid-area:tip; background:#f3e7d6; border-left:4px solid #c98a4b;
+      padding:.8rem 1rem; border-radius:0 6px 6px 0; font-size:.9rem; color:#5e4a37;
+    }
+    .tip strong { color:#7a3b1d; }
+    .warn { font-weight:600; }
+
+    /* ===== MOBILE BREAKPOINT — the bug lives here ===== */
+    @media (max-width: 620px) {
+      .method-grid {
+        grid-template-columns: 1fr;
+        /* "Break up the long method with the tip in the middle on phones."
+           This drops the unrelated tip BETWEEN the two halves of the safety sentence. */
+        grid-template-areas:
+          "m1"
+          "tip"
+          "m2";
+      }
+    }
+  </style>
+</head>
+<body>
+  <header><span class="site">Preserves &amp; Pantry</span></header>
+
+  <main>
+    <h1>Spiced Tomato Relish</h1>
+    <p class="meta">Makes 6 jars · 90 minutes · Water-bath canning</p>
+
+    <h2>Method</h2>
+    <!-- Source order: m1, m2, tip. The two method halves are ONE continuous safety sentence. -->
+    <div class="method-grid">
+      <p class="m1">Simmer the tomatoes, onion, vinegar and spices uncovered for about forty
+      minutes, stirring often, until the relish mounds softly on a spoon and the liquid has
+      reduced. Ladle the hot relish into sterilized jars, leaving 1&nbsp;cm of headspace, then</p>
+
+      <p class="m2"><span class="warn">do NOT seal the jars until the headspace has cooled to
+      room temperature</span> — sealing while hot traps steam, prevents a proper vacuum, and
+      can cause spoilage or jar failure. Once cooled, wipe the rims, apply the lids, and process
+      in a boiling-water bath for 15&nbsp;minutes.</p>
+
+      <aside class="tip" aria-label="Tip">
+        <p><strong>Tip:</strong> Write the canning date on each lid with a grease pencil before
+        you start — it is far easier than peeling a sticker off later, and the date helps you
+        rotate your pantry.</p>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

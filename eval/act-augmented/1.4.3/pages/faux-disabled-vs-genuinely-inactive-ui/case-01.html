@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.3 FAILURE — faux-disabled control that MUST meet contrast.
+
+    This is a volunteer sign-up form. The "Submit registration" button is styled to
+    look disabled (light grey #9a9a9a text on a #ededed fill ≈ 2.4:1) using class="disabled".
+    It has NO disabled attribute, NO aria-disabled, and a live onclick handler — it really
+    submits. Because the control is OPERABLE, the inactive-UI exemption does NOT apply, and
+    its label text must meet 4.5:1. It does not, so the page FAILS 1.4.3.
+
+    A genuinely-disabled twin (the "Save draft" button, real `disabled` attribute, same grey)
+    sits beside it and IS exempt — identical pixels, opposite verdict.
+
+    WHY AUTOMATED TOOLS MISS IT: most contrast scanners (axe-core, Lighthouse) SKIP elements
+    that appear disabled, and several treat any greyed button as exempt by heuristic. Here the
+    button has no programmatic disabled state at all, so whether the exemption applies turns on
+    a BEHAVIORAL fact — does it fire? — which a static checker cannot determine. A human must
+    click/Enter the control, observe it submit, and only THEN rule that it is in scope.
+  -->
+  <title>Become a volunteer — Riverside Food Bank</title>
+  <style>
+    :root { --ink:#1b1b1b; --line:#cfcfcf; --brand:#0b6b3a; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink); background:#f6f7f6; }
+    .card { max-width:540px; margin:40px auto; background:#fff; border:1px solid var(--line); border-radius:8px; padding:28px 32px; }
+    h1 { font-size:22px; margin:0 0 4px; }
+    .sub { color:#444; margin:0 0 22px; }
+    label { display:block; font-weight:600; margin:14px 0 4px; font-size:14px; }
+    input, select { width:100%; padding:9px 10px; border:1px solid #b5b5b5; border-radius:5px; font-size:15px; }
+    .actions { display:flex; gap:12px; margin-top:24px; }
+    /* "disabled-looking" appearance — applied as a plain class, NOT the disabled attribute */
+    .btn {
+      padding:11px 20px; border-radius:6px; font-size:15px; font-weight:600;
+      border:1px solid #d6d6d6; cursor:pointer;
+    }
+    .btn.disabled {
+      background:#ededed;
+      color:#9a9a9a;          /* #9a9a9a on #ededed ≈ 2.4:1 — well below 4.5:1 */
+      cursor:pointer;          /* still clickable — it is NOT really disabled */
+    }
+    /* genuinely disabled native control — same palette, but the browser makes it inert */
+    .btn[disabled] { background:#ededed; color:#9a9a9a; cursor:default; }
+    .receipt { margin-top:18px; padding:12px 14px; background:#e7f5ec; border:1px solid #bfe3cd; border-radius:6px; color:#0b6b3a; font-weight:600; display:none; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Become a volunteer</h1>
+    <p class="sub">Shifts run Saturdays, 8am&ndash;noon. All fields are required.</p>
+
+    <form id="vol" novalidate>
+      <label for="name">Full name</label>
+      <input id="name" name="name" type="text" autocomplete="name" required>
+
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="email" required>
+
+      <label for="shift">Preferred shift</label>
+      <select id="shift" name="shift" required>
+        <option value="">Choose a date&hellip;</option>
+        <option>Sat 28 June</option>
+        <option>Sat 5 July</option>
+        <option>Sat 12 July</option>
+      </select>
+
+      <div class="actions">
+        <!--
+          OPERABLE control dressed as disabled: class="disabled", no disabled attr,
+          live onclick. In scope for 1.4.3, must meet 4.5:1 — it does not.
+        -->
+        <button type="button" class="btn disabled" id="submitBtn" onclick="doSubmit()">
+          Submit registration
+        </button>
+
+        <!--
+          GENUINELY disabled twin: native `disabled` attribute, identical grey.
+          Exempt from 1.4.3. Same pixels, opposite verdict.
+        -->
+        <button type="button" class="btn" id="draftBtn" disabled>
+          Save draft (coming soon)
+        </button>
+      </div>
+
+      <p class="receipt" id="receipt" role="status">Thanks — your registration was received.</p>
+    </form>
+  </main>
+
+  <script>
+    // The faux-disabled button really works. Clicking or pressing Enter submits.
+    function doSubmit() {
+      var f = document.getElementById('vol');
+      // (no network — local only) pretend-submit
+      document.getElementById('receipt').style.display = 'block';
+      document.getElementById('submitBtn').textContent = 'Registration submitted';
+    }
+  </script>
+</body>
+</html>

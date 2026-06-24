@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tideline Sea-Swimming Club — Member Hub</title>
+<!--
+  WHY THIS NEEDS A HUMAN (not just a smarter automated rule):
+
+  The defect lives in ::placeholder text, BUT it is engineered so that a
+  checker which simply "samples ::placeholder color vs the field background
+  color" still cannot resolve it. Two independent human judgments are required:
+
+  (A) NON-UNIFORM BACKGROUND (per WCAG F83). The failing field
+      (#tideline-postcode) does NOT have a single background color. Its fill
+      is a CSS linear-gradient (a "frosted" glass field) running from a pale
+      tint to a deeper teal. The placeholder grey (#9aa0a6) therefore has a
+      DIFFERENT contrast ratio under every glyph: ~2.48:1 over the light end
+      down to ~1.53:1 over the deep-teal end. There is no single computed
+      background color for a contrast engine to read — getComputedStyle returns
+      a background-image, not a color. F83 requires a human to judge contrast
+      against "those parts of the image that are most like the text and behind
+      the text" (the least-contrast region governs). That is an eyedropper /
+      visual judgment, not a CSSOM lookup. (The whole range fails, so the
+      VERDICT is failed; the difficulty is establishing it without a flat color.)
+
+  (B) IN-SCOPE vs DECORATIVE placeholder (semantic judgment). The page has a
+      SECOND faint placeholder — the "newsletter" field (#tideline-promo) shows
+      faint grey filler ("the cold never bothered the regulars") at ~1.66:1 on
+      white. A naive ::placeholder-aware checker would flag THAT one too. But it
+      is purely decorative flavour copy that conveys no information and could be
+      rearranged or removed without changing meaning, so the 1.4.3 Understanding
+      EXCLUDES it ("Text that is decorative and conveys no information is
+      excluded"). The IN-SCOPE failure is the postcode field, whose placeholder
+      states the REQUIRED input format ("e.g. TR11 4QY") — genuine, meaningful
+      instruction. Distinguishing meaningful instruction from decorative filler
+      is a semantic call automation cannot make; a tool keyed on the color ratio
+      alone would mis-flag the decorative field and/or mis-justify the real one.
+
+  Net: typed values are dark (#16201f, ~9.7-15.7:1) and pass everywhere, so a
+  static text-node scan is all-green; and even a ::placeholder-aware rule is
+  defeated by the gradient background (A) and the decorative carve-out (B).
+-->
+<style>
+  :root { --ink:#16201f; --deep:#0f4c47; --paper:#fff; --wash:#eef5f3; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Avenir Next","Segoe UI",system-ui,sans-serif; color:var(--ink); background:var(--wash); }
+  header { background:var(--deep); color:#eafffb; padding:16px 24px; }
+  header .brand { font-weight:700; font-size:1.2rem; letter-spacing:.3px; }
+  header .tag { font-size:.85rem; color:#bfe9e2; margin-top:2px; }
+  main { max-width:760px; margin:28px auto; padding:0 20px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .lede { color:#33514c; margin:0 0 26px; }
+  .panel { background:#fff; border:1px solid #d6e4e0; border-radius:10px; padding:20px 22px; margin-bottom:22px; }
+  .panel h2 { font-size:1.05rem; margin:0 0 12px; color:#16201f; }
+  label { display:block; font-size:.9rem; font-weight:600; margin:0 0 6px; color:#23433e; }
+  .field { width:100%; padding:11px 14px; font-size:1rem; border:1px solid #b9cfc9;
+           border-radius:7px; color:var(--ink); }
+  .hint { font-size:.8rem; color:#3a554f; margin:6px 0 0; }
+
+  /* === IN-SCOPE FAILURE: postcode field has a GRADIENT fill (no single bg color). ===
+     Placeholder grey #9aa0a6 over this gradient = ~2.48:1 (light end) .. ~1.53:1 (deep end).
+     The placeholder states the REQUIRED format, so it is meaningful, in-scope text. */
+  #tideline-postcode {
+    background-image: linear-gradient(100deg, #f4f9f8 0%, #dcece8 38%, #c2ddd6 70%, #a8cdc4 100%);
+  }
+  #tideline-postcode::placeholder        { color:#9aa0a6; opacity:1; }
+  #tideline-postcode::-webkit-input-placeholder { color:#9aa0a6; }
+
+  /* === DECORATIVE (EXCLUDED): newsletter "vibe" filler, faint grey on white (~1.66:1).
+     Conveys no information; could be removed/rearranged without changing meaning. ===
+     A color-only checker would mis-flag this; the human carve-out excludes it. */
+  #tideline-promo::placeholder           { color:#c9c9c9; opacity:1; }
+  #tideline-promo::-webkit-input-placeholder { color:#c9c9c9; }
+
+  /* Control: a CORRECT field. Placeholder is dark enough AND on a flat bg (passes). */
+  #tideline-name { background:#fff; }
+  #tideline-name::placeholder            { color:#4d6660; opacity:1; }  /* ~6.0:1 on white — fine */
+
+  .row { display:flex; gap:16px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:220px; }
+  button.cta { margin-top:14px; border:1px solid var(--deep); background:var(--deep); color:#fff;
+               padding:11px 20px; border-radius:7px; font-size:.95rem; cursor:pointer; }
+  footer { max-width:760px; margin:30px auto; padding:16px 20px; color:#3a554f; font-size:.83rem; border-top:1px solid #d6e4e0; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">🌊 Tideline Sea-Swimming Club</div>
+    <div class="tag">Cold-water dips, tide tables &amp; the after-swim flask run</div>
+  </header>
+
+  <main>
+    <h1>Join the Tideline crew</h1>
+    <p class="lede">Sign up for the weekend swim roster. We use your postcode to put you in the nearest beach group.</p>
+
+    <form class="panel" action="#joined" method="get" novalidate>
+      <h2>Membership details</h2>
+
+      <div class="row">
+        <div>
+          <label for="tideline-name">Full name</label>
+          <!-- Control: placeholder is legible (dark grey on flat white) — passes. -->
+          <input id="tideline-name" name="name" type="text" class="field"
+                 autocomplete="name" placeholder="Maren Holloway">
+          <p class="hint">As you'd like it on the swim-group list.</p>
+        </div>
+
+        <div>
+          <label for="tideline-postcode">Home postcode</label>
+          <!-- IN-SCOPE FAILURE: placeholder states the REQUIRED format, painted on a
+               gradient field. Empty on load, so the only text here is the faint prompt. -->
+          <input id="tideline-postcode" name="postcode" type="text" class="field"
+                 inputmode="text" autocomplete="postal-code"
+                 placeholder="e.g. TR11 4QY — used to find your beach group">
+          <p class="hint">UK postcode, with the space.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <label for="tideline-promo">Add a swim mantra <span style="font-weight:400;color:#5a716c;">(optional, just for fun)</span></label>
+        <!-- DECORATIVE / EXCLUDED: faint filler is flavour text that conveys no
+             information and could be removed without changing meaning. -->
+        <input id="tideline-promo" name="promo" type="text" class="field"
+               placeholder="the cold never bothered the regulars">
+        <p class="hint">Shown on your member card. Leave blank if you'd rather not.</p>
+      </div>
+
+      <button type="submit" class="cta">Join the roster</button>
+    </form>
+
+    <section class="panel">
+      <h2>This weekend's tides</h2>
+      <p>Saturday low water 07:42 · Sunday low water 08:31. Meet at the slipway 20 minutes before for the briefing.
+         Flasks and dry robes by the rocks as usual.</p>
+    </section>
+  </main>
+
+  <footer>
+    Tideline Sea-Swimming Club · Gyllyngvase Beach, Falmouth · Dip at your own risk · Renders from file://
+  </footer>
+</body>
+</html>

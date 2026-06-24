@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pinegrove Outfitters — Shop</title>
+<!--
+  SC 1.4.13 Content on Hover or Focus — HOVERABLE limb — F95 (diagonal dead-zone).
+
+  THE DEFECT: a vertical category sidebar where hovering a top-level item ("Camp
+  & Hike") reveals a flyout submenu OFFSET TO THE RIGHT. Reveal is CSS-only:
+        .cat:hover > .flyout { ... visible ... }
+  Critically, the flyout is positioned with left:230px — there is a HORIZONTAL GAP
+  between the right edge of the category row (width ~210px) and the left edge of the
+  flyout (starts at 230px). The flyout is a child of .cat in the DOM, BUT it is not
+  geometrically contiguous: a ~20px transparent corridor sits between them, and
+  because the submenu rows are shorter/taller than the parent row, the only way to
+  reach the lower submenu items is to move the pointer DIAGONALLY down-and-right.
+
+  That diagonal path leaves the bounding box of BOTH .cat and .flyout (it passes
+  through the empty area below the category row and left of the flyout). The instant
+  the pointer is over neither element, :hover is false on .cat, the CSS rule stops
+  matching, and .flyout collapses — before the cursor arrives. There is no shared
+  hover region spanning the diagonal, and no "hover bridge"/intent buffer. Classic
+  flyout dead-zone: you must move perfectly horizontally then down, but the natural
+  diagonal kills the menu.
+
+  WHY AUTOMATED TOOLS MISS IT: no 1.4.13 automated rule. The menu is a valid nested
+  <ul>; the flyout is a real DOM descendant of the category (so a "is the popup a
+  child of the trigger?" heuristic says PASS); links have good contrast; the menu
+  also opens on focus-within for keyboard users (so 2.1.1 passes). Whether a
+  diagonal pointer path stays within a continuous hover region is a geometric
+  simulation: it depends on the 20px horizontal gap, the row heights, and the
+  absence of a bridging hot-zone. No static checker traces a diagonal cursor.
+-->
+<style>
+  :root{ --ink:#1d2520; --muted:#6b756e; --line:#dde3df; --bg:#ffffff;
+         --brand:#2f6b3c; --panel:#f4f7f5; }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+       font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{display:flex; align-items:center; gap:14px; padding:14px 24px; border-bottom:1px solid var(--line);}
+  header .brand{font-weight:700; color:var(--brand);}
+  header .tag{color:var(--muted); font-size:.9rem;}
+  .layout{display:flex; gap:28px; max-width:1000px; margin:0 auto; padding:24px;}
+
+  /* Category sidebar */
+  nav.cats{width:210px; flex:0 0 auto;}
+  nav.cats h2{font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px;}
+  ul.catlist{list-style:none; margin:0; padding:0; position:relative;}
+  li.cat{position:relative;}
+  li.cat > a{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 12px; text-decoration:none; color:var(--ink); border-radius:8px;
+  }
+  li.cat > a:hover, li.cat:focus-within > a{background:var(--panel);}
+  li.cat > a .chev{color:var(--muted);}
+
+  /* THE FLYOUT: a DOM child of li.cat, but positioned with a horizontal GAP. The
+     category row is ~210px wide; the flyout starts at left:230px → ~20px corridor. */
+  .flyout{
+    position:absolute; top:0; left:230px; width:220px;
+    background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 10px 28px rgba(0,0,0,.12); padding:8px;
+    opacity:0; visibility:hidden; transition:opacity .08s linear;
+  }
+  /* Reveal ONLY while the category itself is hovered/focused. Nothing bridges the
+     20px corridor, and the flyout's taller height means lower items require a
+     diagonal path that leaves both boxes. */
+  li.cat:hover > .flyout,
+  li.cat:focus-within > .flyout{opacity:1; visibility:visible;}
+  .flyout a{display:block; padding:8px 10px; text-decoration:none; color:var(--ink); border-radius:6px; font-size:.92rem;}
+  .flyout a:hover{background:var(--panel);}
+  .flyout .grp{font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:6px 10px 2px;}
+
+  /* Main content */
+  main{flex:1 1 auto;}
+  main h1{font-size:1.4rem; margin:0 0 6px;}
+  .lede{color:var(--muted); margin:0 0 18px;}
+  .grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
+  .prod{border:1px solid var(--line); border-radius:10px; padding:14px;}
+  .prod .ph{height:90px; border-radius:8px; background:linear-gradient(135deg,#cfe3d4,#9fc6a8); margin-bottom:10px;}
+  .prod .nm{font-weight:600;}
+  .prod .pr{color:var(--brand); font-weight:700;}
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Pinegrove Outfitters</span>
+  <span class="tag">Gear for the long way round</span>
+</header>
+
+<div class="layout">
+  <nav class="cats" aria-label="Shop categories">
+    <h2>Shop by category</h2>
+    <ul class="catlist">
+      <li class="cat">
+        <a href="/c/camp-hike">Camp &amp; Hike <span class="chev" aria-hidden="true">›</span></a>
+        <div class="flyout" role="group" aria-label="Camp &amp; Hike subcategories">
+          <span class="grp">Shelter</span>
+          <a href="/c/tents">Tents</a>
+          <a href="/c/tarps">Tarps &amp; bivys</a>
+          <span class="grp">Sleep</span>
+          <a href="/c/bags">Sleeping bags</a>
+          <a href="/c/pads">Sleeping pads</a>
+          <a href="/c/pillows">Camp pillows</a>
+        </div>
+      </li>
+      <li class="cat">
+        <a href="/c/climb">Climb <span class="chev" aria-hidden="true">›</span></a>
+        <div class="flyout" role="group" aria-label="Climb subcategories">
+          <span class="grp">Hardware</span>
+          <a href="/c/ropes">Ropes</a>
+          <a href="/c/draws">Quickdraws</a>
+          <a href="/c/cams">Cams &amp; nuts</a>
+          <span class="grp">Soft goods</span>
+          <a href="/c/harness">Harnesses</a>
+          <a href="/c/shoes">Climbing shoes</a>
+        </div>
+      </li>
+      <li class="cat">
+        <a href="/c/water">Paddle &amp; Water <span class="chev" aria-hidden="true">›</span></a>
+        <div class="flyout" role="group" aria-label="Paddle and Water subcategories">
+          <a href="/c/pfd">PFDs</a>
+          <a href="/c/dry">Dry bags</a>
+          <a href="/c/paddles">Paddles</a>
+        </div>
+      </li>
+    </ul>
+  </nav>
+
+  <main>
+    <h1>This week&apos;s picks</h1>
+    <p class="lede">Hover a category on the left to browse subcategories.</p>
+    <div class="grid">
+      <div class="prod"><div class="ph"></div><div class="nm">Ridgeline 2 Tent</div><div class="pr">$289</div></div>
+      <div class="prod"><div class="ph"></div><div class="nm">Featherbag 20°</div><div class="pr">$214</div></div>
+      <div class="prod"><div class="ph"></div><div class="nm">Granite Pad XL</div><div class="pr">$129</div></div>
+      <div class="prod"><div class="ph"></div><div class="nm">Cascade Dry Sack 30L</div><div class="pr">$38</div></div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

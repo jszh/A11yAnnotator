@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete account · Beacon Analytics</title>
+<style>
+  :root { --ink:#1f2733; --muted:#5b6573; --danger:#b3261e; --danger-bg:#fdeceb; --line:#dfe3e8; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color: var(--ink); margin: 0; background: #f4f6f8; }
+  .shell { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+  header.app { display:flex; align-items:center; gap:10px; margin-bottom: 28px; }
+  header.app .logo { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg,#2563eb,#7c3aed); }
+  header.app strong { font-size: 16px; }
+  nav.crumbs { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+  nav.crumbs a { color: var(--muted); }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  .lead { color: var(--muted); margin: 0 0 28px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius: 12px; padding: 22px; }
+  .danger-zone { border-color: #f3c9c6; }
+  .danger-zone h2 { color: var(--danger); font-size: 16px; margin: 0 0 8px; display:flex; align-items:center; gap:8px; }
+  .danger-zone p { color: var(--muted); margin: 0 0 18px; }
+  label.confirm { display:block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input[type=text] { width: 100%; padding: 9px 11px; border:1px solid var(--line); border-radius: 8px; font: inherit; margin-bottom: 18px; }
+  .hold-btn {
+    appearance: none; border: 0; cursor: pointer; font: 600 14px/1 inherit;
+    color:#fff; background: var(--danger); border-radius: 9px; padding: 13px 18px;
+    position: relative; overflow: hidden; width: 100%; text-align:center;
+  }
+  .hold-btn:focus-visible { outline: 3px solid #f3a39d; outline-offset: 2px; }
+  .hold-btn .fill { position:absolute; inset:0; background: rgba(0,0,0,.22); width:0%; transition: width 60ms linear; }
+  .hold-btn .txt { position: relative; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .status { margin-top:16px; font-size:14px; min-height: 20px; }
+  .status.ok { color:#0a7d33; }
+  .note { margin-top: 40px; padding: 16px 18px; background:#eef2f7; border-radius:10px; font-size:12.5px; color:#48515e; }
+  .note code { background:#dfe5ec; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="app"><span class="logo" aria-hidden="true"></span><strong>Beacon Analytics</strong></header>
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Settings</a> › <a href="#">Account</a> › <span aria-current="page">Delete account</span></nav>
+
+  <h1>Delete your account</h1>
+  <p class="lead">This permanently removes your workspace, dashboards, and 14 months of event history. This cannot be undone.</p>
+
+  <section class="card danger-zone" aria-labelledby="dz">
+    <h2 id="dz">⚠ Danger zone</h2>
+    <p>To confirm, type your workspace slug below, then activate the button to delete the account.</p>
+
+    <label class="confirm" for="slug">Type <strong>beacon-prod</strong> to confirm</label>
+    <input type="text" id="slug" autocomplete="off" spellcheck="false" placeholder="beacon-prod">
+
+    <button class="hold-btn" id="delBtn" type="button" aria-describedby="delHint">
+      <span class="fill" id="fill" aria-hidden="true"></span>
+      <span class="txt" id="btnTxt">Hold to delete account</span>
+    </button>
+    <p class="hint" id="delHint">Press and hold to confirm deletion.</p>
+
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <div class="note">
+    <p><strong>Why automated checkers pass this page:</strong> The button is a real
+    <code>&lt;button&gt;</code>, in the tab order, with a visible label and an accessible
+    name, and it responds to keyboard events (it is fully reachable and focusable). axe-core,
+    WAVE, and Lighthouse confirm role/name/keyboard-reachability and report no error. What they
+    cannot observe is that activation requires the Enter or Space key to be <em>held down for a
+    sustained 2 seconds</em> (a <code>keydown</code>/<code>keyup</code> duration gate): a normal
+    tap of Enter does nothing. There is no untimed keyboard path to the same function anywhere on
+    the page. This fails the second limb of SC 2.1.1 (no specific keystroke timing), which a
+    static scan cannot infer from markup.</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var REQUIRED_MS = 2000;
+  var btn = document.getElementById('delBtn');
+  var fill = document.getElementById('fill');
+  var txt = document.getElementById('btnTxt');
+  var status = document.getElementById('status');
+  var slug = document.getElementById('slug');
+
+  var holding = false, startedAt = 0, raf = 0, fired = false;
+
+  function ready() { return slug.value.trim() === 'beacon-prod'; }
+
+  function tick() {
+    if (!holding) return;
+    var elapsed = Date.now() - startedAt;
+    var pct = Math.min(100, (elapsed / REQUIRED_MS) * 100);
+    fill.style.width = pct + '%';
+    if (elapsed >= REQUIRED_MS && !fired) {
+      fired = true;
+      holding = false;
+      txt.textContent = 'Account deleted';
+      status.className = 'status ok';
+      status.textContent = 'Your account and all data have been permanently deleted.';
+      btn.disabled = true;
+      return;
+    }
+    raf = requestAnimationFrame(tick);
+  }
+
+  function startHold() {
+    if (fired || btn.disabled) return;
+    if (!ready()) {
+      status.className = 'status';
+      status.textContent = 'Type the workspace slug exactly to enable deletion.';
+      return;
+    }
+    holding = true;
+    startedAt = Date.now();
+    status.className = 'status';
+    status.textContent = 'Keep holding…';
+    raf = requestAnimationFrame(tick);
+  }
+
+  function cancelHold() {
+    if (fired) return;
+    holding = false;
+    cancelAnimationFrame(raf);
+    fill.style.width = '0%';
+    if (!btn.disabled) status.textContent = '';
+  }
+
+  // Pointer path (mouse/touch) — held press works for pointer users.
+  btn.addEventListener('mousedown', startHold);
+  btn.addEventListener('mouseup', cancelHold);
+  btn.addEventListener('mouseleave', cancelHold);
+
+  // Keyboard path — DELIBERATELY gated on key HOLD DURATION.
+  // A single tap of Enter/Space sends keydown then keyup almost immediately:
+  // the fill never reaches 100%, so nothing happens. The keystroke must be
+  // physically held ~2s. Switch / sip-and-puff / speech-input / on-screen-keyboard
+  // users cannot sustain a single keystroke; they have no untimed path here.
+  btn.addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') && !e.repeat) {
+      e.preventDefault();   // suppress the browser's default click-on-Enter activation
+      startHold();
+    }
+  });
+  btn.addEventListener('keyup', function (e) {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      cancelHold();
+    }
+  });
+  btn.addEventListener('blur', cancelHold);
+})();
+</script>
+</body>
+</html>

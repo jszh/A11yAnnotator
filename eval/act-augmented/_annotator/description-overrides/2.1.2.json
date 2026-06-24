@@ -1,0 +1,17 @@
+{
+  "esc-standard-exit-method-no-advice-owed/case-03": {
+    "mechanism": "The advice element #gridHelp (aria-describedby on #grid) tells users to press Ctrl+Alt+G to leave the result grid, but the keydown handler checks e.ctrlKey && e.altKey && e.code === 'KeyB' (Ctrl+Alt+B). The advertised exit never fires; Tab, arrow keys and Escape are all preventDefault'd, so no keyboard method releases focus and only Ctrl+Alt+B focuses #signLink.",
+    "scenario": "Clinical lab-results entry app (Helix Clinical Informatics) with a spreadsheet-style editable CBC result grid (#grid) of contenteditable role=textbox cells. A visible note plus aria-describedby (#gridHelp) advises an exit combo Ctrl+Alt+G, but the wired handler matches Ctrl+Alt+B; advice and implementation disagree, leaving the keyboard user trapped in the cells.",
+    "note": "Primary selector should be #grid, not #modal. The Meridian Credit Union OTP modal, #vHelp, and the keyCode===13/Enter bug are all wrong; the real defect is Ctrl+Alt+G advised vs Ctrl+Alt+B coded (e.code==='KeyB')."
+  },
+  "esc-standard-exit-method-no-advice-owed/case-05": {
+    "mechanism": "The #calGrid (role=grid) keydown handler intercepts Tab and Shift+Tab and redirects focus to another day cell, clamps arrow keys at the grid edges, and preventDefaults Escape without wiring any exit. No standard method moves focus out of the calendar and no advice names an escape key, so focus is trapped on the day cells; only the mouse leaves.",
+    "scenario": "Meeting-room booking form (Atrium Coworking) containing an APG-style date-picker grid (#calGrid) with roving-tabindex day buttons. The grid is structurally valid but every day cell traps Tab/Shift+Tab/arrows/Esc, so a keyboard user who lands on a day cannot reach the Start-time select or name field.",
+    "note": "Primary selector should be #calGrid, not #promo. The Aurora Hall theatre seat-picker modal, #dlg, .seat buttons, and the #promo stopPropagation positional trap do not exist; the real trap is a date-picker grid swallowing Tab/Esc."
+  },
+  "esc-standard-exit-method-no-advice-owed/case-06": {
+    "mechanism": "The #plan grid keydown handler captures Tab and Shift+Tab and wraps focus back inside the gridcells of this non-modal widget, so focus never reaches the Save plan button, dashboard link or footer nav. The only release is the undocumented, non-standard Ctrl+Shift+ArrowDown which focuses #saveBtn; nothing on the page advises it.",
+    "scenario": "Weekly training-plan app (Cadence) with a single ARIA session grid (#plan, role=grid) of day/time gridcells using roving tabindex. The non-modal grid traps Tab/Shift+Tab inside the cells, making the Save plan button and account nav unreachable by keyboard.",
+    "note": "Primary selector should be #plan, not #lbType. The RTL Arabic real-estate dual-listbox, #lbArea, #areaNext, and Ctrl+Shift+X do not exist; this is a single LTR session grid whose release combo is Ctrl+Shift+ArrowDown, with no passing foil widget."
+  }
+}

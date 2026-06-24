@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renew your driving licence — DVLA-style service</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  Every form control on this page has a correctly associated, VISIBLE label and a
+  visible, programmatically linked format instruction (via aria-describedby). axe / WAVE
+  / Lighthouse confirm: <label for> resolves, the hint is non-empty and in the
+  accessibility tree, contrast is fine, role textbox, nothing hidden. The page therefore
+  PASSES every structural facet of 3.3.2 — "a visible label/instruction is present" (TT
+  test 5.A) is true for the date field.
+  THE DEFECT IS SEMANTIC: the visible instruction for the date-of-birth field reads
+  "Format: MM/DD/YYYY" but the field's ENFORCED rule (pattern + maxlength + the inline
+  validator) accepts only DD/MM/YYYY. A user who literally follows the printed
+  instruction and types their birth month first (e.g. an American-style 03/04/1990 for
+  4 March) is REJECTED, while the contradicting input the field actually wants is never
+  stated. No checker reads the prose hint, parses the pattern attribute, and judges that
+  the two specify OPPOSITE field orders. Catching this needs a human to read the hint,
+  infer the enforced rule, and notice they disagree.
+-->
+<style>
+  :root{ --ink:#0b0c0c; --muted:#505a5f; --line:#b1b4b6; --brand:#1d70b8; --green:#00703c;
+         --danger:#d4351c; --paper:#fff; --focus:#fd0; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:18px/1.5 "GDS Transport","Helvetica Neue",Arial,sans-serif;
+        color:var(--ink); background:#f3f2f1; }
+  .phase{ background:var(--paper); border-bottom:1px solid var(--line); padding:10px 0; }
+  .wrap{ max-width:640px; margin:0 auto; padding:0 20px; }
+  .phase .tag{ display:inline-block; background:var(--brand); color:#fff; font-size:.75rem;
+        font-weight:700; padding:3px 8px; text-transform:uppercase; letter-spacing:.5px; }
+  main{ padding:34px 0 60px; }
+  h1{ font-size:2rem; line-height:1.1; margin:0 0 8px; }
+  .lede{ color:var(--muted); margin:0 0 30px; }
+  fieldset{ border:0; margin:0 0 26px; padding:0; }
+  legend{ font-weight:700; font-size:1.15rem; padding:0; }
+  .group{ margin:0 0 28px; }
+  label{ display:block; font-weight:700; margin:0 0 4px; }
+  .hint{ color:var(--muted); font-size:.95rem; margin:0 0 8px; }
+  input[type=text]{ width:100%; max-width:18ch; padding:8px 10px; font-size:1.05rem;
+        border:2px solid var(--ink); border-radius:0; background:#fff; }
+  input.full{ max-width:100%; }
+  input:focus{ outline:4px solid var(--focus); outline-offset:0; box-shadow:inset 0 0 0 2px var(--ink); }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  .err{ color:var(--danger); font-weight:700; font-size:.95rem; margin:6px 0 0;
+        padding-left:14px; border-left:4px solid var(--danger); }
+  button{ margin-top:10px; background:var(--green); color:#fff; border:0; border-radius:0;
+        font-size:1.1rem; font-weight:700; padding:12px 22px; cursor:pointer;
+        box-shadow:0 2px 0 #002d18; }
+  button:focus{ outline:4px solid var(--focus); outline-offset:0; }
+  .ok{ color:var(--green); font-weight:700; font-size:.9rem; }
+  .live{ min-height:1.2em; margin:18px 0 0; }
+</style>
+</head>
+<body>
+  <div class="phase"><div class="wrap"><span class="tag">Beta</span>
+    &nbsp;This is a new service — your feedback will help us improve it.</div></div>
+  <main>
+    <div class="wrap">
+      <h1>Renew your driving licence</h1>
+      <p class="lede">Section 2 of 5 — confirm your personal details exactly as they appear on your current licence.</p>
+
+      <form action="#" method="post" novalidate id="form" autocomplete="off">
+
+        <!-- ALWAYS-CORRECT CONTROL (contrast): hint matches the enforced rule. -->
+        <div class="group">
+          <label for="licence">Driving licence number</label>
+          <p class="hint" id="licence-hint">16 characters, no spaces — for example MORGA753116SM9IJ.</p>
+          <input type="text" id="licence" name="licence" class="full"
+                 aria-describedby="licence-hint"
+                 maxlength="16" pattern="[A-Za-z0-9]{16}" inputmode="text">
+        </div>
+
+        <!-- DEFECTIVE CONTROL: visible hint says MM/DD/YYYY, the field enforces DD/MM/YYYY. -->
+        <div class="group">
+          <label for="dob">Date of birth</label>
+          <p class="hint" id="dob-hint">Format: MM/DD/YYYY — for example 03/27/1986.</p>
+          <input type="text" id="dob" name="dob"
+                 aria-describedby="dob-hint dob-err"
+                 maxlength="10"
+                 pattern="(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}"
+                 inputmode="numeric" placeholder="">
+          <p class="err" id="dob-err" hidden></p>
+        </div>
+
+        <button type="submit">Continue</button>
+        <p class="live" id="live" role="status" aria-live="polite"></p>
+      </form>
+
+      <p style="margin-top:26px;color:#505a5f;font-size:.8rem">DVLA-style demo · renders from file:// · no data leaves this page</p>
+    </div>
+  </main>
+
+<script>
+(function(){
+  var form = document.getElementById('form');
+  var dob  = document.getElementById('dob');
+  var err  = document.getElementById('dob-err');
+  var live = document.getElementById('live');
+
+  // The ENFORCED rule: strictly DD/MM/YYYY (day 01-31 first, then month 01-12).
+  // This DIRECTLY contradicts the visible hint "Format: MM/DD/YYYY".
+  var DDMMYYYY = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = dob.value.trim();
+    if (DDMMYYYY.test(v)) {
+      dob.setAttribute('aria-invalid','false');
+      err.hidden = true;
+      live.textContent = 'Details accepted.';
+      live.className = 'live ok';
+    } else {
+      dob.setAttribute('aria-invalid','true');
+      // The error states the REAL rule — but only AFTER rejection, contradicting the printed hint.
+      err.textContent = 'Enter your date of birth as DD/MM/YYYY, for example 27/03/1986.';
+      err.hidden = false;
+      live.textContent = 'There is a problem with the date of birth.';
+      live.className = 'live';
+      dob.focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

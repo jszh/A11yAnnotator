@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northbank — Verify this sign-in</title>
+<style>
+  body { font:15px/1.55 'Inter',system-ui,Arial,sans-serif; margin:0; color:#1b232e; background:#eef1f5; }
+  .bar { background:#0f3d2e; color:#eaf4ee; padding:11px 20px; font-weight:700; letter-spacing:.4px; }
+  .page { max-width:560px; margin:30px auto; }
+  .card { background:#fff; border:1px solid #d6dde6; border-radius:12px; padding:24px 26px; margin-bottom:18px; }
+  h1 { font-size:20px; margin:0 0 6px; }
+  .sub { color:#5a6573; margin:0 0 18px; }
+  .security { border:1.5px solid #b42318; background:#fff4f3; border-radius:10px; padding:14px 16px; }
+  .security strong { color:#912018; }
+  .countdown { font-variant-numeric:tabular-nums; font-weight:700; }
+  .code-entry { display:flex; gap:10px; margin-top:14px; }
+  .code-entry input { flex:1; padding:11px 12px; font-size:18px; letter-spacing:4px; text-align:center; border:1.5px solid #cdd5df; border-radius:8px; }
+  .code-entry button { background:#0f3d2e; color:#fff; border:0; padding:0 20px; border-radius:8px; font-weight:700; cursor:pointer; }
+  .activity { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+  .activity .badge { font-size:13px; color:#5a6573; }
+  .toggle { font-size:13px; }
+  .toggle button { background:#fff; border:1.5px solid #0f3d2e; color:#0f3d2e; border-radius:999px; padding:5px 12px; font-weight:600; cursor:pointer; }
+  .toggle button[aria-pressed="true"] { background:#0f3d2e; color:#fff; }
+  .note { background:#eaf6ef; border:1px solid #b9e0c9; border-radius:9px; padding:14px 16px; font-size:13px; color:#1f4633; }
+  code { background:#e2ebe5; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+</style>
+</head>
+<body>
+<div class="bar">NORTHBANK</div>
+
+<div class="page">
+  <!--
+    CORRECT CASE A — time-critical security message wired ASSERTIVE (role=alert).
+    A one-time verification code expires in 60 seconds and the sign-in is BLOCKED until
+    it is entered. This is a genuinely urgent, action-blocking message, so role="alert"
+    (assertive) is the RIGHT politeness: it interrupts to ensure the user hears the
+    deadline in time to act. Matching meaning (urgent/blocking) to politeness (assertive).
+  -->
+  <section class="card">
+    <h1>Verify this sign-in</h1>
+    <p class="sub">We sent a 6-digit code to your phone ending •• 41.</p>
+
+    <div class="security" id="securityMsg" role="alert" aria-atomic="true">
+      <strong>Unusual sign-in detected.</strong> Enter your code within
+      <span class="countdown" id="cd">60</span> seconds or this attempt will be blocked
+      and you will need to start over.
+    </div>
+
+    <div class="code-entry">
+      <label for="otp" style="position:absolute;left:-9999px;">6-digit verification code</label>
+      <input id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
+      <button type="button">Verify</button>
+    </div>
+  </section>
+
+  <!--
+    CORRECT CASE B — low-value, high-frequency status wired POLITE, plus an SCR14 toggle.
+    A "recent account activity" badge updates every few seconds. It is non-urgent and
+    chatty by nature, so it is wired aria-live="polite" (queues behind ongoing speech,
+    never interrupts) AND given an on/off toggle exactly as SCR14 prescribes for
+    nonessential alerts. Matching meaning (trivial/frequent) to politeness (polite +
+    opt-out).
+  -->
+  <section class="card">
+    <div class="activity">
+      <div>
+        <h2 style="font-size:15px;margin:0 0 4px;">Recent account activity</h2>
+        <span class="badge" id="activityMsg" aria-live="polite" aria-atomic="true">Devices currently signed in: 2</span>
+      </div>
+      <span class="toggle">
+        <button type="button" id="liveToggle" aria-pressed="true">Live updates: On</button>
+      </span>
+    </div>
+  </section>
+
+  <div class="note">
+    <strong>Why this page passes:</strong> both status messages are present, valid live
+    regions <em>and</em> their politeness matches their meaning. The blocking
+    code-expiry warning is <code>role="alert"</code> (assertive) so the user hears the
+    deadline in time; the trivial device-count badge is <code>aria-live="polite"</code>
+    so it queues behind speech and never interrupts, and it carries an on/off toggle per
+    SCR14. Automated checkers also pass it — but here they pass it for the right reason:
+    a human reviewer confirms the urgency-to-politeness mapping is correct in both
+    directions.
+  </div>
+</div>
+
+<script>
+  // CASE A: a real 60-second countdown in the ASSERTIVE security region.
+  var cd = document.getElementById('cd');
+  var left = 60;
+  var cdTimer = setInterval(function () {
+    left -= 1;
+    cd.textContent = left;
+    // Note: only the inner counter text changes; the region is aria-atomic so the AT
+    // re-announces the whole warning when the author chooses to update it. The page
+    // updates the visible number every second but the urgent wording is what matters.
+    if (left <= 0) { clearInterval(cdTimer); }
+  }, 1000);
+
+  // CASE B: a low-value device-count badge updated every few seconds in the POLITE
+  // region, with an SCR14-style toggle to turn announcements off entirely.
+  var activity = document.getElementById('activityMsg');
+  var toggle   = document.getElementById('liveToggle');
+  var counts   = [2, 2, 3, 2, 3, 3, 2];
+  var idx = 0;
+  var live = true;
+
+  var activityTimer = setInterval(function () {
+    idx = (idx + 1) % counts.length;
+    if (live) {
+      activity.textContent = 'Devices currently signed in: ' + counts[idx];
+    }
+  }, 4000);
+
+  toggle.addEventListener('click', function () {
+    live = !live;
+    toggle.setAttribute('aria-pressed', String(live));
+    toggle.textContent = 'Live updates: ' + (live ? 'On' : 'Off');
+    // SCR14: turning updates off sets the region inert so no further announcements fire.
+    activity.setAttribute('aria-live', live ? 'polite' : 'off');
+  });
+</script>
+</body>
+</html>

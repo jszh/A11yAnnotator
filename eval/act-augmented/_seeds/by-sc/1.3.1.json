@@ -1,0 +1,761 @@
+{
+  "sc": "1.3.1",
+  "count": 51,
+  "patterns": [
+    {
+      "platform": "Squarespace blog/collection pages (multiple themes)",
+      "name": "Multiple H1s — one per article title on a listing page",
+      "description": "Squarespace blog index and collection pages output the site/page title as an H1 and then render EACH article title in the feed as its own H1, producing many H1s on one page. Screen-reader users navigating by heading level get a flat, ambiguous outline with no single page topic and no h2-level grouping of the list.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<h1 class=\"page-title\">Journal</h1>\n<article><h1 class=\"blog-title\"><a href=\"/journal/post-1\">First Post</a></h1></article>\n<article><h1 class=\"blog-title\"><a href=\"/journal/post-2\">Second Post</a></h1></article>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Multiple H1s are technically valid HTML5 and most automated rules only warn (or not at all) about it; whether the heading hierarchy actually communicates the page's structure is a semantic judgment. axe flags 'page-has-heading-one' as satisfied, not violated.",
+      "realWorldNote": "Amy Carney's Squarespace audit: 'Multiple H1 headings on single page (one per article title) despite page already having H1.' https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Squarespace 404 / system pages",
+      "name": "System page reuses generic title and has no H1",
+      "description": "The default 404 page (and some system pages) ships with no option for an H1 and inherits a non-unique page title, so AT users who land there get a page with no main heading and a <title> that doesn't say it's a 'Page Not Found' page, leaving them disoriented about where they are.",
+      "wcagScs": [
+        "2.4.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<title>My Studio</title>\n<main><!-- 404 copy but no <h1> --></main>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A <title> is present and non-empty, so 'document-title' passes; whether it actually describes THIS page (vs. being the generic site title repeated) is a semantic comparison a human must make. A missing h1 is at most a warning, not a hard failure, in most scanners.",
+      "realWorldNote": "Amy Carney's Squarespace audit: 404 page has 'no H1 heading option available' and is 'missing a unique page title.' https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Squarespace / Wix gallery & multi-item blocks",
+      "name": "Visual lists of items not exposed as semantic lists",
+      "description": "Galleries, summary grids, and icon rows render as a pile of sibling divs/anchors rather than <ul><li>, so screen-reader users never hear 'list, 12 items' and lose the count and grouping that sighted users get from the visual grid.",
+      "wcagScs": [
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"gallery-grid\">\n  <div class=\"gallery-item\"><img ...></div>\n  <div class=\"gallery-item\"><img ...></div>\n  <div class=\"gallery-item\"><img ...></div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Divs are valid markup and there's no rule that says 'these siblings should be a list' — recognizing that a visual grid conveys a list relationship that the markup fails to express is a semantic/visual judgment automated tools cannot make.",
+      "realWorldNote": "Amy Carney's Squarespace audit: 'Image galleries not auto-generated as semantic lists.' https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Squarespace / Wix contact & booking forms (custom-styled fields)",
+      "name": "Placeholder used as the only label; errors not programmatically tied to fields",
+      "description": "Custom-styled form fields rely on the placeholder as the visible label (no <label>), so the field's name vanishes once the user types, and error messages are shown as text near the form rather than associated with the offending input (no aria-describedby, no aria-invalid, no focus to the error).",
+      "wcagScs": [
+        "3.3.2",
+        "1.3.1",
+        "4.1.2",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<input type=\"email\" placeholder=\"Email\">\n<div class=\"form-error\">Please enter a valid email.</div>\n<!-- no <label for>, no aria-describedby/aria-invalid linking the message -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe can catch an input with NO accessible name, but a placeholder often supplies a name so the input 'passes'; that the label disappears on input and that the visible error isn't programmatically linked to its field are judgment/behavioral checks. Whether helper text constitutes adequate instructions is semantic.",
+      "realWorldNote": "Wix accessibility guides warn that Wix Forms/Bookings with custom field styling can leave 'labels and error messages not programmatically associated'; Amy Carney found Squarespace form errors not linked to inputs or focused. https://accessibe.com/blog/knowledgebase/wix-website-accessibility",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Divi Contact Form module / Elementor Form widget with placeholder-only fields",
+      "name": "Form field labeled only by placeholder (or label visually hidden by default)",
+      "description": "Divi's Contact Form hides labels by default and relies on placeholder text; Elementor forms are frequently configured the same way. The input has no <label>/aria-label, only a placeholder, so once the user types the label vanishes and screen readers may announce the field as unlabeled. Required-field asterisks are color-only with no text alternative.",
+      "wcagScs": [
+        "1.3.1",
+        "3.3.2",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<p class=\"et_pb_contact_field\">\n  <input type=\"text\" name=\"et_pb_contact_name_0\" placeholder=\"Name\">\n</p>\n<p class=\"et_pb_contact_field\">\n  <input type=\"email\" name=\"et_pb_contact_email_0\" placeholder=\"Email *\">\n</p>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "This one is largely linter-catchable: axe flags inputs with no programmatic label. It is included for completeness, though confirming the placeholder text is the only labeling and that the asterisk's meaning is color-only still benefits from human review.",
+      "realWorldNote": "Divi review: 'The Divi Contact Form module hides labels by default, making it difficult for screen readers to interpret form inputs.' https://reciteme.com/us/news/divi-accessibility/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Elementor Accordion / Toggle widget, Divi Toggle/Accordion module",
+      "name": "Custom accordion header not keyboard-operable / wrong tabindex / missing aria-expanded",
+      "description": "Accordion headers are <div>/<a href=\"#\"> with a jQuery click handler. The clickable element either isn't focusable, or has the wrong tabindex (Elementor puts tabindex on the wrong child so the control is invisible to keyboard), and Enter/Space don't toggle because the handler only listens for click. aria-expanded is missing or, in some builder versions, slapped onto a <summary> where it is invalid.",
+      "wcagScs": [
+        "2.1.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"elementor-tab-title\" data-tab=\"1\" role=\"tab\">\n  Section One\n</div>\n<div class=\"elementor-tab-content\" style=\"display:none\">...</div>\n<!-- jQuery: $('.elementor-tab-title').on('click', toggle) — no keydown, no aria-expanded -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "role=tab with no working keyboard handler can look structurally fine to a scanner; some tools flag missing aria-expanded but not the click-only handler. Confirming Enter/Space actually toggle the panel, and that focus lands and the expanded state is announced, requires keyboard testing.",
+      "realWorldNote": "Elementor issue #23335 'Accordion and Toggle have broken accessibility'; #11246 'aria-expanded not used'; community: 'JQuery click event handler cannot be triggered via keypress.' https://github.com/elementor/elementor/issues/23335 and https://testpros.com/accessibility/making-elementor-essential-addons-accordion-accessible/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Gutenberg blocks / page-builder sections used as visual styling (Heading block, Divi Text module set to H-tag)",
+      "name": "Heading levels chosen for font size — skipped levels and visual-only headings",
+      "description": "Editors pick heading tags by how big they look. A section header is set to H4 because H2 'looks too big', producing H1 then H4 with no H2/H3. Conversely, bold styled text that visually functions as a heading is left as a <p>, so the document outline has no entry. Builders make every text element's tag a free-form dropdown, so structure tracks visual size, not meaning.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6",
+        "2.4.10"
+      ],
+      "typicalMarkup": "<h1>Welcome</h1>\n<h4 class=\"has-large-font-size\">Our Services</h4>  <!-- skipped H2/H3 -->\n<p class=\"has-x-large-font-size\" style=\"font-weight:700\">Pricing</p>  <!-- looks like a heading, isn't -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Tools can flag a skipped level (H1->H4) but cannot decide that styled bold <p> SHOULD be a heading, nor whether a heading is descriptive of the section it labels. That mapping of visual prominence and meaning to correct level/semantics is human judgment.",
+      "realWorldNote": "Learn WordPress and WP handbook warn against using headings for visual styling / skipping levels. https://learn.wordpress.org/tutorial/using-headings-for-accessibility-and-seo/ ; Gutenberg document outline only warns, doesn't enforce.",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Elementor Tabs widget / Beaver Builder Tabs / Divi Tabs module",
+      "name": "Tab panel content not associated/announced; div tabs missing roles",
+      "description": "Builder 'tabs' render as styled divs. Either the tablist/tab/tabpanel roles and aria-controls/aria-selected are absent (so it's just clickable divs), or the roles exist but the panel content isn't reliably exposed when a tab is activated. Selecting a tab by keyboard may not move focus or announce the newly revealed panel.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<ul class=\"fl-tabs-labels\">\n  <li class=\"fl-tab-active\">Description</li>\n  <li>Reviews</li>\n</ul>\n<div class=\"fl-tabs-panels\"><div class=\"fl-tab-content\">...</div></div>\n<!-- no role=tablist/tab/tabpanel, no aria-selected/aria-controls -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Plain divs with click handlers raise no role/value error in a scanner (nothing claims to be a tab). Where roles do exist, confirming the active panel's content is actually announced on switch needs screen-reader testing, not static analysis.",
+      "realWorldNote": "Beaver Builder review: with tabs 'the content of an expanded tab isn't reliably read out.' https://wpshout.com/beaver-builder-accessibility/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Twenty* core themes & most premium/builder themes — landmark structure",
+      "name": "Ambiguous duplicate nav landmarks and structure built from role-less divs",
+      "description": "Builder sections wrap everything in generic <div>s with no landmark roles, so the page has no programmatic structure beyond the theme header/footer. Where multiple <nav> regions exist (primary menu, footer menu, breadcrumbs) they share no distinguishing aria-label, so a screen-reader user hears 'navigation, navigation, navigation' with no way to tell them apart.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<nav>...primary menu...</nav>\n<nav>...footer menu...</nav>   <!-- both unlabeled, identical role -->\n<div class=\"elementor-section\">  <!-- main content, no <main> / role -->\n  <div class=\"elementor-container\">...</div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Duplicate unlabeled nav landmarks may or may not be flagged depending on the tool, and missing landmark structure built from divs isn't an error per se. Judging that two 'navigation' regions are ambiguous and that the page lacks a sensible landmark map needs human review of how it's announced.",
+      "realWorldNote": "Builder pages are notorious for div-soup with no landmarks; Divi historically shipped no skip link and weak landmark labeling. https://www.accessgo.de/en/divi-accessibility-overview-requirements-solutions-and-practical-examples/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Shopify / generic theme — sale price markup on product card and PDP",
+      "name": "Sale price reads as two bare numbers with no Was/Now context",
+      "description": "On-sale prices show the original price with a CSS strikethrough next to the discounted price. The strikethrough is purely visual; screen readers announce something like '$50.00 $30.00' with no indication which is the regular price and which is the sale price, and no 'Was/Now' or 'Sale' context. Visually-hidden context spans are missing.",
+      "wcagScs": [
+        "1.4.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"price price--on-sale\">\n  <s class=\"price-item--regular\">$50.00</s>\n  <span class=\"price-item--sale\">$30.00</span>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Both prices are present as real text, so there is no missing-alt or empty-element violation to flag. The <s> element conveys 'no longer accurate' semantically to almost no screen reader by default, but tools don't treat its absence of announcement as an error. Deciding that the output '$50 $30' is confusing and needs 'Was/Now' wording requires understanding the sale semantics — a human contextual judgment.",
+      "realWorldNote": "Well documented by AccessiCart ('Accessible sale prices') and the Shopify partners blog 'Developing Shopify Themes with Accessibility in Mind'; fix is visually-hidden 'Was'/'Now' spans. https://accessicart.com/accessible-sale-prices/ ; https://a11y.tips/blog/discounted-price/",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "WooCommerce — store notices on page load (waitlist / coupon / stock)",
+      "name": "Page-load notice not programmatically a status message",
+      "description": "WooCommerce renders informational notices (e.g. 'To join the waitlist, click Notify me', coupon applied, 'only 2 left') as a styled div shown when the page renders. The notice has no role=status/alert and focus is not placed on it, so on a fresh page load it is visible but never announced to screen reader users.",
+      "wcagScs": [
+        "4.1.3",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"woocommerce-info\">\n  To join the waitlist, please click the \"Notify me\" button.\n</div>\n<!-- no role=\"status\"; no focus set on load -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "There is no markup defect: contrast is fine and the text exists in the DOM. Whether a given message is a 'status message' that must be announced (vs. ordinary body copy) is a semantic judgment about its purpose and timing; axe/Lighthouse cannot infer intent and do not flag missing role=status on plain divs.",
+      "realWorldNote": "Filed directly against WooCommerce core as a WCAG 4.1.3 failure: 'message is visually displayed, but screen readers do not announce it because it has not been programmatically defined as a status message, and focus is not set on the message when the page loads.' https://github.com/woocommerce/woocommerce/issues/59383",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Shopify / WooCommerce — AJAX filter / faceted search sidebar",
+      "name": "Facet filtering updates grid silently; no result-count announcement",
+      "description": "Selecting a filter checkbox (size, color, price) re-renders the product grid via AJAX with no page reload. The new result count ('24 products') and any 'No results' state are not in a live region, so screen reader users don't know the grid changed or how many products remain. Some themes also replace native checkboxes with styled divs that lose keyboard operability.",
+      "wcagScs": [
+        "4.1.3",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<aside class=\"facets\">\n  <label><input type=\"checkbox\" name=\"color\" value=\"red\"> Red</label>\n</aside>\n<div class=\"product-grid\" id=\"grid\"><!-- replaced via AJAX, no aria-live --></div>\n<div class=\"result-count\">24 products</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "On the initial static snapshot the markup is valid (labeled checkboxes, a count div). The defect appears only when a filter fires and content swaps without an announcement — a runtime behavior. Whether the count and no-results state qualify as status messages requiring aria-live is an intent-based judgment scanners can't make.",
+      "realWorldNote": "Equalize Digital's FacetWP audit and Scott O'Hara's 'dynamic results' guidance cover exactly this; accessibility-test.org documents ecommerce faceted-search live-region gaps. https://equalizedigital.com/testing-facetwp-for-accessibility/ ; https://accessibility-test.org/blog/compliance/accessibility-for-e-commerce-product-filtering-and-faceted-search/",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Webflow native Lightbox component",
+      "name": "Lightbox opens without focus trap, dialog role, or labeled close",
+      "description": "Webflow's built-in Lightbox opens an overlay but does not trap focus (Tab leaves the modal to the page behind it), has no role=dialog / aria-modal, no accessible name on the dialog, and the close 'X' is an unlabeled icon. Esc behavior and focus return to the trigger are not handled.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.3",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"w-lightbox-backdrop\">\n  <div class=\"w-lightbox-container\">\n    <img class=\"w-lightbox-img\" src=\"/full.jpg\">\n    <div class=\"w-lightbox-close\"></div>\n  </div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A missing focus trap is a behavioral property: nothing in the static markup is 'invalid', so axe/Lighthouse cannot detect that Tab escapes the open overlay. The unlabeled close MIGHT be flagged, but confirming the dialog lacks a name and that focus returns to the trigger requires opening it and operating it by keyboard.",
+      "realWorldNote": "Documented that the Webflow lightbox lacks a focus trap (users can tab out), is missing a descriptive accessible name on the dialog, and needs custom code/ARIA to fix: https://www.gracefulwebstudio.com/blog-articles/webflow-video-lightbox-accessibility-and-focus-management and Webflow's own checklist task 'Ensure modals are keyboard navigable': https://webflow.com/accessibility/checklist/task/ensure-modals-are-keyboard-navigable",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Framer auto-generated headings / text layers",
+      "name": "Heading hierarchy from visual size: skipped levels and multiple H1s",
+      "description": "Designers style text layers by visual size and Framer lets each text layer be tagged H1–H6 (or left as a paragraph/div). The result is non-sequential heading levels (H1 → H4), several H1s on one page, decorative big text marked as a heading, or real section headings left as plain styled divs.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6",
+        "2.4.10"
+      ],
+      "typicalMarkup": "<h1>Acme</h1>\n<h1>Build faster</h1>\n<h4>Features</h4>   <!-- visually the section heading, level skipped -->\n<div class=\"text-xl\">Pricing</div>  <!-- looks like a heading, isn't one -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Skipped levels and multiple H1s are partly linter-detectable, but the high-value errors are semantic: deciding that a big styled <div> SHOULD be a heading, or that an <h4> is functioning as the section title, requires understanding the page's meaning and visual structure — automated checks can't infer intended document outline.",
+      "realWorldNote": "AudioEye's Framer review stresses that simply tagging headings isn't enough and that missing/out-of-order/non-descriptive headings break navigation; Framer's per-layer heading control makes mis-tagging easy: https://www.audioeye.com/post/framer-offers-accessibility-features-but-are-they/",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Bubble.io input element + 'placeholder as label'",
+      "name": "Form inputs labeled only by placeholder; aria-label mismatches visible text",
+      "description": "Bubble inputs commonly ship with a placeholder instead of a programmatic label, or developers paste an aria-label that differs from the visible text. On submit, native required/format errors are not associated with the field (no aria-describedby), so error identification and suggestion are absent for screen-reader users.",
+      "wcagScs": [
+        "3.3.2",
+        "4.1.2",
+        "3.3.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<input type=\"email\" placeholder=\"Email address\"\n       aria-label=\"Work email\" class=\"bubble-element Input\">\n<div class=\"error-msg\" style=\"display:block\">Invalid</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "If an aria-label is present, axe sees 'input has an accessible name' and passes — it can't know the placeholder disappeared on input or that the aria-label ('Work email') contradicts the visible 'Email address' (a Label-in-Name mismatch). Confirming the error div isn't programmatically tied to the field and isn't announced requires interaction.",
+      "realWorldNote": "Bubble accessibility guidance flags placeholder-as-label and warns that replacing visible labels with aria-label causes a screen-reader/visible-text mismatch; Bubble's own marketplace app audited ~60% accessible: https://www.rapidevelopers.com/bubble-tutorial/designing-accessibility-mind-bubble and https://forum.bubble.io/t/is-bubble-accessible-does-it-comply-with-ada-and-wcag/287361",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Notion-published pages (notion.site) and Super.so",
+      "name": "Generic page <title> and weak heading semantics on exported Notion sites",
+      "description": "Notion-published pages frequently inherit a generic or duplicated <title> (workspace/page name patterns), and content blocks rely heavily on styled divs; toggles, callouts, and 'columns' don't expose the semantic relationships sighted users perceive. Multiple pages can share an indistinct title, and toggle disclosure widgets often lack proper expanded/collapsed state.",
+      "wcagScs": [
+        "2.4.2",
+        "1.3.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<title>Notion – My Workspace</title>\n<div class=\"notion-toggle\">\n  <div role=\"button\">▸ Details</div>\n  <div class=\"notion-toggle__content\">...</div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A <title> exists, so 2.4.2 passes automatically; judging that it's non-descriptive/duplicated across pages needs human comparison. Missing aria-expanded on a toggle MIGHT be linted, but deciding that a styled callout/column block carries structural meaning that isn't conveyed programmatically is a semantic judgment.",
+      "realWorldNote": "Notion accessibility assessments document alt-text, contrast, and tabbing/focus problems and difficulty operating interactive elements with assistive tech: https://ixd.prattsi.org/2024/12/assessing-the-accessibility-of-notion/ and https://www.templates4notion.com/newsletters/better-notion-accessibility",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Ant Design Form / Form.Item",
+      "name": "Validation error not programmatically associated with the field",
+      "description": "Ant Design's Form renders inline validation errors visually beneath the input, but historically did not set aria-invalid on the control nor aria-describedby pointing at the error text, and labels were not always tied to inputs. The error appears in red text but is not announced when the field is focused, and the field is not exposed as invalid.",
+      "wcagScs": [
+        "3.3.1",
+        "1.3.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<div class=\"ant-form-item-has-error\">\n  <label>Email</label>\n  <input class=\"ant-input\"> <!-- no aria-invalid, no aria-describedby -->\n  <div class=\"ant-form-item-explain-error\">Please enter a valid email</div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The error text exists in the DOM, so it is visible to a scanner, but verifying that it is PROGRAMMATICALLY tied to the right input (and announced on focus / on submit) requires triggering validation and inspecting the runtime aria relationships; the visual-only error with a missing association is not reliably flagged by static rules.",
+      "realWorldNote": "Ant Design issues #36730 (set aria-invalid/aria-describedby on invalid inputs), #28748 (link error messages to field), and #16268 (\"Forms in Ant Design are not accessible\"). https://github.com/ant-design/ant-design/issues/36730",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "MUI Autocomplete / Select (combobox)",
+      "name": "Stale aria-activedescendant / aria-controls on closed combobox",
+      "description": "MUI's Autocomplete leaves aria-controls pointing at a listbox id before the listbox exists, and keeps aria-activedescendant on the input set to the last-highlighted option id after the popup closes. Screen readers can announce a phantom \"active\" option that is no longer on screen, or reference a control that is not in the DOM, confusing combobox navigation.",
+      "wcagScs": [
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<input role=\"combobox\"\n  aria-expanded=\"false\"\n  aria-controls=\"listbox-1\"        <!-- listbox not in DOM -->\n  aria-activedescendant=\"option-7\"> <!-- popup is closed -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The attributes are syntactically valid (valid id references when the listbox is open), so static ARIA-attribute validity checks pass. The defect is a state/timing inconsistency between the visual popup state and the aria-* values, which only manifests during interaction and must be judged against expected combobox behavior.",
+      "realWorldNote": "MUI issue #18133 \"Some WAI-ARIA attributes are incorrect\" documents aria-controls set before the listbox exists and aria-activedescendant not cleared on close. https://github.com/mui/material-ui/issues/18133",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "jQuery UI / Bootstrap Tabs & Accordion",
+      "name": "div/anchor \"tab\" widgets lacking tab roles and arrow-key support",
+      "description": "Older jQuery UI and many Bootstrap-derived tab/accordion implementations render tabs as <a>/<li> or plain divs that toggle panels via click, without role=\"tablist\"/\"tab\"/\"tabpanel\", without aria-selected/aria-controls, and without the expected arrow-key roving-tabindex behavior. Screen readers do not recognize the tab pattern and keyboard users cannot move between tabs with arrow keys.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<ul class=\"nav nav-tabs\">\n  <li class=\"active\"><a href=\"#a\">Details</a></li>\n  <li><a href=\"#b\">Reviews</a></li>\n</ul>\n<!-- no role=tablist/tab/tabpanel, no aria-selected, no arrow keys -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Plain anchors with hrefs are individually valid and focusable, so structural linters see nothing wrong. Recognizing that this SHOULD be the ARIA tabs pattern (and that arrow-key navigation and aria-selected are absent) requires understanding the intended widget semantics and testing keyboard interaction.",
+      "realWorldNote": "WAI-ARIA APG tabs pattern requires roles + arrow-key support; legacy jQuery UI / Bootstrap tab markup commonly ships without them, a recurring audit finding for interactive widgets.",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "React/Vue placeholder-as-label inputs (Tailwind/MUI styled)",
+      "name": "Placeholder used as the only label",
+      "description": "Inputs styled by component libraries frequently use the placeholder attribute as the sole label (no <label>, no aria-label). The hint disappears once the user types, low-contrast placeholder text fails contrast, and there is no programmatic label — screen readers may announce nothing or only \"edit text\".",
+      "wcagScs": [
+        "3.3.2",
+        "1.3.1",
+        "4.1.2",
+        "1.4.3"
+      ],
+      "typicalMarkup": "<input type=\"email\" placeholder=\"Email address\">\n<!-- no <label for>, no aria-label; placeholder is the only cue -->",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "axe reliably flags inputs with no accessible name (\"Form elements must have labels\"), so the bare missing-label case is automatable — flagged false. The residual judgment (is a placeholder an ADEQUATE instruction even when a label exists, contrast of the placeholder) can still need a human, but detection of no-label is a linter check.",
+      "realWorldNote": "WCAG 3.3.2 and broad guidance treat placeholder-as-label as a failure (text vanishes on input, low contrast); extremely common in utility-CSS/component-styled forms.",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Bootstrap / hand-rolled accordion using <a> or <div> headers",
+      "name": "Accordion header is a non-button with no expanded state",
+      "description": "Developers copy the accordion visual (a clickable bar that opens a panel) but build the trigger as <a href=\"#\"> or a <div onclick>. The element exposes no button role, no aria-expanded, and aria-controls never points at the panel, so a screen reader user cannot tell the control is a toggle, cannot tell whether the section is open or closed, and may hear it as a link that goes nowhere.",
+      "wcagScs": [
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"accordion\">\n  <a href=\"#\" class=\"accordion-header\" onclick=\"toggle(this)\">Shipping & Returns</a>\n  <div class=\"panel\" style=\"display:none\">...</div>\n</div>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "Partially detectable: axe flags interactive controls without discernible state only in some configs, but a bare <a href=\"#\"> with visible text passes name/role checks because it IS a valid link with a name. The defect is that the role is wrong (link, not button) and the missing aria-expanded is on an element axe does not know is supposed to be a disclosure, so the toggle-state rule never fires.",
+      "realWorldNote": "216digital and BarrierBreak both name 'removing role=button from accordion headers' and 'aria-expanded value not changing on interaction' as the top recurring accordion defects. https://216digital.com/accordion-accessibility-common-issues-fixes/ and https://www.barrierbreak.com/top-5-aria-implementation-errors/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Custom <div>/<span> 'button' (icon buttons in CMS widgets, hamburger toggles)",
+      "name": "Visible label mismatches accessible name on a div-button",
+      "description": "A control rendered as <div class=\"btn\"> shows the word 'Menu' or a gear icon visually, but its accessible name comes from a stale aria-label like 'button' or 'toggle-1', or from an icon-font ligature that reads as gibberish. The visible text and the computed accessible name disagree, so voice-control users who say 'click Menu' fail, and screen reader users hear the wrong label.",
+      "wcagScs": [
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"btn\" role=\"button\" tabindex=\"0\" aria-label=\"toggle-1\">\n  <i class=\"icon-menu\"></i> Menu\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe sees a role=button WITH a non-empty accessible name (aria-label=\"toggle-1\") and a tabindex, so it passes 'buttons must have discernible text' and 'aria roles used must conform.' Detecting that 'toggle-1' is not the visible 'Menu' requires reading the rendered glyph/text and comparing it semantically to the computed name — a visual+linguistic judgment no DOM linter makes reliably.",
+      "realWorldNote": "Harvard HUIT and the freeCodeCamp custom-dropdown guide both document that custom controls whose visible label does not match the accessible name break voice control and confuse screen reader users. https://accessibility.huit.harvard.edu/provide-name-role-and-value-information",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Modal dialog (jQuery UI dialog, hand-rolled overlay, many CMS lightboxes)",
+      "name": "Fake modal: aria-modal set but background not inert and focus not trapped",
+      "description": "The overlay div carries role=\"dialog\" aria-modal=\"true\" and looks modal, but the developer never traps Tab, never moves initial focus into the dialog, and leaves the background page focusable. Keyboard users Tab straight out of the dialog and onto hidden page content behind the scrim; screen reader users may also reach background content because aria-modal alone does not make content inert.",
+      "wcagScs": [
+        "2.4.3",
+        "2.1.2",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div role=\"dialog\" aria-modal=\"true\" aria-label=\"Newsletter\">\n  <input type=\"email\"><button>Sign up</button>\n</div>\n<!-- page body still has tabindex-reachable links, no inert/aria-hidden -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Static analysis sees correct ARIA: role=dialog + aria-modal=true + accessible name all pass. Whether focus is actually trapped, whether initial focus moves into the dialog, and whether the background is truly inert are runtime keyboard behaviors that require operating the page with Tab/Shift+Tab — axe/WAVE/Lighthouse never press keys.",
+      "realWorldNote": "MDN and TPGi stress that aria-modal=\"true\" 'does not actually make the element modal — the developer must implement the modal behaviour'; TPGi's modal-accessibility survey found focus management as the most common real failure. https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-modal and https://www.tpgi.com/the-current-state-of-modal-dialog-accessibility/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Tabs widget (Bootstrap nav-tabs, hand-rolled tab UIs)",
+      "name": "Tabs with no roving tabindex / no arrow-key support",
+      "description": "Tab strips use role=\"tablist\"/role=\"tab\" markup (or just styled links) but every tab is a separate Tab stop and arrow keys do nothing. Users must Tab through all tabs, and roving tabindex (one tabindex=0, rest -1) is absent, breaking the APG keyboard contract. Often aria-selected is also static or missing.",
+      "wcagScs": [
+        "2.1.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<ul role=\"tablist\">\n  <li role=\"tab\" tabindex=\"0\">Overview</li>\n  <li role=\"tab\" tabindex=\"0\">Specs</li>\n  <li role=\"tab\" tabindex=\"0\">Reviews</li>\n</ul>\n<!-- no arrow handler; aria-selected never updated -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe has a 'tablist must contain tabs' structural check but does not verify the roving-tabindex pattern or arrow-key handling — those are runtime keyboard behaviors. A page where every tab is independently Tab-focusable is technically operable, so it does not fail any static rule; the broken expectation (arrow keys move between tabs) is only observable by operating it.",
+      "realWorldNote": "MDN tab/tablist role docs and Deque's A11y Support Series both specify roving tabindex (active tab tabindex=0, others -1) and arrow-key navigation as the contract that custom tabs routinely omit. https://www.deque.com/blog/a11y-support-series-part-1-aria-tab-panel-accessibility/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Combobox / autocomplete (typeahead search, React-Select clones, hand-rolled)",
+      "name": "Autocomplete results not announced; missing aria-expanded/activedescendant",
+      "description": "A search input shows a dropdown of suggestions visually, but the input lacks role=\"combobox\", aria-expanded never flips to true when the list opens, and aria-activedescendant is not set as the user arrows through results. Screen reader users get no announcement that suggestions appeared, how many there are, or which one is highlighted.",
+      "wcagScs": [
+        "4.1.2",
+        "4.1.3",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<input type=\"text\" class=\"search\">\n<ul class=\"suggestions\">\n  <li class=\"active\">apple</li>\n  <li>apricot</li>\n</ul>\n<!-- no role=combobox, aria-expanded, aria-controls, aria-activedescendant -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The input is a valid text field and the list is a valid <ul> — both pass static checks individually. The relationship (input controls a popup list whose active option must be announced) and the missing live/activedescendant feedback only manifest while typing and arrowing, so DOM-snapshot tools cannot see the broken announcement loop.",
+      "realWorldNote": "The a11ysupport.io APG combobox test and Pope Tech's combobox guide document that aria-expanded must toggle and aria-activedescendant must track the highlighted option, and that omitting them is the dominant real-world combobox failure. https://a11ysupport.io/tests/apg__aria-1-2-combobox-with-list-autocomplete-example",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Custom toggle switch (settings switches in dashboards, theme togglers)",
+      "name": "Switch with no role/state and on/off shown by color/position only",
+      "description": "A pill-shaped toggle is built from two divs; the 'on/off' state is conveyed only by knob position and color. There is no role=\"switch\", no aria-checked, and frequently no accessible name (the visible label is a separate, unassociated div). Screen reader users hear nothing useful and cannot tell if the setting is on or off.",
+      "wcagScs": [
+        "4.1.2",
+        "1.4.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"switch on\" tabindex=\"0\" onclick=\"flip()\">\n  <span class=\"knob\"></span>\n</div>\n<span class=\"label\">Email notifications</span>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "If the switch has no role and no name, axe may flag a focusable element with no accessible name in some cases — but many of these get an aria-label and STILL fail because aria-checked is missing or never updates. Detecting that on/off is conveyed by knob position + color alone (use-of-color failure) and that the state is unannounced requires visual interpretation of the rendered control, not markup parsing.",
+      "realWorldNote": "Accessibility Insights 'aria-toggle-field-name', the A11Y Collective, and Atomic A11y checklist all flag missing role=switch / aria-checked / accessible name as the recurring custom-switch defect. https://accessibilityinsights.io/info-examples/web/aria-toggle-field-name/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Menu button + role=menu (app 'kebab' menus, navigation 'mega menus')",
+      "name": "role=menu misused for site nav; no arrow keys, no haspopup, links not menuitems",
+      "description": "Developers slap role=\"menu\"/role=\"menuitem\" onto a navigation dropdown of links, or onto an actions menu, but never implement the APG menu keyboard model: no aria-haspopup on the trigger, no focus moved to the first item on open, arrow keys do nothing, Escape does not close. Because role=menu changes how screen readers expose children (links stop being announced as links), the result is worse than plain markup.",
+      "wcagScs": [
+        "2.1.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<button onclick=\"open()\">Account</button>\n<ul role=\"menu\">\n  <li role=\"menuitem\"><a href=\"/profile\">Profile</a></li>\n  <li role=\"menuitem\"><a href=\"/logout\">Log out</a></li>\n</ul>\n<!-- no aria-haspopup/aria-expanded, no arrow-key handling, no focus mgmt -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The ARIA is syntactically valid (menu contains menuitems), so structural rules pass. The failures are behavioral (missing arrow-key navigation, focus not entering the menu, Escape not closing) plus a semantic judgment that role=menu was the wrong pattern for navigation links — neither is visible in a static DOM scan.",
+      "realWorldNote": "The Zenyth 'Navigating the Maze of ARIA Menu Roles' guide and APG menubar pattern stress that role=menu is for application menus, demands full arrow-key focus management, and is routinely misapplied to site navigation. https://www.zenythgroup.com/post/navigating-the-maze-of-aria-menu-roles-a-comprehensive-guide",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Custom slider (price range filters, noUiSlider clones, hand-rolled drag handles)",
+      "name": "Slider with no role/value and no keyboard operation",
+      "description": "A draggable thumb on a track is built from divs with a mousedown handler. There is no role=\"slider\", no aria-valuenow/min/max, no aria-valuetext, and arrow keys do nothing. Screen reader users hear no value and cannot change it; keyboard-only users cannot operate it at all. Dual-thumb range sliders compound this by giving neither thumb a name.",
+      "wcagScs": [
+        "2.1.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"slider-track\">\n  <div class=\"slider-thumb\" style=\"left:42%\"></div>\n</div>\n<!-- no role=slider, no aria-valuenow/min/max, no tabindex, no keydown -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "If the thumb has no role and no tabindex, axe sees only inert divs and cannot know they are meant to be a slider, so it raises nothing. Even when role=slider is present, whether arrow keys actually change aria-valuenow is a runtime behavior. The intent ('this draggable thing is a value control') requires visually recognizing the slider, which a linter cannot do.",
+      "realWorldNote": "TPGi's 'ARIA Slider' series and DigitalA11y's slider-role reference state authors MUST set aria-valuemin/max/now and must update value + aria-valuetext on every arrow/Home/End keypress — the steps custom sliders most often skip. https://www.tpgi.com/aria-slider-part-1/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Carousel / slider (Slick, Swiper defaults, hero banners on CMS themes)",
+      "name": "Auto-rotating carousel with no pause control and no slide announcement",
+      "description": "A hero carousel auto-advances every few seconds with no visible/operable pause-stop-hide control. Slides change under keyboard focus, focus is lost when the focused slide rotates away, off-screen slides remain in the tab order and accessibility tree, and slide changes are not exposed via group/aria-roledescription/live region. Vestibular and cognitive users get unstoppable motion; keyboard users get focus thrown to the top of the page.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.3",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"carousel\">\n  <div class=\"slide active\"><a href=\"/sale\">Big Sale</a></div>\n  <div class=\"slide\" aria-hidden=\"false\"><a href=\"/new\">New In</a></div>\n</div>\n<script>setInterval(next, 4000)</script>\n<!-- no pause button; offscreen slide links still focusable -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Auto-rotation, the absence of a pause control, focus loss when slides swap, and links inside hidden slides remaining tabbable are all timing/runtime behaviors. A static scan cannot tell the content is moving or that a pause mechanism is required; deciding whether off-screen slides are correctly hidden needs observing the rotation. WebAIM notes carousels are 'one of the most problematic' widgets precisely for these reasons.",
+      "realWorldNote": "WebAIM 'Animation and Carousels' and the APG carousel pattern require a pause/stop control, pausing on focus, and hiding non-visible slides; Smashing Magazine's accessible-carousel guide documents the focus-loss-on-rotate bug. https://webaim.org/techniques/carousels/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "ARIA tree / file-explorer tree (CMS page-tree pickers, doc nav trees)",
+      "name": "Tree with Tab-per-node instead of arrow navigation; missing expanded/level",
+      "description": "A nested expand/collapse tree uses role=\"tree\"/role=\"treeitem\" but is navigated with Tab to every node (instead of a single tab stop + arrow keys), parent nodes lack aria-expanded, end nodes wrongly carry aria-expanded, and aria-level/setsize/posinset are absent on dynamically loaded branches. Screen reader users get no hierarchy or open/closed state; the keyboard model contradicts the APG tree contract.",
+      "wcagScs": [
+        "2.1.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<ul role=\"tree\">\n  <li role=\"treeitem\" tabindex=\"0\">Docs\n    <ul role=\"group\">\n      <li role=\"treeitem\" tabindex=\"0\">Intro</li>\n    </ul>\n  </li>\n</ul>\n<!-- no aria-expanded on 'Docs'; every node tabindex=0; no arrow handler -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The role nesting (tree > treeitem > group) is structurally valid so static checks pass. Whether arrow keys navigate, whether the tree is a single tab stop, and whether aria-expanded toggles on expand/collapse are runtime behaviors. Knowing aria-expanded is missing on a parent requires knowing which nodes have children at runtime — invisible to a snapshot scan.",
+      "realWorldNote": "MDN tree/treeitem role docs and Accessible Culture's '(Not so) Simple ARIA Tree Views' document that trees use arrow-key navigation (not Tab), require aria-expanded only on parents, and need aria-level/setsize/posinset on dynamic nodes — all routinely botched. https://accessibleculture.org/articles/2013/02/not-so-simple-aria-tree-views-and-screen-readers/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Radio group (custom styled radios, form-builder widgets, Shoelace-style components)",
+      "name": "Custom radios: no grouping, every radio a tab stop, no arrow selection",
+      "description": "Styled radio buttons are built from divs (or are native radios stripped of fieldset/legend and group semantics). There is no role=\"radiogroup\" or fieldset/legend, so the question text is never associated; each radio is a separate Tab stop instead of one stop with arrow-key selection; and the group label is unannounced. Screen reader users hear isolated options with no context or count.",
+      "wcagScs": [
+        "1.3.1",
+        "2.1.1",
+        "4.1.2",
+        "3.3.2"
+      ],
+      "typicalMarkup": "<p>Choose a plan</p>\n<div class=\"radio\" role=\"radio\" tabindex=\"0\">Basic</div>\n<div class=\"radio\" role=\"radio\" tabindex=\"0\">Pro</div>\n<!-- no role=radiogroup wrapper / no fieldset+legend; both are tab stops -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Individual role=radio elements with text content pass name/role checks. The missing radiogroup association (the 'Choose a plan' label is a sibling <p>, not a programmatic group name) and the broken single-tab-stop + arrow-key model are a structural-relationship judgment and a runtime behavior respectively — TestParty reports 95% of sites have at least one improperly grouped radio set that scanners do not catch as a hard failure.",
+      "realWorldNote": "TestParty's radio-group remediation writeup and shoelace-style/shoelace issue #218 document ungrouped radios and Tab-per-radio (instead of arrow navigation) as pervasive custom-component failures. https://testparty.ai/blog/accessible-radio-groups-html-fast-remediation-large-sites and https://github.com/shoelace-style/shoelace/issues/218",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Disclosure / 'Show more' / 'Read more' (CMS content blocks, FAQ widgets)",
+      "name": "Disclosure trigger with generic name and no expanded state",
+      "description": "A 'Read more' / 'Show more' control expands hidden text but is a link or div with no aria-expanded and no aria-controls, and its accessible name is just the repeated generic phrase. Screen reader users get a list of identical 'Read more' controls with no context of what each reveals and no indication of open/closed state.",
+      "wcagScs": [
+        "4.1.2",
+        "2.4.4",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<a href=\"#\" class=\"more\" onclick=\"expand(this)\">Read more</a>\n<div class=\"extra\" hidden>Full product description...</div>\n<!-- repeated 12x on the page, each just 'Read more', no aria-expanded -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe can flag missing discernible text but cannot flag a NON-descriptive name that is technically present ('Read more' is a valid accessible name). Judging that 'Read more' is ambiguous out of context (2.4.4) and that the missing aria-expanded matters because this is a disclosure both require human semantic interpretation of purpose; the toggle role itself is not declared so no state rule fires.",
+      "realWorldNote": "The APG disclosure pattern requires aria-expanded on the trigger; WebAIM and link-purpose guidance repeatedly cite generic repeated 'Read more'/'Learn more' from CMS widgets as a classic 2.4.4 ambiguous-link-text failure. https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "alertdialog (confirm/destructive dialogs, 'Are you sure?' modals)",
+      "name": "Critical confirm dialog uses role=dialog (or none) so it is not announced",
+      "description": "A 'Delete account — are you sure?' modal is built with role=\"dialog\" (or plain divs) rather than role=\"alertdialog\", and focus is not moved into it. The urgent message is not announced as an alert, focus stays behind it, and a screen reader user may confirm a destructive action without ever hearing the warning.",
+      "wcagScs": [
+        "4.1.2",
+        "4.1.3",
+        "2.4.3",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div role=\"dialog\" class=\"confirm\">\n  <p>Delete your account? This cannot be undone.</p>\n  <button>Delete</button><button>Cancel</button>\n</div>\n<!-- should be role=alertdialog; focus not moved into dialog on open -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "role=dialog is valid ARIA, so no rule fails. Whether the dialog SHOULD be an alertdialog (because it carries an urgent, action-blocking message) is a semantic/contextual judgment about the content's importance; whether focus moves into it and the alert is announced are runtime behaviors. No static linter weighs the urgency of a message.",
+      "realWorldNote": "APG distinguishes alertdialog (interrupts with an important message requiring a response) from dialog; MDN dialog-role docs note focus must move into the dialog — both are commonly skipped on confirm/destructive modals. https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/dialog_role",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Listbox (custom <select> replacements, country/option pickers)",
+      "name": "Custom listbox: options not announced, selection state visual-only",
+      "description": "A fake select shows a styled options panel of <li> items. The trigger lacks combobox/button semantics with aria-expanded, the panel is not role=\"listbox\" with role=\"option\" children, selection is shown only by a checkmark/highlight (no aria-selected), and focus/active option is not tracked. Screen reader users cannot tell which option is selected or how many exist; keyboard arrow navigation through options is often missing.",
+      "wcagScs": [
+        "4.1.2",
+        "1.4.1",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"select\" tabindex=\"0\">United States</div>\n<ul class=\"options\">\n  <li class=\"selected\">United States</li>\n  <li>Canada</li>\n</ul>\n<!-- no role=listbox/option, no aria-selected, no aria-expanded on trigger -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The trigger div has an accessible name and the list is a valid <ul>, so static checks pass. That selection is conveyed only by a CSS class/checkmark (no aria-selected — a use-of-color/visual-only-state issue) and that arrow-key navigation is absent are visual and runtime judgments. The freeCodeCamp and Chris Henrick writeups stress native <select> is far safer precisely because these get botched.",
+      "realWorldNote": "freeCodeCamp's accessible custom-dropdown guide and Chris Henrick's 'Custom and Accessible Select Menus Aren't Easy' document missing role=listbox/option, missing aria-selected, and absent keyboard support as the standard custom-listbox failures. https://www.freecodecamp.org/news/how-to-build-an-accessible-custom-dropdown-select-element/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Spinbutton / number stepper (quantity +/- controls in carts)",
+      "name": "Stepper +/- buttons with icon-only names and no spinbutton value semantics",
+      "description": "A quantity stepper has '+' and '−' buttons (often unlabeled icon glyphs) around a value, but the value display is a plain <span> with no role=\"spinbutton\"/aria-valuenow, and the increment/decrement buttons have no accessible name (just a glyph) or a name that does not say what they change. Screen reader users hear 'button button' and an unchanging value when they press them.",
+      "wcagScs": [
+        "4.1.2",
+        "4.1.3",
+        "1.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<button onclick=\"dec()\">−</button>\n<span class=\"qty\">1</span>\n<button onclick=\"inc()\">+</button>\n<!-- glyph-only names; qty is a span, not role=spinbutton with aria-valuenow -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "If the buttons contain a glyph character (−/+) axe may consider them to have text and pass discernible-text; the '−' may even be read as 'minus' or skipped. Judging that the name does not convey 'decrease quantity' is semantic, and the value <span> not exposing changes (no spinbutton role / live update) is a runtime announcement gap a snapshot scan cannot detect.",
+      "realWorldNote": "The APG spinbutton pattern requires role=spinbutton with aria-valuenow/min/max and accessible names on the controls; e-commerce quantity steppers commonly ship as glyph-only buttons around a non-semantic value span, a frequent audit finding. https://www.w3.org/WAI/ARIA/apg/patterns/spinbutton/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "CMS feed/listing widgets — WordPress 'Recent Posts', Shopify collection cards, Squarespace summary blocks",
+      "name": "Repeated 'Read more' / 'Learn more' links with no in-context distinction",
+      "description": "A looping CMS template emits the same link text ('Read more', 'Learn more', 'Shop now', 'View') for every card. A linter sees descriptive-enough text and a valid href, but a screen-reader user navigating by link list hears 'Read more, Read more, Read more' with no way to tell the destinations apart. The distinguishing context is only in an adjacent heading the link does not reference.",
+      "wcagScs": [
+        "2.4.4",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<article><h3>Spring Collection</h3><p>...</p><a href=\"/spring\">Read more</a></article>\n<article><h3>Gift Guide</h3><p>...</p><a href=\"/gifts\">Read more</a></article>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "'Read more' is on some tools' generic-phrase blocklists, but many CMS templates use slightly varied phrasing or rely on the (technically present) heading nearby, so automated checks pass or only weakly flag. Judging whether the link purpose is clear FROM ITS CONTEXT — and whether the programmatic association (aria-labelledby to the heading) actually exists — needs a human reading the rendered page.",
+      "realWorldNote": "WebAIM Million 2026: ambiguous link text on 15.2% of pages, 5.3 instances each: https://webaim.org/projects/million/ . Ambiguous-link guidance: https://theadminbar.com/accessibility-weekly/ambiguous-links/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Marketing/long-form pages built in Elementor, Divi, Wix, Webflow visual editors",
+      "name": "Heading levels chosen for visual size, not document structure",
+      "description": "Authors pick heading tags by how big the text looks, producing skipped levels (h1 then h4), multiple or zero h1s, or styled <div>/<p> that look like headings but carry no heading role. The visual hierarchy and the programmatic outline diverge, breaking screen-reader heading navigation.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6",
+        "2.4.10"
+      ],
+      "typicalMarkup": "<h1>Our Services</h1>\n<h4 class=\"big-text\">Consulting</h4> <!-- skipped h2/h3 -->\n<p class=\"looks-like-a-heading\" style=\"font-size:2rem;font-weight:700\">Pricing</p>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Skipped heading levels are partially flagged ('heading-order'), but tools cannot detect a visually-styled <p> that SHOULD be a heading (no role to test against), nor judge whether the heading TEXT accurately describes its section (2.4.6). Matching the visual outline to the intended structure is a human reading/visual task.",
+      "realWorldNote": "Elementor/Divi heading-misuse is a top page-builder audit finding: https://www.abrightclearweb.com/elementor-accessibility/ ; WebAIM Million also notes heading issues among manual-skewed problems.",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Bootstrap/template tabs, accordions, and custom dropdowns in CMS themes",
+      "name": "Custom widget role present but state/keyboard support missing",
+      "description": "A theme implements tabs/accordions/menus with role=tab/button and ARIA, satisfying role checks, but the dynamic VALUE/STATE is wrong or static: aria-expanded never toggles, aria-selected is hard-coded, the panel relationship (aria-controls) is broken, and arrow-key navigation is absent. ARIA presence makes the page LOOK accessible while behaving inaccessibly.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "1.3.1",
+        "4.1.3"
+      ],
+      "typicalMarkup": "<button aria-expanded=\"false\" class=\"accordion\">Shipping</button>\n<!-- clicking opens the panel visually but aria-expanded stays \"false\"; no arrow-key support -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Static scans confirm the ATTRIBUTES exist and are valid; they cannot verify the attribute VALUE tracks the live UI state (aria-expanded staying false after opening) or that keyboard interaction patterns work — these are dynamic, requiring activation and re-inspection. This is precisely why WebAIM finds MORE detected errors on ARIA-heavy pages.",
+      "realWorldNote": "WebAIM Million: pages WITH ARIA average ~34-69% MORE detected errors than pages without — broken/incomplete ARIA is a leading cause: https://webaim.org/projects/million/2024 ; 2026 confirms the pattern: https://webaim.org/projects/million/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Custom widgets / CMS templates where aria-labelledby points to an element that was deleted, never rendered, or is empty (e.g. Drupal book nav, modal dialogs)",
+      "name": "aria-labelledby referencing a broken / empty IDREF",
+      "description": "aria-labelledby names an id that does not exist in the DOM, has a typo or case mismatch, or resolves to an element whose text content is empty. Per the accname spec a broken or empty reference yields an empty accessible name, so the control or landmark is unnamed even though the author 'added a label'.",
+      "wcagScs": [
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<button aria-labelledby=\"closeLbl\">×</button>\n<!-- no element with id=\"closeLbl\" exists, or -->\n<span id=\"closeLbl\"></span>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "This one is largely catchable: axe flags aria-labelledby IDREFs that do not resolve, and an empty resulting name. It is included for completeness. The residual human case is when the IDREF resolves to a node that is present but contextually wrong (points to the right id but the wrong text), which a linter cannot judge.",
+      "realWorldNote": "Drupal book module broke aria-labelledby IDREFs in navigation (issue 3119008); SiteLint/axe rule 'aria-labelledby must reference an existing element'. https://www.drupal.org/project/book/issues/3119008",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Marketing-site / CMS clickable cards and tiles built as div/span with onclick (Webflow interactions, custom hero tiles, jQuery .click handlers)",
+      "name": "div/span with click handler as a fake button (no role, no keyboard)",
+      "description": "An interactive control is a bare div or span with a JS click handler, no role, no tabindex, and only an onclick (no keydown). Keyboard users cannot reach or activate it, and screen readers announce nothing meaningful. This is the canonical W3C F59 failure.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"card\" onclick=\"go('/pricing')\">\n  <h3>Pricing</h3><p>See plans</p>\n</div>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "Partially auto-detectable (axe 'interactive controls must be operable' / clickable element flags exist), but tools frequently miss it when the handler is attached via addEventListener at runtime rather than an inline onclick attribute, or delegated from a parent. Confirming it is genuinely interactive (vs. a decorative animated div) often needs a human to click/Tab and observe.",
+      "realWorldNote": "W3C failure F59 (script makes div/span a UI control without a role); Deque 'Building Accessible Buttons with ARIA'. https://www.w3.org/TR/WCAG20-TECHS/F59.html",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Hamburger menus and disclosure widgets from page builders / themes (YOOtheme mobile nav, custom accordions) where aria-expanded is static",
+      "name": "aria-expanded set once and never toggled",
+      "description": "A toggle button carries aria-expanded but the value is hardcoded (or missing) and never updated by the open/close JS, so it announces 'collapsed' even when the menu/panel is open (or vice versa). Screen-reader users get the wrong state and cannot tell whether activating it will reveal or hide content.",
+      "wcagScs": [
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<button class=\"nav-toggle\" aria-expanded=\"false\">Menu</button>\n<!-- panel opens visually; attribute stays \"false\" -->\n<nav class=\"is-open\">...</nav>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A static snapshot has a valid aria-expanded value, so a single-state scan passes. Detecting the stale value requires interacting (open the menu) and comparing the visual/DOM open-state against the attribute over time — a dynamic, stateful check most automated scans do not perform.",
+      "realWorldNote": "YOOtheme support thread 'WCAG 2.1 - Missing aria-expanded on mobile hamburger menu'; David MacDonald 'How to toggle aria-expanded'. https://yootheme.com/support/question/170328",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Custom toggle switches / checkboxes (role=\"switch\" or role=\"checkbox\" from design-system components, e.g. settings toggles) whose aria-checked is not synced",
+      "name": "aria-checked / aria-selected / aria-pressed never updated to match visual state",
+      "description": "A custom switch, checkbox, tab, or toggle button shows its state visually (color, knob position) but the aria-checked / aria-selected / aria-pressed attribute is never flipped in JS, so AT always reports the same state. The visual model and the exposed state diverge.",
+      "wcagScs": [
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div role=\"switch\" tabindex=\"0\" aria-checked=\"false\" class=\"on\">\n  Notifications\n</div>\n<!-- visually ON; aria-checked stays \"false\" -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Statically, the required state attribute is present and valid, so structural ARIA rules pass. The failure is the mismatch between rendered visual state and the attribute, which needs a human to toggle the control and confirm what AT announces vs. what the UI shows.",
+      "realWorldNote": "Adrian Roselli 'Switch Role Support'; designsystemproblems.com toggle-switch accessibility guide on keeping aria-checked in sync. https://adrianroselli.com/2021/10/switch-role-support.html",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Toast / snackbar notifications and async status from SPA component libraries (custom toasts, some MUI/Chakra usages) rendered without a live region",
+      "name": "toast / status message not in a live region (silent announcement)",
+      "description": "A success/error toast or 'Saved' confirmation is injected into the DOM with no role=\"status\"/role=\"alert\" and no aria-live, so screen-reader users never hear it. Conversely, some use role=\"alert\"/assertive for low-priority messages and interrupt/clobber the user. The visual feedback has no programmatic announcement.",
+      "wcagScs": [
+        "4.1.3",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"toast toast--success\">Your changes were saved</div>\n<!-- no role, no aria-live; appears then auto-dismisses -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "There is no markup defect to flag — the toast div is perfectly valid HTML. Knowing it SHOULD have been a status message (it conveys a status change) and that it currently announces nothing requires understanding the message's purpose and testing the dynamic update with AT; automated scanners do not model 'this content appeared and should have been announced'.",
+      "realWorldNote": "Sara Soueidan 'Accessible notifications with ARIA Live Regions'; TPGI live-region support; htmhell ARIA Live Regions — all note injected toasts commonly go un-announced. https://www.sarasoueidan.com/blog/accessible-notifications-with-aria-live-regions-part-1/",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Layout/data tables and styled lists where authors apply role=\"presentation\"/role=\"none\" to strip default styling (theme CSS resets, email-style layout tables, framework grid wrappers)",
+      "name": "role=\"presentation\"/\"none\" on content that conveys structure (semantics stripped)",
+      "description": "role=presentation or role=none is placed on a genuine data table, list, or heading to defeat browser styling, which removes its semantics. Screen-reader users lose row/column relationships, list item counts, or heading navigation — the W3C F92 failure. Even worse when applied to a focusable/interactive element, which keeps focus but loses its announced role.",
+      "wcagScs": [
+        "1.3.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<table role=\"presentation\">\n  <tr><th>Plan</th><th>Price</th></tr>\n  <tr><td>Pro</td><td>$9</td></tr>\n</table>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe will not flag a layout table with role=presentation — that is the legitimate use. Distinguishing a real DATA table (headers convey relationships, so presentation is wrong) from a true layout table requires reading the content and judging whether the structure is meaningful; that is a semantic call no linter makes reliably.",
+      "realWorldNote": "W3C failure F92 (role presentation on content that conveys semantics); PowerMapper 'Data table hidden by role=presentation'. https://www.w3.org/TR/WCAG20-TECHS/F92.html",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Redundant/conflicting roles from copy-pasted ARIA snippets and component libraries (role on native elements, e.g. role=\"button\" on <button>, role=\"link\" on <a>, role=\"list\" stripping then re-adding)",
+      "name": "redundant or wrong explicit role on a native element",
+      "description": "ARIA is layered onto an element that already had the right native semantics, or onto the wrong element. Redundant role=\"button\" on <button> is merely noise, but role=\"menuitem\" on a plain link, role=\"text\" on a heading, or aria-label on a non-interactive <div> that suppresses children create incorrect or missing semantics. 'No ARIA is better than bad ARIA.'",
+      "wcagScs": [
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<a href=\"/home\" role=\"button\">Home</a>\n<h2 role=\"text\">Features</h2>\n<ul role=\"presentation\"><li>...</li></ul>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Many redundant-role cases are technically valid ARIA (role allowed on the element), so axe passes them; only a subset (abstract roles, role conflicts) is flagged. Deciding that role=\"button\" on a link is semantically WRONG (it navigates, so it should be a link) requires understanding the element's actual behavior — a human semantic judgment.",
+      "realWorldNote": "W3C 'Using ARIA' rule 1 / 'No ARIA is better than bad ARIA'; BarrierBreak 'Top 5 ARIA Implementation Errors'. https://www.barrierbreak.com/top-5-aria-implementation-errors/",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Color-only state and variant controls from e-commerce and design systems (product color swatches, 'selected' tab/chip indicated only by color, required-field asterisks colored red only)",
+      "name": "ARIA state/selection conveyed by color only, not exposed to AT",
+      "description": "The selected swatch, active filter chip, current tab, or required field is distinguished purely by a color change with no aria-selected/aria-current/aria-pressed and no text/icon. Sighted users see the active variant; AT and colorblind users get no programmatic or non-color indication of which option is chosen.",
+      "wcagScs": [
+        "1.4.1",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<button class=\"swatch swatch--selected\" style=\"background:#c00\"></button>\n<button class=\"swatch\" style=\"background:#00c\"></button>\n<!-- 'selected' is only a border color; no aria-pressed/label -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Each swatch is a valid button; nothing in the markup is malformed. Detecting that 'selected' is signalled only by color, and that no equivalent state is exposed, requires visually comparing states and reasoning that color is the sole differentiator — a combined visual + semantic judgment automated scanners cannot make. The swatches also typically have no accessible name (the color name), another human-named gap.",
+      "realWorldNote": "WCAG 1.4.1 Use of Color; e-commerce color-swatch audits (Deque/WebAIM) repeatedly flag color-only selection and unnamed swatches on Shopify/Magento product pages.",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "TinyMCE / CKEditor rich-text output embedded in any CMS (WordPress, Drupal, OJS)",
+      "name": "Fake headings: bold/large paragraph instead of <h2>",
+      "description": "Content authors style a line as visually prominent by bolding it and bumping font size in the WYSIWYG toolbar rather than choosing a heading level from the format dropdown. The result is a <p><strong> (or a <span> with inline styles) that looks like a heading but carries no heading role, so screen-reader heading navigation and the document outline are broken; section structure is invisible to AT.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<p><strong><span style=\"font-size:24px\">Our Services</span></strong></p>\n<p>We offer ...</p>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "There is no heading element at all, so a linter sees only well-formed paragraph text with no rule violation (no empty heading, no skipped level). Deciding that a given bold/large paragraph is functioning as a heading requires reading the content and judging its role from visual prominence and meaning.",
+      "realWorldNote": "TinyMCE/CKEditor accessibility guidance explicitly tells authors not to fake headings with bold/size and to use the format dropdown instead. https://www.tiny.cloud/blog/accessible-rich-text-editor/ and https://ckeditor.com/blog/how-to-make-a-website-accessible-step-by-step-guide/",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "Word / Google Docs paste into a CMS WYSIWYG (mso styles, layout tables)",
+      "name": "Pasted Office HTML: layout tables and lost reading order",
+      "description": "Pasting from Word/Google Docs carries over <table> elements used purely for visual layout (multi-column newsletters, side-by-side text/image), plus mso-* inline styling and empty/merged cells. AT announces \"table, N columns, N rows\" and reads cell-by-cell, scrambling the intended reading order; what was a two-column flyer becomes nonsensical when linearized.",
+      "wcagScs": [
+        "1.3.1",
+        "1.3.2"
+      ],
+      "typicalMarkup": "<table class=\"MsoNormalTable\" style=\"mso-padding-alt:0\">\n  <tr><td>Left column intro...</td><td>Right column sidebar...</td></tr>\n</table>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A layout table with no th and no scope can look identical to a legitimately simple table; tools cannot reliably decide whether a table is conveying tabular data or just positioning content, nor whether the linearized cell order reads sensibly. Distinguishing layout-vs-data and judging resulting reading order is a human semantic task.",
+      "realWorldNote": "Office-paste artifacts (layout tables, jumbled reading order, headings tagged as paragraphs) are a documented conversion problem. https://www.section508.gov/training/documents/aed-cop-docx05/ and https://tlos.vt.edu/digital-accessibility/calm/check-reading-order.html",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "Multilingual sites / auto-translate widgets (Weglot, WPML, Google Website Translator)",
+      "name": "Foreign-language passage with no lang, or stale html lang after translation",
+      "description": "A page in one primary language embeds quotes, names, product blurbs, or whole machine-translated sections in another language without a lang attribute on those parts; or a translation layer swaps visible text but leaves <html lang=\"en\"> unchanged. The screen reader reads French/Arabic/Japanese text with English phonetics (or vice versa), producing gibberish pronunciation. Often the page title/nav stays untranslated while the body is translated.",
+      "wcagScs": [
+        "1.3.1",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<html lang=\"en\">\n  <p>Our motto: <span>Liberté, égalité, fraternité</span></p>\n  <!-- translated body but lang still en -->\n</html>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Tools verify that an html lang exists and that lang values are valid BCP-47 tags, but they cannot read the text and detect that a passage is in a different language than its declared lang, nor that the declared page language no longer matches the rendered (translated) content. That requires language identification of the visible text.",
+      "realWorldNote": "Missing lang on parts / mismatched page lang causes screen readers to mispronounce; documented for multilingual sites. https://benmyers.dev/blog/multilingual-web-accessibility/ and https://www.w3.org/TR/UNDERSTANDING-WCAG20/meaning-other-lang-id.html",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "PDF-to-HTML export tools (Acrobat \"Export as HTML\", InDesign publish, pdf2htmlEX preserved-layout mode)",
+      "name": "Absolutely-positioned spans replace semantic structure",
+      "description": "\"Preserved layout\" conversion reproduces the PDF pixel-for-pixel by emitting hundreds of absolutely-positioned <span>/<div> elements, one per text run, with no headings, lists, or paragraphs — and DOM order driven by the PDF's internal object order, not reading order. Visually identical to the source, but linearized AT output is scrambled: column text interleaves, headings are plain spans, and there is no navigable structure.",
+      "wcagScs": [
+        "1.3.1",
+        "1.3.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div style=\"position:absolute;top:120px;left:48px\">Annual</div>\n<div style=\"position:absolute;top:120px;left:300px\">Report 2024</div>\n<div style=\"position:absolute;top:160px;left:48px\">Revenue grew...</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Markup is valid; there are no missing alts or empty headings to flag. Tools don't reconstruct visual reading flow from absolute coordinates to detect that the DOM sequence diverges from the visual sequence, nor that prominent spans are functioning as headings. Reading order correctness and implied structure are human judgments.",
+      "realWorldNote": "Preserved-layout PDF-to-HTML uses absolutely-positioned spans that destroy semantic structure and reading order. https://www.chhs.colostate.edu/accessibility/best-practices-how-tos/pdf-converted/ and conversion-tool comparisons noting preserved vs reflowable trade-offs.",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "RTL-language sites / themes not built for bidi (Arabic/Hebrew/Persian on LTR-first templates)",
+      "name": "Missing or mismatched dir causing broken bidirectional text",
+      "description": "An RTL-language page is served on a template that only sets <html lang> (or sets neither dir nor a matching lang), so dir defaults to ltr. Mixed Arabic+English or Hebrew+numerals render with mangled visual order (punctuation on the wrong side, embedded LTR runs misplaced), and the lang/dir mismatch means AT cannot apply correct directionality or pronunciation. The page may look mostly right to a casual sighted skim but reads incoherently.",
+      "wcagScs": [
+        "1.3.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<html lang=\"ar\">  <!-- no dir=\"rtl\" -->\n  <p>اشترِ iPhone 15 الآن</p>  <!-- bidi run order breaks -->\n</html>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Tools can check that lang exists but rarely flag a missing dir, and they cannot evaluate whether the rendered bidirectional sequence is correct or whether embedded LTR runs need isolation. Judging that the visual/reading sequence of bidi text is broken requires reading the script and seeing the render.",
+      "realWorldNote": "Missing/incorrect dir breaks RTL display and accessibility; the HTML attribute is required even if CSS sets direction. https://www.w3.org/International/questions/qa-html-dir and https://accessibility-test.org/blog/support/rtl-right-to-left-website-accessibility-considerations/",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

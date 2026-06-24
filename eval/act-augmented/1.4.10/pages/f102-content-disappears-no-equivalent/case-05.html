@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your care summary — Meadowbrook Health patient portal</title>
+<!--
+  SC 1.4.10 Reflow — F102, HARDEST VARIANT: a disclosure widget IS present and DOES
+  toggle at narrow width, but it reveals the WRONG content — not the section that was
+  dropped. This defeats the naive "is there a disclosure? yes -> pass" heuristic.
+
+  At desktop width the care summary shows three panels side by side:
+    (A) Next appointment, (B) Active medications, (C) Emergency contacts &
+    advance-directive status (next of kin name + phone, GP out-of-hours line,
+    resuscitation-preference note).
+  At <=560px panel (C) — the emergency / advance-directive panel — is removed with
+  display:none. A "More details" <details> disclosure IS added at narrow width and
+  it genuinely opens (native <details>, fully working). BUT what it discloses is a
+  generic marketing/help blurb ("About your care summary... contact the surgery
+  during opening hours...") — NOT the emergency contacts or the resuscitation note.
+  So a checker that confirms "a working disclosure exists after reflow" is fooled:
+  the disclosure works, but it does not contain the dropped life-safety content,
+  which appears nowhere else on the page.
+
+  WHY AUTOMATED TOOLS MISS IT: <details>/<summary> is a valid, operable disclosure;
+  it passes every structural check. No tool reads the emergency-contact panel,
+  reads what the disclosure actually contains, and reasons that they are different
+  information. Deciding "the disclosure is present but does not surface the dropped
+  section" is exactly the semantic comparison F102 step 3 requires and only a human
+  can perform.
+-->
+<style>
+  :root { --teal:#0f6f78; --ink:#15242a; --muted:#5a6a70; --line:#d7e3e5; --warn:#9a3412; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: "Source Sans 3", system-ui, sans-serif; color:var(--ink); background:#f3f7f7; }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:14px 22px; display:flex; gap:14px; align-items:center; }
+  header .logo { font-weight:800; color:var(--teal); }
+  header .who { margin-left:auto; font-size:.85rem; color:var(--muted); }
+  main { max-width:1080px; margin:24px auto; padding:0 18px 60px; }
+  h1 { font-size:1.6rem; margin:.1em 0 .2em; }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  .grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 18px; }
+  .panel h2 { font-size:1rem; margin:0 0 10px; color:var(--teal); }
+  .panel dl { margin:0; } .panel dt { font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-top:8px; }
+  .panel dd { margin:0; font-size:.98rem; }
+  .panel.emergency { border-color:#f0c9b8; }
+  .panel.emergency h2 { color:var(--warn); }
+  .panel.emergency .flag { font-weight:700; color:var(--warn); }
+  .med-list { list-style:none; margin:0; padding:0; }
+  .med-list li { padding:6px 0; border-bottom:1px solid #eef4f4; font-size:.95rem; }
+  .med-list li:last-child { border-bottom:0; }
+  .more { margin-top:22px; }
+  details.more-details { background:#fff; border:1px solid var(--line); border-radius:10px; padding:4px 16px; }
+  details.more-details summary { cursor:pointer; font-weight:600; padding:12px 0; color:var(--teal); }
+  details.more-details p { color:var(--muted); }
+  footer { max-width:1080px; margin:0 auto; padding:0 18px 40px; font-size:.8rem; color:var(--muted); }
+
+  /* The "More details" disclosure only exists at narrow width. */
+  .more { display:none; }
+
+  @media (max-width: 560px) {
+    .grid { grid-template-columns: 1fr; }
+    .panel.emergency { display:none; }  /* <-- F102: emergency / advance-directive panel dropped */
+    .more { display:block; }            /* a disclosure appears, but it holds the WRONG content */
+  }
+</style>
+</head>
+<body>
+  <header>
+    <span class="logo">Meadowbrook Health</span>
+    <span class="who">Signed in: Eleanor R. Vance · NHS no. 943 476 5919</span>
+  </header>
+
+  <main>
+    <h1>Your care summary</h1>
+    <p class="sub">A snapshot of your upcoming care. For your full record, open the Documents tab.</p>
+
+    <div class="grid">
+      <!-- (A) -->
+      <section class="panel" aria-labelledby="appt-h">
+        <h2 id="appt-h">Next appointment</h2>
+        <dl>
+          <dt>Clinic</dt><dd>Cardiology — Dr. Awad</dd>
+          <dt>When</dt><dd>Thu 25 June 2026, 14:20</dd>
+          <dt>Where</dt><dd>Meadowbrook Main, Level 2, Suite B</dd>
+          <dt>Bring</dt><dd>Your blood-pressure diary</dd>
+        </dl>
+      </section>
+
+      <!-- (B) -->
+      <section class="panel" aria-labelledby="meds-h">
+        <h2 id="meds-h">Active medications</h2>
+        <ul class="med-list">
+          <li>Bisoprolol 2.5 mg — once daily</li>
+          <li>Atorvastatin 20 mg — at night</li>
+          <li>Ramipril 5 mg — once daily</li>
+          <li>Apixaban 5 mg — twice daily</li>
+        </ul>
+      </section>
+
+      <!-- (C) The dropped panel: emergency contacts + advance-directive status.
+           This information appears ONLY here and is removed at <=560px. -->
+      <section class="panel emergency" aria-labelledby="emrg-h">
+        <h2 id="emrg-h">Emergency &amp; advance directive</h2>
+        <dl>
+          <dt>Next of kin</dt><dd>Thomas Vance (son)</dd>
+          <dt>Next-of-kin phone</dt><dd>07700 900 184</dd>
+          <dt>GP out-of-hours</dt><dd>0300 123 9981</dd>
+          <dt>On record</dt><dd class="flag">DNACPR in place — see advance directive dated 12 Mar 2026</dd>
+        </dl>
+      </section>
+    </div>
+
+    <!-- Narrow-width disclosure. It WORKS (native <details>) — but it discloses a
+         generic blurb, NOT the emergency/advance-directive panel that was removed. -->
+    <div class="more">
+      <details class="more-details">
+        <summary>More details about your care summary</summary>
+        <p>This summary is generated from your shared care record and is updated overnight. If a
+          detail looks wrong, please contact the surgery during opening hours (Mon–Fri, 8am–6pm) and
+          ask the reception team to review your record. You can download a printable copy from the
+          Documents tab at any time.</p>
+      </details>
+    </div>
+  </main>
+
+  <footer>
+    <p>Meadowbrook Health patient portal. In a medical emergency call 999. This summary is not a
+      substitute for clinical advice.</p>
+  </footer>
+</body>
+</html>

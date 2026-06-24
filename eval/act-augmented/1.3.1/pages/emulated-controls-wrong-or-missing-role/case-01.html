@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 (Info and Relationships) — F42 emulated-link failure path.
+    Aspect: emulated-controls-wrong-or-missing-role.
+
+    The Ledger Review (a long-form news/editorial site). At the foot of an article
+    index sits a PAGINATION strip: "Prev   1  2  3 … 9   Next". Each control is
+    underlined blue text; hovering darkens it and the cursor becomes a pointer. The
+    "2" (the current page) is bold black, un-underlined, not clickable. Clicking any
+    other control swaps the article list to that page via history.pushState — exactly
+    the behaviour of a real pagination link set.
+
+    THE DEFECT: every control is a bare <span class="pglink"> with an onclick handler.
+    There is NO <a>, NO href, and NO role="link". Sighted users unmistakably read
+    these as links (blue, underlined, pointer cursor, they navigate). But the exposed
+    role is "generic" — a screen reader does not announce "link", these controls never
+    appear in the user's links list, and a keyboard user cannot Tab to them at all
+    (no tabindex). The link relationship that presentation conveys is not
+    programmatically determinable.
+
+    WHY AUTOMATED TOOLS MISS IT: there is no role attribute, so ACT 1.3.1 role rules
+    (4e8ab6 required-properties, 674b10 valid-role-value) never become applicable —
+    they only fire when a role IS present. axe/WAVE/Lighthouse see <span>s with text
+    and an onclick; a bare span with a click handler is not, by any static rule, a
+    "link with the wrong role". Deciding that this strip IS PRESENTED AS pagination
+    LINKS (from blue underline + pointer + page-changing behaviour) and that its
+    exposed generic role contradicts that is a visual/behavioural judgment.
+  -->
+  <title>Markets &amp; Money — The Ledger Review</title>
+  <style>
+    :root { --ink:#15202b; --muted:#5c6b7a; --line:#dfe5ec; --link:#0b5fd1; --link-hi:#08409a; --bg:#f7f9fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Georgia,"Times New Roman",serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .wrap { max-width:760px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+    .masthead { font-family:Arial,Helvetica,sans-serif; letter-spacing:.5px; text-transform:uppercase; font-size:.78rem; color:var(--muted); border-bottom:2px solid var(--ink); padding-bottom:.4rem; }
+    h1 { font-size:1.9rem; margin:.8rem 0 1.4rem; }
+    article.card { border-bottom:1px solid var(--line); padding:1.1rem 0; }
+    article.card h2 { font-size:1.18rem; margin:0 0 .25rem; }
+    article.card h2 a { color:var(--ink); text-decoration:none; }
+    article.card h2 a:hover { text-decoration:underline; }
+    article.card p { margin:.2rem 0 0; color:var(--muted); font-size:.95rem; }
+    .byline { font-family:Arial,sans-serif; font-size:.74rem; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+
+    /* Pagination strip — styled to read unmistakably as links */
+    nav.pager { margin-top:2rem; font-family:Arial,Helvetica,sans-serif; font-size:.95rem; display:flex; gap:.85rem; align-items:center; flex-wrap:wrap; }
+    .pglink { color:var(--link); text-decoration:underline; cursor:pointer; }
+    .pglink:hover { color:var(--link-hi); }
+    .pgcurrent { font-weight:bold; color:var(--ink); }   /* page 2 — current, not a control */
+    .ellipsis { color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="masthead">The Ledger Review &middot; Markets &amp; Money &middot; Page 2 of 9</p>
+    <h1>Markets &amp; Money</h1>
+
+    <main>
+      <article class="card">
+        <h2><a href="/markets/treasury-auction-demand-cools">Treasury Auction Demand Cools as Yields Drift Higher</a></h2>
+        <p class="byline">By R. Okonjo &middot; 6 min read</p>
+        <p>Indirect bidders stepped back at Thursday's 10-year sale, a sign that overseas appetite is thinning even as the coupon climbs.</p>
+      </article>
+      <article class="card">
+        <h2><a href="/markets/regional-banks-deposit-flight">Regional Banks Report Slower Deposit Flight in Q2</a></h2>
+        <p class="byline">By M. Halloran &middot; 4 min read</p>
+        <p>Three mid-cap lenders said outflows eased after a turbulent spring, though net interest margins remain under pressure.</p>
+      </article>
+      <article class="card">
+        <h2><a href="/markets/copper-supply-squeeze">A Copper Supply Squeeze Is Quietly Building</a></h2>
+        <p class="byline">By J. Vasquez &middot; 8 min read</p>
+        <p>Smelter outages and grid demand are colliding with a thin project pipeline, and traders are starting to notice.</p>
+      </article>
+    </main>
+
+    <!--
+      DEFECT: every page control below is a bare <span> with onclick. No <a>, no href,
+      no role, no tabindex. Visually a pagination LINK set; programmatically generic.
+      "2" is the current page and is correctly inert text.
+    -->
+    <nav class="pager" aria-label="Article list pages">
+      <span class="pglink" data-page="1" onclick="goToPage(1)">Prev</span>
+      <span class="pglink" data-page="1" onclick="goToPage(1)">1</span>
+      <span class="pgcurrent" aria-current="page">2</span>
+      <span class="pglink" data-page="3" onclick="goToPage(3)">3</span>
+      <span class="ellipsis">&hellip;</span>
+      <span class="pglink" data-page="9" onclick="goToPage(9)">9</span>
+      <span class="pglink" data-page="3" onclick="goToPage(3)">Next</span>
+    </nav>
+  </div>
+
+  <script>
+    // Real pagination behaviour: swap the list and update history — what an <a> would do.
+    function goToPage(n) {
+      try { history.pushState({ page: n }, '', '/markets?page=' + n); } catch (e) {}
+      // (In production this re-renders the article list for page n.)
+      document.querySelector('.masthead').textContent =
+        'The Ledger Review · Markets & Money · Page ' + n + ' of 9';
+    }
+  </script>
+</body>
+</html>

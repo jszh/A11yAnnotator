@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service Alerts — Riverside Metro Transit</title>
+<style>
+  body { font-family: "Open Sans", Segoe UI, Arial, sans-serif; margin:0; background:#fafbfc; color:#222; }
+  .masthead { background:#34495e; color:#fff; padding:16px 26px; }
+  .masthead h1 { margin:0; font-size:1.35rem; }
+  .masthead p { margin:4px 0 0; color:#cdd6df; font-size:.9rem; }
+  main { max-width:760px; margin:26px auto; padding:0 16px; }
+  .intro { color:#556; }
+  .accordion { border:1px solid #dde3e8; border-radius:8px; overflow:hidden; margin-top:18px; background:#fff; }
+  .acc-item + .acc-item { border-top:1px solid #e6ebef; }
+  .acc-header {
+    width:100%; text-align:left; background:#fff; border:0; cursor:pointer;
+    padding:16px 48px 16px 18px; font-size:1rem; font-weight:600; color:#2c3e50; position:relative;
+  }
+  .acc-header:focus-visible { outline:3px solid #1c6fb8; outline-offset:-3px; }
+  .acc-header .badge { display:inline-block; font-size:.72rem; font-weight:700; padding:2px 8px; border-radius:10px; margin-right:10px; vertical-align:middle; }
+  .badge.delay { background:#fde2c4; color:#8a4b00; }
+  .badge.detour { background:#d8e8fb; color:#0b4f9c; }
+  .badge.closed { background:#f9d2d2; color:#9c1313; }
+  .acc-header .chev { position:absolute; right:18px; top:50%; transform:translateY(-50%) rotate(0deg); transition:transform .18s; }
+  .acc-item.open .acc-header .chev { transform:translateY(-50%) rotate(90deg); }
+  .acc-panel { display:none; padding:4px 18px 18px; color:#445; line-height:1.5; }
+  .acc-item.open .acc-panel { display:block; }
+  footer { max-width:760px; margin:30px auto 60px; padding:0 16px; color:#8a97a2; font-size:.8rem; }
+</style>
+</head>
+<body>
+<div class="masthead">
+  <h1>Service Alerts</h1>
+  <p>Updated continuously • Last refreshed 7:42 AM</p>
+</div>
+<main>
+  <p class="intro">Tap a route below to read the full alert. Alerts affecting your saved routes appear first.</p>
+
+  <div class="accordion" id="alerts">
+    <div class="acc-item">
+      <button class="acc-header" role="button" aria-expanded="false" aria-controls="p1">
+        <span class="badge detour">DETOUR</span>Route 12 — Downtown Loop<span class="chev">›</span>
+      </button>
+      <div class="acc-panel" id="p1">
+        Due to the Front Street resurfacing project, Route 12 is detouring via 2nd Ave and Maple
+        between Union Station and City Hall through Friday. Stops 1180 and 1182 are temporarily closed;
+        use the temporary stop at 2nd &amp; Maple.
+      </div>
+    </div>
+
+    <div class="acc-item">
+      <button class="acc-header" role="button" aria-expanded="false" aria-controls="p2">
+        <span class="badge delay">DELAY</span>Route 7 — University Express<span class="chev">›</span>
+      </button>
+      <div class="acc-panel" id="p2">
+        Heavy ridership for the home game is causing 10–15 minute delays on Route 7 this afternoon.
+        Extra buses are being added between 3 PM and 6 PM.
+      </div>
+    </div>
+
+    <div class="acc-item">
+      <button class="acc-header" role="button" aria-expanded="false" aria-controls="p3">
+        <span class="badge closed">SUSPENDED</span>Route 30 — Harbor Night Service<span class="chev">›</span>
+      </button>
+      <div class="acc-panel" id="p3">
+        Night service on Route 30 is suspended this weekend for the waterfront festival.
+        Use Route 14 plus the free festival shuttle from Pier 1.
+      </div>
+    </div>
+  </div>
+</main>
+<footer>Riverside Metro Transit Authority • Rider Information Line 555-0100</footer>
+
+<script>
+/*
+  Persona: a developer ported this from a Vue single-file component. In the original it
+  was <button :aria-expanded="open">, but when they hand-converted it to vanilla HTML for
+  this static export they baked the INITIAL value ("false") straight into the markup and
+  wrote a toggle that only flips a CSS class on the wrapping .acc-item. The panel
+  reveals (display:block via the .open class) and the chevron rotates, so it LOOKS
+  perfect. But the JS never calls setAttribute('aria-expanded', ...).
+
+  Result: every disclosure announces "collapsed" forever. A screen-reader user who
+  activates the control hears the panel content appear in the DOM but the button's own
+  state still says collapsed, so they cannot tell which sections are open, and pressing
+  the control again (to collapse) gives no state feedback either. Role + name + a valid
+  initial aria-expanded are all present, so static rules pass; the broken set/notify
+  contract is only observable by operating the control and watching aria-expanded.
+*/
+document.querySelectorAll('.acc-header').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    btn.closest('.acc-item').classList.toggle('open');
+    // aria-expanded is never updated.
+  });
+});
+</script>
+</body>
+</html>

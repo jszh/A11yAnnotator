@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pagination — Orbit Payments API reference</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.10, H69 nav-demarcation sub-limb):
+  This documentation page has TWO functionally distinct navigation regions:
+  (1) a LEFT site-section nav (the docs tree: Authentication / Charges /
+      Customers / Pagination / Webhooks) and
+  (2) a RIGHT in-page "table of contents" nav ("On this page": Overview /
+      Cursor parameters / Response shape / Code examples) that jumps to
+      anchors WITHIN the current article.
+  These are different navigational purposes — one moves between documents, the
+  other moves within this document — yet NEITHER carries a heading. H69 calls
+  for heading markup to demarcate different navigational sections. The only
+  headings are the article's own content headings (h1 "Pagination", h2s).
+  Automated tools see two valid <nav> landmarks, a proper h1->h2 outline, no
+  empty headings, no missing attributes — axe / WAVE / Lighthouse all PASS.
+  A screen-reader user jumping by heading hits "Pagination", "Cursor
+  parameters", "Response shape", "Code examples" (the CONTENT headings) and
+  never encounters a heading that announces "you are now in the site-section
+  navigation" or "you are now in the on-this-page navigation". Deciding that
+  these two link clusters are separate sections each needing a demarcating
+  heading requires understanding what the links DO — a human semantic judgment.
+-->
+<style>
+  :root { --ink:#1a1f29; --brand:#5b3df5; --line:#e6e8ee; --muted:#6b7280; --code:#0f1115; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:var(--ink); }
+  a { color:var(--brand); }
+  header.bar { border-bottom:1px solid var(--line); padding:12px 24px; display:flex; align-items:center; gap:16px; }
+  header.bar .logo { font-weight:800; font-size:1.05rem; }
+  header.bar .ver { font-size:.75rem; color:var(--muted); border:1px solid var(--line); border-radius:20px; padding:2px 10px; }
+  .layout { display:grid; grid-template-columns:240px minmax(0,1fr) 220px; max-width:1280px; margin:0 auto; }
+  /* LEFT: site-section docs tree */
+  nav.docnav { border-right:1px solid var(--line); padding:22px 16px; font-size:.9rem; }
+  nav.docnav ul { list-style:none; margin:0 0 14px; padding:0; }
+  nav.docnav .group-label { font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:14px 6px 6px; }
+  nav.docnav a { display:block; padding:6px 10px; border-radius:6px; text-decoration:none; color:#374151; }
+  nav.docnav a:hover { background:#f4f3ff; }
+  nav.docnav a[aria-current="page"] { background:#efeaff; color:var(--brand); font-weight:600; }
+  /* CENTER: article */
+  main { padding:30px 40px; min-width:0; }
+  main h1 { font-size:2rem; margin:.1em 0 .2em; }
+  main h2 { font-size:1.3rem; margin:1.8em 0 .4em; padding-top:.2em; }
+  main p { line-height:1.65; max-width:68ch; color:#2b3340; }
+  table.params { border-collapse:collapse; width:100%; max-width:680px; margin:10px 0 6px; font-size:.92rem; }
+  table.params th, table.params td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+  table.params th { background:#f8f8fc; }
+  code { background:#f1f1f6; padding:1px 5px; border-radius:4px; font-family:ui-monospace,Menlo,monospace; font-size:.88em; }
+  pre { background:var(--code); color:#e7e9ee; padding:16px 18px; border-radius:10px; overflow:auto; font-size:.85rem; line-height:1.55; }
+  pre .k { color:#c792ea; } pre .s { color:#c3e88d; } pre .c { color:#637777; }
+  /* RIGHT: on-this-page in-article nav */
+  nav.toc { padding:26px 14px; font-size:.85rem; position:sticky; top:0; align-self:start; }
+  nav.toc ul { list-style:none; margin:0; padding:0; border-left:2px solid var(--line); }
+  nav.toc li { margin:0; }
+  nav.toc a { display:block; padding:5px 14px; text-decoration:none; color:var(--muted); border-left:2px solid transparent; margin-left:-2px; }
+  nav.toc a:hover { color:var(--ink); }
+  nav.toc a.active { color:var(--brand); border-left-color:var(--brand); font-weight:600; }
+</style>
+</head>
+<body>
+  <header class="bar">
+    <span class="logo">Orbit Payments</span>
+    <span class="ver">API v3</span>
+  </header>
+
+  <div class="layout">
+    <!-- Region 1: LEFT site-section docs navigation (moves between docs) — no heading -->
+    <nav class="docnav">
+      <div class="group-label">Getting started</div>
+      <ul>
+        <li><a href="#auth">Authentication</a></li>
+        <li><a href="#idempotency">Idempotent requests</a></li>
+        <li><a href="#errors">Error handling</a></li>
+      </ul>
+      <div class="group-label">Core resources</div>
+      <ul>
+        <li><a href="#charges">Charges</a></li>
+        <li><a href="#customers">Customers</a></li>
+        <li><a href="#payouts">Payouts</a></li>
+        <li><a href="#pagination" aria-current="page">Pagination</a></li>
+        <li><a href="#webhooks">Webhooks</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <article>
+        <h1 id="pagination">Pagination</h1>
+        <p>All top-level API resources support bulk fetches through "list" endpoints. The
+          Orbit API uses <strong>cursor-based</strong> pagination: each list response carries
+          a cursor that you pass back to retrieve the next page. Cursor pagination is stable
+          under concurrent writes, which offset pagination is not.</p>
+
+        <h2 id="overview">Overview</h2>
+        <p>List endpoints return a <code>data</code> array and a <code>has_more</code> boolean.
+          When <code>has_more</code> is <code>true</code>, take the <code>id</code> of the last
+          item and pass it as <code>starting_after</code> on your next request.</p>
+
+        <h2 id="cursor-parameters">Cursor parameters</h2>
+        <table class="params">
+          <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>limit</code></td><td>integer</td><td>Page size, 1–100. Default 10.</td></tr>
+            <tr><td><code>starting_after</code></td><td>string</td><td>Object ID; returns items after this one.</td></tr>
+            <tr><td><code>ending_before</code></td><td>string</td><td>Object ID; returns items before this one.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="response-shape">Response shape</h2>
+        <p>Every paginated response is wrapped in a list object so you can detect the end of
+          the collection without a second call.</p>
+        <pre><span class="c">// GET /v3/charges?limit=2</span>
+{
+  <span class="k">"object"</span>: <span class="s">"list"</span>,
+  <span class="k">"has_more"</span>: true,
+  <span class="k">"data"</span>: [ { <span class="k">"id"</span>: <span class="s">"ch_3Mx1"</span> }, { <span class="k">"id"</span>: <span class="s">"ch_3Mx2"</span> } ]
+}</pre>
+
+        <h2 id="code-examples">Code examples</h2>
+        <p>Loop until <code>has_more</code> is <code>false</code>, advancing the cursor each
+          iteration:</p>
+        <pre><span class="k">let</span> after = null;
+<span class="k">do</span> {
+  <span class="k">const</span> page = <span class="k">await</span> orbit.charges.list({ limit: 100, starting_after: after });
+  process(page.data);
+  after = page.data.at(-1)?.id;
+} <span class="k">while</span> (page.has_more);</pre>
+      </article>
+    </main>
+
+    <!-- Region 2: RIGHT in-page "on this page" navigation (moves within this doc) — no heading -->
+    <nav class="toc">
+      <ul>
+        <li><a href="#overview" class="active">Overview</a></li>
+        <li><a href="#cursor-parameters">Cursor parameters</a></li>
+        <li><a href="#response-shape">Response shape</a></li>
+        <li><a href="#code-examples">Code examples</a></li>
+      </ul>
+    </nav>
+  </div>
+</body>
+</html>

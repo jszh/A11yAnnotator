@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send money — Meridian Bank</title>
+<!--
+  SC 2.4.6 (LABELS limb, TT 5.B / G131) — a multi-step money-transfer wizard driven
+  by ONE primary <button id="primary">. Its visible label is the page's only call to
+  action and changes by step:
+     Step 1 (amount)     -> "Continue"   (function: go to step 2)  — descriptive
+     Step 2 (review)     -> "Continue"   (function: go to step 3)  — descriptive
+     Step 3 (confirm)    -> "Continue"   (function: IRREVERSIBLY SEND the money) — NOT descriptive
+
+  The DEFECT is on the BUTTON, judged against TT Test 5.B ("Each visual button label
+  is sufficiently clear and descriptive, so users know its function"), NOT the headings
+  limb. role=button is confirmed for #primary; the only heading on the page is the
+  <h1> "Send money", which correctly describes the page.
+
+  In the FINAL state the button's function is to execute an irreversible transfer, but
+  its label stays the generic "Continue" — the same word that was apt while it merely
+  advanced steps. "Continue" does not tell the user that activating it will SEND the
+  money now (a consequential, non-reversible action), so the visible label no longer
+  describes the control's function in the state the user has navigated into.
+
+  PASS BOUNDARY: #secondary also relabels across steps ("Cancel" -> "Back" -> "Back"),
+  but its label stays descriptive of its function in EVERY state — showing that a label
+  that changes on interaction is fine when the new label is still adequate. That isolates
+  the failure to the under-descriptive final "Continue" and keeps the page from being a
+  blanket "any relabel fails" trap.
+
+  WHY AUTOMATED TOOLS MISS IT: #primary always has a valid, non-empty accessible name
+  equal to its visible text in every step (label-in-name green throughout); "Continue"
+  is a perfectly ordinary, never-flagged button word, and on steps 1-2 it is genuinely
+  apt. No rule clicks through to step 3, recognises the button's function is now "send
+  money irrevocably", and judges that "Continue" under-describes that function. TT 5.B
+  Notes require that "Any changes to form labels that occur automatically or as a result
+  of interaction should be included" — i.e. the adequacy judgement must be made in the
+  interacted-into state, which only a human reaches and reasons about.
+-->
+<style>
+  body { margin: 0; font-family: "Inter", system-ui, sans-serif; background: #eef1f6; color: #1c2430; }
+  .app { max-width: 520px; margin: 32px auto; background: #fff; border-radius: 14px;
+         box-shadow: 0 6px 28px rgba(20,30,50,.10); overflow: hidden; }
+  .topbar { background: #0d3b66; color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 10px; }
+  .topbar .logo { width: 22px; height: 22px; background: #f4d35e; border-radius: 5px; }
+  .topbar h1 { margin: 0; font-size: 1.15rem; font-weight: 700; }
+  .steps { display: flex; gap: 6px; padding: 14px 24px 0; }
+  .steps span { flex: 1; height: 5px; border-radius: 3px; background: #d7dde6; }
+  .steps span.on { background: #0d3b66; }
+  .body { padding: 20px 24px 8px; }
+  .stage { display: none; }
+  .stage.show { display: block; }
+  .stage h2 { font-size: 1rem; margin: 4px 0 14px; color: #324; }
+  label { display: block; font-size: .85rem; color: #4b5566; margin: 12px 0 5px; }
+  input[type=text] { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit;
+                     border: 1px solid #c4ccd8; border-radius: 8px; }
+  .summary { background: #f6f8fb; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; }
+  .summary .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: .92rem; }
+  .summary .row .k { color: #6b7686; }
+  .summary .row .v { font-weight: 600; }
+  .warn { background: #fff6f6; border: 1px solid #f3c9c9; color: #7a2020; border-radius: 10px;
+          padding: 12px 14px; font-size: .9rem; margin-top: 14px; }
+  .actions { display: flex; gap: 10px; padding: 16px 24px 24px; }
+  button { font: inherit; font-weight: 600; padding: 11px 18px; border-radius: 9px; cursor: pointer; }
+  #secondary { background: #fff; color: #0d3b66; border: 1px solid #b9c4d4; }
+  #primary { background: #0d3b66; color: #fff; border: 0; margin-left: auto; min-width: 130px; }
+  #primary:focus-visible, #secondary:focus-visible { outline: 3px solid #f4d35e; outline-offset: 2px; }
+  .done { padding: 28px 24px; text-align: center; color: #15633a; }
+  .done .big { font-size: 2rem; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar"><span class="logo" aria-hidden="true"></span><h1>Send money</h1></div>
+
+  <div class="steps" aria-hidden="true">
+    <span id="b1" class="on"></span><span id="b2"></span><span id="b3"></span>
+  </div>
+
+  <div class="body">
+    <!-- STEP 1 — enter amount -->
+    <section class="stage show" id="s1" aria-label="Step 1: amount">
+      <h2>How much do you want to send?</h2>
+      <label for="amt">Amount (USD)</label>
+      <input type="text" id="amt" value="1,250.00">
+      <label for="to">To</label>
+      <input type="text" id="to" value="Dana Whitfield · ****6043">
+    </section>
+
+    <!-- STEP 2 — review -->
+    <section class="stage" id="s2" aria-label="Step 2: review">
+      <h2>Review the details</h2>
+      <div class="summary">
+        <div class="row"><span class="k">Amount</span><span class="v">$1,250.00</span></div>
+        <div class="row"><span class="k">To</span><span class="v">Dana Whitfield · ****6043</span></div>
+        <div class="row"><span class="k">Fee</span><span class="v">$0.00</span></div>
+        <div class="row"><span class="k">Arrives</span><span class="v">Within minutes</span></div>
+      </div>
+    </section>
+
+    <!-- STEP 3 — confirm: the button's function becomes "send the money now" -->
+    <section class="stage" id="s3" aria-label="Step 3: confirm">
+      <h2>Confirm and send</h2>
+      <div class="summary">
+        <div class="row"><span class="k">Sending</span><span class="v">$1,250.00</span></div>
+        <div class="row"><span class="k">To</span><span class="v">Dana Whitfield · ****6043</span></div>
+      </div>
+      <div class="warn">Instant transfers are final. Once sent, the money cannot be
+        recalled or refunded by the bank.</div>
+    </section>
+
+    <!-- COMPLETION -->
+    <section class="stage" id="s4" aria-label="Done">
+      <div class="done"><div class="big">&#10003;</div><p>$1,250.00 sent to Dana Whitfield.</p></div>
+    </section>
+  </div>
+
+  <div class="actions" id="actions">
+    <button type="button" id="secondary">Cancel</button>
+    <button type="button" id="primary">Continue</button>
+  </div>
+</div>
+
+<script>
+  var step = 1;
+  var stages = ['s1', 's2', 's3', 's4'];
+  var bars = ['b1', 'b2', 'b3'];
+  var primary = document.getElementById('primary');
+  var secondary = document.getElementById('secondary');
+
+  function render() {
+    stages.forEach(function (id, i) {
+      document.getElementById(id).classList.toggle('show', (i + 1) === step);
+    });
+    bars.forEach(function (id, i) {
+      document.getElementById(id).classList.toggle('on', (i + 1) <= step);
+    });
+
+    if (step === 1) {
+      secondary.textContent = 'Cancel';        // apt: abandons the transfer
+      primary.textContent = 'Continue';         // apt: advances to review
+      primary.style.display = '';
+    } else if (step === 2) {
+      secondary.textContent = 'Back';           // apt: returns to amount
+      primary.textContent = 'Continue';         // apt: advances to confirm
+    } else if (step === 3) {
+      secondary.textContent = 'Back';           // apt: returns to review
+      // DEFECT: the button now SENDS the money irrevocably, but the label is still
+      // the generic "Continue" — under-describes a consequential, non-reversible action.
+      primary.textContent = 'Continue';
+    } else {
+      secondary.style.display = 'none';
+      primary.style.display = 'none';
+    }
+  }
+
+  primary.addEventListener('click', function () {
+    if (step < 4) { step++; render(); }
+  });
+  secondary.addEventListener('click', function () {
+    if (step === 1) { step = 1; render(); }     // "Cancel" — demo no-ops back to start
+    else if (step > 1 && step < 4) { step--; render(); }
+  });
+
+  render();
+</script>
+</body>
+</html>

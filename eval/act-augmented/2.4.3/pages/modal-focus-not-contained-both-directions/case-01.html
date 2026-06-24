@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transfer funds — Northbridge Online Banking</title>
+<!--
+  SC 2.4.3 — modal-focus-not-contained-both-directions — case-01 (FAIL)
+  ASYMMETRIC CONTAINMENT. A "Confirm transfer" modal (dim backdrop + centered card)
+  uses a hand-rolled focus trap that ONLY wraps the FORWARD direction: when Tab is
+  pressed on the last control it sends focus back to the first. But the Shift+Tab
+  (backward) case was never written. So pressing Shift+Tab while focus is on the FIRST
+  control (the amount field) lets the browser's default backward order take over and
+  focus lands on the page header's "Log out" link BEHIND the dim backdrop — outside the
+  open modal. Forward feels perfectly trapped; backward silently leaks.
+  WHY AUTOMATED TOOLS MISS IT: role=dialog + aria-modal=true are present, the dialog has
+  an accessible name, every field is labelled, contrast is fine — axe/WAVE/Lighthouse
+  report nothing. The defect only appears when a human DRIVES Shift+Tab from the first
+  control and observes focus escape behind the backdrop. Static analysis cannot tell that
+  the keydown handler covers Tab-forward but not Tab-backward, nor that the page behind
+  was never made inert. This is NOT a 2.1.2 trap (the user CAN leave) — it is the inverse:
+  the user leaks OUT when a modal must contain them in BOTH directions (TT 4.F step 3).
+-->
+<style>
+  :root { font-family: "Inter", system-ui, sans-serif; color: #11203a; }
+  body { margin: 0; background: #f3f6fb; }
+  header.bank { background: #0a2a5e; color: #fff; padding: 14px 26px; display: flex; align-items: center; justify-content: space-between; }
+  header.bank .brand { font-weight: 700; letter-spacing: .4px; }
+  header.bank nav a { color: #cdddf6; text-decoration: none; margin-left: 18px; font-size: .9rem; }
+  main { max-width: 720px; margin: 0 auto; padding: 26px; }
+  .acct { background: #fff; border: 1px solid #d7e0ee; border-radius: 12px; padding: 18px 22px; margin-bottom: 16px; }
+  .acct h2 { margin: 0 0 4px; font-size: 1rem; }
+  .acct .bal { font-size: 1.5rem; font-weight: 700; color: #0a2a5e; }
+  /* dim backdrop + centered card = looks unmistakably modal */
+  .backdrop { position: fixed; inset: 0; background: rgba(8,22,46,.55); display: flex; align-items: center; justify-content: center; }
+  .modal { background: #fff; width: min(460px, 92vw); border-radius: 14px; box-shadow: 0 24px 60px rgba(8,22,46,.4); overflow: hidden; }
+  .modal-head { background: #0a2a5e; color: #fff; padding: 16px 22px; }
+  .modal-head h2 { margin: 0; font-size: 1.1rem; }
+  .modal-body { padding: 22px; }
+  .modal-body label { display: block; font-weight: 600; font-size: .85rem; margin: 14px 0 6px; }
+  .modal-body input, .modal-body select { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #9cb0cf; border-radius: 8px; font-size: .95rem; }
+  .modal-foot { padding: 16px 22px 22px; display: flex; gap: 10px; justify-content: flex-end; }
+  .btn { border: none; border-radius: 8px; padding: 11px 20px; font-size: .92rem; font-weight: 600; cursor: pointer; }
+  .btn.primary { background: #0a6e3a; color: #fff; }
+  .btn.ghost { background: #e7edf7; color: #11203a; }
+</style>
+</head>
+<body>
+<header class="bank">
+  <span class="brand">Northbridge Bank</span>
+  <nav>
+    <a href="#accounts">Accounts</a>
+    <a href="#pay">Pay &amp; Transfer</a>
+    <!-- The backward leak lands HERE, behind the backdrop: -->
+    <a href="#logout" id="logout-link">Log out</a>
+  </nav>
+</header>
+
+<main aria-hidden="false">
+  <h1>Pay &amp; Transfer</h1>
+  <div class="acct">
+    <h2>Everyday Checking ····2841</h2>
+    <span class="bal">$4,820.17</span>
+  </div>
+  <div class="acct">
+    <h2>High-Yield Savings ····9930</h2>
+    <span class="bal">$18,206.55</span>
+  </div>
+  <p>Review the transfer below before confirming.</p>
+</main>
+
+<!--
+  The modal is shown immediately for this fixture. role=dialog + aria-modal=true =
+  looks programmatically modal. But aria-modal is a HINT, not enforcement: the author
+  must trap focus AND inert the background. Here only forward Tab is trapped.
+-->
+<div class="backdrop" id="backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cf-title" id="modal">
+    <div class="modal-head"><h2 id="cf-title">Confirm transfer</h2></div>
+    <div class="modal-body">
+      <p>Transfer to <strong>High-Yield Savings ····9930</strong>.</p>
+      <label for="amt">Amount (USD)</label>
+      <input id="amt" name="amt" type="text" inputmode="decimal" value="500.00">
+      <label for="when">Send on</label>
+      <select id="when" name="when">
+        <option>Today</option>
+        <option>Next business day</option>
+      </select>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn ghost" id="cancel">Cancel</button>
+      <button type="button" class="btn primary" id="confirm">Confirm transfer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Hand-rolled "focus trap" pasted from a Stack Overflow answer that only covered the
+  // FORWARD case. The dev adapted the variable names but never added the Shift+Tab branch.
+  const modal = document.getElementById('modal');
+  function focusables() {
+    return Array.from(modal.querySelectorAll('input, select, button')).filter(el => !el.disabled);
+  }
+  modal.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab') return;
+    const items = focusables();
+    const last = items[items.length - 1];
+    // BUG: only the forward wrap is implemented. There is NO `e.shiftKey` branch, so
+    // Shift+Tab on the first control falls through to the browser default and escapes
+    // to the page header ("Log out") behind the backdrop.
+    if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      items[0].focus();
+    }
+  });
+  // Initial focus into the dialog (correct).
+  window.addEventListener('load', () => document.getElementById('amt').focus());
+  // Cancel / Esc DO work — this is deliberately NOT a 2.1.2 trap.
+  document.getElementById('cancel').addEventListener('click', () => document.getElementById('backdrop').remove());
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('backdrop').remove(); });
+</script>
+</body>
+</html>

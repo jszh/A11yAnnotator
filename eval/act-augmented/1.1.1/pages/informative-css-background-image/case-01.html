@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northway Building Society — Personal Loans</title>
+<!--
+  SC 1.1.1 FAILURE (informative CSS background-image — F3 example 1, verbatim).
+  The load-bearing fact "19.3% APR Typical Variable" exists ONLY as pixels inside the
+  stylesheet rule .rate-flag { background-image: url("data:image/svg+xml,...") }.
+  The visible DOM prose deliberately never states a rate: the headline only teases
+  ("Where else would you find a better interest rate?"). Hide CSS backgrounds (or use
+  high-contrast/forced-colors, which drops background images) and the rate vanishes
+  with no text equivalent anywhere in the DOM.
+  WHY AUTOMATED TOOLS MISS IT: there is no <img>, <svg>, role="img", <object> or
+  <input type=image> — nothing that can hold an accessible name — so every ACT 1.1.1
+  rule returns Inapplicable. axe/WAVE/Lighthouse have no target. They cannot OCR the
+  data-URI SVG, cannot decide the flag is informative rather than decorative, and
+  cannot reason that "19.3% APR" appears nowhere in the page text.
+-->
+<style>
+  :root { --ink:#0b2545; --paper:#f4f6fb; --brand:#0a5; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    margin: 0; color: var(--ink); background: var(--paper);
+    line-height: 1.55;
+  }
+  header.masthead {
+    background: var(--ink); color: #fff; padding: 18px 28px;
+    display:flex; align-items:center; gap:14px;
+  }
+  header.masthead .lockup { font-weight: bold; letter-spacing: .4px; font-size: 1.2rem; }
+  header.masthead nav a { color:#cfe3ff; margin-left:18px; text-decoration:none; font-size:.95rem; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 24px 64px; }
+  .product-card {
+    background:#fff; border:1px solid #d7deea; border-radius:12px;
+    padding: 28px 32px; box-shadow: 0 2px 8px rgba(11,37,69,.06);
+  }
+  .product-card h1 { margin: 0 0 4px; font-size: 1.7rem; }
+  .product-card .kicker { color: var(--brand); font-weight: bold; text-transform: uppercase; letter-spacing:1px; font-size:.78rem; }
+
+  /* THE DEFECT: the only place the headline rate is stated is inside this background image.
+     180x52 SVG that renders the text "19.3% APR Typical Variable" as pixels. */
+  p#bestinterest {
+    position: relative;
+    min-height: 64px;
+    padding-left: 196px;
+    margin: 22px 0 8px;
+    font-size: 1.35rem;
+    font-style: italic;
+    background: transparent
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="56" viewBox="0 0 180 56"><rect width="180" height="56" rx="8" fill="%230a5"/><text x="90" y="22" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="bold" fill="white" text-anchor="middle">19.3%25 APR</text><text x="90" y="42" font-family="Arial,Helvetica,sans-serif" font-size="12" fill="white" text-anchor="middle">Typical Variable</text></svg>')
+      no-repeat top left;
+  }
+
+  .cta {
+    display:inline-block; margin-top: 14px; background: var(--brand); color:#fff;
+    padding: 12px 22px; border-radius: 8px; text-decoration:none; font-weight:bold;
+  }
+  .fineprint { font-size:.8rem; color:#5a6b85; margin-top: 26px; }
+  footer { max-width:760px; margin: 0 auto; padding: 0 24px 40px; color:#5a6b85; font-size:.82rem; }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <span class="lockup">Northway Building Society</span>
+  <nav aria-label="Primary">
+    <a href="#savings">Savings</a>
+    <a href="#mortgages">Mortgages</a>
+    <a href="#loans" aria-current="page">Loans</a>
+  </nav>
+</header>
+
+<main>
+  <article class="product-card" aria-labelledby="loanTitle">
+    <p class="kicker">Personal lending</p>
+    <h1 id="loanTitle">Northway Flexible Loan</h1>
+    <p>Borrow between &pound;1,000 and &pound;25,000 and repay over 1 to 7 years.
+       No early-repayment charges, and a decision in minutes.</p>
+
+    <!-- The headline interest rate is presented ONLY by the background image on this paragraph. -->
+    <p id="bestinterest">Where else would you find a better interest rate?</p>
+
+    <a class="cta" href="#apply">Apply now</a>
+
+    <p class="fineprint">
+      Representative example available on request. Rates depend on the amount borrowed and
+      individual circumstances. Northway Building Society is authorised by the Prudential
+      Regulation Authority.
+    </p>
+  </article>
+</main>
+
+<footer>
+  <p>&copy; 2026 Northway Building Society. Calls may be recorded for training purposes.</p>
+</footer>
+</body>
+</html>

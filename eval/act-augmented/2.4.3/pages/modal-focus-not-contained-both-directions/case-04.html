@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renew vehicle registration — State of Calverton DMV</title>
+<!--
+  SC 2.4.3 — modal-focus-not-contained-both-directions — case-04 (FAIL)
+  INERT SET, BUT A SIBLING ESCAPES IT. The developer did the right modern thing: when the
+  "Confirm renewal" modal opens, they set <main>.inert = true and relied on `inert` (no JS
+  Tab trap) to keep focus in the dialog — a legitimate, recommended modern technique. It
+  looks textbook. BUT a separate cookie-consent banner (OneTrust-style) was injected by a
+  tag manager as a DIRECT CHILD OF <body>, OUTSIDE the #page wrapper that gets inerted. So
+  the banner's "Accept all cookies" / "Manage" buttons remain fully focusable. With the page
+  inert, the document's live focusables are exactly the dialog's controls PLUS the two
+  cookie-banner buttons. So Tab from the dialog's last control ("Pay") moves FORWARD onto
+  the cookie buttons (they follow the dialog in DOM order), and Shift+Tab from the dialog's
+  first control ("Card number") moves BACKWARD onto those same buttons. Focus escapes the
+  open modal in BOTH directions onto a body-level sibling the inerting never reached.
+  WHY AUTOMATED TOOLS MISS IT: inert is correctly applied; role=dialog/aria-modal/labels are
+  all present; the cookie banner is valid labelled markup. Every static check passes. Only a
+  human who knows the cookie banner lives OUTSIDE the inerted subtree, and who Tabs off the
+  dialog's edges, sees focus land on "Accept all cookies" behind the backdrop. This is NOT a
+  2.1.2 trap — Esc closes the modal — it is the inverse leak.
+-->
+<style>
+  :root { font-family: "Public Sans", system-ui, sans-serif; color: #1b1b1b; }
+  body { margin: 0; background: #f0f0f0; }
+  .gov-banner { background: #112e51; color: #fff; font-size: .78rem; padding: 4px 26px; }
+  header.dmv { background: #fff; border-bottom: 4px solid #112e51; padding: 14px 26px; display: flex; align-items: center; gap: 16px; }
+  header.dmv .seal { width: 36px; height: 36px; border-radius: 50%; background: #112e51; color: #fff; display: grid; place-items: center; font-weight: 700; }
+  header.dmv .title { font-weight: 700; }
+  header.dmv nav a { color: #112e51; text-decoration: none; margin-left: 16px; font-size: .9rem; }
+  main { max-width: 720px; margin: 0 auto; padding: 26px; }
+  .card { background: #fff; border: 1px solid #d6d7d9; border-radius: 4px; padding: 20px; }
+  .backdrop { position: fixed; inset: 0; background: rgba(17,46,81,.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  .modal { background: #fff; width: min(480px, 92vw); border-radius: 6px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+  .modal h2 { margin: 0; background: #112e51; color: #fff; padding: 16px 22px; font-size: 1.1rem; border-radius: 6px 6px 0 0; }
+  .modal .b { padding: 22px; }
+  .modal label { display: block; font-weight: 600; font-size: .85rem; margin: 12px 0 6px; }
+  .modal input, .modal select { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #8d8d8d; border-radius: 4px; font: inherit; }
+  .modal .f { padding: 0 22px 22px; display: flex; gap: 10px; justify-content: flex-end; }
+  .btn { border: none; border-radius: 4px; padding: 11px 20px; font-weight: 600; font-size: .9rem; cursor: pointer; }
+  .btn.go { background: #1a7f37; color: #fff; }
+  .btn.no { background: #e1e3e6; color: #1b1b1b; }
+  /* Cookie banner: body-level sibling, OUTSIDE #page, very high z-index so it sits over the backdrop */
+  .cookie { position: fixed; left: 16px; bottom: 16px; right: 16px; max-width: 520px; background: #1b1b1b; color: #fff; padding: 16px 18px; border-radius: 6px; z-index: 120; font-size: .85rem; }
+  .cookie .cbtns { margin-top: 10px; display: flex; gap: 8px; }
+  .cookie button { border: none; border-radius: 4px; padding: 8px 14px; font-weight: 600; font-size: .82rem; cursor: pointer; }
+  .cookie .accept { background: #ffbe2e; color: #1b1b1b; }
+  .cookie .manage { background: transparent; color: #ffbe2e; border: 1px solid #ffbe2e; }
+</style>
+</head>
+<body>
+<!--
+  #page wraps the gov banner, header, and main. The script inerts #page when the modal
+  opens. EVERYTHING the developer authored lives in here — but the cookie banner does not.
+-->
+<div id="page">
+  <div class="gov-banner">An official website of the State of Calverton</div>
+  <header class="dmv">
+    <span class="seal">CV</span>
+    <span class="title">Calverton DMV — Vehicle Services</span>
+    <nav>
+      <a href="#renew">Renew</a>
+      <a href="#title">Title transfer</a>
+      <a href="#account">My account</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Renew vehicle registration</h1>
+    <div class="card">
+      <p>Plate <strong>CALV-7731</strong> · 2019 Subaru Outback · Expires 31 Aug 2026.</p>
+      <p>Renewal fee: <strong>$96.00</strong>.</p>
+    </div>
+  </main>
+</div>
+
+<!-- Confirm-renewal modal. Background #page is inerted; no JS trap (relies on inert alone). -->
+<div class="backdrop" id="backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rn-title" id="modal">
+    <h2 id="rn-title">Confirm renewal &amp; payment</h2>
+    <div class="b">
+      <label for="card">Card number</label>
+      <input id="card" type="text" inputmode="numeric" value="•••• •••• •••• 4417">
+      <label for="cycle">Registration period</label>
+      <select id="cycle"><option>1 year — $96.00</option><option>2 years — $182.00</option></select>
+    </div>
+    <div class="f">
+      <button type="button" class="btn no" id="cancel">Cancel</button>
+      <button type="button" class="btn go" id="pay">Pay $96.00</button>
+    </div>
+  </div>
+</div>
+
+<!--
+  Cookie-consent banner injected by the tag manager as a DIRECT CHILD OF BODY, a sibling of
+  #page and the modal — NOT inside #page. So inerting #page never touches it; its buttons
+  stay focusable while the modal is open, sitting OUTSIDE the dialog.
+-->
+<aside class="cookie" id="cookie" aria-label="Cookie consent">
+  This site uses cookies to measure traffic.
+  <div class="cbtns">
+    <button type="button" class="accept" id="cookie-accept">Accept all cookies</button>
+    <button type="button" class="manage" id="cookie-manage">Manage preferences</button>
+  </div>
+</aside>
+
+<script>
+  const page = document.getElementById('page');
+
+  // Modern, "correct-looking" approach: inert the whole page wrapper while the modal is
+  // open and let `inert` keep focus in the dialog (no manual Tab trap needed — this IS the
+  // recommended technique). The developer assumed #page contained ALL background
+  // focusables. The cookie banner, injected later by the tag manager OUTSIDE #page, is not
+  // covered, so it stays in the tab order alongside the dialog.
+  page.inert = true;
+
+  window.addEventListener('load', () => document.getElementById('card').focus());
+
+  function close() { page.inert = false; document.getElementById('backdrop').remove(); }
+  document.getElementById('cancel').addEventListener('click', close);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); }); // Esc works -> not a 2.1.2 trap
+
+  document.getElementById('cookie-accept').addEventListener('click', e => { e.currentTarget.textContent = 'Accepted ✓'; });
+</script>
+</body>
+</html>

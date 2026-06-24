@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's On — StreamPort TV Guide</title>
+<style>
+  /*
+    THE DEFECT (human-judgment only):
+    An electronic program guide (EPG) is a grid and is legitimately excepted from Reflow
+    — the whole grid may scroll in two dimensions. BUT the Understanding doc is explicit
+    that the INDIVIDUAL CELLS of the grid must still meet Reflow: a cell's poster art and
+    "how to watch" text must fit the required width. Here a single featured cell is built
+    with a fixed 560px internal layout (poster image + synopsis side-by-side, nowrap), so
+    that ONE cell forces ~560px of horizontal scrolling WITHIN the cell at 320px — the cell
+    itself fails Reflow even though the grid exception is valid.
+  */
+  :root { font-family: "Helvetica Neue", Arial, sans-serif; color: #f5f5f7; }
+  body { margin: 0; background: #0c0c14; }
+  header.bar { background: #14141f; padding: 14px 18px; border-bottom: 1px solid #2a2a3a; }
+  header.bar h1 { font-size: 1.4rem; margin: 0; }
+  .tagline { color: #9aa0b4; font-size: 0.85rem; margin: 4px 0 0; }
+  .wrap { padding: 16px 18px 48px; }
+  .guide-intro { color: #c9cdda; max-width: 60ch; line-height: 1.5; }
+  /* The EPG grid as a whole may scroll horizontally — that is the valid exception. */
+  .epg-scroll { overflow-x: auto; margin-top: 18px; border-radius: 10px; }
+  .epg { display: grid; grid-template-columns: 130px repeat(6, 200px); gap: 2px; min-width: 1330px; }
+  .epg .head, .epg .chan { background: #1c1c2a; padding: 8px 10px; font-size: 0.8rem; font-weight: 600; position: sticky; }
+  .epg .head { top: 0; }
+  .epg .chan { left: 0; display: flex; align-items: center; }
+  .epg .slot { background: #1f2233; padding: 8px 10px; border-radius: 4px; font-size: 0.82rem; }
+  .epg .slot .time { color: #8d93a8; font-size: 0.72rem; }
+
+  /*
+    THE FAILING CELL: a single "featured premiere" cell whose INTERNAL layout is a fixed
+    560px two-column flex (poster + synopsis) with white-space:nowrap on the synopsis, so
+    its content cannot reflow below ~560px regardless of viewport. It spans two grid columns.
+  */
+  .epg .featured { grid-column: span 2; background: #2a1f33; padding: 0; overflow: hidden; }
+  .featured-inner {
+    display: flex; gap: 12px; width: 560px; padding: 10px;  /* fixed internal width */
+  }
+  .featured-inner .poster {
+    width: 120px; height: 170px; flex: 0 0 120px;
+    background: linear-gradient(135deg,#7b2ff7,#f107a3); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; font-weight: 700;
+    text-align: center; font-size: 0.8rem; padding: 6px;
+  }
+  .featured-inner .meta { flex: 1; }
+  .featured-inner .meta h3 { margin: 0 0 6px; font-size: 0.95rem; }
+  .featured-inner .meta p { margin: 0 0 8px; font-size: 0.8rem; color: #cfd3e0; white-space: nowrap; }
+  .featured-inner .meta .how { font-size: 0.78rem; color: #b388ff; white-space: nowrap; }
+  .legend { margin-top: 16px; color: #9aa0b4; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+  <header class="bar">
+    <h1>What’s On Tonight</h1>
+    <p class="tagline">StreamPort live TV guide · Tuesday 20 June, primetime</p>
+  </header>
+
+  <div class="wrap">
+    <p class="guide-intro">
+      Browse tonight’s schedule across your channels. Scroll the guide sideways to see
+      later time slots; select any programme to record it or start watching.
+    </p>
+
+    <div class="epg-scroll" role="region" aria-label="Programme guide grid (scrollable)" tabindex="0">
+      <div class="epg">
+        <div class="head" aria-hidden="true"></div>
+        <div class="head">8:00</div><div class="head">8:30</div><div class="head">9:00</div>
+        <div class="head">9:30</div><div class="head">10:00</div><div class="head">10:30</div>
+
+        <div class="chan">BBC One</div>
+        <div class="slot"><span class="time">8:00</span><br>The Repair Workshop</div>
+        <div class="slot"><span class="time">8:30</span><br>Coastal Beat</div>
+        <div class="slot"><span class="time">9:00</span><br>Inspector Vale</div>
+        <div class="slot"><span class="time">9:30</span><br>Inspector Vale</div>
+        <div class="slot"><span class="time">10:00</span><br>News at Ten</div>
+        <div class="slot"><span class="time">10:30</span><br>Late Review</div>
+
+        <div class="chan">SciFi+</div>
+        <!-- Featured premiere cell: its INTERNAL layout is fixed at 560px and cannot reflow. -->
+        <div class="featured slot" role="article" aria-label="Featured premiere: Nebula Drift">
+          <div class="featured-inner">
+            <div class="poster">NEBULA<br>DRIFT</div>
+            <div class="meta">
+              <h3>Nebula Drift — Series Premiere</h3>
+              <p>A salvage crew wakes from cryo to find their station drifting toward a dying star.</p>
+              <span class="how">How to watch: live at 9:00, or stream on-demand from 11:00 in 4K HDR.</span>
+            </div>
+          </div>
+        </div>
+        <div class="slot"><span class="time">9:30</span><br>Nebula Drift</div>
+        <div class="slot"><span class="time">10:00</span><br>Galaxy Quest Q&amp;A</div>
+        <div class="slot"><span class="time">10:30</span><br>Cosmos Late</div>
+
+        <div class="chan">FoodNet</div>
+        <div class="slot"><span class="time">8:00</span><br>Knead to Know</div>
+        <div class="slot"><span class="time">8:30</span><br>Knife Skills</div>
+        <div class="slot"><span class="time">9:00</span><br>The Final Plate</div>
+        <div class="slot"><span class="time">9:30</span><br>The Final Plate</div>
+        <div class="slot"><span class="time">10:00</span><br>Midnight Diner</div>
+        <div class="slot"><span class="time">10:30</span><br>Midnight Diner</div>
+      </div>
+    </div>
+
+    <p class="legend">
+      Tip: press and hold a programme to add it to your recordings. The guide refreshes every 15 minutes.
+    </p>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT:
+    The EPG grid scrolling horizontally is a VALID 1.4.10 exception, so a tool that notices
+    the grid's scrollbar must NOT flag it. The actual failure is one level deeper: the
+    "Nebula Drift" featured CELL has a fixed 560px internal two-column layout with nowrap
+    text, so the cell's own content requires ~560px of horizontal scrolling at 320px — and
+    the Understanding doc requires individual cells to still meet Reflow. No automated checker
+    distinguishes "the grid may 2D-scroll" from "but this one cell's poster+synopsis must
+    still reflow"; that is a per-cell human visual judgment. No attribute is missing.
+  -->
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cedar &amp; Co. — Checkout</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin:0; font-family:"Inter", system-ui, sans-serif; color:#1c2230;
+    background:#f6f7f9;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 28px 20px 0; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:#5b6675; font-size:13.5px; margin:0 0 18px; }
+
+  fieldset { border:1px solid #dce2e9; border-radius:12px; background:#fff;
+    margin:0 0 16px; padding:16px 18px; }
+  legend { font-size:13px; font-weight:700; color:#243042; padding:0 6px; }
+  .field { margin:12px 0; }
+  .field label { display:block; font-size:12.5px; font-weight:600; margin-bottom:5px; color:#39434f; }
+  .field input, .field select {
+    width:100%; padding:11px 12px; border:1px solid #cfd6df; border-radius:9px;
+    font:inherit; font-size:14px; background:#fff;
+  }
+
+  /* A position:fixed checkout footer with the running total + "Place order".
+     It overlaps the bottom ~76px of the viewport. WITHOUT mitigation, tabbing
+     to a field near the page bottom would scroll it flush to the window bottom
+     where the fixed footer covers it and its focus ring. The author KNEW this
+     and mitigated it correctly (see scroll-padding-bottom + scroll-margin),
+     so this page PASSES: the focus ring of every field always lands in the
+     clear band above the footer. This is the boundary/pass variant. */
+  .checkout-footer {
+    position: fixed; left:0; right:0; bottom:0; height:76px; z-index:40;
+    background:#fff; border-top:1px solid #dce2e9;
+    box-shadow:0 -6px 18px rgba(20,32,44,.08);
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 0 20px;
+  }
+  .checkout-footer .total { font-weight:800; font-variant-numeric:tabular-nums; }
+  .checkout-footer .total small { display:block; font-weight:500; font-size:11px; color:#7a8694; }
+  .checkout-footer button {
+    padding:12px 22px; border:0; border-radius:10px; background:#1f7a4d; color:#fff;
+    font:inherit; font-size:14px; font-weight:700; cursor:pointer;
+  }
+
+  /* MITIGATION 1: the scroll container reserves space at the bottom equal to
+     the fixed footer, so any scroll-into-view for a focused field stops above
+     the footer rather than under it. */
+  html { scroll-padding-bottom: 96px; }
+  /* MITIGATION 2: each focusable field carries scroll-margin so when it is
+     scrolled into view there is a clear gap above the footer where its ring
+     can be seen. */
+  .field input, .field select, .checkout-footer button { scroll-margin-bottom: 96px; }
+  /* Extra bottom space in the flow so the last fields never need to sit under
+     the footer. */
+  .wrap { padding-bottom: 140px; }
+
+  /* Author focus ring — high contrast, fully visible, never clipped. */
+  input:focus, select:focus, button:focus { outline:none; }
+  input:focus-visible, select:focus-visible, button:focus-visible {
+    outline: 3px solid #1b6fe0; outline-offset: 2px; border-radius: 9px;
+  }
+  .grader { font-size:12px; color:#8a93a0; line-height:1.7; margin: 4px 0 0; }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Checkout</h1>
+    <p class="sub">Cedar &amp; Co. — Order #CC-20418. Shipping to United States.</p>
+
+    <form>
+      <fieldset>
+        <legend>Contact</legend>
+        <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" value="rob.kestrel@example.com"></div>
+        <div class="field"><label for="phone">Phone</label><input id="phone" type="tel" autocomplete="tel" placeholder="(555) 010-2288"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Shipping address</legend>
+        <div class="field"><label for="name">Full name</label><input id="name" autocomplete="name" value="Roberta Kestrel"></div>
+        <div class="field"><label for="addr1">Street address</label><input id="addr1" autocomplete="address-line1" value="48 Larkspur Lane"></div>
+        <div class="field"><label for="city">City</label><input id="city" autocomplete="address-level2" value="Asheville"></div>
+        <div class="field"><label for="state">State</label>
+          <select id="state" autocomplete="address-level1">
+            <option>North Carolina</option><option>South Carolina</option><option>Tennessee</option>
+          </select></div>
+        <div class="field"><label for="zip">ZIP code</label><input id="zip" autocomplete="postal-code" inputmode="numeric" value="28801"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Payment</legend>
+        <div class="field"><label for="card">Card number</label><input id="card" inputmode="numeric" autocomplete="cc-number" placeholder="•••• •••• •••• ••••"></div>
+        <div class="field"><label for="cvc">Security code</label><input id="cvc" inputmode="numeric" autocomplete="cc-csc" placeholder="CVC"></div>
+      </fieldset>
+
+      <p class="grader">
+        Boundary / PASS variant. Same fixed-footer pattern that usually clips a
+        focus ring — but the author reserved space with
+        <code>scroll-padding-bottom</code> on the scroll container and
+        <code>scroll-margin-bottom</code> on every field, so a field scrolled
+        into view by Tab always stops in the clear band ABOVE the fixed footer,
+        and its 3px ring is fully visible. A viewport-aware reviewer tabbing
+        from the first field to "Place order" sees the indicator at every stop.
+        This page therefore PASSES 2.4.7 and exists to sharpen the contrast with
+        the clipped/occluded failures — automated tools, which treat all four
+        pages identically, cannot tell this safe layout apart from the failing
+        ones because the distinguishing factor is the runtime scroll position.
+      </p>
+    </form>
+  </main>
+
+  <div class="checkout-footer">
+    <span class="total">$184.50 <small>Total incl. tax</small></span>
+    <button type="submit">Place order</button>
+  </div>
+</body>
+</html>

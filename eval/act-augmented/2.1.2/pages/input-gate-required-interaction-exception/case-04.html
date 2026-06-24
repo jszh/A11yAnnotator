@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confirm your registration — Riverside 10K</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.2 — conformant required-interaction gate, PASS):
+    The race-registration page holds focus on a consent section: forward Tab past the
+    "I accept the participant waiver" group is suppressed until the user checks the waiver
+    checkbox. This LOOKS like a trap to anyone who tabs to the checkbox and then tries to Tab
+    onward without checking it — Tab is dead.
+    But it is NOT a trap and NOT a failure. The checkbox is a real, focusable
+    <input type="checkbox">: a keyboard user reaches it with Tab and toggles it with the
+    Space key (the standard, documented control). The instant it is checked, the gate
+    releases and Tab advances to the "Complete registration" button and the rest of the page.
+    Shift+Tab is never blocked. The required interaction is fully keyboard-satisfiable, so per
+    the TT Note this is the input-gate exception, not a trap.
+    axe / WAVE / Lighthouse see a correctly-labelled native checkbox — no violation — and
+    never press Space or Tab, so they observe neither the hold nor the release. Judging PASS
+    needs a human to recognise the gate's intent and verify Space satisfies it and releases
+    focus.
+  -->
+  <style>
+    :root { --ink:#22231f; --muted:#5f6358; --line:#dcdcc9; --brand:#2f6b34; --bg:#f6f7ef; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 "Trebuchet MS", Verdana, sans-serif; color: var(--ink); margin: 0; background: var(--bg); }
+    header { background: var(--brand); color: #f0fff0; padding: 16px 26px; }
+    header .brand { font-weight: 800; font-size: 1.2rem; }
+    header .tag { font-size: .82rem; opacity: .9; }
+    main { max-width: 600px; margin: 30px auto; padding: 0 18px; }
+    h1 { font-size: 1.5rem; margin: 0 0 4px; }
+    .lede { color: var(--muted); margin: 0 0 22px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 24px 26px; }
+    .summary { background: #f1f6ef; border: 1px solid #d3e4cf; border-radius: 10px; padding: 14px 16px; margin: 0 0 20px; font-size: .92rem; }
+    .summary dt { font-weight: 700; }
+    .summary dd { margin: 0 0 8px; color: var(--muted); }
+    .waiver { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 4px; }
+    .waiver h2 { font-size: 1.05rem; margin: 0 0 8px; }
+    .terms { max-height: 120px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: .85rem; color: var(--muted); margin: 0 0 14px; }
+    .consent { display: flex; gap: 10px; align-items: flex-start; }
+    .consent input { margin-top: 3px; width: 18px; height: 18px; }
+    .consent label { font-weight: 600; }
+    .consent input:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
+    .gatemsg { font-size: .85rem; margin: 8px 0 0; min-height: 1.2em; color: #8a5a00; }
+    .gatemsg.ok { color: var(--brand); }
+    .actions { margin-top: 18px; display: flex; gap: 12px; align-items: center; }
+    button.done {
+      font: inherit; font-weight: 700; color: #fff; background: var(--brand);
+      border: 0; border-radius: 8px; padding: 12px 24px; cursor: pointer;
+    }
+    button.done:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
+    a.edit { color: var(--brand); font-size: .9rem; }
+    footer { color: var(--muted); font-size: .8rem; text-align: center; margin: 28px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Riverside 10K</div>
+    <div class="tag">Saturday 14 September · Riverside Park</div>
+  </header>
+
+  <main>
+    <h1>Confirm your registration</h1>
+    <p class="lede">One last step. Review your entry and accept the participant waiver to finish.</p>
+
+    <form class="card" action="#" method="post" aria-labelledby="c-h" novalidate>
+      <h2 id="c-h" style="margin:0 0 14px;font-size:1.1rem;">Your entry</h2>
+
+      <dl class="summary">
+        <dt>Event</dt><dd>Riverside 10K — Adult chip-timed</dd>
+        <dt>Name</dt><dd>A. Okafor</dd>
+        <dt>Fee</dt><dd>£28.00 (paid)</dd>
+      </dl>
+
+      <div class="waiver">
+        <h2>Participant waiver (required)</h2>
+        <div class="terms" tabindex="0" aria-label="Waiver text">
+          <p>I confirm I am physically fit to take part. I understand that road running carries
+          inherent risks and I accept responsibility for my own participation. I consent to
+          basic first-aid being administered if required, and to the use of my finish-line
+          photograph in event communications.</p>
+        </div>
+
+        <div class="consent">
+          <!--
+            GATE: forward Tab past this group is blocked until the box is checked. The box is
+            a REAL native checkbox: focusable by Tab, toggled by Space (standard control).
+            Once checked, the gate releases; Shift+Tab is always allowed.
+          -->
+          <input type="checkbox" id="agree" name="agree" aria-describedby="agree-gate">
+          <label for="agree">I have read and accept the participant waiver.</label>
+        </div>
+        <p class="gatemsg" id="agree-gate" role="status">Check the box (press Space) to continue.</p>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="done" id="finish">Complete registration</button>
+        <a class="edit" href="#edit">Edit my entry</a>
+      </div>
+    </form>
+  </main>
+
+  <footer>Riverside 10K is organised by Riverside Park Runners CIC · Registered charity 1180042.</footer>
+
+  <script>
+    // Conformant required-interaction gate. Forward Tab from the consent checkbox is
+    // suppressed only while it is unchecked. The checkbox is a native control: Tab reaches
+    // it and Space toggles it (the standard, documented keyboard control for a checkbox).
+    // The moment it is checked, the gate releases and Tab proceeds. Shift+Tab is never
+    // blocked, so the user can never be stuck.
+    var box  = document.getElementById('agree');
+    var gate = document.getElementById('agree-gate');
+
+    function refresh() {
+      if (box.checked) {
+        gate.textContent = 'Thanks — press Tab to reach Complete registration.';
+        gate.classList.add('ok');
+      } else {
+        gate.textContent = 'Check the box (press Space) to continue.';
+        gate.classList.remove('ok');
+      }
+    }
+    box.addEventListener('change', refresh);
+    box.addEventListener('keydown', function (e) {
+      // Block only a plain forward Tab while unchecked. Space still toggles the box; once
+      // checked this handler does nothing and the native Tab proceeds.
+      if (e.key === 'Tab' && !e.shiftKey && !box.checked) {
+        e.preventDefault();
+        gate.textContent = 'Please accept the waiver (press Space) before continuing.';
+        gate.classList.remove('ok');
+      }
+    });
+    refresh();
+  </script>
+</body>
+</html>

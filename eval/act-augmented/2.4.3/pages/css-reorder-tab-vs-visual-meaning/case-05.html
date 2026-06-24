@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SafeHarbor Insurance — Quick Quote</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order):
+  No positive tabindex; no focus-managing JavaScript. Every field is labelled and named.
+  This is a single-screen "wizard" that shows all three numbered steps stacked vertically:
+  Step 1 (About you) at the top, Step 2 (Your vehicle) in the middle, Step 3 (Coverage &
+  quote) at the bottom — visually a clear 1->2->3 sequence. But the three step panels are
+  laid out with CSS Grid `grid-row`, and the DOM emits them in the order 3, 1, 2. With no
+  tabindex/JS, Tab follows the DOM: focus enters Step 3's controls FIRST (selecting a
+  coverage level and pressing "Get my quote"), then jumps UP to Step 1 (name/age), then to
+  Step 2 (vehicle). A keyboard user is asked to choose coverage and request a quote before
+  they have entered who they are or what they drive — the numbered sequence is broken.
+  No DOM scan can detect this: the markup is valid, the CSS is valid, and only rendering
+  the visually-numbered steps and comparing them to the tab order reveals the inversion.
+-->
+<style>
+  :root { --ink:#16202a; --brand:#1b4d7a; --accent:#b8431f; --line:#d7e0e8; --bg:#eef3f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 system-ui,"Segoe UI",sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--brand); color:#fff; padding:20px 28px; }
+  header h1 { margin:0; font-size:1.4rem; }
+  header p { margin:.3rem 0 0; opacity:.9; font-size:.9rem; }
+  main { max-width:680px; margin:0 auto; padding:30px 24px 80px; }
+  .lead { font-size:.95rem; color:#3a4a59; }
+
+  /* All three step panels live in one grid. grid-row controls the visual top-to-bottom
+     position: Step 1 -> row 1, Step 2 -> row 2, Step 3 -> row 3. But the DOM order of the
+     panels is 3, 1, 2. No tabindex, no JS, so Tab follows DOM: Step 3 first. */
+  form.wizard { display:grid; grid-template-rows:auto auto auto; gap:18px; margin-top:8px; }
+  .step { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px 22px; }
+  .step1 { grid-row:1; } .step2 { grid-row:2; } .step3 { grid-row:3; }
+  .step h2 { margin:0 0 4px; font-size:1.1rem; color:var(--brand); }
+  .step .num { display:inline-block; width:26px; height:26px; line-height:26px; text-align:center;
+    border-radius:50%; background:var(--brand); color:#fff; font-weight:700; margin-right:8px; font-size:.9rem; }
+  .step p.hint { margin:0 0 10px; font-size:.85rem; color:#5a6b7a; }
+  label { display:block; font-size:.86rem; margin:10px 0 4px; }
+  input, select { width:100%; padding:10px 12px; font:inherit; font-size:.95rem;
+                  border:1px solid #b6c5d2; border-radius:7px; }
+  .quote-btn { margin-top:14px; padding:12px 20px; font:inherit; font-weight:700;
+               color:#fff; background:var(--accent); border:0; border-radius:8px; cursor:pointer; }
+  fieldset { border:0; margin:0; padding:0; }
+  .cov { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+  .cov label { display:flex; align-items:center; gap:6px; background:#f1f6fa; border:1px solid var(--line);
+    border-radius:8px; padding:8px 12px; margin:0; font-size:.9rem; }
+  .cov input { width:auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SafeHarbor Insurance</h1>
+  <p>Auto quote in three quick steps</p>
+</header>
+<main>
+  <p class="lead">Answer three short steps to see your estimated monthly premium. We do
+     not run a credit check for an estimate.</p>
+
+  <!-- VISUAL: a clean numbered wizard, top to bottom:
+         (1) About you  ->  (2) Your vehicle  ->  (3) Coverage & quote [Get my quote]
+       DOM/TAB ORDER (no tabindex/JS), panels emitted 3,1,2:
+         Step 3 coverage radios -> "Get my quote" -> Step 1 name/age -> Step 2 vehicle.
+       Focus asks for coverage + requests the quote BEFORE name/age/vehicle. FAIL. -->
+  <form class="wizard" action="#" method="post" novalidate>
+
+    <!-- DOM-FIRST but visually LAST (grid-row:3) -->
+    <section class="step step3" aria-labelledby="s3">
+      <h2 id="s3"><span class="num">3</span>Coverage &amp; quote</h2>
+      <p class="hint">Choose a coverage level, then get your estimate.</p>
+      <fieldset>
+        <legend class="hint">Coverage level</legend>
+        <div class="cov">
+          <label><input type="radio" name="cov" value="basic"> Basic liability</label>
+          <label><input type="radio" name="cov" value="standard"> Standard</label>
+          <label><input type="radio" name="cov" value="full"> Full comprehensive</label>
+        </div>
+      </fieldset>
+      <button class="quote-btn" type="submit">Get my quote</button>
+    </section>
+
+    <!-- DOM-SECOND, visually FIRST (grid-row:1) -->
+    <section class="step step1" aria-labelledby="s1">
+      <h2 id="s1"><span class="num">1</span>About you</h2>
+      <p class="hint">We need a couple of details to rate your policy.</p>
+      <label for="name">Full name</label>
+      <input id="name" name="name" autocomplete="name">
+      <label for="age">Driver age</label>
+      <input id="age" name="age" inputmode="numeric">
+      <label for="zip">Home ZIP code</label>
+      <input id="zip" name="zip" inputmode="numeric">
+    </section>
+
+    <!-- DOM-THIRD, visually SECOND (grid-row:2) -->
+    <section class="step step2" aria-labelledby="s2">
+      <h2 id="s2"><span class="num">2</span>Your vehicle</h2>
+      <p class="hint">Tell us what you drive.</p>
+      <label for="make">Make &amp; model</label>
+      <input id="make" name="make">
+      <label for="year">Model year</label>
+      <input id="year" name="year" inputmode="numeric">
+    </section>
+
+  </form>
+</main>
+</body>
+</html>

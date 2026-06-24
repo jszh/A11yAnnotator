@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline overview — Cadence Analytics</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (scope-guard / mixed PASS case):
+  A SaaS analytics dashboard whose interactive surface is almost entirely
+  NON-data-entry controls that 3.3.2 does not apply to:
+    - a tab strip (role=tablist, 4 tabs)
+    - an "Open settings" button that triggers a settings dialog
+    - a "Refresh data" action button
+    - a "Export" menu-button (CSV / PDF / link)
+    - custom <span role="button"> player-style controls on a chart (play/pause the
+      live ticker, step the date range) -- action controls, not data entry
+    - segmented "Day / Week / Month" toggle buttons (aria-pressed)
+  None of these accept typed/selected DATA; they navigate, open dialogs, trigger
+  actions, or toggle view state. SC 3.3.2 applies only to controls "associated with
+  data entry," so it owes none of them a field instruction.
+
+  The ONE genuine data-entry control is the "Filter deals" combobox/search input,
+  which is correctly given a visible <label> AND a visible instruction
+  ("Type a company or owner; results update as you type. Press Esc to clear.").
+  So the dashboard PASSES 3.3.2.
+
+  THE TRAP: dashboards are control-dense, and several controls are custom
+  span/role=button widgets that an evaluator might reflexively treat as inputs. An
+  over-eager model could flag "the Refresh button has no instruction" or "the chart
+  player controls have no labels for input." That is the false positive this page
+  guards against: action/toggle/tab/dialog-trigger controls are out of scope. Only
+  the filter field is data entry, and it is properly instructed.
+
+  axe/WAVE/Lighthouse flag nothing here (every control has a name; the filter has a
+  label), but they cannot perform the discriminating scope judgment: which of these
+  many controls are "associated with data entry" (one) versus actions/navigation
+  (the rest). That role/purpose reasoning is what this fixture tests.
+-->
+<style>
+  :root{ --ink:#0f1722; --muted:#5e6b7c; --line:#e1e6ee; --brand:#3b5bdb; --bg:#f3f5f9; --ok:#1f9d57; --panel:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:15px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink); background:var(--bg); }
+  .app{ display:grid; grid-template-columns:200px 1fr; min-height:100vh; }
+  .side{ background:#0f1722; color:#cdd6e4; padding:18px 14px; }
+  .side .logo{ font-weight:800; color:#fff; letter-spacing:.3px; margin-bottom:18px; }
+  .side a{ display:block; color:#aeb9cc; text-decoration:none; padding:8px 10px; border-radius:8px; font-size:.92rem; margin-bottom:2px; }
+  .side a[aria-current="page"]{ background:#1d2b40; color:#fff; }
+  .main{ padding:18px 24px; }
+  .bar{ display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  h1{ font-size:1.3rem; margin:0; }
+  .bar .right{ margin-left:auto; display:flex; gap:8px; position:relative; }
+  .btn{ font:.86rem/1 "Inter",system-ui,sans-serif; border:1px solid var(--line); background:#fff; color:var(--ink); padding:9px 13px; border-radius:9px; cursor:pointer; }
+  .btn.primary{ background:var(--brand); color:#fff; border-color:var(--brand); }
+  .btn:focus{ outline:2px solid var(--brand); outline-offset:2px; }
+  .menu{ position:absolute; right:0; top:42px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 10px 26px rgba(15,23,34,.12); min-width:170px; padding:6px; z-index:6; }
+  .menu[hidden]{ display:none; }
+  .menu button, .menu a{ display:block; width:100%; text-align:left; padding:8px 10px; border:0; background:none; border-radius:7px; cursor:pointer; font:14px/1.4 "Inter",system-ui,sans-serif; color:var(--ink); text-decoration:none; }
+  .menu button:hover, .menu a:hover{ background:#f1f3f8; }
+  .tabs{ display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:16px; }
+  .tabs [role=tab]{ border:0; background:none; padding:10px 14px; font:.92rem/1 "Inter",system-ui,sans-serif; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
+  .tabs [role=tab][aria-selected=true]{ color:var(--brand); border-bottom-color:var(--brand); font-weight:600; }
+  .tabs [role=tab]:focus{ outline:2px solid var(--brand); outline-offset:-2px; }
+  /* The ONE data-entry control: filter field, labelled + instructed. */
+  .filter{ background:#fff; border:1px solid var(--line); border-radius:11px; padding:14px 16px; margin-bottom:16px; max-width:560px; }
+  .filter label{ display:block; font-weight:700; font-size:.85rem; margin-bottom:5px; }
+  .filter .hint{ color:var(--muted); font-size:.8rem; margin:0 0 8px; }
+  .filter input{ width:100%; padding:10px 12px; font-size:.95rem; border:2px solid var(--line); border-radius:9px; }
+  .filter input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .seg{ display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; margin:0 0 16px; }
+  .seg button{ border:0; background:#fff; color:var(--ink); padding:8px 14px; font:.85rem/1 "Inter",system-ui,sans-serif; cursor:pointer; }
+  .seg button[aria-pressed=true]{ background:var(--brand); color:#fff; }
+  .seg button + button{ border-left:1px solid var(--line); }
+  .chart{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+  .chart .ph{ height:160px; background:linear-gradient(180deg,#dce6ff,#fff); border-radius:8px; position:relative; overflow:hidden; }
+  .chart .ph::after{ content:""; position:absolute; left:0; right:0; bottom:30px; height:2px; background:var(--brand); opacity:.55; }
+  .player{ display:flex; align-items:center; gap:6px; margin-top:12px; font:.82rem/1 "Inter",system-ui,sans-serif; color:var(--muted); }
+  .player .ctl{ display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; color:var(--ink); }
+  .player .ctl:focus{ outline:2px solid var(--brand); outline-offset:2px; }
+  .cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .kpi{ background:#fff; border:1px solid var(--line); border-radius:11px; padding:14px 16px; }
+  .kpi .k{ font-size:.74rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .kpi .v{ font-size:1.5rem; font-weight:700; margin-top:4px; }
+  .kpi .d{ font-size:.78rem; color:var(--ok); margin-top:2px; }
+  /* settings dialog */
+  .dlg{ position:fixed; inset:0; background:rgba(15,23,34,.42); display:flex; align-items:center; justify-content:center; }
+  .dlg[hidden]{ display:none; }
+  .dlg .panel{ background:#fff; border-radius:14px; padding:20px; width:340px; }
+  .dlg h2{ font-size:1.05rem; margin:0 0 12px; }
+  .dlg .opt{ display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); font-size:.9rem; }
+  .dlg .close{ margin-top:14px; width:100%; padding:9px; border:1px solid var(--line); background:#f1f3f8; border-radius:8px; cursor:pointer; }
+  .foot{ color:var(--muted); font-size:.78rem; margin-top:8px; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <nav class="side" aria-label="Primary">
+      <div class="logo">Cadence</div>
+      <a href="#dash" aria-current="page">Overview</a>
+      <a href="#deals">Deals</a>
+      <a href="#contacts">Contacts</a>
+      <a href="#reports">Reports</a>
+      <a href="#integrations">Integrations</a>
+    </nav>
+
+    <main class="main">
+      <div class="bar">
+        <h1>Pipeline overview</h1>
+        <div class="right">
+          <button type="button" class="btn" id="refreshBtn">Refresh data</button>
+          <button type="button" class="btn" id="settingsBtn" aria-haspopup="dialog" aria-expanded="false">Open settings</button>
+          <button type="button" class="btn primary" id="exportBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu">Export ▾</button>
+          <div class="menu" id="exportMenu" role="menu" aria-label="Export options" hidden>
+            <button type="button" role="menuitem">Download CSV</button>
+            <button type="button" role="menuitem">Download PDF</button>
+            <a role="menuitem" href="#scheduled">Scheduled exports</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Pipeline views">
+        <button role="tab" aria-selected="true" id="t-all">All deals</button>
+        <button role="tab" aria-selected="false" id="t-open">Open</button>
+        <button role="tab" aria-selected="false" id="t-won">Won</button>
+        <button role="tab" aria-selected="false" id="t-lost">Lost</button>
+      </div>
+
+      <!-- THE ONE data-entry control: filter field, correctly labelled + instructed -->
+      <div class="filter">
+        <label for="dealFilter">Filter deals</label>
+        <p class="hint" id="filter-hint">Type a company or owner name; results update as you type. Press Esc to clear the filter.</p>
+        <input type="text" id="dealFilter" name="dealFilter" role="combobox" aria-expanded="false"
+               aria-describedby="filter-hint" aria-autocomplete="list" placeholder="e.g. Northwind or A. Patel" autocomplete="off">
+      </div>
+
+      <div class="seg" role="group" aria-label="Time grouping">
+        <button type="button" aria-pressed="false">Day</button>
+        <button type="button" aria-pressed="true">Week</button>
+        <button type="button" aria-pressed="false">Month</button>
+      </div>
+
+      <section class="chart" aria-label="New deals over time">
+        <strong>New deals over time</strong>
+        <div class="ph" role="img" aria-label="Line chart trending upward over the selected week."></div>
+        <!-- Custom span role=button "player" controls for the live ticker: ACTION controls, not data entry -->
+        <div class="player" aria-label="Live ticker controls">
+          <span class="ctl" role="button" tabindex="0" aria-label="Step back one day">‹</span>
+          <span class="ctl" role="button" tabindex="0" id="playCtl" aria-label="Play live updates" aria-pressed="false">▶</span>
+          <span class="ctl" role="button" tabindex="0" aria-label="Step forward one day">›</span>
+          <span style="margin-left:8px">Live ticker paused</span>
+        </div>
+      </section>
+
+      <div class="cards">
+        <div class="kpi"><div class="k">Open value</div><div class="v">$1.24M</div><div class="d">▲ 8.1% vs last week</div></div>
+        <div class="kpi"><div class="k">Win rate</div><div class="v">31%</div><div class="d">▲ 2.0 pts</div></div>
+        <div class="kpi"><div class="k">Avg. cycle</div><div class="v">24 days</div><div class="d">▲ faster by 3</div></div>
+      </div>
+
+      <p class="foot">Renders from file:// · Tabs, the Export menu, Refresh, Open settings, the segmented toggle, and the chart player are not data-entry controls. The “Filter deals” field is.</p>
+    </main>
+  </div>
+
+  <!-- settings dialog: contains toggles that are app-preference switches, opened by the trigger button -->
+  <div class="dlg" id="settingsDlg" role="dialog" aria-modal="true" aria-label="Dashboard settings" hidden>
+    <div class="panel">
+      <h2>Dashboard settings</h2>
+      <div class="opt"><span>Compact rows</span><button type="button" class="btn" aria-pressed="false">Off</button></div>
+      <div class="opt"><span>Show forecast band</span><button type="button" class="btn" aria-pressed="true">On</button></div>
+      <div class="opt"><span>Email me the weekly digest</span><button type="button" class="btn" aria-pressed="true">On</button></div>
+      <button type="button" class="close" id="closeSettings">Done</button>
+    </div>
+  </div>
+
+<script>
+  // tabs
+  document.querySelectorAll('[role=tab]').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('[role=tab]').forEach(function(t){ t.setAttribute('aria-selected','false'); });
+      tab.setAttribute('aria-selected','true');
+    });
+  });
+  // export menu
+  var eb = document.getElementById('exportBtn'), em = document.getElementById('exportMenu');
+  eb.addEventListener('click', function(){ var o = eb.getAttribute('aria-expanded')==='true'; eb.setAttribute('aria-expanded',String(!o)); em.hidden=o; });
+  document.addEventListener('click', function(e){ if(!eb.contains(e.target)&&!em.contains(e.target)){ eb.setAttribute('aria-expanded','false'); em.hidden=true; } });
+  // settings dialog
+  var sb = document.getElementById('settingsBtn'), sd = document.getElementById('settingsDlg'), cs = document.getElementById('closeSettings');
+  sb.addEventListener('click', function(){ sd.hidden=false; sb.setAttribute('aria-expanded','true'); cs.focus(); });
+  cs.addEventListener('click', function(){ sd.hidden=true; sb.setAttribute('aria-expanded','false'); sb.focus(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'&&!sd.hidden){ sd.hidden=true; sb.setAttribute('aria-expanded','false'); sb.focus(); } });
+  // segmented + player toggles
+  document.querySelectorAll('.seg button').forEach(function(b){
+    b.addEventListener('click', function(){ document.querySelectorAll('.seg button').forEach(function(x){ x.setAttribute('aria-pressed','false'); }); b.setAttribute('aria-pressed','true'); });
+  });
+  var pc = document.getElementById('playCtl');
+  function togglePlay(){ var o=pc.getAttribute('aria-pressed')==='true'; pc.setAttribute('aria-pressed',String(!o)); pc.textContent=o?'▶':'❚❚'; pc.setAttribute('aria-label', o?'Play live updates':'Pause live updates'); }
+  pc.addEventListener('click', togglePlay);
+  document.querySelectorAll('.player .ctl').forEach(function(c){
+    c.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); c.click(); } });
+  });
+  // filter: Esc clears (matches its stated instruction)
+  var df = document.getElementById('dealFilter');
+  df.addEventListener('keydown', function(e){ if(e.key==='Escape'){ df.value=''; } });
+</script>
+</body>
+</html>

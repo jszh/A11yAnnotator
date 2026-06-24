@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  ASPECT: focus-revealed-instruction-not-honored (SC 3.3.2 Labels or Instructions, Level A)
+  PAGE STATE TO JUDGE: tab into the "VAT / Tax identification number" field. The focus-revealed hint
+  box DOES appear — a styled callout flicks into view — but it contains only a non-breaking space.
+  Something visibly reveals on focus, yet it conveys no instruction.
+
+  WHAT THIS PAGE IS: a business onboarding page for a multi-country invoicing SaaS (Faktura). The
+  Tax-ID field requires a country-specific format that differs by jurisdiction, so the format
+  instruction is the field's only instruction — the visible <label> is just "VAT / Tax identification
+  number", which does not state any format. Per the focus-revealed pattern, a hint box reveals on
+  focus and is meant to be populated from the active locale's string table.
+
+  THE DEFECT (present, not absent): the localized instruction string for this field
+  ("hint.taxid.format") is MISSING from the en string table, and the templating layer's fallback for a
+  missing key is a single &nbsp; (so the layout box keeps its height and "doesn't collapse"). The hint
+  element is therefore present, becomes visible on focus, has a real box with padding and a border —
+  but its entire text content is a non-breaking space. On focus a styled callout flickers in that says
+  nothing. The element is genuinely revealed; it is just empty of meaning.
+
+  WHY AUTOMATED TOOLS MISS IT: the input has a correct <label> ("VAT / Tax identification number"),
+  so the form-label check passes — the field is NOT a missing-name case. The hint is NOT an empty
+  element a linter would flag: it contains a non-breaking space (a non-empty text node), so emptiness
+  heuristics that look for zero-length / whitespace-only content treat &nbsp; (U+00A0) as content and
+  do not fire. No linter reads the focus-revealed callout, recognizes that " " carries no
+  instruction, or judges that the only instruction is meaningless. Recognizing the box says nothing
+  requires reading the rendered focused state.
+-->
+<title>Set up billing — Faktura</title>
+<style>
+  :root { --ink:#181f2b; --muted:#5b6675; --line:#dde2ea; --brand:#3a3a8c; --bg:#eef0f6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:14px 24px; display:flex; align-items:center; gap:10px; }
+  header .mark { width:28px; height:28px; border-radius:7px; background:var(--brand); color:#fff; display:grid; place-items:center; font-weight:800; }
+  main { max-width:520px; margin:34px auto 60px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:30px 34px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 26px; font-size:.92rem; }
+  .field { margin:0 0 20px; }
+  label { display:block; font-weight:600; margin-bottom:6px; font-size:.92rem; }
+  select, input { width:100%; padding:11px 12px; border:1px solid #b7c0cc; border-radius:8px; font-size:1rem; background:#fff; }
+  input:focus, select:focus { outline:2px solid var(--brand); outline-offset:1px; }
+  /* The format hint box. display:none until focus reveals it. It is populated from the locale string
+     table; for a missing key the templating fallback emits a single &nbsp; so the box keeps height. */
+  .taxid-hint {
+    display:none; margin-top:8px; padding:10px 12px; background:#eef0fb; border:1px solid #c7cdf0;
+    border-left:4px solid var(--brand); border-radius:6px; font-size:.82rem; color:#2c2c6e;
+  }
+  #taxid:focus ~ .taxid-hint { display:block; }
+  .actions { margin-top:8px; }
+  button.primary { background:var(--brand); color:#fff; border:0; border-radius:8px; padding:12px 18px; font-size:1rem; cursor:pointer; width:100%; }
+  footer { max-width:520px; margin:0 auto 50px; color:var(--muted); font-size:.76rem; text-align:center; }
+</style>
+</head>
+<body>
+<header>
+  <span class="mark">F</span>
+  <strong>Faktura</strong>
+</header>
+
+<main>
+  <h1>Set up billing</h1>
+  <p class="lead">Tell us about your business so we can issue compliant invoices.</p>
+
+  <form action="/billing/setup" method="post" novalidate>
+    <div class="field">
+      <label for="legal">Registered business name</label>
+      <input type="text" id="legal" name="legal" autocomplete="organization" value="Nordström Verkstad AB">
+    </div>
+
+    <div class="field">
+      <label for="country">Country of registration</label>
+      <select id="country" name="country">
+        <option>Sweden</option>
+        <option>Germany</option>
+        <option>Ireland</option>
+        <option>Netherlands</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <!-- Visible label is just "VAT / Tax identification number". It does NOT state any format, and
+           the required format differs by country, so the focus-revealed hint is this field's only
+           instruction. -->
+      <label for="taxid">VAT / Tax identification number</label>
+      <input type="text" id="taxid" name="taxid" autocomplete="off"
+             aria-describedby="taxid-hint" autocapitalize="characters">
+      <!-- The hint reveals on focus, but its content was meant to come from the locale string
+           "hint.taxid.format", which is missing from en. The fallback for a missing key is a single
+           non-breaking space, so the box appears on focus but says nothing. The &nbsp; below IS the
+           rendered content (U+00A0) — a real, non-empty text node that conveys no instruction. -->
+      <div class="taxid-hint" id="taxid-hint" data-i18n="hint.taxid.format">&nbsp;</div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="primary">Save billing details</button>
+    </div>
+  </form>
+</main>
+
+<footer>
+  Faktura · Invoicing for cross-border teams · Available in 11 countries
+</footer>
+</body>
+</html>

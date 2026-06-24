@@ -1,0 +1,178 @@
+{
+  "sc": "2.4.2",
+  "count": 12,
+  "patterns": [
+    {
+      "platform": "Squarespace 404 / system pages",
+      "name": "System page reuses generic title and has no H1",
+      "description": "The default 404 page (and some system pages) ships with no option for an H1 and inherits a non-unique page title, so AT users who land there get a page with no main heading and a <title> that doesn't say it's a 'Page Not Found' page, leaving them disoriented about where they are.",
+      "wcagScs": [
+        "2.4.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<title>My Studio</title>\n<main><!-- 404 copy but no <h1> --></main>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A <title> is present and non-empty, so 'document-title' passes; whether it actually describes THIS page (vs. being the generic site title repeated) is a semantic comparison a human must make. A missing h1 is at most a warning, not a hard failure, in most scanners.",
+      "realWorldNote": "Amy Carney's Squarespace audit: 404 page has 'no H1 heading option available' and is 'missing a unique page title.' https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "WordPress theme demo import / starter templates (Astra, OceanWP, Elementor Kits, Divi Layouts)",
+      "name": "Placeholder demo content left in production — default title, lorem ipsum, stock alt",
+      "description": "One-click demo imports populate the site with template defaults that editors forget to replace: the page <title> stays 'My WordPress Site' / 'Just another WordPress site' tagline, headings and links read 'Lorem ipsum dolor', CTA buttons say 'Button Text', and stock images carry the kit's generic alt. Titles don't uniquely describe the page; link text is meaningless Latin.",
+      "wcagScs": [
+        "2.4.2",
+        "2.4.4",
+        "1.1.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<title>Home – Just another WordPress site</title>\n<h2>Lorem Ipsum Dolor</h2>\n<a class=\"elementor-button\" href=\"#\">Click Here</a>\n<img src=\"placeholder-1.jpg\" alt=\"placeholder image\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A <title> of 'Just another WordPress site' is present and non-empty (2.4.2 passes a presence check); lorem-ipsum link text is non-empty. Recognizing the content is unreplaced placeholder that fails to describe topic/purpose is a semantic judgment a linter can't make.",
+      "realWorldNote": "Demo/starter imports use lorem ipsum and template defaults; WPBeginner documents importing dummy content; 'Just another WordPress site' is the stock tagline. https://www.wpbeginner.com/wp-themes/how-to-add-dummy-content-for-theme-development-in-wordpress/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Headless / Hydrogen / React+SPA storefronts (Shopify, BigCommerce)",
+      "name": "<title> and H1 never update on client-side route change",
+      "description": "Navigating from collection to product to cart happens client-side; the document <title> stays at the homepage/store name on every route, and focus is not moved to the new page's H1. Screen reader users hear the same title on every 'page' and get no signal that navigation occurred.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<head><title>Acme Store</title></head>\n<!-- after client-side nav to /products/blue-shirt the title is still \"Acme Store\";\n     no React Helmet update, no focus moved to the product <h1> -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-page audit finds a non-empty <title> and passes 2.4.2. The failure is that the title doesn't CHANGE across virtual route transitions and is identical/non-descriptive for each view — a multi-state behavior. Tools scan one DOM state and have no concept of route changes, so they never compare titles across navigations.",
+      "realWorldNote": "Widely documented SPA failure (Hidde Blog, Kitty Giraudel, Helsinki a11y model): SPAs keep a static <title> unless JS updates it on every route change. https://hidde.blog/accessible-page-titles-in-a-single-page-app/ ; https://saavutettavuusmalli.hel.fi/en/saavutettavuus-palvelukehityksessa/toteutus-ja-ohjelmistotestaus/single-page-applications-spas-notes-on-accessibility/",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Framer (and other React SPA exporters: Typedream, Readymag)",
+      "name": "SPA route change leaves <title> stale and focus unmoved",
+      "description": "Page-to-page navigation is client-side. The document <title> is not updated on route change, focus stays on the clicked link (or resets to <body>), and there is no route-change announcement. Screen-reader users get no signal a new page loaded and the title still reads the landing page.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<!-- Home -->\n<title>Acme — Home</title>\n<a href=\"/pricing\" data-framer-name=\"Nav Pricing\">Pricing</a>\n<!-- after client-side nav to /pricing, title is STILL 'Acme — Home' -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-page snapshot has a valid, non-empty <title>, so a page-load scan passes 2.4.2. The defect only appears across an in-app navigation: the scanner would need to click through routes and re-check title + focus + live announcement, which static and single-load automated tools don't do.",
+      "realWorldNote": "Well-documented SPA failure: screen readers announce titles only on full page load and don't monitor title changes, and focus must be moved on route change — directly applicable to Framer/React-exported sites: https://medium.com/design-bootcamp/accessible-by-design-part-2-your-spa-single-page-application-is-broken-for-screen-readers-739769110ce1 and https://a11y-guidelines.orange.com/en/articles/single-page-app/",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Notion-published pages (notion.site) and Super.so",
+      "name": "Generic page <title> and weak heading semantics on exported Notion sites",
+      "description": "Notion-published pages frequently inherit a generic or duplicated <title> (workspace/page name patterns), and content blocks rely heavily on styled divs; toggles, callouts, and 'columns' don't expose the semantic relationships sighted users perceive. Multiple pages can share an indistinct title, and toggle disclosure widgets often lack proper expanded/collapsed state.",
+      "wcagScs": [
+        "2.4.2",
+        "1.3.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<title>Notion – My Workspace</title>\n<div class=\"notion-toggle\">\n  <div role=\"button\">▸ Details</div>\n  <div class=\"notion-toggle__content\">...</div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A <title> exists, so 2.4.2 passes automatically; judging that it's non-descriptive/duplicated across pages needs human comparison. Missing aria-expanded on a toggle MIGHT be linted, but deciding that a styled callout/column block carries structural meaning that isn't conveyed programmatically is a semantic judgment.",
+      "realWorldNote": "Notion accessibility assessments document alt-text, contrast, and tabbing/focus problems and difficulty operating interactive elements with assistive tech: https://ixd.prattsi.org/2024/12/assessing-the-accessibility-of-notion/ and https://www.templates4notion.com/newsletters/better-notion-accessibility",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow / Framer template default <title> and page metadata",
+      "name": "Template-default or placeholder page title shipped to production",
+      "description": "Cloneable templates and starter projects ship with a placeholder <title> the author never changes — e.g. 'Home', 'Untitled', the template's brand name, or 'Webflow HTML website template'. The page has a title (so it isn't 'empty'), but it doesn't describe the page or site.",
+      "wcagScs": [
+        "2.4.2"
+      ],
+      "typicalMarkup": "<title>Home</title>\n<!-- or -->\n<title>Untitled — Built in Framer</title>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The <title> element is present and non-empty, so automated 2.4.2 checks pass. Recognizing that 'Home', 'Untitled', or a leftover template name fails to identify the page or distinguish it from others requires a human to read it against the page's actual topic and the rest of the site.",
+      "realWorldNote": "Leftover template placeholder titles are a well-known artifact of cloneable Webflow/Framer starters; 2.4.2 requires titles that describe topic or purpose: https://www.w3.org/WAI/WCAG21/Understanding/page-titled.html",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "React/Vue/Angular SPA with client-side router (React Router, Vue Router)",
+      "name": "<title> never updates on client-side route change",
+      "description": "In an SPA the router swaps the view via the History API without a document reload, but the developer never updates document.title. Every \"page\" therefore shares the one <title> baked into index.html (e.g. \"React App\" or the home-page title). Screen-reader users get the same title announced on every navigation, and the browser tab/history/bookmarks are all identically and uselessly named.",
+      "wcagScs": [
+        "2.4.2"
+      ],
+      "typicalMarkup": "<!-- index.html ships once; SPA never rewrites it on navigate -->\n<head><title>My React App</title></head>\n<!-- user navigates Home -> /pricing -> /contact, title stays \"My React App\" the whole time -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe/Lighthouse load one URL and see a present, non-empty <title>, so 2.4.2 passes. The defect is the absence of a CHANGE across route transitions plus the title being semantically wrong/generic for the current view — a temporal + semantic judgment no single-snapshot DOM scan makes.",
+      "realWorldNote": "Documented as a top SPA a11y mistake; the oaf-react-router library exists specifically to set the page title after navigation, and Kitty Giraudel wrote a dedicated guide on accessible titles in single-page React apps. https://kittygiraudel.com/2020/01/15/accessible-title-in-a-single-page-react-application/",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Single-page app (React Router, Vue Router, Angular) route transitions",
+      "name": "<title> and focus never update on client-side route change",
+      "description": "Navigating between SPA 'pages' swaps the DOM without a reload, but document.title is left at the template default ('My App') for every route, focus stays on the clicked link or the top of the old view, and no live region announces the new page. Screen reader users have no idea they navigated or where they are; the page title — a primary orientation cue — is identical or stale across routes.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<title>My App</title>\n<!-- user clicks 'Checkout'; URL becomes /checkout; main content swaps -->\n<!-- <title> still 'My App'; focus still on the clicked nav link; no aria-live announcement -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-snapshot scan sees one <title> that is present and non-empty, so 2.4.2 passes. The defect is that the title is the SAME (or unchanged) across multiple distinct views — only visible by navigating between routes and comparing, plus judging that the title no longer describes the content. Automated tools audit one URL state, not transitions.",
+      "realWorldNote": "Hidde de Vries, Kitty Giraudel, and Deque all document SPA route changes leaving document.title stale and focus unmanaged as a flagship screen-reader failure of frameworks. https://hidde.blog/accessible-page-titles-in-a-single-page-app/ and https://www.deque.com/blog/accessibility-tips-in-single-page-applications/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "React/Vue/Angular SPAs built on Next.js, Gatsby, Shopify Hydrogen, headless storefronts",
+      "name": "SPA <title> and focus never update on client-side route change",
+      "description": "Navigating between client-rendered views swaps the main content but never updates document.title and never moves focus, so the page title is frozen at the initial route ('Home') and the screen reader is left on a now-detached element. The user has no confirmation a navigation happened or where they landed.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<!-- title stuck on first load across every route -->\n<title>Acme Store - Home</title>\n<!-- /products, /cart, /checkout all render under this same title; no focus move, no live-region announce -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-snapshot scan sees a valid, non-empty <title> and passes 2.4.2. The failure is DYNAMIC and BEHAVIORAL — it only manifests across a route transition, which axe/Lighthouse (point-in-time DOM scans) never exercise. Catching it requires interacting (clicking a nav link) and observing that title/focus did not change.",
+      "realWorldNote": "Documented SPA failure mode; Kitty Giraudel and Deque both cover the fix (update title + manage focus/live region on route change): https://kittygiraudel.com/2020/01/15/accessible-title-in-a-single-page-react-application/ , https://www.deque.com/blog/accessibility-tips-in-single-page-applications/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Site templates / themes where the boilerplate <title> was never customized",
+      "name": "Template-default page title left unchanged",
+      "description": "Pages ship with the theme's placeholder title — 'Home', 'Untitled', 'My WordPress Blog', 'Page Title', or the same site name on every URL. The <title> exists and is non-empty (so 2.4.2 passes mechanically) but does not describe the page's topic or purpose, defeating tab/window/history orientation and search.",
+      "wcagScs": [
+        "2.4.2"
+      ],
+      "typicalMarkup": "<title>Home</title>\n<!-- identical on /about, /contact, /products -->\n<title>My WordPress Blog</title>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe/WAVE only verify a <title> exists and is non-empty; 'Home' and 'Untitled' satisfy that. Judging that the title is a leftover template default, generic, or duplicated across pages so it fails to DESCRIBE the page requires understanding what the page is actually about — human judgment.",
+      "realWorldNote": "Recurring VPAT 'partial support' note and a staple manual-audit finding; WebAIM lists document title quality as a manual check beyond the automated presence test: https://webaim.org/projects/million/ (document-title issues are tracked separately from automated error counts).",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Single-page apps (React Router / Vue Router / Angular routing in SPA themes and dashboards) where document.title is not updated on route change",
+      "name": "SPA <title> never updates on client-side route change",
+      "description": "Navigating between client-side routes swaps the view but leaves <title> at the initial app shell value (e.g. 'My App'). Screen-reader users get no title announcement on 'navigation', browser tabs/history/bookmarks all read the same generic title, and there is no programmatic signal that the page changed.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3"
+      ],
+      "typicalMarkup": "<!-- /dashboard, /settings, /billing all render: -->\n<title>My App</title>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-page scan finds a valid, non-empty <title>, so 2.4.2 passes. The defect only manifests across route transitions — the scanner would have to drive the SPA, change routes, and compare titles. Judging whether each route's title is unique and descriptive is also a contextual call.",
+      "realWorldNote": "Widely documented SPA a11y gap (gov.uk / Marcy Sutton / TPGI guidance on managing focus and document.title on route change in React/Vue/Angular SPAs).",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "React / Vue / Angular SPA with client-side router (React Router, Vue Router)",
+      "name": "<title> and focus never update on route change",
+      "description": "Client-side navigation swaps the view in place without a full page load. document.title stays at the app's default, and focus remains wherever the user clicked, so screen-reader users hear no page-change announcement and keyboard users are stranded mid-page. The browser history changes but AT perceives nothing — the user has no idea they navigated or where they are.",
+      "wcagScs": [
+        "2.4.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<!-- after navigating /home -> /checkout, title is unchanged -->\n<head><title>My App</title></head>\n<!-- new view rendered; no focus move, no title update -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-snapshot scan of any one route finds a present, non-empty <title>, so 2.4.2 passes per page. The failure is the absence of an update across a runtime navigation event — automation auditing one DOM state cannot observe that the title/focus failed to change on transition.",
+      "realWorldNote": "Widely documented SPA failure mode; routers don't reset focus or title on navigation. https://kittygiraudel.com/2020/01/15/accessible-title-in-a-single-page-react-application/ and https://github.com/remix-run/react-router/discussions/9863",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

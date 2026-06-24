@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Update your contact number — Riverside Family Health</title>
+<!--
+  WHY THIS IS THE PASS TWIN (and why it still needs human judgment):
+  This is the CORRECTED counterpart of the "wrong suggestion" failures. A patient-
+  portal mobile-number field requires a 10-digit US number including area code (its
+  visible help text AND its validator: exactly 10 digits). Enter a 7-digit number and
+  an error fires, associated via aria-describedby, announced in role=alert, with a
+  suggestion that is ACCURATE and ACTIONABLE against the field's TRUE rule:
+  "Enter all 10 digits, including your 3-digit area code — for example
+  (415) 555-2671. You entered 7 digits."
+  Following this suggestion exactly (supply the area code → 10 digits) is ACCEPTED.
+  The suggested format matches max-digit rule, the worked example is itself a valid
+  value, and the digit-count feedback is correct.
+  A naive automated tool CANNOT confirm a page PASSES this limb either: it only sees
+  that suggestion text exists; it cannot verify the suggestion is CORRECT for the
+  field. A human is still required to confirm the suggestion matches the field's true
+  rule and that following it resolves the error. Here it does — so the human verdict
+  is PASS. Including this twin sharpens the aspect: presence of suggestion text is
+  identical to the failing cases; only correctness differs.
+-->
+<style>
+  :root{
+    --ink:#14322e; --muted:#52665f; --line:#cfe0da; --brand:#0e7c66; --brand-d:#0a5c4c;
+    --ok:#1f7a4d; --danger:#bb2d2d; --paper:#fff; --bg:#eef6f3; --focus:#10897a;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 -apple-system,"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  .wrap{ max-width:560px; margin:0 auto; padding:0 22px; }
+  .bar{ background:var(--brand-d); color:#fff; padding:13px 0; font-weight:700; display:flex; }
+  main{ padding:36px 0 70px; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:28px 28px 32px; }
+  .crumb{ color:var(--muted); font-size:.8rem; margin:0 0 14px; }
+  h1{ font-size:1.45rem; margin:0 0 6px; }
+  .sub{ color:var(--muted); margin:0 0 24px; }
+  label{ display:block; font-weight:700; margin:0 0 6px; }
+  .help{ color:var(--muted); font-size:.9rem; margin:0 0 10px; }
+  .help strong{ color:var(--ink); }
+  input[type=tel]{ width:100%; max-width:18ch; padding:11px 12px; font-size:1.1rem;
+        border:2px solid var(--line); border-radius:8px; background:#fff; }
+  input:focus{ outline:3px solid var(--focus); outline-offset:1px; border-color:var(--focus); }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  .err{ color:var(--danger); font-weight:600; font-size:.92rem; margin:10px 0 0; }
+  .ok{ color:var(--ok); font-weight:600; font-size:.92rem; margin:10px 0 0; }
+  button.save{ margin-top:26px; background:var(--brand); color:#fff; border:0; border-radius:8px;
+        font-size:1rem; font-weight:700; padding:12px 24px; cursor:pointer; }
+  button.save:hover{ background:var(--brand-d); }
+  button.save:focus{ outline:3px solid var(--focus); outline-offset:2px; }
+  .foot{ color:var(--muted); font-size:.74rem; margin-top:26px; }
+</style>
+</head>
+<body>
+  <div class="bar"><div class="wrap">Riverside Family Health · Patient portal</div></div>
+  <main>
+    <div class="wrap">
+      <div class="card">
+        <p class="crumb">My profile › Contact details › Mobile number</p>
+        <h1>Update your contact number</h1>
+        <p class="sub">We use this number to send appointment reminders and prescription-ready alerts by text.</p>
+
+        <form id="telform" action="#" method="post" novalidate>
+          <label for="tel">Mobile number</label>
+          <p class="help" id="tel-help">
+            Enter a <strong>10-digit US mobile number, including the 3-digit area code</strong>. Digits only or formatted — for example (415) 555-2671.
+          </p>
+          <input type="tel" id="tel" name="tel"
+                 aria-describedby="tel-help tel-err"
+                 inputmode="tel" autocomplete="tel-national"
+                 placeholder="(415) 555-2671">
+          <p class="err" id="tel-err" role="alert" hidden></p>
+
+          <button type="submit" class="save">Save number</button>
+        </form>
+
+        <p class="foot">Riverside Family Health demo &middot; renders from file:// &middot; nothing is saved.</p>
+      </div>
+    </div>
+  </main>
+
+<script>
+(function(){
+  var form = document.getElementById('telform');
+  var tel  = document.getElementById('tel');
+  var err  = document.getElementById('tel-err');
+
+  // REAL ENFORCED RULE: exactly 10 digits (US number incl. area code) — matches the help text.
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var digits = (tel.value.match(/\d/g) || []).length;
+    if (digits === 10){
+      tel.setAttribute('aria-invalid','false');
+      err.className = 'ok'; err.removeAttribute('role');
+      err.textContent = 'Mobile number saved. We’ll text reminders to this number.';
+      err.hidden = false;
+      return;
+    }
+    tel.setAttribute('aria-invalid','true');
+    err.className = 'err'; err.setAttribute('role','alert');
+    // ACCURATE, ACTIONABLE suggestion: it matches the field's TRUE 10-digit rule, the
+    // worked example is itself a valid value, and the digit count is correct.
+    // Following it (add the area code to reach 10 digits) is ACCEPTED.
+    if (digits < 10){
+      err.textContent = 'Enter all 10 digits, including your 3-digit area code — for example (415) 555-2671. You entered ' + digits + ' digit' + (digits===1?'':'s') + '.';
+    } else {
+      err.textContent = 'That’s too many digits. A US mobile number is exactly 10 digits — for example (415) 555-2671. You entered ' + digits + '.';
+    }
+    err.hidden = false;
+    tel.focus();
+  });
+})();
+</script>
+</body>
+</html>

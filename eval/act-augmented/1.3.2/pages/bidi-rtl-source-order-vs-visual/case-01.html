@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>متجر التمور — تفاصيل المنتج</title>
+<style>
+  :root { --ink:#2a1f14; --gold:#9a6b1f; --paper:#fdfbf5; --line:#e7ddc9; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:17px/1.7 "Noto Naskh Arabic","Segoe UI",system-ui,sans-serif; color:var(--ink); background:var(--paper); }
+  header { background:var(--gold); color:#fff; padding:22px 26px; }
+  header h1 { margin:0; font-size:1.5rem; }
+  main { max-width:680px; margin:0 auto; padding:30px 24px 60px; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:22px 24px; background:#fff; }
+  h2 { font-size:1.25rem; color:var(--gold); margin-top:0; }
+  .summary { font-size:1.15rem; line-height:2; background:#fbf6ea; padding:14px 18px; border-radius:8px; }
+  .compare { margin-top:30px; border-top:2px dashed var(--line); padding-top:18px; }
+  .compare h3 { color:#555; font-size:1rem; }
+  .row { display:flex; gap:18px; flex-wrap:wrap; margin:10px 0; }
+  .box { flex:1 1 280px; border:1px solid var(--line); border-radius:8px; padding:12px 14px; background:#fcfcfc; }
+  .box .lbl { font-size:.8rem; color:#888; text-transform:uppercase; letter-spacing:.5px; }
+  .mono { font-family:"SFMono-Regular",Consolas,monospace; direction:ltr; unicode-bidi:plaintext; font-size:.9rem; color:#444; white-space:pre-wrap; word-break:break-all; }
+  footer { margin-top:40px; font-size:.85rem; color:#8a8170; border-top:1px solid var(--line); padding-top:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>متجر واحة التمور</h1>
+</header>
+<main>
+  <div class="card">
+    <h2>تمر العجوة الفاخر — علبة هدايا</h2>
+
+    <!--
+      THE FAILURE (G57): the author wanted the line to render as:
+          ".سعر العلبة الواحدة هو $50"   (Arabic, then the price "$50." at the LEFT end)
+      The bidi algorithm kept pushing the Arabic full stop and the "$50" run around,
+      so the author "fixed the visual" by PHYSICALLY REORDERING the characters in the
+      source: they typed the period FIRST, then "$50", then the Arabic words.
+      The bytes below are, in logical/source order:
+          U+002E (.)  U+0024 ($)  '5' '0'  <space>  Arabic words...
+      The bidi algorithm reverses the leading ". $50" run for display, so on screen
+      the price renders as a clean "$50." at the visual (left) end of the line.
+      VERIFIED with the rendering harness:
+        LOGICAL (source / what a screen reader reads): ".$50 سعر العلبة الواحدة شامل ..."
+        VISUAL  (on screen):                           "سعر العلبة الواحدة شامل ... $50."
+      So a screen reader reads SOURCE order: it announces the period and the price FIRST,
+      detached from the Arabic clause — the wrong logical order — while the screen looks
+      perfect. No dir/bdi/bdo markup is used to achieve the visual; only source surgery.
+      The correct fix is <bdi> around "$50" with the period in logical final position.
+    -->
+    <p class="summary">.$50 سعر العلبة الواحدة شامل التوصيل داخل المدينة</p>
+
+    <p>هذا التمر معبأ يدويًا في علب خشبية، ويُنصح بحفظه في مكان بارد وجاف بعيدًا عن الرطوبة.</p>
+
+    <div class="compare">
+      <h3>للمراجعة — الترتيب المرئي مقابل الترتيب المنطقي (المصدر)</h3>
+      <div class="row">
+        <div class="box">
+          <div class="lbl">ما يراه المستخدم (مرئي)</div>
+          <div>سعر العلبة الواحدة هو $50.</div>
+        </div>
+        <div class="box">
+          <div class="lbl">ترتيب المصدر كما يقرؤه قارئ الشاشة</div>
+          <div class="mono">. $ 5 0 [space] سعر العلبة …</div>
+        </div>
+      </div>
+      <p style="font-size:.85rem;color:#8a8170">
+        تمت كتابة النقطة والسعر <strong>أولًا</strong> في الشفرة المصدرية كي تظهر بشكل صحيح
+        بصريًا عبر خوارزمية الاتجاهين، دون استخدام <code>dir</code> أو <code>&lt;bdi&gt;</code>.
+      </p>
+    </div>
+  </div>
+
+  <footer>
+    <p>لماذا لا تكتشفه الأدوات الآلية؟ الترميز صحيح تمامًا، الصفحة <code>lang="ar" dir="rtl"</code>،
+       والعرض المرئي سليم. لا يوجد سمة ناقصة. الخلل يظهر فقط عند مقارنة الترتيب المنطقي للأحرف
+       بالترتيب المرئي — وهو حكم لغوي/بصري لا تؤديه أدوات axe أو WAVE أو Lighthouse.</p>
+  </footer>
+</main>
+</body>
+</html>

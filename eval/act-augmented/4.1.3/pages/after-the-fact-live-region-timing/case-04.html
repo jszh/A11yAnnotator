@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watchlist — Tideflow Markets</title>
+<style>
+  :root { --bg:#0a0e14; --panel:#11161f; --line:#1e2530; --ink:#dfe7ef; --muted:#7d8794; --up:#1fae6a; --down:#ef5350; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"SF Pro Text", system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:18px 28px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; }
+  header .logo { font-weight:800; letter-spacing:.5px; }
+  header .live { margin-left:auto; font-size:.78rem; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  header .dot { width:8px; height:8px; border-radius:50%; background:var(--up); box-shadow:0 0 8px var(--up); }
+  main { max-width:720px; margin:28px auto; padding:0 22px; }
+  h1 { font-size:1.3rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 22px; font-size:.88rem; }
+  .ticker-row { display:flex; align-items:center; justify-content:space-between; padding:16px 18px; background:var(--panel); border:1px solid var(--line); border-radius:10px; margin-bottom:10px; }
+  .sym { font-weight:700; }
+  .name { color:var(--muted); font-size:.82rem; }
+  .price { font-variant-numeric:tabular-nums; font-size:1.15rem; font-weight:700; }
+  /* the alert slot built by the component */
+  .alert-line { font-size:.82rem; margin-top:4px; }
+  .alert-line.up { color:var(--up); }
+  .alert-line.down { color:var(--down); }
+  .devnote { margin-top:30px; padding:14px 18px; background:#121d22; border:1px solid #1d3a33; border-radius:8px; font-size:.82rem; color:#9bd6bd; line-height:1.5; }
+  code { background:#05080c; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">TIDEFLOW</span>
+  <span class="live"><span class="dot" aria-hidden="true"></span> Live market data</span>
+</header>
+
+<main>
+  <h1>Your Watchlist</h1>
+  <p class="sub">Price-alert thresholds you set are announced when crossed.</p>
+
+  <div class="ticker-row">
+    <div>
+      <div class="sym">NVDA</div>
+      <div class="name">NVIDIA Corp.</div>
+    </div>
+    <div class="price">$1,184.20</div>
+  </div>
+  <div class="ticker-row">
+    <div>
+      <div class="sym">AAPL</div>
+      <div class="name">Apple Inc.</div>
+    </div>
+    <div class="price">$229.55</div>
+  </div>
+  <div class="ticker-row">
+    <div>
+      <div class="sym">TSLA</div>
+      <div class="name">Tesla Inc.</div>
+    </div>
+    <div class="price">$248.10</div>
+  </div>
+
+  <!-- When a threshold is crossed, the app mounts a <price-alert> custom element here. -->
+  <div id="alert-mount" aria-label="Price alerts"></div>
+
+  <div class="devnote">
+    <strong>Why automated tools cannot catch this:</strong> When a price-alert fires, a custom element
+    <code>&lt;price-alert&gt;</code> is created and mounted; in its <code>connectedCallback</code> it builds a
+    child <code>&lt;div role="status" aria-live="assertive"&gt;</code> whose <code>textContent</code> is set BEFORE
+    that child (and the whole element) is in the document. Inspect the page afterward and you find a valid live
+    region with the alert text &mdash; axe/WAVE/Lighthouse pass it. But the live region and its message were
+    assembled inside <code>connectedCallback</code> as the element entered the DOM, so the region was never present
+    and empty beforehand and the alert is not announced. No DOM snapshot reveals that the region's content existed
+    at the instant it was connected.
+  </div>
+</main>
+
+<script>
+  // Persona: a fintech team built a reusable <price-alert> Web Component. The author put ALL the rendering in
+  // connectedCallback (idiomatic for custom elements) — including creating the role="status" node and writing its
+  // text — so the element is "self-contained." They assumed "it has role=status and aria-live, so screen readers
+  // announce it." They did not realize that mounting a custom element whose connectedCallback synchronously builds
+  // a filled live region produces a region that is born with its content: there is no empty registered region to
+  // mutate. Sighted demos showed the alert appearing, so it shipped.
+  class PriceAlert extends HTMLElement {
+    connectedCallback() {
+      var sym = this.getAttribute('symbol') || '';
+      var dir = this.getAttribute('direction') || 'up';
+      var price = this.getAttribute('price') || '';
+
+      // ---- temporal failure: the live region + its text are built as the element connects ----
+      var line = document.createElement('div');
+      line.setAttribute('role', 'status');
+      line.setAttribute('aria-live', 'assertive');
+      line.setAttribute('data-region-born-with-content', 'true');
+      line.className = 'alert-line ' + dir;
+      line.textContent = (dir === 'up')
+        ? 'Alert: ' + sym + ' rose above your target, now ' + price
+        : 'Alert: ' + sym + ' fell below your target, now ' + price;
+      // The region already holds its message at the moment it joins the document.
+      this.appendChild(line);
+
+      var self = this;
+      setTimeout(function () { self.remove(); }, 8000);
+    }
+  }
+  customElements.define('price-alert', PriceAlert);
+
+  // Simulate a threshold crossing a couple seconds in.
+  function fireAlert(sym, dir, price) {
+    var mount = document.getElementById('alert-mount');
+    var el = document.createElement('price-alert');
+    el.setAttribute('symbol', sym);
+    el.setAttribute('direction', dir);
+    el.setAttribute('price', price);
+    // Appending triggers connectedCallback, which builds the already-filled live region.
+    mount.appendChild(el);
+  }
+  setTimeout(function () { fireAlert('NVDA', 'up', '$1,205.00'); }, 2500);
+  setTimeout(function () { fireAlert('TSLA', 'down', '$239.40'); }, 6000);
+</script>
+</body>
+</html>

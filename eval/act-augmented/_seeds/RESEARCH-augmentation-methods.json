@@ -1,0 +1,285 @@
+{
+  "question": "Research data augmentation and synthetic data generation methods that could improve a pipeline that uses LLM agents to generate diverse, high-quality test cases (HTML web pages) for WCAG accessibility Success Criteria.\n\nCONTEXT — the pipeline I want to improve: For each WCAG Success Criterion, the system (1) studies existing W3C ACT-rule test cases to map what they cover, (2) runs 5 independent LLM \"lens\" agents to reason about aspects of the SC NOT covered by those synthetic tests, (3) synthesizes a deduplicated list of uncovered aspects, (4) constructs >=5 distinct HTML test pages per aspect (each grounded with a verbatim citation/quote from WCAG Understanding docs / Techniques / EN 301549 / Trusted Tester), and (5) adversarially verifies each page by reading the code and reasoning, corroborated by a real browser's accessibility tree. A hard requirement: the generated cases must require HUMAN semantic/contextual/visual judgment — cases an automated checker (axe-core etc.) can already detect are explicitly out of scope and worthless here.\n\nThe research question: What methods from the data-augmentation, synthetic-data-generation, and automated-test-generation literature would make this pipeline MORE EFFECTIVE — specifically along these axes: (a) maximizing DIVERSITY / coverage of generated cases and avoiding mode collapse; (b) ensuring difficulty/\"hardness\" so cases genuinely require human judgment and sit near decision boundaries; (c) guaranteeing VALIDITY and label correctness while reducing hallucinated citations or fake failures; (d) efficiency / yield per LLM call.\n\nCover at minimum: LLM synthetic-data methods (Self-Instruct, Evol-Instruct/WizardLM, persona-driven generation, Self-Refine/self-critique, constitutional/RLAIF-style critique), diversity-promoting generation and sampling (determinantal point processes, persona/attribute conditioning, diversity metrics), combinatorial/t-wise and coverage-guided test generation, metamorphic testing and mutation-based augmentation (mutating passing cases into near-boundary failing variants), counterfactually-augmented data / CheckList-style behavioral testing, hard-negative mining and active learning, and quality-filtering of synthetic data (LLM-as-judge reliability, reward/agreement filtering, dataset cartography). For each promising method, give a concrete, specific recommendation for how to incorporate it into the 5-stage pipeline above, with the trade-offs. Prioritize peer-reviewed papers and well-known arXiv works; include citations.",
+  "summary": "Methods for the 5-stage pipeline. DIVERSITY a: condition Stage-4 on personas and attributes, Evol-Instruct in-breadth mutation for rare SC variations, training-free Verbalized Sampling, Self-Instruct similarity dedup, DPP log-det and DCScore coverage metrics. HARDNESS b: Evol-Instruct five in-depth operations with 10-20-words-per-edit control to push axe-detectable cases to the human-judgment boundary. VALIDITY c: Self-Instruct audit 92-79-58-54 justifies Stage-5; Self-Refine plus N-CRITICS ensemble critics target fact-hallucination; RLAIF preference filtering and Evol-Instruct Elimination-Evolving filters. EFFICIENCY d: Self-Instruct over 290x seed amplification, AttrPrompt parity at 5 percent querying cost. High confidence, primary peer-reviewed sources, unanimous verification. Full findings below.",
+  "findings": [
+    {
+      "claim": "DIVERSITY a: Condition Stage-4 on personas AND explicit attributes (genre, component, domain, locale, style); persona synthesis taps distinct perspectives and attribute conditioning, not just more samples, raises diversity and quality.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2406.20094",
+        "https://arxiv.org/html/2306.15895"
+      ],
+      "evidence": "2406.20094 leverages various LLM perspectives for diverse data; AttrPrompt (NeurIPS 2023) attribute diversity is pivotal. Strong-form personas-access-every-perspective claim refuted 0-3; treat as a lever not a guarantee.",
+      "vote": "3-0 persona, 2-1 attribute, strong-form refuted 0-3"
+    },
+    {
+      "claim": "DIVERSITY a: Add training-free Verbalized Sampling to Stage 4: ask the model to verbalize a probability distribution over candidate cases per call; mitigates mode collapse (1.6-2.1x diversity), validated on synthetic-data generation, zero fine-tuning.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2510.01171"
+      ],
+      "evidence": "2510.01171 training-free strategy to circumvent mode collapse; diversity up 1.6-2.1x; synthetic data generation without sacrificing accuracy/safety. CAVEAT accuracy/safety on separate tasks; Oct 2025 under ICLR 2026 review.",
+      "vote": "3-0 x3"
+    },
+    {
+      "claim": "DIVERSITY a: Use Evol-Instruct IN-BREADTH mutation after Stage-3 dedup to generate brand-new scenarios in the same SC domain targeting RARE/long-tailed variations, enhancing topic and skill coverage.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2304.12244"
+      ],
+      "evidence": "2304.12244 (WizardLM, ICLR 2024) In-Breadth Evolving is mutation generating a new instruction in the same domain but more rare/long-tailed to enhance topic, skill, and dataset diversity; t-SNE dispersion exceeds ShareGPT/Alpaca.",
+      "vote": "3-0"
+    },
+    {
+      "claim": "DIVERSITY a: Enforce a Self-Instruct similarity dedup filter in Stage 4 (keep a page only if below threshold; Self-Instruct used ROUGE-L below 0.7); for HTML augment lexical ROUGE-L with semantic-embedding or DOM-structural similarity.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2212.10560"
+      ],
+      "evidence": "2212.10560 (Self-Instruct, ACL 2023) adds an instruction only when ROUGE-L similarity with any existing one is less than 0.7. Caveat ROUGE-L is lexical not semantic.",
+      "vote": "3-0"
+    },
+    {
+      "claim": "DIVERSITY MEASUREMENT a: Quantify coverage with DPP subset selection (log-determinant distance to a maximally diverse reference; gradient-space variant correlates with downstream gains) or DCScore (diversity-as-classification with proven axioms, better pseudo-truth correlation than Distinct-n/K-means/VendiScore). Use as a stopping/selection signal.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2402.02318",
+        "https://openreview.net/forum?id=DMJ3b19RAJ",
+        "https://arxiv.org/abs/2502.08512"
+      ],
+      "evidence": "2402.02318 (ICLR 2025) DPPs capture diversity and quality for subset selection; gradient-space measure correlates with downstream instruction-following. DCScore (ICML 2025) sample classification with verified diversity axioms, stronger pseudo-truth correlation. CAVEAT DCScore wins in-most-cases, on par with VendiScore in some columns; pseudo-truths are proxies.",
+      "vote": "3-0 x6"
+    },
+    {
+      "claim": "HARDNESS b: Use Evol-Instruct five IN-DEPTH operations (add constraints, deepening, concretizing, increase reasoning steps, complicate input) to mutate a case axe-core already flags into one at the human-judgment boundary; the 10-20-words-per-edit rule gives gradual difficulty control.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2304.12244"
+      ],
+      "evidence": "2304.12244 (WizardLM, ICLR 2024) five in-depth operations verbatim (concretizing = replace general with specific; complicate input adds structured formats incl. HTML); Rewritten Prompt can only add 10 to 20 words; each evolution a bit harder.",
+      "vote": "3-0"
+    },
+    {
+      "claim": "VALIDITY c (motivation): Self-Instruct human audit shows validity degrades monotonically down the chain (92 task, 79 input, 58 output, 54 all-fields), justifying adversarial Stage-5 and concentrating verification on label correctness and citation grounding.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2212.10560"
+      ],
+      "evidence": "2212.10560 Table 2 (single author-annotator, n=200): 92/79/58/54. Caveat single-annotator not multi-annotator; figures robust.",
+      "vote": "3-0"
+    },
+    {
+      "claim": "VALIDITY/DE-HALLUCINATION c: Layer training-free self-critique into Stage 5 with an ENSEMBLE of critics. Self-Refine is the base generator+critic+refiner loop; N-CRITICS adds an ensemble plus model own feedback and explicitly targets FACT HALLUCINATION, on-point for hallucinated WCAG/EN-301549 citations and fake failures.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2303.17651",
+        "https://arxiv.org/abs/2310.18679"
+      ],
+      "evidence": "Self-Refine 2303.17651 (NeurIPS 2023) single LLM as generator/refiner/feedback, no training. N-CRITICS 2310.18679 (NeurIPS 2023 WS) ensemble of critics plus model own feedback, no training, targets toxicity and fact hallucination. CAVEAT self-correction has limits (2310.01798); keep the accessibility-tree oracle authoritative. Self-Refine 20pct improvement refuted 1-2.",
+      "vote": "3-0 x4, 20pct refuted 1-2"
+    },
+    {
+      "claim": "VALIDITY c: Adopt Evol-Instruct Elimination-Evolving as a cheap pre-filter before Stage-5 (reject no-information-gain mutations, refusals, punctuation-only pages, boilerplate copies), plus AI-preference filtering (RLAIF) for a no-human-label quality gate.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2304.12244",
+        "https://arxiv.org/abs/2212.08073"
+      ],
+      "evidence": "2304.12244 Sec 3.2 four failure criteria verbatim. 2212.08073 (Constitutional/RLAIF) generates self-critiques and revisions then finetunes on revised; RL stage uses a model to judge which sample is better (RLAIF) without human labels. CAVEAT criteria need HTML adaptation; borrow concepts not the fine-tuning.",
+      "vote": "3-0 x3"
+    },
+    {
+      "claim": "EFFICIENCY/YIELD d: Self-Instruct turned 175 seeds into 52K+ instructions / 82K+ instances (over 290x), so invest human effort in a gold seed set per SC; AttrPrompt matched class-conditional prompts at only 5 percent of querying cost, so attribute/persona conditioning also improves yield-per-call.",
+      "confidence": "high",
+      "sources": [
+        "https://arxiv.org/abs/2212.10560",
+        "https://arxiv.org/html/2306.15895"
+      ],
+      "evidence": "2212.10560 175 tasks to 52,445 instructions / 82,439 instances after filtering. 2306.15895 attributed prompts match class-conditional prompts at 5 percent of querying cost. CAVEAT 290x is across many generation steps not per call; 5 percent is cost-to-match on text-classification.",
+      "vote": "3-0 x2"
+    }
+  ],
+  "caveats": "SCOPE GAP: the strongest part of the brief is least-covered by surviving evidence. No confirmed claims surfaced for combinatorial/t-wise/coverage-guided test generation; metamorphic testing (your mutate-passing-into-near-boundary-failing is literally a metamorphic relation); CheckList / counterfactually-augmented data (Kaushik et al.; Gardner et al. contrast sets, on-point for minimal-edit near-boundary pairs); hard-negative mining and active learning; dataset cartography (Swayamdipta et al., the ambiguous region IS your near-boundary hard cases). This is a batch coverage gap, not evidence these methods are unhelpful. DOMAIN-TRANSFER: every confirmed source is instruction-tuning/NLP synthetic-data, NOT accessibility/HTML; mechanisms transfer but none were validated on WCAG/HTML, and surface tools (ROUGE-L dedup, Elimination punctuation check) need re-grounding to DOM/semantic space. SELF-CRITIQUE RELIABILITY: intrinsic self-correction has known limits (Huang et al. 2310.01798); your browser-accessibility-tree corroboration is an external oracle and more trustworthy than any self-critique layer, so keep it authoritative. REFUTED OVERREACHES to avoid: strong personas-access-every-perspective (0-3) and Self-Refine 20 percent absolute improvement (1-2). METRIC CAVEAT: DCScore superiority is in-most-cases, on par with VendiScore in some settings, validated against proxy pseudo-truths (temperature, GPT-4 judge), not ground-truth diversity. TIME-SENSITIVITY: Verbalized Sampling (Oct 2025) under ICLR 2026 review, magnitude claims may shift, mechanism stable. SOURCE QUALITY otherwise strong: all anchors are primary peer-reviewed venues with unanimous verification; no blog/marketing sources load-bearing.",
+  "openQuestions": [
+    "What does combinatorial/t-wise/coverage-guided test generation offer for systematically covering each SC parameter space (component x content x assistive-tech x locale), and can a covering array make Stage-4 coverage provable rather than emergent?",
+    "How to formalize metamorphic testing and CheckList/contrast-sets as WCAG metamorphic relations (a minimal edit that flips a page pass-to-fail while keeping automated-checker output unchanged) to manufacture human-judgment-only near-boundary pairs?",
+    "Can dataset cartography or active-learning/hard-negative mining identify cases in the ambiguous/hard region, using LLM-critic disagreement or the gap between checker verdict and accessibility-tree verdict as the difficulty signal?",
+    "How do DPP log-det and DCScore and the conditioning levers behave on HTML/DOM artifacts versus natural-language text, and what page representation best detects semantic versus merely-lexical duplication for the Stage-4 dedup filter?"
+  ],
+  "refuted": [
+    {
+      "claim": "Conditioning on a broad set of personas is claimed to access nearly every perspective latent in the LLM, which is the core mechanism for maximizing coverage/diversity and avoiding mode collapse in generated outputs.",
+      "vote": "0-3",
+      "source": "https://arxiv.org/abs/2406.20094"
+    },
+    {
+      "claim": "Iterative self-feedback and self-refinement improves output quality by approximately 20% absolute on average across tasks, as judged by humans and automatic metrics.",
+      "vote": "1-2",
+      "source": "https://arxiv.org/abs/2303.17651"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://arxiv.org/abs/2212.10560",
+      "quality": "primary",
+      "angle": "LLM synthetic-data generation core methods",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/abs/2304.12244",
+      "quality": "primary",
+      "angle": "LLM synthetic-data generation core methods",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/abs/2406.20094",
+      "quality": "primary",
+      "angle": "LLM synthetic-data generation core methods",
+      "claimCount": 4
+    },
+    {
+      "url": "https://arxiv.org/abs/2303.17651",
+      "quality": "primary",
+      "angle": "LLM synthetic-data generation core methods",
+      "claimCount": 4
+    },
+    {
+      "url": "https://arxiv.org/abs/2212.08073",
+      "quality": "primary",
+      "angle": "LLM synthetic-data generation core methods",
+      "claimCount": 4
+    },
+    {
+      "url": "https://arxiv.org/abs/2310.18679",
+      "quality": "primary",
+      "angle": "LLM synthetic-data generation core methods",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/abs/2402.02318",
+      "quality": "primary",
+      "angle": "Diversity promotion & mode-collapse avoidance",
+      "claimCount": 4
+    },
+    {
+      "url": "https://arxiv.org/abs/2510.01171",
+      "quality": "primary",
+      "angle": "Diversity promotion & mode-collapse avoidance",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/html/2306.15895",
+      "quality": "primary",
+      "angle": "Diversity promotion & mode-collapse avoidance",
+      "claimCount": 5
+    },
+    {
+      "url": "https://openreview.net/forum?id=DMJ3b19RAJ",
+      "quality": "primary",
+      "angle": "Diversity promotion & mode-collapse avoidance",
+      "claimCount": 5
+    },
+    {
+      "url": "https://dl.acm.org/doi/10.1145/3143561",
+      "quality": "primary",
+      "angle": "Coverage-guided, combinatorial & metamorphic test generation",
+      "claimCount": 5
+    },
+    {
+      "url": "https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=910001",
+      "quality": "primary",
+      "angle": "Coverage-guided, combinatorial & metamorphic test generation",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/pdf/2506.02954",
+      "quality": "primary",
+      "angle": "Coverage-guided, combinatorial & metamorphic test generation",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/html/2605.13898v1",
+      "quality": "primary",
+      "angle": "Coverage-guided, combinatorial & metamorphic test generation",
+      "claimCount": 5
+    },
+    {
+      "url": "https://onlinelibrary.wiley.com/doi/full/10.1002/stvr.1898",
+      "quality": "primary",
+      "angle": "Coverage-guided, combinatorial & metamorphic test generation",
+      "claimCount": 4
+    },
+    {
+      "url": "https://ieeexplore.ieee.org/document/8728905/",
+      "quality": "primary",
+      "angle": "Coverage-guided, combinatorial & metamorphic test generation",
+      "claimCount": 4
+    },
+    {
+      "url": "https://arxiv.org/abs/1909.12434",
+      "quality": "primary",
+      "angle": "Hardness, hard-negative mining & active learning at decision boundaries",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/abs/2101.00288",
+      "quality": "primary",
+      "angle": "Hardness, hard-negative mining & active learning at decision boundaries",
+      "claimCount": 4
+    },
+    {
+      "url": "https://aclanthology.org/2020.acl-main.442/",
+      "quality": "primary",
+      "angle": "Hardness, hard-negative mining & active learning at decision boundaries",
+      "claimCount": 5
+    },
+    {
+      "url": "https://aclanthology.org/2021.emnlp-main.51/",
+      "quality": "primary",
+      "angle": "Hardness, hard-negative mining & active learning at decision boundaries",
+      "claimCount": 4
+    },
+    {
+      "url": "https://aclanthology.org/2020.emnlp-main.746/",
+      "quality": "primary",
+      "angle": "Quality filtering & label-correctness of synthetic data",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/abs/2305.14627",
+      "quality": "primary",
+      "angle": "Quality filtering & label-correctness of synthetic data",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/abs/2604.23178",
+      "quality": "primary",
+      "angle": "Quality filtering & label-correctness of synthetic data",
+      "claimCount": 5
+    },
+    {
+      "url": "https://arxiv.org/pdf/2307.08701",
+      "quality": "primary",
+      "angle": "Quality filtering & label-correctness of synthetic data",
+      "claimCount": 4
+    },
+    {
+      "url": "https://github.com/tianyi-lab/Cherry_LLM",
+      "quality": "primary",
+      "angle": "Quality filtering & label-correctness of synthetic data",
+      "claimCount": 5
+    }
+  ],
+  "stats": {
+    "angles": 5,
+    "sourcesFetched": 25,
+    "claimsExtracted": 116,
+    "claimsVerified": 25,
+    "confirmed": 23,
+    "killed": 2,
+    "afterSynthesis": 10,
+    "urlDupes": 1,
+    "budgetDropped": 4,
+    "agentCalls": 107
+  }
+}

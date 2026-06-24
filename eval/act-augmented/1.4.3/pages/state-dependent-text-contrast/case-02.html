@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ledger — Business & Markets</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The primary-nav links pass contrast at rest: #1a3a6b on #ffffff => ~8.6:1.
+  The defect is in the :hover STATE only. On hover the link color becomes #8aa4c8
+  (a pale "active" blue from the brand kit) on the same white bar => ~2.55:1, below
+  the 4.5:1 minimum for this normal-weight 15px text.
+  axe-core / WAVE / Lighthouse evaluate the page in its STATIC, un-hovered render.
+  None of them synthesize a :hover (no pointer is over any element during a scan),
+  so the computed style they read for each link is the resting #1a3a6b — which passes.
+  The :hover rule is real CSS in the stylesheet and genuinely repaints the link when a
+  pointer hovers, so a sighted low-vision user moving the mouse over the nav sees the
+  label fade below threshold. Detecting it requires DRIVING the page into :hover and
+  measuring the hovered color — a behavioral step the corpus never performs.
+-->
+<style>
+  :root { --ink:#13151a; --bg:#fff; --rule:#e4e7ec; --brand:#1a3a6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 Georgia, "Times New Roman", serif; color:var(--ink); background:#fafbfc; }
+  .masthead { background:#fff; border-bottom:2px solid var(--ink); }
+  .masthead .top { max-width:1040px; margin:0 auto; padding:16px 20px 8px; display:flex; align-items:baseline; gap:14px; }
+  .masthead h1 { font-size:1.9rem; letter-spacing:.5px; margin:0; }
+  .masthead .tag { color:#5a626e; font-size:.82rem; font-family:system-ui,sans-serif; }
+  nav.primary { background:#fff; border-bottom:1px solid var(--rule); }
+  nav.primary ul { max-width:1040px; margin:0 auto; padding:0 20px; list-style:none; display:flex; gap:26px; }
+  nav.primary li { margin:0; }
+  nav.primary a {
+    display:block; padding:11px 2px; font-family:system-ui,sans-serif; font-size:15px;
+    font-weight:600; text-decoration:none; color:var(--brand);   /* rest: ~11.3:1 — passes */
+    border-bottom:3px solid transparent;
+  }
+  /* === The defect: hover state drops the label to ~2.55:1 === */
+  nav.primary a:hover,
+  nav.primary a:focus {
+    color:#8aa4c8;                 /* #8aa4c8 on #fff ~ 2.55:1 — fails for 15px text */
+    border-bottom-color:#8aa4c8;
+  }
+  main { max-width:1040px; margin:24px auto; padding:0 20px; display:grid; grid-template-columns:2fr 1fr; gap:30px; }
+  article h2 { font-size:1.5rem; margin:0 0 6px; }
+  article .byline { font-family:system-ui,sans-serif; color:#5a626e; font-size:.85rem; margin:0 0 14px; }
+  article p { margin:0 0 14px; }
+  aside h3 { font-family:system-ui,sans-serif; font-size:.95rem; text-transform:uppercase; letter-spacing:.6px; color:#5a626e; border-bottom:1px solid var(--rule); padding-bottom:6px; }
+  aside ul { list-style:none; padding:0; margin:0; }
+  aside li { padding:8px 0; border-bottom:1px solid var(--rule); font-family:system-ui,sans-serif; font-size:.92rem; }
+  aside a { color:var(--brand); text-decoration:none; }
+  footer { max-width:1040px; margin:30px auto; padding:16px 20px; color:#5a626e; font-size:.82rem; font-family:system-ui,sans-serif; border-top:1px solid var(--rule); }
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="top">
+      <h1>The Ledger</h1>
+      <span class="tag">Business &amp; Markets · Thursday edition</span>
+    </div>
+    <nav class="primary" aria-label="Sections">
+      <ul>
+        <li><a href="#markets" aria-current="page">Markets</a></li>
+        <li><a href="#economy">Economy</a></li>
+        <li><a href="#companies">Companies</a></li>
+        <li><a href="#opinion">Opinion</a></li>
+        <li><a href="#tech">Technology</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <article>
+      <h2>Central bank holds rates as inflation cools to 2.4%</h2>
+      <p class="byline">By Priya Raman · 06:30 GMT</p>
+      <p>Policymakers left the benchmark rate unchanged for a third consecutive meeting, signalling that the tightening cycle is likely complete even as services prices remain sticky.</p>
+      <p>Markets had priced in a hold with near certainty; attention now turns to the projected path of cuts in the second half of the year. The pound was little changed against the dollar.</p>
+      <p>“The committee will move carefully,” the governor said, declining to commit to a timetable. Bond yields slipped at the short end as traders nudged forward their expectations for the first reduction.</p>
+    </article>
+    <aside aria-label="Most read">
+      <h3>Most read</h3>
+      <ul>
+        <li><a href="#a1">Chipmaker raises full-year guidance on AI demand</a></li>
+        <li><a href="#a2">Sterling steadies after volatile session</a></li>
+        <li><a href="#a3">Retailers warn of subdued spring trading</a></li>
+        <li><a href="#a4">Oil edges higher on supply concerns</a></li>
+      </ul>
+    </aside>
+  </main>
+
+  <footer>The Ledger · A worked example. Hover or tab the section links to reach the failing state. Renders from file://</footer>
+</body>
+</html>

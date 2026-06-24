@@ -1,0 +1,49 @@
+{
+  "sc": "1.4.5",
+  "count": 3,
+  "patterns": [
+    {
+      "platform": "Webflow / Framer hero text baked into an exported image or background",
+      "name": "Images of text in hero/banner graphics",
+      "description": "To preserve exact typography, designers export a hero headline, promotional banner, or pricing graphic as a flattened PNG/JPG (or set it as a CSS background-image) instead of live text. The 'text' is pixels: it can't be resized/restyled, and if alt is missing or generic the content is also lost to screen readers.",
+      "wcagScs": [
+        "1.4.5",
+        "1.1.1"
+      ],
+      "typicalMarkup": "<img src=\"/hero-headline.png\" alt=\"\">  <!-- '50% OFF — ENDS FRIDAY' as pixels -->\n<div class=\"banner\" style=\"background-image:url('/promo-text.jpg')\"></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Nothing in the markup declares that an image's pixels contain readable text; an automated tool can't OCR/decide an image is 'an image of text' that could have been real text (1.4.5) vs. a legitimate photo/logo. Even an image with alt passes 1.1.1 — judging it's text-as-image needs human visual inspection.",
+      "realWorldNote": "Design-to-site workflows commonly flatten styled headlines to images to preserve fonts; 1.4.5 prohibits images of text except logos/essential cases: https://www.w3.org/WAI/WCAG21/Understanding/images-of-text.html",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Banner/promo graphics, pricing tables, infographics rendered as flat images on Wix/Squarespace/Mailchimp landing pages",
+      "name": "Images of text carrying essential information with no text equivalent",
+      "description": "Headlines, sale terms, pricing tables, and event details are baked into a single flattened JPG/PNG (often exported from Canva/Figma). The alt text, if any, is a short label that omits the embedded copy, so the actual information (prices, dates, fine print) is unavailable non-visually and pixelates/blurs on zoom.",
+      "wcagScs": [
+        "1.4.5",
+        "1.1.1",
+        "1.4.10"
+      ],
+      "typicalMarkup": "<img src=\"summer-sale-flyer.png\" alt=\"Summer sale\">\n<!-- the image itself contains: '40% OFF everything, ends June 30, code SUN40' -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "No automated tool performs OCR to discover that an image contains essential text, nor that the alt fails to reproduce it. Recognizing 'this picture is really a block of text and the alt drops the price/date' requires a human to read both the image and the alt and compare.",
+      "realWorldNote": "Images-of-text is a perennial manual-audit and VPAT partial-support item; tied to the alt-text gap WebAIM measures: https://webaim.org/projects/million/2025 . Litigation grounding: the Robles v. Domino's case turned on screen-reader-inaccessible image/graphic content: https://www.boia.org/blog/the-robles-v.-dominos-settlement-and-why-it-matters",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Marketing hero banners / promo slides in CMS slideshows (Shopify slideshow, Squarespace banner, email-style heroes)",
+      "name": "Headline baked into a hero image (image of text)",
+      "description": "The campaign headline, price, and CTA wording are composited into a single hero JPG/PNG by a designer, then placed with a generic or empty alt. The visible \"text\" pixelates on zoom, can't be restyled for users who need larger/high-contrast type, and is either unreadable to AT (empty alt) or crammed into one alt string. Often the same banner is the page's only H1-level content, so the heading is also an image.",
+      "wcagScs": [
+        "1.4.5",
+        "1.1.1"
+      ],
+      "typicalMarkup": "<div class=\"hero\">\n  <img src=\"/cdn/summer-sale-50-off.jpg\" alt=\"\">\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "An empty-alt decorative image passes 1.1.1 trivially, and a non-empty alt passes too — tools cannot OCR the image to discover it contains essential text that should have been live HTML, nor judge whether that text is \"essential\" (logo) versus avoidable. Detecting text-in-image and deciding it's a 1.4.5 violation is a visual/semantic call.",
+      "realWorldNote": "Compositing headline text into hero images is a documented 1.4.5 failure; fix is extracting to HTML/CSS overlay. https://www.w3.org/WAI/WCAG22/Understanding/images-of-text.html and https://testparty.ai/blog/wcag-1-4-5-images-of-text-2025-guide",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heirloom tomato seeds — care guide | Sproutwell</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 "Helvetica Neue", Arial, sans-serif; color:#2d2a26; background:#faf7f0; }
+  header { background:#3f6b3f; color:#fff; padding:14px 26px; }
+  header b { font-size:19px; letter-spacing:.5px; }
+  main { max-width:760px; margin:26px auto; background:#fff; border:1px solid #e6e0d2; border-radius:12px; padding:30px 34px; }
+  h1 { font-size:24px; margin:0 0 6px; }
+  .price { font-size:22px; color:#3f6b3f; font-weight:700; margin:0 0 18px; }
+  .specs { display:flex; flex-wrap:wrap; gap:10px 26px; margin:0 0 22px; padding:0; list-style:none; }
+  .specs li { font-size:15px; }
+  .specs .k { color:#7a7264; display:block; font-size:12px; text-transform:uppercase; letter-spacing:.5px; }
+  /* icon badges with hover info */
+  .badge {
+    position:relative; display:inline-flex; align-items:center; gap:6px;
+    background:#eef3ea; border:1px solid #cfe0c8; color:#2f4f2f;
+    border-radius:20px; padding:6px 12px; font-size:14px; cursor:help;
+  }
+  .badge:focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
+  .badge .dot { width:9px; height:9px; border-radius:50%; background:#3f6b3f; }
+  .pop {
+    position:absolute; left:0; top:135%; width:300px; text-align:left;
+    background:#28341f; color:#f1f5ea; padding:13px 15px; border-radius:9px;
+    font-size:14px; line-height:1.55; box-shadow:0 10px 26px rgba(0,0,0,.28);
+    z-index:20; pointer-events:none; opacity:0;
+  }
+  /*
+    THE DEFECT (pure CSS, no JS timer):
+    On hover/focus we run a keyframe animation that starts visible and FADES TO
+    opacity:0, with animation-fill-mode:forwards so it stays gone. After ~3.5s the
+    popup is invisible even though the badge is STILL hovered/focused. There is no
+    setTimeout anywhere — a source grep for timers finds nothing.
+  */
+  @keyframes peekThenVanish {
+    0%   { opacity:1; }
+    74%  { opacity:1; }   /* visible for ~2.6s of a 3.5s run */
+    100% { opacity:0; }   /* then gone, while still hovered */
+  }
+  .badge:hover .pop,
+  .badge:focus .pop {
+    pointer-events:auto;
+    animation: peekThenVanish 3.5s ease forwards;
+  }
+  .desc { margin-top:22px; }
+  .add { margin-top:26px; background:#3f6b3f; color:#fff; border:0; padding:13px 26px; border-radius:9px; font-size:16px; cursor:pointer; }
+  footer { max-width:760px; margin:16px auto 70px; color:#8a8473; font-size:13px; }
+</style>
+</head>
+<body>
+<header><b>Sproutwell</b> &nbsp;·&nbsp; Open-pollinated &amp; heirloom seeds</header>
+
+<main>
+  <h1>'Cherokee Purple' heirloom tomato — 25 seeds</h1>
+  <p class="price">$4.95</p>
+
+  <ul class="specs">
+    <li><span class="k">Days to maturity</span>80–90 days</li>
+    <li><span class="k">Sun</span>Full sun</li>
+    <li><span class="k">Spacing</span>24–36 in</li>
+  </ul>
+
+  <p>
+    <span class="badge" tabindex="0" role="button" aria-describedby="zonePop">
+      <span class="dot" aria-hidden="true"></span> Hardiness zone
+      <span id="zonePop" role="tooltip" class="pop">
+        Cherokee Purple is a tender annual: it tolerates <strong>no frost</strong>. Start seeds
+        indoors 6–8 weeks before your last spring frost, then transplant once nighttime lows
+        stay above 50&nbsp;°F (10&nbsp;°C). Suitable for outdoor growing in USDA zones 3–11 as a
+        summer annual; in zones 9–11 a second fall sowing is possible.
+      </span>
+    </span>
+    &nbsp;
+    <span class="badge" tabindex="0" role="button" aria-describedby="shipPop">
+      <span class="dot" aria-hidden="true"></span> Shipping &amp; viability
+      <span id="shipPop" role="tooltip" class="pop">
+        Seeds ship within 2 business days in a moisture-barrier packet. Germination tested at
+        <strong>88%</strong> (lot SW-2451). Store cool and dry; viable 4–5 years. We do not ship
+        live plants — seeds only.
+      </span>
+    </span>
+  </p>
+
+  <div class="desc">
+    <p>A pre-1890 Tennessee heirloom prized for its dusky rose shoulders and rich, smoky-sweet
+    flavor. Indeterminate vines crop heavily through late summer. Best caged or staked.</p>
+  </div>
+
+  <button class="add" type="button">Add to cart</button>
+</main>
+
+<footer>Sproutwell is a fictional demo storefront. No orders are processed.</footer>
+
+<!--
+  WHY AUTOMATED TOOLS MISS IT:
+  This is the trap variant — there is no JavaScript at all, so a tool (or a reviewer)
+  grepping for setTimeout/setInterval finds nothing and might wrongly clear the page.
+  The auto-dismiss lives in a CSS @keyframes (peekThenVanish) that animates the popup
+  to opacity:0 with animation-fill-mode:forwards, so it disappears ~3.5s after hover/
+  focus begins while the badge is STILL hovered/focused. axe/WAVE/Lighthouse see valid
+  role="tooltip" markup, real names/roles, hover+focus triggers, and a hoverable popup;
+  CSS animation timing is invisible to them. A low-vision magnifier user — who needs the
+  extra seconds the Persistent condition guarantees, to pan onto the popup and read the
+  zone guidance — loses it mid-read. Only a human watching the rendered timeline can see
+  the content vanish while still valid and still hovered.
+  (No Esc handler is needed to demonstrate the Persistent failure: even a perfectly
+  hoverable, dismissible tooltip fails 1.4.13 if it auto-closes after a time.)
+-->
+</body>
+</html>

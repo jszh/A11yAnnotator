@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — the "Role" limb, valid-but-INAPPROPRIATE role.
+
+    Aspect: wrong-role-valid-but-inappropriate.
+
+    "Northwind Postmaster" — a transactional-email SaaS, account → Notifications
+    settings. The first row is a SLIDING PILL TOGGLE: a rounded track with a circular
+    thumb that slides left (off, grey) to right (on, green) when clicked. Visually and
+    behaviourally this is unmistakably a TOGGLE SWITCH.
+
+    THE DEFECT: the control is coded
+        <div role="checkbox" aria-checked="true" tabindex="0" ...>
+    role="checkbox" is a real, valid ARIA token, so ACT rule 674b10 ("Role attribute
+    has valid value") PASSES. The role's required state, aria-checked, is present and
+    kept in sync, so ACT rule 4e8ab6 ("ARIA required context/state present") PASSES.
+    The accessible name ("Product update emails") is correct via aria-labelledby.
+    Everything a checker validates is correct — EXCEPT the role itself is WRONG for the
+    widget. A control that slides between two settings and is styled as an on/off switch
+    has the role "switch" (role="switch"), not "checkbox". ARIA's own guidance: a switch
+    is a checkbox-like control whose on/off values are "on" and "off" rather than
+    checked/unchecked, and AT announces it accordingly ("Product update emails, switch,
+    on") — whereas role="checkbox" makes AT announce "Product update emails, checkbox,
+    checked", describing a form selection rather than a setting toggle.
+
+    WHAT AT EXPERIENCES: a screen-reader user hears "checkbox, checked". They picture a
+    square form checkbox they must tick to submit, not a live setting that takes effect
+    immediately. The mismatch between the announced affordance (checkbox) and the
+    rendered/behavioural affordance (sliding switch) is the failure.
+
+    WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse confirm (a) role is a valid
+    token, (b) the checkbox's required aria-checked is present, (c) the element has an
+    accessible name, (d) it is focusable and keyboard-operable. All true. NO automated
+    tool renders the pill, recognises the thumb-on-track switch affordance, and decides
+    that "switch" — not "checkbox" — is the role that matches what the user sees and does.
+    That comparison of visual/behavioural identity against the declared role is human
+    judgment.
+  -->
+  <title>Notification settings — Northwind Postmaster</title>
+  <style>
+    :root { --ink:#1b2330; --muted:#5b6675; --line:#e3e7ee; --on:#16a34a; --off:#c2cad6; --bg:#f4f6f9; --card:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter",-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+    .shell { max-width:680px; margin:2.4rem auto; padding:0 1.2rem; }
+    h1 { font-size:1.55rem; margin:0 0 .3rem; }
+    p.lead { color:var(--muted); margin:0 0 1.8rem; }
+    .panel { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:.4rem 1.5rem; box-shadow:0 1px 2px rgba(16,24,40,.04); }
+    .row { display:flex; align-items:center; gap:1rem; padding:1.15rem 0; border-bottom:1px solid var(--line); }
+    .row:last-child { border-bottom:0; }
+    .row .text { flex:1; }
+    .row .text .name { font-weight:600; }
+    .row .text .desc { color:var(--muted); font-size:.88rem; margin-top:.15rem; }
+    /* the sliding pill toggle — visually a switch */
+    .toggle { position:relative; width:46px; height:26px; border-radius:13px; background:var(--off);
+              cursor:pointer; flex:0 0 auto; transition:background .18s ease; outline-offset:3px; }
+    .toggle[aria-checked="true"] { background:var(--on); }
+    .toggle .thumb { position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%;
+                     background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.35); transition:left .18s ease; }
+    .toggle[aria-checked="true"] .thumb { left:23px; }
+    .toggle:focus-visible { outline:2px solid #2563eb; }
+    .savebar { margin-top:1.4rem; font-size:.85rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <h1>Notifications</h1>
+    <p class="lead">Choose what Northwind Postmaster sends to <strong>ops@northwind.example</strong>. Changes apply instantly.</p>
+
+    <section class="panel" aria-label="Email notification preferences">
+      <div class="row">
+        <div class="text">
+          <div class="name" id="lbl-product">Product update emails</div>
+          <div class="desc">New features, deprecations, and changelog highlights.</div>
+        </div>
+        <!-- DEFECT: a sliding switch coded as role="checkbox" (valid token, required
+             aria-checked present) — should be role="switch". -->
+        <div class="toggle" role="checkbox" tabindex="0" aria-checked="true" aria-labelledby="lbl-product"></div>
+      </div>
+
+      <div class="row">
+        <div class="text">
+          <div class="name" id="lbl-billing">Billing &amp; invoice alerts</div>
+          <div class="desc">Receipts, failed payments, and plan changes.</div>
+        </div>
+        <div class="toggle" role="checkbox" tabindex="0" aria-checked="true" aria-labelledby="lbl-billing"></div>
+      </div>
+
+      <div class="row">
+        <div class="text">
+          <div class="name" id="lbl-marketing">Marketing &amp; tips</div>
+          <div class="desc">Occasional best-practice guides and offers.</div>
+        </div>
+        <div class="toggle" role="checkbox" tabindex="0" aria-checked="false" aria-labelledby="lbl-marketing"></div>
+      </div>
+    </section>
+
+    <p class="savebar">Saved automatically. Last change 2 minutes ago.</p>
+  </main>
+
+  <script>
+    // Real switch behaviour: click / Space / Enter flips the live setting immediately.
+    document.querySelectorAll('.toggle').forEach(function (el) {
+      function flip() {
+        var on = el.getAttribute('aria-checked') === 'true';
+        el.setAttribute('aria-checked', on ? 'false' : 'true');
+      }
+      el.addEventListener('click', flip);
+      el.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flip(); }
+      });
+    });
+  </script>
+</body>
+</html>

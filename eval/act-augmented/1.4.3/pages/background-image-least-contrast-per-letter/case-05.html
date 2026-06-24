@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Meridian Dispatch — Skyline at the edge of the storm</title>
+<!--
+  SC 1.4.3 F83 — large headline where text-shadow rescues the DARK third but is
+  insufficient over the BRIGHT third (partial-letter failure).
+  WHY AUTOMATED TOOLS MISS IT: the news hero headline is large live white text WITH a
+  text-shadow (a common "make hero text readable over any photo" trick). The cityscape PNG is
+  a dark stormy left third (white+shadow reads, worst ~4:1) ramping to a blown-out overcast
+  sky on the right two-thirds, where the least-contrast pixel — the flat bright sky immediately
+  inside the thin glyph strokes — is ~1:1. A text-shadow only darkens a 1-2px halo at the
+  glyph EDGE; the interior of each stroke still sits on bright sky, so the right-hand words
+  fail per-letter even though the shadow makes them *look* outlined. Scanners (a) cannot read
+  the raster, (b) ignore text-shadow in their contrast model entirely, and (c) fall back to the
+  solid #1a2230, scoring ~15:1 → PASS. ACT's best-case pixel pick (~14:1) also reports PASS.
+  Catching it requires judging that the shadow does not raise the *least-contrast* interior
+  pixel above 4.5:1 over the bright sky — a visual, per-letter determination.
+-->
+<style>
+  body { margin:0; background:#fff; color:#15171c;
+    font-family: "Times New Roman", Georgia, serif; }
+  .masthead { border-bottom:3px double #15171c; padding:14px 24px; display:flex;
+    align-items:baseline; justify-content:space-between; }
+  .masthead .name { font-size:1.7rem; font-weight:700; letter-spacing:.04em; }
+  .masthead .date { font-size:.85rem; color:#5a5e66; font-family:Arial, sans-serif; }
+  .hero {
+    position:relative; min-height:380px;
+    background-color:#1a2230;                 /* fallback scanners measure */
+    background-image:url("bg-05-cityscape.png");
+    background-size:100% 100%; background-position:center;
+    display:flex; align-items:flex-start;
+  }
+  .hero .wrap { padding:40px 5vw; max-width:1000px; }
+  .hero .label { color:#ffd76b; font-family:Arial, sans-serif; font-weight:700;
+    letter-spacing:.14em; font-size:.78rem; text-transform:uppercase; margin:0 0 10px;
+    text-shadow:0 1px 3px rgba(0,0,0,.8); }
+  .hero h1 {
+    margin:0;
+    color:#ffffff;
+    /* the "rescue" shadow — darkens only the glyph-edge halo, not the stroke interior */
+    text-shadow: 0 1px 2px rgba(0,0,0,.85), 0 0 1px rgba(0,0,0,.6);
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    font-weight:700; line-height:1.06; max-width:18ch;
+  }
+  .hero .byline { color:#eef1f6; font-family:Arial, sans-serif; font-size:.92rem;
+    margin-top:16px; text-shadow:0 1px 2px rgba(0,0,0,.8); }
+  article { max-width:680px; margin:0 auto; padding:34px 22px 60px; }
+  article p { line-height:1.7; font-size:1.06rem; }
+  article p:first-of-type::first-letter { font-size:3rem; float:left; line-height:.8;
+    padding:4px 8px 0 0; font-weight:700; }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="name">The Meridian Dispatch</div>
+  <div class="date">Friday, March 14, 2026</div>
+</header>
+
+<section class="hero" aria-label="Lead story">
+  <div class="wrap">
+    <p class="label">City &middot; Climate</p>
+    <h1>Skyline Braces As The Storm Front Clears The Bright Western Sky</h1>
+    <p class="byline">By Dana Okafor &middot; Photographs from the Riverside Tower</p>
+  </div>
+</section>
+
+<article>
+  <p>
+    Forecasters spent Thursday watching a wall of cloud break apart over the western suburbs,
+    leaving the downtown towers silhouetted against a hard, colourless glare. The reprieve is
+    temporary: a second band is expected to reach the harbour by midnight, and the city has
+    reopened two emergency shelters along the embankment.
+  </p>
+  <p>
+    Transit officials warned that the elevated line may run on a reduced schedule through the
+    weekend while crews inspect the spans that carried the brunt of Wednesday's wind.
+  </p>
+</article>
+</body>
+</html>

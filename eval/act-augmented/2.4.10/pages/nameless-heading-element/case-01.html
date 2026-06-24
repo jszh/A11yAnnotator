@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slow-roast harissa carrots — Ember &amp; Root</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.10, aspect nameless-heading-element):
+  The fourth section's heading is <h2><span class="ico"></span></h2> — its only content is a
+  LITERAL icon-font glyph, the Private Use Area codepoint U+F080 (the "bar chart" glyph in the
+  bundled webfont). It is a real, non-whitespace text node, so:
+    - axe-core's `empty-heading` does NOT fire. Its name computation runs commons.text.sanitize
+      (.replace(/\s+/g,' ').trim()); U+F080 is NOT whitespace, so the sanitized name is the
+      single character U+F080 (length 1, non-empty). (Contrast a lone &nbsp;, U+00A0, which IS
+      \s and WOULD collapse to "" and trip empty-heading — deliberately NOT used here.)
+    - WAVE and Lighthouse likewise see "a heading with text content" and report nothing.
+  Yet U+F080 is an unassigned Private Use codepoint: it has no Unicode name and no CLDR label,
+  so a screen reader announces nothing pronounceable for it ("heading level 2", or a literal
+  "private use area f080" / a fallback box). The visible bar-chart icon — the only thing that
+  signals "Nutrition" — lives entirely in a font glyph that AT cannot name. Deciding that a
+  decorative icon glyph is not a section name, when the heading is technically non-empty, is a
+  human visual/semantic judgment, not a lint rule.
+-->
+<style>
+  :root { --ink:#2b2620; --muted:#7a7064; --line:#e3ddd2; --paprika:#b5421f; --olive:#5c6b3a; --cream:#fbf7ef; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Georgia, "Times New Roman", serif; color:var(--ink);
+         background:var(--cream); line-height:1.6; }
+  /* The "icon font" effect, self-contained for file://. The heading's text node is the literal
+     Private Use codepoint U+F080 (so the accessible NAME is U+F080), but the visible glyph is
+     painted as an inline-SVG bar-chart via background-image while the codepoint itself is made
+     transparent. color:transparent hides the tofu box from sighted users WITHOUT removing the
+     text from the accessibility tree (only display:none / visibility:hidden / aria-hidden do
+     that) — so a sighted reader sees an olive bar-chart icon while AT still computes name=U+F080.
+     This mirrors real icon-font usage where a PUA glyph is the section emblem. */
+  .ico, .lead {
+    display:inline-block; width:1.25em; height:1.25em; color:transparent; overflow:hidden;
+    background-repeat:no-repeat; background-position:center; background-size:contain;
+    vertical-align:-0.18em;
+    /* olive bar-chart silhouette */
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%235c6b3a"><rect x="3" y="11" width="4" height="9"/><rect x="10" y="6" width="4" height="14"/><rect x="17" y="2" width="4" height="18"/></svg>');
+  }
+  header.site { background:var(--paprika); color:#fff; }
+  header.site .inner { max-width:840px; margin:0 auto; padding:14px 22px; font-variant:small-caps;
+                       letter-spacing:1px; font-size:1.1rem; }
+  main { max-width:720px; margin:0 auto; padding:24px 22px 70px; }
+  h1 { font-size:2.25rem; line-height:1.15; margin:14px 0 4px; }
+  .standfirst { color:var(--muted); font-size:1.05rem; margin:0 0 8px; }
+  .meta { color:var(--muted); font-size:.9rem; margin:0 0 26px; border-bottom:1px solid var(--line);
+          padding-bottom:18px; }
+  h2 { font-size:1.5rem; margin:34px 0 8px; display:flex; align-items:center; gap:.5rem; }
+  /* Sibling headings keep the bar-chart icon as an ACCENT beside real words (and aria-hidden,
+     so it adds nothing to their name), keeping the iconic look consistent so the wordless
+     nutrition heading blends visually in with the rest. */
+  section { padding-bottom:6px; }
+  p { margin:.55em 0; max-width:62ch; }
+  ol.ingredients, ol.method { margin:.4em 0; padding-left:1.3em; }
+  ol.ingredients li, ol.method li { margin:.3em 0; }
+  table.nutri { border-collapse:collapse; width:100%; margin:10px 0; font-size:.95rem; }
+  table.nutri th, table.nutri td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; }
+  table.nutri th { font-weight:bold; color:var(--muted); }
+  .note { background:#fff; border:1px solid var(--line); border-left:5px solid var(--olive);
+          padding:12px 16px; margin:16px 0; font-size:.95rem; }
+  footer { color:var(--muted); font-size:.85rem; border-top:1px solid var(--line);
+           margin-top:40px; padding-top:18px; }
+</style>
+</head>
+<body>
+<header class="site"><div class="inner">Ember &amp; Root — seasonal vegetable cooking</div></header>
+
+<main>
+  <h1>Slow-roast harissa carrots with whipped feta</h1>
+  <p class="standfirst">Charred at the edges, soft in the middle, with a rose-harissa glaze and
+    a cool, lemony feta to spoon underneath.</p>
+  <p class="meta">Serves 4 as a side &middot; 45 minutes &middot; Vegetarian</p>
+
+  <section aria-labelledby="h-intro">
+    <h2 id="h-intro"><span class="lead" aria-hidden="true">&#xf080;</span>About this dish</h2>
+    <p>Roasting carrots whole-ish and slow lets their sugars caramelise without going to mush.
+      The harissa is brushed on in the last ten minutes so it glazes rather than burns. If your
+      carrots are thick, halve them lengthways so they cook evenly.</p>
+  </section>
+
+  <section aria-labelledby="h-ingredients">
+    <h2 id="h-ingredients"><span class="lead" aria-hidden="true">&#xf080;</span>Ingredients</h2>
+    <ol class="ingredients">
+      <li>600&nbsp;g carrots, scrubbed, large ones halved lengthways</li>
+      <li>2&nbsp;tbsp rose harissa</li>
+      <li>2&nbsp;tbsp olive oil, plus extra to finish</li>
+      <li>1&nbsp;tsp honey or maple syrup</li>
+      <li>150&nbsp;g feta, 3&nbsp;tbsp Greek yoghurt, zest of half a lemon</li>
+      <li>A handful of coriander and toasted pumpkin seeds, to serve</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="h-method">
+    <h2 id="h-method"><span class="lead" aria-hidden="true">&#xf080;</span>Method</h2>
+    <ol class="method">
+      <li>Heat the oven to 200&deg;C fan. Toss the carrots with the oil and a good pinch of salt
+        and roast for 25 minutes.</li>
+      <li>Stir the harissa with the honey. Brush over the carrots and roast another 10&ndash;12
+        minutes until sticky and tender.</li>
+      <li>Blitz the feta, yoghurt and lemon zest until whipped. Spread on a plate, pile the
+        carrots on top, and finish with coriander, seeds and a thread of oil.</li>
+    </ol>
+  </section>
+
+  <!-- The author built every section title from the design kit's icon set. For the nutrition
+       block they grabbed the bar-chart glyph as a standalone "emblem" heading and never typed
+       the word "Nutrition" after it — so the heading's only content is the icon glyph itself. -->
+  <section aria-labelledby="h-nutri">
+    <h2 id="h-nutri"><span class="ico">&#xf080;</span></h2>
+    <p>Per serving, as a side, with the feta:</p>
+    <table class="nutri">
+      <thead><tr><th>Energy</th><th>Fat</th><th>Saturates</th><th>Sugars</th><th>Salt</th></tr></thead>
+      <tbody>
+        <tr><td>241 kcal</td><td>17 g</td><td>6.1 g</td><td>11 g</td><td>0.9 g</td></tr>
+      </tbody>
+    </table>
+    <div class="note">Values are estimates for guidance only and will vary with brands and
+      portion size. Swap honey for maple syrup to keep it vegan-friendly (and recount the feta).</div>
+  </section>
+</main>
+
+<footer>
+  Ember &amp; Root &middot; Recipe and photographs are the author's own.
+</footer>
+</body>
+</html>

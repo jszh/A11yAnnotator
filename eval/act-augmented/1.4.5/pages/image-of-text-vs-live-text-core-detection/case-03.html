@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trattoria del Ponte — Dinner Menu</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (1.4.5, NOT 1.1.1)
+  Each dish NAME is painted from a single SVG sprite-sheet set as a CSS background-image,
+  revealed per row with background-position. The visible "calligraphy" dish names are an
+  IMAGE OF TEXT: there is no <img>/alt, and the .name span has NO visible text node — the
+  words exist only as pixels in the background.
+  The names ARE exposed to assistive tech: each .name span carries aria-label="<dish name>"
+  (verified live StaticText in the AX tree), so a screen reader reads "Tagliatelle al Ragu,
+  EUR16, House egg pasta...". So 1.1.1 is satisfied and SR users are NOT harmed — do not
+  argue an SR-naming defect here.
+  The real 1.4.5 harm is purely VISUAL/low-vision: the displayed dish names are a fixed-size
+  background bitmap-equivalent that pixelates on zoom and ignores user font-size, custom
+  colors, and forced-colors — the presentation cannot be adjusted, yet a brush-script look
+  is achievable with @font-face + live text (proven by the live-text "Dolci" course below).
+  axe/WAVE/Lighthouse see named rows with no <img> and report nothing; recognizing the names
+  are images of text and judging the look was achievable is human work.
+-->
+<style>
+  :root { --wine:#6e1f2a; --cream:#fbf6ec; --ink:#2a2320; --line:#e0d4c0; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--cream); color:var(--ink);
+         font-family:Georgia,'Times New Roman',serif; }
+  header { text-align:center; padding:30px 20px 10px; }
+  header .est { font-family:Arial,sans-serif; letter-spacing:3px; font-size:12px;
+                color:#9a7b4f; text-transform:uppercase; }
+  header h1 { margin:6px 0 2px; font-size:32px; color:var(--wine); }
+  header p { margin:0; color:#7a6b58; font-style:italic; }
+  main { max-width:680px; margin:0 auto; padding:20px 26px 60px; }
+  section.course { margin-top:30px; }
+  section.course > h2 { color:var(--wine); border-bottom:2px solid var(--line);
+                        padding-bottom:6px; font-size:22px; }
+  ul.dishes { list-style:none; margin:0; padding:0; }
+  ul.dishes li { display:flex; align-items:baseline; justify-content:space-between;
+                 padding:14px 0; border-bottom:1px dotted var(--line); }
+
+  /* The dish NAME is an image of text: one SVG sprite-sheet background, sliced per row.
+     The span has NO text node; the displayed words are only pixels in the background. */
+  .name {
+    display:inline-block;
+    width:300px; height:30px;
+    background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iMTgwIj48cmVjdCB3aWR0aD0iMzIwIiBoZWlnaHQ9IjE4MCIgZmlsbD0iI2ZiZjZlYyIvPjx0ZXh0IHg9IjQiIHk9IjI0IiBmb250LWZhbWlseT0iQnJ1c2ggU2NyaXB0IE1ULCBTbmVsbCBSb3VuZGhhbmQsIGN1cnNpdmUiIGZvbnQtc3R5bGU9Iml0YWxpYyIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzJhMjMyMCI+VGFnbGlhdGVsbGUgYWwgUmFnw7k8L3RleHQ+PHRleHQgeD0iNCIgeT0iNTQiIGZvbnQtZmFtaWx5PSJCcnVzaCBTY3JpcHQgTVQsIFNuZWxsIFJvdW5kaGFuZCwgY3Vyc2l2ZSIgZm9udC1zdHlsZT0iaXRhbGljIiBmb250LXNpemU9IjI2IiBmaWxsPSIjMmEyMzIwIj5SaXNvdHRvIGFpIEZ1bmdoaSBQb3JjaW5pPC90ZXh0Pjx0ZXh0IHg9IjQiIHk9Ijg0IiBmb250LWZhbWlseT0iQnJ1c2ggU2NyaXB0IE1ULCBTbmVsbCBSb3VuZGhhbmQsIGN1cnNpdmUiIGZvbnQtc3R5bGU9Iml0YWxpYyIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzJhMjMyMCI+R25vY2NoaSBhbCBQb21vZG9ybzwvdGV4dD48dGV4dCB4PSI0IiB5PSIxMTQiIGZvbnQtZmFtaWx5PSJCcnVzaCBTY3JpcHQgTVQsIFNuZWxsIFJvdW5kaGFuZCwgY3Vyc2l2ZSIgZm9udC1zdHlsZT0iaXRhbGljIiBmb250LXNpemU9IjI2IiBmaWxsPSIjMmEyMzIwIj5CcmFuemlubyBhbCBGb3JubzwvdGV4dD48dGV4dCB4PSI0IiB5PSIxNDQiIGZvbnQtZmFtaWx5PSJCcnVzaCBTY3JpcHQgTVQsIFNuZWxsIFJvdW5kaGFuZCwgY3Vyc2l2ZSIgZm9udC1zdHlsZT0iaXRhbGljIiBmb250LXNpemU9IjI2IiBmaWxsPSIjMmEyMzIwIj5Pc3NvYnVjbyBhbGxhIE1pbGFuZXNlPC90ZXh0Pjwvc3ZnPg==");
+    background-repeat:no-repeat;
+  }
+  .name.r1 { background-position:0 0; }
+  .name.r2 { background-position:0 -30px; }
+  .name.r3 { background-position:0 -60px; }
+  .name.r4 { background-position:0 -90px; }
+  .name.r5 { background-position:0 -120px; }
+
+  .price { font-family:Arial,sans-serif; font-size:16px; color:var(--wine);
+           white-space:nowrap; padding-left:18px; }
+  .desc { font-size:13px; color:#7a6b58; font-style:italic; flex-basis:100%;
+          margin-top:4px; }
+
+  /* The "Dolci" course renders its dish names as LIVE text in a script webfont stack —
+     the achievable treatment the courses above should have used. */
+  .name-live { font-family:'Brush Script MT','Snell Roundhand',cursive; font-style:italic;
+               font-size:26px; color:var(--ink); line-height:30px; }
+
+  footer { text-align:center; font-family:Arial,sans-serif; font-size:12px;
+           color:#9a8b78; padding:20px; }
+</style>
+</head>
+<body>
+  <header>
+    <p class="est">Established 1974</p>
+    <h1>Trattoria del Ponte</h1>
+    <p>Cucina casalinga &middot; Dinner served 17:30&ndash;22:30</p>
+  </header>
+
+  <main>
+    <section class="course" aria-labelledby="primi-h">
+      <h2 id="primi-h">Primi</h2>
+      <ul class="dishes">
+        <li>
+          <span class="name r1" role="text" aria-label="Tagliatelle al Rag&ugrave;"></span>
+          <span class="price">&euro;16</span>
+          <span class="desc">House egg pasta, slow-braised beef and pork rag&ugrave;.</span>
+        </li>
+        <li>
+          <span class="name r2" role="text" aria-label="Risotto ai Funghi Porcini"></span>
+          <span class="price">&euro;18</span>
+          <span class="desc">Carnaroli rice, porcini, aged Parmigiano.</span>
+        </li>
+        <li>
+          <span class="name r3" role="text" aria-label="Gnocchi al Pomodoro"></span>
+          <span class="price">&euro;14</span>
+          <span class="desc">Potato gnocchi, San Marzano tomato, basil.</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="course" aria-labelledby="secondi-h">
+      <h2 id="secondi-h">Secondi</h2>
+      <ul class="dishes">
+        <li>
+          <span class="name r4" role="text" aria-label="Branzino al Forno"></span>
+          <span class="price">&euro;24</span>
+          <span class="desc">Whole roasted sea bass, lemon, herbs.</span>
+        </li>
+        <li>
+          <span class="name r5" role="text" aria-label="Ossobuco alla Milanese"></span>
+          <span class="price">&euro;27</span>
+          <span class="desc">Braised veal shank, saffron risotto, gremolata.</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="course" aria-labelledby="dolci-h">
+      <h2 id="dolci-h">Dolci</h2>
+      <ul class="dishes">
+        <li>
+          <span class="name-live">Tiramis&ugrave; della Casa</span>
+          <span class="price">&euro;9</span>
+          <span class="desc">Mascarpone, espresso-soaked savoiardi, cocoa.</span>
+        </li>
+        <li>
+          <span class="name-live">Panna Cotta ai Frutti di Bosco</span>
+          <span class="price">&euro;8</span>
+          <span class="desc">Vanilla cream, mixed-berry coulis.</span>
+        </li>
+      </ul>
+    </section>
+
+    <p style="font-family:Arial,sans-serif;font-size:12px;color:#7a6b58;margin-top:30px;">
+      A 10% service charge applies to tables of six or more. Please inform your server of any
+      allergies.</p>
+  </main>
+
+  <footer>
+    <p>Via del Ponte 12 &middot; Reservations 555-0148 &middot; &copy; 2026 Trattoria del Ponte</p>
+  </footer>
+</body>
+</html>

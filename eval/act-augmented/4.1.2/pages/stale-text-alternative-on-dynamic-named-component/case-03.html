@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renew Vehicle Registration — Step 3 of 4 | County of Marin DMV Services</title>
+<!--
+  SC 4.1.2 (with 1.1.1) stale text alternative on a refreshable NAMED image
+  control. ASPECT: F20. A CAPTCHA challenge image describes its current puzzle
+  in its alt text so a low-vision user who can partly read it, and a screen
+  reader's image announcement, both reference the SAME characters. A "Get a new
+  challenge" button repaints the canvas with a brand-new code, but the alt text
+  (the challenge image's accessible name / text alternative) is left describing
+  the PREVIOUS puzzle.
+
+  WHY AUTOMATED TOOLS MISS IT:
+  - The <img> ALWAYS has a meaningful, non-empty alt, so axe/WAVE/Lighthouse
+    "image-alt" passes on every sample. (CAPTCHA alt is even a documented good
+    practice — H86 — which makes the stale-after-refresh failure subtle.)
+  - The alt is a specific string ("Audio not available. Type the characters
+    7K2QF...") that LOOKS like a correct text alternative. Only by triggering
+    the refresh and reading the NEW rendered characters against the UNCHANGED
+    alt can a human see they disagree.
+  - No scanner OCRs the canvas glyphs and diffs them against the alt string.
+-->
+<style>
+  body { margin:0; font-family:Verdana,Geneva,"DejaVu Sans",sans-serif;
+         background:#eef1f4; color:#1b1f24; }
+  .gov-band { background:#16335c; color:#fff; padding:6px 20px; font-size:12px; }
+  header { background:#fff; border-bottom:3px solid #16335c; padding:14px 20px; }
+  header h1 { font-size:18px; margin:0; color:#16335c; }
+  header .seal { font-size:13px; color:#5a6675; }
+  main { max-width:640px; margin:24px auto; padding:0 16px; }
+  .steps { display:flex; gap:6px; font-size:12px; color:#5a6675;
+           margin-bottom:18px; }
+  .steps b { color:#16335c; }
+  .card { background:#fff; border:1px solid #cdd6e0; border-radius:6px;
+          padding:22px; }
+  fieldset { border:1px solid #cdd6e0; border-radius:6px; margin:0; padding:18px; }
+  legend { font-weight:700; color:#16335c; padding:0 6px; }
+  label { display:block; font-weight:600; margin:14px 0 6px; }
+  .hint { font-weight:400; color:#5a6675; font-size:13px; }
+  input[type=text] { width:100%; box-sizing:border-box; padding:10px;
+                     border:1px solid #9aa7b6; border-radius:4px; font-size:15px; }
+  .challenge { display:flex; align-items:center; gap:14px; margin:14px 0 6px;
+               flex-wrap:wrap; }
+  /* The challenge image is rendered from a data-URI so it works from file://. */
+  .challenge img { border:1px solid #9aa7b6; border-radius:4px; width:200px;
+                   height:64px; background:#fbfbf4; }
+  .refresh { background:#fff; border:1px solid #16335c; color:#16335c;
+             font-weight:700; padding:9px 14px; border-radius:4px;
+             cursor:pointer; }
+  .refresh:focus-visible { outline:3px solid #c2701a; outline-offset:2px; }
+  .submit { margin-top:20px; background:#16335c; color:#fff; border:none;
+            font-weight:700; padding:12px 24px; border-radius:4px; cursor:pointer; }
+  footer { max-width:640px; margin:26px auto; padding:0 16px; color:#5a6675;
+           font-size:12px; }
+</style>
+</head>
+<body>
+<div class="gov-band">An official service of the County of Marin</div>
+<header>
+  <h1>Renew Vehicle Registration</h1>
+  <div class="seal">Department of Motor Vehicle Services</div>
+</header>
+<main>
+  <div class="steps"><span>1. Vehicle</span> &rsaquo; <span>2. Owner</span> &rsaquo;
+    <b>3. Verify you are human</b> &rsaquo; <span>4. Pay</span></div>
+  <form class="card" onsubmit="return false">
+    <fieldset>
+      <legend>Security check</legend>
+      <p class="hint">To protect against automated abuse, type the characters shown below.</p>
+
+      <div class="challenge">
+        <!-- THE DEFECTIVE NAMED COMPONENT (text alternative goes stale). -->
+        <img id="captchaImg"
+             alt="Audio version not available. Type the characters shown: 7 K 2 Q F."
+             src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='200' height='64'&gt;&lt;rect width='200' height='64' fill='%23fbfbf4'/&gt;&lt;text x='16' y='44' font-family='monospace' font-size='34' letter-spacing='8' fill='%23223' transform='rotate(-4 100 32)'&gt;7K2QF&lt;/text&gt;&lt;line x1='0' y1='20' x2='200' y2='48' stroke='%23bbb'/&gt;&lt;/svg&gt;">
+
+        <button id="refreshBtn" class="refresh" type="button" onclick="newChallenge()">
+          &#8635; Get a new challenge
+        </button>
+      </div>
+
+      <label for="captchaInput">Enter the characters above
+        <span class="hint">(not case sensitive)</span></label>
+      <input id="captchaInput" type="text" autocomplete="off" inputmode="text">
+    </fieldset>
+    <button class="submit" type="submit">Continue to payment</button>
+  </form>
+</main>
+<footer>Need help? Call (415) 555-0143, TTY 711. &copy; County of Marin.</footer>
+
+<script>
+  // Persona: a state contractor wired a CAPTCHA control into the legacy CMS.
+  // The CMS template ships demo content: the very first challenge ("7K2QF") and
+  // its matching alt were both authored by hand in the template. The refresh
+  // handler — added later in a separate sprint — regenerates the IMAGE only.
+  // The dev never realised the hand-authored alt was the text alternative that
+  // also needed regenerating, so it perpetually describes the demo puzzle.
+  var POOL = ["M9XJ4","P3WD8","B6N2H","R4FQ7","T8KL5"];
+  var i = 0;
+  function svgFor(code) {
+    return "data:image/svg+xml;utf8," + encodeURIComponent(
+      "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='64'>" +
+      "<rect width='200' height='64' fill='#fbfbf4'/>" +
+      "<text x='16' y='44' font-family='monospace' font-size='34' letter-spacing='8' " +
+      "fill='#223' transform='rotate(-4 100 32)'>" + code + "</text>" +
+      "<line x1='0' y1='22' x2='200' y2='46' stroke='#bbb'/></svg>");
+  }
+  function newChallenge() {
+    var code = POOL[i % POOL.length];
+    i++;
+    var img = document.getElementById('captchaImg');
+    // The rendered puzzle changes to brand-new characters...
+    img.setAttribute('src', svgFor(code));
+    // BUG (F20): the alt still says "Type the characters shown: 7 K 2 Q F."
+    // A sighted user now sees, e.g., "M9XJ4", but a screen-reader / braille
+    // user is told to type 7K2QF — they will fail the check every time.
+    // Correct: img.alt should be regenerated to spell out the NEW code.
+  }
+</script>
+</body>
+</html>

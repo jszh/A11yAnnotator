@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cohortly — Retention Analytics</title>
+<!--
+  SC 1.4.11 Non-text Contrast — F78 (focus indicator indistinguishable from a
+  persistent decorative outline on ALL siblings).
+
+  The top nav of this analytics app gives every nav item a permanent 2px solid
+  blue outline (a design token "chip" look). The author also set the keyboard
+  focus indicator to the IDENTICAL 2px solid blue outline:
+
+      .nav-item        { outline: 2px solid #2f6df6; outline-offset: 2px; }
+      .nav-item:focus  { outline: 2px solid #2f6df6; outline-offset: 2px; }
+
+  Result: all five nav items wear the same blue box at rest, and the focused item
+  wears the same blue box. There is no perceptible difference between the focused
+  nav item and its four siblings. The page is rendered with the "Funnels" nav
+  item focused (autofocus). A keyboard user cannot tell which tab they are on.
+
+  Note this is NOT the same as case-01 (dotted TOC link rail in docs): here the
+  decoration is a solid blue full-box outline on horizontal nav buttons, the
+  resting contrast is fine (blue on white ~4:1), and the trap is that the
+  uniform decorative chip outline equals the focus outline.
+
+  WHY AUTOMATED TOOLS MISS IT: a:focus / button:focus is declared with a real
+  2px solid blue outline of good contrast, so any "does a focus style exist and
+  contrast?" check passes. axe/WAVE/Lighthouse have no rule comparing the
+  focused element's appearance to its unfocused siblings. Only a human rendering
+  the focused state and scanning the row can see that the focused item looks
+  exactly like the others.
+-->
+<style>
+  :root{
+    --ink:#10131a; --muted:#5b6470; --blue:#2f6df6; --bg:#f7f8fb; --card:#fff; --line:#e6e9ef;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 "Inter","Segoe UI",system-ui,sans-serif;}
+  .appbar{background:var(--card); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:24px; padding:10px 22px;}
+  .logo{font-weight:800; letter-spacing:-.02em; font-size:1.05rem;}
+  .logo span{color:var(--blue);}
+  nav.primary{display:flex; gap:18px; margin-left:8px;}
+
+  /* THE DEFECT: permanent blue outline on every nav item == the focus outline. */
+  .nav-item{
+    appearance:none; background:none; border:none; cursor:pointer;
+    font:600 .92rem/1 inherit; color:var(--ink); padding:7px 12px; border-radius:6px;
+    outline:2px solid #2f6df6;        /* always-on decorative "chip" outline */
+    outline-offset:2px;
+  }
+  .nav-item:focus{
+    outline:2px solid #2f6df6;        /* focus ring == resting outline */
+    outline-offset:2px;
+  }
+  .nav-item:hover{background:#eef3ff;}
+  .spacer{flex:1;}
+  .avatar{width:30px; height:30px; border-radius:50%; background:#d8def0; display:grid; place-items:center; font-weight:700; color:var(--blue); font-size:.8rem;}
+
+  main{max-width:1040px; margin:0 auto; padding:26px 22px 60px;}
+  h1{font-size:1.4rem; margin:0 0 2px;}
+  .sub{color:var(--muted); margin:0 0 22px; font-size:.92rem;}
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin:0 0 26px;}
+  .kpi{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px;}
+  .kpi .label{color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.05em;}
+  .kpi .value{font-size:1.6rem; font-weight:800; margin-top:6px;}
+  .kpi .delta{font-size:.82rem; margin-top:4px; color:#1f8a4c;}
+  .kpi .delta.down{color:#c23b3b;}
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 20px;}
+  .panel h2{font-size:1.05rem; margin:0 0 12px;}
+  table{width:100%; border-collapse:collapse; font-size:.9rem;}
+  th,td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--line);}
+  th{color:var(--muted); font-weight:600; font-size:.8rem; text-transform:uppercase; letter-spacing:.04em;}
+  .bar{height:8px; border-radius:4px; background:var(--blue);}
+</style>
+</head>
+<body>
+<div class="appbar">
+  <div class="logo">Cohort<span>ly</span></div>
+  <nav class="primary" aria-label="Primary">
+    <button type="button" class="nav-item">Overview</button>
+    <button type="button" class="nav-item">Cohorts</button>
+    <!-- Page loads with this nav item focused. It looks identical to its siblings. -->
+    <button type="button" class="nav-item" autofocus>Funnels</button>
+    <button type="button" class="nav-item">Segments</button>
+    <button type="button" class="nav-item">Reports</button>
+  </nav>
+  <div class="spacer"></div>
+  <div class="avatar" aria-hidden="true">JL</div>
+</div>
+
+<main>
+  <h1>Funnels</h1>
+  <p class="sub">Conversion paths for the Onboarding funnel &middot; last 30 days</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">Entered</div><div class="value">18,402</div><div class="delta">+6.2%</div></div>
+    <div class="kpi"><div class="label">Activated</div><div class="value">9,118</div><div class="delta">+1.8%</div></div>
+    <div class="kpi"><div class="label">Converted</div><div class="value">3,540</div><div class="delta down">-2.4%</div></div>
+    <div class="kpi"><div class="label">Conv. rate</div><div class="value">19.2%</div><div class="delta down">-0.5pp</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>Step drop-off</h2>
+    <table>
+      <thead><tr><th>Step</th><th>Users</th><th>Reach</th></tr></thead>
+      <tbody>
+        <tr><td>Signup</td><td>18,402</td><td><div class="bar" style="width:100%"></div></td></tr>
+        <tr><td>Verified email</td><td>14,260</td><td><div class="bar" style="width:78%"></div></td></tr>
+        <tr><td>Connected source</td><td>9,118</td><td><div class="bar" style="width:50%"></div></td></tr>
+        <tr><td>First report</td><td>3,540</td><td><div class="bar" style="width:19%"></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</body>
+</html>

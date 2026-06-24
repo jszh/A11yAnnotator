@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — the "Role" limb, valid-but-INAPPROPRIATE role.
+
+    Aspect: wrong-role-valid-but-inappropriate.
+
+    "Cirro" — a weather dashboard. The settings header has a SEGMENTED CONTROL for the
+    temperature unit: a single bordered pill split into two visually-joined segments,
+    "°C" and "°F". Exactly ONE is selected at a time (the selected segment is filled
+    blue, the other is plain). Clicking a segment selects it and deselects the other and
+    re-renders the forecast. Visually and behaviourally this is a SINGLE-SELECT group —
+    a radio group rendered as a segmented control.
+
+    THE DEFECT: each segment is coded
+        <div role="button" aria-pressed="true/false" tabindex="0" ...>°C</div>
+    inside a plain wrapper with no group role. role="button" is a valid token, so 674b10
+    PASSES; aria-pressed is a supported state for button, so 4e8ab6 has nothing to fail.
+    Each segment has a correct accessible name ("°C" / "°F"). But coding mutually-
+    exclusive options as independent toggle BUTTONS hides the single-select RADIOGROUP
+    semantics: AT never learns these are alternatives where choosing one cancels the
+    other, never announces "1 of 2 / 2 of 2", and arrow-key radio navigation is absent.
+    The correct semantics are role="radiogroup" containing role="radio" options with
+    aria-checked — so AT announces "Temperature unit, °C, selected, radio button, 1 of 2".
+
+    WHAT AT EXPERIENCES: a screen-reader user hears two independent "toggle button,
+    pressed/not pressed" controls. Nothing tells them the two are linked alternatives or
+    that exactly one is always chosen. They might believe both could be off, or that
+    pressing one does not affect the other — the mutual exclusivity, plainly visible in
+    the joined segmented pill, is invisible to AT.
+
+    WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse confirm role="button" is
+    valid, aria-pressed is an allowed state, and each segment has a name. A set of toggle
+    buttons is a legitimate pattern, so nothing fires. No tool can look at the joined
+    segmented pill with one-of-two always selected and decide these should be radios in a
+    radiogroup. Recognising "single-select rendered as a segmented control" is human
+    visual/behavioural judgment.
+  -->
+  <title>Display settings — Cirro Weather</title>
+  <style>
+    :root { --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --brand:#0284c7; --bg:#f1f5f9; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter",system-ui,Segoe UI,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+    .wrap { max-width:600px; margin:2.4rem auto; padding:0 1.2rem; }
+    h1 { font-size:1.5rem; margin:0 0 1.4rem; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:1.4rem 1.5rem; }
+    .field { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+    .field .lbl { font-weight:600; }
+    .field .hint { color:var(--muted); font-size:.85rem; margin-top:.15rem; }
+    /* segmented control — one bordered pill split into joined segments */
+    .seg { display:inline-flex; border:1px solid var(--brand); border-radius:9px; overflow:hidden; }
+    .seg .opt { padding:.5rem 1.1rem; font-weight:600; cursor:pointer; user-select:none; color:var(--brand);
+                background:#fff; border-right:1px solid var(--brand); transition:background .12s, color .12s; }
+    .seg .opt:last-child { border-right:0; }
+    .seg .opt[aria-pressed="true"] { background:var(--brand); color:#fff; }
+    .seg .opt:focus-visible { outline:2px solid #38bdf8; outline-offset:-2px; }
+    .forecast { margin-top:1.6rem; display:flex; gap:1rem; }
+    .day { flex:1; background:#fff; border:1px solid var(--line); border-radius:12px; padding:.9rem; text-align:center; }
+    .day .d { font-size:.8rem; color:var(--muted); }
+    .day .t { font-size:1.5rem; font-weight:700; margin-top:.3rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Display settings</h1>
+    <div class="card">
+      <div class="field">
+        <div>
+          <div class="lbl" id="unit-lbl">Temperature unit</div>
+          <div class="hint">Applies to all forecasts and alerts.</div>
+        </div>
+        <!-- DEFECT: a single-select segmented control whose options are independent
+             role="button" toggles (valid token, aria-pressed allowed) — should be a
+             role="radiogroup" of role="radio" options. -->
+        <div class="seg" aria-labelledby="unit-lbl">
+          <div class="opt" role="button" tabindex="0" aria-pressed="true" data-unit="c">°C</div>
+          <div class="opt" role="button" tabindex="0" aria-pressed="false" data-unit="f">°F</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="forecast" id="forecast">
+      <div class="day"><div class="d">Mon</div><div class="t" data-c="21">21°</div></div>
+      <div class="day"><div class="d">Tue</div><div class="t" data-c="19">19°</div></div>
+      <div class="day"><div class="d">Wed</div><div class="t" data-c="24">24°</div></div>
+    </div>
+  </div>
+
+  <script>
+    var opts = document.querySelectorAll('.seg .opt');
+    function render(unit) {
+      document.querySelectorAll('#forecast .t').forEach(function (el) {
+        var c = parseInt(el.getAttribute('data-c'), 10);
+        el.textContent = unit === 'f' ? Math.round(c * 9 / 5 + 32) + '°' : c + '°';
+      });
+    }
+    function select(chosen) {
+      // mutually exclusive: choosing one deselects the other (radio behaviour)
+      opts.forEach(function (o) { o.setAttribute('aria-pressed', o === chosen ? 'true' : 'false'); });
+      render(chosen.getAttribute('data-unit'));
+    }
+    opts.forEach(function (o) {
+      o.addEventListener('click', function () { select(o); });
+      o.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); select(o); }
+      });
+    });
+  </script>
+</body>
+</html>

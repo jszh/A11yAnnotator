@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steuererklärung online — Finanzportal des Landes</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (de):
+  Ein deutsches Steuerportal. Das Feld "Steuer-Identifikationsnummer" wird nach dem
+  Absenden korrekt als fehlerhaft markiert: aria-invalid="true", Fehlertext per
+  aria-describedby verknuepft, role="alert"-Zusammenfassung, Fokus gesetzt, Kontrast ok.
+  axe / WAVE / Lighthouse bestaetigen: Fehler ist identifiziert und programmatisch
+  zugeordnet -> 3.3.1 erfuellt; eine "nennt es eine Korrektur?"-Heuristik greift ebenfalls
+  ("Bitte ueberpruefen Sie Ihre Eingabe und versuchen Sie es erneut" ist
+  korrekturorientierte Sprache).
+  THE DEFECT IS SEMANTIC ADEQUACY (3.3.3), IN GERMAN: the Steuer-ID has a fixed, publicly
+  documented format — exactly 11 digits — which the validator enforces. The message says
+  only "please check your entry and try again", never stating the 11-digit rule. The
+  adequacy judgment must be made ON GERMAN PROSE: a tool would have to understand that the
+  German sentence is fix-oriented filler, that the field's format (11 Ziffern) is knowable,
+  and that the message withholds it. The PASS-equivalent guidance the field should have
+  carried is "Genau 11 Ziffern, z. B. 12 345 678 901." No scanner makes that cross-lingual
+  semantic-adequacy call.
+-->
+<style>
+  :root{ --ink:#1a1a1a; --muted:#5a5a5a; --line:#bcbcbc; --gov:#004b76; --gov-d:#003553;
+         --danger:#9b0000; --bg:#f0f0f0; --paper:#fff; --focus:#ffb300; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.5 "Frutiger","Liberation Sans",Arial,sans-serif;
+        color:var(--ink); background:var(--bg); }
+  .band{ background:var(--gov); color:#fff; padding:12px 0; }
+  .wrap{ max-width:680px; margin:0 auto; padding:0 22px; }
+  .band .seal{ font-weight:700; font-size:1.1rem; }
+  .band .seal small{ display:block; font-size:.72rem; font-weight:400; opacity:.85; }
+  main{ padding:28px 0 60px; }
+  h1{ font-size:1.5rem; margin:0 0 4px; }
+  .schritt{ color:var(--muted); margin:0 0 22px; font-size:.9rem; }
+  .alert{ background:#fbe9e9; border:2px solid var(--danger); border-radius:0; padding:14px 16px;
+          margin:0 0 26px; }
+  .alert h2{ margin:0 0 6px; font-size:1.05rem; color:var(--danger); }
+  .alert a{ color:var(--danger); font-weight:700; }
+  fieldset{ border:1px solid var(--line); border-radius:0; margin:0 0 22px; padding:16px 18px 4px;
+            background:var(--paper); }
+  legend{ font-weight:700; padding:0 6px; }
+  .feld{ margin:0 0 18px; }
+  label{ display:block; font-weight:600; margin:0 0 5px; }
+  .pflicht::after{ content:" (Pflichtfeld)"; color:var(--danger); font-weight:600; font-size:.85rem; }
+  input[type=text]{ width:100%; padding:10px 12px; font-size:1rem; border:1px solid #555;
+        border-radius:0; background:#fff; font-variant-numeric:tabular-nums; letter-spacing:.5px; }
+  input:focus{ outline:3px solid var(--focus); outline-offset:1px; }
+  input[aria-invalid="true"]{ border:2px solid var(--danger); background:#fff6f6; }
+  .hinweis{ color:var(--muted); font-size:.86rem; margin:5px 0 0; }
+  .fehler{ color:var(--danger); font-weight:700; font-size:.9rem; margin:7px 0 0; }
+  button{ background:var(--gov); color:#fff; border:0; border-radius:0; font-size:1rem;
+        font-weight:700; padding:12px 28px; cursor:pointer; }
+  button:hover{ background:var(--gov-d); }
+  button:focus{ outline:3px solid var(--focus); outline-offset:2px; }
+  .foot{ color:var(--muted); font-size:.76rem; margin-top:24px; }
+</style>
+</head>
+<body>
+  <div class="band"><div class="wrap"><div class="seal">Finanzportal des Landes<small>Sichere Online-Steuererklärung</small></div></div></div>
+  <main>
+    <div class="wrap">
+      <h1>Elektronische Steuererklärung</h1>
+      <p class="schritt">Abschnitt 1 von 6 — Persönliche Angaben</p>
+
+      <div class="alert" role="alert">
+        <h2>Ihre Eingabe konnte nicht verarbeitet werden</h2>
+        <p>Ein Feld enthält einen Fehler. <a href="#stid">Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut.</a></p>
+      </div>
+
+      <form action="#" method="post" novalidate autocomplete="off">
+        <fieldset>
+          <legend>Identifikation</legend>
+
+          <!-- IMMER KORREKT (Kontrast): Hinweis nennt das Format konkret. -->
+          <div class="feld">
+            <label for="plz">Postleitzahl</label>
+            <input type="text" id="plz" name="plz" inputmode="numeric"
+                   aria-describedby="plz-hinweis" maxlength="5" pattern="\d{5}">
+            <p class="hinweis" id="plz-hinweis">Fünf Ziffern, z. B. 10115.</p>
+          </div>
+
+          <!-- DEFEKT: Fehlertext ist korrekturorientierte Floskel ohne das bekannte 11-Ziffern-Format. -->
+          <div class="feld">
+            <label for="stid" class="pflicht">Steuer-Identifikationsnummer</label>
+            <input type="text" id="stid" name="stid" value="DE 4711 X"
+                   inputmode="numeric" aria-invalid="true" aria-describedby="stid-fehler">
+            <p class="fehler" id="stid-fehler">Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut.</p>
+          </div>
+        </fieldset>
+
+        <button type="submit">Weiter</button>
+      </form>
+
+      <p class="foot">Demoseite · läuft über file:// · es werden keine Daten übertragen.</p>
+    </div>
+  </main>
+
+<script>
+(function(){
+  var stid = document.getElementById('stid');
+  var err  = document.getElementById('stid-fehler');
+  if (stid) { stid.focus(); }
+
+  // BEKANNTES FORMAT: die deutsche Steuer-ID besteht aus genau 11 Ziffern.
+  function gueltig(v){ return /^\d{11}$/.test(v.replace(/\s/g,'')); }
+
+  document.querySelector('form').addEventListener('submit', function(e){
+    e.preventDefault();
+    if (gueltig(stid.value)) {
+      stid.setAttribute('aria-invalid','false');
+      err.textContent = 'Eingabe übernommen.';
+      err.style.color = '#1a7a2e';
+    } else {
+      stid.setAttribute('aria-invalid','true');
+      // bleibt vage — nennt das 11-Ziffern-Format nicht
+      err.textContent = 'Bitte überprüfen Sie Ihre Eingabe und versuchen Sie es erneut.';
+      stid.focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

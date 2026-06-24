@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stripe-style API Reference — payments.create</title>
+<style>
+  :root { font-family: ui-sans-serif, "Segoe UI", system-ui, Arial, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; display: flex; flex-direction: column; background: #0b1020; color: #e7ecf5; }
+  .bar { background: #11182c; border-bottom: 1px solid #1f2a44; padding: 12px 18px; font-weight: 600; }
+  .panes { flex: 1; display: flex; min-height: 0; }
+  .nav { width: 280px; min-width: 140px; overflow: auto; background: #0e1426; border-right: 0; padding: 14px 16px; }
+  .nav h2 { font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: #7e8bb0; margin: 16px 0 6px; }
+  .nav a { display: block; color: #c4ceea; text-decoration: none; padding: 5px 6px; border-radius: 6px; font-size: .92rem; }
+  .nav a:hover, .nav a:focus-visible { background: #1a2342; color: #fff; outline: none; }
+  .splitter {
+    width: 8px; cursor: col-resize; background: #1f2a44; flex: 0 0 8px;
+  }
+  .splitter:hover, .splitter:focus-visible { background: #3b56a6; outline: none; }
+  .content { flex: 1; min-width: 0; overflow: auto; padding: 22px 28px; }
+  .content h1 { margin-top: 0; }
+  pre { background: #060a16; border: 1px solid #1f2a44; border-radius: 10px; padding: 14px; overflow: auto; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .85rem; color: #a9d3ff; }
+  p { line-height: 1.55; color: #c8d2ea; }
+  .param { border-top: 1px solid #1c2640; padding: 12px 0; }
+  .param .pn { color: #ffd479; font-family: ui-monospace, monospace; }
+  .param .pt { color: #7e8bb0; font-size: .82rem; }
+</style>
+</head>
+<body>
+<div class="bar">Acme Payments · API Reference</div>
+
+<div class="panes" id="panes">
+  <nav class="nav" id="nav" aria-label="API reference navigation">
+    <h2>Core resources</h2>
+    <a href="#">Balance</a>
+    <a href="#">Charges</a>
+    <a href="#" aria-current="page">PaymentIntents</a>
+    <a href="#">Customers</a>
+    <a href="#">Refunds</a>
+    <h2>Webhooks</h2>
+    <a href="#">Events</a>
+    <a href="#">Endpoints</a>
+  </nav>
+
+  <!-- Looks ARIA-complete: separator role, orientation, value + range. But arrow keys do nothing. -->
+  <div class="splitter"
+       id="splitter"
+       role="separator"
+       tabindex="0"
+       aria-orientation="vertical"
+       aria-label="Resize navigation panel"
+       aria-valuemin="140"
+       aria-valuemax="520"
+       aria-valuenow="280"></div>
+
+  <main class="content" id="content">
+    <h1>POST&nbsp;/v1/payment_intents</h1>
+    <p>Creates a PaymentIntent object. A PaymentIntent tracks the lifecycle of a customer checkout
+       flow and the resulting charges. After creating a PaymentIntent, attach a payment method and
+       confirm it to continue the payment.</p>
+    <pre><code>curl https://api.acme.com/v1/payment_intents \
+  -u "sk_test_4eC39H...:" \
+  -d amount=2000 \
+  -d currency=usd \
+  -d "automatic_payment_methods[enabled]"=true</code></pre>
+    <div class="param"><span class="pn">amount</span> <span class="pt">integer · required</span>
+      <p>Amount intended to be collected, in the smallest currency unit (e.g. 2000 = $20.00).</p></div>
+    <div class="param"><span class="pn">currency</span> <span class="pt">string · required</span>
+      <p>Three-letter ISO currency code, in lowercase.</p></div>
+    <div class="param"><span class="pn">customer</span> <span class="pt">string · optional</span>
+      <p>ID of the Customer this PaymentIntent belongs to.</p></div>
+  </main>
+</div>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The splitter is, on paper, a textbook ARIA window-splitter: role="separator",
+  aria-orientation, aria-valuemin / aria-valuemax / aria-valuenow, an aria-label, and tabindex="0"
+  so it is focusable. axe's "separator" / ARIA-attribute checks all pass — every required value is
+  present and in range. The defect is purely BEHAVIORAL: there is NO keydown handler, so when a
+  keyboard user focuses the splitter and presses ArrowLeft/ArrowRight, NOTHING happens and
+  aria-valuenow never changes. Resizing a panel is endpoint-dependent (the final width is what
+  matters, not the path the pointer dragged), so the 2.1.1 path-of-movement exception does not
+  apply; the resize function must be keyboard-operable. It is operable by pointer (mousedown drag)
+  only. A static scanner cannot press ArrowLeft and observe that the value does not move, and the
+  ARIA presence actively MASKS the failure (it looks complete). Determining that the documented
+  keyboard contract for a separator is unimplemented requires operating it with the keyboard.
+-->
+<script>
+  const panes = document.getElementById('panes');
+  const nav = document.getElementById('nav');
+  const splitter = document.getElementById('splitter');
+
+  // POINTER resize only. No keydown handler -> arrow keys are dead despite the separator role.
+  let dragging = false;
+  splitter.addEventListener('mousedown', e => { dragging = true; e.preventDefault(); });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const left = panes.getBoundingClientRect().left;
+    let w = e.clientX - left;
+    w = Math.max(140, Math.min(520, w));
+    nav.style.width = w + 'px';
+    splitter.setAttribute('aria-valuenow', String(Math.round(w)));
+  });
+</script>
+</body>
+</html>

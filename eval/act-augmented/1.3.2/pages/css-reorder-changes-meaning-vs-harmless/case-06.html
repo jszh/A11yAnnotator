@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Currents: Glass from the Eastern Mediterranean — Harbledon Museum</title>
+<!--
+  WHY THIS IS A PASS (and why a naive "visual != DOM = fail" tool would FALSELY flag it):
+  CSS flexbox `order` is used to render an independent "Visit" info sidebar to the LEFT of
+  the main exhibition description, while in the DOM the sidebar comes AFTER the article.
+  A visual-vs-DOM diff tool detects the mismatch and would flag 1.3.2. It should NOT:
+    - The sidebar (hours, admission, location) and the exhibition essay are INDEPENDENT blocks
+      whose relative order does not affect meaning — the SC's Example 2 / G57 museum-page case
+      exactly: "The links in the navigation bar form a meaningful sequence. The heading, image,
+      and text of the description also form a meaningful sequence. CSS is used to position the
+      elements on the page."
+    - WITHIN each block the source order is correct: the sidebar's hours read Mon..Sun in order;
+      the essay's paragraphs read intro -> detail -> closing in order. Nothing is interleaved.
+  Reading the linearized page (essay, then visit box, or vice-versa) preserves meaning. The
+  correct verdict requires reading the prose and judging that meaning survives — which is the
+  precise discrimination an "any CSS reorder = fail" rule gets wrong.
+-->
+<style>
+  :root { --ink:#241f2b; --plum:#5b3a6e; --paper:#fbf9fc; --line:#e3dbe9; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:17px/1.7 "Hoefler Text",Georgia,serif; color:var(--ink);
+         background:var(--paper); }
+  header { background:var(--plum); color:#fff; padding:30px 24px; }
+  header h1 { margin:0; font-size:1.7rem; }
+  header p { margin:.4rem 0 0; opacity:.92; font-style:italic; }
+
+  .layout { max-width:920px; margin:0 auto; padding:30px 24px 72px;
+            display:flex; gap:36px; align-items:flex-start; }
+
+  /* The museum's web officer rebuilt the page in a flex layout and used `order` to pull the
+     practical "Visit" box to the left rail on wide screens, leaving the HTML in
+     content-first order (essay, then the box) for the mobile stack. */
+  article.essay { order:2; flex:1 1 auto; }
+  aside.visit   { order:1; flex:0 0 260px; }
+
+  article.essay h2 { color:var(--plum); font-size:1.35rem; margin-top:0; }
+  article.essay p { margin:0 0 16px; }
+
+  aside.visit {
+    background:#fff; border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; font-family:system-ui; font-size:.95rem;
+  }
+  aside.visit h2 { margin:0 0 10px; font-size:1rem; color:var(--plum);
+                   text-transform:uppercase; letter-spacing:.6px; }
+  aside.visit dl { margin:0; }
+  aside.visit dt { font-weight:700; margin-top:10px; }
+  aside.visit dd { margin:0; color:#4a4452; }
+  footer { max-width:920px; margin:0 auto; border-top:1px solid var(--line);
+           padding:18px 24px; font-size:.85rem; color:#6a6273; font-family:system-ui; }
+  @media (max-width:680px){ .layout{ flex-direction:column; } article.essay,aside.visit{ order:0; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Currents</h1>
+  <p>Glass from the Eastern Mediterranean, 100 BCE – 400 CE</p>
+</header>
+
+<div class="layout">
+  <!-- article: FIRST in DOM, rendered on the RIGHT via order:2. Self-contained essay. -->
+  <article class="essay">
+    <h2>About the exhibition</h2>
+    <p>The invention of glassblowing on the Levantine coast in the first century BCE turned a
+      luxury into an everyday material almost overnight. <em>Currents</em> traces that shift
+      through eighty vessels recovered from harbours, shipwrecks and household middens between
+      Sidon and Alexandria.</p>
+    <p>The earliest pieces here are still cast and ground — heavy, opaque, imitating semi-precious
+      stone. Within two generations the blown forms arrive: thin-walled jugs, ribbed bowls, the
+      ubiquitous unguentaria that carried perfume across the whole Roman world.</p>
+    <p>The closing room follows the trade outward, with a Sidonian beaker found as far north as a
+      grave in the Rhineland — evidence of how quickly the new technique, and the objects it made,
+      travelled the currents of the ancient Mediterranean.</p>
+  </article>
+
+  <!-- aside: SECOND in DOM, rendered on the LEFT via order:1. Independent visitor info. -->
+  <aside class="visit">
+    <h2>Visit</h2>
+    <dl>
+      <dt>Opening hours</dt>
+      <dd>Tue – Fri, 10:00 – 17:00<br>Sat – Sun, 10:00 – 18:00<br>Closed Mondays</dd>
+      <dt>Admission</dt>
+      <dd>Adults £9 · Concessions £6 · Under-18s free</dd>
+      <dt>Location</dt>
+      <dd>Harbledon Museum, North Gallery, first floor</dd>
+    </dl>
+  </aside>
+</div>
+
+<footer>
+  Harbledon Museum · Exhibition runs through 14 September · Renders from file:// with no assets.
+</footer>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renew vehicle registration — Step 2 of 4 | State DMV</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 Georgia, "Times New Roman", serif; color:#1b1b1b; background:#eef1ee; }
+  .gov-band { background:#13395e; color:#fff; font-family:Arial, sans-serif; padding:10px 22px; font-size:14px; }
+  .gov-band span { opacity:.85; }
+  header.h { background:#fff; border-bottom:4px solid #b31942; padding:16px 22px; font-family:Arial, sans-serif; }
+  header.h b { font-size:20px; color:#13395e; }
+  main { max-width:660px; margin:24px auto; background:#fff; border:1px solid #c9d2cb; padding:26px 30px; }
+  .steps { font-family:Arial, sans-serif; font-size:13px; color:#555; margin:0 0 14px; }
+  h1 { font-family:Arial, sans-serif; font-size:22px; margin:0 0 18px; color:#13395e; }
+  fieldset { border:1px solid #d3dad4; border-radius:6px; margin:0 0 18px; padding:14px 16px; }
+  legend { font-family:Arial, sans-serif; font-weight:bold; padding:0 6px; }
+  label { display:block; font-family:Arial, sans-serif; font-weight:bold; font-size:14px; margin:12px 0 5px; }
+  input[type=text] { width:100%; padding:10px; border:1px solid #9aa6a0; border-radius:5px; font-size:16px; font-family:Arial, sans-serif; }
+  input:focus { outline:3px solid #2491ff; outline-offset:1px; }
+  .bubble {
+    position:relative; margin-top:8px;
+    background:#fff8e1; border:1px solid #e0c46c; border-left:4px solid #f0a800;
+    border-radius:6px; padding:10px 12px; font-family:Arial, sans-serif; font-size:14px;
+    color:#473a00; display:none;
+  }
+  .bubble.show { display:block; }
+  .nav { display:flex; justify-content:space-between; margin-top:22px; font-family:Arial, sans-serif; }
+  button { font-family:Arial, sans-serif; font-size:15px; padding:11px 22px; border-radius:6px; cursor:pointer; }
+  .back { background:#fff; border:1px solid #13395e; color:#13395e; }
+  .next { background:#13395e; color:#fff; border:0; }
+  footer { max-width:660px; margin:14px auto 60px; font-family:Arial, sans-serif; font-size:12px; color:#666; }
+</style>
+</head>
+<body>
+<div class="gov-band">An official State demonstration site · <span>Secure .gov</span></div>
+<header class="h"><b>Department of Motor Vehicles</b> — Online Services</header>
+
+<main>
+  <p class="steps">Vehicle Registration Renewal · <strong>Step 2 of 4: Plate &amp; VIN</strong></p>
+  <h1>Confirm your vehicle</h1>
+
+  <form onsubmit="return false">
+    <fieldset>
+      <legend>Plate &amp; identification</legend>
+
+      <label for="plate">License plate number</label>
+      <input type="text" id="plate" aria-describedby="plateHelp" autocomplete="off" placeholder="e.g. 7ABC123">
+      <div id="plateHelp" class="bubble" role="tooltip">
+        Enter the plate exactly as printed, <strong>no spaces or dashes</strong>. Personalized
+        plates may include letters and numbers. If your plate has a stacked character, type it inline.
+      </div>
+
+      <label for="vin">Vehicle Identification Number (VIN)</label>
+      <input type="text" id="vin" aria-describedby="vinHelp" autocomplete="off" maxlength="17" placeholder="17 characters">
+      <div id="vinHelp" class="bubble" role="tooltip">
+        The 17-character VIN is on your insurance card, your title, or the driver-side dashboard
+        visible through the windshield. It never contains the letters <strong>I, O, or Q</strong>.
+      </div>
+    </fieldset>
+
+    <div class="nav">
+      <button type="button" class="back">&larr; Back</button>
+      <button type="submit" class="next">Continue &rarr;</button>
+    </div>
+  </form>
+</main>
+
+<footer>Demo only — do not enter real plate or VIN data.</footer>
+
+<script>
+  // Each field shows a contextual help bubble on focus (keyboard-accessible — good).
+  // BUG: a SINGLE global setInterval ticks every 5 seconds and clears ANY visible
+  // bubble — so a keyboard user who tabs into the VIN field and pauses to read /
+  // locate their VIN on the dashboard watches the help vanish at the next tick,
+  // even though the field STILL has focus. This fails the focus checklist item:
+  // "The additional content stays visible and does not automatically close after a time."
+  var fields = [
+    { input: document.getElementById('plate'), bubble: document.getElementById('plateHelp') },
+    { input: document.getElementById('vin'),   bubble: document.getElementById('vinHelp') }
+  ];
+
+  fields.forEach(function (f) {
+    f.input.addEventListener('focus', function () { f.bubble.classList.add('show'); });
+    f.input.addEventListener('blur',  function () { f.bubble.classList.remove('show'); });
+  });
+
+  // ---- the defect: interval-based auto-dismiss, blind to focus state ----
+  setInterval(function () {
+    fields.forEach(function (f) { f.bubble.classList.remove('show'); });
+  }, 5000);
+
+  // Esc dismiss is wired (Dismissible passes); only Persistent (focus #1) is broken.
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') fields.forEach(function (f) { f.bubble.classList.remove('show'); });
+  });
+</script>
+
+<!--
+  WHY AUTOMATED TOOLS MISS IT:
+  The bubbles are real role="tooltip" elements, wired to focus/blur (so they are
+  keyboard-triggerable), have an Esc handler, and never obscure the input. axe/WAVE/
+  Lighthouse report nothing. The violation is that a recurring setInterval removes the
+  bubble on a 5-second cadence while the field is still focused — a temporal behavior
+  no static scanner exercises. Distinguishing this disallowed auto-close from a
+  legitimate "info became invalid" disappearance requires a human to keep focus and
+  watch the timeline; the content here stays fully valid, so the disappearance is wrong.
+-->
+</body>
+</html>

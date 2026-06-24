@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 (Page Titled), limb (b) — BOUNDARY PASS / CONTRAST CASE.
+
+    This page is DELIBERATELY just as busy and mixed-content as the failing cases:
+    it has a top membership-promo strip, a sponsor logo rail, a "Gift shop pick of the
+    week" sidebar promo, a newsletter widget, a related-exhibitions rail, and a footer
+    tagline — every kind of peripheral block that, in the failing cases, supplied a wrong
+    <title>. The PRIMARY content is a feature page about a specific exhibition:
+    "Hokusai: Beyond the Great Wave — Pelham Museum of Art."
+
+    Here the <title> CORRECTLY names that PRIMARY exhibition — NOT the gift-shop promo, the
+    sponsor, the newsletter, or any related show. So despite the page being rich and full of
+    peripheral topics whose words also appear in the DOM, the title describes the page's
+    actual dominant topic. This SHARPENS the aspect: the failure being tested is "title names
+    the wrong region," not "the page is busy." A correct title on an equally busy page passes.
+
+    WHY THIS IS THE INTERESTING BOUNDARY: a naive tool that "flags busy pages whose title
+    matches only a fraction of the visible text" might false-positive here. The correct
+    verdict (PASS) requires the same human judgment as the failing cases — identifying the
+    PRIMARY topic and confirming the title names THAT — applied in the affirmative.
+  -->
+  <title>Hokusai: Beyond the Great Wave — Pelham Museum of Art</title>
+  <style>
+    :root { --ink:#1c1a17; --muted:#6f675c; --brand:#8a1c2b; --gold:#a9852f; --line:#e6e0d6; --bg:#fbf9f4; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Georgia", serif; color:var(--ink); background:var(--bg); }
+    .member-strip { background:var(--brand); color:#fff; text-align:center; font-family:Arial,sans-serif; font-size:.85rem; padding:.5rem; }
+    .member-strip a { color:#fff; }
+    header.mus { display:flex; align-items:center; gap:1rem; padding:1.1rem 1.6rem; border-bottom:1px solid var(--line); }
+    header.mus .wordmark { font-size:1.3rem; letter-spacing:.04em; }
+    header.mus .wordmark b { color:var(--brand); }
+    header.mus nav { margin-left:auto; font-family:Arial,sans-serif; font-size:.9rem; }
+    header.mus nav a { color:var(--ink); text-decoration:none; margin-left:1.1rem; }
+    .sponsors { display:flex; align-items:center; justify-content:center; gap:1.4rem; padding:.6rem; border-bottom:1px solid var(--line); font-family:Arial,sans-serif; font-size:.74rem; color:var(--muted); }
+    .sponsors .chip { background:#efeadf; border-radius:6px; padding:.25rem .7rem; }
+    .layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:2.4rem; max-width:1120px; margin:1.6rem auto; padding:0 1.6rem 3rem; }
+    @media (max-width:840px){ .layout{ grid-template-columns:1fr; } }
+    article.exhibit .kicker { font-family:Arial,sans-serif; text-transform:uppercase; letter-spacing:.14em; font-size:.72rem; color:var(--gold); }
+    article.exhibit h1 { font-size:2.2rem; line-height:1.15; margin:.3rem 0 .3rem; }
+    article.exhibit .dates { font-family:Arial,sans-serif; font-size:.9rem; color:var(--muted); border-bottom:1px solid var(--line); padding-bottom:.9rem; margin-bottom:1.1rem; }
+    article.exhibit .hero { background:linear-gradient(135deg,#2b5e7a,#0f3b52); height:300px; border-radius:8px; margin-bottom:1.1rem; }
+    article.exhibit p { line-height:1.7; margin:0 0 1rem; }
+    article.exhibit .lede { font-size:1.12rem; }
+    article.exhibit h2 { font-size:1.3rem; margin:1.6rem 0 .5rem; }
+    .visit-facts { font-family:Arial,sans-serif; font-size:.9rem; background:#fff; border:1px solid var(--line); border-radius:8px; padding:1rem 1.1rem; margin:1.2rem 0; }
+    .visit-facts dt { font-weight:700; color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; }
+    .visit-facts dd { margin:0 0 .6rem; }
+    aside { font-family:Arial,sans-serif; }
+    aside .promo { background:#fff7e8; border:1px solid #e7d3a1; border-radius:10px; padding:1rem; margin-bottom:1.3rem; }
+    aside .promo h2 { font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; color:var(--gold); margin:0 0 .5rem; }
+    aside .nl { background:#fff; border:1px solid var(--line); border-radius:10px; padding:1rem; margin-bottom:1.3rem; }
+    aside .nl h2 { font-size:1rem; margin:0 0 .5rem; }
+    aside .nl input { width:100%; padding:.5rem; border:1px solid var(--line); border-radius:6px; margin:.3rem 0; }
+    aside .nl button { width:100%; background:var(--brand); color:#fff; border:0; border-radius:6px; padding:.5rem; cursor:pointer; }
+    aside .related h2 { font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+    aside .related ul { list-style:none; padding:0; margin:0; font-size:.9rem; }
+    aside .related li { padding:.45rem 0; border-bottom:1px solid var(--line); }
+    aside .related a { color:var(--ink); text-decoration:none; }
+    footer { border-top:1px solid var(--line); font-family:Arial,sans-serif; text-align:center; font-size:.82rem; color:var(--muted); padding:1.4rem; }
+    footer .tagline { font-style:italic; color:var(--ink); margin-bottom:.5rem; }
+  </style>
+</head>
+<body>
+  <!-- PERIPHERAL: membership promo strip (not the title, correctly) -->
+  <div class="member-strip">Members see every exhibition free. <a href="#">Join today</a> from $60/year.</div>
+
+  <header class="mus">
+    <div class="wordmark"><b>Pelham</b> Museum of Art</div>
+    <nav aria-label="Main"><a href="#">Visit</a><a href="#">Exhibitions</a><a href="#">Collection</a><a href="#">Events</a><a href="#">Shop</a></nav>
+  </header>
+
+  <!-- PERIPHERAL: sponsor rail -->
+  <div class="sponsors" aria-label="Exhibition sponsors">
+    <span>Supported by</span>
+    <span class="chip">Meridian Bank</span><span class="chip">The Aldous Foundation</span><span class="chip">City Arts Council</span>
+  </div>
+
+  <div class="layout">
+    <!-- PRIMARY CONTENT: the exhibition feature. The <title> correctly names THIS. -->
+    <article class="exhibit" aria-labelledby="ex">
+      <p class="kicker">Special Exhibition</p>
+      <h1 id="ex">Hokusai: Beyond the Great Wave</h1>
+      <p class="dates">February 14 – June 22, 2025 · West Wing, Galleries 7–10</p>
+      <div class="hero" role="img" aria-label="Katsushika Hokusai's woodblock print The Great Wave off Kanagawa, with Mount Fuji beyond a cresting wave"></div>
+
+      <p class="lede">More than 200 woodblock prints, paintings, and illustrated books trace the seven-decade career of Katsushika Hokusai (1760–1849) — far beyond the single image that made him famous. Drawn from the Pelham's holdings and major international loans, the exhibition reframes <em>The Great Wave</em> as one experiment among thousands by a restless, lifelong student of nature.</p>
+
+      <p>Organized in five sections, the show opens with Hokusai's early commercial work for Edo publishers and follows his relentless reinvention through the <em>Thirty-six Views of Mount Fuji</em>, the sprawling <em>Manga</em> sketchbooks, and the luminous brush paintings of his final decade, when he signed himself "the old man mad about drawing."</p>
+
+      <h2>What you'll see</h2>
+      <p>Highlights include a rare complete set of the <em>Thirty-six Views</em>, several preparatory drawings shown publicly for the first time, and a gallery devoted to Hokusai's influence on European artists from Monet to Van Gogh. A study room lets visitors page through digitized volumes of the <em>Manga</em> at full resolution.</p>
+
+      <h2>Curator's note</h2>
+      <p>"People know the wave, but they don't know the man who spent sixty years learning to draw water," says guest curator Dr. Naomi Ishikawa. "By the end of the show, the wave looks different — it's the work of someone who never stopped studying."</p>
+
+      <dl class="visit-facts">
+        <dt>Tickets</dt><dd>$24 adults · $18 students/seniors · Members free</dd>
+        <dt>Timed entry</dt><dd>Required on weekends; book online</dd>
+        <dt>Audio guide</dt><dd>Included; available in 6 languages</dd>
+      </dl>
+    </article>
+
+    <!-- PERIPHERAL BLOCKS: gift-shop promo, newsletter, related shows — none supplied the title. -->
+    <aside aria-label="Sidebar">
+      <div class="promo">
+        <h2>Gift shop pick of the week</h2>
+        <p style="margin:0;font-size:.9rem;">The Great Wave enamel pin — $14. Members save 10%.</p>
+      </div>
+      <div class="nl">
+        <h2>Sign up for our newsletter</h2>
+        <p style="margin:0 0 .4rem;font-size:.85rem;color:var(--muted);">Exhibition news and member previews.</p>
+        <label for="nle" style="font-size:.78rem;">Email</label>
+        <input id="nle" type="email" placeholder="you@example.com">
+        <button type="button">Subscribe</button>
+      </div>
+      <div class="related">
+        <h2>Now on view</h2>
+        <ul>
+          <li><a href="#">Threads of the Andes: Textile Traditions</a></li>
+          <li><a href="#">Light & Shadow: Dutch Drawings</a></li>
+          <li><a href="#">Contemporary Voices: New Acquisitions</a></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    <p class="tagline">Where the city comes to see.</p>
+    <p>© 2025 Pelham Museum of Art · Visit · Accessibility · Privacy</p>
+  </footer>
+</body>
+</html>

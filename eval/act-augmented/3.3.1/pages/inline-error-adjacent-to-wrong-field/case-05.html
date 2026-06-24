@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Record vital signs — Cedar Valley Patient Portal</title>
+<style>
+  body { font-family:"Inter", "Segoe UI", Arial, sans-serif; color:#102027; background:#eef3f4;
+         margin:0; padding:34px 16px; }
+  .chart { max-width:560px; margin:0 auto; background:#fff; border:1px solid #cdd9dc;
+           border-radius:10px; padding:26px 26px 30px; }
+  .crumb { font-size:.75rem; color:#5d7378; text-transform:uppercase; letter-spacing:.06em;
+           margin:0 0 8px; }
+  h1 { font-size:1.18rem; margin:0 0 4px; }
+  .pt { color:#54686d; font-size:.85rem; margin:0 0 22px; }
+  .bp-group { border:1px solid #d2dee0; border-radius:8px; padding:18px 18px 6px; }
+  .bp-group > .glabel { font-weight:700; font-size:.88rem; margin-bottom:14px; display:block; }
+  .bp-inputs { display:flex; align-items:flex-start; gap:14px; }
+  .bp-inputs .slash { font-size:1.6rem; color:#90a4ae; padding-top:26px; }
+  .vital { flex:1 1 0; }
+  label { display:block; font-weight:600; font-size:.8rem; margin-bottom:6px; }
+  input { width:100%; box-sizing:border-box; padding:9px 10px; font-size:1rem;
+          border:1px solid #b6c6c9; border-radius:6px; text-align:center; }
+  input.alert { border-color:#c62828; }
+  .unit { color:#6b7e82; font-size:.74rem; margin-top:4px; text-align:center; }
+  .v-error { color:#c62828; font-size:.77rem; margin-top:6px; line-height:1.25; }
+  .save { margin-top:22px; background:#00695c; color:#fff; border:0; padding:11px 24px;
+          border-radius:7px; font-size:.92rem; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+  <main class="chart">
+    <p class="crumb">Cedar Valley Health &middot; Vitals</p>
+    <h1>Record blood pressure</h1>
+    <p class="pt">Patient: R. Okafor (MRN 884-203) &middot; Visit 2026-06-21 09:14</p>
+
+    <form action="#" novalidate>
+      <div class="bp-group">
+        <span class="glabel">Blood pressure (mmHg)</span>
+        <div class="bp-inputs">
+          <!-- SYSTOLIC (first, valid value 118). The message rendered under THIS field
+               describes the DIASTOLIC range. -->
+          <div class="vital">
+            <label for="sys">Systolic</label>
+            <input id="sys" name="systolic" type="number" inputmode="numeric"
+                   value="118" class="alert">
+            <div class="unit">top number</div>
+            <div class="v-error">Diastolic must be between 40 and 120 mmHg.</div>
+          </div>
+
+          <div class="slash" aria-hidden="true">/</div>
+
+          <!-- DIASTOLIC (the actually out-of-range value, 135). No message under it. -->
+          <div class="vital">
+            <label for="dia">Diastolic</label>
+            <input id="dia" name="diastolic" type="number" inputmode="numeric"
+                   value="135">
+            <div class="unit">bottom number</div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="save">Save vitals</button>
+    </form>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT
+    The message "Diastolic must be between 40 and 120 mmHg" is non-empty, visible, in the
+    accessibility tree, and describes both cause and acceptable range — it satisfies every
+    programmatic expectation of 36b590. No aria-describedby links the message to any input,
+    so there is no programmatic association to evaluate; identification falls to proximity.
+    But the span is placed in the Systolic column (and the Systolic input even carries the
+    red .alert border), while its text names the Diastolic field. The actually-out-of-range
+    value is the Diastolic ("135"); the Systolic ("118") is normal. A clinician glancing at
+    the flagged Systolic field reads a diastolic-range message and could "fix" the wrong
+    number — a real patient-safety mislead. Automated checkers cannot tell that the
+    message's column position points at a different vital sign than its text describes; they
+    have no spatial-semantic model of side-by-side medical inputs.
+  -->
+</body>
+</html>

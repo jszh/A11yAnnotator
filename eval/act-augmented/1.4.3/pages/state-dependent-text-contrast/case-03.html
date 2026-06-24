@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Billing address — Helio Cloud Console</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  This is an APG-pattern listbox (role="listbox" + role="option") used as a custom
+  country picker. Two things keep the defect invisible to scanners:
+    (1) The listbox is hidden on load (the popup has hidden/display:none until the
+        button is activated), so a static scan of the initial render never sees the
+        options at all — there is no rendered text to measure.
+    (2) The failing color is applied ONLY to the option that currently has keyboard
+        focus, expressed as the "active" option via aria-activedescendant. The focused
+        option gets class .opt--active => color:#9fb0c9 text on a #eef3fb highlight =>
+        ~1.98:1. The NON-focused options are #1d2733 on #fff (~15:1) and pass.
+  axe/Lighthouse read the resting computed style of each option (the non-active color),
+  which passes, and they cannot drive arrow-key navigation to move focus through the
+  list and re-measure the option that becomes active. The low-contrast text genuinely
+  appears only while that option is the keyboard-focused/active descendant — the exact
+  "object has keyboard focus" case the SC names. A human must open the list, arrow down,
+  and read the highlighted option.
+-->
+<style>
+  :root { --ink:#1d2733; --line:#d4dbe4; --brand:#2b59c3; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.55 "Inter",system-ui,sans-serif; color:var(--ink); background:#f6f8fb; }
+  .shell { max-width:560px; margin:48px auto; background:#fff; border:1px solid var(--line); border-radius:12px; padding:28px 30px; box-shadow:0 4px 18px rgba(20,35,60,.06); }
+  .crumbs { color:#697587; font-size:.82rem; margin:0 0 4px; }
+  h1 { font-size:1.35rem; margin:0 0 4px; }
+  .sub { color:#5a6675; margin:0 0 22px; font-size:.92rem; }
+  label.fld { display:block; font-weight:600; font-size:.86rem; margin:0 0 6px; }
+  .combo { position:relative; }
+  .combo-btn {
+    width:100%; text-align:left; padding:10px 12px; font-size:1rem; background:#fff;
+    border:1px solid var(--line); border-radius:8px; color:var(--ink); cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .combo-btn:focus { outline:2px solid var(--brand); outline-offset:1px; }
+  .combo-btn .chev { color:#8a96a6; }
+  .listbox {
+    position:absolute; left:0; right:0; top:calc(100% + 4px); margin:0; padding:4px;
+    list-style:none; background:#fff; border:1px solid var(--line); border-radius:8px;
+    box-shadow:0 8px 24px rgba(20,35,60,.14); max-height:240px; overflow:auto; z-index:5;
+  }
+  .listbox[hidden] { display:none; }
+  .opt { padding:9px 10px; border-radius:6px; color:var(--ink); cursor:pointer; }   /* resting ~15:1 — passes */
+  .opt[aria-selected="true"] { font-weight:600; }
+  /* === The defect: the keyboard-focused (active) option === */
+  .opt--active {
+    background:#eef3fb;     /* very pale blue highlight */
+    color:#9fb0c9;          /* #9fb0c9 on #eef3fb ~ 1.98:1 — fails; only on the focused option */
+  }
+  .next { margin-top:24px; }
+  .next button { background:var(--brand); color:#fff; border:0; border-radius:8px; padding:11px 20px; font-size:.95rem; font-weight:600; cursor:pointer; }
+  .hint { color:#697587; font-size:.82rem; margin-top:18px; }
+</style>
+</head>
+<body>
+  <section class="shell">
+    <p class="crumbs">Account → Billing → Address</p>
+    <h1>Billing address</h1>
+    <p class="sub">We use this to calculate tax on your monthly invoice.</p>
+
+    <label class="fld" id="country-label">Country / region</label>
+    <div class="combo">
+      <button type="button" class="combo-btn" id="country-btn"
+              aria-haspopup="listbox" aria-expanded="true"
+              aria-labelledby="country-label country-btn"
+              aria-activedescendant="opt-de">
+        <span id="country-value">Germany</span>
+        <span class="chev" aria-hidden="true">▾</span>
+      </button>
+
+      <!-- Popup shown (aria-expanded=true) so the failing state is reachable in this snapshot.
+           The option that is the active descendant carries the low-contrast highlight. -->
+      <ul class="listbox" role="listbox" aria-labelledby="country-label" tabindex="-1">
+        <li class="opt"            id="opt-fr" role="option" aria-selected="false">France</li>
+        <li class="opt opt--active" id="opt-de" role="option" aria-selected="true">Germany</li>
+        <li class="opt"            id="opt-ie" role="option" aria-selected="false">Ireland</li>
+        <li class="opt"            id="opt-it" role="option" aria-selected="false">Italy</li>
+        <li class="opt"            id="opt-nl" role="option" aria-selected="false">Netherlands</li>
+        <li class="opt"            id="opt-es" role="option" aria-selected="false">Spain</li>
+      </ul>
+    </div>
+
+    <div class="next">
+      <button type="button">Save address</button>
+    </div>
+    <p class="hint">Use ↑/↓ to move the highlight; the focused option's label is the one that loses contrast. Renders from file://</p>
+  </section>
+
+  <script>
+    // Minimal roving-active-descendant so a human can drive the failing state with the keyboard.
+    (function () {
+      const btn = document.getElementById('country-btn');
+      const list = document.querySelector('.listbox');
+      const opts = Array.from(list.querySelectorAll('.opt'));
+      function setActive(id) {
+        opts.forEach(o => o.classList.toggle('opt--active', o.id === id));
+        btn.setAttribute('aria-activedescendant', id);
+      }
+      btn.addEventListener('keydown', e => {
+        const cur = btn.getAttribute('aria-activedescendant');
+        let i = opts.findIndex(o => o.id === cur);
+        if (e.key === 'ArrowDown') { i = Math.min(opts.length - 1, i + 1); setActive(opts[i].id); e.preventDefault(); }
+        if (e.key === 'ArrowUp')   { i = Math.max(0, i - 1);             setActive(opts[i].id); e.preventDefault(); }
+      });
+      opts.forEach(o => o.addEventListener('mousemove', () => setActive(o.id)));
+    })();
+  </script>
+</body>
+</html>

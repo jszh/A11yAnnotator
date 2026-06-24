@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upload your supporting document — Maple County e-Filing</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (and why this page PASSES 3.3.3):
+  Post-submit error state on a FILE-UPLOAD field. The user attached a PDF that the
+  server could not parse — the bytes are damaged / not a readable PDF. The error is
+  correctly associated and tells the user the nature of the problem and the concrete
+  next step: "We couldn't read this file. It may be damaged or wasn't fully uploaded.
+  Re-save or re-export it as a PDF and attach it again."
+
+  Is a "suggestion for correction" knowable here? No. The correct value is the user's
+  own valid document file — an artifact the server does not hold, cannot infer, and
+  cannot enumerate. There is no "nearest valid value" to offer (unlike a misspelled
+  city or a month name): the system only knows THIS upload is unreadable, not what a
+  good replacement would contain. So a specific suggested value is genuinely NOT
+  knowable. Under the SC's "and suggestions for correction are known" precondition
+  (and TT's DNA: "suggestions for correction cannot be provided because they are not
+  knowable"), the obligation to suggest a value is not triggered. The message that IS
+  present gives adequate information to fix the error. -> SC 3.3.3 PASS (DNA).
+
+  The trap for the judge: a naive reading is "error present, no suggested correct
+  value -> 3.3.3 fail." But for a corrupted-file rejection there is no correct value
+  the system could supply; only the user can produce a clean file. The whole judgment
+  is recognizing that the correction is un-inferable here, so withholding a "suggested
+  value" is conformant. axe/WAVE/Lighthouse confirm the label, the resolved
+  aria-describedby, aria-invalid, and contrast, then stop — they have no model of
+  whether a valid replacement file is knowable to the backend.
+-->
+<style>
+  :root{ --ink:#1b1f24; --muted:#5b6470; --line:#cfd6de; --brand:#0b5cab; --danger:#b3261e; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Public Sans","Segoe UI",system-ui,sans-serif; color:var(--ink); background:#eef2f6; }
+  .wrap{ max-width:600px; margin:40px auto; padding:0 18px; }
+  header.brand{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  header.brand .seal{ width:30px; height:30px; border-radius:50%; background:var(--brand); }
+  header.brand strong{ font-size:1.05rem; letter-spacing:.2px; }
+  header.brand span.sub{ color:var(--muted); font-size:.85rem; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:30px 28px; }
+  h1{ font-size:1.45rem; margin:0 0 4px; }
+  .lede{ color:var(--muted); margin:0 0 8px; font-size:.95rem; }
+  .step{ color:var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.6px; margin:0 0 18px; }
+  .field{ margin-bottom:18px; }
+  label.flabel{ display:block; font-weight:700; font-size:.95rem; margin-bottom:4px; }
+  .hint{ color:var(--muted); font-size:.85rem; margin:0 0 10px; }
+  .dropzone{ border:2px dashed var(--line); border-radius:10px; padding:18px; background:#f7fafc; }
+  .dropzone.bad{ border-color:var(--danger); border-style:solid; background:#fdf3f2; }
+  .filerow{ display:flex; align-items:center; gap:10px; }
+  .filerow .doc{ width:34px; height:42px; flex:0 0 auto; border:1px solid var(--line); border-radius:4px;
+                 background:#fff; display:flex; align-items:flex-end; justify-content:flex-end; }
+  .filerow .doc::after{ content:""; display:block; width:14px; height:14px;
+                        background:linear-gradient(135deg,#fff 50%,var(--line) 50%); }
+  .filerow .fname{ font-size:.92rem; font-weight:600; }
+  .filerow .fmeta{ color:var(--muted); font-size:.8rem; }
+  .filerow .reattach{ margin-left:auto; }
+  input[type="file"]{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .btn{ padding:9px 16px; font-size:.92rem; font-weight:600; border-radius:8px; cursor:pointer; }
+  .btn.ghost{ color:var(--brand); background:#fff; border:1px solid var(--brand); }
+  .btn.primary{ margin-top:8px; color:#fff; background:var(--brand); border:0; padding:12px 22px; font-size:1rem; }
+  .err{ display:flex; gap:8px; align-items:flex-start; margin-top:10px; color:var(--danger); font-size:.9rem; }
+  .err svg{ flex:0 0 auto; margin-top:2px; }
+  .accept{ color:var(--muted); font-size:.8rem; margin-top:10px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand">
+      <span class="seal" aria-hidden="true"></span>
+      <span><strong>Maple County e-Filing</strong><br><span class="sub">Records &amp; Permits portal</span></span>
+    </header>
+    <main class="card">
+      <p class="step">Step 3 of 5 — Attachments</p>
+      <h1>Upload your supporting document</h1>
+      <p class="lede">Attach the signed site-plan PDF you prepared for this permit application.</p>
+
+      <form action="#" method="post" enctype="multipart/form-data" novalidate>
+        <div class="field">
+          <label class="flabel" for="doc">Site plan (PDF)</label>
+          <p class="hint" id="doc-hint">One PDF, up to 20&nbsp;MB. We open it to confirm the pages are readable before filing.</p>
+          <!--
+            FILE-UPLOAD field, post-submit error. The attached file failed a readability
+            check on the server (unparseable / damaged bytes). The system knows the upload
+            is unreadable but CANNOT know or enumerate what a correct replacement file would
+            contain — the valid value is the user's own clean document, which the server does
+            not hold and cannot infer. There is no "nearest valid value" to suggest. The
+            message gives the nature of the problem and the concrete fix (re-export and
+            re-attach). Because a specific suggestion is NOT knowable for a corrupted-file
+            rejection, the absence of a suggested value is conformant -> 3.3.3 PASS (DNA).
+          -->
+          <div class="dropzone bad">
+            <div class="filerow">
+              <span class="doc" aria-hidden="true"></span>
+              <span>
+                <span class="fname">site-plan-final.pdf</span><br>
+                <span class="fmeta">2.4&nbsp;MB · attached just now</span>
+              </span>
+              <label class="btn ghost reattach" for="doc">Replace file</label>
+              <input type="file" id="doc" name="doc" accept="application/pdf"
+                     aria-describedby="doc-hint error-doc" aria-invalid="true">
+            </div>
+            <p class="err" id="error-doc">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+              <span>We couldn&rsquo;t read this file. It may be damaged or wasn&rsquo;t fully uploaded. Re-save or re-export it as a PDF and attach it again.</span>
+            </p>
+          </div>
+          <p class="accept">Accepted type: PDF. If your file keeps failing, print to PDF again from the source program.</p>
+        </div>
+
+        <button class="btn primary" type="submit">Continue to review</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

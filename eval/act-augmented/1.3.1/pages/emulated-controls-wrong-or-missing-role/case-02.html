@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 (Info and Relationships) — F42 emulated-control failure path (button variant).
+    Aspect: emulated-controls-wrong-or-missing-role.
+
+    "Fernweh Roastery" product detail page. The primary call to action is a green,
+    rounded, button-shaped box reading "Add to cart". It has a pressed/darken hover
+    state, a pointer cursor, and clicking it increments the cart badge and shows a
+    confirmation — it behaves in every way like the page's main BUTTON.
+
+    THE DEFECT: it is a <div class="addcart" onclick="addToCart()">. No <button>, no
+    <input type="submit">, no role="button", no tabindex. Sighted users read it
+    unmistakably as a button (rounded filled box, label, hover/active, it performs an
+    action). AT exposes the GENERIC role: it is not announced as a button, it does not
+    appear among the page's buttons/controls, and a keyboard user cannot Tab to or
+    activate it. The control relationship conveyed purely by styling/behaviour is not
+    programmatically determinable.
+
+    Note the *foil*: the secondary "Add to wishlist" action IS a real <button> styled
+    to look like a plain link. So the page contains a correct control and an emulated
+    one — the failure is specifically the primary <div> "button", not a blanket
+    "no buttons on the page".
+
+    WHY AUTOMATED TOOLS MISS IT: the <div> has no role attribute, so role-validity /
+    required-property rules never apply. axe/WAVE/Lighthouse see a <div> with text and a
+    click handler — no static rule says "this div is a button with the wrong/missing
+    role". Recognising the rounded filled box + label + action AS a button, and that its
+    exposed generic role contradicts that, is human visual/behavioural judgment.
+  -->
+  <title>Ethiopia Guji — Whole Bean | Fernweh Roastery</title>
+  <style>
+    :root { --ink:#23201c; --muted:#6d655c; --line:#e8e2d8; --accent:#2f7d4f; --accent-hi:#256340; --bg:#fbf8f3; --card:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+    .shop { max-width:880px; margin:2rem auto; padding:0 1.25rem; display:grid; grid-template-columns:1fr 1fr; gap:2.4rem; }
+    @media (max-width:640px){ .shop { grid-template-columns:1fr; } }
+    .photo { background:linear-gradient(135deg,#6b4a2b,#3b2a1a); border-radius:14px; aspect-ratio:1/1; display:flex; align-items:flex-end; padding:1rem; color:#f3e9da; font-size:.8rem; }
+    h1 { font-size:1.6rem; margin:.2rem 0 .35rem; }
+    .price { font-size:1.35rem; font-weight:700; margin:.2rem 0 1rem; }
+    .meta { color:var(--muted); font-size:.92rem; margin:0 0 1.2rem; }
+    .opt { margin:0 0 1.2rem; }
+    .opt label { display:block; font-size:.82rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:.3rem; }
+    .opt select { width:100%; padding:.55rem .6rem; border:1px solid var(--line); border-radius:8px; font:inherit; background:var(--card); }
+
+    /* Primary CTA — a DIV styled unmistakably as a filled button */
+    .addcart {
+      display:block; width:100%; text-align:center;
+      background:var(--accent); color:#fff; font-weight:700; font-size:1.02rem;
+      padding:.85rem 1rem; border-radius:10px; cursor:pointer; user-select:none;
+      box-shadow:0 1px 2px rgba(0,0,0,.18); transition:background .15s, transform .05s;
+    }
+    .addcart:hover { background:var(--accent-hi); }
+    .addcart:active { transform:translateY(1px); }
+
+    /* Secondary action — a REAL <button> styled to look like a quiet link (the foil) */
+    .wishlist { display:inline-block; margin-top:.8rem; background:none; border:0; padding:0;
+      color:var(--accent); font:inherit; text-decoration:underline; cursor:pointer; }
+
+    .cartbar { position:fixed; top:0; right:0; left:0; background:var(--card); border-bottom:1px solid var(--line); padding:.6rem 1.25rem; display:flex; justify-content:flex-end; align-items:center; gap:.5rem; font-size:.9rem; }
+    .badge { background:var(--accent); color:#fff; border-radius:999px; min-width:1.4rem; height:1.4rem; display:inline-flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; padding:0 .35rem; }
+    .toast { position:fixed; left:50%; bottom:1.5rem; transform:translateX(-50%); background:var(--ink); color:#fff; padding:.6rem 1rem; border-radius:8px; font-size:.9rem; opacity:0; transition:opacity .2s; pointer-events:none; }
+    .toast.show { opacity:1; }
+  </style>
+</head>
+<body>
+  <div class="cartbar">Cart <span class="badge" id="badge">0</span></div>
+
+  <main class="shop">
+    <div class="photo" aria-hidden="true">250&nbsp;g bag</div>
+    <div>
+      <h1>Ethiopia Guji — Whole Bean</h1>
+      <div class="price">$21.00</div>
+      <p class="meta">Washed, single-origin. Notes of jasmine, peach, and black tea. Roasted to order on Tuesdays.</p>
+
+      <div class="opt">
+        <label for="grind">Grind</label>
+        <select id="grind" name="grind">
+          <option>Whole bean</option>
+          <option>Espresso</option>
+          <option>Pour over</option>
+          <option>French press</option>
+        </select>
+      </div>
+
+      <!-- DEFECT: the primary CTA is a <div>, not a <button>/role=button. -->
+      <div class="addcart" onclick="addToCart()">Add to cart</div>
+
+      <!-- Foil: a genuine <button> styled as a quiet link -->
+      <button type="button" class="wishlist" onclick="alert('Saved to wishlist')">Save to wishlist</button>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status">Added to cart</div>
+
+  <script>
+    var count = 0;
+    function addToCart() {
+      count += 1;
+      document.getElementById('badge').textContent = String(count);
+      var t = document.getElementById('toast');
+      t.classList.add('show');
+      setTimeout(function () { t.classList.remove('show'); }, 1400);
+    }
+  </script>
+</body>
+</html>

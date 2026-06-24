@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MyChart — Request a Prescription Refill</title>
+  <style>
+    body {
+      font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      background: #eef1f4;
+      color: #202124;
+    }
+    .shell { max-width: 560px; margin: 0 auto; padding: 24px 16px 64px; }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.12);
+      padding: 24px 24px 28px;
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #5f6368; margin: 0 0 20px; font-size: 13px; }
+    .field { margin-bottom: 18px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+
+    /* ---- The defect lives here -------------------------------------------
+       The patient-portal design system paints a 2px solid blue "active"
+       border on every control at rest to make the form look modern and
+       "filled in". That blue (#1a73e8 / 2px solid) is essentially the same
+       hue and weight Chrome uses for its default focus ring on form fields.
+       Crucially, the author then wrote a :focus rule that ALSO produces a
+       2px solid blue outline of the same blue. The outline is never removed,
+       so a focused-vs-unfocused diff on a single field is technically
+       non-zero (offset shifts a hair), but to a human tabbing the form there
+       is no perceptible change: the field already looked blue-bordered, and
+       it stays blue-bordered. You cannot tell which field has focus.        */
+    input[type="text"],
+    input[type="tel"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 15px;
+      padding: 9px 11px;
+      border: 2px solid #1a73e8;     /* resting "active-look" border */
+      border-radius: 6px;
+      background: #fff;
+      color: #202124;
+      outline: 2px solid #1a73e8;    /* resting outline same blue/weight as the UA ring */
+      outline-offset: -2px;
+    }
+    /* :focus keeps an identical blue 2px solid outline — same colour, same
+       weight, only the offset nudges by 1px. The eye reads zero change. */
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid #1a73e8;
+      outline-offset: -1px;
+      border-color: #1a73e8;
+    }
+    .row { display: flex; gap: 12px; }
+    .row .field { flex: 1; }
+    .actions { margin-top: 8px; display: flex; gap: 12px; }
+    button {
+      font: inherit;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: 2px solid #1a73e8;
+      background: #1a73e8;
+      color: #fff;
+      cursor: pointer;
+    }
+    button.secondary { background: #fff; color: #1a73e8; }
+    .note {
+      margin-top: 28px;
+      font-size: 12.5px;
+      color: #3c4043;
+      background: #f8f9fa;
+      border-left: 4px solid #9aa0a6;
+      padding: 12px 14px;
+      line-height: 1.5;
+    }
+    code { background: #eceff1; padding: 1px 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="card">
+      <h1>Request a Prescription Refill</h1>
+      <p class="sub">Pine Ridge Family Medicine · Pharmacy services</p>
+
+      <form action="/refill" method="post" novalidate>
+        <div class="field">
+          <label for="med">Medication name</label>
+          <input type="text" id="med" name="med" value="Metformin 500 mg tablet" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label for="rx">Prescription (Rx) number</label>
+          <input type="text" id="rx" name="rx" placeholder="e.g. RX-4471902">
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="qty">Quantity</label>
+            <select id="qty" name="qty">
+              <option>30-day supply</option>
+              <option>90-day supply</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="pickup">Pickup date</label>
+            <input type="date" id="pickup" name="pickup" value="2026-07-02">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="phone">Callback phone</label>
+          <input type="tel" id="phone" name="phone" value="(216) 555-0143">
+        </div>
+
+        <div class="field">
+          <label for="notes">Notes for the pharmacist (optional)</label>
+          <textarea id="notes" name="notes" rows="3">Please text me when ready.</textarea>
+        </div>
+
+        <div class="actions">
+          <button type="submit">Submit refill</button>
+          <button type="button" class="secondary">Save draft</button>
+        </div>
+      </form>
+
+      <div class="note">
+        <strong>Why automated tools miss this.</strong>
+        No control uses <code>outline:none</code>; a focus indicator is present
+        and a single-element focused/unfocused pixel comparison is non-zero
+        (the outline offset shifts by 1&nbsp;px on focus). axe-core, WAVE and
+        Lighthouse therefore report no 2.4.7 violation. But every field already
+        carries a resting <code>2px solid #1a73e8</code> border <em>and</em>
+        outline — the same blue and weight as the focus ring — so when a field
+        focuses, a human sees no distinguishing change and cannot tell which of
+        the seven controls holds focus while tabbing. Only a person comparing
+        the resting blue-bordered look against the focused look can judge that
+        the indicator is present-but-not-perceptible (F78 mode&nbsp;2).
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Immunization records — Northgate Pediatrics Patient Portal</title>
+<!--
+  SC 1.4.1 Use of Color — FAILING (status limb of G14; the Understanding "database entry
+  has been updated successfully" example). This table lets a parent edit a child's
+  immunization dose dates. When a row is saved, an optimistic-autosave handler flips the
+  row's background to green to signal "saved / updated successfully." The "updated" STATUS
+  is conveyed by the row turning green ALONE — no "Saved" / "Updated" word, no checkmark
+  character, no timestamp text change, no status message. In grayscale (or for a user with
+  red-green or low colour vision) a saved row is visually identical to an unsaved one, so
+  the success of an irreversible medical-record edit cannot be perceived.
+
+  Why automated tools miss it: pressing "Save row" is a runtime interaction; the green
+  class is only added by JS after the click, so a static scan never even sees the changed
+  state. Even with the class present, the row is a valid <tr> with real cell text — there
+  is no missing label or empty element to flag. No tool can determine that a green
+  background is the SOLE carrier of "this update succeeded" and that no text confirms it.
+-->
+<style>
+  body { font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; background: #f4f6f8; color: #20303d; }
+  header { background: #146c5e; color: #fff; padding: 16px 26px; }
+  header .sys { font-size: .78rem; opacity: .85; }
+  header h1 { margin: 2px 0 0; font-size: 1.25rem; }
+  main { max-width: 820px; margin: 22px auto; background: #fff; border: 1px solid #d7dee4; border-radius: 8px; padding: 22px 26px 30px; }
+  .patient { font-size: .9rem; color: #4a5b68; margin-bottom: 16px; }
+  p.intro { font-size: .92rem; color: #3a4a57; }
+  table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: .92rem; }
+  caption { text-align: left; font-weight: 600; padding-bottom: 8px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e6ebef; }
+  th { color: #51626f; font-weight: 600; font-size: .82rem; text-transform: uppercase; letter-spacing: .4px; }
+  input[type="date"] { font: inherit; padding: 5px 7px; border: 1px solid #b8c2cb; border-radius: 4px; }
+  .save { font: inherit; font-size: .85rem; padding: 6px 12px; border: 1px solid #146c5e; background: #fff; color: #146c5e; border-radius: 5px; cursor: pointer; }
+  .save:hover { background: #eaf5f2; }
+  /* "Saved" is signalled ONLY by this green row tint. No text/icon is added. */
+  tr.saved { background: #d7f0dd; }
+  tr.saved td { border-bottom-color: #bfe3c8; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="sys">Northgate Pediatrics &middot; MyChild Patient Portal</div>
+    <h1>Immunization records</h1>
+  </header>
+  <main>
+    <p class="patient">Patient: <strong>Ava R. Delgado</strong> &middot; DOB 2019-03-14 &middot; MRN 88216-Q</p>
+    <p class="intro">Update an administration date below, then choose <em>Save row</em>. Saved
+    rows are highlighted so you can see your changes took effect before you leave the page.</p>
+
+    <table>
+      <caption>Editable dose schedule</caption>
+      <thead>
+        <tr><th scope="col">Vaccine</th><th scope="col">Dose</th><th scope="col">Date given</th><th scope="col">Action</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>DTaP</td><td>4 of 5</td>
+          <td><input type="date" value="2020-05-18" aria-label="DTaP dose 4 date given"></td>
+          <td><button class="save" onclick="markSaved(this)">Save row</button></td>
+        </tr>
+        <tr>
+          <td>MMR</td><td>1 of 2</td>
+          <td><input type="date" value="2020-03-20" aria-label="MMR dose 1 date given"></td>
+          <td><button class="save" onclick="markSaved(this)">Save row</button></td>
+        </tr>
+        <tr>
+          <td>Varicella</td><td>1 of 2</td>
+          <td><input type="date" value="2020-03-20" aria-label="Varicella dose 1 date given"></td>
+          <td><button class="save" onclick="markSaved(this)">Save row</button></td>
+        </tr>
+        <tr>
+          <td>Hepatitis A</td><td>2 of 2</td>
+          <td><input type="date" value="2021-04-02" aria-label="Hepatitis A dose 2 date given"></td>
+          <td><button class="save" onclick="markSaved(this)">Save row</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+  <script>
+    function markSaved(btn) {
+      var row = btn.closest('tr');
+      // Optimistic UI: the ONLY confirmation of success is the green background tint.
+      row.classList.add('saved');
+    }
+  </script>
+</body>
+</html>

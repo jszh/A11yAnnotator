@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conversion funnel — Northwind Analytics</title>
+<style>
+  body { font-family: Inter, system-ui, Arial, sans-serif; margin: 0;
+         background: #0f1320; color: #e7ecf3; }
+  header { padding: 14px 26px; background: #161b2c; border-bottom: 1px solid #232a40; }
+  header h1 { font-size: 17px; margin: 0; }
+  main { max-width: 760px; margin: 26px auto; padding: 0 20px; }
+  .card { background: #161b2c; border: 1px solid #232a40; border-radius: 10px;
+          padding: 22px 24px; }
+  h2 { font-size: 19px; margin-top: 0; }
+  .metric-row { display: flex; align-items: baseline; gap: 10px; position: relative; }
+  .metric-value { font-size: 34px; font-weight: 700; color: #6ee7b7; }
+  .metric-label { color: #9aa6bd; font-size: 14px; }
+  .badge { display: inline-flex; align-items: center; justify-content: center;
+           width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 700;
+           background: #2b3350; color: #c7d2e8; cursor: pointer; border: 1px solid #3a4570; }
+  .badge:focus { outline: 3px solid #7aa2ff; outline-offset: 2px; }
+  /* The definition popover overlaps the breakdown list below it. */
+  .popover { position: absolute; top: 30px; left: 0; width: 340px; z-index: 8;
+        background: #1d2438; border: 1px solid #39456b; border-radius: 10px;
+        padding: 14px 16px 16px; box-shadow: 0 12px 30px rgba(0,0,0,.5); display: none; }
+  .popover.open { display: block; }
+  .popover p { margin: 0; font-size: 14px; line-height: 1.5; color: #d7deec; }
+  .popover .x { position: absolute; top: 8px; right: 10px; width: 26px; height: 26px;
+        border-radius: 6px; border: 1px solid #44507a; background: #232b44; color: #c7d2e8;
+        font-size: 15px; cursor: pointer; }
+  .popover .x:focus { outline: 3px solid #7aa2ff; outline-offset: 2px; }
+  ul.breakdown { margin: 22px 0 0; padding-left: 18px; color: #c3cde0; font-size: 14px; }
+  ul.breakdown li { margin: 6px 0; }
+  .note { margin-top: 22px; font-size: 12px; color: #7c879e; border-top: 1px dashed #2a3350;
+          padding-top: 12px; }
+</style>
+</head>
+<body>
+<header><h1>Northwind Analytics</h1></header>
+<main>
+  <div class="card">
+    <h2>Checkout funnel — last 7 days</h2>
+    <div class="metric-row">
+      <span class="metric-value">3.84%</span>
+      <span class="metric-label">Cart-to-purchase conversion</span>
+      <button type="button" class="badge" id="defBadge"
+              aria-describedby="defPop" aria-label="How is conversion calculated?">?</button>
+      <div class="popover" id="defPop" role="tooltip">
+        <button type="button" class="x" id="defClose" aria-label="Close definition">&times;</button>
+        <p><strong>Cart-to-purchase</strong> = completed orders &divide; sessions
+           that added at least one item to cart, deduplicated by visitor. Excludes
+           sessions flagged as bots and internal test orders.</p>
+      </div>
+    </div>
+
+    <ul class="breakdown">
+      <li>Desktop: 4.42% (1,204 orders)</li>
+      <li>Mobile: 3.10% (1,888 orders)</li>
+      <li>Tablet: 2.96% (212 orders)</li>
+    </ul>
+
+    <p class="note">The "?" badge opens a definition popover that covers the
+       device breakdown list. The only way to close it is the X button — and the X
+       lives INSIDE the popover, reachable only by Tab-ing focus off the trigger and
+       into the pop-up. There is no Esc handler and activating the trigger does not
+       toggle it.</p>
+  </div>
+</main>
+
+<script>
+  var badge = document.getElementById('defBadge');
+  var pop   = document.getElementById('defPop');
+  var x     = document.getElementById('defClose');
+
+  // Open on hover and on keyboard focus of the badge.
+  badge.addEventListener('mouseenter', function () { pop.classList.add('open'); });
+  badge.addEventListener('focus',      function () { pop.classList.add('open'); });
+
+  // INTENTIONAL DEFECT: the ONLY dismissal path is the X button INSIDE the
+  // popover. To press it, a keyboard user must Tab forward, moving focus OFF
+  // the trigger and INTO the additional content. SCR39 requires the content be
+  // closable WITHOUT moving focus away from the trigger; here dismissal is
+  // impossible unless focus enters the pop-up. There is deliberately no
+  // document-level Esc handler and no toggle-on-trigger.
+  x.addEventListener('click', function () {
+    pop.classList.remove('open');
+    badge.focus();   // returns focus, but only AFTER focus had to leave the trigger
+  });
+
+  // Note: the popover stays open when the pointer leaves the badge (it is
+  // hoverable/persistent) — the sole defect is the missing keyboard dismiss
+  // that does not require moving focus into the content.
+</script>
+</body>
+</html>

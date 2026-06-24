@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مرجع الـ API — منصة سحابة نون</title>
+<style>
+  body { font-family: "Segoe UI", "Noto Sans Arabic", Tahoma, sans-serif; margin: 0;
+         background: #fbfaf7; color: #232323; line-height: 1.7; }
+  header { background: #3a2f6b; color: #fff; padding: 13px 24px; }
+  header h1 { margin: 0; font-size: 18px; }
+  main { max-width: 720px; margin: 26px auto; padding: 0 22px; }
+  .api { background: #fff; border: 1px solid #e3ddf2; border-radius: 8px; padding: 22px 24px; }
+  code, .endpoint { font-family: "SFMono-Regular", Consolas, monospace; direction: ltr;
+        unicode-bidi: embed; }
+  .endpoint { background: #f3f0fb; border: 1px solid #ddd5f0; border-radius: 6px;
+        padding: 8px 10px; display: inline-block; font-size: 14px; }
+  p { font-size: 15.5px; }
+  .glossary { border-bottom: 2px dotted #6b58c4; cursor: help; position: relative;
+        color: #3a2f6b; font-weight: 600; }
+  /* The tooltip overlaps the example request block that follows the paragraph. */
+  .tip { position: absolute; top: 1.6em; inset-inline-start: 0; width: 300px; z-index: 7;
+        background: #232323; color: #fff; padding: 11px 13px; border-radius: 7px;
+        font-size: 13.5px; line-height: 1.55; box-shadow: 0 7px 20px rgba(0,0,0,.3);
+        display: none; text-align: start; }
+  .glossary:hover .tip { display: block; }
+  .filter { margin: 18px 0 6px; }
+  .filter label { font-weight: 600; font-size: 14px; }
+  .filter input { font-size: 14px; padding: 7px 9px; border: 1px solid #b3a9d6;
+        border-radius: 5px; direction: ltr; }
+  pre.req { background: #1f1b33; color: #e8e3ff; padding: 14px 16px; border-radius: 8px;
+        overflow-x: auto; font-size: 13px; direction: ltr; text-align: left; margin-top: 16px; }
+  .note { font-size: 12px; color: #76707f; margin-top: 22px; border-top: 1px dashed #e3ddf2;
+        padding-top: 12px; }
+</style>
+</head>
+<body>
+<header><h1>منصة سحابة نون — مرجع الـ API</h1></header>
+<main>
+  <div class="api">
+    <h2>نقطة النهاية: قائمة الطلبات</h2>
+    <span class="endpoint">GET /v2/orders</span>
+
+    <div class="filter">
+      <label for="q">تصفية حسب رقم العميل</label><br>
+      <input type="text" id="q" placeholder="cust_…">
+    </div>
+
+    <p>
+      يعيد هذا الطلب صفحة من الطلبات. استخدم المعامل
+      <span class="glossary" tabindex="-1">cursor
+        <span class="tip" role="tooltip">المؤشر (cursor) قيمة معتمة تشير إلى
+          موضعك في النتائج. مرّره دون تعديل إلى الطلب التالي للحصول على الصفحة
+          التالية؛ تنتهي صلاحيته بعد ٢٤ ساعة.</span></span>
+      للتنقل بين الصفحات. كل صفحة تحتوي على ٥٠ عنصرًا افتراضيًا.
+    </p>
+
+    <pre class="req">curl https://api.noon.cloud/v2/orders?cursor=eyJpZCI6 \
+  -H "Authorization: Bearer $TOKEN"</pre>
+
+    <p class="note">يظهر التلميح عند تمرير المؤشر فوق كلمة "cursor" ويغطي مثال الطلب
+       أدناه. معالج Escape موجود لكنه يتحقق أولاً من وجود عنصر إدخال مركّز عليه؛
+       وعند تمرير المؤشر فوق الكلمة لا يوجد أي عنصر مركّز، لذا فإن Escape لا يفعل شيئًا.
+       (Esc is gated on an input being focused; on hover nothing is focused, so it is inert.)</p>
+  </div>
+</main>
+
+<script>
+  // INTENTIONAL DEFECT: the glossary tooltip appears purely on :hover of a
+  // span that is NOT a focusable control (tabindex="-1", never focused by
+  // keyboard). The author added an Escape handler, but gated it on "an input
+  // is currently focused" — a guard copied from the search box's clear-on-Esc
+  // behavior. When the user is merely HOVERING the glossary term (the only way
+  // this tooltip appears), document.activeElement is <body>, not an input, so
+  // the guard fails and Escape never dismisses the tooltip. The obscuring tip
+  // can therefore only be cleared by physically moving the pointer off the
+  // term — defeating the magnifier pan workaround.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' && e.keyCode !== 27) return;
+    var active = document.activeElement;
+    // Guard: only act when a text input has focus (intended for clearing the
+    // filter field). On hover of the glossary term, this is false.
+    if (active && active.tagName === 'INPUT' && active.type === 'text') {
+      active.value = '';
+      // (would also hide a tooltip here, but this branch never runs on hover)
+      var tips = document.querySelectorAll('.tip');
+      tips.forEach(function (t) { t.style.display = 'none'; });
+    }
+  });
+</script>
+</body>
+</html>

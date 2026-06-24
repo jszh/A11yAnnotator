@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reflective Essay — BIOL 204 | Cedar Valley LMS</title>
+<style>
+  :root { --ink:#222a31; --muted:#6a7681; --line:#e2e7ec; --accent:#7a2e8e; --accent-dk:#5f2370; }
+  * { box-sizing:border-box; }
+  body { font-family:Georgia,"Times New Roman",serif; color:var(--ink); margin:0; background:#f6f3f8; }
+  .topbar { background:#fff; border-bottom:1px solid var(--line); padding:12px 28px; display:flex; align-items:center; justify-content:space-between; font-family:"Segoe UI",Arial,sans-serif; }
+  .topbar .course { font-weight:700; color:var(--accent-dk); }
+  .topbar .crumbs { color:var(--muted); font-size:.85rem; }
+  /* autosave indicator lives top-right, the way most editors place it */
+  .savearea { font-family:"Segoe UI",Arial,sans-serif; font-size:.85rem; min-width:160px; text-align:right; }
+  .saving { color:#8a6d00; display:inline-flex; align-items:center; gap:7px; }
+  .saving .dot { width:9px; height:9px; border-radius:50%; background:#d8a200; animation:pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:.35;} 50%{opacity:1;} }
+  main { max-width:760px; margin:26px auto; }
+  h1 { font-size:1.55rem; margin:0 0 2px; color:var(--accent-dk); }
+  .due { font-family:"Segoe UI",Arial,sans-serif; color:var(--muted); font-size:.86rem; margin-bottom:18px; }
+  .editor {
+    background:#fff; border:1px solid var(--line); border-radius:8px; padding:22px 26px;
+    min-height:320px; font-size:1.04rem; line-height:1.7; outline:none;
+  }
+  .editor:focus-visible { border-color:var(--accent); box-shadow:0 0 0 3px rgba(122,46,142,.18); }
+  .toolbar { font-family:"Segoe UI",Arial,sans-serif; display:flex; gap:8px; margin-bottom:10px; }
+  .toolbar button { border:1px solid #cdd3d9; background:#fff; border-radius:5px; padding:6px 11px; cursor:pointer; font-size:.85rem; }
+  footer { max-width:760px; margin:16px auto 60px; color:#9aa3ab; font-size:.78rem; font-family:"Segoe UI",Arial,sans-serif; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <div class="course">BIOL 204 — Cell &amp; Molecular Biology</div>
+    <div class="crumbs">Assignments › Unit 3 › Reflective essay</div>
+  </div>
+  <!-- Autosave status. The region IS a polite live region (correct additive direction). -->
+  <div class="savearea" id="saveStatus" role="status" aria-live="polite" aria-atomic="true"></div>
+</div>
+
+<main>
+  <h1>Reflective essay: What surprised you about mitosis?</h1>
+  <p class="due">Due Fri 11:59 PM · Worth 10% · Your work autosaves as you type.</p>
+
+  <div class="toolbar" aria-hidden="true">
+    <button type="button"><b>B</b></button>
+    <button type="button"><i>I</i></button>
+    <button type="button">“ ”</button>
+  </div>
+
+  <div id="essay" class="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Essay body">Going into this unit I assumed mitosis was a tidy, almost mechanical sequence of steps. What surprised me most was how much of the control happens at checkpoints — the cell will literally pause and re-check its own DNA before committing to division.</div>
+</main>
+
+<footer>Cedar Valley Community College — Learning Management System v9.2</footer>
+
+<script>
+/*
+  Autosave with a TWO-PHASE indicator, debounced on typing in the contenteditable:
+  Phase 1 (entry): inject "Saving your changes…" + a pulsing dot into the polite live
+  region. This IS announced — the appearance test passes.
+  Phase 2 (completion): on the fake-save success, the banner is simply REMOVED
+  (saveStatus.textContent = ''). The savearea goes blank. No "All changes saved",
+  no "Saved at 2:14 PM" — nothing replaces it.
+
+  Sighted users learn the save succeeded because the "Saving…" pill VANISHES (and they
+  may have glimpsed a checkmark on prior products). For an AT user: they hear "Saving
+  your changes…" and then silence forever. They cannot tell whether the save completed
+  or failed — they may navigate away believing work was lost, or stay anxiously waiting.
+  The disappearance of the busy text is the only "done" signal, and it is silent.
+*/
+(function () {
+  var essay = document.getElementById('essay');
+  var saveStatus = document.getElementById('saveStatus');
+  var debounce, saving = false;
+
+  function showSaving() {
+    saving = true;
+    saveStatus.innerHTML = '<span class="saving"><span class="dot" aria-hidden="true"></span>Saving your changes…</span>';
+  }
+
+  function finishSave() {
+    // The busy banner is removed. Nothing announces that the save is complete.
+    saveStatus.textContent = '';
+    saving = false;
+  }
+
+  essay.addEventListener('input', function () {
+    window.clearTimeout(debounce);
+    if (!saving) showSaving();
+    debounce = window.setTimeout(finishSave, 1500);
+  });
+
+  // Kick an initial save shortly after load so the two-phase cycle is observable.
+  window.setTimeout(function () { showSaving(); window.setTimeout(finishSave, 1500); }, 600);
+})();
+</script>
+</body>
+</html>

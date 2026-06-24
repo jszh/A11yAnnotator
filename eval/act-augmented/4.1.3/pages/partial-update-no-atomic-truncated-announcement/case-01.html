@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyHealth Portal — Prescriptions</title>
+<style>
+  :root { --ink:#1f2933; --paper:#f4f7fa; --teal:#11707a; --line:#d6dee6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Segoe UI",Helvetica,Arial,sans-serif; color:var(--ink); background:var(--paper); }
+  header { display:flex; align-items:center; gap:12px;
+           padding:14px 28px; border-bottom:1px solid var(--line); background:#fff; }
+  .logo { font-weight:700; letter-spacing:.02em; color:var(--teal); font-size:18px; }
+  .who { margin-left:auto; font-size:14px; color:#52606d; }
+  main { max-width:680px; margin:0 auto; padding:30px 28px; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  .sub { color:#52606d; margin:0 0 22px; }
+  .rx { border:1px solid var(--line); border-radius:10px; padding:20px 22px; background:#fff; }
+  .rx h2 { font-size:18px; margin:0 0 2px; }
+  .rx .gen { color:#52606d; font-size:14px; margin:0 0 16px; }
+  /* The refill status line. role=status, aria-live=polite. */
+  .refill-status { display:flex; align-items:center; gap:8px;
+                   background:#eef6f7; border:1px solid #bfe0e3; border-radius:8px;
+                   padding:10px 14px; font-size:16px; color:#0d4f56; margin:0 0 18px; }
+  .refill-status .num { font-weight:700; font-variant-numeric:tabular-nums; }
+  button { font:inherit; cursor:pointer; border:0; border-radius:7px; padding:11px 18px;
+           background:var(--teal); color:#fff; font-weight:600; }
+  button:focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
+  button[disabled] { background:#9aa5b1; cursor:not-allowed; }
+  footer { max-width:680px; margin:26px auto; padding:0 28px; color:#52606d; font-size:13px; }
+  code { background:#e7edf2; padding:1px 5px; border-radius:4px; font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">MyHealth Portal</span>
+  <span class="who">Signed in: R. Alvarez</span>
+</header>
+
+<main>
+  <h1>Prescriptions</h1>
+  <p class="sub">Active medications and refill authorizations.</p>
+
+  <section class="rx" aria-labelledby="rx-name">
+    <h2 id="rx-name">Levothyroxine 50 mcg</h2>
+    <p class="gen">Generic for Synthroid · Take 1 tablet by mouth each morning</p>
+
+    <!--
+      The refill counter is a polite live region (role="status").
+      The DEFECT: the developer set aria-atomic="false" EXPLICITLY (copied from a
+      "stop the screen reader being chatty" snippet), overriding the role's default
+      of true. So when the count node alone is rewritten, the AT announces only the
+      changed text-node subtree ("two") — never the static "refills remaining" words
+      that sit in sibling nodes inside the same region.
+    -->
+    <p class="refill-status" role="status" aria-atomic="false" id="refill-region">
+      <span aria-hidden="true">💊</span>
+      <span>You have</span>
+      <span class="num" id="refill-count">3</span>
+      <span>refills remaining</span>
+    </p>
+
+    <button id="use" type="button">Request a refill</button>
+  </section>
+</main>
+
+<footer>
+  Demo patient portal. <strong>Why automated tools miss this:</strong> the region is a valid
+  <code>role="status"</code> live region and <code>aria-atomic="false"</code> is well-formed,
+  valid ARIA — axe, WAVE, and Lighthouse see correct markup and raise nothing. The defect is
+  that <code>aria-atomic="false"</code> was set on purpose, so when only the inner number node
+  is rewritten the screen reader announces the bare token (e.g. "two") with no "refills
+  remaining" framing. No rule exists for "the announced fragment is semantically incomplete";
+  judging whether the spoken word alone conveys the same meaning as the visible whole requires
+  a human (or AT) to fire the update and listen.
+</footer>
+
+<script>
+  // Refill flow: each request decrements the authorized refill count.
+  // The state lives in one variable bound to ONE text node inside the live region.
+  var refills = 3;
+  var btn = document.getElementById('use');
+  var countEl = document.getElementById('refill-count');
+  btn.addEventListener('click', function () {
+    if (refills <= 0) return;
+    refills -= 1;
+    // ONLY the inner number node is rewritten. The static "You have" / "refills
+    // remaining" words never change, and aria-atomic="false" means the AT speaks
+    // just the mutated subtree — the lone number.
+    countEl.textContent = String(refills);
+    if (refills === 0) {
+      btn.disabled = true;
+      btn.textContent = 'No refills left';
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+{
+  "sc": "2.4.6",
+  "count": 17,
+  "patterns": [
+    {
+      "platform": "Squarespace blog/collection pages (multiple themes)",
+      "name": "Multiple H1s — one per article title on a listing page",
+      "description": "Squarespace blog index and collection pages output the site/page title as an H1 and then render EACH article title in the feed as its own H1, producing many H1s on one page. Screen-reader users navigating by heading level get a flat, ambiguous outline with no single page topic and no h2-level grouping of the list.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<h1 class=\"page-title\">Journal</h1>\n<article><h1 class=\"blog-title\"><a href=\"/journal/post-1\">First Post</a></h1></article>\n<article><h1 class=\"blog-title\"><a href=\"/journal/post-2\">Second Post</a></h1></article>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Multiple H1s are technically valid HTML5 and most automated rules only warn (or not at all) about it; whether the heading hierarchy actually communicates the page's structure is a semantic judgment. axe flags 'page-has-heading-one' as satisfied, not violated.",
+      "realWorldNote": "Amy Carney's Squarespace audit: 'Multiple H1 headings on single page (one per article title) despite page already having H1.' https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Squarespace mobile navigation (hamburger toggle)",
+      "name": "Menu toggle button with no aria-expanded and no text label",
+      "description": "The default mobile nav is a burger icon button that opens/closes an overlay menu but never exposes its expanded/collapsed state (no aria-expanded) and offers no visible/accessible text label, so it announces only as 'button' and its open/closed state is invisible to AT.",
+      "wcagScs": [
+        "4.1.2",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<button class=\"header-burger-btn\">\n  <span class=\"burger-inner\"></span>\n</button>\n<!-- no aria-expanded, no aria-label/text; opens a menu div -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe will flag a button with NO accessible name, but it will NOT flag a missing aria-expanded state on a custom toggle (state correctness is contextual). Determining that this particular button is a disclosure that should report its state, and that its name is unclear, needs human inspection of behavior.",
+      "realWorldNote": "Amy Carney's Squarespace audit: navigation menu button 'missing aria-expanded or equivalent' and 'no visible text label option (e.g., Menu).' https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Wix custom 'box'/container used as a clickable button (div with role/handler)",
+      "name": "Visible button label differs from auto-applied accessible name",
+      "description": "Designers build buttons from Wix container boxes with a click action plus an auto/template aria-label, while a text element inside shows different wording. The result: visible text says 'Get Started' but the accessible name is 'Site Button' or 'Button1' (a generated component name), so SR output, the page's visual label, and voice-control targets disagree.",
+      "wcagScs": [
+        "4.1.2",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<div role=\"button\" tabindex=\"0\" aria-label=\"Site Button\">\n  <span>Get Started</span>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The element HAS a role and a non-empty accessible name, so name/role checks pass. axe's label-content-name-mismatch rule only fires in narrow cases and can miss div-based controls; deciding that 'Site Button' fails to describe a 'Get Started' control and mismatches the visible text needs a human reading both.",
+      "realWorldNote": "Wix Engineering notes developers 'mimic a native element rather than use the semantic element,' needing tabindex fallbacks; community threads cover adding aria-label to Wix buttons/links, and Deque's label-content-name-mismatch rule documents this class. https://www.wix.engineering/post/the-story-of-making-wix-accessible",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Gutenberg blocks / page-builder sections used as visual styling (Heading block, Divi Text module set to H-tag)",
+      "name": "Heading levels chosen for font size — skipped levels and visual-only headings",
+      "description": "Editors pick heading tags by how big they look. A section header is set to H4 because H2 'looks too big', producing H1 then H4 with no H2/H3. Conversely, bold styled text that visually functions as a heading is left as a <p>, so the document outline has no entry. Builders make every text element's tag a free-form dropdown, so structure tracks visual size, not meaning.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6",
+        "2.4.10"
+      ],
+      "typicalMarkup": "<h1>Welcome</h1>\n<h4 class=\"has-large-font-size\">Our Services</h4>  <!-- skipped H2/H3 -->\n<p class=\"has-x-large-font-size\" style=\"font-weight:700\">Pricing</p>  <!-- looks like a heading, isn't -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Tools can flag a skipped level (H1->H4) but cannot decide that styled bold <p> SHOULD be a heading, nor whether a heading is descriptive of the section it labels. That mapping of visual prominence and meaning to correct level/semantics is human judgment.",
+      "realWorldNote": "Learn WordPress and WP handbook warn against using headings for visual styling / skipping levels. https://learn.wordpress.org/tutorial/using-headings-for-accessibility-and-seo/ ; Gutenberg document outline only warns, doesn't enforce.",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Divi / Elementor button modules with icons and 'global' default labels (Pricing Table, CTA)",
+      "name": "Multiple buttons with identical generic accessible name ('Get Started', 'Submit')",
+      "description": "Pricing-table and CTA modules ship every plan's button reading the same default ('Get Started' / 'Buy Now' / 'Learn More'). Out of context the buttons are indistinguishable by name, so a screen-reader user navigating buttons can't tell the Basic from the Pro plan. Editors leave the default because per-button custom labels 'look kludgy.'",
+      "wcagScs": [
+        "2.4.4",
+        "2.4.6",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<div class=\"pricing basic\"><h3>Basic</h3>...<a class=\"button\">Get Started</a></div>\n<div class=\"pricing pro\"><h3>Pro</h3>...<a class=\"button\">Get Started</a></div>\n<div class=\"pricing enterprise\"><h3>Enterprise</h3>...<a class=\"button\">Get Started</a></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Each button has a valid, non-empty name, so 4.1.2 passes and there's no duplicate-id type error. Recognizing the three 'Get Started' names are ambiguous and need to encode the plan requires understanding the page's meaning and the navigate-by-button workflow.",
+      "realWorldNote": "Beaver Builder review: Pricing Table 'buttons all say the same thing – Get Started, and while you could edit this... it would make the buttons look kludgy.' https://wpshout.com/beaver-builder-accessibility/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "WordPress theme demo import / starter templates (Astra, OceanWP, Elementor Kits, Divi Layouts)",
+      "name": "Placeholder demo content left in production — default title, lorem ipsum, stock alt",
+      "description": "One-click demo imports populate the site with template defaults that editors forget to replace: the page <title> stays 'My WordPress Site' / 'Just another WordPress site' tagline, headings and links read 'Lorem ipsum dolor', CTA buttons say 'Button Text', and stock images carry the kit's generic alt. Titles don't uniquely describe the page; link text is meaningless Latin.",
+      "wcagScs": [
+        "2.4.2",
+        "2.4.4",
+        "1.1.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<title>Home – Just another WordPress site</title>\n<h2>Lorem Ipsum Dolor</h2>\n<a class=\"elementor-button\" href=\"#\">Click Here</a>\n<img src=\"placeholder-1.jpg\" alt=\"placeholder image\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A <title> of 'Just another WordPress site' is present and non-empty (2.4.2 passes a presence check); lorem-ipsum link text is non-empty. Recognizing the content is unreplaced placeholder that fails to describe topic/purpose is a semantic judgment a linter can't make.",
+      "realWorldNote": "Demo/starter imports use lorem ipsum and template defaults; WPBeginner documents importing dummy content; 'Just another WordPress site' is the stock tagline. https://www.wpbeginner.com/wp-themes/how-to-add-dummy-content-for-theme-development-in-wordpress/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Twenty* core themes & most premium/builder themes — landmark structure",
+      "name": "Ambiguous duplicate nav landmarks and structure built from role-less divs",
+      "description": "Builder sections wrap everything in generic <div>s with no landmark roles, so the page has no programmatic structure beyond the theme header/footer. Where multiple <nav> regions exist (primary menu, footer menu, breadcrumbs) they share no distinguishing aria-label, so a screen-reader user hears 'navigation, navigation, navigation' with no way to tell them apart.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<nav>...primary menu...</nav>\n<nav>...footer menu...</nav>   <!-- both unlabeled, identical role -->\n<div class=\"elementor-section\">  <!-- main content, no <main> / role -->\n  <div class=\"elementor-container\">...</div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Duplicate unlabeled nav landmarks may or may not be flagged depending on the tool, and missing landmark structure built from divs isn't an error per se. Judging that two 'navigation' regions are ambiguous and that the page lacks a sensible landmark map needs human review of how it's announced.",
+      "realWorldNote": "Builder pages are notorious for div-soup with no landmarks; Divi historically shipped no skip link and weak landmark labeling. https://www.accessgo.de/en/divi-accessibility-overview-requirements-solutions-and-practical-examples/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Wix Stores / headless React storefronts — icon-only controls",
+      "name": "div/span 'button' with visual label mismatching its accessible name",
+      "description": "Cart, wishlist, quick-add and quantity controls are built as <div> or <span> with click handlers and an icon. Either there is no accessible name at all, or an aria-label was copy-pasted/templated so it mismatches the visible glyph or tooltip (e.g. a heart icon labeled 'button', or a '+' quantity stepper whose aria-label says 'Decrease'). The visible text/icon and the programmatic name disagree.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<div class=\"qty-up\" role=\"button\" tabindex=\"0\" aria-label=\"Decrease quantity\">\n  <svg aria-hidden=\"true\"><!-- plus icon --></svg>\n</div>\n<span class=\"wishlist\" onclick=\"addWish()\"><i class=\"icon-heart\"></i></span>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A linter flags the second case (clickable span with no name / no role / no keyboard handler) — that part is auto-detectable. But the first case has a role, tabindex, and an aria-label, so axe passes it; detecting that the label 'Decrease' contradicts the visible '+' glyph requires reading the icon and comparing it to the name — a visual/semantic human judgment (the 'accessible name contains visible label' check needs human eyes on the icon).",
+      "realWorldNote": "Wix guidance notes 'missing or inappropriately applied ARIA labels' as a critical screen-reader issue and that some elements need manual fixing; TestParty lists wishlist/quick-add 'icon-only buttons without labels'. https://accessibe.com/blog/knowledgebase/wix-website-accessibility ; https://testparty.ai/blog/beyond-alt-text-hidden-shopify-accessibility-barriers",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Shopify Dawn / generic themes — promo and 'Learn more' CTAs from CMS blocks",
+      "name": "Repeated non-descriptive link text ('Shop now' / 'Learn more')",
+      "description": "Theme content blocks and collection cards generate multiple links whose text is the same generic phrase ('Shop now', 'Learn more', 'View details') with the actual destination only conveyed by an adjacent heading or image. A screen reader user listing links hears 'Shop now, Shop now, Learn more, Learn more' with no way to tell them apart.",
+      "wcagScs": [
+        "2.4.4",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<div class=\"card\">\n  <h3 class=\"card__heading\">Summer Linen Collection</h3>\n  <a href=\"/collections/summer-linen\" class=\"button\">Shop now</a>\n</div>\n<div class=\"card\">\n  <h3 class=\"card__heading\">Winter Knitwear</h3>\n  <a href=\"/collections/winter-knitwear\" class=\"button\">Shop now</a>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Each link has visible, non-empty text and a valid href, so it passes the auto 'link has discernible text' check. Tools rarely flag duplicated generic link text, and even when they do they cannot judge whether the surrounding heading/context makes the purpose clear — determining ambiguity requires reading the link relative to its context, a human semantic judgment.",
+      "realWorldNote": "Common Dawn/theme CMS pattern; flagged in Shopify WCAG checklists (link clarity must be reviewed manually) and Wix's note that 'reviewing link clarity' is not automatable. https://easyappsecom.com/guides/shopify-wcag-compliance-checklist ; https://www.allaccessible.org/blog/shopify-accessibility-implementation-guide",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Framer auto-generated headings / text layers",
+      "name": "Heading hierarchy from visual size: skipped levels and multiple H1s",
+      "description": "Designers style text layers by visual size and Framer lets each text layer be tagged H1–H6 (or left as a paragraph/div). The result is non-sequential heading levels (H1 → H4), several H1s on one page, decorative big text marked as a heading, or real section headings left as plain styled divs.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6",
+        "2.4.10"
+      ],
+      "typicalMarkup": "<h1>Acme</h1>\n<h1>Build faster</h1>\n<h4>Features</h4>   <!-- visually the section heading, level skipped -->\n<div class=\"text-xl\">Pricing</div>  <!-- looks like a heading, isn't one -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Skipped levels and multiple H1s are partly linter-detectable, but the high-value errors are semantic: deciding that a big styled <div> SHOULD be a heading, or that an <h4> is functioning as the section title, requires understanding the page's meaning and visual structure — automated checks can't infer intended document outline.",
+      "realWorldNote": "AudioEye's Framer review stresses that simply tagging headings isn't enough and that missing/out-of-order/non-descriptive headings break navigation; Framer's per-layer heading control makes mis-tagging easy: https://www.audioeye.com/post/framer-offers-accessibility-features-but-are-they/",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow / Bubble CMS-driven 'Learn more' / 'Read more' link lists",
+      "name": "Repeated generic link text in collection/repeating lists",
+      "description": "A Collection List or Bubble repeating group renders a card per item, each ending in an identical 'Learn more', 'Read more', or 'View →' link. Out of context the link text is meaningless and screen-reader users hear 'Learn more' a dozen times with no way to tell the destinations apart.",
+      "wcagScs": [
+        "2.4.4",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<div class=\"card\"><h3>Pricing tiers</h3>\n  <a href=\"/pricing\">Learn more</a></div>\n<div class=\"card\"><h3>Case studies</h3>\n  <a href=\"/cases\">Learn more</a></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Each link HAS visible text and an href, so it passes the 'link must have a name' check. Judging that 'Learn more' is not descriptive of its purpose — and that an associated heading would have to be programmatically connected to fix it — is a contextual/semantic decision tools can't reliably make (the text is technically present and non-empty).",
+      "realWorldNote": "Generic 'Learn more / Read more / click here' links are a canonical 2.4.4 failure; CMS card templates mass-produce them. WebAIM and WCAG 2.4.4 guidance: https://www.w3.org/WAI/WCAG21/Understanding/link-purpose-in-context.html",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Custom div/span \"button\" (React component with role=\"button\")",
+      "name": "Label-in-name mismatch: aria-label differs from visible text",
+      "description": "A component renders a clickable element showing one visible label but sets an aria-label/aria-labelledby that says something different (e.g. visible \"Submit\", aria-label \"Submit form\"; or visible \"Buy\" with aria-label \"Add to cart\"). Speech-input users who say the visible word cannot activate it, and the announced name conflicts with what is seen.",
+      "wcagScs": [
+        "2.4.6",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<div role=\"button\" tabindex=\"0\" aria-label=\"Submit form\">Submit</div>\n<!-- visible: Submit ; announced: \"Submit form\" -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe's label-content-name-mismatch rule catches some cases, but it only fires when the visible text is NOT contained in the accessible name; many real mismatches (paraphrases, icon+text where the visible text is partly present, or labelledby pointing at a different node) slip through, and judging whether the names are semantically equivalent for a user requires reading both as a human.",
+      "realWorldNote": "Deque axe rule label-content-name-mismatch and W3C ARIA14 / SC 2.5.3 Label in Name describe this; Ben Myers warns against aria-label on elements with visible text. https://dequeuniversity.com/rules/axe/4.7/label-content-name-mismatch",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "CMS-driven card/teaser components (React/Vue rendered from CMS data)",
+      "name": "Repeated generic \"Read more\" / \"Learn more\" links",
+      "description": "A reusable Card component renders a fixed call-to-action link (\"Read more\", \"Learn more\", \"Details\") for every item, with the descriptive title rendered as separate text outside the link. A screen-reader user pulling up the links list hears \"Read more, Read more, Read more...\" with no way to tell the destinations apart; in-context the link text alone is non-descriptive.",
+      "wcagScs": [
+        "2.4.4",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<article class=\"card\">\n  <h3>Annual Report 2025</h3>\n  <p>Summary text...</p>\n  <a href=\"/reports/2025\">Read more</a>\n</article>\n<!-- repeated N times, all links say \"Read more\" -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The link has non-empty text, so \"discernible text\" checks pass. Some tools heuristically warn on the literal string \"read more,\" but they cannot judge whether the surrounding context (the heading) is programmatically associated, whether the destinations actually differ, or whether the text is adequately descriptive — that is a semantic, contextual reading.",
+      "realWorldNote": "Vision Australia and WCAG SC 2.4.4 Link Purpose (In Context) describe non-descriptive \"Read more\" links as a classic failure; common in CMS card components. https://www.visionaustralia.org/business-consulting/digital-access/blog/how-to-make-read-more-links-accessible",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Marketing/long-form pages built in Elementor, Divi, Wix, Webflow visual editors",
+      "name": "Heading levels chosen for visual size, not document structure",
+      "description": "Authors pick heading tags by how big the text looks, producing skipped levels (h1 then h4), multiple or zero h1s, or styled <div>/<p> that look like headings but carry no heading role. The visual hierarchy and the programmatic outline diverge, breaking screen-reader heading navigation.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6",
+        "2.4.10"
+      ],
+      "typicalMarkup": "<h1>Our Services</h1>\n<h4 class=\"big-text\">Consulting</h4> <!-- skipped h2/h3 -->\n<p class=\"looks-like-a-heading\" style=\"font-size:2rem;font-weight:700\">Pricing</p>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Skipped heading levels are partially flagged ('heading-order'), but tools cannot detect a visually-styled <p> that SHOULD be a heading (no role to test against), nor judge whether the heading TEXT accurately describes its section (2.4.6). Matching the visual outline to the intended structure is a human reading/visual task.",
+      "realWorldNote": "Elementor/Divi heading-misuse is a top page-builder audit finding: https://www.abrightclearweb.com/elementor-accessibility/ ; WebAIM Million also notes heading issues among manual-skewed problems.",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Hand-coded / framework icon buttons with aria-label overriding visible text (e.g. Bootstrap/Tailwind 'Submit' button decorated with aria-label=\"Send form now\")",
+      "name": "aria-label contradicts visible button text (Label in Name break)",
+      "description": "A control has visible text but aria-label replaces it with different wording, so the accessible name no longer contains the visible label. Speech-input users cannot activate it by speaking the visible word, and screen-reader users hear different text than sighted users see. The classic W3C example is a 'Go' button whose aria-label is 'Find in this site'.",
+      "wcagScs": [
+        "4.1.2",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<button aria-label=\"Send form now\">Submit</button>\n<a href=\"/cart\" aria-label=\"View shopping basket\">Cart (3)</a>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe/Lighthouse see a non-empty accessible name and a button with a role, so they pass it. They do not (reliably) compare the visible text node against the computed accessible name to detect that the visible label is absent from the name; deciding whether the visible word is 'contained' requires reading both strings and judging semantic equivalence.",
+      "realWorldNote": "W3C WCAG failure F96 (accessible name not containing visible label text) uses the 'Go' button with aria-label 'Find in this site'; documented by Adrian Roselli and Ashlee Boyer ('Don't Overwrite Visual Labels With aria-label'). https://www.w3.org/WAI/WCAG21/Techniques/failures/F96",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Generic / vague link and button text emitted by CMS widgets and listing components ('Read more', 'Learn more', 'Click here', arrow glyphs, repeated per card)",
+      "name": "non-descriptive link/button text repeated out of context",
+      "description": "A grid of cards or a blog listing renders many identical 'Read more' / 'Learn more' links with no aria-label disambiguation and no surrounding programmatic context. A screen-reader user pulling up a links list hears 'Learn more, Learn more, Learn more' with no way to tell destinations apart.",
+      "wcagScs": [
+        "2.4.4",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<article><h3>Pricing</h3><a href=\"/pricing\">Learn more</a></article>\n<article><h3>Support</h3><a href=\"/support\">Learn more</a></article>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The links have non-empty accessible names, so name-presence checks pass. axe can flag identical link text going to different URLs in some configs, but judging whether 'Learn more' is sufficiently descriptive in context (and whether the heading association rescues it) is a semantic call about link purpose that needs a human.",
+      "realWorldNote": "WCAG 2.4.4 Link Purpose; Deque/WebAIM and Silktide repeatedly cite CMS 'Read more'/'Learn more' widgets as a top real-world failure. https://www.deque.com/blog/text-links-practices-screen-readers/",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "TinyMCE / CKEditor rich-text output embedded in any CMS (WordPress, Drupal, OJS)",
+      "name": "Fake headings: bold/large paragraph instead of <h2>",
+      "description": "Content authors style a line as visually prominent by bolding it and bumping font size in the WYSIWYG toolbar rather than choosing a heading level from the format dropdown. The result is a <p><strong> (or a <span> with inline styles) that looks like a heading but carries no heading role, so screen-reader heading navigation and the document outline are broken; section structure is invisible to AT.",
+      "wcagScs": [
+        "1.3.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<p><strong><span style=\"font-size:24px\">Our Services</span></strong></p>\n<p>We offer ...</p>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "There is no heading element at all, so a linter sees only well-formed paragraph text with no rule violation (no empty heading, no skipped level). Deciding that a given bold/large paragraph is functioning as a heading requires reading the content and judging its role from visual prominence and meaning.",
+      "realWorldNote": "TinyMCE/CKEditor accessibility guidance explicitly tells authors not to fake headings with bold/size and to use the format dropdown instead. https://www.tiny.cloud/blog/accessible-rich-text-editor/ and https://ckeditor.com/blog/how-to-make-a-website-accessible-step-by-step-guide/",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

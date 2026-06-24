@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 BOUNDARY / PASS — sharpens the aspect: a <pre> is NOT a 1.3.1 failure by itself.
+    The failure is when CHARACTER ALIGNMENT carries TABULAR or COLUMN RELATIONSHIPS. This ramen
+    shop's page uses <pre> twice, but neither <pre> encodes a table:
+      (1) An ASCII-art logo/divider — purely decorative, marked role="img" with an aria-label, and
+          the surrounding text already says everything; no relationship lives in its alignment.
+      (2) A short menu-description haiku in <pre> — line breaks are the poet's intent (a meaningful
+          sequence that linearizes fine), not columns; nothing is aligned into cells.
+    The actual TABULAR data — the price list (item + description + price) — is in a REAL <table>
+    with <th scope> headers, so the item->price relationship IS programmatically determinable.
+    Therefore the page does NOT fail F33/F34/F48 for THIS aspect; it passes.
+    WHY THIS IS THE INSTRUCTIVE BOUNDARY: a naive reviewer (or an over-eager heuristic) might flag
+    ANY <pre> with aligned-looking text. Correctly judging that these two <pre> blocks carry no
+    row/column relationship — while the prices, which ARE tabular, use a proper table — requires the
+    same human visual-semantic reasoning, applied to reach a PASS. Automated tools also "pass" it,
+    but for the wrong reason (they can't read alignment at all); a human passes it for the right one.
+  -->
+  <title>Tonkotsu Lane — Menu</title>
+  <style>
+    :root { --broth:#3a2a1d; --bg:#fbf6ee; --ink:#2b2017; --accent:#b4451f; --line:#e3d6c4; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Avenir Next","Segoe UI",Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    .wrap { max-width:760px; margin:0 auto; padding:28px 24px 56px; }
+    .logo {
+      font-family:"Courier New",monospace; white-space:pre; line-height:1.1; font-size:11px;
+      color:var(--accent); text-align:center; margin:8px 0 0;
+    }
+    .tagline { text-align:center; color:#7a6651; margin:6px 0 26px; font-size:14px; letter-spacing:.06em; }
+    h1 { font-size:24px; color:var(--broth); margin:0 0 4px; text-align:center; }
+    h2 { font-size:17px; color:var(--accent); margin:28px 0 8px; border-bottom:2px solid var(--line); padding-bottom:4px; }
+    .haiku {
+      font-family:"Courier New",monospace; white-space:pre; line-height:1.6; font-size:15px;
+      color:#5a4633; margin:0 0 8px; font-style:italic;
+    }
+    .divider {
+      font-family:"Courier New",monospace; white-space:pre; text-align:center; color:#c9b79c;
+      margin:22px 0; font-size:13px;
+    }
+    table.prices { width:100%; border-collapse:collapse; margin-top:6px; }
+    table.prices caption { text-align:left; color:#7a6651; font-size:13px; margin-bottom:8px; }
+    table.prices th, table.prices td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+    table.prices thead th { color:var(--broth); font-size:13px; text-transform:uppercase; letter-spacing:.05em; }
+    table.prices td.price { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    table.prices td .desc { display:block; color:#8a7860; font-size:13px; margin-top:2px; }
+    footer { text-align:center; color:#9b8a73; font-size:12px; margin-top:30px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- (1) Decorative ASCII logo: role=img + name; carries NO tabular relationship. -->
+    <pre class="logo" role="img" aria-label="Tonkotsu Lane logo, a steaming ramen bowl">    ___
+  .'   '.
+ /  ~ ~  \      ~  ~  ~
+|  (  )  |   T O N K O T S U
+ \  '-'  /      L A N E
+  '.___.'</pre>
+    <h1>Tonkotsu Lane</h1>
+    <p class="tagline">Small-batch ramen · open since the rain started</p>
+
+    <h2>Today</h2>
+    <!-- (2) A haiku in <pre>: line breaks are the poet's meaningful sequence, not columns. -->
+    <p class="haiku">slow broth, twelve hours —
+the green onion remembers
+the cold it came from</p>
+
+    <div class="divider" aria-hidden="true">· · ─────── · ───────  · ·</div>
+
+    <h2>Bowls</h2>
+    <!-- The TABULAR data (item / description / price) uses a REAL table with header cells. -->
+    <table class="prices">
+      <caption>Prices include tax. Add-ons listed at the bottom.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Bowl</th>
+          <th scope="col">Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Classic Tonkotsu<span class="desc">12-hour pork broth, chashu, soft egg, scallion</span></th>
+          <td class="price">$15</td>
+        </tr>
+        <tr>
+          <th scope="row">Spicy Miso<span class="desc">fermented chili-miso tare, corn, bean sprouts, nori</span></th>
+          <td class="price">$16</td>
+        </tr>
+        <tr>
+          <th scope="row">Shoyu Chicken<span class="desc">clear soy broth, grilled thigh, bamboo, menma</span></th>
+          <td class="price">$14</td>
+        </tr>
+        <tr>
+          <th scope="row">Garden Shio<span class="desc">vegan dashi, charred cabbage, mushroom, sesame</span></th>
+          <td class="price">$14</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <footer>Tonkotsu Lane · cash &amp; card · no reservations</footer>
+  </div>
+</body>
+</html>

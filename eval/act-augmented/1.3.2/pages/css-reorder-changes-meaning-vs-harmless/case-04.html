@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Full Time — Harriers 3, Wanderers 1 | Borough League Live</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  Every cell has text; no empty nodes, labels, or contrast problems. The scoreboard uses
+  grid-template-areas to paint a tidy "TEAM ... SCORE" grid. But the source order of the
+  grid items is grouped by TYPE, not by team: both team names first, then both scores
+  (DOM: "Harriers", "Wanderers", "3", "1"). Visually grid-area re-pairs them as
+  "Harriers 3 / Wanderers 1". Linearized for a screen reader it reads
+  "Harriers  Wanderers  3  1" — the scores detach from their teams; a listener cannot tell
+  who scored 3 and who scored 1. A tool cannot know the visual pairing is the meaning; it
+  would have to read the linearized stream and understand a scoreboard binds each number to
+  the adjacent team. That is human comprehension.
+-->
+<style>
+  :root { --ink:#10151b; --turf:#0f7a3d; --paper:#fff; --line:#d8dee4; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 system-ui,Segoe UI,sans-serif; color:var(--ink);
+         background:#eef1f3; }
+  header { background:var(--ink); color:#fff; padding:22px 24px; }
+  header h1 { margin:0; font-size:1.3rem; letter-spacing:.4px; }
+  header .ft { color:#7be0a6; font-weight:700; letter-spacing:1px; font-size:.8rem; }
+  main { max-width:620px; margin:0 auto; padding:28px 20px 64px; }
+
+  /* A junior dev hand-built the scoreboard from a Codepen "CSS grid scoreboard" demo.
+     They liked authoring all team names together, then all scores together, in the markup,
+     and relied on grid-template-areas to place each item. The grid pairs them correctly
+     ON SCREEN, but the DOM keeps the type-grouped order. */
+  .board {
+    background:var(--paper); border:1px solid var(--line); border-radius:14px;
+    padding:26px 30px; margin-top:8px;
+    display:grid;
+    grid-template-columns:1fr auto;
+    grid-template-areas:
+      "home  homescore"
+      "away  awayscore";
+    row-gap:14px; column-gap:24px; align-items:center;
+  }
+  .board .team  { font-size:1.4rem; font-weight:600; }
+  .board .score { font-size:2.4rem; font-weight:800; color:var(--turf); justify-self:end; }
+  /* placement re-pairs the type-grouped DOM into team rows visually */
+  .home      { grid-area:home; }
+  .away      { grid-area:away; }
+  .homescore { grid-area:homescore; }
+  .awayscore { grid-area:awayscore; }
+
+  .note { color:#5a6772; font-size:.92rem; margin-top:22px; }
+  footer { border-top:1px solid var(--line); margin-top:40px; padding-top:16px;
+           font-size:.85rem; color:#5a6772; }
+</style>
+</head>
+<body>
+<header>
+  <span class="ft">FULL TIME</span>
+  <h1>Borough League · Matchday 11</h1>
+</header>
+<main>
+  <!-- Source/linearized reading order of the grid items:
+         "Hillside Harriers"  "Riverton Wanderers"  "3"  "1"
+       Visual (grid-area) pairing:
+         Hillside Harriers  3
+         Riverton Wanderers 1
+       A screen reader speaks the four cells in DOM order — both teams, then both scores —
+       so the listener hears "Harriers, Wanderers, 3, 1" and cannot bind 3 to Harriers. -->
+  <section class="board" aria-label="Final score">
+    <div class="team home">Hillside Harriers</div>
+    <div class="team away">Riverton Wanderers</div>
+    <div class="score homescore">3</div>
+    <div class="score awayscore">1</div>
+  </section>
+
+  <p class="note">Goals: Achebe 12', 67', Lindqvist 81' (Harriers); Pratt 54' (Wanderers).
+     Attendance 4,210.</p>
+
+  <footer>
+    Borough League Live · Unofficial fan scoreboard · Renders from file:// with no assets.
+  </footer>
+</main>
+</body>
+</html>

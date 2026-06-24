@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trailhead Outfitters — Hiking Gear</title>
+<style>
+  :root { --pine:#1f5132; --sand:#f3efe7; --ink:#222a26; --muted:#5a6660; --gold:#b8742a; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Helvetica Neue", system-ui, sans-serif; color:var(--ink); background:var(--sand); }
+  header { background:var(--pine); color:#fff; padding:12px 24px; display:flex; align-items:center; gap:16px; }
+  header .brand { font-weight:700; font-size:1.15rem; letter-spacing:.3px; }
+  nav.utility { margin-left:auto; display:flex; align-items:center; gap:22px; }
+  /* The cart control: an icon glyph sitting next to a live count */
+  .cart { position:relative; display:inline-flex; align-items:center; gap:8px; }
+  .cart .glyph { font-size:1.5rem; line-height:1; }
+  .cart .count { min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:var(--gold); color:#fff; font-weight:700; font-size:.85rem; display:inline-grid; place-items:center; }
+  main { max-width:960px; margin:28px auto; padding:0 24px; }
+  h1 { font-size:1.5rem; margin:0 0 6px; }
+  .lead { color:var(--muted); margin:0 0 26px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+  .product { background:#fff; border:1px solid #e2ddd2; border-radius:10px; overflow:hidden; }
+  .product .img { height:130px; background:linear-gradient(135deg,#cfe0d4,#a9c7b3); display:grid; place-items:center; font-size:2.4rem; }
+  .product .body { padding:14px 16px; }
+  .product h2 { font-size:1rem; margin:0 0 4px; }
+  .product .price { font-weight:700; color:var(--pine); margin:0 0 12px; }
+  .product button { width:100%; padding:10px; border:0; border-radius:7px; background:var(--pine); color:#fff; font-weight:600; cursor:pointer; }
+  .product button:focus-visible { outline:3px solid var(--gold); outline-offset:2px; }
+  .note { background:#fff; border:1px solid #e2ddd2; border-left:4px solid var(--gold); border-radius:8px; padding:16px 18px; margin-top:30px; font-size:.85rem; color:#4a4036; }
+  .note code { background:#f3efe7; padding:1px 4px; border-radius:4px; }
+  /* visually-hidden helper (used ONLY by the remediated control region, not the failing cart) */
+  .visually-hidden { position:absolute !important; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Trailhead Outfitters</span>
+  <nav class="utility" aria-label="Account and cart">
+    <a href="#" style="color:#cfe0d4;text-decoration:none;font-size:.9rem">Sign in</a>
+    <!-- The cart: an icon glyph (labelled for 1.1.1) plus a count that is the live region. -->
+    <span class="cart">
+      <span class="glyph" role="img" aria-label="Shopping cart" aria-hidden="false">&#128722;</span>
+      <!-- The ENTIRE atomic announcement is just the number. The word "cart" lives on the
+           adjacent glyph's aria-label, which a polite live update never re-reads. -->
+      <span class="count" id="cartCount" role="status" aria-live="polite" aria-atomic="true">0</span>
+    </span>
+  </nav>
+</header>
+
+<main>
+  <h1>Trail-tested hiking gear</h1>
+  <p class="lead">Add items to your cart. The badge in the header updates as you shop.</p>
+
+  <div class="grid">
+    <article class="product">
+      <div class="img" aria-hidden="true">&#127956;</div>
+      <div class="body">
+        <h2>Granite Peak 45L Pack</h2>
+        <p class="price">$189.00</p>
+        <button type="button" onclick="addItem()">Add to cart</button>
+      </div>
+    </article>
+    <article class="product">
+      <div class="img" aria-hidden="true">&#128694;</div>
+      <div class="body">
+        <h2>Switchback Trail Runners</h2>
+        <p class="price">$132.00</p>
+        <button type="button" onclick="addItem()">Add to cart</button>
+      </div>
+    </article>
+    <article class="product">
+      <div class="img" aria-hidden="true">&#9978;</div>
+      <div class="body">
+        <h2>Ridgeline 2P Tent</h2>
+        <p class="price">$274.00</p>
+        <button type="button" onclick="addItem()">Add to cart</button>
+      </div>
+    </article>
+  </div>
+
+  <div class="note">
+    <strong>Why automated tools pass this page.</strong>
+    The cart badge is a valid live region: <code>role="status"</code>, <code>aria-live="polite"</code>,
+    <code>aria-atomic="true"</code>. When it updates it announces its <em>entire</em> contents — so this
+    is <em>not</em> a partial-atomic bug; the whole string is read. The bug is that the whole string is
+    only the number. The word &ldquo;cart&rdquo; that gives the number meaning lives on the adjacent
+    glyph's <code>aria-label</code> (so 1.1.1 passes), but the glyph is outside the atomic region and is
+    never re-announced on update. axe/WAVE/Lighthouse see a present, non-empty, correctly-roled live
+    region with a labelled icon beside it and report nothing.
+  </div>
+</main>
+
+<script>
+  var n = 0;
+  function addItem() {
+    n += 1;
+    // Only the volatile number is written into the atomic region. No "items", no "in cart".
+    document.getElementById('cartCount').textContent = String(n);
+  }
+</script>
+</body>
+</html>

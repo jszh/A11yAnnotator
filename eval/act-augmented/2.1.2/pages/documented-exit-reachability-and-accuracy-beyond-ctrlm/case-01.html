@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resident Property Tax Estimator — Maplewood County</title>
+<style>
+  :root { font-family: "Segoe UI", Roboto, system-ui, sans-serif; color: #1c2530; }
+  body { margin: 0; background: #eef2f6; }
+  header { background: #0b3d62; color: #fff; padding: 16px 24px; }
+  header h1 { margin: 0; font-size: 1.25rem; }
+  main { max-width: 720px; margin: 24px auto; background: #fff; border: 1px solid #cdd6df;
+         border-radius: 8px; padding: 24px; }
+  .millage-grid { border: 2px solid #0b3d62; border-radius: 6px; padding: 16px; margin: 16px 0;
+                  background: #f7fafd; }
+  .millage-grid h2 { margin-top: 0; font-size: 1rem; color: #0b3d62; }
+  .millage-grid label { display: block; font-size: .85rem; margin: 10px 0 2px; font-weight: 600; }
+  .millage-grid input, .millage-grid select { width: 100%; padding: 8px; box-sizing: border-box;
+         border: 1px solid #9fb0c0; border-radius: 4px; font-size: .95rem; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .calc-btn { margin-top: 14px; background: #0b3d62; color: #fff; border: 0; padding: 10px 18px;
+         border-radius: 4px; font-size: .95rem; cursor: pointer; }
+  .estimate { margin-top: 12px; font-size: 1.05rem; font-weight: 700; color: #0b3d62; }
+  details { margin: 28px 0 0; border-top: 1px solid #cdd6df; padding-top: 16px; }
+  summary { cursor: pointer; font-weight: 600; color: #0b3d62; }
+  footer { max-width: 720px; margin: 16px auto 48px; font-size: .8rem; color: #5a6b7b; }
+  a { color: #0b6cc2; }
+</style>
+</head>
+<body>
+<header><h1>Maplewood County — Resident Services</h1></header>
+<main>
+  <h2 style="margin-top:0;">Annual Property Tax Estimator</h2>
+  <p>Enter your parcel's assessed value and exemptions to estimate your annual tax bill before the
+     August reassessment deadline.</p>
+
+  <a href="/parcels/lookup">Look up my parcel number</a>
+
+  <!-- The estimator below is a focus-trapping "millage worksheet". Once a field inside it gets
+       focus, blur is intercepted and focus is sent back to the first field, so Tab cannot leave
+       the worksheet. A custom Ctrl+M exit is wired up and WORKS — but its only instruction lives
+       in the collapsed <details> at the very bottom of the page, AFTER the trap. A keyboard user
+       who tabs into the worksheet is looped before they can ever reach (or open) that disclosure. -->
+  <section class="millage-grid" id="worksheet" aria-label="Millage worksheet">
+    <h2>Millage Worksheet</h2>
+    <label for="assessed">Assessed value (USD)</label>
+    <input id="assessed" type="text" inputmode="numeric" value="318,500">
+    <div class="row">
+      <div>
+        <label for="homestead">Homestead exemption</label>
+        <select id="homestead">
+          <option>None</option><option selected>Standard ($25,000)</option><option>Senior ($50,000)</option>
+        </select>
+      </div>
+      <div>
+        <label for="district">School district</label>
+        <select id="district">
+          <option selected>Maplewood Unified</option><option>North Ridge</option><option>Lakeshore</option>
+        </select>
+      </div>
+    </div>
+    <button class="calc-btn" id="calc" type="button">Calculate estimate</button>
+    <p class="estimate" id="out" hidden></p>
+  </section>
+
+  <a href="/appeals">File an assessment appeal</a>
+
+  <details id="kbd-help">
+    <summary>Keyboard &amp; accessibility tips</summary>
+    <p>The Millage Worksheet keeps your cursor inside it while you adjust figures. To move focus back
+       out to the rest of the page using only the keyboard, <strong>press Ctrl+M</strong>.</p>
+  </details>
+</main>
+<footer>
+  <p>Maplewood County is committed to digital accessibility. Report a barrier:
+     <a href="/a11y">accessibility@maplewood.gov</a></p>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    The page is technically clean. The escape keystroke IS documented in plain text, the <details>
+    has a real <summary>, every field has a <label>, and the Ctrl+M handler genuinely works. axe /
+    WAVE / Lighthouse see a present, well-formed instruction and a working exit, so they pass it.
+    What they cannot evaluate is REACHABILITY: the instruction sits in a collapsed disclosure placed
+    in DOM/visual order AFTER the trapping worksheet. A keyboard user who tabs into the worksheet is
+    looped back to the first field and can never tab forward to the <summary> to open it — so the
+    documented exit is, for the trapped user, undiscoverable. Judging that requires actually driving
+    the keyboard and reasoning about WHEN the advice becomes reachable relative to the trap. G21
+    requires the feature be documented "in an accessible manner within the subset"; advice after the
+    trap is not.
+  -->
+</footer>
+
+<script>
+(function () {
+  var trapOn = false;
+  var worksheet = document.getElementById('worksheet');
+  var fields = worksheet.querySelectorAll('input, select, button');
+  var first = fields[0];
+
+  // Engage the trap once focus lands inside the worksheet.
+  fields.forEach(function (el) {
+    el.addEventListener('focus', function () { trapOn = true; });
+    el.addEventListener('blur', function () {
+      if (trapOn) {
+        // Send focus back to the first field on the next tick → keyboard cannot leave.
+        setTimeout(function () { if (trapOn) first.focus(); }, 0);
+      }
+    });
+  });
+
+  // Working custom exit — released only by Ctrl+M. (Its instruction is hidden after the trap.)
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey && (e.key === 'm' || e.key === 'M')) {
+      trapOn = false;
+      e.preventDefault();
+      var appeal = document.querySelector('a[href="/appeals"]');
+      if (appeal) appeal.focus();
+    }
+  });
+
+  document.getElementById('calc').addEventListener('click', function () {
+    var out = document.getElementById('out');
+    out.hidden = false;
+    out.textContent = 'Estimated annual tax: $4,182.00';
+  });
+})();
+</script>
+</body>
+</html>

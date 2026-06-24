@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipelines — Northwind Analytics</title>
+<style>
+  :root { --bg:#0e1117; --panel:#161b22; --line:#2a313c; --ink:#e6edf3; --muted:#8b949e; --accent:#388bfd; --ok:#2ea043; --warn:#d29922; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter", system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+  .app { display:grid; grid-template-columns:200px 1fr; min-height:100vh; }
+  nav { background:var(--panel); border-right:1px solid var(--line); padding:18px 14px; }
+  nav .brand { font-weight:700; font-size:1.05rem; margin-bottom:20px; }
+  nav a { display:block; color:var(--muted); text-decoration:none; padding:8px 10px; border-radius:6px; font-size:.9rem; }
+  nav a.active { background:#1f6feb22; color:var(--ink); }
+  main { padding:28px 36px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 24px; font-size:.9rem; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; }
+  .card h2 { font-size:1rem; margin:0 0 3px; }
+  .card p { margin:0; color:var(--muted); font-size:.85rem; }
+  .btn { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:9px 16px; font-size:.9rem; font-weight:600; cursor:pointer; }
+  .btn:hover { filter:brightness(1.08); }
+  /* Toast styling */
+  #toast-stack { position:fixed; right:20px; bottom:20px; display:flex; flex-direction:column; gap:10px; z-index:50; }
+  .toast { background:#1b2330; border:1px solid var(--line); border-left:4px solid var(--ok); border-radius:8px; padding:12px 16px; min-width:280px; box-shadow:0 8px 28px rgba(0,0,0,.45); animation:slidein .25s ease; }
+  .toast.err { border-left-color:#f85149; }
+  .toast .t-title { font-weight:600; font-size:.9rem; }
+  .toast .t-body { color:var(--muted); font-size:.82rem; margin-top:2px; }
+  @keyframes slidein { from { transform:translateY(12px); opacity:0; } to { transform:none; opacity:1; } }
+  .devnote { margin-top:28px; padding:14px 18px; background:#13202b; border:1px solid #1f3a4d; border-radius:8px; font-size:.82rem; color:#9fc6dd; line-height:1.5; }
+  code { background:#0b0f14; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav>
+    <div class="brand">Northwind</div>
+    <a href="#" class="active">Pipelines</a>
+    <a href="#">Datasets</a>
+    <a href="#">Schedules</a>
+    <a href="#">Settings</a>
+  </nav>
+  <main>
+    <h1>Data Pipelines</h1>
+    <p class="sub">Trigger and monitor your ETL runs.</p>
+
+    <div class="card">
+      <div>
+        <h2>nightly-orders-rollup</h2>
+        <p>Last run 4 hours ago · 1.2M rows</p>
+      </div>
+      <button class="btn" data-name="nightly-orders-rollup">Run now</button>
+    </div>
+    <div class="card">
+      <div>
+        <h2>customer-360-sync</h2>
+        <p>Last run 18 minutes ago · 84k rows</p>
+      </div>
+      <button class="btn" data-name="customer-360-sync">Run now</button>
+    </div>
+    <div class="card">
+      <div>
+        <h2>finance-ledger-export</h2>
+        <p>Last run yesterday · 410k rows</p>
+      </div>
+      <button class="btn" data-name="finance-ledger-export">Run now</button>
+    </div>
+
+    <div class="devnote">
+      <strong>Why automated tools cannot catch this:</strong> Press any &ldquo;Run now&rdquo; button and a toast
+      slides up that, when inspected, is a valid <code>&lt;div role="status" aria-live="polite"&gt;</code> containing
+      a status message. axe/WAVE/Lighthouse looking at that resting DOM see a correct live region and report nothing.
+      But the toast helper does <code>createElement</code>, then <code>setAttribute('aria-live','polite')</code> and
+      <code>role="status"</code>, then sets <code>textContent</code>, and only THEN appends the node &mdash; the
+      region and its message arrive in the same tick. There was never a pre-existing empty live region, so screen
+      readers do not announce it. No static snapshot can see that the attributes were applied before the node was
+      ever connected to the document.
+    </div>
+  </main>
+</div>
+
+<!-- The toast container exists, but it is NOT itself a live region; each toast IS its own (born-with-content) region. -->
+<div id="toast-stack"></div>
+
+<script>
+  // Persona: a senior engineer wrote an in-house toast helper to avoid a dependency. They KNEW about
+  // aria-live, so they conscientiously set role="status" and aria-live="polite" on the toast element —
+  // but they set those attributes (and the text) on the detached element BEFORE appending it. They tested
+  // visually, saw the toast, and considered it "accessible because it has aria-live." The subtle bug is
+  // that a live region must be present and registered in the document as an empty container; a region that
+  // is born already holding its text, in a node that was just connected, does not fire an announcement.
+  function showToast(name, ok) {
+    var stack = document.getElementById('toast-stack');
+
+    // ----- the temporal failure: attributes + text set on a DETACHED node, appended last -----
+    var el = document.createElement('div');
+    el.className = 'toast' + (ok ? '' : ' err');
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.setAttribute('data-region-born-with-content', 'true');
+
+    var title = document.createElement('div');
+    title.className = 't-title';
+    title.textContent = ok ? 'Pipeline started' : 'Pipeline failed to start';
+
+    var body = document.createElement('div');
+    body.className = 't-body';
+    body.textContent = ok
+      ? 'Run queued for “' + name + '”. You will be notified when it completes.'
+      : 'Could not queue “' + name + '”. Check your connector credentials.';
+
+    el.appendChild(title);
+    el.appendChild(body);
+    // Region + message become connected to the document together — nothing was registered beforehand.
+    stack.appendChild(el);
+
+    setTimeout(function () { el.remove(); }, 6000);
+  }
+
+  document.querySelectorAll('.btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      // simulate: most succeed
+      showToast(b.getAttribute('data-name'), Math.random() > 0.15);
+    });
+  });
+</script>
+</body>
+</html>

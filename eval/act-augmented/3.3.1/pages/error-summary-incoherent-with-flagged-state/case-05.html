@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enrol in Online Banking — Harbour Trust Credit Union</title>
+<style>
+  :root { --ink:#13202b; --muted:#5c6b78; --brand:#0e5c8a; --err:#c62828; --ok:#2e7d32; --bg:#eef2f6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter", "Segoe UI", system-ui, sans-serif; color:var(--ink); background:var(--bg); }
+  .nav { background:#fff; border-bottom:1px solid #dde4ea; padding:12px 0; }
+  .wrap { max-width:540px; margin:0 auto; padding:0 18px; }
+  .nav .wrap { display:flex; align-items:center; gap:8px; font-weight:700; color:var(--brand); }
+  .mark { width:24px; height:24px; border-radius:6px; background:var(--brand); color:#fff; display:grid; place-items:center; font-size:.85rem; }
+  main { padding:28px 0 70px; }
+  .card { background:#fff; border:1px solid #dde4ea; border-radius:12px; padding:26px 28px; box-shadow:0 1px 3px rgba(20,40,60,.06); }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 22px; font-size:.95rem; }
+  .banner { background:#fdecea; border:1px solid var(--err); border-radius:8px; padding:13px 16px; margin:0 0 24px; }
+  .banner h2 { margin:0 0 6px; color:var(--err); font-size:1.05rem; }
+  .banner ul { margin:0; padding-left:20px; }
+  .fld { margin-bottom:18px; }
+  label { display:block; font-weight:600; margin-bottom:4px; font-size:.92rem; }
+  input { width:100%; padding:9px 11px; border:1px solid #c4ccd4; border-radius:6px; font-size:1rem; }
+  .fld.error input { border:2px solid var(--err); background:#fff7f6; }
+  .fld.ok input { border:1.5px solid var(--ok); }
+  .msg { color:var(--err); font-size:.83rem; font-weight:600; margin:5px 0 0; }
+  .req { color:var(--muted); font-size:.8rem; margin:4px 0 0; }
+  .go { width:100%; background:var(--brand); color:#fff; border:0; padding:12px; font-size:1rem; border-radius:8px; cursor:pointer; margin-top:6px; }
+  .why { background:#eef4f8; border-left:4px solid var(--brand); padding:12px 16px; margin-top:28px; font-size:.81rem; color:#243642; }
+</style>
+</head>
+<body>
+<div class="nav"><div class="wrap"><span class="mark">HT</span>Harbour Trust Credit Union</div></div>
+<main>
+<div class="wrap">
+  <div class="card">
+    <h1>Enrol in online banking</h1>
+    <p class="lead">Choose a password to finish setting up your account.</p>
+
+    <!-- Summary names "Password" as the field in error. But the only field with a visible inline error
+         is "Confirm password" (the two entries don't match). The Password field itself is valid
+         (green, meets all rules) and bears NO error. The summary blames the wrong sibling field. -->
+    <div class="banner" role="alert" aria-labelledby="b-h">
+      <h2 id="b-h">We couldn&rsquo;t complete your enrolment</h2>
+      <ul>
+        <li>Password must be at least 10 characters and include a number.</li>
+      </ul>
+    </div>
+
+    <form novalidate>
+      <div class="fld">
+        <label for="username">Username</label>
+        <input type="text" id="username" value="m.delacroix" autocomplete="username">
+      </div>
+
+      <!-- Password: VALID. Green border, no error, no aria-invalid. Meets the stated rule. -->
+      <div class="fld ok">
+        <label for="pw">Password</label>
+        <input type="password" id="pw" value="Riverbend4291" aria-invalid="false" autocomplete="new-password">
+        <p class="req" id="pw-req">At least 10 characters and include a number. &check; Looks good.</p>
+      </div>
+
+      <!-- Confirm password: THE field actually in error (mismatch). Red, inline message, aria-invalid.
+           The summary never mentions it. -->
+      <div class="fld error">
+        <label for="pw2">Confirm password</label>
+        <input type="password" id="pw2" value="Riverbend4219" aria-invalid="true" aria-describedby="pw2-msg" autocomplete="new-password">
+        <p class="msg" id="pw2-msg">Confirm password does not match the password you entered.</p>
+      </div>
+
+      <button type="submit" class="go">Finish enrolment</button>
+    </form>
+
+    <div class="why">
+      <strong>Why automated checkers pass this page:</strong> The summary is a valid, visible
+      <code>role="alert"</code> region whose single line is a fluent, specific error description that
+      references a real field label ("Password"). The genuinely-flagged "Confirm password" field carries
+      <code>aria-invalid="true"</code> and a clear associated message, so 36b590 passes. "Password" and
+      "Confirm password" are distinct, valid labels &mdash; nothing is duplicated or malformed. The
+      defect is that the summary blames <em>Password</em> (which is valid and unflagged) while the field
+      truly in error is its sibling <em>Confirm password</em>. Distinguishing these two near-identical
+      field names and verifying that the summary points at the one actually flagged requires reading both
+      labels, both states, and the relationship between them &mdash; a human semantic judgment no rule
+      makes.
+    </div>
+  </div>
+</div>
+</main>
+</body>
+</html>

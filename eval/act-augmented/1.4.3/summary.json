@@ -1,0 +1,710 @@
+{
+  "sc": "1.4.3",
+  "title": "Contrast (Minimum)",
+  "level": "AA",
+  "allAspectsHave5ValidPages": true,
+  "aspectsFinalized": [
+    {
+      "slug": "decorative-vs-meaningful-text-exemption",
+      "validPageCount": 6,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.3/pages/decorative-vs-meaningful-text-exemption/case-01.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "MINOR DOC INACCURACY (does not change outcome): the watermark is font-size:46px font-weight:700 = 34.5pt bold, which is WCAG 'large text', so the applicable 1.4.3 threshold is 3:1, NOT the 4.5:1 stated in case-01.md (lines 33-34) and the HTML comment (line 112). The text still fails the correct 3:1 large-text threshold at 1.56:1, so the 'failed' outcome stands, but the rationale cites the wrong required ratio.",
+            "The .md and HTML comment repeatedly assert 'must meet 4.5:1'; for this large bold text the precise requirement is 3:1. Recommend correcting the threshold wording for accuracy, not dropping the case."
+          ]
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.3/pages/decorative-vs-meaningful-text-exemption/case-02.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Cosmetic prompt/page drift: the orchestration prompt describes the flourish as 'INSPIRE' at '35% alpha', but the actual HTML (line 83) and the .md both use the word 'WANDER' at color rgba(255,255,255,.30) (30% alpha). The HTML and .md are internally consistent; only the prompt's framing string is stale. Not a page defect.",
+            "The 'tools false-positive' narrative is partially overstated for axe-core specifically: axe-core SKIPS aria-hidden=true text for color-contrast and would therefore pass silently rather than raise a false positive. The doc hedges adequately ('or report needs-review when sampling over the photo') and the cited trusted-tester ANDI/CCA manual flow WOULD surface the faint word as a 'Manual Contrast Test Needed', so the human-judgment value (ruling it exempt) still holds. Worth a one-line tightening but not disqualifying.",
+            "Computed contrast of the flourish over the brightest scene pixel (#c9cdbf) is ~1.17:1, slightly below the doc's stated '1.4-2.0:1' floor; this only strengthens the 'fails if in scope' claim, so it is a precision nit not an error."
+          ]
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.3/pages/decorative-vs-meaningful-text-exemption/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Borderline automated-detectability: a plain ratio checker (axe-core) does NOT exempt large text from contrast checks — it applies the 3:1 large-text bar, and 2.52 < 3, so axe WOULD already flag this element as a contrast violation. The genuinely human-only part is the decorative-vs-informative SCOPE judgment, not the ratio itself; the failing ratio is mechanically catchable, which weakens the 'tools miss it' framing in the .md (lines 37-44) and HTML comment (lines 90-100).",
+            "Minor: the .md/HTML comment claim that scanners 'down-weight large text' and therefore miss it is misleading — mainstream scanners apply the 3:1 large-text threshold and still fail 2.52:1; they would not silently pass it."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.3/pages/decorative-vs-meaningful-text-exemption/case-04.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor framing weakness (not a defect): the divider is aria-hidden=\"true\", and the strongest contrast checker (axe-core's color-contrast rule) excludes elements hidden from AT, so axe would already correctly NOT fail this page. The doc's 'tools false-positive' claim only holds for naive ratio scanners that read visible text and ignore aria-hidden; the genuine human-judgment content is distinguishing this decorative repeated word from a meaningful one (the case-01 pair), not merely computing 1.5:1.",
+            "The .md attribute tuple references case-01 as 'DRAFT' (the meaningful repeated-word counterpart); I did not verify case-01 exists/has the opposite ruling, so the claimed structural-pair contrast is asserted but unverified here."
+          ]
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.3/pages/decorative-vs-meaningful-text-exemption/case-05.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "PROMPT/HARNESS METADATA MISMATCH (not a page defect): the prompt's claimed scenario describes a 'patient-intake multi-step form' with an '01 02 03' step rail, selector '.step.current .ord', #d0d0d0=1.54:1, citing the decoration-exemption for a step indicator. The ACTUAL file (case-05.html) is a transit ticket whose meaningful text is platform code 'B7' (.platform .code), color #c8cdca over an inline-SVG floorplan image. The prompt's selector '.step.current .ord' does NOT exist in the file (querySelector returns null; inspect.js fell back to RootWebArea). I judged the real page against its own matching doc (case-05.md), which is internally consistent.",
+            "Citation file in the prompt (refs/trusted-tester/sc-1.4.3-contrast-minimum.md) differs from the citation in case-05.md (WCAG Understanding contrast-minimum.html). Both quotes are legitimately verbatim in their respective sources — the trusted-tester quote 'Purely decorative and not meaningful (no functionality)' is verbatim at line 12 — but the cross-file citation inconsistency is worth flagging.",
+            "Secondary/out-of-scope defect on the same element: .platform has role='img' aria-label='Station floorplan with platform code' which does NOT contain 'B7', and the .code span resolves to ax role=none — so the sole platform cue is entirely absent from the accessibility tree for screen-reader users. This is a real 1.1.1/1.3.1 issue but does not affect the 1.4.3 visual-contrast verdict (1.4.3 concerns visual presentation, and the glyph is visibly rendered)."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.3/pages/decorative-vs-meaningful-text-exemption/case-06.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": []
+        }
+      ]
+    },
+    {
+      "slug": "logotype-brand-exemption-and-erosion",
+      "validPageCount": 6,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.3/pages/logotype-brand-exemption-and-erosion/case-01.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor (not disqualifying): the page's PASS hinges entirely on the evaluator recognizing the string 'acmecorp.com' as THE registered company wordmark, but the source provides no independent proof of brand status (no <img> logo, no registered-mark glyph, only the aria-label and a code comment). This is the intended human-judgment hook, but a strict reviewer must take the 'this is a logotype' premise on the page's word.",
+            "The aria-label='Acmecorp' drops the '.com' TLD that is visually rendered; AT users get 'Acmecorp' while sighted users see 'acmecorp.com'. Harmless for a brand mark and not a 1.4.3 concern, but a minor name/visual mismatch worth noting."
+          ]
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.3/pages/logotype-brand-exemption-and-erosion/case-02.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Threshold imprecision (minor, does not change verdict): the .md and HTML comment cite the 4.5:1 threshold, but the wordmark is font-size:22px (16.5pt) at font-weight:800 (HTML line 14), which qualifies as WCAG 'large-scale bold text' (>=14pt bold), so the strictly-applicable AA threshold is 3:1, not 4.5:1. The measured 2.07:1 fails both, so the 'failed' outcome is correct regardless, but the cited threshold is technically wrong for this size/weight.",
+            "Partial automated detectability: a stock contrast scanner (axe/Lighthouse/WAVE) DOES compute and flag 2.07:1 on this text node (the page itself admits this, HTML lines 73-85). The human judgment is required to UPHOLD the flag against the 'logos are exempt' defense, not to FIND the low contrast. So the element is not invisible to tooling; the dispositive reasoning (exemption erosion via UI-component function) is the human part."
+          ]
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.3/pages/logotype-brand-exemption-and-erosion/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "PROMPT/FILE MISMATCH: The task prompt describes a completely different page (an investigative-finance publication 'The Ledger' with a 'GOLDLEAF' <h1 class=\"headline\"> in #cdb368 at ~2.05:1, selector 'article h1.headline', and the citation 'Stylized text...treated in terms of its function on the page'). The actual file on disk is the 'Mercato' marketplace case: an SVG <text> gradient wordmark (#d9a86b->#e0b483) wrapped in <a href=\"/\"> as the sole home link, selector 'header .brand-home svg text'. My verdict is rendered on the ACTUAL file, which is internally sound. The prompt metadata is stale/wrong for this case and should be corrected.",
+            "INTERPRETIVE (not a defect, but worth noting): The 'failed' verdict rests on the EROSION of the logotype exemption, which the WCAG Understanding note frames as best-practice guidance ('authors should consider...'), not a bright-line normative rule. SC 1.4.3 normatively exempts logotype text. This is exactly the contested judgment ACT 09o5cg declares out of scope — appropriate for a human-judgment corpus, but the label is interpretive rather than mechanically forced.",
+            "getComputedStyle reports color rgb(0,0,238) (the default unstyled CSS 'color', i.e. link blue) because the actual rendered color is the SVG 'fill=url(#rosegold)' gradient, which getComputedStyle does not surface; the inspector's 'ax' for the <text> is null. A naive reading of the raw computed 'color' would be misleading — the contrast must be reasoned from the gradient stops in the source, which I did (#d9a86b=2.151:1, #e0b483=1.905:1 on #fff)."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.3/pages/logotype-brand-exemption-and-erosion/case-04.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Automated-detectability nuance: a raw contrast checker (axe/WAVE/Lighthouse) does NOT implement the logotype exemption, so it WOULD already flag the 2.10:1 tagline as a violation. The bare ratio is therefore auto-catchable. The genuine human-judgment value is the inverse direction — resisting a plausible reviewer who would WRONGLY suppress the flag by extending the logo exemption to a slogan. The case is legitimately human-judgment-dependent in that framing, but it is not a case an automated tool would MISS (it would over-flag, not under-flag).",
+            "Citation context caveat (minor, not a defect): the load-bearing Quote 1 ('Corporate identity or brand guidelines beyond logo and logotype are not included in the exception.') is verbatim at lines 97-98 of wcag-understanding/contrast-minimum.html, but it sits inside the paragraph about IMAGES OF TEXT / text alternatives (the stylized-logo / 1.4.5 discussion at lines 92-99), not inside the dedicated live-text logotype exemption note (lines 130-140). It still articulates the exact 'beyond logo and logotype' boundary and is in the correct SC 1.4.3 Understanding doc, so it supports the claim, but it is not from the logotype-note section the scenario's framing implies."
+          ]
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.3/pages/logotype-brand-exemption-and-erosion/case-05.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "TASK-PROMPT vs ARTIFACT MISMATCH (not a page defect): The orchestrator prompt's 'Claimed mechanism', 'Claimed citation', and 'Element under test (.shell .appbar a.brand)' describe the EROSION-OF-EXEMPTION theory on the WORDMARK itself (2.16:1, citing the 'logos act as UI components / choose a variant' passage). The actual HTML+MD artifact rests the failure on a DIFFERENT element — the appended .dest descriptor 'الرئيسية' (a.brand .dest, 2.46:1) — and EXPLICITLY disclaims the erosion theory (html lines 81-82, md line 63-64). The artifact is internally consistent and correctly cited; the divergence is in the prompt metadata, not the page.",
+            "Two contrast figures are extremely close (mark 2.158:1, dest 2.462:1) and visually similar grey/teal; a hand reviewer must rely on the markup (.mark vs .dest spans and font sizing 26px/800 vs 13px/400) to separate the exempt logotype from the non-exempt label — the distinction is not perceptually obvious, which is the point but also a fragility."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.3/pages/logotype-brand-exemption-and-erosion/case-06.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "MINOR / borderline on the corpus's 'requires human judgment' bar: axe-core/Lighthouse do NOT implement the logotype exemption, so they WILL compute 2.48:1 for the .beta span and emit a 1.4.3 color-contrast violation by default. The failing flag is therefore auto-detectable; the human-only contribution is the SEMANTIC distinction (recognizing 'Beta' as a non-exempt status label rather than suppressing it as part of the logo). That distinction is genuinely non-automatable, but the doc's framing that tools 'miss' the failure overstates it — tools over-flag here and would happen to be correct.",
+            "MINOR (citation, acceptable): the Trusted Tester 'verbatim' quote stitches the section heading ('Identify ALL text AND images of text. EXCLUDE text that is:') to the first bullet ('In logotypes (logo or brand name)'). The fragments are directly adjacent in refs/trusted-tester/sc-1.4.3-contrast-minimum.md lines 9-10 and represent the exclusion list faithfully, so it supports the claim, but it is a multi-line stitch rather than a single contiguous sentence."
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "faux-disabled-vs-genuinely-inactive-ui",
+      "validPageCount": 5,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.3/pages/faux-disabled-vs-genuinely-inactive-ui/case-01.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor (non-blocking): the in-HTML comment at lines 18-22 overstates automated-tool behavior ('most contrast scanners ... SKIP elements that appear disabled', 'greyed button = exempt by heuristic'). axe-core actually keys off the disabled property/aria-disabled and the disabled subtree, not grey appearance per se. This is narrative color in a comment and does not affect the test mechanism or verdict, but is technically inaccurate."
+          ]
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.3/pages/faux-disabled-vs-genuinely-inactive-ui/case-02.html",
+          "expected": "failed",
+          "status": "needs-fix",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "fix",
+          "problems": [
+            "TASK-PROMPT MISMATCH (not a page defect): the task's 'Claimed scenario' describes a different page than the file. Prompt says Lumen Analytics billing, 'Apply credit', selector #applyBtn, colors #a3a3a3 on #f0f0f0, balance->$64.00, and 'No aria-disabled present'. The actual file is Halcyon Bank 'Send money', selector #sendBtn, colors #a4a4a4 on #eeeeee, balance $2,480.00->$2,330.00, and it DOES carry aria-disabled=\"true\". The prompt selector #applyBtn does not exist in the HTML (grep: only #sendBtn). I evaluated the real element #sendBtn.",
+            "DOC FACTUAL ERROR ('Why automated tools miss it', case-02.md lines 50-51 / HTML comment lines 23-24): claims 'Strip the aria-disabled and axe flips to a HARD color-contrast violation on the identical pixels.' Empirically false on this page with axe-core 4.12.1: scoped to #sendBtn the rule is INAPPLICABLE both as-is AND with aria-disabled stripped ({v:0,i:0,p:0,inap:['color-contrast']} in both runs). In an isolated minimal page, stripping aria-disabled yields at most an INCOMPLETE (needs-review), never a hard violation. The 'verdict turns entirely on the ARIA claim' narrative is therefore unsupported by the tool's actual behavior on this markup.",
+            "Minor color discrepancy: prompt cites #a3a3a3 on #f0f0f0 (~2.2:1); file uses #a4a4a4 on #eeeeee (computed 2.148:1). Both fail 4.5:1, so the conclusion is unaffected, but the prompt metadata is inaccurate."
+          ]
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.3/pages/faux-disabled-vs-genuinely-inactive-ui/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Internal inconsistency in HTML comments: lines 15 and 71 state the table chip is '~2.4:1' / 'at 2.4:1 it FAILS', but the actual measured contrast of #8d8d8d on #f2f2f2 is 2.965:1 (~3.0:1), which is the figure used in the CSS comment (line 42) and throughout the .md doc. Verdict (fail 4.5:1) is unchanged either way, but the 2.4:1 numbers should be corrected to ~3.0:1.",
+            "Minor: the prompt's restated mechanism repeats the same erroneous 'at 2.4:1' phrasing inherited from the HTML comment; the operable chip's true ratio is 2.965:1."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.3/pages/faux-disabled-vs-genuinely-inactive-ui/case-04.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": false,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "This is an intentional PASS/exempt boundary case, not a failure — so there is no real accessibility error (by design). errorIsReal=false reflects 'no genuine SC 1.4.3 violation', which is correct for the page's intent.",
+            "Standalone-detectability caveat: axe-core/Lighthouse already exclude elements carrying the native `disabled` attribute from their color-contrast rule, so an automated tool would ALSO clear this page (silently exempt it). The human-judgment value only emerges in CONTRAST with the faux-disabled failing siblings (case-01/02/03); this case alone is not a missed automated finding. requiresHumanJudgment is set true only because the boundary it sharpens (operability-vs-appearance) is a behavioral determination, but reviewers should note this single case would not be a false-negative for tools."
+          ]
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.3/pages/faux-disabled-vs-genuinely-inactive-ui/case-05.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "PROMPT/HARNESS METADATA MISMATCH (not a page defect): The task prompt describes a completely different scenario than the file on disk. Prompt claims a 'TripNest cookie-consent dark pattern' with 'Accept all' vs a faint grey 'Reject all' (#a8a8a8 on #ffffff ~2.4:1), selector '#reject.btn.reject'. The ACTUAL case-05.html is a 'Larkwave Now playing' music player: a disabled <button> Shuffle (exempt) plus an operable white-on-gradient 'Save to library' button (selector #save.ctrl.save). grep confirms 'reject'/'TripNest'/'cookie'/'#a8a8a8' appear NOWHERE in case-05 or anywhere in the 1.4.3 corpus, and '#reject.btn.reject' does not match any element. The inspect.js run against '#reject.btn.reject' returned no matched node. I judged the real on-disk page, which is sound.",
+            "Minor (page-internal): the page declares the failing background as a CSS gradient 'standing in for a JPEG' for file:// self-containment. The 1.4.3 mechanism (no solid bg => axe returns incomplete) holds for both gradients and images, so this is faithful, but it is a synthesized stand-in rather than a real photographic cover. Acceptable for the corpus.",
+            "Minor: the axe-core 'incomplete / background could not be determined' claim could not be empirically run (axe-core is not installed in node_modules). The behavior is well-documented and the reasoning is sound, but it is asserted, not executed, in this review."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.3/pages/faux-disabled-vs-genuinely-inactive-ui/case-06.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": []
+        }
+      ]
+    },
+    {
+      "slug": "effective-background-across-cascade-and-overlays",
+      "validPageCount": 5,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.3/pages/effective-background-across-cascade-and-overlays/case-01.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": []
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.3/pages/effective-background-across-cascade-and-overlays/case-02.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "blocker",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": []
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.3/pages/effective-background-across-cascade-and-overlays/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Threshold imprecision in rationale: h1 is 38.4px/28.8pt bold = large text (AA threshold 3:1), not the 4.5:1 the doc emphasizes; verdict unaffected since measured ~1.1-1.5:1 is below both, and eyebrow/byline are regular text at 4.5:1.",
+            "Minor numeric drift: doc says ~1.25:1; measured worst-case 1.11:1 / average 1.47:1 (doc estimate falls within measured range)."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.3/pages/effective-background-across-cascade-and-overlays/case-04.html",
+          "expected": "failed",
+          "status": "needs-fix",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": false,
+          "recommendation": "fix",
+          "problems": [
+            "TASK-PROMPT MISMATCH: the prompt describes a fintech dashboard with selector '.panel p', #777 on #6f6f6f (~1.12:1) via inheritance, but the actual case-04.html is a music-player card with mix-blend-mode:soft-light on '.track-title' (#262626 on #c0c0c0). '.panel p' does not exist in the file. I judged the real file (HTML and MD are internally consistent with the soft-light scenario).",
+            "SELF-REFUTING CITATION (decisive): the page cites WCAG Understanding 1.4.3 VERBATIM (confirmed at contrast-minimum.html lines 75-77): 'refer to the foreground and background colors obtained from the user agent, or the underlying markup and stylesheets, RATHER THAN the text as presented on screen.' Read literally this CONTRADICTS the page's verdict, which is built entirely on the on-screen composited pixels (~1.46:1), while the markup colors (#262626 on #c0c0c0) pass at 8.318:1. A defensible narrow reading exists (the note targets author-uncontrollable anti-aliasing; mix-blend-mode is author CSS), so it is contested — but the page quotes as SUPPORT an authority whose plain text points the other way.",
+            "F24 MISATTRIBUTION: the F24 quote at failures/F24.html line 86 is verbatim-accurate, but F24's Expected Results (lines 95-96) make the failure apply only when a foreground is specified WITHOUT a background (or vice versa). Here BOTH #262626 (FG) and #c0c0c0 (BG on .art) are specified, so F24's failure condition does NOT apply. The page itself concedes 'not a bare F24 omission'. The cited cascade sentence is a side-note, not the failure mechanism — wrong failure technique for a both-colors-present blend case.",
+            "CONTESTED NORMATIVE BASIS: whether SC 1.4.3 is judged on declared CSSOM colors (8.3:1 pass) or composited rendered pixels (1.46:1 fail) is genuinely debatable; the 'failed' label is not cleanly correct under the page's own cited normative text."
+          ]
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.3/pages/effective-background-across-cascade-and-overlays/case-05.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Borderline detectability: even ignoring the alpha and blending the panel as solid white (#fff), #8a93a0 text is ~3.11:1 — still a fail for normal-size text. An axe-style checker that flattens rgba against an assumed-white page background may surface this as a violation or 'incomplete' rather than truly missing it; the human-judgment value rests on the fact that axe abstains (incomplete) on multi-layer/backdrop-filter composites rather than the value being a clean pass-under-naive-tooling.",
+            "The doc/scenario states ~2.2:1; my composite computation gives 2.24:1 over the white page area and 2.17:1 over the banner region — consistent with the claim (minor rounding only, not a defect).",
+            "Focus is NOT trapped in the modal (inspect tabOrder shows focus escaping to body/none between cycles) — irrelevant to 1.4.3 but a latent 2.1.2/focus-management smell in the fixture; does not affect this SC's verdict since the text renders visibly."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.3/pages/effective-background-across-cascade-and-overlays/case-06.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "No real defects found. This is a deliberate boundary-PASS control case and the documented `passed` outcome is empirically correct.",
+            "Minor cosmetic note (not a defect): the claimed worst-case backdrop is ~#474744 / ~8.3:1; my puppeteer render measured #474745 / 8.32:1 — effectively exact."
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "background-image-least-contrast-per-letter",
+      "validPageCount": 6,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.3/pages/background-image-least-contrast-per-letter/case-01.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "None material. The accessible name of .hero h1 is fully correct (Book Your Sunset Escape, heading level 1) and intentional: the failure is purely perceptual (sighted low-vision contrast), not an AT-name defect, which is precisely why name/role checkers and the AX tree cannot detect it.",
+            "Minor prose-vs-pixel nuance: the .md says Escape spans x-fraction ~0.39-0.53, but the washout pixels actually reach pure white at the far right (x->1.0). The trailing-word region still measures worst-case 1.01:1, so the outcome is unaffected; only the tail-position estimate is slightly conservative."
+          ]
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.3/pages/background-image-least-contrast-per-letter/case-02.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Headline framing 'F looks like E' is illustrative only: the actual caption ('Carrara marble was prized...') contains no isolated F-becomes-E glyph, but real letter strokes (prized/grain/veins) do merge into the dark vein, which is the genuine F83 mechanism. Consistent with F83's 'etc.' — a presentational nit, not a substantive defect.",
+            "Self-contained except for the local asset bg-02-marble.png, which is present in the directory (64931 bytes); confirm it ships alongside the HTML when the corpus is distributed."
+          ]
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.3/pages/background-image-least-contrast-per-letter/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": []
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.3/pages/background-image-least-contrast-per-letter/case-04.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor metadata mismatch: page declares <html lang=\"en\"> (confirmed by inspect axTree lang:'en') while the .md scenario claims locale pt-PT. Content has Portuguese dish names but the document language is English. Does not affect the 1.4.3 contrast mechanism, but the i18n attribute-tuple claim is inaccurate.",
+            "The .md's 'roughly one letter-advance per tile / every other character fails' is an idealization. Native tile period is 56px (_gen-bg.js tileW=56) but the rendered glyph advance at 38.4px is ~23px, so glyphs cluster 2-3 per tile. Empirical glyph->tile mapping yields failing CLUSTERS (O,D / S,_,S / I,A,L at ~1.5:1) rather than strict alternation. The qualitative claim (readable letters interleaved with vanished ones below 4.5:1) still holds."
+          ]
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.3/pages/background-image-least-contrast-per-letter/case-05.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor doc/measurement mismatch (not a defect): the .md lists per-word worst-case 3.75:1 (behind 'Bright') and 4.24:1 (behind 'Storm Front'), but an independent full-band pixel decode finds the absolute worst-case behind the right-side words is ~1.0:1 (white-on-blown-out-sky). The discrepancy is because the doc samples narrow per-glyph footprints while my sweep takes the worst pixel across the band; both agree the right words fail decisively (<<4.5:1) and 'Skyline'/left passes (~14:1). Direction and magnitude are correct.",
+            "Prompt's 'Claimed citation' field only surfaces the Understanding 1.4.3 quote; the .md actually cites TWO sources (F83 + Understanding). Both were verified verbatim and both support the mechanism — noting only that the prompt under-reports the citations."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.3/pages/background-image-least-contrast-per-letter/case-06.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": false,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor internal inconsistency in the worst-case contrast figure across sources: the HTML comment (lines 13/17) says the least-contrast pixel stays at ~4.8:1 and the generator _gen-bg.js (line 338, CAP=88) targets ~5:1, while the .md doc (line 32) and the actual measured pixels both report 8.38:1. The page is in fact SAFER than the HTML comment claims; the authoritative .md numbers are correct, so the outcome is not affected, but the in-file comment should be reconciled to 8.38:1 to avoid confusion.",
+            "Numeric self-consistency note (not a defect of outcome): the design CAP of grey 88 would give ~5:1, but the brightest scrim-capped pixel actually overlapping the h1 came out at rgb(60,82,77) -> 8.38:1, because the brightest moon region under the headline sits below the cap. Measurement matches the .md exactly."
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "aa-thresholds-and-large-text-classification",
+      "validPageCount": 6,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.3/pages/aa-thresholds-and-large-text-classification/case-01.html",
+          "status": "valid"
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.3/pages/aa-thresholds-and-large-text-classification/case-02.html",
+          "status": "valid"
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.3/pages/aa-thresholds-and-large-text-classification/case-03.html",
+          "status": "valid"
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.3/pages/aa-thresholds-and-large-text-classification/case-04.html",
+          "status": "valid"
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.3/pages/aa-thresholds-and-large-text-classification/case-05.html",
+          "status": "valid"
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.3/pages/aa-thresholds-and-large-text-classification/case-06.html",
+          "status": "valid"
+        }
+      ],
+      "notes": " [top-up: regenerated as 6 human-judgment large-text-classification cases; case-04 fill corrected #858585->#888888]"
+    },
+    {
+      "slug": "state-dependent-text-contrast",
+      "validPageCount": 6,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.3/pages/state-dependent-text-contrast/case-01.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "PROMPT/FILE METADATA MISMATCH (not a page defect): the task prompt describes a 'Garden-centre catalogue site search' with selector #q::placeholder, color #a7a7a7 on white ~2.41:1, placeholder 'Search 4,000+ plants...'. NONE of that exists in the file (grep for id=\"q\", a7a7a7, 'plants', '4,000' all return nothing). The actual page is a sea-swimming club sign-up form; the real failing element is #tideline-postcode::placeholder (#9aa0a6 over a linear-gradient). The .md doc matches the file; the prompt header is stale/wrong. I judged the actual page.",
+            "Minor: the prompt's claimed mechanism (flat #a7a7a7 on flat #fff at 2.41:1) understates the actual page, which is harder — a gradient (F83 non-uniform bg) plus a decorative-placeholder exclusion trap. The real mechanism is sound and more sophisticated than the prompt claims."
+          ]
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.3/pages/state-dependent-text-contrast/case-02.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor doc inaccuracy: CSS line 33-34 sets font-weight:600 (semibold) on the 15px link text, but the .md (line 4, 20) and the prompt describe it as 'normal-weight'. Immaterial to the verdict — 15px is below the WCAG large-text size threshold under any weight interpretation, so the 4.5:1 minimum applies regardless.",
+            "Internal inconsistency in the HTML comment: line 9 states the rest ratio is '~8.6:1' while line 34 and the .md say '~11.3:1'. The true computed value is 11.28:1, so the .md is correct and the inline comment is wrong. Cosmetic only; does not change pass/fail of the rest state.",
+            "The inspect.js tool reports the :hover selector as 'selector not found' because Puppeteer querySelector cannot match dynamic pseudo-classes; this is expected and actually reinforces the premise. Corroboration required a custom driven-state probe (link.hover() + page.focus + document.activeElement)."
+          ]
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.3/pages/state-dependent-text-contrast/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor (non-blocking): in this static snapshot the active descendant (#opt-de 'Germany') is also the aria-selected option, so the captured failing state coincides with selection; the JS correctly decouples active from selected (line 100-103) so the documented roving-focus barrier across all six options holds, but a reviewer skimming the static render could conflate active with selected.",
+            "Minor: the .listbox is rendered visible (aria-expanded=true, not hidden) in this snapshot — this is an intentional and disclosed choice (comment lines 76-77) to make the failing state reachable, not a defect, but it means the 'hidden until activated' production-invisibility argument is only partially demonstrated by this file."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.3/pages/state-dependent-text-contrast/case-04.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Cosmetic only: inline HTML comment on line 60 says '#a9c2e8 on #2f6fd6 ~ 1.9:1' but the actual computed ratio is 2.65:1 (matching line 17 and the .md doc). The stray '~1.9:1' figure is wrong; everywhere else the page/doc correctly states ~2.65:1, so the verdict and selector are unaffected.",
+            "Minor scope note: the documented element-under-test selector is '#amount-err .err' (defect 1 only); defect 2 (.submit:active) is a second mechanism on the same page. Both genuinely fail, so the page-level 'failed' outcome is correct, but the single selector does not cover the second defect."
+          ]
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.3/pages/state-dependent-text-contrast/case-05.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor: the gradient (background-image) is the primary reason automation abstains; if the pill used a solid background-color, axe-core would flag white-on-#9ad8d4 outright. The robust human-judgment justification is the roving/state-dependent framing (every tab fails only while selected), which the doc does foreground. Not a defect, just the weaker of the two stated rationales.",
+            "Minor: inspect.js reports backgroundColor rgba(0,0,0,0) and effectiveAncestorBg #eef2f6 for the selected tab because the pill bg is a linear-gradient (background-image), not background-color. A naive reading of that signal alone would look passing; the actual backdrop is linear-gradient(#a9dedb,#9ad8d4) confirmed via getComputedStyle().backgroundImage."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.3/pages/state-dependent-text-contrast/case-06.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Secondary citation defect (does NOT affect the verdict): the .md (lines 34-35) cites 'wcag-techniques/failures/F24.html' with the quote 'Best practice is to include all states of the text...'. That file does NOT exist in this repo (refs/wcag-techniques/ is absent entirely; refs/ holds only PDFs + trusted-tester/), and the quoted sentence is not found anywhere in refs. This secondary citation is unverifiable/likely fabricated. It is framed as a NON-NORMATIVE best-practice note arguing visited styling is best-practice-not-requirement, so it does not change the outcome, but the broken path should be removed or repointed to the verified Trusted Tester citation.",
+            "Note (not a defect): this is a PASS/true-negative case, so 'errorIsReal' is set true to mean 'the documented scenario/outcome is genuine' — there is intentionally NO accessibility failure here; the only sub-threshold state (:visited ~1.96-2.03:1) is correctly excluded by SC 1.4.3."
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "picture-with-significant-other-content-exemption",
+      "validPageCount": 6,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.3/pages/picture-with-significant-other-content-exemption/case-01.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "PROMPT/HARNESS METADATA MISMATCH (not a page defect): the task's Claimed scenario ('B2B SaaS landing page (Cohere Ledger)', hero headline, selector img#heroHeadingImg.headline, 3.25:1 warm-grey-on-cream) does NOT match the actual file, which is a 'Maison Verde' bistro dinner menu (selector figure#menu img.menu, 2.70:1 sepia-on-parchment). The prompt-claimed selector img#heroHeadingImg.headline does not exist on the page (inspect.js found no such node; only img.menu exists). The harness per-case metadata must be re-aligned to the real file.",
+            "Minor: the prompt's claimed citation sentence ('In this provision there is an exception that reads ...particular look.') IS verbatim-correct against wcag-understanding/contrast-minimum.html lines 101-104, so the citation itself is fine even though it was paired with the wrong scenario."
+          ]
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.3/pages/picture-with-significant-other-content-exemption/case-02.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": false,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor doc-framing overstatement (not a defect, does not change verdict): the .md 'Why automated tools miss it' says checkers 'simply have no data' about the sign. True for the RENDERED img (SVG is rasterized — AX tree exposes only role=image + the scene alt, no 'RUA AUGUSTA' text node; selector.text and innerHTML are empty), but the sign IS a literal <text fill=#6a7a60> element inside the data-URI source, so a raw-HTML-source parser could see it. The exemption judgment is still human-only either way.",
+            "Cosmetic: doc/comment estimate the sign contrast at ~1.5:1; actual computed ratio of #6a7a60 on #7a8a6f is 1.25:1. Either way it is far below 4.5:1 and the sign is genuinely low-contrast, so the trap (a reviewer eyedropping it) is real. No impact on the passed verdict."
+          ]
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.3/pages/picture-with-significant-other-content-exemption/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor doc inaccuracy (does not affect verdict): the EXEMPT bottle-label contrast is stated as ~1.6:1 in both .html (line 13) and .md (line 9), but the actual ink #717a47 on label #808a4e computes to 1.24:1. Irrelevant since the photo is the explicitly-exempt decoy and is never measured, but the stated figure is wrong.",
+            "Cosmetic: the promo banner's second line ('harvest sale ends sunday') is font-size 20 in the SVG; at 20px regular that is below the WCAG large-text threshold (18pt~24px), so the 4.5:1 normal-text threshold correctly applies. No defect, just confirming the large-text exemption was not mistakenly triggerable."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.3/pages/picture-with-significant-other-content-exemption/case-04.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor authenticity caveat (not a correctness defect): the infographic is an inline-SVG `data:` URI with live SVG <text> nodes inside the <img>, framed in the source comment as 'standing in for a single exported JPEG.' A true raster (PNG/JPEG) would be the honest representation of the image-of-text scenario; the SVG encoding is slightly more tool-tractable than a real raster, though no mainstream checker (axe/WAVE/Lighthouse) actually samples text inside an <img src=data:svg>, so the human-judgment claim still holds.",
+            "Citation 1 is present but only matches after HTML-entity unescaping of the curly/escaped quotes in the reference markup (a verbatim grep on the raw HTML fails on the entity-encoded quotation marks). Not a real citation defect — the sentence is character-for-character correct in the reference text — but worth noting for any automated verbatim checker."
+          ]
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.3/pages/picture-with-significant-other-content-exemption/case-05.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor (non-defect): the banner alt 'Staff Pick of the Month: The Quiet Tide' fully transcribes the image text, so AT users get the content; the failure correctly targets low-vision sighted users reading the rendered 2.93:1 banner that cannot be restyled. This does not weaken the outcome.",
+            "Framing detail: the doc cites the normal-text 4.5:1 threshold; the 44px bold title is technically large text (3:1 threshold), but it still measures 2.93:1 and the 18px 'STAFF PICK OF THE MONTH' sub-line is normal text below 4.5:1, so the banner fails 1.4.3 unambiguously regardless of which line is taken."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.3/pages/picture-with-significant-other-content-exemption/case-06.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor (no defect to the verdict): the page's documented 'expected outcome' is PASSED — it is a correct-pass boundary case, not a failing page. Its value is forcing the size-threshold human judgment (a naive reviewer who applies 4.5:1 wrongly fails it). The folder name says 'exemption' but this case is intentionally the in-scope (non-exempt) counterpoint; that is by design, not an error.",
+            "The large-scale determination is render-state dependent: .pull img is width:100% inside a 760px-wide content area and the SVG intrinsic width is 760px, so at desktop it renders at scale 1.0 → ~40px glyphs (confirmed). At a narrow viewport the image would scale down and the on-screen glyph size could fall below 24px, which could flip the applicable threshold to 4.5:1. The pass holds at default desktop rendering (the TT-judged state), but the case is sensitive to render width — worth noting, not a defect."
+          ]
+        }
+      ]
+    }
+  ]
+}

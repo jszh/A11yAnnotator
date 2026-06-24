@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — Northwind Timesheets</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  This page renders the POST-SUBMIT error state on load (no JS needed to reach it).
+  After a failed sign-in, the password field is given a 2px RED border (#d92020) while
+  the still-valid email field keeps a 2px GRAY border (#8a8f94). axe/WAVE/Lighthouse
+  see two text inputs with associated <label>s and a generic "Sign in failed" banner —
+  nothing is empty, unlabeled, or low-contrast against the page, so every static rule
+  passes. The banner text ("We couldn't sign you in.") is generic and never names the
+  password field; the ONLY signal that the PASSWORD specifically is the field to fix is
+  its hue. Critically, the red (#d92020 on #fff ~ L*48) and the gray (#8a8f94 on #fff
+  ~ L*60) borders are deliberately tuned to near-IDENTICAL lightness, so in grayscale
+  the two borders look the same — defeating the 3:1-lightness escape hatch. No checker
+  can decide that a red border "means error" (vs decoration) or verify that no adjacent
+  non-color cue exists; that is a human visual+semantic judgment.
+-->
+<style>
+  :root { --ink:#1c2126; --muted:#5b636b; --line:#cfd4d8; --paper:#fff; --brand:#1f4e79; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Segoe UI",system-ui,sans-serif; color:var(--ink);
+         background:#eef1f4; display:flex; min-height:100vh; align-items:center; justify-content:center; }
+  .card { background:var(--paper); width:380px; max-width:92vw; border-radius:10px;
+          box-shadow:0 6px 24px rgba(20,30,45,.12); padding:32px 30px 28px; }
+  .brand { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .brand .mark { width:26px; height:26px; border-radius:6px; background:var(--brand); }
+  .brand strong { font-size:1.05rem; letter-spacing:.2px; }
+  h1 { font-size:1.3rem; margin:14px 0 4px; }
+  .sub { color:var(--muted); margin:0 0 20px; font-size:.92rem; }
+
+  /* The submit handler set this banner generically; it never names a field. */
+  .banner { background:#fdecec; border:1px solid #f3c2c2; color:#8a1f1f;
+            border-radius:7px; padding:10px 12px; font-size:.9rem; margin-bottom:18px; }
+
+  label { display:block; font-size:.86rem; font-weight:600; margin:0 0 6px; color:#2a3138; }
+  .field { margin-bottom:16px; }
+  input[type=email], input[type=password] {
+    width:100%; padding:10px 12px; font-size:1rem; border-radius:7px;
+    border:2px solid var(--line); background:#fff; color:var(--ink); }
+  input:focus { outline:2px solid var(--brand); outline-offset:1px; }
+
+  /* === The defect ===
+     valid field: 2px gray border.  invalid field: 2px red border.
+     The two hues are tuned to nearly the SAME lightness so grayscale can't tell them apart. */
+  input.is-valid   { border-color:#8a8f94; }   /* gray  — L* ~60 on white */
+  input.is-invalid { border-color:#d92020; }   /* red   — L* ~48 on white; close enough that
+                                                  grayscale gives no reliable distinction */
+
+  .row { display:flex; justify-content:space-between; align-items:center; margin:4px 0 20px; }
+  .row a { color:var(--brand); font-size:.86rem; text-decoration:none; }
+  .check { font-size:.86rem; color:var(--muted); display:flex; gap:6px; align-items:center; }
+  button { width:100%; padding:11px; font-size:1rem; font-weight:600; color:#fff;
+           background:var(--brand); border:0; border-radius:7px; cursor:pointer; }
+  .foot { margin-top:20px; font-size:.82rem; color:var(--muted); text-align:center; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><strong>Northwind Timesheets</strong></div>
+    <h1>Sign in</h1>
+    <p class="sub">Use your company account to log your hours.</p>
+
+    <!-- Post-submit state. The banner is generic and never identifies which field is wrong. -->
+    <div class="banner" role="alert">We couldn't sign you in. Please check your details and try again.</div>
+
+    <form action="#" method="post" novalidate>
+      <!-- Email is accepted (still valid): GRAY border -->
+      <div class="field">
+        <label for="email">Work email</label>
+        <input class="is-valid" id="email" name="email" type="email"
+               autocomplete="username" value="dana.okafor@northwind.example">
+      </div>
+
+      <!-- Password is the field that failed: RED border ONLY. No message, no icon,
+           no "(error)" text, no aria-invalid. Color is the sole per-field signal. -->
+      <div class="field">
+        <label for="password">Password</label>
+        <input class="is-invalid" id="password" name="password" type="password"
+               autocomplete="current-password" value="">
+      </div>
+
+      <div class="row">
+        <span class="check"><input id="remember" type="checkbox"> <label for="remember" style="display:inline;font-weight:400">Keep me signed in</label></span>
+        <a href="#reset">Forgot password?</a>
+      </div>
+
+      <button type="submit">Sign in</button>
+    </form>
+
+    <p class="foot">Northwind Logistics · IT Helpdesk ext. 4400 · Renders from file://</p>
+  </main>
+</body>
+</html>

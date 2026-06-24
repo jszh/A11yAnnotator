@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Patient Intake — Lakeview Family Medicine</title>
+<!--
+  ACCESSIBILITY DEFECT (SC 1.4.1, Use of Color, Level A) — LAYERED TRAP, present-but-wrong.
+  This form DOES place a red asterisk-like glyph next to required field labels — so a naive
+  "is there a non-text-only marker?" check passes. The trap: the required marker is a red
+  bullet "•" generated via CSS ::before on .req labels, and the SAME red bullet "•" is used
+  decoratively as a list marker on the unrelated "What to bring" checklist and as a section
+  divider dot. The required-marker bullet and the decorative bullet are IDENTICAL glyphs in
+  IDENTICAL red; the ONLY thing that would let a user tell "this red dot means required" from
+  "this red dot is just a list bullet" is the colour-coded context plus the legend sentence
+  "Fields marked with a red dot are required." For a colour-blind user every red "•" looks the
+  same shade as the surrounding black text, so they cannot tell which dots are the required
+  markers and which are decoration — and the legend is itself colour-keyed ("red dot").
+
+  WHY AUTOMATED TOOLS MISS IT: a marker glyph IS present, so any heuristic looking for "some
+  non-colour cue exists" is satisfied. No tool can judge that the required marker is visually
+  indistinguishable from a decorative marker except by colour, nor that a legend referring to
+  "a red dot" fails to disambiguate which dots are required for someone who can't perceive red.
+  CSS ::before content is invisible to the accessibility tree and to most scanners entirely.
+-->
+<style>
+  body { font:15px/1.55 Georgia,"Times New Roman",serif; color:#222; background:#f4f1ea;
+         margin:0; }
+  .sheet { max-width:660px; margin:26px auto; background:#fffdf9; border:1px solid #e2dccb;
+           padding:30px 38px 40px; }
+  h1 { font-family:"Segoe UI",system-ui,sans-serif; font-size:1.5rem; margin:0 0 2px; }
+  .clinic { font-family:"Segoe UI",system-ui,sans-serif; color:#7a5c2e;
+            margin:0 0 18px; font-size:.92rem; letter-spacing:.03em; }
+  .legend { background:#fbf3f3; border:1px solid #efd9d9; padding:9px 13px;
+            font-family:"Segoe UI",system-ui,sans-serif; font-size:.88rem;
+            border-radius:5px; margin:0 0 22px; }
+  /* The "what to bring" decorative list — uses the SAME red bullet glyph as the required marker. */
+  .bring { font-family:"Segoe UI",system-ui,sans-serif; font-size:.9rem;
+           background:#f7f4ec; border-left:3px solid #cdc4ad; padding:10px 16px;
+           margin:0 0 24px; }
+  .bring h2 { font-size:1rem; margin:0 0 6px; }
+  .bring ul { list-style:none; margin:0; padding:0; }
+  .bring li::before { content:"•"; color:#c0392b; font-weight:700; margin-right:8px; }
+  fieldset { border:0; padding:0; margin:0 0 6px; }
+  legend.section { font-family:"Segoe UI",system-ui,sans-serif; font-weight:700;
+                   font-size:1.02rem; margin:18px 0 12px; }
+  .f { margin-bottom:15px; }
+  .f label { display:block; font-family:"Segoe UI",system-ui,sans-serif;
+             font-weight:600; font-size:.9rem; margin-bottom:4px; }
+  /* THE TRAP: required marker = a red bullet via ::before — identical glyph & colour to .bring li::before */
+  .f.req label::before { content:"•"; color:#c0392b; font-weight:700; margin-right:7px; }
+  .f input, .f select {
+    width:100%; box-sizing:border-box; padding:8px 10px;
+    font:15px/1.4 "Segoe UI",system-ui,sans-serif;
+    border:1px solid #bdb6a3; border-radius:4px; background:#fff;
+  }
+  button { font-family:"Segoe UI",system-ui,sans-serif; background:#2c6e63; color:#fff;
+           border:0; padding:11px 26px; font-weight:600; border-radius:5px; cursor:pointer;
+           margin-top:8px; }
+</style>
+</head>
+<body>
+<main class="sheet">
+  <h1>New Patient Intake</h1>
+  <p class="clinic">LAKEVIEW FAMILY MEDICINE · please complete before your first visit</p>
+
+  <p class="legend">Fields marked with a red dot are required. All other fields are optional.</p>
+
+  <div class="bring">
+    <h2>What to bring to your appointment</h2>
+    <ul>
+      <li>Photo ID and your insurance card</li>
+      <li>A list of current medications and doses</li>
+      <li>Records from any previous primary-care provider</li>
+    </ul>
+  </div>
+
+  <form action="#" novalidate>
+    <fieldset>
+      <legend class="section">Patient information</legend>
+
+      <div class="f req">
+        <label for="pname">Patient full name</label>
+        <input id="pname" name="pname" type="text" autocomplete="name">
+      </div>
+      <div class="f req">
+        <label for="dob">Date of birth</label>
+        <input id="dob" name="dob" type="date">
+      </div>
+      <div class="f">
+        <label for="pronouns">Pronouns</label>
+        <input id="pronouns" name="pronouns" type="text">
+      </div>
+      <div class="f req">
+        <label for="insid">Insurance member ID</label>
+        <input id="insid" name="insid" type="text">
+      </div>
+      <div class="f">
+        <label for="pharmacy">Preferred pharmacy</label>
+        <input id="pharmacy" name="pharmacy" type="text">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="section">Emergency contact</legend>
+      <div class="f req">
+        <label for="ecname">Contact name</label>
+        <input id="ecname" name="ecname" type="text">
+      </div>
+      <div class="f req">
+        <label for="ecphone">Contact phone</label>
+        <input id="ecphone" name="ecphone" type="tel">
+      </div>
+      <div class="f">
+        <label for="ecrel">Relationship to patient</label>
+        <input id="ecrel" name="ecrel" type="text">
+      </div>
+    </fieldset>
+
+    <button type="submit">Submit intake form</button>
+  </form>
+</main>
+</body>
+</html>

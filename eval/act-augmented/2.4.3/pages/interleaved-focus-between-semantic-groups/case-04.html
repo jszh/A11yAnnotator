@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian Credit Union — Joint loan application</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order) — and why this one PASSES:
+  This is the G59 passing counter-example, deliberately built to look almost identical to
+  the FAILING interleaved cases. There are two side-by-side sections under headings —
+  "Applicant" and "Co-applicant" — each with Full name, Date of birth, Annual income,
+  Employer, in a two-column visual layout. The CRUCIAL difference from a failing page:
+  here the DOM source order keeps each group WHOLE. ALL FOUR applicant fields appear in
+  source order before ANY co-applicant field, so the keyboard tab order is:
+    applicant-name, applicant-dob, applicant-income, applicant-employer,
+    co-name, co-dob, co-income, co-employer.
+  Even though the two groups sit visually side by side (left/right columns), focus
+  completes the whole left/applicant group before moving to the right/co-applicant group.
+  Per the Understanding doc, focus order need not follow the visual left-to-right layout
+  as long as it preserves meaning — and finishing one applicant before the next preserves
+  meaning. So this satisfies SC 2.4.3. It is included so a judge cannot pass the FAILING
+  cases merely by detecting "two groups exist": the structural signature is the same; only
+  the ORDER of focus across the group boundary differs.
+-->
+<style>
+  :root { --ink:#1a2230; --brand:#0b6b5b; --line:#dce3e4; --muted:#5d6b72; --bg:#f3f7f6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 system-ui,"Segoe UI",sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:#08423a; color:#fff; padding:24px 28px; }
+  header h1 { margin:0; font-size:1.45rem; }
+  header p { margin:.3rem 0 0; opacity:.86; font-size:.92rem; }
+  main { max-width:900px; margin:0 auto; padding:30px 24px 80px; }
+  .lede { color:var(--muted); margin:0 0 26px; }
+
+  /* Two real fieldsets, side by side. Because each fieldset contains its OWN four fields
+     in order, the natural DOM source order is applicant-group-complete then
+     co-applicant-group-complete — the passing G59 ordering. No grid re-routing needed. */
+  form { display:grid; grid-template-columns:1fr 1fr; gap:24px 30px; align-items:start; }
+  fieldset { border:1px solid var(--line); border-radius:12px; background:#fff;
+             padding:18px 20px 22px; margin:0; }
+  legend { font-weight:700; color:#08423a; padding:0 8px; font-size:1.05rem; }
+  .hint { color:var(--muted); font-size:.85rem; margin:2px 0 16px; }
+  .field { margin-bottom:14px; }
+  .field:last-child { margin-bottom:0; }
+  label { display:block; font-weight:600; font-size:.88rem; margin-bottom:5px; }
+  input { width:100%; padding:9px 11px; border:1px solid #b7c2c4; border-radius:8px; font-size:.95rem; }
+  :focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+  .actions { grid-column:1 / -1; margin-top:8px; }
+  button { background:var(--brand); color:#fff; border:0; border-radius:9px;
+           padding:12px 28px; font-size:1rem; font-weight:700; cursor:pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Meridian Credit Union</h1>
+  <p>Joint personal-loan application — Applicants</p>
+</header>
+<main>
+  <p class="lede">Tell us about both applicants. Complete one applicant's details, then the
+     co-applicant's.</p>
+
+  <!--
+    DOM / TAB ORDER (no tabindex, pure source order) keeps each group WHOLE:
+      applicant-name -> applicant-dob -> applicant-income -> applicant-employer ->
+      co-name -> co-dob -> co-income -> co-employer -> submit
+    The applicant fieldset is fully tabbed before the co-applicant fieldset. This is the
+    G59 sufficient technique: interactive elements placed in an order that follows the
+    relationships in the content. PASS.
+  -->
+  <form action="#" method="post" novalidate aria-label="Joint loan application">
+
+    <fieldset>
+      <legend>Applicant</legend>
+      <p class="hint">The primary borrower.</p>
+      <div class="field"><label for="a-name">Full name</label>
+        <input id="a-name" name="a_name" type="text" autocomplete="name"></div>
+      <div class="field"><label for="a-dob">Date of birth</label>
+        <input id="a-dob" name="a_dob" type="text" inputmode="numeric" placeholder="MM/DD/YYYY"></div>
+      <div class="field"><label for="a-income">Annual income (USD)</label>
+        <input id="a-income" name="a_income" type="text" inputmode="numeric"></div>
+      <div class="field"><label for="a-employer">Employer</label>
+        <input id="a-employer" name="a_employer" type="text" autocomplete="organization"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Co-applicant</legend>
+      <p class="hint">The joint borrower.</p>
+      <div class="field"><label for="c-name">Full name</label>
+        <input id="c-name" name="c_name" type="text" autocomplete="name"></div>
+      <div class="field"><label for="c-dob">Date of birth</label>
+        <input id="c-dob" name="c_dob" type="text" inputmode="numeric" placeholder="MM/DD/YYYY"></div>
+      <div class="field"><label for="c-income">Annual income (USD)</label>
+        <input id="c-income" name="c_income" type="text" inputmode="numeric"></div>
+      <div class="field"><label for="c-employer">Employer</label>
+        <input id="c-employer" name="c_employer" type="text" autocomplete="organization"></div>
+    </fieldset>
+
+    <div class="actions"><button type="submit">Review application</button></div>
+  </form>
+</main>
+</body>
+</html>

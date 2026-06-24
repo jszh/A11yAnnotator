@@ -1,0 +1,373 @@
+{
+  "sc": "4.1.3",
+  "count": 25,
+  "patterns": [
+    {
+      "platform": "Squarespace Form Block (AJAX same-page submit)",
+      "name": "Success/confirmation message injected without a live region",
+      "description": "On submit, the form swaps in a visible 'Thank you, your message has been sent' confirmation in place of the form, but the inserted node is not a role=status / aria-live region and focus is not moved to it. Sighted users see success; screen-reader users hear nothing and may believe the submission failed and re-submit.",
+      "wcagScs": [
+        "4.1.3",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<div class=\"form-submission-text\">Thank you! Your message has been sent.</div>\n<!-- no role=\"status\", no aria-live, focus stays on the now-removed submit button -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The message is valid visible text in the DOM; a static scan sees correct markup and no error. Catching it requires dynamically submitting the form AND observing (with AT or by checking for a live region / focus move) that the status change is never announced — a behavioral, human-in-the-loop check.",
+      "realWorldNote": "Amy Carney's Squarespace audit: 'Same-page confirmation messages don't alert screen reader users of state changes' and 'error lists aren't linked to inputs or focused.' https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Squarespace search block (instant/predictive results)",
+      "name": "Instant search results render with no announcement or result count",
+      "description": "Results appear on each keystroke beneath the search box, but the results container is not a live region and the result count is never announced, so screen-reader users don't know results appeared, how many, or that the list changed. The Quick Preview is also keyboard-inaccessible and the spinner is silent.",
+      "wcagScs": [
+        "4.1.3",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<input type=\"search\" aria-label=\"Search\">\n<div class=\"search-results\"><!-- results injected on keystroke; no aria-live, no \"12 results\" announcement --></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Static analysis finds a labeled search input and valid result links. The absence of an announcement is a dynamic behavior that only surfaces when you type and listen with a screen reader; tools can't infer that the live update should have been announced.",
+      "realWorldNote": "Amy Carney's Squarespace audit: 'Search results appear on keystroke but screen readers aren't notified of appearance or result count; processing spinner lacks announcements; Quick Preview not keyboard accessible.' https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Elementor Form widget / Divi Contact Form / WPForms — submission feedback",
+      "name": "Success/error toast not in a live region; errors flagged by color only",
+      "description": "After AJAX form submit, the success or error message is injected into a <div> that is not a live region and not focused, so screen readers never announce it. Inline validation marks invalid fields with a red border/red text only, with no programmatic error association and no text describing what's wrong or how to fix it.",
+      "wcagScs": [
+        "4.1.3",
+        "3.3.1",
+        "3.3.3",
+        "1.4.1"
+      ],
+      "typicalMarkup": "<div class=\"elementor-message elementor-message-success\" style=\"color:green\">\n  Your message was sent!\n</div>  <!-- no role=status / aria-live; injected after submit -->\n<input class=\"elementor-field has-error\" aria-invalid=\"\" style=\"border-color:red\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The success div is valid HTML; nothing in the static DOM signals it should announce on change. Detecting that a dynamically-inserted status isn't announced requires triggering the submit and observing AT silence. Color-only error indication also needs visual judgment that no text/icon backs the red.",
+      "realWorldNote": "ARIA live-region guidance: 'create an empty element and then update its content' — builder messages don't. https://a11y-blog.dev/en/articles/aria-live-regions/ ; matches harness 4.1.3 / 3.3.x shadow lanes.",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Shopify / WooCommerce — Add to Cart confirmation & cart drawer",
+      "name": "Silent add-to-cart: drawer/toast update not in a live region",
+      "description": "Clicking 'Add to cart' updates a cart-count bubble and slides open a cart drawer or shows a toast, but the success message is injected into a normal <div> with no role=status / aria-live. Sighted users see the confirmation; screen reader users get no announcement that the item was added, and focus is not moved into the drawer either.",
+      "wcagScs": [
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div class=\"cart-notification\" hidden>\n  <p>Item added to your cart</p>\n  <a href=\"/cart\">View cart (1)</a>\n</div>\n<!-- toggled visible via JS; no role=\"status\", no aria-live, focus stays on the button -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The notification element is valid HTML with valid contrast and a labeled link, so static scanners pass it. The failure only manifests on interaction (clicking add-to-cart) and depends on whether the dynamically-shown node is in a live region AND whether focus is managed — a runtime behavior automated DOM scans don't simulate, and judging the right remediation (announce vs. move focus) is contextual.",
+      "realWorldNote": "TestParty 'Beyond Alt Text' lists 'silent cart updates — screen reader users receive no confirmation' as a top hidden Shopify barrier; WooCommerce filed its own 4.1.3 fix for the added-to-cart message. https://testparty.ai/blog/beyond-alt-text-hidden-shopify-accessibility-barriers",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "WooCommerce — store notices on page load (waitlist / coupon / stock)",
+      "name": "Page-load notice not programmatically a status message",
+      "description": "WooCommerce renders informational notices (e.g. 'To join the waitlist, click Notify me', coupon applied, 'only 2 left') as a styled div shown when the page renders. The notice has no role=status/alert and focus is not placed on it, so on a fresh page load it is visible but never announced to screen reader users.",
+      "wcagScs": [
+        "4.1.3",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"woocommerce-info\">\n  To join the waitlist, please click the \"Notify me\" button.\n</div>\n<!-- no role=\"status\"; no focus set on load -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "There is no markup defect: contrast is fine and the text exists in the DOM. Whether a given message is a 'status message' that must be announced (vs. ordinary body copy) is a semantic judgment about its purpose and timing; axe/Lighthouse cannot infer intent and do not flag missing role=status on plain divs.",
+      "realWorldNote": "Filed directly against WooCommerce core as a WCAG 4.1.3 failure: 'message is visually displayed, but screen readers do not announce it because it has not been programmatically defined as a status message, and focus is not set on the message when the page loads.' https://github.com/woocommerce/woocommerce/issues/59383",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Shopify / WooCommerce — AJAX filter / faceted search sidebar",
+      "name": "Facet filtering updates grid silently; no result-count announcement",
+      "description": "Selecting a filter checkbox (size, color, price) re-renders the product grid via AJAX with no page reload. The new result count ('24 products') and any 'No results' state are not in a live region, so screen reader users don't know the grid changed or how many products remain. Some themes also replace native checkboxes with styled divs that lose keyboard operability.",
+      "wcagScs": [
+        "4.1.3",
+        "2.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<aside class=\"facets\">\n  <label><input type=\"checkbox\" name=\"color\" value=\"red\"> Red</label>\n</aside>\n<div class=\"product-grid\" id=\"grid\"><!-- replaced via AJAX, no aria-live --></div>\n<div class=\"result-count\">24 products</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "On the initial static snapshot the markup is valid (labeled checkboxes, a count div). The defect appears only when a filter fires and content swaps without an announcement — a runtime behavior. Whether the count and no-results state qualify as status messages requiring aria-live is an intent-based judgment scanners can't make.",
+      "realWorldNote": "Equalize Digital's FacetWP audit and Scott O'Hara's 'dynamic results' guidance cover exactly this; accessibility-test.org documents ecommerce faceted-search live-region gaps. https://equalizedigital.com/testing-facetwp-for-accessibility/ ; https://accessibility-test.org/blog/compliance/accessibility-for-e-commerce-product-filtering-and-faceted-search/",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Headless / Hydrogen / React+SPA storefronts (Shopify, BigCommerce)",
+      "name": "<title> and H1 never update on client-side route change",
+      "description": "Navigating from collection to product to cart happens client-side; the document <title> stays at the homepage/store name on every route, and focus is not moved to the new page's H1. Screen reader users hear the same title on every 'page' and get no signal that navigation occurred.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<head><title>Acme Store</title></head>\n<!-- after client-side nav to /products/blue-shirt the title is still \"Acme Store\";\n     no React Helmet update, no focus moved to the product <h1> -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-page audit finds a non-empty <title> and passes 2.4.2. The failure is that the title doesn't CHANGE across virtual route transitions and is identical/non-descriptive for each view — a multi-state behavior. Tools scan one DOM state and have no concept of route changes, so they never compare titles across navigations.",
+      "realWorldNote": "Widely documented SPA failure (Hidde Blog, Kitty Giraudel, Helsinki a11y model): SPAs keep a static <title> unless JS updates it on every route change. https://hidde.blog/accessible-page-titles-in-a-single-page-app/ ; https://saavutettavuusmalli.hel.fi/en/saavutettavuus-palvelukehityksessa/toteutus-ja-ohjelmistotestaus/single-page-applications-spas-notes-on-accessibility/",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Framer (and other React SPA exporters: Typedream, Readymag)",
+      "name": "SPA route change leaves <title> stale and focus unmoved",
+      "description": "Page-to-page navigation is client-side. The document <title> is not updated on route change, focus stays on the clicked link (or resets to <body>), and there is no route-change announcement. Screen-reader users get no signal a new page loaded and the title still reads the landing page.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<!-- Home -->\n<title>Acme — Home</title>\n<a href=\"/pricing\" data-framer-name=\"Nav Pricing\">Pricing</a>\n<!-- after client-side nav to /pricing, title is STILL 'Acme — Home' -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-page snapshot has a valid, non-empty <title>, so a page-load scan passes 2.4.2. The defect only appears across an in-app navigation: the scanner would need to click through routes and re-check title + focus + live announcement, which static and single-load automated tools don't do.",
+      "realWorldNote": "Well-documented SPA failure: screen readers announce titles only on full page load and don't monitor title changes, and focus must be moved on route change — directly applicable to Framer/React-exported sites: https://medium.com/design-bootcamp/accessible-by-design-part-2-your-spa-single-page-application-is-broken-for-screen-readers-739769110ce1 and https://a11y-guidelines.orange.com/en/articles/single-page-app/",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow / Bubble form success 'toast' or inline confirmation block",
+      "name": "Submission success/error message not in a live region",
+      "description": "After form submit, Webflow swaps in its success div (or Bubble shows an alert element) by toggling display, but the message is not a status/live region. Sighted users see 'Thanks, we got it!' or an error banner; screen-reader users get no announcement that submission succeeded or failed.",
+      "wcagScs": [
+        "4.1.3",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<div class=\"w-form-done\" style=\"display:block\">\n  <div>Thank you! Your submission has been received!</div>\n</div>\n<div class=\"w-form-fail\" style=\"display:none\">Something went wrong</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The success/fail divs exist in the DOM at page load with display:none and no role=status / aria-live, which is valid markup. A static scan can't know that toggling display later is a 'status message' that should be announced; verifying the absence of an announcement requires submitting the form with a screen reader running.",
+      "realWorldNote": "Webflow's default form success/fail blocks have no live region; accessible practice is role=status/aria-live for submission feedback (4.1.3). Background: https://www.w3.org/WAI/tutorials/forms/notifications/ and toast/live-region gap discussion: https://a11y-blog.dev/en/articles/aria-live-regions/",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "React Router / Vue Router / Angular Router SPA",
+      "name": "No focus reset or route announcement on navigation",
+      "description": "After a client-side route change the new view is rendered but keyboard focus stays on the link that was clicked (or is lost to <body>) and nothing is announced via a live region. A screen-reader user hears no indication that navigation occurred; a keyboard user must tab from wherever focus was stranded. There is no route-announcer and focus is not moved to the new page heading.",
+      "wcagScs": [
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<a href=\"/pricing\">Pricing</a>\n<!-- after click: URL & main content change, but: -->\n<!-- - focus remains on the <a> (or jumps to body) -->\n<!-- - no <div aria-live=\"polite\"> announces \"Pricing page\" -->\n<main id=\"content\"><h1>Pricing</h1> ... </main>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Focus location after a JS navigation and the presence/firing of a route-announcer live region are runtime behaviors triggered by user interaction. Static and single-snapshot scanners do not perform the navigation and observe where focus lands or whether anything was announced, so they report nothing.",
+      "realWorldNote": "react-router discussion #9863 and the long-running issue #5210 (\"focus not reset when route changed\") document this; James Shakespeare and TestParty both prescribe moving focus to an autofocusing h1. https://github.com/remix-run/react-router/discussions/9863",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Material UI (MUI) Snackbar",
+      "name": "Toast/snackbar not in a live region — never announced",
+      "description": "MUI Snackbar renders transient feedback (\"Item saved\", \"Network error\") but in many real integrations it is not wired as a status/alert live region (role/aria-live missing, or the message mounts then the region's content is replaced rather than added). The toast appears and auto-dismisses purely visually; screen-reader users never learn the action's outcome. Nesting (snackbar fired from inside a dialog or menu) makes the skip even worse.",
+      "wcagScs": [
+        "4.1.3"
+      ],
+      "typicalMarkup": "<!-- visually a toast, but no role/aria-live wrapping the message -->\n<div class=\"MuiSnackbar-root\">\n  <div class=\"MuiSnackbarContent-root\">Item saved</div>\n</div>\n<!-- auto-hides after 4s; nothing is announced -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The element only exists for a few seconds after a user action and may be gone before/at the moment of scan. Whether a polite/assertive region actually announced depends on AT behavior and on the timing/insertion method, which a DOM linter cannot evaluate. axe will not flag a plain div with text as a 4.1.3 failure.",
+      "realWorldNote": "MUI issue #29080 \"Snackbars not read by screen reader\" and #30097 (snackbar from a button inside a dialog not read); maintainers/community note toasts are often not implemented as live regions. https://github.com/mui/material-ui/issues/29080",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "React conditionally-rendered form error summary / aria-live status",
+      "name": "Submit-time errors rendered but not announced; focus not moved",
+      "description": "On form submit, a React app conditionally renders an error summary or per-field messages into the DOM, but the container is not a live region and focus is not moved to it. Sighted users see red errors; screen-reader users get no announcement and remain focused on the submit button, unaware the submission failed.",
+      "wcagScs": [
+        "3.3.1",
+        "4.1.3",
+        "3.3.3"
+      ],
+      "typicalMarkup": "{errors.length > 0 && (\n  <div className=\"error-summary\">  {/* no role/aria-live, no tabindex */}\n    <h2>There were 2 problems</h2>\n    <ul><li>Email is required</li>...</ul>\n  </div>\n)}",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The error text is present in the post-submit DOM, so a snapshot scan sees content, not a failure. Whether it was ANNOUNCED (live region) or focus was moved to it is a dynamic, interaction-and-timing property invisible to static/single-snapshot tools.",
+      "realWorldNote": "TetraLogical and Up Your A11y describe accessible error-summary patterns requiring focus management or a live region; conditionally-rendered React errors routinely omit both. https://tetralogical.com/blog/2024/10/21/foundations-form-validation-and-error-messages/",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Toast / snackbar (MUI Snackbar misused, hand-rolled notifications, Toastify)",
+      "name": "Toast rendered into a plain div, not a live region",
+      "description": "A 'Saved!' or 'Error: try again' toast is injected into a positioned <div> with no role=\"status\"/role=\"alert\" and no aria-live. The message animates in visually but is never announced, so screen reader users never learn the action succeeded or failed.",
+      "wcagScs": [
+        "4.1.3",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<div class=\"toast toast--success\">\n  Changes saved successfully\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The toast container is valid HTML with valid contrast and valid markup — there is nothing structurally wrong for a linter to flag. Whether the absence of aria-live constitutes a violation depends on the div being a dynamically-injected status message, which a static scan of the final DOM cannot infer; you must observe that new content appeared without an announcement, a runtime + semantic judgment.",
+      "realWorldNote": "Adrian Roselli's 'Defining Toast Messages' and the elastic/eui issue #715 'Toast Messages Should Be Read by the Screen Reader on Display' document toasts shipping without live regions in production component libraries. https://adrianroselli.com/2020/01/defining-toast-messages.html and https://github.com/elastic/eui/issues/715",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Combobox / autocomplete (typeahead search, React-Select clones, hand-rolled)",
+      "name": "Autocomplete results not announced; missing aria-expanded/activedescendant",
+      "description": "A search input shows a dropdown of suggestions visually, but the input lacks role=\"combobox\", aria-expanded never flips to true when the list opens, and aria-activedescendant is not set as the user arrows through results. Screen reader users get no announcement that suggestions appeared, how many there are, or which one is highlighted.",
+      "wcagScs": [
+        "4.1.2",
+        "4.1.3",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<input type=\"text\" class=\"search\">\n<ul class=\"suggestions\">\n  <li class=\"active\">apple</li>\n  <li>apricot</li>\n</ul>\n<!-- no role=combobox, aria-expanded, aria-controls, aria-activedescendant -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The input is a valid text field and the list is a valid <ul> — both pass static checks individually. The relationship (input controls a popup list whose active option must be announced) and the missing live/activedescendant feedback only manifest while typing and arrowing, so DOM-snapshot tools cannot see the broken announcement loop.",
+      "realWorldNote": "The a11ysupport.io APG combobox test and Pope Tech's combobox guide document that aria-expanded must toggle and aria-activedescendant must track the highlighted option, and that omitting them is the dominant real-world combobox failure. https://a11ysupport.io/tests/apg__aria-1-2-combobox-with-list-autocomplete-example",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Single-page app (React Router, Vue Router, Angular) route transitions",
+      "name": "<title> and focus never update on client-side route change",
+      "description": "Navigating between SPA 'pages' swaps the DOM without a reload, but document.title is left at the template default ('My App') for every route, focus stays on the clicked link or the top of the old view, and no live region announces the new page. Screen reader users have no idea they navigated or where they are; the page title — a primary orientation cue — is identical or stale across routes.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<title>My App</title>\n<!-- user clicks 'Checkout'; URL becomes /checkout; main content swaps -->\n<!-- <title> still 'My App'; focus still on the clicked nav link; no aria-live announcement -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-snapshot scan sees one <title> that is present and non-empty, so 2.4.2 passes. The defect is that the title is the SAME (or unchanged) across multiple distinct views — only visible by navigating between routes and comparing, plus judging that the title no longer describes the content. Automated tools audit one URL state, not transitions.",
+      "realWorldNote": "Hidde de Vries, Kitty Giraudel, and Deque all document SPA route changes leaving document.title stale and focus unmanaged as a flagship screen-reader failure of frameworks. https://hidde.blog/accessible-page-titles-in-a-single-page-app/ and https://www.deque.com/blog/accessibility-tips-in-single-page-applications/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "alertdialog (confirm/destructive dialogs, 'Are you sure?' modals)",
+      "name": "Critical confirm dialog uses role=dialog (or none) so it is not announced",
+      "description": "A 'Delete account — are you sure?' modal is built with role=\"dialog\" (or plain divs) rather than role=\"alertdialog\", and focus is not moved into it. The urgent message is not announced as an alert, focus stays behind it, and a screen reader user may confirm a destructive action without ever hearing the warning.",
+      "wcagScs": [
+        "4.1.2",
+        "4.1.3",
+        "2.4.3",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div role=\"dialog\" class=\"confirm\">\n  <p>Delete your account? This cannot be undone.</p>\n  <button>Delete</button><button>Cancel</button>\n</div>\n<!-- should be role=alertdialog; focus not moved into dialog on open -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "role=dialog is valid ARIA, so no rule fails. Whether the dialog SHOULD be an alertdialog (because it carries an urgent, action-blocking message) is a semantic/contextual judgment about the content's importance; whether focus moves into it and the alert is announced are runtime behaviors. No static linter weighs the urgency of a message.",
+      "realWorldNote": "APG distinguishes alertdialog (interrupts with an important message requiring a response) from dialog; MDN dialog-role docs note focus must move into the dialog — both are commonly skipped on confirm/destructive modals. https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/dialog_role",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Spinbutton / number stepper (quantity +/- controls in carts)",
+      "name": "Stepper +/- buttons with icon-only names and no spinbutton value semantics",
+      "description": "A quantity stepper has '+' and '−' buttons (often unlabeled icon glyphs) around a value, but the value display is a plain <span> with no role=\"spinbutton\"/aria-valuenow, and the increment/decrement buttons have no accessible name (just a glyph) or a name that does not say what they change. Screen reader users hear 'button button' and an unchanging value when they press them.",
+      "wcagScs": [
+        "4.1.2",
+        "4.1.3",
+        "1.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<button onclick=\"dec()\">−</button>\n<span class=\"qty\">1</span>\n<button onclick=\"inc()\">+</button>\n<!-- glyph-only names; qty is a span, not role=spinbutton with aria-valuenow -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "If the buttons contain a glyph character (−/+) axe may consider them to have text and pass discernible-text; the '−' may even be read as 'minus' or skipped. Judging that the name does not convey 'decrease quantity' is semantic, and the value <span> not exposing changes (no spinbutton role / live update) is a runtime announcement gap a snapshot scan cannot detect.",
+      "realWorldNote": "The APG spinbutton pattern requires role=spinbutton with aria-valuenow/min/max and accessible names on the controls; e-commerce quantity steppers commonly ship as glyph-only buttons around a non-semantic value span, a frequent audit finding. https://www.w3.org/WAI/ARIA/apg/patterns/spinbutton/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "React/Vue/Angular SPAs built on Next.js, Gatsby, Shopify Hydrogen, headless storefronts",
+      "name": "SPA <title> and focus never update on client-side route change",
+      "description": "Navigating between client-rendered views swaps the main content but never updates document.title and never moves focus, so the page title is frozen at the initial route ('Home') and the screen reader is left on a now-detached element. The user has no confirmation a navigation happened or where they landed.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<!-- title stuck on first load across every route -->\n<title>Acme Store - Home</title>\n<!-- /products, /cart, /checkout all render under this same title; no focus move, no live-region announce -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-snapshot scan sees a valid, non-empty <title> and passes 2.4.2. The failure is DYNAMIC and BEHAVIORAL — it only manifests across a route transition, which axe/Lighthouse (point-in-time DOM scans) never exercise. Catching it requires interacting (clicking a nav link) and observing that title/focus did not change.",
+      "realWorldNote": "Documented SPA failure mode; Kitty Giraudel and Deque both cover the fix (update title + manage focus/live region on route change): https://kittygiraudel.com/2020/01/15/accessible-title-in-a-single-page-react-application/ , https://www.deque.com/blog/accessibility-tips-in-single-page-applications/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "MUI Snackbar, react-hot-toast, Bootstrap toasts, Shopify/WordPress 'added to cart' confirmations",
+      "name": "Toast / status confirmation not in a live region",
+      "description": "A success/error toast or 'Added to cart' / 'Form submitted' confirmation appears visually but is injected into a plain <div> with no role=status/alert and no aria-live, so screen readers announce nothing. The toast then auto-dismisses, so the information is gone before a non-visual user could ever discover it.",
+      "wcagScs": [
+        "4.1.3",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<div class=\"toast toast--success\">Item added to your cart</div>\n<!-- no role=status, no aria-live=polite; vanishes after 3s -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The toast container often does not exist in the DOM at scan time (injected on an action) and, when present, a missing aria-live is not flagged because a div with text is perfectly valid HTML. Determining that THIS particular transient message needed to be announced is a semantic judgment about what the content means to the user, not a structural rule.",
+      "realWorldNote": "MUI Snackbar accessibility gaps are tracked upstream (focus/ESC/announce issues): https://github.com/mui/material-ui/issues/22354 . Sara Soueidan on live-region notification pitfalls: https://www.sarasoueidan.com/blog/accessible-notifications-with-aria-live-regions-part-1/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "WordPress slider plugins (Slider Revolution, Smart Slider), Elementor/Divi carousels, Wix Pro Gallery",
+      "name": "Auto-rotating carousel, keyboard-inaccessible, no pause",
+      "description": "A hero carousel auto-advances on a timer with no pause/stop control, prev/next arrows are non-focusable divs, and slide changes are not announced. Keyboard users cannot reach controls; the moving content steals reading position; offscreen slides may still be in the tab order as hidden focusable links.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.7",
+        "2.4.3",
+        "4.1.3",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<div class=\"slider\" data-autoplay=\"true\" data-interval=\"4000\">\n  <div class=\"slide\"><a href=\"/promo\">Shop the sale</a></div>\n  <div class=\"arrow next\" onclick=\"next()\"></div> <!-- div, not focusable -->\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Auto-rotation timing and the absence of a pause control are temporal/behavioral and not in the static DOM signature. Tools may catch a div with onclick lacking a role, but cannot verify keyboard reachability of the rotation, that focus is trapped/lost between slides, or that offscreen slides leak into the tab order — all need manual keyboard testing.",
+      "realWorldNote": "WCAG-ART and the A11Y Collective document carousel pause/keyboard/announce failures as classic manual-test items: https://www.a11y-collective.com/blog/accessible-carousel/ ; WP slider accessibility caveats: https://www.abrightclearweb.com/accessible-slider-wordpress/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "accessiBe / UserWay / AudioEye overlay widgets injected over any CMS",
+      "name": "Overlay-injected accessible names that mismatch the visible control",
+      "description": "An automated accessibility-overlay 'fixes' controls by injecting aria-labels guessed from nearby text, icons, or filenames. The injected name frequently does not match the control's visible label or function (a 'Search' field labeled 'button', a close 'X' labeled 'menu'), so the accessible name and visible label diverge — and the widget can also trap screen-reader focus after its own dialog closes.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.2",
+        "4.1.3"
+      ],
+      "typicalMarkup": "<!-- overlay rewrites this -->\n<button aria-label=\"link 2\">Contact Us</button>\n<input type=\"search\" aria-label=\"submit\" placeholder=\"Search...\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Both the overlay's injected name and the visible label are syntactically valid, so a linter sees an accessible name present and passes. Detecting that the programmatic NAME contradicts the VISIBLE label (and that voice-control users can no longer say the label) requires comparing rendered text against the computed name — a human semantic comparison. Tools that scan post-overlay DOM are actively fooled.",
+      "realWorldNote": "FTC fined accessiBe $1M for misleading claims; 800+ overlay users still sued in 2023-24. Adrian Roselli's tracking: https://adrianroselli.com/2020/06/accessibe-will-get-you-sued.html ; FTC: https://techcrunch.com/2025/01/03/ftc-orders-ai-accessibility-startup-accessibe-to-pay-1m-for-misleading-advertising",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Bootstrap/template tabs, accordions, and custom dropdowns in CMS themes",
+      "name": "Custom widget role present but state/keyboard support missing",
+      "description": "A theme implements tabs/accordions/menus with role=tab/button and ARIA, satisfying role checks, but the dynamic VALUE/STATE is wrong or static: aria-expanded never toggles, aria-selected is hard-coded, the panel relationship (aria-controls) is broken, and arrow-key navigation is absent. ARIA presence makes the page LOOK accessible while behaving inaccessibly.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "1.3.1",
+        "4.1.3"
+      ],
+      "typicalMarkup": "<button aria-expanded=\"false\" class=\"accordion\">Shipping</button>\n<!-- clicking opens the panel visually but aria-expanded stays \"false\"; no arrow-key support -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Static scans confirm the ATTRIBUTES exist and are valid; they cannot verify the attribute VALUE tracks the live UI state (aria-expanded staying false after opening) or that keyboard interaction patterns work — these are dynamic, requiring activation and re-inspection. This is precisely why WebAIM finds MORE detected errors on ARIA-heavy pages.",
+      "realWorldNote": "WebAIM Million: pages WITH ARIA average ~34-69% MORE detected errors than pages without — broken/incomplete ARIA is a leading cause: https://webaim.org/projects/million/2024 ; 2026 confirms the pattern: https://webaim.org/projects/million/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Toast / snackbar notifications and async status from SPA component libraries (custom toasts, some MUI/Chakra usages) rendered without a live region",
+      "name": "toast / status message not in a live region (silent announcement)",
+      "description": "A success/error toast or 'Saved' confirmation is injected into the DOM with no role=\"status\"/role=\"alert\" and no aria-live, so screen-reader users never hear it. Conversely, some use role=\"alert\"/assertive for low-priority messages and interrupt/clobber the user. The visual feedback has no programmatic announcement.",
+      "wcagScs": [
+        "4.1.3",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"toast toast--success\">Your changes were saved</div>\n<!-- no role, no aria-live; appears then auto-dismisses -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "There is no markup defect to flag — the toast div is perfectly valid HTML. Knowing it SHOULD have been a status message (it conveys a status change) and that it currently announces nothing requires understanding the message's purpose and testing the dynamic update with AT; automated scanners do not model 'this content appeared and should have been announced'.",
+      "realWorldNote": "Sara Soueidan 'Accessible notifications with ARIA Live Regions'; TPGI live-region support; htmhell ARIA Live Regions — all note injected toasts commonly go un-announced. https://www.sarasoueidan.com/blog/accessible-notifications-with-aria-live-regions-part-1/",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Single-page apps (React Router / Vue Router / Angular routing in SPA themes and dashboards) where document.title is not updated on route change",
+      "name": "SPA <title> never updates on client-side route change",
+      "description": "Navigating between client-side routes swaps the view but leaves <title> at the initial app shell value (e.g. 'My App'). Screen-reader users get no title announcement on 'navigation', browser tabs/history/bookmarks all read the same generic title, and there is no programmatic signal that the page changed.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3"
+      ],
+      "typicalMarkup": "<!-- /dashboard, /settings, /billing all render: -->\n<title>My App</title>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-page scan finds a valid, non-empty <title>, so 2.4.2 passes. The defect only manifests across route transitions — the scanner would have to drive the SPA, change routes, and compare titles. Judging whether each route's title is unique and descriptive is also a contextual call.",
+      "realWorldNote": "Widely documented SPA a11y gap (gov.uk / Marcy Sutton / TPGI guidance on managing focus and document.title on route change in React/Vue/Angular SPAs).",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Material UI Snackbar / generic React toast libraries",
+      "name": "Toast/snackbar fired outside a live region",
+      "description": "A transient toast (\"Item added to cart\", \"Saved\", \"Error: try again\") is injected into the DOM as a styled <div> with no role=\"status\"/role=\"alert\" and not inside an aria-live region. Sighted users see it appear and fade; screen-reader users get no announcement at all, so success/error feedback is silently lost. Often compounded by auto-dismiss before any AT could reach it.",
+      "wcagScs": [
+        "4.1.3"
+      ],
+      "typicalMarkup": "<div class=\"MuiSnackbar-root\">\n  <div class=\"MuiSnackbarContent-root\">Item added to cart</div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The toast exists only momentarily and contains valid markup; static scanners audit a snapshot of the DOM and have no concept of \"this content appeared dynamically and was not announced.\" Detecting it requires observing the runtime mutation and judging that it is a status message that needed a live region.",
+      "realWorldNote": "Documented as a recurring toast failure; MUI Snackbar focus/announcement issues are tracked upstream. https://www.sarasoueidan.com/blog/accessible-notifications-with-aria-live-regions-part-1/ and https://github.com/mui/material-ui/issues/22354",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

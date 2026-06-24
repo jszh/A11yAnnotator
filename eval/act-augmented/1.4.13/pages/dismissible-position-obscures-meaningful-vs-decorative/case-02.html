@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Patient Intake — Step 2 of 4 | Cedar Valley Family Health</title>
+<!--
+  SC 1.4.13 Dismissible — Method 1 (non-obscuring positioning) FAILURE.
+
+  No keyboard dismiss exists: there is no Esc handler and the help popover cannot be
+  closed without moving focus off the trigger. Method 1 is therefore the only path.
+
+  The defect: the "What's this?" help popover on the INSURANCE MEMBER ID field opens to
+  the RIGHT and downward, and lands on top of the NEXT field's required-asterisk and its
+  label ("Patient date of birth *"), as well as the member-ID input the user is filling.
+  It obscures information-bearing content — the visual "* required" marker, the adjacent
+  field's label, and the active input. Method 1 is violated.
+
+  WHY AUTOMATED TOOLS MISS IT: the form is exemplary on paper — every input has a real
+  <label for>, required fields use aria-required and a programmatic note via
+  aria-describedby, the popover is role="tooltip" with aria-describedby wiring, contrast
+  passes. Nothing is missing or malformed. A checker cannot see, in the rendered
+  hover/focus state, that the popover rectangle covers the asterisk + helper text of the
+  adjacent field. Deciding "the covered pixels carry required-field information, not white
+  space" is a visual + semantic human judgment.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#eef3f4; color:#15303a;
+    font:16px/1.5 -apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  .topbar { background:#0e6b6b; color:#fff; padding:14px 22px; display:flex; align-items:center; gap:12px; }
+  .topbar .logo { width:26px; height:26px; border-radius:6px; background:#fff; color:#0e6b6b; font-weight:800; display:grid; place-items:center; font-size:15px; }
+  .topbar strong { font-size:17px; letter-spacing:.01em; }
+  .progress { background:#fff; border-bottom:1px solid #d4e0e2; padding:10px 22px; font-size:13px; color:#4c6168; }
+  .progress b { color:#0e6b6b; }
+  .card { max-width:560px; margin:26px auto; background:#fff; border:1px solid #d4e0e2; border-radius:12px; padding:26px 28px 30px; box-shadow:0 2px 8px rgba(20,60,70,.06); }
+  h1 { font-size:21px; margin:0 0 4px; }
+  .lede { margin:0 0 22px; color:#4c6168; font-size:14px; }
+  .field { margin:0 0 20px; position:relative; }
+  label { display:block; font-weight:600; margin:0 0 6px; font-size:14.5px; }
+  .req { color:#b1241f; font-weight:700; }
+  input[type=text] { width:100%; padding:11px 12px; font-size:15px; border:1px solid #9bb0b6; border-radius:8px; background:#fff; }
+  input[type=text]:focus { outline:3px solid #0e6b6b; outline-offset:1px; border-color:#0e6b6b; }
+  .help-note { font-size:12.5px; color:#52666c; margin-top:5px; }
+
+  /* "What's this?" trigger sits inline at the end of the label row */
+  .help-trigger {
+    border:0; background:#0e6b6b; color:#fff; font:600 11px/1 inherit;
+    border-radius:999px; padding:4px 9px; margin-left:8px; cursor:help; vertical-align:middle;
+  }
+  .help-trigger:focus-visible { outline:3px solid #15303a; outline-offset:2px; }
+
+  /* The popover opens to the right + down. It overhangs the NEXT field below. */
+  .popover {
+    display:none;
+    position:absolute;
+    top:30px;            /* below the label row */
+    left:60px;
+    width:300px; max-width:80vw;
+    background:#0b3a3a; color:#eafafa;
+    border-radius:10px; padding:12px 14px;
+    font-size:13px; line-height:1.45;
+    box-shadow:0 10px 26px rgba(8,40,40,.4);
+    z-index:30;
+  }
+  .popover.is-open { display:block; }
+
+  .actions { display:flex; justify-content:space-between; margin-top:8px; }
+  .btn { border:0; border-radius:8px; padding:11px 18px; font-size:15px; font-weight:600; cursor:pointer; }
+  .btn.secondary { background:#e3edee; color:#0e6b6b; }
+  .btn.primary { background:#0e6b6b; color:#fff; }
+</style>
+</head>
+<body>
+  <div class="topbar"><span class="logo">C</span><strong>Cedar Valley Family Health</strong></div>
+  <div class="progress">New Patient Intake &mdash; <b>Step 2 of 4: Insurance &amp; Identification</b></div>
+
+  <form class="card" novalidate>
+    <h1>Insurance &amp; Identification</h1>
+    <p class="lede">We use this to verify coverage before your first visit. Fields marked
+      <span class="req">*</span> are required.</p>
+
+    <div class="field">
+      <label for="memberId">Insurance member ID <span class="req" aria-hidden="true">*</span>
+        <button type="button" class="help-trigger" aria-describedby="memberId-pop">What&rsquo;s this?</button>
+      </label>
+      <input type="text" id="memberId" name="memberId" aria-required="true"
+             aria-describedby="memberId-help" autocomplete="off" placeholder="e.g. XJ4-220-77B">
+      <div class="help-note" id="memberId-help">Find this on the front of your insurance card, upper-right.</div>
+      <div role="tooltip" id="memberId-pop" class="popover">
+        Your <strong>member ID</strong> is the long alphanumeric code on your card &mdash; not the
+        group number and not the plan name. If your card lists both a subscriber ID and a member
+        ID, enter the member ID for the patient being seen.
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="dob">Patient date of birth <span class="req" aria-hidden="true">*</span></label>
+      <input type="text" id="dob" name="dob" aria-required="true"
+             aria-describedby="dob-help" placeholder="MM/DD/YYYY" autocomplete="bday">
+      <div class="help-note" id="dob-help">Format: MM/DD/YYYY. Required for prescription matching.</div>
+    </div>
+
+    <div class="field">
+      <label for="group">Group number</label>
+      <input type="text" id="group" name="group" aria-describedby="group-help" placeholder="Optional">
+      <div class="help-note" id="group-help">Optional &mdash; some plans do not use a group number.</div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn secondary">Back</button>
+      <button type="submit" class="btn primary">Continue to Step 3</button>
+    </div>
+  </form>
+
+  <script>
+    // Canonical SCR39-style show/hide on hover AND focus (works for keyboard + mouse),
+    // but DELIBERATELY with NO Escape-to-dismiss and no close button. Because the popover
+    // cannot be dismissed while focus stays on the trigger, Method 2 is unavailable; and
+    // because the popover overlaps the date-of-birth required asterisk + helper text,
+    // Method 1 also fails. Hidden on blur/mouseout only.
+    (function () {
+      var trig = document.querySelector('.help-trigger');
+      var pop = document.getElementById('memberId-pop');
+      function show() { pop.classList.add('is-open'); }
+      function hide() { pop.classList.remove('is-open'); }
+      trig.addEventListener('mouseenter', show);
+      trig.addEventListener('focus', show);
+      trig.addEventListener('mouseleave', hide);
+      trig.addEventListener('blur', hide);
+      // NOTE: no keydown/Escape handler -> no dismiss path.
+    })();
+    document.querySelector('form').addEventListener('submit', function (e) { e.preventDefault(); });
+  </script>
+</body>
+</html>

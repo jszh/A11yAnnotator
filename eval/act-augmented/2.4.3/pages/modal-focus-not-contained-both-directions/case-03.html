@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Tideline Review — Long-form journalism</title>
+<!--
+  SC 2.4.3 — modal-focus-not-contained-both-directions — case-03 (FAIL)
+  DIMS BUT NEVER INERT. A newsletter-signup promo (Privy/Mailchimp-style) slides up over
+  a dim scrim after the reader scrolls. It LOOKS modal (dark scrim, centered card) and the
+  developer even moved initial focus into the email field. But NO focus trap exists and the
+  background was never made inert/aria-hidden. Tab quietly walks past the dialog's two
+  controls and straight onto the article page's "Search the archive" field and its button,
+  which are visually hidden under the dim scrim. The user is typing into / activating
+  controls they cannot see have focus. Both forward AND backward leak because there is no
+  containment at all — the modal pretense is purely visual.
+  WHY AUTOMATED TOOLS MISS IT: there is no role=dialog/aria-modal here at all (the promo is
+  a plain styled <div> — common in marketing widgets), so there is nothing for a rule to
+  even key on; the background search form is perfectly valid labelled markup. axe/WAVE see
+  two normal forms. Only a human who tabs forward from the email field and watches focus
+  disappear under the scrim onto the search box — or notices the scrim does not actually
+  make the page inert — can tell the "modal" fails to contain focus.
+-->
+<style>
+  :root { font-family: Georgia, "Times New Roman", serif; color: #20242b; }
+  body { margin: 0; background: #fffdf8; }
+  header.pub { border-bottom: 2px solid #20242b; padding: 16px 30px; display: flex; align-items: center; justify-content: space-between; }
+  header.pub .masthead { font-size: 1.6rem; font-weight: 700; letter-spacing: .5px; }
+  .archive-search { display: flex; gap: 8px; }
+  .archive-search input { padding: 8px 12px; border: 1px solid #8a8f98; border-radius: 6px; font: inherit; width: 220px; }
+  .archive-search button { padding: 8px 14px; border: none; background: #20242b; color: #fff; border-radius: 6px; font: inherit; cursor: pointer; }
+  main { max-width: 680px; margin: 0 auto; padding: 30px; line-height: 1.7; }
+  main h1 { font-size: 2rem; line-height: 1.2; }
+  main p { font-size: 1.05rem; }
+  .byline { color: #5b606a; font-style: italic; }
+  /* dim scrim + centered card: looks modal, behaves like nothing */
+  .scrim { position: fixed; inset: 0; background: rgba(20,24,30,.6); display: flex; align-items: center; justify-content: center; }
+  .promo { background: #fffdf8; width: min(420px, 90vw); border-radius: 6px; padding: 26px; box-shadow: 0 18px 50px rgba(0,0,0,.4); text-align: center; }
+  .promo h2 { margin-top: 0; font-size: 1.4rem; }
+  .promo p { color: #444; font-size: .95rem; }
+  .promo .row { display: flex; gap: 8px; margin-top: 14px; }
+  .promo input { flex: 1; padding: 11px 12px; border: 1px solid #8a8f98; border-radius: 6px; font: inherit; }
+  .promo button { padding: 11px 18px; border: none; background: #b8431f; color: #fff; border-radius: 6px; font: inherit; font-weight: 700; cursor: pointer; }
+</style>
+</head>
+<body>
+<header class="pub">
+  <span class="masthead">The Tideline Review</span>
+  <!-- These controls sit UNDER the scrim but remain focusable: the leak target -->
+  <form class="archive-search" role="search" action="#results">
+    <label for="q" class="sr-only" style="position:absolute;left:-9999px">Search the archive</label>
+    <input id="q" name="q" type="search" placeholder="Search the archive">
+    <button id="q-go" type="submit">Search</button>
+  </form>
+</header>
+
+<main>
+  <article>
+    <h1>The slow return of the salt marsh</h1>
+    <p class="byline">By Marisol Quenby · 18 min read</p>
+    <p>For a century the estuary was diked, drained, and forgotten. Then a single broken
+       culvert let the tide back in, and the marsh began to remember what it had been.</p>
+    <p>Restoration ecologists now argue that the cheapest climate infrastructure may be the
+       land we already ruined — if only we let the water decide where to go.</p>
+    <p>The rest of this feature continues below the fold, but first the editors would like
+       you to subscribe.</p>
+  </article>
+</main>
+
+<!--
+  Newsletter promo. NO role/dialog semantics, NO trap, background NOT inert. It only
+  *looks* modal because of the scrim. Initial focus is moved into the email field, which
+  fools a quick keyboard check into thinking it behaves like a dialog.
+-->
+<div class="scrim" id="scrim">
+  <section class="promo" id="promo" aria-label="Newsletter signup">
+    <h2>Read without limits</h2>
+    <p>Join 40,000 readers. One thoughtful story in your inbox each morning.</p>
+    <div class="row">
+      <label for="news-email" style="position:absolute;left:-9999px">Email address</label>
+      <input id="news-email" type="email" placeholder="you@example.com">
+      <button id="news-sub" type="button">Subscribe</button>
+    </div>
+  </section>
+</div>
+
+<script>
+  // The marketing widget moves focus to the email field so it "feels" like a modal.
+  // That is the ONLY focus management. No trap; background never inerted.
+  window.addEventListener('load', () => document.getElementById('news-email').focus());
+  document.getElementById('news-sub').addEventListener('click', () => {
+    document.getElementById('news-sub').textContent = 'Subscribed ✓';
+  });
+  // Esc closes the scrim (so this is not a 2.1.2 trap) — but while it is open, Tab leaks.
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('scrim').remove();
+  });
+</script>
+</body>
+</html>

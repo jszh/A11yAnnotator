@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 (Non-text Content) — BOUNDARY / PASS control for the F71 look-alike
+    aspect. This page deliberately contains glyph substitution AND legitimate
+    foreign-script text, but it does NOT fail the SC, because each case is handled
+    correctly. It exists so a judge must distinguish ABUSE (F71 failure) from two
+    things that look superficially similar but are conformant:
+
+      (A) PROVIDED TEXT ALTERNATIVE: the section heading visually reads "Cook"
+          using the same confusable string as the failing cases
+          (ϲ U+03F2, о U+043E, о U+03BF — plus a Latin 'k'), BUT it carries a
+          text alternative: a visually-hidden, screen-reader-only span with the
+          real Latin word "Cook", and the decorative confusable glyphs are marked
+          aria-hidden="true". F71 fails ONLY when "there is not a text alternative
+          for any range of text that uses look-alike glyphs." A text alternative
+          IS present here, so this range conforms.
+
+      (B) LEGITIMATE MULTILINGUAL CONTENT: the page quotes real Greek — the dish
+          name "τζατζίκι" and the phrase "Καλή όρεξη" (= "enjoy your meal") — each
+          wrapped in lang="el". These are NOT confusables; they are correctly
+          encoded Greek used AS Greek, announced properly by a screen reader in
+          Greek. Correct multilingual content is not an F71 failure.
+
+      (C) PLAIN-LATIN control: the brand "Cookwell" and the CTA "Shop knives" use
+          ordinary Latin code points throughout.
+
+    Expected outcome: PASSED. The look-alike range has a text alternative; the
+    foreign script is genuine, language-tagged content; no name-bearing range is
+    left without an equivalent.
+
+    WHY AUTOMATED TOOLS MISS IT (the symmetry point): just as scanners cannot
+    DETECT the F71 failure (no img/svg/role=img; valid non-empty text), they
+    equally cannot CONFIRM this page is fine — they cannot tell that the hidden
+    "Cook" span rescues the confusable heading, nor that the Greek is legitimate
+    rather than abuse. Both verdicts require the same human reading judgment.
+  -->
+  <title>Cookwell — Japanese kitchen knives</title>
+  <style>
+    :root { --ink:#20211f; --steel:#37474f; --accent:#b5651d; --rule:#e7e4de; --bg:#fbfaf7; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Georgia", "Times New Roman", serif; color:var(--ink); background:var(--bg); line-height:1.65; }
+    .sr-only { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.5rem; border-bottom:1px solid var(--rule); font-family:"Helvetica Neue", Arial, sans-serif; }
+    header .brand { font-weight:800; letter-spacing:.02em; }
+    header nav a { margin-left:1.1rem; text-decoration:none; color:var(--steel); font-size:.9rem; }
+    .hero { max-width:740px; margin:0 auto; padding:3rem 1.5rem 1rem; text-align:center; }
+    .hero h1 { font-size:clamp(2.4rem,7vw,3.6rem); margin:0 0 .6rem; }
+    .hero p { font-size:1.12rem; color:#4c4a45; }
+    a.cta { display:inline-block; margin-top:1rem; background:var(--accent); color:#fff; text-decoration:none; font-weight:700; font-family:"Helvetica Neue",Arial,sans-serif; padding:.7rem 1.4rem; border-radius:6px; }
+    main { max-width:740px; margin:0 auto; padding:1.4rem 1.5rem 4rem; }
+    .recipe { background:#fff; border:1px solid var(--rule); border-radius:12px; padding:1.3rem 1.5rem; margin-top:1.4rem; }
+    .recipe h2 { margin-top:0; }
+    .recipe .greek { font-style:italic; color:var(--steel); }
+    blockquote { border-left:3px solid var(--accent); margin:1.2rem 0 0; padding:.2rem 0 .2rem 1rem; color:#4c4a45; }
+    footer { border-top:1px solid var(--rule); text-align:center; padding:1.4rem; font-size:.82rem; color:#7a766e; font-family:"Helvetica Neue",Arial,sans-serif; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Cookwell</span>
+    <nav aria-label="Primary"><a href="#knives">Knives</a><a href="#care">Care</a><a href="#recipes">Recipes</a></nav>
+  </header>
+
+  <section class="hero">
+    <!--
+      (A) CONFORMANT confusable heading. The visible confusable glyphs are
+      aria-hidden; a screen-reader-only real-Latin "Cook" provides the text
+      alternative, so AT announces "Cook well, eat well." correctly.
+    -->
+    <h1>
+      <span aria-hidden="true">&#x03F2;&#x043E;&#x03BF;k</span><span class="sr-only">Cook</span> well, eat well.
+    </h1>
+    <p>Hand-forged carbon-steel knives, sharpened for everyday cooking — not display cases.</p>
+    <!-- (C) Plain-Latin CTA. -->
+    <a class="cta" href="#knives">Shop knives</a>
+  </section>
+
+  <main>
+    <h2 id="recipes">A recipe to break in your new blade</h2>
+    <div class="recipe">
+      <!-- (B) LEGITIMATE Greek, correctly language-tagged. Not a confusable. -->
+      <h2>Garlic-cucumber yogurt dip <span class="greek" lang="el">(τζατζίκι)</span></h2>
+      <p>Grate one cucumber, salt it, and squeeze it bone-dry. Fold into thick Greek yogurt with grated garlic, olive oil, a splash of red-wine vinegar, and chopped dill. Your fine-edged knife makes quick work of the dill.</p>
+      <blockquote>
+        As they say at the table: <span lang="el">Καλή όρεξη</span> — enjoy your meal.
+      </blockquote>
+    </div>
+  </main>
+
+  <footer>© 2026 Cookwell. Sharpen mindfully.</footer>
+</body>
+</html>

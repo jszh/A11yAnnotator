@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — Riverside Jazz Festival tickets</title>
+<!--
+  WHY THIS IS A TRUE-NEGATIVE (PASSES 1.4.1):
+  This is the same dynamic post-submit error state as the failing cases, but built
+  correctly. Each invalid field gets a red border AND, right below it, a visible inline
+  error MESSAGE in text ("Enter the name on the card.") AND a warning icon (a real text
+  glyph "!" inside an SVG triangle with aria-hidden, plus the word in the message). The
+  error meaning is therefore conveyed by THREE non-color channels — text wording, an
+  icon shape, and position — not by hue alone. Remove all color (grayscale) and a user
+  still sees the "!" triangle and reads the message, so they know exactly which fields
+  failed and why. This is the F81 escape (provide an alternate, non-color identification)
+  and matches G14/G205 (info also available in text). Included to sharpen the boundary:
+  the red border here is decoration ON TOP of a sufficient text+icon cue, so it does NOT
+  fail 1.4.1. Automated tools also pass it — correctly this time.
+-->
+<style>
+  :root { --ink:#21262b; --muted:#5c6671; --line:#cbd2d9; --plum:#7a2150; --danger:#c4122f; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Inter",system-ui,sans-serif; color:var(--ink); background:#f5f2f4; }
+  header { background:var(--plum); color:#fff; padding:20px 26px; }
+  header h1 { margin:0; font-size:1.3rem; } header p { margin:3px 0 0; opacity:.92; font-size:.9rem; }
+  main { max-width:600px; margin:24px auto 64px; background:#fff; border-radius:10px;
+         box-shadow:0 4px 18px rgba(60,20,40,.08); padding:26px 30px 32px; }
+  h2 { font-size:1.05rem; margin:0 0 16px; }
+  .field { margin-bottom:18px; }
+  label { display:block; font-weight:600; font-size:.86rem; margin:0 0 6px; }
+  input { width:100%; padding:10px 12px; font-size:1rem; border:2px solid var(--line);
+          border-radius:7px; background:#fff; color:var(--ink); }
+  input:focus { outline:2px solid var(--plum); outline-offset:1px; }
+  .two { display:flex; gap:14px; } .two > .field { flex:1; }
+
+  /* invalid field: red border (decoration) + a TEXT message + an ICON below it */
+  input.invalid { border-color:var(--danger); }
+  .err { display:flex; align-items:center; gap:6px; margin:6px 0 0; color:#9a1024; font-size:.82rem; font-weight:600; }
+  .err svg { flex:0 0 auto; }
+
+  button { width:100%; padding:12px; font-size:1rem; font-weight:700; color:#fff; background:var(--plum);
+           border:0; border-radius:7px; cursor:pointer; margin-top:6px; }
+  .summary { background:#fdeef0; border:1px solid #f1c0c9; color:#7d1226; border-radius:7px;
+             padding:10px 12px; font-size:.9rem; margin-bottom:20px; }
+  footer { max-width:600px; margin:0 auto; padding:0 4px 30px; color:var(--muted); font-size:.78rem; }
+</style>
+</head>
+<body>
+<header><h1>Riverside Jazz Festival</h1><p>Payment · 2 × Weekend Pass</p></header>
+
+<main>
+  <h2>Card details</h2>
+
+  <div class="summary" role="alert">2 fields need your attention. See the messages below each highlighted field.</div>
+
+  <form action="#" method="post" novalidate>
+    <!-- VALID field: gray border, no message -->
+    <div class="field">
+      <label for="num">Card number</label>
+      <input id="num" inputmode="numeric" autocomplete="cc-number" value="4111 1111 1111 1111">
+    </div>
+
+    <!-- INVALID: red border + visible text message + warning icon glyph -->
+    <div class="field">
+      <label for="name">Name on card</label>
+      <input id="name" class="invalid" autocomplete="cc-name" aria-invalid="true"
+             aria-describedby="name-err" value="">
+      <p class="err" id="name-err">
+        <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M8 1 1 14h14L8 1z" fill="#c4122f"/>
+          <rect x="7.2" y="6" width="1.6" height="4.4" fill="#fff"/>
+          <rect x="7.2" y="11" width="1.6" height="1.6" fill="#fff"/>
+        </svg>
+        Error: enter the name as printed on the card.
+      </p>
+    </div>
+
+    <div class="two">
+      <!-- INVALID: red border + visible text message + warning icon -->
+      <div class="field">
+        <label for="exp">Expiry (MM/YY)</label>
+        <input id="exp" class="invalid" autocomplete="cc-exp" aria-invalid="true"
+               aria-describedby="exp-err" value="01/22">
+        <p class="err" id="exp-err">
+          <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path d="M8 1 1 14h14L8 1z" fill="#c4122f"/>
+            <rect x="7.2" y="6" width="1.6" height="4.4" fill="#fff"/>
+            <rect x="7.2" y="11" width="1.6" height="1.6" fill="#fff"/>
+          </svg>
+          Error: this card has expired. Use a valid expiry date.
+        </p>
+      </div>
+      <!-- VALID -->
+      <div class="field">
+        <label for="cvc">CVC</label>
+        <input id="cvc" inputmode="numeric" autocomplete="cc-csc" value="321">
+      </div>
+    </div>
+
+    <button type="submit">Pay $238.00</button>
+  </form>
+</main>
+<footer>Riverside Jazz Festival · Secure payment · Renders entirely from file://</footer>
+</body>
+</html>

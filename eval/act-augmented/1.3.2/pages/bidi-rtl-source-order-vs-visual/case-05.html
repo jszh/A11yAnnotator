@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>خبرگزاری دانش — اعلان همایش</title>
+<style>
+  :root { --ink:#231f2e; --plum:#6a2c70; --paper:#faf7fb; --line:#e8dded; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:17px/1.85 "Vazirmatn","Noto Naskh Arabic","Segoe UI",system-ui,sans-serif; color:var(--ink); background:var(--paper); }
+  header { background:var(--plum); color:#fff; padding:22px 26px; }
+  header h1 { margin:0; font-size:1.45rem; }
+  main { max-width:700px; margin:0 auto; padding:30px 24px 60px; }
+  article { background:#fff; border:1px solid var(--line); border-radius:10px; padding:26px 28px; }
+  h2 { margin-top:0; color:var(--plum); font-size:1.25rem; }
+  .lede { font-size:1.05rem; color:#443; }
+  .compare { margin-top:28px; border-top:2px dashed var(--line); padding-top:16px; }
+  .compare h3 { color:#555; font-size:.95rem; }
+  .vis, .log { background:#fcfafd; border:1px solid var(--line); border-radius:8px; padding:10px 14px; margin:8px 0; }
+  .log { font-style:italic; color:#5a4f5e; }
+  .mono { font-family:"SFMono-Regular",Consolas,monospace; direction:ltr; unicode-bidi:plaintext; font-size:.9rem; }
+  code { background:#f0e7f1; padding:1px 5px; border-radius:4px; font-size:.85em; }
+  footer { margin-top:36px; font-size:.85rem; color:#857889; border-top:1px solid var(--line); padding-top:14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>خبرگزاری دانش</h1>
+</header>
+<main>
+  <article>
+    <h2>ثبت‌نام همایش ملی هوش مصنوعی آغاز شد</h2>
+
+    <p class="lede">دبیرخانهٔ همایش از پژوهشگران دعوت کرد تا چکیدهٔ مقالات خود را
+       پیش از پایان خرداد ارسال کنند.</p>
+
+    <!--
+      THE FAILURE (G57): the paragraph is Persian (RTL) and embeds an LTR registration URL.
+      Intended visual reading:
+          "...برای ثبت‌نام به نشانی conf.ai-iran.org/2024 مراجعه کنید."
+      The URL is an LTR run inside RTL text. The bidi algorithm placed the trailing Persian
+      word and the slash-segment of the URL on the wrong side, so the author "fixed the
+      visual" by PHYSICALLY REORDERING characters in the source: they broke the URL and
+      moved the path segment "2024/" to BEFORE the host in the byte stream, and shifted the
+      following Persian word, so that after bidi reordering it LOOKS like one clean URL.
+      Source/logical order therefore reads, when spoken or copied, as a SCRAMBLED address —
+      e.g. "...مراجعه 2024/ conf.ai-iran.org کنید..." — the path appears before the host and
+      the verb is split. A screen reader announces the URL pieces out of order, and a user
+      copying the link from the reading-order gets a broken address.
+      The correct fix is <bdi> around the URL (logical order intact); it is NOT used here.
+    -->
+    <p class="body">برای ثبت‌نام به نشانی 2024/conf.ai-iran.org مراجعه کنید و در صورت
+       بروز مشکل با دبیرخانه تماس بگیرید.</p>
+
+    <div class="compare">
+      <h3>برای مقایسه — ترتیب دیداری در برابر ترتیب منبع (منطقی)</h3>
+      <div class="vis"><strong>آنچه کاربر می‌بیند:</strong>
+        برای ثبت‌نام به نشانی <span class="mono">conf.ai-iran.org/2024</span> مراجعه کنید.</div>
+      <div class="log"><strong>آنچه صفحه‌خوان می‌خواند (ترتیب منبع):</strong>
+        قطعهٔ مسیر «2024/» پیش از دامنه و فعل «مراجعه» در بایت‌ها جابه‌جا شده‌اند تا
+        خروجی دیداری درست به نظر برسد؛ بنابراین نشانی به‌صورت درهم و شکسته خوانده
+        یا کپی می‌شود. هیچ <code>&lt;bdi&gt;</code> به‌کار نرفته است.</div>
+    </div>
+  </article>
+
+  <footer>
+    <p>چرا ابزارهای خودکار آن را نمی‌یابند؟ صفحه <code>lang="fa" dir="rtl"</code> معتبر است،
+       هیچ ویژگی‌ای حذف نشده و نمایش دیداری درست است. تشخیص اینکه کاراکترهای نشانی در منبع
+       جابه‌جا شده‌اند تا الگوریتم دوسویه آن‌ها را درست نشان دهد، نیازمند خواندن فارسی،
+       دانستن جهت آن، و مقایسهٔ ترتیب منطقی با دیداری است — داوری چندزبانهٔ انسانی که
+       axe، WAVE و Lighthouse انجام نمی‌دهند.</p>
+  </footer>
+</main>
+</body>
+</html>

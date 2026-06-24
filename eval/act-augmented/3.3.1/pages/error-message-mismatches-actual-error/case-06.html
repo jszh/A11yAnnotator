@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shipping address — Thornfield Supply Co.</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  Post-submit checkout shipping step. The ZIP field has a visible, associated, fluent
+  server error (aria-describedby="zip-err"): "ZIP code 90210 not found in our database.
+  Please check the code and try again." It names the field, states a concrete cause, and
+  even quotes a specific ZIP — maximally "descriptive". ACT 36b590 passes; axe/WAVE/
+  Lighthouse pass (labelled field, resolved describedby, contrast fine).
+  THE DEFECT IS SEMANTIC: the value the user actually typed and that is RETAINED in the
+  field is "9021" (four digits). The error quotes "90210" — a FIVE-digit value the user
+  never entered (a stale value echoed from a previous lookup / a server that appended a
+  trailing zero). The real defect (the ZIP is only four digits / too short) is never
+  described, and the quoted value contradicts the field's own retained value. A user
+  reads an authoritative error about a value they did not type and cannot reconcile it
+  with what they see. No checker compares the value quoted in the message against the
+  field's actual value to detect that the message names a phantom value.
+-->
+<style>
+  :root{ --ink:#1d1a17; --muted:#6b6359; --line:#d8d2c8; --brand:#7a4a1e; --danger:#b62a20; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#f7f4ef; }
+  .wrap{ max-width:620px; margin:36px auto; padding:0 18px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .brand .box{ width:30px; height:30px; border-radius:7px; background:var(--brand); }
+  .brand strong{ font-size:1.1rem; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:28px 26px;
+         box-shadow:0 4px 16px rgba(40,30,15,.06); }
+  h1{ font-size:1.3rem; margin:0 0 4px; }
+  .step{ color:var(--muted); font-size:.86rem; margin:0 0 22px; }
+  .row{ display:flex; gap:16px; flex-wrap:wrap; }
+  .field{ flex:1 1 160px; margin-bottom:18px; }
+  .field.wide{ flex:1 1 100%; }
+  label{ display:block; font-weight:600; font-size:.86rem; margin-bottom:6px; }
+  input{ width:100%; padding:10px 12px; font-size:1rem; border:2px solid var(--line);
+         border-radius:8px; }
+  input[aria-invalid="true"]{ border-color:var(--danger); background:#fff8f7; }
+  input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .err{ color:var(--danger); font-size:.85rem; margin-top:7px; font-weight:600; }
+  button{ margin-top:8px; width:100%; padding:12px; font-size:1rem; font-weight:600; color:#fff;
+          background:var(--brand); border:0; border-radius:8px; cursor:pointer; }
+  .foot{ margin-top:16px; color:var(--muted); font-size:.78rem; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="box" aria-hidden="true"></span><strong>Thornfield Supply Co.</strong></div>
+    <main class="card">
+      <h1>Shipping address</h1>
+      <p class="step">Checkout · Step 2 of 3</p>
+
+      <form action="#" method="post" novalidate>
+        <div class="field wide">
+          <label for="street">Street address</label>
+          <input id="street" name="street" type="text" value="48 Larchmont Way"
+                 autocomplete="address-line1">
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="city">City</label>
+            <input id="city" name="city" type="text" value="Beverly Hills"
+                   autocomplete="address-level2">
+          </div>
+          <div class="field">
+            <label for="state">State</label>
+            <input id="state" name="state" type="text" value="CA"
+                   autocomplete="address-level1">
+          </div>
+          <div class="field">
+            <label for="zip">ZIP code</label>
+            <!--
+              Retained value is "9021" (four digits). The server error quotes "90210"
+              (five digits) — a value the user never typed. The real defect (too short)
+              is never stated.
+            -->
+            <input id="zip" name="zip" type="text" inputmode="numeric"
+                   value="9021"
+                   aria-describedby="zip-err" aria-invalid="true"
+                   autocomplete="postal-code">
+            <p class="err" id="zip-err">ZIP code 90210 not found in our database. Please check the code and try again.</p>
+          </div>
+        </div>
+
+        <button type="submit">Continue to payment</button>
+      </form>
+    </main>
+    <p class="foot">Thornfield Supply Co. · Order help 1-888-555-0177 · Renders from file://</p>
+  </div>
+</body>
+</html>

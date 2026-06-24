@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The 2024 Carbon-Border Levy, Explained | The Meridian Review</title>
+<!--
+  SC 1.4.13 Dismissible — Method 1 (non-obscuring positioning) FAILURE.
+
+  This page has NO keyboard dismiss (no Esc handler, the trigger is not activatable
+  to close, the tooltip cannot be hovered to close it either). So Method 1 — "position
+  the content so it does not obscure any other content ... with the exception of white
+  space and purely decorative content" — is the ONLY remaining path to compliance.
+
+  The defect: the glossary tooltip is absolutely positioned DOWNWARD and lands squarely
+  on top of the first three lines of the very next paragraph (information-bearing body
+  text; measured overlap ~3.2 line-heights). Geometric overlap covers meaningful prose,
+  not white space. So Method 1 fails
+  too -> the SC is failed.
+
+  WHY AUTOMATED TOOLS MISS IT: the markup is impeccable — the tooltip uses
+  role="tooltip", aria-describedby wires it to the trigger, the trigger is a real
+  <button> with a name, focus styles exist, colours pass 1.4.3 contrast. axe/WAVE/
+  Lighthouse never enter the hover/focus state, never compute the overlap rectangle,
+  and even if they did they cannot judge that the covered region is meaningful body
+  text rather than an empty margin. That meaningful-vs-decorative call is human + visual.
+-->
+<style>
+  :root { --ink:#1d1d28; --muted:#5a5a6e; --rule:#d8d8e0; --accent:#7a1f2b; }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; background:#fbfbfd; color:var(--ink);
+    font:17px/1.6 Georgia, "Times New Roman", serif;
+  }
+  .masthead {
+    border-bottom:3px double var(--rule); padding:18px 0 12px;
+    text-align:center;
+  }
+  .masthead .kicker { font:600 12px/1 "Helvetica Neue",Arial,sans-serif; letter-spacing:.22em; text-transform:uppercase; color:var(--accent); }
+  .masthead h1 { margin:6px 0 0; font-size:30px; font-weight:700; letter-spacing:.02em; }
+  .wrap { max-width:680px; margin:0 auto; padding:0 28px 80px; }
+  article h2 { font-size:26px; line-height:1.25; margin:34px 0 6px; }
+  .byline { font:13px/1.5 "Helvetica Neue",Arial,sans-serif; color:var(--muted); margin:4px 0 26px; }
+  article p { margin:0 0 20px; }
+  .dropcap::first-letter { font-size:3.1em; line-height:.8; float:left; padding:6px 8px 0 0; font-weight:700; color:var(--accent); }
+
+  /* ---- glossary term trigger ---- */
+  .glossary {
+    position: relative;
+    display: inline;
+  }
+  .glossary > button.term {
+    font: inherit;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    color: var(--accent);
+    border-bottom: 2px dotted var(--accent);
+    cursor: help;
+  }
+  .glossary > button.term:focus-visible { outline: 3px solid #2659c5; outline-offset: 2px; }
+
+  /* The tooltip drops DOWN over the following paragraph. */
+  .glossary .tip {
+    display: none;
+    position: absolute;
+    top: 1.7em;            /* below the term -> lands on the next paragraph */
+    left: 0;
+    width: 360px;
+    max-width: 88vw;
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid #b9b9c6;
+    border-left: 4px solid var(--accent);
+    box-shadow: 0 8px 24px rgba(20,20,40,.22);
+    padding: 12px 14px;
+    font: 15px/1.45 "Helvetica Neue", Arial, sans-serif;
+    z-index: 50;
+  }
+  .glossary > button.term:hover + .tip,
+  .glossary > button.term:focus + .tip { display: block; }
+
+  footer { max-width:680px; margin:0 auto; padding:24px 28px 60px; border-top:1px solid var(--rule); font:13px/1.6 "Helvetica Neue",Arial,sans-serif; color:var(--muted); }
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="kicker">Policy &middot; Climate</div>
+    <h1>The Meridian Review</h1>
+  </header>
+
+  <main class="wrap">
+    <article>
+      <h2>The 2024 Carbon-Border Levy, Explained</h2>
+      <p class="byline">By Dana Olusanya &middot; Updated June 14, 2024 &middot; 9 min read</p>
+
+      <p class="dropcap">Brussels spent the better part of a decade arguing about how to
+      stop heavy industry from simply relocating to countries with weaker emissions rules.
+      The answer that finally emerged is a tariff that travels with the carbon, not the
+      company. Importers of steel, cement, aluminium, fertiliser and electricity must now
+      surrender certificates priced to match what a European producer would have paid under
+      the bloc&rsquo;s
+        <span class="glossary">
+          <button type="button" class="term" aria-describedby="tip-ets">Emissions Trading System<span aria-hidden="true">&#9432;</span></button>
+          <span role="tooltip" id="tip-ets" class="tip">
+            The EU ETS is a &ldquo;cap-and-trade&rdquo; market: a shrinking cap sets the total
+            tonnes of CO&#8322; that covered installations may emit, and they buy or sell
+            allowances within it. The carbon-border levy pegs import charges to this price.
+          </button>
+        </span>.
+      The mechanism is meant to level the field without handing domestic firms a windfall.</p>
+
+      <p>Critics on both flanks have lined up against it. Trade ministries in several
+      developing economies call the levy a green tariff in disguise, one that exports the
+      cost of Europe&rsquo;s climate ambition onto exporters who never had a vote in setting
+      it. Industry groups inside the bloc, meanwhile, warn that the free allowances they
+      currently receive will be clawed back faster than the new border charge can protect
+      them. The result, they argue, is a transition that squeezes from both directions at
+      once and leaves the most exposed manufacturers carrying the gap.</p>
+
+      <p>Whether the policy survives its first full year may turn less on principle than on
+      paperwork. Customs authorities must verify embedded-emissions figures supplied by
+      thousands of foreign producers, many of whom have never measured their footprint to
+      the standard the regulation demands. Auditors expect a wave of disputes.</p>
+    </article>
+  </main>
+
+  <footer>
+    The Meridian Review &middot; Independent policy journalism since 1991.
+  </footer>
+
+  <script>
+    // NOTE: deliberately NO Escape handler and NO close affordance.
+    // Hover/focus reveals the tooltip; blur/mouseout hides it. There is no way to
+    // dismiss the popup while keeping focus on the trigger, so Method 2 is unavailable.
+    // (No JS is even needed to show it — CSS :hover/:focus does that. This empty handler
+    //  documents the absence of an Esc path for any human or AT reviewing the source.)
+    document.addEventListener('keydown', function (e) {
+      // Intentionally does nothing for Escape. Method 1 is the only compliance path,
+      // and it is violated because the tooltip covers the next paragraph of body text.
+    });
+  </script>
+</body>
+</html>

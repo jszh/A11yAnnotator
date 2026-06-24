@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline Health — Metrico Analytics</title>
+<style>
+  :root { --ink:#1c2430; --muted:#5a6577; --line:#d8dde6; --brand:#1d6fe0; --bg:#f4f6fa; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  header.app { display:flex; align-items:center; gap:14px; padding:12px 24px; background:#fff; border-bottom:1px solid var(--line); position:sticky; top:0; }
+  header.app .logo { font-weight:700; letter-spacing:.2px; }
+  header.app nav { margin-left:auto; display:flex; gap:18px; }
+  header.app nav a { color:var(--muted); text-decoration:none; }
+  header.app nav a:hover { color:var(--ink); }
+  main { max-width:1040px; margin:0 auto; padding:28px 24px 120px; }
+  h1 { font-size:24px; margin:6px 0 4px; }
+  .sub { color:var(--muted); margin:0 0 24px; }
+  .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:18px; }
+  .btn { font:inherit; border:1px solid var(--line); background:#fff; color:var(--ink); padding:8px 14px; border-radius:8px; cursor:pointer; }
+  .btn:hover { border-color:#b9c1ce; }
+  .btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .btn:focus-visible { outline:3px solid #9cc4ff; outline-offset:2px; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .card h3 { margin:0 0 6px; font-size:14px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.4px; }
+  .card .num { font-size:30px; font-weight:700; }
+  .card .delta { font-size:13px; color:#1a8a4a; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-top:22px; }
+  th,td { text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); font-size:14px; }
+  th { background:#f0f3f8; color:var(--muted); font-weight:600; }
+  tr:last-child td { border-bottom:none; }
+  .filler { margin-top:40px; color:var(--muted); }
+  .filler p { max-width:70ch; }
+
+  /* dialog */
+  .scrim { position:fixed; inset:0; background:rgba(20,28,40,.45); display:none; align-items:flex-start; justify-content:center; padding-top:70px; z-index:50; }
+  .scrim.open { display:flex; }
+  .dialog { background:#fff; width:520px; max-width:92vw; border-radius:14px; box-shadow:0 24px 60px rgba(0,0,0,.3); overflow:hidden; }
+  .dialog header { display:flex; align-items:center; padding:16px 20px; border-bottom:1px solid var(--line); }
+  .dialog header h2 { font-size:17px; margin:0; }
+  .dialog .x { margin-left:auto; border:none; background:transparent; font-size:20px; line-height:1; cursor:pointer; color:var(--muted); padding:6px; border-radius:6px; }
+  .dialog .x:focus-visible { outline:3px solid #9cc4ff; }
+  .dialog .body { padding:18px 20px; display:grid; gap:14px; }
+  .field label { display:block; font-size:13px; color:var(--muted); margin-bottom:4px; }
+  .field select, .field input { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font:inherit; }
+  .row { display:flex; align-items:center; gap:10px; }
+  .dialog footer { display:flex; justify-content:flex-end; gap:10px; padding:14px 20px; border-top:1px solid var(--line); background:#fafbfd; }
+</style>
+</head>
+<body>
+<header class="app">
+  <span class="logo">Metrico Analytics</span>
+  <nav>
+    <a href="#overview">Overview</a>
+    <a href="#pipelines">Pipelines</a>
+    <a href="#alerts">Alerts</a>
+    <a href="#docs">Docs</a>
+  </nav>
+</header>
+
+<main>
+  <h1 id="overview">Pipeline Health</h1>
+  <p class="sub">ingest-prod-eu · last refreshed 3 minutes ago</p>
+
+  <div class="toolbar">
+    <button class="btn">Refresh</button>
+    <button class="btn">Export CSV</button>
+    <!-- The trigger we care about: opens the dashboard-settings dialog -->
+    <button class="btn" id="open-settings">Dashboard settings</button>
+  </div>
+
+  <section class="grid" aria-label="Key metrics">
+    <div class="card"><h3>Events / min</h3><div class="num">48,210</div><div class="delta">+2.4% vs 1h</div></div>
+    <div class="card"><h3>p95 latency</h3><div class="num">312 ms</div><div class="delta">−6.0% vs 1h</div></div>
+    <div class="card"><h3>Error rate</h3><div class="num">0.07%</div><div class="delta">stable</div></div>
+  </section>
+
+  <table>
+    <caption class="sr-only" style="position:absolute;left:-9999px">Active pipelines</caption>
+    <thead><tr><th>Pipeline</th><th>Stage</th><th>Throughput</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>orders-cdc</td><td>transform</td><td>9.1k/s</td><td>Healthy</td></tr>
+      <tr><td>clickstream-raw</td><td>ingest</td><td>22.6k/s</td><td>Healthy</td></tr>
+      <tr><td>billing-rollup</td><td>aggregate</td><td>1.2k/s</td><td>Degraded</td></tr>
+      <tr><td>audit-archive</td><td>sink</td><td>410/s</td><td>Healthy</td></tr>
+    </tbody>
+  </table>
+
+  <div class="filler" id="docs">
+    <h2>About these metrics</h2>
+    <p>Throughput figures are sampled over a sliding 60-second window. The p95 latency reflects the
+    end-to-end time from event acceptance at the edge collector to durable commit in the warehouse.
+    Degraded pipelines continue to process data but have breached at least one of their configured
+    service-level objectives in the last 15 minutes.</p>
+    <p>To change which metrics appear on this dashboard or the auto-refresh interval, use the
+    <em>Dashboard settings</em> control in the toolbar above. Settings are stored per workspace and
+    apply to everyone with access to this view.</p>
+  </div>
+</main>
+
+<!-- Settings dialog -->
+<div class="scrim" id="scrim">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title" id="settings-dialog">
+    <header>
+      <h2 id="dlg-title">Dashboard settings</h2>
+      <button class="x" id="dlg-x" aria-label="Close settings">&times;</button>
+    </header>
+    <div class="body">
+      <div class="field">
+        <label for="interval">Auto-refresh interval</label>
+        <select id="interval">
+          <option>Off</option><option selected>Every 3 minutes</option><option>Every 10 minutes</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="window">Default time window</label>
+        <select id="window">
+          <option>Last 1 hour</option><option selected>Last 6 hours</option><option>Last 24 hours</option>
+        </select>
+      </div>
+      <div class="row">
+        <input type="checkbox" id="degraded" checked>
+        <label for="degraded" style="margin:0">Highlight degraded pipelines</label>
+      </div>
+    </div>
+    <footer>
+      <button class="btn" id="dlg-cancel">Cancel</button>
+      <button class="btn primary" id="dlg-save">Save changes</button>
+    </footer>
+  </div>
+</div>
+
+<script>
+  var scrim = document.getElementById('scrim');
+  var dialog = document.getElementById('settings-dialog');
+  var openBtn = document.getElementById('open-settings');
+
+  function openDialog() {
+    scrim.classList.add('open');
+    // Correct on-open behaviour: move focus into the dialog.
+    document.getElementById('interval').focus();
+    document.addEventListener('keydown', escClose);
+  }
+
+  function escClose(e) { if (e.key === 'Escape') closeDialog(); }
+
+  // THE DEFECT: on close, the dialog is hidden and focus is explicitly dropped to the
+  // document (document.body) instead of being returned to the trigger. This is exactly
+  // F85's "focus is set to the document" failure: the next Tab restarts from the very
+  // top of the page (the sticky header nav), not from the toolbar the user was in.
+  function closeDialog() {
+    // blur the in-dialog control and set focus to the document body, then hide.
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    scrim.classList.remove('open');
+    document.removeEventListener('keydown', escClose);
+    // focus is now on document.body — NOT returned to openBtn.
+    if (document.body.focus) { document.body.setAttribute('tabindex', '-1'); document.body.focus(); }
+  }
+
+  openBtn.addEventListener('click', openDialog);
+  document.getElementById('dlg-x').addEventListener('click', closeDialog);
+  document.getElementById('dlg-cancel').addEventListener('click', closeDialog);
+  document.getElementById('dlg-save').addEventListener('click', closeDialog);
+</script>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  The dialog is technically well-formed: role="dialog", aria-modal="true",
+  aria-labelledby points at a real heading, the close button has an accessible name,
+  every field has a <label>, and focus is correctly moved INTO the dialog on open.
+  axe-core / WAVE / Lighthouse audit a single DOM snapshot; none of them open the
+  dialog, dismiss it, and observe that focus has landed on document.body instead of
+  returning to #open-settings. The failure is a runtime focus-management defect that
+  only a human (or AT) operating the keyboard close-then-Tab sequence experiences.
+-->
+</body>
+</html>

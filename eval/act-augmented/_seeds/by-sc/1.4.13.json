@@ -1,0 +1,49 @@
+{
+  "sc": "1.4.13",
+  "count": 3,
+  "patterns": [
+    {
+      "platform": "Elementor / Divi mega-menu and dropdown nav (default Nav Menu widget, Max Mega Menu)",
+      "name": "Submenu opens on hover only, not keyboard-operable, not dismissible (1.4.13)",
+      "description": "The dropdown/mega-menu reveals on mouse hover via CSS :hover. Tab key skips the submenu entirely (submenus stay display:none for keyboard), and even where they appear they cannot be dismissed with Esc and aren't hoverable/persistent. Keyboard and screen-reader users cannot reach second-level items, and the hover-revealed panel fails Content on Hover or Focus.",
+      "wcagScs": [
+        "2.1.1",
+        "1.4.13",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<li class=\"menu-item-has-children\">\n  <a href=\"/products\">Products</a>\n  <ul class=\"sub-menu\" style=\"display:none\"> <!-- shown only on li:hover, no aria-expanded, no Esc handler -->\n    <li><a href=\"/products/a\">Item A</a></li>\n  </ul>\n</li>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Static scanners see valid nested lists and links and report no error. Discovering that the submenu only opens on hover, that Tab never reaches it, and that Esc does not dismiss the hover panel requires actually operating the menu by keyboard and mouse.",
+      "realWorldNote": "Divi 'dropdown menus can only be activated with a mouse... submenus remain hidden.' https://arrowdesign.ie/fix-divi-menu-accessibility-issues-wcag-compliance-solution/ ; WP Trac #49950 'submenu should be dismissible' (1.4.13); https://216digital.com/how-to-make-mega-menus-more-accessible/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Webflow / Framer hover-revealed dropdown menus and tooltips",
+      "name": "Hover content (mega-menu, tooltip) not dismissible, hoverable, or persistent",
+      "description": "Mega-menu panels and tooltips built as hover-only Interactions appear on mouseover and vanish the instant the pointer leaves the trigger. There's no Esc-to-dismiss, the revealed panel can't be hovered into without it closing, and it isn't reachable/persistable by keyboard focus.",
+      "wcagScs": [
+        "1.4.13",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<div class=\"nav-item\" data-w-id=\"hover-1\">Products\n  <div class=\"dropdown-panel\" style=\"opacity:0;pointer-events:none\">\n    <a href=\"/a\">Item A</a><a href=\"/b\">Item B</a>\n  </div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Dismissible/hoverable/persistent (1.4.13) are interaction-time properties. Static analysis sees a nav item with a nested panel and can't determine the panel only appears on :hover, disappears when the pointer moves toward it, and lacks an Esc handler — this requires a human to hover and try to interact with the revealed content.",
+      "realWorldNote": "Classic 1.4.13 failure: content disappears when the mouse moves off the trigger and offers no Esc dismissal; design tools' hover Interactions reproduce exactly this: https://www.w3.org/WAI/WCAG21/Understanding/content-on-hover-or-focus.html and https://sarahmhigley.com/writing/tooltips-in-wcag-21/",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Tooltip (title-attribute tooltips, CSS :hover tooltips, icon-info tooltips)",
+      "name": "Tooltip not dismissible/hoverable/persistent and tied only to hover",
+      "description": "Help text appears on mouse hover (often via the native title attribute or a CSS :hover-only popup). It disappears the instant the pointer moves, cannot be dismissed with Escape, cannot be hovered to read, and never appears on keyboard focus. Low-vision users who magnify and need to move the pointer onto the tip lose it; keyboard users never see it.",
+      "wcagScs": [
+        "1.4.13",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<span class=\"info\" title=\"Your card is charged monthly\">?</span>\n<!-- or -->\n<span class=\"info\">?<span class=\"tip\">Charged monthly</span></span>\n<style>.tip{display:none}.info:hover .tip{display:block}</style>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A title attribute or :hover CSS rule is valid HTML/CSS and triggers no rule. The 1.4.13 requirements (dismissible without moving pointer, hoverable, persistent) are interaction qualities that can only be evaluated by hovering, pressing Escape, and trying to move onto the popup — automated tools do not exercise hover/focus interaction states.",
+      "realWorldNote": "Sarah Higley's 'Tooltips in the time of WCAG 2.1' and W3C Understanding 1.4.13 list 'content shown on hover not hoverable' and 'not dismissible without moving the pointer' as the canonical failures; W3C also flags relying on the title attribute. https://sarahmhigley.com/writing/tooltips-in-wcag-21/",
+      "family": "apg-component-failures"
+    }
+  ]
+}

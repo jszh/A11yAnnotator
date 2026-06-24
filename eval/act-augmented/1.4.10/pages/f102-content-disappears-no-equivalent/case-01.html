@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Tidemark Review — Why the harbour dredge was paused</title>
+<!--
+  SC 1.4.10 Reflow — F102: content present at desktop width disappears at 320px
+  with no equivalent mechanism.
+
+  The page reflows cleanly: single column at 320px, no horizontal scrollbar,
+  permissive viewport meta. It looks compliant to a tool. BUT the right-hand
+  "Continue reading" rail — eight hand-curated related-investigation links that
+  appear NOWHERE else in the document — is removed with display:none below 600px.
+  There is no "More stories" disclosure, no link to a section index, no duplicate
+  of those links inside the article. The information is simply lost on narrow
+  viewports. A reader who zooms to 400% (or visits on a phone) can never reach
+  the eight follow-up pieces.
+
+  WHY AUTOMATED TOOLS MISS IT: axe/WAVE/Lighthouse parse one static DOM. The
+  links are real <a href> elements with text — they are present in the DOM at
+  every width and pass link-name / focus-order checks. No tool renders the page
+  at 320px, diffs which links remain reachable, and reasons that these specific
+  links exist in no other location. display:none is a legitimate, ubiquitous
+  responsive idiom; flagging every instance would be useless noise. Only a human
+  comparing the wide and narrow renderings can decide the content was dropped
+  without an equivalent.
+-->
+<style>
+  :root { --ink:#1a1d21; --rule:#d7d2c8; --accent:#7a1f2b; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: Georgia, "Times New Roman", serif;
+    color: var(--ink); line-height: 1.6; background:#fbfaf7;
+  }
+  .masthead {
+    border-bottom: 3px double var(--ink); padding: 14px 20px;
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  }
+  .masthead .logo { font-size: 1.5rem; font-weight: bold; letter-spacing: .04em; }
+  .masthead .tagline { font-size: .78rem; color:#6b6b6b; font-style: italic; }
+  .topnav a { color: var(--ink); text-decoration: none; margin-right: 14px; font-size:.85rem; }
+  .topnav a:hover { text-decoration: underline; }
+  .wrap {
+    max-width: 1180px; margin: 0 auto; padding: 24px 20px 60px;
+    display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 40px;
+  }
+  article h1 { font-size: 2rem; line-height: 1.15; margin: .2em 0; }
+  article .byline { color:#6b6b6b; font-size:.85rem; margin-bottom: 1.4em; }
+  article p { margin: 0 0 1.1em; }
+  figure { margin: 0 0 1.4em; }
+  figure .ph {
+    width:100%; aspect-ratio: 16/9; background:
+      repeating-linear-gradient(45deg,#e8e3d8,#e8e3d8 14px,#ded8cb 14px,#ded8cb 28px);
+    border:1px solid var(--rule);
+  }
+  figcaption { font-size:.78rem; color:#6b6b6b; padding-top:6px; }
+  aside.rail {
+    border-left: 1px solid var(--rule); padding-left: 24px;
+    align-self: start; position: sticky; top: 20px;
+  }
+  aside.rail h2 {
+    font-size:.8rem; text-transform: uppercase; letter-spacing:.12em;
+    color: var(--accent); border-bottom:1px solid var(--rule); padding-bottom:6px;
+  }
+  aside.rail ul { list-style:none; margin:0; padding:0; }
+  aside.rail li { padding: 10px 0; border-bottom: 1px dotted var(--rule); }
+  aside.rail a { color: var(--ink); text-decoration: none; font-size:.92rem; }
+  aside.rail a:hover { color: var(--accent); text-decoration: underline; }
+  aside.rail .kicker { display:block; font-size:.68rem; text-transform:uppercase;
+    letter-spacing:.08em; color:#9a8f80; margin-bottom:2px; }
+  footer { border-top:1px solid var(--rule); padding:20px; font-size:.78rem; color:#6b6b6b; max-width:1180px; margin:0 auto; }
+
+  /* RESPONSIVE: stack to a single column on small viewports.
+     The article reflows perfectly. But the related-investigations rail is
+     removed entirely — and its links live nowhere else on the page. */
+  @media (max-width: 600px) {
+    .wrap { grid-template-columns: 1fr; gap: 0; }
+    aside.rail { display: none; }   /* <-- F102: eight unique links lost, no equivalent */
+    .topnav { display:none; }       /* topnav is duplicated in footer, so this is fine */
+  }
+</style>
+</head>
+<body>
+  <header class="masthead">
+    <span class="logo">The Tidemark Review</span>
+    <span class="tagline">Independent coastal reporting since 1998</span>
+    <nav class="topnav" aria-label="Sections">
+      <a href="/harbour">Harbour</a>
+      <a href="/council">Council</a>
+      <a href="/environment">Environment</a>
+      <a href="/opinion">Opinion</a>
+    </nav>
+  </header>
+
+  <div class="wrap">
+    <article>
+      <p style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin:0;">Harbour · Investigation</p>
+      <h1>Why the £14m harbour dredge was paused three weeks before the season</h1>
+      <p class="byline">By Marian Okafor · Updated 6 June 2026 · 9 min read</p>
+
+      <figure>
+        <div class="ph" role="img" aria-label="The half-dredged eastern channel of the harbour at low tide, with an idle cutter-suction dredger moored alongside."></div>
+        <figcaption>The eastern channel at low tide. The contractor's dredger has not moved since 18 May.</figcaption>
+      </figure>
+
+      <p>The dredging contract that was meant to deepen the eastern channel before the summer fishing season has been suspended, and the harbour authority will not say for how long. Documents obtained by The Tidemark Review show the pause was ordered after sediment samples taken in April exceeded the disposal licence's threshold for two metals.</p>
+      <p>The authority's chief engineer told councillors in a closed session that resuming work would require a fresh marine licence variation — a process that, on past form, takes between four and seven months. None of that timeline has been shared with the fishing co-operative whose vessels depend on the deeper channel.</p>
+      <p>Our reporting on this contract began eighteen months ago, and the thread connecting the suspended dredge to the 2024 disposal-site dispute, the contractor's earlier overruns, and the council's own environmental sub-committee is not obvious from any single story. The follow-up pieces listed alongside this article trace that thread in order.</p>
+      <p>What is clear is that the season will open with the channel at its current depth. Skippers we spoke to said the larger boats will again have to wait for high water to enter and leave — adding hours to every trip and, several said, making some grounds uneconomic to fish at all.</p>
+      <p>The contractor declined to comment beyond confirming that work is "temporarily demobilised at the authority's instruction." The authority did not respond to detailed questions before publication.</p>
+    </article>
+
+    <!-- Eight hand-curated related investigations. These links exist ONLY here.
+         They are removed at <=600px with display:none and reproduced nowhere else. -->
+    <aside class="rail" aria-label="Continue this investigation">
+      <h2>Continue this investigation</h2>
+      <ul>
+        <li><span class="kicker">2024 · Disposal</span><a href="/harbour/disposal-site-dispute-2024">Where the dredged spoil was meant to go — and why two parishes objected</a></li>
+        <li><span class="kicker">Contracts</span><a href="/harbour/contractor-overruns-timeline">A timeline of the contractor's three previous overruns on this harbour</a></li>
+        <li><span class="kicker">Council</span><a href="/council/environmental-subcommittee-minutes">What the environmental sub-committee was told, and when</a></li>
+        <li><span class="kicker">Licence</span><a href="/environment/marine-licence-thresholds-explained">The metal thresholds in the disposal licence, explained</a></li>
+        <li><span class="kicker">Fishing</span><a href="/harbour/co-op-tidal-window-costs">How the tidal window adds hours and cost for the co-op's boats</a></li>
+        <li><span class="kicker">Data</span><a href="/environment/april-sediment-sample-data">The April sediment sample results, in full</a></li>
+        <li><span class="kicker">2023</span><a href="/harbour/original-business-case">The original business case that justified deepening the channel</a></li>
+        <li><span class="kicker">Opinion</span><a href="/opinion/who-pays-for-the-pause">Editorial: who pays for a pause nobody will date?</a></li>
+      </ul>
+    </aside>
+  </div>
+
+  <footer>
+    <nav aria-label="Footer sections">
+      <a href="/harbour" style="color:inherit;margin-right:12px;">Harbour</a>
+      <a href="/council" style="color:inherit;margin-right:12px;">Council</a>
+      <a href="/environment" style="color:inherit;margin-right:12px;">Environment</a>
+      <a href="/opinion" style="color:inherit;">Opinion</a>
+    </nav>
+    <p>© 2026 The Tidemark Review. Reproduced links above are unique to this article.</p>
+  </footer>
+</body>
+</html>

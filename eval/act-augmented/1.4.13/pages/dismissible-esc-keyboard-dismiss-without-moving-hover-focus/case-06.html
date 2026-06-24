@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object label — Lacquer writing box · Eastfield Museum of Asian Art</title>
+<style>
+  :root { --ink: #20211c; --accent: #6b4f1d; }
+  body { font-family: "Iowan Old Style", Georgia, serif; margin: 0; color: var(--ink);
+         background: #f4f1ea; line-height: 1.7; }
+  .site-bar { background: #20211c; color: #f4f1ea; padding: 12px 24px;
+              font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; letter-spacing: .04em; }
+  main { max-width: 660px; margin: 28px auto; padding: 0 24px; }
+  h1 { font-size: 25px; margin: 0 0 2px; }
+  .object-meta { color: #6f6a5d; font-size: 14px; font-family: Arial, sans-serif; margin: 0 0 22px; }
+  p { font-size: 17px; }
+
+  .glossary { position: relative; display: inline; }
+  /* The trigger is a real button so it is reachable by keyboard (2.1.1) and
+     gets focus styling. */
+  .term {
+    color: var(--accent); font-weight: 600; cursor: help; background: none;
+    border: 0; padding: 0; font: inherit;
+    border-bottom: 2px dotted var(--accent);
+  }
+  .term:focus-visible { outline: 3px solid #1466d6; outline-offset: 2px; border-radius: 2px; }
+
+  /* HOVERABLE by construction: the popup is positioned so its top edge OVERLAPS
+     the trigger's own line (negative top), leaving NO dead gap between trigger
+     and popup. A transparent ::before "bridge" extends the popup's hit area up
+     over the trigger so the pointer never crosses unlistened pixels on its way
+     in. The popup deliberately covers the paragraph BELOW it, so Method 1
+     (don't obscure) is NOT relied on and the Esc dismiss is load-bearing. */
+  .defn {
+    position: absolute; inset-inline-start: -6px; top: -0.35em; transform: translateY(0);
+    width: 320px; z-index: 8;
+    background: #fffdf7; border: 1px solid #d9cfb6; border-left: 4px solid var(--accent);
+    border-radius: 6px; padding: 12px 14px 13px; font-size: 14px; line-height: 1.5;
+    font-family: Arial, sans-serif; box-shadow: 0 10px 26px rgba(0,0,0,.18);
+    display: none;
+  }
+  .defn::before {
+    /* invisible bridge spanning the small region above the popup back over the
+       trigger, so mouseenter on .glossary stays true the whole way across. */
+    content: ""; position: absolute; left: 0; right: 0; top: -1.4em; height: 1.4em;
+    background: transparent;
+  }
+  .glossary.open .defn { display: block; }
+  .defn b { color: var(--accent); }
+  .defn .src { color: #6f6a5d; font-style: italic; display: block; margin-top: 6px; }
+  .note { font-size: 12px; color: #807a6c; font-family: Arial, sans-serif; margin-top: 28px;
+          border-top: 1px dashed #ddd3bf; padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="site-bar">EASTFIELD MUSEUM OF ASIAN ART · Gallery 7 — Lacquer &amp; Inlay</div>
+<main>
+  <h1>Writing box (suzuribako)</h1>
+  <p class="object-meta">Japan, Edo period, 18th century · Wood, lacquer, gold and silver
+     <span class="glossary"><button type="button" class="term" id="term"
+        aria-describedby="defn">maki-e</button><span class="defn" id="defn" role="tooltip">
+        <b>maki-e</b> ("sprinkled picture") — a decorative technique in which metal
+        powder is sprinkled onto wet lacquer to form a design, then sealed under
+        further coats and polished.
+        <span class="src">Eastfield Museum, Gallery 7 didactics.</span></span></span>
+     inlay</p>
+
+  <p>This box held the ink stone, brushes, and water dropper used for calligraphy.
+     Its lid depicts autumn grasses bending under a low moon, a seasonal motif
+     prized by Edo collectors for its restraint.</p>
+
+  <p>The interior trays are fitted to the implements they carried, so each piece
+     returns to its place when the box is closed.</p>
+
+  <p class="note">PASS counter-fixture. The "maki-e" term opens a definition popup on
+     hover AND on keyboard focus. The popup overlaps the trigger's line and the
+     paragraph below it (so Method 1 "don't obscure" is NOT relied upon). It is (a)
+     <strong>Hoverable</strong> — the popup carries its own pointer listeners and overlaps
+     the trigger with no dead gap, so the pointer can travel onto it without it closing;
+     (b) <strong>Dismissible</strong> — a document-level Escape hides it while focus STAYS
+     on the trigger, and activating the trigger toggles it closed; (c) <strong>Persistent</strong>
+     — it never auto-closes on a timer. This is the passing case the five failing siblings
+     are read against.</p>
+</main>
+
+<script>
+  var wrap = document.querySelector('.glossary');
+  var term = document.getElementById('term');
+  var defn = document.getElementById('defn');
+
+  // A single shared timer governs close, so moving the pointer from the trigger
+  // ONTO the popup (both inside .glossary) never closes it: the leave from the
+  // trigger and the enter onto the popup are coalesced. An explicit `dismissed`
+  // flag lets the activate-to-toggle path win deterministically over the
+  // hover/focus open handlers (which never force-open a user-dismissed popup).
+  var closeTimer = null;
+  var dismissed = false;          // set true only by an explicit dismissal
+  function open()  { clearTimeout(closeTimer); wrap.classList.add('open'); }
+  function close() { clearTimeout(closeTimer); wrap.classList.remove('open'); }
+  function openUnlessDismissed() { if (!dismissed) open(); }
+  function scheduleClose() {
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(function () {
+      // only close if neither the trigger nor the popup is hovered/focused
+      if (!wrap.matches(':hover') && document.activeElement !== term) close();
+    }, 120);
+  }
+
+  // Appears on hover and on keyboard focus (2.1.1 + 1.4.13 trigger parity).
+  // Re-entering the trigger/popup clears the dismissed flag so it can re-open.
+  wrap.addEventListener('mouseenter', function () { dismissed = false; open(); });
+  wrap.addEventListener('mouseleave', scheduleClose);
+  term.addEventListener('focus', openUnlessDismissed);
+  // Tab away (blur) closes it — a normal, allowed close (user moved focus off).
+  // It also clears `dismissed`, so the NEXT fresh focus/hover re-opens normally;
+  // only an in-place dismissal (Esc / activate-to-close, which keep focus and
+  // fire no blur) keeps it suppressed.
+  term.addEventListener('blur', function () { dismissed = false; scheduleClose(); });
+
+  // Activate-to-toggle: a second SCR39-allowed dismissal that KEEPS focus on the
+  // trigger. When it closes, it sets `dismissed` so the trailing focus/hover
+  // events on the very same activation cannot immediately re-open it.
+  term.addEventListener('click', function () {
+    if (wrap.classList.contains('open')) { dismissed = true; close(); }
+    else { dismissed = false; open(); }
+    term.focus();   // keep focus on the trigger — never moved
+  });
+
+  // DISMISSIBLE (Method 2): a DOCUMENT-level Escape handler hides the popup. It is
+  // bound to document, so it fires no matter where focus sits, and it does NOT move
+  // focus — the "maki-e" button keeps focus and the obscuring definition clears.
+  // This mirrors SCR39 example 1 ("hide when ESC is pressed").
+  document.addEventListener('keydown', function (e) {
+    if ((e.keyCode || e.which) === 27) {  // 27 = Escape
+      dismissed = true;   // stay closed even though the trigger keeps focus/hover
+      close();
+      // focus intentionally left where it is (on the trigger) — never moved.
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set your password — Lumen Analytics</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  Post-submit "set password" screen. The password field has a visible, associated error
+  (aria-describedby="pw-err"): "Password must be at least 8 characters." It names the
+  field and states a concrete cause/fix, satisfying ACT 36b590's Expectation 2 (a
+  visible, in-tree indicator describing the cause or fix). axe/WAVE/Lighthouse pass:
+  label present, describedby resolves, role textbox, contrast fine.
+  THE DEFECT IS SEMANTIC: the field holds 12 masked bullets (value length 12), so the
+  ">= 8 characters" rule is ALREADY satisfied. The page's own requirements checklist
+  shows "At least one number" is the UNMET rule (rendered as the failing item). The
+  validator rejected the password for the missing-number rule, but emitted the wrong
+  canned line — the length message — which is descriptive but inapplicable. A user
+  obeying the only error text lengthens an already-long password and is rejected again.
+  No checker measures the entered value's length against the "8 characters" claim and
+  cross-references the requirements list to see the actual failing rule.
+-->
+<style>
+  :root{ --ink:#15181f; --muted:#646b78; --line:#d4d8e0; --brand:#5b3df5; --danger:#d12d36;
+         --ok:#1d8a4d; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#0f1020; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .card{ background:#fff; width:420px; max-width:92vw; border-radius:14px; padding:30px 30px 26px;
+         box-shadow:0 18px 50px rgba(0,0,0,.4); }
+  .brand{ display:flex; align-items:center; gap:9px; margin-bottom:14px; }
+  .brand .dot{ width:14px; height:14px; border-radius:50%; background:var(--brand); }
+  .brand span{ font-weight:700; letter-spacing:.3px; }
+  h1{ font-size:1.3rem; margin:6px 0 4px; }
+  .lede{ color:var(--muted); font-size:.9rem; margin:0 0 20px; }
+  label{ display:block; font-weight:600; font-size:.88rem; margin-bottom:6px; }
+  .pw{ position:relative; }
+  input[type=password]{ width:100%; padding:11px 12px; font-size:1.05rem; letter-spacing:2px;
+        border:2px solid var(--line); border-radius:9px; }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .err{ color:var(--danger); font-size:.86rem; margin-top:8px; font-weight:600;
+        display:flex; gap:6px; align-items:center; }
+  ul.req{ list-style:none; padding:0; margin:16px 0 6px; font-size:.84rem; }
+  ul.req li{ display:flex; gap:8px; align-items:center; padding:2px 0; color:var(--muted); }
+  ul.req li.met{ color:var(--ok); }
+  ul.req li.unmet{ color:var(--danger); font-weight:600; }
+  ul.req .mk{ width:16px; text-align:center; font-weight:700; }
+  button{ margin-top:18px; width:100%; padding:12px; font-size:1rem; font-weight:600; color:#fff;
+          background:var(--brand); border:0; border-radius:9px; cursor:pointer; }
+  .foot{ margin-top:16px; color:var(--muted); font-size:.78rem; text-align:center; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand"><span class="dot" aria-hidden="true"></span><span>Lumen Analytics</span></div>
+    <h1>Set your password</h1>
+    <p class="lede">Almost done — choose a password to finish creating your workspace.</p>
+
+    <form action="#" method="post" novalidate>
+      <label for="pw">New password</label>
+      <div class="pw">
+        <!--
+          value is 12 characters ("riverstonelake") => the ">= 8 characters" rule is met.
+          The actual unmet rule is "At least one number" (shown unmet below).
+        -->
+        <input type="password" id="pw" name="pw" value="riverstonelake"
+               autocomplete="new-password" aria-invalid="true"
+               aria-describedby="pw-err pw-reqs">
+      </div>
+      <p class="err" id="pw-err">
+        <span aria-hidden="true">⚠</span>
+        <span>Password must be at least 8 characters.</span>
+      </p>
+
+      <ul class="req" id="pw-reqs" aria-label="Password requirements">
+        <li class="met"><span class="mk" aria-hidden="true">✓</span> At least 8 characters</li>
+        <li class="met"><span class="mk" aria-hidden="true">✓</span> One uppercase or lowercase letter</li>
+        <li class="unmet"><span class="mk" aria-hidden="true">✗</span> At least one number</li>
+      </ul>
+
+      <button type="submit">Create workspace</button>
+    </form>
+    <p class="foot">Lumen Analytics · Renders from file://</p>
+  </main>
+</body>
+</html>

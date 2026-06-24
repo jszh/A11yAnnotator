@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Review: The Cartographer's Apprentice — Margin Notes</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font: 16px/1.65 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1f2933; margin: 0; background: #f4f6f8; }
+    header { background: #11233b; color: #eaf0f6; padding: 18px 24px; }
+    header .kicker { font-size: .8rem; letter-spacing: 2px; text-transform: uppercase; color: #8fb0d6; }
+    main { max-width: 760px; margin: 28px auto; padding: 0 20px 60px; }
+    h1 { font-size: 1.7rem; margin: 4px 0 18px; }
+    .stars { color: #e0a92e; letter-spacing: 2px; font-size: 1.1rem; }
+    article p { margin: 0 0 16px; }
+    section.comments { margin-top: 36px; background: #fff; border: 1px solid #dde3ea; border-radius: 12px; padding: 18px 20px 22px; }
+    section.comments > h2 { font-size: 1.15rem; margin: 0 0 6px; }
+    .count { color: #647386; font-size: .9rem; margin: 0 0 14px; }
+    iframe { width: 100%; height: 360px; border: 1px solid #e2e7ee; border-radius: 10px; display: block; background: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="kicker">Margin Notes · Book Reviews</div>
+  </header>
+  <main>
+    <h1>The Cartographer's Apprentice — a quietly devastating debut</h1>
+    <p class="stars" aria-label="Rated 4 out of 5 stars">★★★★☆</p>
+    <article>
+      <p>Vesna Hale's first novel maps grief the way her protagonist maps coastlines:
+         obsessively, and never quite to scale. It is a slow book that rewards patience.</p>
+      <p>The middle act sags, but the final forty pages are some of the most assured
+         writing I have read this year. Recommended, with a box of tissues.</p>
+    </article>
+
+    <section class="comments">
+      <h2>Reader comments</h2>
+      <p class="count" id="cmt-count">128 comments</p>
+      <!--
+        The comments thread is a lazy-loaded third-party widget. On insertion the
+        script gives the iframe aria-label="Loading…" as a placeholder name while the
+        thread fetches. When the load handler fires it injects the comments markup but
+        FORGETS to replace the placeholder name, so the stale transient string remains
+        as the frame's permanent accessible name.
+      -->
+      <iframe id="discuss" title="" aria-label="Loading…"></iframe>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var frame = document.getElementById('discuss');
+      // Placeholder name set while the thread is fetched.
+      frame.setAttribute('aria-label', 'Loading…');
+      var thread =
+        '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">' +
+        '<style>' +
+        'body{margin:0;font:14px/1.55 -apple-system,Segoe UI,Arial,sans-serif;color:#1f2933;padding:14px}' +
+        '.c{padding:12px 0;border-bottom:1px solid #eef1f5}' +
+        '.who{font-weight:700}.when{color:#8a97a6;font-weight:400;font-size:.85em;margin-left:8px}' +
+        '.body{margin:6px 0 0}' +
+        '.reply{margin-top:6px;font-size:.85em;color:#2563a6;background:none;border:0;padding:0;cursor:pointer}' +
+        'form{margin-top:16px;display:flex;gap:8px}' +
+        'textarea{flex:1;min-height:46px;padding:8px;border:1px solid #cfd6df;border-radius:8px;font:inherit}' +
+        'button.post{align-self:flex-end;padding:9px 14px;border:0;border-radius:8px;background:#11233b;color:#fff;cursor:pointer}' +
+        '</style></head><body>' +
+        '<div class="c"><span class="who">mapmaker_jo</span><span class="when">2h ago</span>' +
+        '<p class="body">That last chapter wrecked me. The lighthouse callback!</p>' +
+        '<button class="reply" type="button">Reply</button></div>' +
+        '<div class="c"><span class="who">Priya_reads</span><span class="when">5h ago</span>' +
+        '<p class="body">Agreed the middle drags, but I would still teach this.</p>' +
+        '<button class="reply" type="button">Reply</button></div>' +
+        '<div class="c"><span class="who">dewey_decimal</span><span class="when">1d ago</span>' +
+        '<p class="body">Putting it on hold at the library right now.</p>' +
+        '<button class="reply" type="button">Reply</button></div>' +
+        '<form onsubmit="return false"><textarea placeholder="Add a comment…" aria-label="Add a comment"></textarea>' +
+        '<button class="post" type="submit">Post</button></form>' +
+        '</body></html>';
+      // Simulate the async load completing and injecting the real thread.
+      setTimeout(function () {
+        frame.setAttribute('srcdoc', thread);
+        // BUG: the placeholder aria-label is never cleared after load.
+      }, 250);
+    })();
+  </script>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS
+    After load the iframe has a non-empty accessible name ("Loading…" from aria-label),
+    so cae760 PASSES; a single iframe means 4b1c6c is inapplicable. A scanner run after
+    the page settles sees a named frame and reports no error. It cannot judge that
+    "Loading…" is a transient status string that no longer matches the frame's content
+    (a populated comments thread with replies and a comment box). Catching the stale
+    name requires a human to read it against the loaded content and recognise the
+    mismatch — the content comparison Trusted Tester 12.D demands.
+  -->
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trattoria Lume — Reserve a table</title>
+<style>
+  body { margin: 0; font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    background: #1a120b; color: #f4ece0; }
+  .hero { text-align: center; padding: 40px 20px 10px; }
+  .hero .script { font-family: "Brush Script MT", "Snell Roundhand", cursive; font-size: 40px;
+    color: #e9c46a; }
+  .hero .sub { letter-spacing: 3px; text-transform: uppercase; font-size: 11px; color: #c9bba6; }
+  .booking { max-width: 460px; margin: 24px auto 70px; background: #241910;
+    border: 1px solid #3a2c1d; border-radius: 16px; padding: 28px 26px 32px; }
+  .booking h1 { font-size: 18px; margin: 0 0 22px; text-align: center; font-weight: 600; }
+
+  .line { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .line label.t { width: 96px; flex: 0 0 96px; font-size: 13.5px; color: #d8c8ad; }
+  .line input, .line select { flex: 1 1 auto; min-width: 0; background: #160f08;
+    border: 1px solid #4a3826; border-radius: 9px; padding: 10px 12px; color: #f4ece0; font-size: 14px; }
+  .line input:focus, .line select:focus { outline: 0; border-color: #e9c46a; }
+
+  /* The problem field: cued ONLY by a clock-face glyph, no text label at all. */
+  .glyphline { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .clock { width: 40px; flex: 0 0 40px; height: 40px; display: grid; place-items: center;
+    color: #e9c46a; }
+  .clock svg { width: 30px; height: 30px; }
+  .glyphline input { flex: 1 1 auto; min-width: 0; background: #160f08;
+    border: 1px solid #4a3826; border-radius: 9px; padding: 10px 12px; color: #f4ece0; font-size: 14px; }
+  .glyphline input:focus { outline: 0; border-color: #e9c46a; }
+
+  .reserve { width: 100%; margin-top: 14px; background: #e9c46a; color: #2a1d10; border: 0;
+    border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .devnote { max-width: 460px; margin: 24px auto 0; font-size: 12px; color: #b6a890;
+    line-height: 1.55; }
+  code { color: #e9c46a; }
+</style>
+</head>
+<body>
+  <div class="hero">
+    <div class="script">Trattoria Lume</div>
+    <div class="sub">Cucina Toscana · Since 1998</div>
+  </div>
+
+  <main class="booking" aria-labelledby="bh">
+    <h1 id="bh">Reserve a table</h1>
+
+    <form onsubmit="return false" novalidate>
+      <div class="line">
+        <label class="t" for="rdate">Date</label>
+        <input id="rdate" type="date" value="2026-07-04">
+      </div>
+
+      <div class="line">
+        <label class="t" for="rtime">Time</label>
+        <select id="rtime">
+          <option>6:00 PM</option><option>7:30 PM</option><option>9:00 PM</option>
+        </select>
+      </div>
+
+      <!-- FAILURE (misleading glyph): this field is cued ONLY by a clock-face glyph and no
+           text. A clock universally reads as "time". But the field actually expects the NUMBER
+           OF GUESTS in the party — the icon's conventional meaning (time) directly contradicts
+           the field's real purpose, and the "Time" question is already answered by the select
+           above. A sighted user will read the clock as another time field and be misled. The
+           input has an accessible name (aria-label="Number of guests") so 4.1.2 passes; the
+           VISIBLE glyph misrepresents the purpose, so 3.3.2 fails. -->
+      <div class="glyphline">
+        <span class="clock" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="12" x2="12" y2="7.5"></line>
+            <line x1="12" y1="12" x2="15.5" y2="13.5"></line>
+            <line x1="12" y1="3.4" x2="12" y2="4.6"></line>
+            <line x1="20.6" y1="12" x2="19.4" y2="12"></line>
+            <line x1="12" y1="20.6" x2="12" y2="19.4"></line>
+            <line x1="3.4" y1="12" x2="4.6" y2="12"></line>
+          </svg>
+        </span>
+        <input type="text" inputmode="numeric"
+               aria-label="Number of guests" autocomplete="off" placeholder="">
+      </div>
+
+      <button type="submit" class="reserve">Confirm reservation</button>
+    </form>
+  </main>
+
+  <p class="devnote">
+    Why automated checkers pass: the guests input has <code>aria-label="Number of guests"</code>
+    (axe-core sees a name and passes) and the clock SVG is <code>aria-hidden="true"</code>. No
+    scanner rasterises the glyph to recognise a clock face, and none knows the clock's conventional
+    meaning ("time") contradicts the field's real purpose ("party size"), especially with an actual
+    "Time" select already present. Detecting that the visible glyph misleads a sighted user is an
+    irreducibly human visual + contextual judgment.
+  </p>
+</body>
+</html>

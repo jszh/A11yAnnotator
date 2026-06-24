@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 FAILURE (F2 / G117 not applied) — a course schedule in an LMS where CANCELLED
+    class sessions are shown ONLY by italic + strike-through styling on the session row text.
+
+    The data table is otherwise exemplary: real <table>, <caption>, <th scope=...> headers,
+    proper cell associations. (So 1.3.1's table-structure limb PASSES — this is purely the
+    text-presentation limb.) The cancellation status is carried by:
+        td.cancelled { font-style: italic; text-decoration: line-through; }
+    There is:
+       - NO "Cancelled" word in the row,
+       - NO status column,
+       - NO markup (<del>, <s>, aria, data-status announced) — text-decoration on a <td>,
+       - NO colour cue (deliberately; colour is 1.4.1).
+    A sighted student sees two struck-through, italic rows and reads "those classes are off."
+    A screen-reader / braille user hears the cancelled sessions read as normal, scheduled
+    classes (the strike/italic are not announced), and will show up to a room for a class that
+    is not happening — and may miss that the make-up session replacing it is the real one.
+
+    WHY AUTOMATED TOOLS MISS IT: the table markup is correct (axe will PASS the table rules),
+    and font-style:italic + line-through on a cell are valid CSS. No rule infers that the
+    strike-through MEANS "cancelled" and that this is stated in no cell text. Human reading only.
+  -->
+  <title>BIOL 204 — Weekly Schedule | Riverside University LMS</title>
+  <style>
+    body { margin:0; font-family:"Segoe UI", Roboto, Arial, sans-serif; color:#222;
+           background:#f6f7f9; line-height:1.5; }
+    .lms-top { background:#3a2a6b; color:#fff; padding:.7rem 1.3rem; font-size:.9rem; }
+    main { max-width:50rem; margin:1.3rem auto 4rem; padding:0 1.3rem; }
+    h1 { font-size:1.3rem; margin:.2rem 0 .1rem; }
+    .crumbs { color:#666; font-size:.85rem; margin:0 0 1.3rem; }
+    table { width:100%; border-collapse:collapse; background:#fff; font-size:.92rem;
+            box-shadow:0 1px 2px rgba(0,0,0,.06); }
+    caption { text-align:left; font-weight:600; margin:0 0 .5rem; }
+    th, td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid #e6e6ea; }
+    thead th { background:#efeef5; }
+    /* Cancelled sessions: italic + strike-through ONLY. This is the sole cancellation cue. */
+    td.cancelled { font-style: italic; text-decoration: line-through; }
+    .help { font-size:.85rem; color:#555; margin-top:1rem; }
+  </style>
+</head>
+<body>
+  <div class="lms-top">Riverside University &middot; Learning Portal</div>
+
+  <main>
+    <nav class="crumbs" aria-label="Breadcrumb">Courses &rsaquo; BIOL 204 &rsaquo; Schedule</nav>
+    <h1>BIOL 204 — Cell Biology: Weekly Schedule</h1>
+
+    <table>
+      <caption>Weeks 5–8, Spring term 2026</caption>
+      <thead>
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">Session</th>
+          <th scope="col">Topic</th>
+          <th scope="col">Room</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Mon 16 Mar</th>
+          <td>Lecture 9</td>
+          <td>Membrane transport</td>
+          <td>Hawthorne 110</td>
+        </tr>
+        <!-- CANCELLED — but the only signal is italic + strike-through styling. -->
+        <tr>
+          <th scope="row" class="cancelled">Wed 18 Mar</th>
+          <td class="cancelled">Lab 5</td>
+          <td class="cancelled">Osmosis practical</td>
+          <td class="cancelled">Science Wing B2</td>
+        </tr>
+        <tr>
+          <th scope="row">Mon 23 Mar</th>
+          <td>Lecture 10</td>
+          <td>The cytoskeleton</td>
+          <td>Hawthorne 110</td>
+        </tr>
+        <tr>
+          <th scope="row">Wed 25 Mar</th>
+          <td>Lab 5 (make-up)</td>
+          <td>Osmosis practical</td>
+          <td>Science Wing B2</td>
+        </tr>
+        <!-- CANCELLED -->
+        <tr>
+          <th scope="row" class="cancelled">Mon 30 Mar</th>
+          <td class="cancelled">Lecture 11</td>
+          <td class="cancelled">Guest seminar: imaging</td>
+          <td class="cancelled">Hawthorne 110</td>
+        </tr>
+        <tr>
+          <th scope="row">Wed 1 Apr</th>
+          <td>Lecture 11</td>
+          <td>Guest seminar: imaging (rescheduled)</td>
+          <td>Hawthorne 110</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="help">Questions about the schedule? Message your TA through the course inbox.</p>
+  </main>
+</body>
+</html>

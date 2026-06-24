@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply: Senior Backend Engineer — Northwind Talent</title>
+<style>
+  :root { font-family: system-ui, "Helvetica Neue", Arial, sans-serif; }
+  body { margin: 0; background: #fafafa; color: #222; }
+  header { background: #0d2538; color: #fff; padding: 20px 28px; }
+  header .role { font-size: 1.25rem; font-weight: 700; }
+  header .co { color: #9fc0d8; font-size: .95rem; }
+  .form { max-width: 620px; margin: 28px auto; padding: 0 18px; }
+  fieldset { border: 1px solid #dcdcdc; border-radius: 10px; padding: 18px; margin: 0 0 20px; background: #fff; }
+  legend { padding: 0 8px; font-weight: 600; }
+  label.fl { display: block; font-weight: 600; margin: 12px 0 5px; }
+  input[type=text], input[type=email] { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #c8c8c8; border-radius: 7px; font: inherit; }
+  /* The native control still exists in the DOM and has a programmatic label,
+     but it is visually removed and never surfaced through a keyboard-reachable trigger. */
+  .file-native { display: none; }
+  .dropzone {
+    margin-top: 8px; border: 2px dashed #9bb4c6; border-radius: 12px;
+    padding: 38px 20px; text-align: center; color: #4a6378; background: #f3f8fc;
+  }
+  .dropzone.drag { border-color: #1763a6; background: #e6f1fb; color: #0d2538; }
+  .dropzone .big { font-size: 1.05rem; font-weight: 600; }
+  .dropzone .sub { font-size: .9rem; margin-top: 6px; }
+  .filename { margin-top: 10px; font-weight: 600; color: #0d2538; }
+  .submit { background: #1763a6; color: #fff; border: 0; padding: 12px 22px; border-radius: 8px; font: inherit; cursor: pointer; }
+  footer { color: #8a8a8a; text-align: center; font-size: .85rem; margin: 30px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="role">Senior Backend Engineer</div>
+  <div class="co">Northwind Talent · Remote (US) · Full-time</div>
+</header>
+
+<form class="form" action="#" method="post">
+  <fieldset>
+    <legend>Your details</legend>
+    <label class="fl" for="name">Full name</label>
+    <input id="name" type="text" autocomplete="name" required>
+    <label class="fl" for="email">Email</label>
+    <input id="email" type="email" autocomplete="email" required>
+  </fieldset>
+
+  <fieldset>
+    <legend>Résumé / CV (PDF or DOCX, required)</legend>
+
+    <!-- Native file input is present with a real label, so a linter sees a labeled control -->
+    <label class="fl" for="resume" style="position:absolute;left:-9999px">Upload your résumé file</label>
+    <input class="file-native" id="resume" name="resume" type="file" accept=".pdf,.doc,.docx">
+
+    <!-- ...but the ONLY surfaced way to attach is dragging a file into this zone -->
+    <div class="dropzone" id="drop" aria-describedby="dropnote">
+      <div class="big">Drag your résumé file here</div>
+      <div class="sub" id="dropnote">Drop a PDF or DOCX to attach it to your application</div>
+      <div class="filename" id="fname" aria-live="polite"></div>
+    </div>
+  </fieldset>
+
+  <button class="submit" type="submit">Submit application</button>
+</form>
+
+<footer>Northwind Talent · Equal-opportunity employer</footer>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The <input type="file" id="resume"> is genuinely in the DOM and has an associated <label>, so a
+  linter reports a labeled file control and is satisfied — there is no "missing label", no "missing
+  name", no empty alt. BUT the native input is display:none AND nothing on the page surfaces it: there
+  is no <label> that is clickable/visible, no button that calls resume.click(), and the dashed zone is a
+  plain <div> with only drag/drop handlers (no role=button, no tabindex, no key handler). The ONLY
+  surfaced way to attach a résumé — a required step to apply — is to DRAG a file from the desktop into
+  the dropzone. Attaching a file is endpoint-dependent (the drop target is what matters, not the pointer
+  path), so the path-of-movement exception does NOT apply; the function must be keyboard-operable. A
+  keyboard-only user can fill name + email and Tab to Submit but can never attach the file. A scanner
+  cannot tell that the visible dropzone is the only upload affordance, that the real input is hidden and
+  un-triggered, or that "attach a file" is a function lacking a keyboard route. Note: a hidden file input
+  paired with a clickable <label for=resume> or a button calling .click() WOULD pass — the difference is
+  purely whether the function is keyboard-reachable, a human judgment.
+-->
+<script>
+  const drop = document.getElementById('drop');
+  const fname = document.getElementById('fname');
+  const native = document.getElementById('resume');
+
+  // Pointer-drag is the only surfaced upload path. The hidden input is never .click()-ed.
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('drag');
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) {
+      // assign to the hidden native input so the form would submit it
+      try { native.files = e.dataTransfer.files; } catch (_) {}
+      fname.textContent = 'Attached: ' + f.name;
+    }
+  });
+</script>
+</body>
+</html>

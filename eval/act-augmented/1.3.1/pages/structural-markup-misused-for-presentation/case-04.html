@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 FAILURE (F43) — <fieldset>/<legend> used to draw a decorative bordered box
+    around promotional prose that contains NO form controls, asserting a control-grouping
+    relationship that does not exist.
+
+    This is a nonprofit campaign landing page. A "Matching Gift" highlight box is built with
+    <fieldset><legend>Matching Gift This Week</legend>...prose...</fieldset> purely because
+    the designer liked the inset border that <fieldset> + <legend> produce (legend notched
+    into the top border). The fieldset contains only headings/paragraphs and a plain link —
+    NO <input>, <select>, <textarea>, radio, or checkbox. There is nothing to group.
+
+    A <fieldset> programmatically asserts: "this is a group of related form controls, and
+    the <legend> is the group label for those controls." The accessibility tree exposes role
+    "group" with the legend as its accessible name; screen readers announce the group and, on
+    entering any field, repeat the legend ("Matching Gift This Week, ..."). Here there are no
+    controls, so the assertion describes a relationship (control grouping) that does not exist
+    in the content.
+
+    Note: the page DOES have a real, correctly-grouped donation-amount fieldset further down,
+    so the page is not "no forms" — the decorative fieldset is the defect, sitting beside a
+    legitimate one. (Inverse-presentation foil sharpens the judgment.)
+
+    WHY AUTOMATED TOOLS MISS IT: <fieldset> with a <legend> is the textbook-CORRECT pattern
+    axe REWARDS — its rules check that fieldsets HAVE legends and that grouped controls are
+    inside, never that a fieldset actually CONTAINS controls. A fieldset with no controls
+    trips no rule. Recognising that this box is decorative prose, not a control group,
+    requires reading the content.
+  -->
+  <title>Double Your Impact — Riverbend Food Bank</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI", system-ui, sans-serif; color:#1f2d27;
+           background:#f3f7f4; line-height:1.6; }
+    header { background:#15543c; color:#eafaf2; padding:1.1rem 1.3rem; }
+    header .org { font-size:1.25rem; font-weight:700; }
+    header .tag { font-size:.85rem; opacity:.9; }
+    main { max-width:46rem; margin:1.5rem auto 4rem; padding:0 1.2rem; }
+    h1 { font-size:1.9rem; margin:.3rem 0 .6rem; color:#123f2d; }
+    p { margin:0 0 1rem; }
+    /* DECORATIVE box: fieldset/legend chosen for the notched-border look, no controls inside. */
+    fieldset.promo { border:2px solid #2f8f63; border-radius:10px; padding:1rem 1.2rem 1.2rem;
+                     margin:1.4rem 0; background:#ffffff; }
+    fieldset.promo legend { padding:0 .5rem; font-weight:700; color:#15543c; font-size:1.05rem; }
+    fieldset.promo .save { font-size:1.4rem; font-weight:800; color:#1d7a52; margin:.2rem 0 .5rem; }
+    fieldset.promo a { color:#15543c; font-weight:600; }
+    /* REAL form group below — correct use of fieldset for radio controls. */
+    form.donate fieldset { border:1px solid #cfe0d7; border-radius:10px; padding:1rem 1.1rem; margin:1.4rem 0; }
+    form.donate legend { font-weight:700; color:#15543c; padding:0 .4rem; }
+    .amounts { display:flex; gap:.7rem; flex-wrap:wrap; margin-top:.4rem; }
+    .amounts label { border:1px solid #b9d4c7; border-radius:8px; padding:.55rem .9rem; cursor:pointer; }
+    .donate-btn { background:#1d7a52; color:#fff; border:none; padding:.8rem 1.6rem;
+                  border-radius:8px; font-size:1rem; cursor:pointer; margin-top:.8rem; }
+    footer { max-width:46rem; margin:0 auto 3rem; padding:0 1.2rem; font-size:.8rem; color:#5d7a6d; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="org">Riverbend Food Bank</div>
+    <div class="tag">Serving the Tri-County region since 1986</div>
+  </header>
+
+  <main>
+    <h1>Double Your Impact This Week</h1>
+    <p>Every gift to Riverbend provides four meals to a neighbor facing hunger. Right now,
+    a local family foundation will match your donation dollar for dollar — so your support
+    goes twice as far.</p>
+
+    <!--
+      DECORATIVE fieldset: chosen for the bordered-box-with-notched-title look. There are NO
+      form controls inside it — only a heading, prose, and a link. The fieldset/legend assert
+      a control-grouping relationship that does not exist.
+    -->
+    <fieldset class="promo">
+      <legend>Matching Gift This Week</legend>
+      <p class="save">2× every dollar</p>
+      <p>The Halvorsen Family Foundation has pledged to match all gifts up to $50,000
+      through Sunday. Funds raised this week feed families across the Tri-County region for
+      the rest of the season.</p>
+      <p><a href="#donate">Jump to the donation form ↓</a></p>
+    </fieldset>
+
+    <p>Your generosity stocks pantry shelves, fills weekend backpacks for kids, and keeps
+    our refrigerated delivery vans on the road. Thank you for standing with your neighbors.</p>
+
+    <!-- REAL, correctly-grouped form below: this fieldset legitimately groups radio controls. -->
+    <form class="donate" id="donate" action="#" method="post">
+      <fieldset>
+        <legend>Choose your one-time gift</legend>
+        <div class="amounts">
+          <label><input type="radio" name="amt" value="25"> $25</label>
+          <label><input type="radio" name="amt" value="50" checked> $50</label>
+          <label><input type="radio" name="amt" value="100"> $100</label>
+          <label><input type="radio" name="amt" value="other"> Other</label>
+        </div>
+      </fieldset>
+      <button class="donate-btn" type="submit">Donate now</button>
+    </form>
+  </main>
+
+  <footer>Riverbend Food Bank · 501(c)(3) · EIN 00-0000000 · Gifts are tax-deductible.</footer>
+</body>
+</html>

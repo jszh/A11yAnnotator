@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inbox — Postela Webmail</title>
+<style>
+  :root { --pe-accent:#5b3fd6; --pe-bg:#f3f2f8; --pe-ink:#23202e; --pe-mut:#6b6680; --pe-line:#ddd9ea; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:var(--pe-ink); background:var(--pe-bg); font-size:15px; }
+  .app { display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
+  aside { background:#fff; border-right:1px solid var(--pe-line); padding:1rem .75rem; }
+  .brand { font-weight:800; color:var(--pe-accent); font-size:1.1rem; padding:.25rem .5rem 1rem; }
+  .folder { display:block; padding:.5rem .6rem; border-radius:7px; color:var(--pe-ink); text-decoration:none; font-size:.92rem; }
+  .folder.active { background:#efeaff; color:var(--pe-accent); font-weight:600; }
+  .folder:hover { background:#f5f3fc; }
+  main { padding:0; }
+  .reading { background:#fff; margin:1rem; border:1px solid var(--pe-line); border-radius:12px; overflow:hidden; }
+  /* The message action toolbar — the controls under test */
+  .msg-toolbar {
+    display:flex; align-items:center; gap:.25rem; padding:.6rem .8rem;
+    border-bottom:1px solid var(--pe-line); background:#faf9fd;
+  }
+  .msg-toolbar a.action {
+    display:inline-flex; align-items:center; gap:.4rem; padding:.45rem .7rem;
+    border-radius:8px; color:var(--pe-ink); text-decoration:none; font-size:.88rem; cursor:pointer;
+  }
+  .msg-toolbar a.action:hover { background:#efeaff; color:var(--pe-accent); }
+  .msg-toolbar a.action:focus { outline:2px solid var(--pe-accent); outline-offset:1px; }
+  .msg-toolbar a.action .ic { width:16px; height:16px; border-radius:3px; background:currentColor; opacity:.65; }
+  .spacer { flex:1; }
+  .msg-head { padding:1rem 1.1rem .25rem; }
+  .msg-head h1 { font-size:1.2rem; margin:0 0 .35rem; }
+  .from { color:var(--pe-mut); font-size:.86rem; }
+  .msg-body { padding:.75rem 1.1rem 1.5rem; line-height:1.65; }
+  .msg-body p { margin:0 0 1rem; }
+  #status { padding:.5rem 1.1rem; font-size:.82rem; color:#2e7d32; min-height:1.4em; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside aria-label="Mailboxes">
+    <div class="brand">Postela</div>
+    <a class="folder active" href="#inbox">Inbox <span aria-hidden="true">· 3</span></a>
+    <a class="folder" href="#starred">Starred</a>
+    <a class="folder" href="#sent">Sent</a>
+    <a class="folder" href="#drafts">Drafts</a>
+    <a class="folder" href="#trash">Trash</a>
+  </aside>
+
+  <main>
+    <section class="reading" aria-label="Selected message">
+      <!-- Toolbar built from anchor elements styled as buttons. The agency that themed this
+           webmail used the A element "because it takes the link styling", and dropped href
+           because "the JS handles navigation". Anchors without href are NOT in the tab order. -->
+      <div class="msg-toolbar" role="toolbar" aria-label="Message actions">
+        <a class="action" onclick="act('Replying to Dana Okafor…')"><span class="ic" aria-hidden="true"></span>Reply</a>
+        <a class="action" onclick="act('Reply all — 4 recipients…')"><span class="ic" aria-hidden="true"></span>Reply all</a>
+        <a class="action" onclick="act('Forwarding message…')"><span class="ic" aria-hidden="true"></span>Forward</a>
+        <span class="spacer"></span>
+        <a class="action" onclick="act('Message archived.')"><span class="ic" aria-hidden="true"></span>Archive</a>
+        <a class="action" onclick="act('Message moved to Trash.')"><span class="ic" aria-hidden="true"></span>Delete</a>
+      </div>
+
+      <div class="msg-head">
+        <h1>Q3 budget review — agenda &amp; pre-reads</h1>
+        <div class="from">Dana Okafor &lt;d.okafor@meridian.example&gt; · to me · 10:42</div>
+      </div>
+      <div class="msg-body">
+        <p>Hi — ahead of Thursday's session I've attached the draft agenda and the two
+           pre-reads. Could you confirm the headcount figures on slide 6 before we circulate?</p>
+        <p>Also flagging that the procurement line moved, so the variance table will need a
+           refresh. Happy to walk through it on a quick call if that's easier.</p>
+        <p>Thanks,<br>Dana</p>
+      </div>
+      <div id="status" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+  function act(msg) {
+    var s = document.getElementById('status');
+    s.textContent = msg;
+    setTimeout(function () { s.textContent = ''; }, 2500);
+  }
+  // Every toolbar control is an anchor element WITHOUT href. They are clickable with a
+  // mouse and styled to look exactly like buttons/links, but a hrefless anchor is not
+  // focusable and never enters the Tab sequence — so Reply/Forward/Archive/Delete are
+  // unreachable by keyboard. There is no other keyboard path to these actions on the page.
+</script>
+</body>
+</html>

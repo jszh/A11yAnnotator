@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Now Playing — Tidewater Radio</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Helvetica Neue", system-ui, sans-serif; background:linear-gradient(160deg,#1b1033,#2a1b4d); color:#f3effa; min-height:100vh; }
+  .player { max-width:420px; margin:0 auto; padding:40px 26px; text-align:center; }
+  .art { width:240px; height:240px; margin:0 auto 22px; border-radius:14px; background:linear-gradient(135deg,#ff6a88,#ff99ac 55%,#7b2ff7); box-shadow:0 18px 40px rgba(0,0,0,.45); display:grid; place-items:center; font-size:3rem; }
+  .track { font-size:1.3rem; font-weight:700; margin:0; }
+  .artist { color:#c9bce6; margin:4px 0 26px; }
+  .controls { display:flex; align-items:center; justify-content:center; gap:26px; margin-bottom:34px; }
+  .controls button { background:none; border:0; color:#fff; font-size:1.4rem; cursor:pointer; }
+  .play { width:62px; height:62px; border-radius:50%; background:#fff !important; color:#2a1b4d !important; font-size:1.6rem !important; }
+  .vol-row { display:flex; align-items:center; gap:12px; }
+  .vol-row .ic { font-size:1.1rem; width:24px; }
+  /* Custom slider: a track with a filled portion and a draggable thumb. */
+  .slider { position:relative; flex:1; height:30px; cursor:pointer; }
+  .slider .rail { position:absolute; top:13px; left:0; right:0; height:4px; border-radius:2px; background:rgba(255,255,255,.25); }
+  .slider .fill { position:absolute; top:13px; left:0; height:4px; border-radius:2px; background:#ff99ac; }
+  .slider .thumb { position:absolute; top:6px; width:18px; height:18px; border-radius:50%; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.5); transform:translateX(-50%); }
+  .slider:focus-visible { outline:none; }
+  .slider:focus-visible .thumb { outline:3px solid #fff; outline-offset:2px; }
+  .why { font-size:.78rem; color:#bdb0db; text-align:left; background:rgba(0,0,0,.25); border-radius:8px; padding:12px 14px; margin-top:34px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="player">
+  <div class="art" aria-hidden="true">&#127911;</div>
+  <p class="track">Saltmarsh Lullaby</p>
+  <p class="artist">The Brackish Tide · <em>Estuary, Vol. 2</em></p>
+
+  <div class="controls">
+    <button aria-label="Previous track">&#9198;</button>
+    <button class="play" aria-label="Pause">&#10073;&#10073;</button>
+    <button aria-label="Next track">&#9197;</button>
+  </div>
+
+  <div class="vol-row">
+    <span class="ic" aria-hidden="true">&#128264;</span>
+    <!--
+      Custom volume slider rendered at MAXIMUM: the fill spans the full rail and the thumb sits at the far right.
+      But aria-valuenow is hard-coded "0" and there is no aria-valuetext, so AT reads the volume as 0 (silent/min)
+      while the control visibly shows full volume.
+    -->
+    <div class="slider" role="slider"
+         tabindex="0"
+         aria-label="Volume"
+         aria-valuemin="0"
+         aria-valuemax="100"
+         aria-valuenow="0">
+      <div class="rail" aria-hidden="true"></div>
+      <div class="fill" style="width:100%"></div>
+      <div class="thumb" style="left:100%"></div>
+    </div>
+    <span class="ic" aria-hidden="true">&#128266;</span>
+  </div>
+
+  <p class="why">
+    Why automated tools miss this: the slider has role="slider", an accessible name, and the full required set of
+    range states (aria-valuemin / aria-valuemax / aria-valuenow), each a syntactically valid number. ACT 4e8ab6
+    (required states present), 5c01ea (permitted), and 6a7281 (valid number value) all pass. Nothing in the markup
+    is malformed. The failure is that the rendered thumb is at the far-right maximum while aria-valuenow says "0":
+    a position-vs-value comparison that requires seeing where the thumb sits relative to the rail.
+  </p>
+</div>
+
+<script>
+  // Keyboard handling keeps aria-valuenow and the visual thumb in sync once the user acts.
+  // The bug is the INITIAL state: thumb painted at 100% while aria-valuenow ships as "0".
+  var s = document.querySelector('.slider');
+  s.addEventListener('keydown', function (e) {
+    var v = parseInt(s.getAttribute('aria-valuenow'), 10) || 0;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') v = Math.min(100, v + 5);
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') v = Math.max(0, v - 5);
+    else return;
+    e.preventDefault();
+    s.setAttribute('aria-valuenow', v);
+    s.querySelector('.fill').style.width = v + '%';
+    s.querySelector('.thumb').style.left = v + '%';
+  });
+</script>
+</body>
+</html>

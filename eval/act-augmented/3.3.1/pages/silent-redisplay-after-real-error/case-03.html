@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  PAGE STATE: This is the sign-in page AFTER a failed login. The user typed their username and
+  password and pressed "Sign in". Authentication failed (wrong password). The server re-displayed
+  the SAME sign-in page: the username is retained, the password field is cleared (correct security
+  behaviour), and the page title is just "Sign in". There is NO message saying the previous attempt
+  failed — no "Incorrect username or password", nothing. To a sighted user the cleared password
+  box is a soft hint that they may need to retype; to a screen-reader user nothing distinguishes
+  this from the very first visit to the login page.
+
+  WHY AUTOMATED TOOLS MISS THIS: the login form is impeccable — labelled inputs, valid markup,
+  password masked, a real submit button. There is no error markup at all, so there is nothing for
+  a linter to flag, and the 3.3.1 "no indicator" branch reads as a vacuous pass. A scanner cannot
+  know this exact page is the RESULT of a rejected credential check; the only tell is the username
+  retained while the password is blank — a page-state cue that takes human reasoning to read.
+-->
+<title>Sign in</title>
+<style>
+  :root { --ink:#11161d; --muted:#5e6b7a; --line:#d9dee4; --brand:#2747c9; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,"Segoe UI",sans-serif; color:var(--ink); background:#0f1b3d; min-height:100vh; display:grid; place-items:center; }
+  .card { width:380px; max-width:92vw; background:#fff; border-radius:12px; padding:30px 32px 26px; box-shadow:0 18px 50px rgba(0,0,0,.35); }
+  .logo { display:flex; align-items:center; gap:9px; margin-bottom:22px; }
+  .logo .glyph { width:30px; height:30px; border-radius:8px; background:var(--brand); color:#fff; display:grid; place-items:center; font-weight:800; }
+  .logo strong { font-size:1.05rem; }
+  h1 { font-size:1.35rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:.88rem; margin:0 0 22px; }
+  .field { margin-bottom:16px; }
+  label { display:block; font-weight:600; font-size:.86rem; margin-bottom:5px; }
+  input { width:100%; padding:10px 12px; border:1px solid #c2c9d2; border-radius:7px; font-size:1rem; }
+  .row-between { display:flex; justify-content:space-between; align-items:center; margin:4px 0 20px; font-size:.84rem; }
+  .row-between a { color:var(--brand); text-decoration:none; }
+  button.signin { width:100%; background:var(--brand); color:#fff; border:0; border-radius:7px; padding:11px; font-size:1rem; font-weight:600; cursor:pointer; }
+  .foot { text-align:center; margin-top:18px; font-size:.84rem; color:var(--muted); }
+  .foot a { color:var(--brand); text-decoration:none; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="logo">
+    <span class="glyph">N</span>
+    <strong>Northvale Health Portal</strong>
+  </div>
+
+  <h1>Sign in</h1>
+  <p class="sub">Access your appointments, results and prescriptions.</p>
+
+  <form action="/auth/login" method="post" novalidate>
+    <div class="field">
+      <!-- Username retained from the failed attempt. -->
+      <label for="user">Username or email</label>
+      <input type="text" id="user" name="user" value="d.whitfield@example.com" autocomplete="username">
+    </div>
+
+    <div class="field">
+      <!-- Password correctly cleared. There is NO text anywhere saying the prior attempt failed. -->
+      <label for="pass">Password</label>
+      <input type="password" id="pass" name="pass" value="" autocomplete="current-password">
+    </div>
+
+    <div class="row-between">
+      <label style="font-weight:400;display:flex;gap:6px;align-items:center;">
+        <input type="checkbox" name="remember" style="width:auto;"> Keep me signed in
+      </label>
+      <a href="/auth/reset">Forgot password?</a>
+    </div>
+
+    <button type="submit" class="signin">Sign in</button>
+  </form>
+
+  <p class="foot">New here? <a href="/register">Create an account</a></p>
+</main>
+</body>
+</html>

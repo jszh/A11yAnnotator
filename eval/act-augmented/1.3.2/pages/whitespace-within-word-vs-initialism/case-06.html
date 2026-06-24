@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Driftwood Coffee Roasters — Summer Drop</title>
+  <style>
+    body { font-family: "Inter", "Segoe UI", Arial, sans-serif; margin:0; color:#2b2218; background:#fffdf8; line-height:1.6; }
+    .topstrip { background:#3b2a1a; color:#f3e9da; text-align:center; padding:.55rem 1rem; font-size:.92rem; }
+    .hero { text-align:center; padding:2.6rem 1rem 1.2rem; background:#f3e9da; }
+    /* The big "SUMMER" wordmark is built in a <pre> so the author's TAB characters between
+       letters survive (HTML would otherwise collapse them). The visual is wide, monospace-ish. */
+    .hero pre.wordmark {
+      font-family: "Courier New", monospace; font-size:clamp(1.8rem,7vw,3.4rem); font-weight:700;
+      margin:0; color:#6b4226; white-space:pre; overflow-x:auto;
+    }
+    .hero .tag { font-size:1rem; color:#6b5a45; margin-top:.4rem; }
+    main { max-width:720px; margin:1.8rem auto; padding:0 1.15rem; }
+    h2 { font-size:1.25rem; }
+    .promo { background:#fff; border:1px dashed #b08968; border-radius:8px; padding:1.1rem 1.2rem; margin:1.4rem 0; }
+    .code { font-family:"Courier New",monospace; font-weight:700; font-size:1.3rem; letter-spacing:.5em; color:#6b4226; }
+    .note { background:#f3e9da; border-left:4px solid #6b4226; padding:1rem 1.2rem; font-size:.86rem; color:#4a3a28; }
+    code { background:#efe6d6; padding:.1em .3em; border-radius:3px; }
+  </style>
+</head>
+<body>
+  <div class="topstrip">Free local delivery on orders over $35 — Welcome to our shop</div>
+
+  <header class="hero">
+    <!-- F32 FAILURE: the single word "SUMMER" is spaced with TAB characters (U+0009) between
+         every letter inside a <pre>. AT reads "S, U, M, M, E, R" (or tab-separated fragments),
+         not the word "Summer". Tabs are an F32 mechanism just like spaces. -->
+    <pre class="wordmark">S	U	M	M	E	R</pre>
+    <p class="tag">A limited single-origin drop for the warm months</p>
+  </header>
+
+  <main>
+    <!-- PASS: normal inter-word spacing — "Welcome to our shop" / "Taste the season" are
+         several words with ordinary spaces BETWEEN words, which F32 explicitly allows. -->
+    <h2>Welcome to our shop — taste the season</h2>
+    <p>
+      Our Summer drop is a washed Ethiopian with notes of jasmine, peach, and brown sugar.
+      Roasted to order every Tuesday and shipped the same week. These are normal sentences with
+      ordinary spaces between the words, so a screen reader reads them as words, not letters.
+    </p>
+
+    <div class="promo">
+      <p>Use this code at checkout for 20% off your first bag:</p>
+      <!-- AMBIGUOUS carve-out: "SAVE20" is a promo CODE, not a prose word. It is rendered wide
+           with CSS letter-spacing and the text node is the intact token "SAVE20" (no spaces in
+           the characters). Because it is a code/identifier read as a unit — and because the
+           spacing is CSS, not characters — this is NOT an F32 failure. It is here to force the
+           evaluator to decide "word vs. code/identifier", the subtler carve-out. -->
+      <p class="code">SAVE20</p>
+    </div>
+
+    <section class="note" aria-label="About this page">
+      <p>
+        <strong>Why automated checkers pass this page:</strong> the document is valid HTML5 with a
+        real title and heading; the <code>&lt;pre&gt;</code> wordmark contains live text, not an
+        image. axe/WAVE/Lighthouse have no rule that detects <em>tab</em> characters inserted
+        between the letters of a word, so the <code>S&#9;U&#9;M&#9;M&#9;E&#9;R</code> failure is
+        invisible to them. They equally cannot confirm that "Welcome to our shop" is fine
+        (inter-word spacing is the explicit F32 carve-out) or that the promo
+        <code>SAVE20</code> is a code rendered with CSS letter-spacing (an intact token, not a
+        broken word). Word vs. inter-word-spacing vs. code-identifier is a human judgement.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

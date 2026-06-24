@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulsegrid Analytics — Weekly Report</title>
+<!--
+  SC 2.4.6 — PASS BOUNDARY for this aspect. This page uses the SAME risky
+  techniques as the failing cases (CSS grid-template-areas layout + a
+  <details>/<summary> disclosure) but applies them CORRECTLY, so that rendered
+  visual order and disclosure state both keep each heading apt.
+
+  - GRID: the grid-template-areas string lists the areas in the SAME order as the
+    panels appear in the DOM, so the rendered top-to-bottom / left-to-right reading
+    order matches source order. The "Traffic sources" heading visually sits over
+    the traffic-sources content; the "Top pages" heading over the top-pages list.
+    No flex `order` overrides, no area swaps.
+  - DISCLOSURE: the <details> summary "Methodology &amp; data sources" expands to a
+    methodology/data-sources explanation — the collapsed heading honestly predicts
+    the expanded body, in BOTH states.
+
+  Purpose: this sharpens the aspect by showing the divergence — not the techniques
+  themselves — is what fails. A correct evaluator must return PASS here and FAIL on
+  case-01..05, which it can only do by rendering + reading visually, not by
+  flagging "uses grid/details."
+
+  Expected ACT-style outcome: passed (every visible heading describes the content
+  a user perceives under it, in every state).
+-->
+<style>
+  body { margin: 0; font-family: "IBM Plex Sans", system-ui, sans-serif; background: #f4f5f7; color: #1d222b; }
+  header { background: #0d3b3b; color: #fff; padding: 14px 26px; display: flex; justify-content: space-between; align-items: baseline; }
+  header .brand { font-weight: 700; letter-spacing: .03em; }
+  header .range { font-size: .85rem; opacity: .85; }
+  main { max-width: 1000px; margin: 24px auto; padding: 0 18px; }
+  h1 { font-size: 1.4rem; margin: 0 0 16px; }
+
+  .board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* area order mirrors DOM order: sources (top-left), pages (top-right),
+       then devices (bottom-left), retention (bottom-right). */
+    grid-template-areas:
+      "sources   pages"
+      "devices   retention";
+    gap: 18px;
+  }
+  #sources   { grid-area: sources; }
+  #pages     { grid-area: pages; }
+  #devices   { grid-area: devices; }
+  #retention { grid-area: retention; }
+
+  .panel { background: #fff; border: 1px solid #dfe3e8; border-radius: 8px; padding: 16px 20px; }
+  .panel h2 { margin: 0 0 10px; font-size: 1.05rem; color: #0d3b3b; border-bottom: 2px solid #e2e6ea; padding-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid #eef1f4; }
+  th:last-child, td:last-child { text-align: right; }
+  .kpi { font-size: 1.5rem; font-weight: 700; color: #0d3b3b; }
+
+  details { background: #fff; border: 1px solid #dfe3e8; border-radius: 8px; margin-top: 18px; }
+  summary { cursor: pointer; padding: 14px 18px; font-weight: 600; color: #0d3b3b; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "▸"; float: right; color: #8a97a6; }
+  details[open] summary::after { transform: rotate(90deg); display: inline-block; }
+  .method { padding: 0 18px 16px; line-height: 1.55; font-size: .94rem; }
+  footer { text-align: center; color: #6b7280; font-size: .8rem; padding: 26px 0; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">PULSEGRID ANALYTICS</span>
+  <span class="range">Jun 8 – Jun 14, 2026</span>
+</header>
+
+<main>
+  <h1>Weekly traffic report — store.acme.example</h1>
+
+  <section class="board">
+
+    <article class="panel" id="sources">
+      <h2>Traffic sources</h2>
+      <table>
+        <tr><th>Channel</th><th>Sessions</th></tr>
+        <tr><td>Organic search</td><td>18,402</td></tr>
+        <tr><td>Direct</td><td>9,118</td></tr>
+        <tr><td>Email</td><td>4,765</td></tr>
+        <tr><td>Paid social</td><td>3,201</td></tr>
+      </table>
+    </article>
+
+    <article class="panel" id="pages">
+      <h2>Top pages</h2>
+      <table>
+        <tr><th>Path</th><th>Views</th></tr>
+        <tr><td>/collections/new</td><td>12,880</td></tr>
+        <tr><td>/products/merino-tee</td><td>7,402</td></tr>
+        <tr><td>/cart</td><td>5,330</td></tr>
+      </table>
+    </article>
+
+    <article class="panel" id="devices">
+      <h2>Device breakdown</h2>
+      <p class="kpi">63%</p>
+      <p>of sessions were on mobile, up 4 points week over week. Desktop accounted
+         for 31% and tablet 6%.</p>
+    </article>
+
+    <article class="panel" id="retention">
+      <h2>Returning visitors</h2>
+      <p class="kpi">28.4%</p>
+      <p>of visitors had been to the site in the prior 30 days, a slight increase
+         driven mainly by the email channel.</p>
+    </article>
+
+  </section>
+
+  <details>
+    <summary>Methodology &amp; data sources</summary>
+    <div class="method">
+      <p>Sessions are de-duplicated using a first-party cookie with a 30-minute
+         inactivity timeout. Bot traffic is filtered via the IAB/ABC International
+         Spiders &amp; Bots list. Channel attribution uses a last-non-direct model.
+         Figures are sampled at 100% for accounts under 1M monthly sessions, as is
+         the case here.</p>
+    </div>
+  </details>
+</main>
+
+<footer>Pulsegrid Analytics · Generated automatically every Monday</footer>
+</body>
+</html>

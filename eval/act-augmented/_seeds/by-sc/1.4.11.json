@@ -1,0 +1,78 @@
+{
+  "sc": "1.4.11",
+  "count": 5,
+  "patterns": [
+    {
+      "platform": "Shopify Dawn / Debut — sale badges and disabled/sold-out states",
+      "name": "Insufficient contrast on sale badges and disabled buttons",
+      "description": "'Sale' / 'Sold out' badges and disabled 'Add to cart' buttons use light or theme-accent colors (e.g. light pink on white, grey-on-grey) that fall below 4.5:1 for the text, and the badge's non-text boundary can fall below 3:1. Common in default and lightly-customized Dawn/Debut palettes.",
+      "wcagScs": [
+        "1.4.3",
+        "1.4.11"
+      ],
+      "typicalMarkup": "<span class=\"badge badge--sale\" style=\"background:#f3d9df;color:#c98aa0\">Sale</span>\n<button class=\"product-form__submit\" disabled\n        style=\"background:#e7e7e7;color:#a0a0a0\">Sold out</button>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "This is largely auto-detectable: axe/Lighthouse compute text contrast ratios and flag <4.5:1. Edge cases tools may miss are disabled-control text (some scanners skip disabled elements) and badge text over gradient/image backgrounds, but the core is a measurable ratio, so humanJudgmentNeeded is false.",
+      "realWorldNote": "Dawn audits specifically flag 'color contrast failures on sale badges and disabled elements' and multiple elements failing AA contrast. https://testparty.ai/blog/shopify-dawn-theme-accessibility",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Shopify / WooCommerce themes — focus styling removed on interactive controls",
+      "name": "Focus outline suppressed on swatches, buttons and links",
+      "description": "Themes (or merchant CSS tweaks) apply outline:none / :focus{outline:0} to buttons, variant swatch labels, and links to 'clean up' the design, leaving no visible focus indicator. Keyboard users cannot tell which swatch/button is focused while navigating the product form.",
+      "wcagScs": [
+        "2.4.7",
+        "1.4.11"
+      ],
+      "typicalMarkup": "a:focus, button:focus, .product-form__input label:focus {\n  outline: none;\n}\n/* no replacement :focus-visible box-shadow/border provided */",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "Partly auto-detectable — some tools flag outline:none in CSS — but they cannot reliably confirm there is no adequate replacement indicator (a box-shadow or border swap may suffice) without observing the focused state. Reliable confirmation is by tabbing and watching; still, the core 'no visible focus' is verifiable, so flagged humanJudgmentNeeded=false with the caveat that replacement-indicator adequacy may need a look.",
+      "realWorldNote": "Dawn/Shopify keyboard audits repeatedly cite suppressed/weak focus indicators; TestParty and Shopify theme best-practices emphasize visible focus on all interactive controls. https://testparty.ai/blog/shopify-checkout-keyboard-navigation-fixes",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Tailwind CSS / Tailwind UI utility classes",
+      "name": "focus:outline-none with no replacement focus ring",
+      "description": "Developers apply Tailwind's focus:outline-none (often to kill the default blue ring on inputs/buttons) but never add a focus-visible:ring/outline replacement. Keyboard users get no visible focus indicator as they tab through forms and menus, making the UI unusable without a mouse.",
+      "wcagScs": [
+        "2.4.7",
+        "1.4.11"
+      ],
+      "typicalMarkup": "<button class=\"focus:outline-none px-4 py-2 bg-blue-600 text-white\">\n  Save\n</button>\n<!-- on Tab focus, nothing visible changes -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe/Lighthouse do not evaluate whether a visible focus indicator appears on :focus — there is no reliable automated check for 2.4.7. Detecting the missing ring requires actually tabbing and visually observing each control's focus state, i.e. human or pixel-diff judgment, especially since outline-none renders a transparent (not removed) outline.",
+      "realWorldNote": "Tailwind's own docs warn that outline-none must be paired with an accessible focus state and recommend focus-visible: utilities; community guidance repeatedly flags focus:outline-none misuse. https://tailwindcss.com/docs/outline-style",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Bootstrap default theme (buttons, alerts, form-validation, placeholders)",
+      "name": "Default palette variants fail contrast (btn-warning, btn-info, alerts, placeholder)",
+      "description": "Bootstrap's stock color variants — notably .btn-warning, .btn-info, .btn-success (dark text or white text on light fills) and muted placeholder text — produce text and UI-component contrast below 4.5:1 / 3:1 against light backgrounds. Sites that adopt the defaults unmodified inherit the failures across every page.",
+      "wcagScs": [
+        "1.4.3",
+        "1.4.11"
+      ],
+      "typicalMarkup": "<button class=\"btn btn-warning\">Continue</button>\n<!-- #ffc107 fill with near-black text region edges; white-text variants ~2-3:1 -->\n<input class=\"form-control\" placeholder=\"Search...\">\n<!-- placeholder ~ #6c757d on white -->",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "This one IS reliably automatable — axe/Lighthouse compute text contrast ratios and flag failing button/placeholder colors. Flagged false because a contrast checker catches it; the only caveat is large-text thresholds and overlay images, which can need human review.",
+      "realWorldNote": "Bootstrap's own accessibility page admits default palette combinations may fall below WCAG contrast; twbs/bootstrap issue #25126 tracks failing AA combinations. https://github.com/twbs/bootstrap/issues/25126",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Shopify product pages, WooCommerce variation swatches, custom theme color/size pickers",
+      "name": "Color-only variant swatches with no text label",
+      "description": "Product variants are presented as colored squares/circles with no visible or programmatic text. The accessible name is empty or just a hex/SKU, and the selected state is shown only by a border or color change. Screen-reader and colorblind users cannot tell which color is which, nor which is currently selected.",
+      "wcagScs": [
+        "1.4.1",
+        "4.1.2",
+        "1.1.1",
+        "1.4.11"
+      ],
+      "typicalMarkup": "<div class=\"swatch\" style=\"background:#1b3a6b\" data-variant=\"40293\"></div>\n<div class=\"swatch swatch--selected\" style=\"background:#7a0c0c\"></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "An empty-name swatch built as a div may trip a name check, but the deeper failures — that COLOR is the only means of conveying the option (1.4.1) and that the SELECTED state is communicated by visual styling alone — require a human to perceive the colors and reason that meaning is lost without them. No linter knows 'navy vs maroon' is the information.",
+      "realWorldNote": "Shopify's own accessibility best-practices doc warns custom swatches commonly lose keyboard access and text labels: https://shopify.dev/docs/storefronts/themes/best-practices/accessibility . EAA-driven swatch fixes: https://craftshift.com/shopify-european-accessibility-act-swatches/",
+      "family": "real-world-audit-findings"
+    }
+  ]
+}

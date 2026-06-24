@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cart — Forge &amp; Last Coffee Roasters</title>
+<style>
+  :root { --ink:#2a2622; --bean:#7a4a2b; --cream:#faf6f0; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Helvetica Neue",Arial,sans-serif; color:var(--ink);
+         background:var(--cream); }
+  .shell { max-width:720px; margin:0 auto; padding:28px 20px 72px; }
+  .top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .top h1 { font-size:1.4rem; margin:0; }
+  .top a { color:var(--bean); text-decoration:none; font-size:.9rem; }
+  /* The site-wide error banner. It IDENTIFIES that a quantity error exists (so SC 3.3.1 is met)
+     but offers NO suggestion of how to fix it — it never states the available stock. */
+  .alert { background:#fff4f1; border:1px solid #e7b9ab; border-left:4px solid #c0392b;
+           padding:12px 16px; border-radius:6px; margin:16px 0 24px; color:#7a2417; }
+  .alert strong { color:#a3301d; }
+  table.cart { width:100%; border-collapse:collapse; background:#fff;
+               border:1px solid #ece3d8; border-radius:8px; overflow:hidden; }
+  table.cart th { text-align:left; font-size:.78rem; letter-spacing:.04em; text-transform:uppercase;
+                  color:#8a8275; padding:12px 14px; border-bottom:1px solid #ece3d8; }
+  table.cart td { padding:14px; border-bottom:1px solid #f1ebe2; vertical-align:middle; }
+  table.cart tr:last-child td { border-bottom:0; }
+  .item { display:flex; gap:12px; align-items:center; }
+  .thumb { width:46px; height:46px; border-radius:6px; background:#e9ddcf; flex:0 0 auto; }
+  .item .name { font-weight:600; }
+  .item .meta { font-size:.82rem; color:#8a8275; }
+  .qty input { width:64px; padding:8px; font:inherit; text-align:center;
+               border:1px solid #b8ad9d; border-radius:5px; }
+  /* On the over-stock row the input goes red. This colour is the ONLY thing that
+     pins the generic banner to a specific row AND the only hint about the fix. */
+  .qty.over input { border:2px solid #c0392b; background:#fdecec; color:#a3301d; }
+  .price { text-align:right; white-space:nowrap; }
+  .totals { margin-top:18px; text-align:right; }
+  .totals .grand { font-size:1.15rem; font-weight:700; }
+  .checkout { margin-top:18px; text-align:right; }
+  .checkout button { background:var(--bean); color:#fff; border:0; padding:13px 28px;
+                     font:inherit; font-weight:600; border-radius:6px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top">
+    <h1>Your cart</h1>
+    <a href="/shop">&larr; Keep shopping</a>
+  </div>
+
+  <!-- POST-"UPDATE CART" STATE. The shopper set Ethiopia Guji to qty 8, but only a
+       limited number remain. The banner IDENTIFIES the error in text (3.3.1 satisfied)
+       and even names the field ("Quantity"), but it never states the suggested
+       correction: the actual number still in stock. The single red input is the only
+       thing tying the banner to the right row. -->
+  <div class="alert" role="alert">
+    <strong>We couldn't update your cart.</strong>
+    There is a problem with the quantity for one of your items. Please review the
+    highlighted field and try again.
+  </div>
+
+  <table class="cart">
+    <caption class="sr-only" style="position:absolute;left:-9999px;">Items in your cart</caption>
+    <thead>
+      <tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Price</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <div class="item">
+            <span class="thumb" aria-hidden="true"></span>
+            <span>
+              <span class="name">Ethiopia Guji — Natural</span>
+              <span class="meta">Whole bean · 250g</span>
+            </span>
+          </div>
+        </td>
+        <td class="qty over">
+          <label for="q1" class="sr-only" style="position:absolute;left:-9999px;">Quantity, Ethiopia Guji</label>
+          <input id="q1" type="number" value="8" min="1" aria-invalid="true">
+        </td>
+        <td class="price">£14.00 each</td>
+      </tr>
+      <tr>
+        <td>
+          <div class="item">
+            <span class="thumb" aria-hidden="true"></span>
+            <span>
+              <span class="name">House Espresso — The Anvil</span>
+              <span class="meta">Whole bean · 1kg</span>
+            </span>
+          </div>
+        </td>
+        <td class="qty">
+          <label for="q2" class="sr-only" style="position:absolute;left:-9999px;">Quantity, House Espresso</label>
+          <input id="q2" type="number" value="2" min="1">
+        </td>
+        <td class="price">£32.00 each</td>
+      </tr>
+      <tr>
+        <td>
+          <div class="item">
+            <span class="thumb" aria-hidden="true"></span>
+            <span>
+              <span class="name">Decaf Colombia — Sugarcane Process</span>
+              <span class="meta">Ground · 250g</span>
+            </span>
+          </div>
+        </td>
+        <td class="qty">
+          <label for="q3" class="sr-only" style="position:absolute;left:-9999px;">Quantity, Decaf Colombia</label>
+          <input id="q3" type="number" value="1" min="1">
+        </td>
+        <td class="price">£13.50 each</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="totals">Subtotal (before stock check): <span class="grand">£189.50</span></div>
+  <div class="checkout"><button type="button">Proceed to checkout</button></div>
+</div>
+
+<!--
+  WHY THIS FAILS SC 3.3.3 (Error Suggestion), but is the SUGGESTION limb, not 3.3.1:
+  - 3.3.1 (Error Identification) IS satisfied: a role="alert" banner states in text that
+    a quantity problem exists and which field type is affected, and the row's input even
+    carries aria-invalid="true". A 3.3.1 checker would be content.
+  - 3.3.3 is NOT satisfied: the correction is knowable and specific — "only 5 in stock;
+    reduce the quantity to 5 or fewer" — but that suggestion appears NOWHERE in text. The
+    red input is the only thing carrying "make this number smaller," and it never says the
+    actual ceiling. The user is told THAT the quantity is wrong but not the fix value.
+
+  WHY AUTOMATED TOOLS MISS IT:
+  - The row HAS aria-invalid="true" and a real role="alert" with text, so error-identification
+    heuristics (and 3.3.1) pass — there is no missing-label, missing-message, or empty-attr
+    defect to catch.
+  - No tool knows the remaining stock (5), so none can assert that the available number is the
+    missing suggestion. Distinguishing "the suggested correction text is absent" from "an error
+    message exists" requires reading the banner, noticing it gives no fix value, and knowing the
+    fix value is knowable — pure human semantic judgment.
+-->
+</body>
+</html>

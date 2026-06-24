@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maple Ridge Realty — Find a home</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Helvetica Neue", Arial, sans-serif; color:#23262b; background:#fbfaf7; }
+  .hero { background:#2f4a3f; color:#fff; padding:42px 20px 56px; text-align:center; }
+  .hero h1 { margin:0 0 6px; font-size:30px; letter-spacing:.2px; }
+  .hero p { margin:0; opacity:.85; font-size:15px; }
+  .searchbar {
+    max-width:620px; margin:-28px auto 0; display:flex; align-items:stretch;
+    background:#fff; border:1px solid #d8d3c8; border-radius:12px; overflow:hidden;
+    box-shadow:0 8px 24px rgba(0,0,0,.12);
+  }
+  .searchbar input {
+    flex:1; border:0; padding:18px 20px; font-size:16px; outline:none;
+  }
+  .searchbar .go {
+    width:64px; border:0; border-left:1px solid #ece8df; background:#c4732a; color:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .searchbar .go:hover { background:#b0641f; }
+  .searchbar .go:focus-visible { outline:3px solid #f0c79a; outline-offset:-3px; }
+  .searchbar .go svg { width:24px; height:24px; }
+  .results { max-width:920px; margin:34px auto; padding:0 18px; }
+  .results h2 { font-size:18px; border-bottom:1px solid #e6e1d6; padding-bottom:8px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px; }
+  .card { background:#fff; border:1px solid #e6e1d6; border-radius:10px; overflow:hidden; }
+  .card .ph { height:128px; background:linear-gradient(135deg,#cdd9d2,#9fb3aa); }
+  .card .body { padding:12px 14px; }
+  .card .price { font-weight:700; font-size:17px; }
+  .card .addr { color:#5e6660; font-size:13px; margin-top:2px; }
+  .hint { max-width:620px; margin:12px auto 0; font-size:12px; color:#fff; opacity:.8; text-align:center; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <h1>Find your next home in Maple Ridge</h1>
+  <p>Search 1,240 active listings by neighbourhood, address, or MLS number.</p>
+</header>
+
+<form class="searchbar" role="search" onsubmit="return runSearch(event)">
+  <input type="text" id="q" name="q" placeholder="Try “Cedar Heights” or an MLS #" aria-label="Search listings by neighbourhood, address, or MLS number">
+
+  <!-- THE FAILING CONTROL:
+       This is the SEARCH submit button at the end of a search field — the exact place a
+       loupe glyph belongs and would be "commonly understood as Search." Instead the glyph
+       is a FUNNEL (the universal FILTER icon). Its accessible name is "Search" and it DOES
+       submit the search. So the accessible name is correct, but the chosen glyph signals
+       "filter," disagreeing with the control's real function. -->
+  <button type="submit" class="go" aria-label="Search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+      <!-- funnel / filter glyph -->
+      <path d="M3 5h18l-7 8v6l-4-2v-4z" stroke-linejoin="round"/>
+    </svg>
+  </button>
+</form>
+<p class="hint">Press the button to run your search.</p>
+
+<section class="results">
+  <h2>Recently listed</h2>
+  <div class="grid">
+    <article class="card"><div class="ph"></div><div class="body"><div class="price">$489,000</div><div class="addr">12 Birchwood Lane · Cedar Heights · 3 bd / 2 ba</div></div></article>
+    <article class="card"><div class="ph"></div><div class="body"><div class="price">$612,500</div><div class="addr">88 Orchard Crescent · Maple Ridge Core · 4 bd / 3 ba</div></div></article>
+    <article class="card"><div class="ph"></div><div class="body"><div class="price">$355,000</div><div class="addr">4 Tamarack Court · Riverside · 2 bd / 1 ba</div></div></article>
+    <article class="card"><div class="ph"></div><div class="body"><div class="price">$729,900</div><div class="addr">301 Summit View Rd · Highlands · 5 bd / 4 ba</div></div></article>
+  </div>
+</section>
+
+<script>
+  function runSearch(e){
+    e.preventDefault();
+    alert('Searching listings for: ' + (document.getElementById('q').value || '(empty)') + ' — demo.');
+    return false;
+  }
+</script>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS
+  This sits at the human-judgment boundary precisely because the POSITION (trailing button on a
+  role="search" field) and the ACCESSIBLE NAME ("Search") are both correct — a checker has every
+  signal it can read pointing to "valid search button," and axe-core/WAVE/Lighthouse all pass it
+  (non-empty button name, valid role="search" landmark). The ONLY thing wrong is the rendered
+  glyph: a funnel, the universal FILTER icon, where a loupe belongs. A sighted user scanning by
+  icon expects this button to open filter facets (price, beds, type), not to submit the text
+  query. No automated tool rasterises the SVG to distinguish a funnel from a loupe, and none can
+  reason that "funnel conventionally means filter, not search." Detecting the glyph/function
+  disagreement requires a human to see the funnel and know the convention — the graphical-label
+  judgment of SC 2.4.6 / TT 5.B.
+-->
+</body>
+</html>

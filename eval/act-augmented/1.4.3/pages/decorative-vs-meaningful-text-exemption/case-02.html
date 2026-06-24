@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Summit Trail Co. — Trail Running Gear for the Long Haul</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Helvetica Neue", Arial, sans-serif; color: #1a1a1a; }
+
+  .hero {
+    position: relative;
+    min-height: 480px;
+    display: flex; align-items: center;
+    padding: 0 8vw;
+    overflow: hidden;
+    /* Inline SVG "landscape photo" — no external resource. Mid/light-tone scene
+       so the giant pale flourish that floats over it is clearly low-contrast. */
+    background:
+      url('data:image/svg+xml;utf8,\
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600">\
+<rect width="1200" height="600" fill="%237d8a78"/>\
+<rect y="400" width="1200" height="200" fill="%235a6356"/>\
+<polygon points="0,400 280,200 520,400" fill="%238a9486"/>\
+<polygon points="360,400 640,160 920,400" fill="%23737e6f"/>\
+<polygon points="700,400 1010,210 1200,400" fill="%238f9a8a"/>\
+<circle cx="980" cy="120" r="70" fill="%23c9cdbf"/></svg>');
+    background-size: cover; background-position: center;
+  }
+
+  /* The giant pale word floats across the UPPER scene as a mood flourish.
+     It is positioned AWAY from the solid copy panel so it composites only
+     against the light/mid scene (≈1.4–2:1) — unambiguously low-contrast. */
+  .flourish {
+    position: absolute;
+    left: -2vw; right: 0; top: 8%;
+    text-align: center;
+    font-size: clamp(96px, 19vw, 260px);
+    font-weight: 800;
+    letter-spacing: 10px;
+    color: rgba(255, 255, 255, .30);   /* ≈1.4–2.0:1 over the scene — fails IF in scope */
+    pointer-events: none;
+    user-select: none;
+    line-height: 1;
+    z-index: 0;
+    margin: 0;
+  }
+
+  /* All INFORMATIVE text lives on a SOLID opaque dark panel, so every
+     in-scope string is white-on-#14201c and contrast is CSSOM-computable
+     (no photo sampling, no text-shadow guesswork). */
+  .hero-copy {
+    position: relative; z-index: 1;
+    max-width: 540px;
+    background: #14201c;             /* solid, fully opaque */
+    padding: 30px 34px;
+    border-radius: 10px;
+  }
+  .hero-copy h1 { color: #ffffff; font-size: 38px; margin: 0 0 14px; line-height: 1.15; }
+  /* white on #14201c ≈ 16.8:1 */
+  .hero-copy p  { color: #ffffff; font-size: 18px; line-height: 1.5; margin: 0 0 24px; }
+  /* white on #14201c ≈ 16.8:1 */
+  .cta {
+    display: inline-block;
+    background: #14532d;             /* solid dark green */
+    color: #ffffff;                  /* white on #14532d ≈ 9.1:1 — passes (16px/700 → 4.5:1 bar) */
+    text-decoration: none;
+    padding: 13px 26px; border-radius: 6px;
+    font-weight: 700; font-size: 16px;
+  }
+
+  main { max-width: 880px; margin: 48px auto; padding: 0 20px; }
+  main h2 { font-size: 24px; color: #1a1a1a; }   /* ≈17.4:1 on white */
+  main p  { color: #2a2a2a; line-height: 1.6; }  /* ≈14.4:1 on white */
+</style>
+</head>
+<body>
+  <header class="hero">
+    <!-- Decorative mood word. It is NOT a heading, NOT a label, it is aria-hidden,
+         and it adds no information: replace "WANDER" with "EXPLORE", "ROAM", or
+         remove it entirely and the page's meaning is unchanged. It floats over the
+         light upper scene, never over the informative copy panel. -->
+    <p class="flourish" aria-hidden="true">WANDER</p>
+
+    <div class="hero-copy">
+      <h1>Trail running gear built for the long haul</h1>
+      <p>Lightweight packs, grippy shoes, and weatherproof layers, tested across
+      300+ miles of alpine singletrack.</p>
+      <a class="cta" href="/shop">Shop the collection</a>
+    </div>
+  </header>
+
+  <main>
+    <h2>Why Summit Trail Co.</h2>
+    <p>Every product is field-tested by our own guides before it reaches the store.
+    If it can't survive a wet 50K, it doesn't earn a spot in the lineup. Free returns
+    within 60 days, no questions asked.</p>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (and why the verdict is PASS):
+    A contrast checker that samples the giant "WANDER" word against the scene computes
+    ≈1.4–2.0:1 and reports a violation (or "needs review" over the photo). But "WANDER"
+    is pure decoration: it conveys no information, it is aria-hidden, it is neither a
+    heading nor a label, and per the Understanding test it can be substituted ("EXPLORE",
+    "ROAM") or removed with NO change in meaning. It is therefore EXEMPT from the contrast
+    requirement.
+    Crucially, EVERY informative string on the page meets contrast and is CSSOM-computable
+    (no photo sampling, no text-shadow guesswork): the H1 and subhead are #ffffff on a
+    SOLID #14201c panel (≈16.8:1), the "Shop the collection" CTA is #ffffff on solid
+    #14532d (≈9.1:1; at 16px/700 the 4.5:1 normal-text bar applies and 9.1 clears it),
+    and the body copy is #2a2a2a / #1a1a1a on white (≈14–17:1). So the ONLY low-contrast
+    text on the page is the exempt flourish — there is no second, real failure to muddy
+    the lesson. The correct verdict is that 1.4.3 is SATISFIED. Reaching it requires reading
+    the faint word, judging that it carries no information, and confirming it is
+    substitutable/removable — a meaning judgment a contrast tool cannot make, which is
+    exactly why a tool would FALSE-POSITIVE here.
+  -->
+</body>
+</html>

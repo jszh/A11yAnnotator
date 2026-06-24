@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.3 (Focus Order) — BOUNDARY counter-example (expected: inapplicable / pass).
+
+    This page USES positive tabindex AND in a SCRAMBLED numeric order — so a judge
+    that fails on "positive tabindex present" OR even on "positive tabindex order
+    != source order" would WRONGLY fail it. The point: 2.4.3 only applies when the
+    navigation sequence AFFECTS MEANING OR OPERATION. Here it does not.
+
+    The widget is a row of social-share icon buttons in a blog post footer: Share on
+    X, Facebook, LinkedIn, by email, and Copy link. These five actions are MUTUALLY
+    INDEPENDENT — there is no sequence, no "do X before Y", no data dependency. A
+    user picks exactly one. The buttons carry positive tabindex 3,1,4,2,5, so Tab
+    visits them Facebook, Email, X, LinkedIn, Copy link — a scrambled order relative
+    to the left-to-right visual order.
+
+    Per the WCAG Understanding doc: "When focus order does not affect meaning or
+    operability, this test Does Not Apply (e.g., a row of icons linking to social
+    media may not need to be navigated in a particular order)." The icons are exactly
+    that canonical example. Because the order of independent share actions does not
+    affect meaning or operability, the scrambled tab order is NOT an F44 failure.
+
+    NOTE on the rest of the page: the post itself has normal DOM-order links (no
+    tabindex) that tab top-to-bottom, so the meaningful content reading flow is
+    unaffected. The ONLY positive tabindex is on the order-irrelevant share row.
+
+    WHY THIS IS A HARD NEGATIVE: it is INDISTINGUISHABLE from a failing page by any
+    static signal — positive tabindex present, numeric order scrambled vs source.
+    The ONLY thing that makes it pass is the SEMANTIC fact that the five actions are
+    independent so their order carries no meaning. axe would emit its best-practice
+    positive-tabindex note here identically to case-01; a judge keyed on tabindex (or
+    even on "order differs from source") would false-positive. Recognising that
+    these particular controls have no meaningful sequence is the human judgment.
+  -->
+  <title>How we cut our build time in half — Engineering Blog</title>
+  <style>
+    :root { --ink:#1b1f24; --muted:#606a73; --rule:#e0e4e8; --brand:#5b21b6; --bg:#fbfbfc; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.65; }
+    .wrap { max-width:680px; margin:0 auto; padding:2.4rem 1.4rem 4rem; }
+    .kicker { text-transform:uppercase; letter-spacing:.12em; font-size:.72rem; color:var(--brand); font-weight:700; }
+    h1 { font-size:2rem; line-height:1.2; margin:.3rem 0 .5rem; }
+    .byline { color:var(--muted); font-size:.85rem; margin:0 0 1.6rem; }
+    article p { margin:0 0 1.1rem; }
+    article a { color:var(--brand); }
+    h2 { font-size:1.3rem; margin:2rem 0 .6rem; }
+    .post-foot { margin-top:2.4rem; padding-top:1.4rem; border-top:1px solid var(--rule); }
+    .post-foot h2 { font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin:0 0 .7rem; }
+    .share { display:flex; gap:.6rem; flex-wrap:wrap; }
+    .share button {
+      display:inline-flex; align-items:center; gap:.45rem; font-size:.85rem; font-weight:600;
+      padding:.5rem .85rem; border:1px solid var(--rule); border-radius:999px; background:#fff; color:var(--ink); cursor:pointer;
+    }
+    .share button:hover { border-color:var(--brand); color:var(--brand); }
+    .share button:focus { outline:3px solid #ffbf47; outline-offset:2px; }
+    .share .ico { width:1.05rem; height:1.05rem; display:inline-block; }
+    .related { margin-top:2rem; }
+    .related a { display:block; padding:.35rem 0; color:var(--brand); }
+    footer { color:var(--muted); font-size:.78rem; text-align:center; padding:2rem 1rem; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <article>
+      <p class="kicker">Performance</p>
+      <h1>How we cut our CI build time in half</h1>
+      <p class="byline">By Priya Raman · 8 min read · March 2025</p>
+
+      <p>Our continuous-integration pipeline had crept up to nearly 22 minutes per run, and engineers were context-switching away while they waited. Over a quarter we brought it down to under 11 minutes without buying faster hardware. Here is what actually moved the needle.</p>
+
+      <h2>1. Cache the dependency graph, not just the modules</h2>
+      <p>The biggest single win came from caching the resolved dependency graph between runs. We were re-resolving the full lockfile on every build even when nothing had changed. You can read the exact configuration in our <a href="/docs/ci-cache">CI cache guide</a>.</p>
+
+      <h2>2. Parallelize the test shards by historical timing</h2>
+      <p>Splitting tests evenly by file count left one shard doing twice the work of the others. We now shard by recorded per-test duration, which flattened the slowest shard considerably. The <a href="/docs/test-sharding">sharding doc</a> has the script.</p>
+
+      <h2>3. Skip the work that did not change</h2>
+      <p>Affected-target detection means a docs-only change no longer rebuilds the entire app. This required wiring up our monorepo graph, covered in the <a href="/docs/affected">affected-targets walkthrough</a>.</p>
+
+      <p>Put together, these three changes roughly halved our median build. The rollout details — and the one rollback we had to do — are in the <a href="/docs/rollout-notes">rollout notes</a>.</p>
+    </article>
+
+    <!--
+      SHARE ROW: five INDEPENDENT actions. Order carries no meaning (you pick one).
+      Positive tabindex is SCRAMBLED (3,1,4,2,5) so Tab order != visual order, but
+      because the actions are order-independent this does NOT affect meaning or
+      operability -> 2.4.3 Does Not Apply / passes. This is the Understanding doc's
+      "row of icons linking to social media" example verbatim.
+    -->
+    <div class="post-foot">
+      <h2>Share this post</h2>
+      <div class="share" role="group" aria-label="Share this post">
+        <button type="button" tabindex="3" aria-label="Share on X">
+          <span class="ico" aria-hidden="true">𝕏</span> X
+        </button>
+        <button type="button" tabindex="1" aria-label="Share on Facebook">
+          <span class="ico" aria-hidden="true">f</span> Facebook
+        </button>
+        <button type="button" tabindex="4" aria-label="Share on LinkedIn">
+          <span class="ico" aria-hidden="true">in</span> LinkedIn
+        </button>
+        <button type="button" tabindex="2" aria-label="Share by email">
+          <span class="ico" aria-hidden="true">✉</span> Email
+        </button>
+        <button type="button" tabindex="5" aria-label="Copy link to clipboard">
+          <span class="ico" aria-hidden="true">🔗</span> Copy link
+        </button>
+      </div>
+
+      <nav class="related" aria-label="Related posts">
+        <h2>Keep reading</h2>
+        <!-- These have NO tabindex -> normal DOM-order traversal, unaffected -->
+        <a href="/blog/flaky-tests">Hunting down our flakiest tests</a>
+        <a href="/blog/monorepo-graph">Visualizing the monorepo dependency graph</a>
+      </nav>
+    </div>
+  </main>
+
+  <footer>Engineering Blog · We're hiring — see open roles</footer>
+</body>
+</html>

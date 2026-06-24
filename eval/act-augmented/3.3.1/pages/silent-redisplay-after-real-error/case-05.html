@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  PAGE STATE: This is Step 3 of a 3-step auto-insurance quote wizard, shown right after the user
+  pressed "Next" on Step 1. The catch: on Step 1 the user typed an invalid ZIP ("0" — too short),
+  which the rating engine NEEDS to price the policy. Instead of stopping on Step 1 and reporting
+  the bad ZIP, the wizard advanced the user straight to Step 3 (it skipped Step 2 because it had
+  no valid ZIP to fetch coverage options). The progress indicator now reads "Step 3 of 3" and the
+  page shows the final review/summary. The bad ZIP sits frozen in the read-only summary, but there
+  is NO error text. The user thinks they are nearly done; in fact their submission is invalid and
+  the page silently jumped past the failure.
+
+  WHY AUTOMATED TOOLS MISS THIS: every element is well formed — the stepper is a labelled list,
+  the summary uses a definition list, the ZIP value is shown as plain text. There is no error
+  markup. A scanner sees a tidy review page and a valid form; it cannot know that this page is the
+  WRONG step to be on (Step 2 was skipped), that the displayed ZIP "0" is invalid, or that an
+  error on a PREVIOUS step was swallowed. Only a human tracking the wizard's state can see that the
+  page advanced past a real validation failure with no indicator.
+-->
+<title>Get your quote — Step 3 of 3 — Cedar Mutual Auto</title>
+<style>
+  :root { --ink:#1a1f2b; --muted:#5d6678; --line:#dde1e8; --navy:#16306b; --gold:#c9962f; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,"Segoe UI",sans-serif; color:var(--ink); background:#f1f3f7; }
+  header { background:var(--navy); color:#fff; padding:14px 24px; display:flex; align-items:center; gap:10px; }
+  header .em { color:var(--gold); font-weight:800; }
+  main { max-width:700px; margin:22px auto 50px; padding:0 22px; }
+  /* Stepper */
+  ol.steps { list-style:none; display:flex; gap:0; padding:0; margin:0 0 24px; counter-reset:s; }
+  ol.steps li { flex:1; text-align:center; position:relative; font-size:.82rem; color:var(--muted); }
+  ol.steps li::before { counter-increment:s; content:counter(s); display:block; width:30px; height:30px; margin:0 auto 6px; border-radius:50%; background:#d6dbe4; color:#fff; line-height:30px; font-weight:700; }
+  ol.steps li.done::before, ol.steps li.current::before { background:var(--navy); }
+  ol.steps li.current { color:var(--navy); font-weight:700; }
+  ol.steps li + li::after { content:""; position:absolute; top:15px; left:-50%; width:100%; height:3px; background:#d6dbe4; z-index:-1; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px 28px; }
+  h1 { font-size:1.3rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 22px; }
+  dl.review { display:grid; grid-template-columns:max-content 1fr; gap:10px 22px; margin:0 0 24px; }
+  dl.review dt { color:var(--muted); }
+  dl.review dd { margin:0; font-weight:600; }
+  .quote-box { background:#f7f5ec; border:1px solid #e7ddbd; border-radius:8px; padding:16px 18px; margin-bottom:22px; }
+  .quote-box .big { font-size:1.6rem; font-weight:800; color:var(--navy); }
+  .field { margin-bottom:18px; }
+  label { display:block; font-weight:600; font-size:.9rem; margin-bottom:5px; }
+  input[type=email] { width:100%; max-width:340px; padding:10px 12px; border:1px solid #bcc3ce; border-radius:6px; font-size:1rem; }
+  button.buy { background:var(--gold); color:#1a1300; border:0; border-radius:7px; padding:12px 24px; font-size:1.05rem; font-weight:700; cursor:pointer; }
+  footer { max-width:700px; margin:0 auto 40px; padding:0 22px; color:var(--muted); font-size:.78rem; }
+</style>
+</head>
+<body>
+<header>
+  <span><span class="em">Cedar</span> Mutual Auto</span>
+</header>
+
+<main>
+  <!-- Progress shows we are on the LAST step. Step 1 is marked "done" even though its ZIP was
+       invalid; Step 2 (coverage options) was skipped because there was no valid ZIP to price. -->
+  <ol class="steps" aria-label="Quote progress">
+    <li class="done">Your details</li>
+    <li class="done">Coverage</li>
+    <li class="current" aria-current="step">Review &amp; buy</li>
+  </ol>
+
+  <div class="panel">
+    <h1>Review your quote</h1>
+    <p class="sub">Here's everything we have. Confirm to lock in your price.</p>
+
+    <dl class="review">
+      <dt>Driver</dt><dd>Dana Whitfield</dd>
+      <dt>Vehicle</dt><dd>2019 Honda Civic</dd>
+      <!-- The invalid ZIP from Step 1 is frozen here as plain text. No error marks it. -->
+      <dt>ZIP code</dt><dd>0</dd>
+      <dt>Coverage</dt><dd>Standard (auto-selected)</dd>
+    </dl>
+
+    <div class="quote-box">
+      <div>Your estimated 6-month premium</div>
+      <!-- A placeholder price the engine could not actually compute without a valid ZIP. -->
+      <div class="big">$—</div>
+      <div style="color:var(--muted);font-size:.85rem;">Final price confirmed after purchase.</div>
+    </div>
+
+    <form action="/quote/buy" method="post" novalidate>
+      <div class="field">
+        <label for="email">Email for your policy documents</label>
+        <input type="email" id="email" name="email" value="dana.w@example.com" autocomplete="email">
+      </div>
+      <button type="submit" class="buy">Confirm &amp; buy</button>
+    </form>
+  </div>
+</main>
+
+<footer>
+  Cedar Mutual Auto · Quotes are estimates and subject to underwriting · NAIC #44218
+</footer>
+</body>
+</html>

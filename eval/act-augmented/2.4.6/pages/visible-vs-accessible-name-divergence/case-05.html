@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بوابة الخدمات الحكومية — تجديد الإقامة</title>
+<style>
+  :root { --ink:#1a2230; --muted:#5d6b7c; --line:#d8dfe8; --gov:#0b6b4f; --gov-d:#084f3a; --bg:#eef3f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.7 "Segoe UI", Tahoma, Arial, sans-serif; color:var(--ink); background:var(--bg); }
+  .card { max-width:600px; margin:30px auto; background:#fff; border:1px solid var(--line); border-radius:12px; padding:26px 30px 32px; }
+  .gov-band { font:700 12px/1 Arial, sans-serif; color:var(--gov); letter-spacing:.04em; text-transform:uppercase; direction:ltr; text-align:left; margin-bottom:10px; }
+  h1 { font-size:21px; margin:0 0 6px; }
+  .lede { color:var(--muted); margin:0 0 22px; font-size:14px; }
+  .field { margin:0 0 20px; }
+  label { display:block; font-weight:700; margin:0 0 6px; }
+  .hint { display:block; font-weight:400; color:var(--muted); font-size:13px; margin-top:2px; }
+  input[type=text] { width:100%; padding:10px 12px; font-size:15px; border:1px solid #b9c4cf; border-radius:8px; direction:ltr; text-align:left; }
+  input:focus { outline:2px solid var(--gov); outline-offset:1px; }
+  .btn { background:var(--gov); color:#fff; border:0; border-radius:8px; padding:12px 22px; font-size:15px; font-weight:700; cursor:pointer; }
+  .btn:hover { background:var(--gov-d); }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="gov-band" lang="en">National e-Services Portal</div>
+    <h1>تجديد تصريح الإقامة</h1>
+    <p class="lede">يرجى إدخال بياناتك تمامًا كما تظهر في وثائقك الرسمية.</p>
+
+    <form action="#" method="post" novalidate>
+      <div class="field">
+        <label for="full-name">الاسم الكامل (كما في جواز السفر)</label>
+        <input type="text" id="full-name" name="full-name" autocomplete="name">
+      </div>
+
+      <!-- THE DEFECT IS ON THIS FIELD (i18n / mixed-language divergence).
+           VISIBLE label (Arabic, correctly associated via for/id): "رقم الهوية الوطنية"
+           = "National ID number" — descriptive, in the page language. The hint even gives the
+           data-requirement (10 digits).
+           But the input carries aria-label="field2" (English, latin slug). aria-label OVERRIDES
+           the associated <label>, so the COMPUTED ACCESSIBLE NAME is "field2". An Arabic screen-
+           reader user hears the meaningless latin token "field2" instead of "رقم الهوية الوطنية",
+           and a voice-control user who speaks the visible Arabic words cannot target the control.
+           The two surfaces DIVERGE both in descriptiveness AND in language: eye sees descriptive
+           Arabic, AT announces a vague English slug.
+           4.1.2 passes (non-empty name, label associated); 3.3.2 passes (a label is present).
+           Only 2.4.6's descriptiveness-of-the-announced-label fails.
+           How it arose: a localization contractor translated the visible <label> text but the
+           component's English aria-label="field2" was a leftover scaffold attribute the i18n
+           pipeline never touched (aria-label was not in the translation string table). -->
+      <div class="field">
+        <label for="nid">رقم الهوية الوطنية
+          <span class="hint">عشرة أرقام بدون فواصل.</span>
+        </label>
+        <input type="text" id="nid" name="nid" aria-label="field2"
+               inputmode="numeric" maxlength="10" placeholder="1234567890">
+      </div>
+
+      <div class="field">
+        <label for="phone">رقم الهاتف المحمول</label>
+        <input type="text" id="phone" name="phone" inputmode="tel" autocomplete="tel" dir="ltr">
+      </div>
+
+      <button type="submit" class="btn">متابعة</button>
+    </form>
+  </main>
+</body>
+</html>

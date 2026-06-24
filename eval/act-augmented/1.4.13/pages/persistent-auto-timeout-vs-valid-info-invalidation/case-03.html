@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cohort retention — column glossary | Northwind Analytics</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 "Inter", system-ui, sans-serif; color:#1f2430; background:#0f1320; }
+  .app { max-width:1000px; margin:0 auto; background:#fff; min-height:100vh; }
+  .topbar { display:flex; align-items:center; gap:14px; padding:12px 20px; background:#141b2e; color:#cdd6f4; }
+  .topbar b { color:#fff; }
+  .topbar .pill { margin-left:auto; font-size:12px; background:#243049; padding:4px 10px; border-radius:20px; }
+  .wrap { padding:22px 24px 80px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.sub { color:#5b6678; margin:0 0 18px; }
+  .scroller { max-height:320px; overflow:auto; border:1px solid #e3e7ef; border-radius:10px; }
+  table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
+  th, td { padding:10px 12px; text-align:right; border-bottom:1px solid #eef1f6; white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { position:sticky; top:0; background:#f6f8fc; z-index:2; }
+  /* the trigger: a dotted-underline metric name in the header */
+  .term { border-bottom:1px dotted #6b7a99; cursor:help; position:relative; }
+  .term:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
+  .gloss {
+    position:absolute; left:0; top:130%; width:240px; text-align:left;
+    background:#1f2937; color:#f3f4f6; padding:10px 12px; border-radius:8px;
+    font-weight:400; font-size:13px; line-height:1.5; box-shadow:0 8px 22px rgba(0,0,0,.35);
+    z-index:30; opacity:0; visibility:hidden; transition:opacity .1s;
+  }
+  .gloss.show { opacity:1; visibility:visible; }
+  tbody td.lo { color:#b91c1c; }
+  tbody td.hi { color:#15803d; }
+  .hint { margin-top:14px; font-size:13px; color:#6b7280; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar"><b>Northwind Analytics</b> · Growth <span class="pill">Q2 cohort view</span></div>
+  <div class="wrap">
+    <h1>Weekly retention by signup cohort</h1>
+    <p class="sub">Hover or focus a column name for its definition. The grid scrolls.</p>
+
+    <div class="scroller" id="grid">
+      <table>
+        <thead>
+          <tr>
+            <th>Cohort</th>
+            <th><span class="term" tabindex="0" role="button" aria-describedby="g-w1">W1 retention<span id="g-w1" role="tooltip" class="gloss">Share of the cohort that returned and performed a key action during the first 7 days after signup. Excludes the signup session itself.</span></span></th>
+            <th><span class="term" tabindex="0" role="button" aria-describedby="g-w4">W4 retention<span id="g-w4" role="tooltip" class="gloss">Share active in days 22&ndash;28. A leading indicator of long-term stickiness; we target &ge;35%.</span></span></th>
+            <th>Signups</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="hint">Tip: with a magnifier, move onto a definition to read it. (It should stay put while you do.)</p>
+  </div>
+</div>
+
+<script>
+  // Populate a tall grid so the container genuinely scrolls.
+  var tbody = document.querySelector('tbody');
+  var weeks = ['Jan W1','Jan W2','Jan W3','Jan W4','Feb W1','Feb W2','Feb W3','Feb W4','Mar W1','Mar W2','Mar W3','Mar W4'];
+  weeks.forEach(function (w, i) {
+    var w1 = 40 + (i*3 % 17), w4 = 22 + (i*5 % 19), s = 800 + i*47;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+w+'</td>'+
+      '<td class="'+(w1>=45?'hi':'lo')+'">'+w1+'%</td>'+
+      '<td class="'+(w4>=35?'hi':'lo')+'">'+w4+'%</td>'+
+      '<td>'+s.toLocaleString()+'</td>';
+    tbody.appendChild(tr);
+  });
+
+  // Glossary popups appear on hover + focus (good), are hoverable, Esc-dismissible.
+  var terms = document.querySelectorAll('.term');
+  function show(t) { t.querySelector('.gloss').classList.add('show'); }
+  function hide(t) { t.querySelector('.gloss').classList.remove('show'); }
+  terms.forEach(function (t) {
+    t.addEventListener('mouseenter', function(){ show(t); });
+    t.addEventListener('mouseleave', function(){ hide(t); });
+    t.addEventListener('focus', function(){ show(t); });
+    t.addEventListener('blur', function(){ hide(t); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') terms.forEach(hide);
+  });
+
+  // ---- the defect: a scroll listener closes the popup for a DISALLOWED reason ----
+  // A dev added this to "reposition tooltips on scroll" but shipped only the hide
+  // half. The sticky header keeps the term + pointer in view, so the user is STILL
+  // hovering the term — yet the moment they nudge the grid to read a lower row, the
+  // definition they were reading vanishes. Scroll is not one of the three allowed
+  // reasons (lost hover/focus, user-dismiss, info-invalid).
+  document.getElementById('grid').addEventListener('scroll', function () {
+    terms.forEach(hide);
+  });
+</script>
+
+<!--
+  WHY AUTOMATED TOOLS MISS IT:
+  Markup is clean: role="button" triggers with role="tooltip" content, aria-describedby,
+  hover + focus + Esc handling, and the popup is hoverable. Every static rule passes.
+  The defect is a scroll event handler that hides the popup although hover/focus is
+  retained (the header is sticky, so the trigger stays under the pointer). Closing on
+  scroll is a disallowed persistence-end reason, but no scanner scrolls a sub-container
+  while holding a hover and re-checks tooltip visibility. A reviewer must reason that the
+  information is still valid and the user has not relinquished hover — so the close is wrong.
+-->
+</body>
+</html>

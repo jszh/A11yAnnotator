@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drift Coffee Roasters — Post-purchase survey</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (case-02):
+  Every radio button is correctly associated with its OWN visible option label via
+  <label for> ("Search engine", "A friend", "Instagram or TikTok", "Podcast ad").
+  axe-core e086e5 passes: each radio has a non-empty accessible name. The four
+  radios also share name="hear" so they are a real radio group at the form level.
+  BUT the group's QUESTION — "How did you hear about us?" — is rendered as a styled
+  <div class="q"> (visually a bold heading), with NO <fieldset>/<legend> and NO
+  role="radiogroup" + aria-labelledby tying that question to the group. A screen
+  reader announces "Search engine, radio button, 1 of 4" but NEVER speaks the
+  question. The option labels alone ("A friend", "Podcast ad") are meaningless
+  without the question. axe has no rule that says "these radios need a group label";
+  recognizing that the bold div IS the group's question and must be programmatically
+  associated is a contextual reading-and-grouping judgment.
+-->
+<style>
+  body { font-family: "Helvetica Neue", Arial, sans-serif; background: #f4f1ec; color: #33302b; margin: 0; }
+  .card { max-width: 560px; margin: 48px auto; background: #fffefb; border-radius: 10px; box-shadow: 0 2px 14px rgba(60,40,20,.08); padding: 36px 40px; }
+  .brand { font-size: 13px; letter-spacing: .22em; text-transform: uppercase; color: #b07a3c; }
+  h1 { font-size: 23px; margin: 6px 0 4px; }
+  .sub { color: #7c756a; font-size: 14px; margin-bottom: 28px; }
+  /* This div is styled to look exactly like a question/section heading */
+  .q { font-size: 17px; font-weight: 700; margin: 26px 0 12px; color: #2a2722; }
+  .opt { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+  .opt label { font-size: 15px; }
+  fieldset { border: none; margin: 0; padding: 0; }
+  .stars { letter-spacing: 4px; color: #d9a441; font-size: 20px; }
+  .submit { margin-top: 30px; background: #b07a3c; color: #fff; border: none; border-radius: 6px; padding: 12px 28px; font-size: 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <p class="brand">Drift Coffee Roasters</p>
+    <h1>Quick survey</h1>
+    <p class="sub">Two questions — thanks for helping us improve. (Your $5 credit applies at checkout.)</p>
+
+    <form action="#" method="post">
+
+      <!-- QUESTION 1: the question is a styled DIV, not a legend. The four radios
+           below share name="hear" but are NOT inside a fieldset or radiogroup, so
+           the question never reaches AT as the group's label. -->
+      <div class="q">How did you hear about us?</div>
+      <div class="opt"><input type="radio" id="h1" name="hear" value="search"><label for="h1">Search engine</label></div>
+      <div class="opt"><input type="radio" id="h2" name="hear" value="friend"><label for="h2">A friend</label></div>
+      <div class="opt"><input type="radio" id="h3" name="hear" value="social"><label for="h3">Instagram or TikTok</label></div>
+      <div class="opt"><input type="radio" id="h4" name="hear" value="podcast"><label for="h4">Podcast ad</label></div>
+
+      <!-- QUESTION 2 is correctly grouped (fieldset/legend) — included so the
+           defect in Q1 is a deliberate, isolatable contrast, not a global gap. -->
+      <fieldset>
+        <legend class="q">Would you order from us again?</legend>
+        <div class="opt"><input type="radio" id="a1" name="again" value="yes"><label for="a1">Definitely</label></div>
+        <div class="opt"><input type="radio" id="a2" name="again" value="maybe"><label for="a2">Maybe</label></div>
+        <div class="opt"><input type="radio" id="a3" name="again" value="no"><label for="a3">Probably not</label></div>
+      </fieldset>
+
+      <button type="submit" class="submit">Submit &amp; claim credit</button>
+    </form>
+  </div>
+</body>
+</html>

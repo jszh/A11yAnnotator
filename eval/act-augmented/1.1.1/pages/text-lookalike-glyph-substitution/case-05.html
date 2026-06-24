@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 (Non-text Content), Failure Technique F71 applied to NUMERALS, which
+    F71 calls out directly ("U+0033 and U+04E0 both look like the number 3 ... the
+    second is actually a letter from the Cyrillic alphabet"). On this clearance
+    page the headline sale price is shown as "$300", but the digits are Cyrillic
+    capital letters chosen for their glyph shapes:
+        $  U+0024  Latin dollar sign
+        З  U+0417  Cyrillic capital 'Ze'  (looks like '3')
+        О  U+041E  Cyrillic capital 'O'   (looks like '0')
+        О  U+041E  Cyrillic capital 'O'   (looks like '0')
+    A sighted bargain-hunter reads "$300". A screen reader announces the Cyrillic
+    letters (e.g. "dollar Ze O O") — the buyer cannot hear the price. No aria-label
+    and no visually-hidden real-number alternative is provided, so the price (a
+    load-bearing fact) is conveyed only by glyph shape.
+
+    A second, subtler trap: the model number "RX-O0OO" mixes Latin letter O (U+004F)
+    and digit 0 (U+0030) ambiguously — but THAT is a legitimate-codepoints case and
+    is NOT the F71 failure; it is here as a near-miss so a judge must isolate the
+    real defect (the confusable PRICE), not the genuinely-encoded SKU.
+
+    WHY AUTOMATED TOOLS MISS IT: no img/svg/role=img, so all ACT 1.1.1 rules are
+    Inapplicable; axe / WAVE / Lighthouse report nothing. The price element is a
+    valid, non-empty, high-contrast text node. Distinguishing "$300 in Cyrillic
+    confusables" from a real "$300" requires reading the codepoints against the
+    page language — a human judgment.
+  -->
+  <title>Clearance: Trailhead 65L Backpack — Summit Gear Co.</title>
+  <style>
+    :root { --ink:#1c2024; --sale:#c01f3c; --rule:#e6e6e6; --bg:#fafafa; --green:#2e7d32; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue", Arial, sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    header { background:#16202a; color:#fff; padding:.9rem 1.4rem; font-weight:800; }
+    .promo { background:var(--sale); color:#fff; text-align:center; font-weight:700; font-size:.9rem; padding:.45rem; letter-spacing:.02em; }
+    .wrap { max-width:920px; margin:1.6rem auto; display:grid; grid-template-columns:1fr 1fr; gap:2rem; padding:0 1.4rem 3rem; }
+    @media (max-width:740px){ .wrap{ grid-template-columns:1fr; } }
+    .photo { background:linear-gradient(150deg,#cfd8dc,#9aa7b0); border-radius:14px; min-height:320px; display:flex; align-items:center; justify-content:center; color:#566; }
+    h1 { font-size:1.7rem; margin:.2rem 0 .3rem; }
+    .sku { font-size:.82rem; color:#73797f; letter-spacing:.03em; }
+    .pricing { margin:1rem 0; }
+    .pricing .now { font-size:2.4rem; font-weight:800; color:var(--sale); }
+    .pricing .was { font-size:1.1rem; color:#73797f; text-decoration:line-through; margin-left:.6rem; }
+    .pricing .save { display:inline-block; background:#fde7ec; color:var(--sale); font-weight:700; font-size:.82rem; padding:.2rem .5rem; border-radius:6px; margin-left:.5rem; }
+    .stock { color:var(--green); font-weight:600; font-size:.9rem; }
+    ul.feat { padding-left:1.1rem; color:#4a5158; }
+    ul.feat li { margin:.3rem 0; }
+    button.add { width:100%; margin-top:1.2rem; background:#16202a; color:#fff; border:0; border-radius:10px; padding:.9rem; font-size:1.02rem; font-weight:700; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>Summit Gear Co.</header>
+  <div class="promo">FINAL CLEARANCE — prices already slashed, no code needed</div>
+
+  <div class="wrap">
+    <div class="photo" role="img" aria-label="Trailhead 65-liter expedition backpack in slate blue">Backpack photo</div>
+    <section>
+      <h1>Trailhead 65L Expedition Backpack</h1>
+      <!-- Near-miss SKU: real letter O + real digit 0, ambiguous but CORRECTLY encoded (NOT the F71 defect). -->
+      <p class="sku">Model RX-O0OO · genuinely encoded (Latin O U+004F + digit 0 U+0030)</p>
+
+      <div class="pricing">
+        <!--
+          SALE PRICE. Visible "$300"; the three digits are Cyrillic З О О
+          (U+0417 U+041E U+041E). No aria-label / no visually-hidden real number.
+          AT announces Cyrillic letters, so the price is inaudible/garbled.
+        -->
+        <span class="now">$&#x0417;&#x041E;&#x041E;</span>
+        <span class="was">$449</span>
+        <span class="save">Save 33%</span>
+      </div>
+
+      <p class="stock">In stock — ships today</p>
+      <ul class="feat">
+        <li>65L roll-top main compartment, 1,980 cu in</li>
+        <li>Adjustable torso harness, 4.2 lb empty</li>
+        <li>Hydration sleeve + rain cover included</li>
+      </ul>
+      <button class="add" type="button">Add to cart — $300</button>
+    </section>
+  </div>
+</body>
+</html>

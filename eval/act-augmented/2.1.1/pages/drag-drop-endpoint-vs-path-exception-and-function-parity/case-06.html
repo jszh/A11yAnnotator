@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brand Kit · Primary Colour — Canvasly</title>
+<style>
+  :root { font-family: "Plus Jakarta Sans", system-ui, Arial, sans-serif; }
+  body { margin: 0; background: #f7f7fb; color: #1d1d28; }
+  .top { background: #fff; border-bottom: 1px solid #ececf3; padding: 14px 24px; font-weight: 700; }
+  .panel { max-width: 460px; margin: 28px auto; background: #fff; border: 1px solid #e8e8f0; border-radius: 14px; padding: 22px; }
+  .panel h1 { font-size: 1.05rem; margin: 0 0 4px; }
+  .panel .sub { color: #6b6b80; font-size: .9rem; margin: 0 0 18px; }
+
+  /* 2D saturation/brightness square — dragged by pointer; only endpoint (x,y) matters */
+  .sv {
+    position: relative; width: 100%; height: 200px; border-radius: 10px; cursor: crosshair;
+    background:
+      linear-gradient(to top, #000, rgba(0,0,0,0)),
+      linear-gradient(to right, #fff, rgba(255,255,255,0)),
+      hsl(265, 100%, 50%);
+    background-blend-mode: normal, normal, normal;
+  }
+  .sv-handle {
+    position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px;
+    border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,.4); pointer-events: none;
+  }
+
+  /* Hue slider — a NATIVE range input, fully keyboard-operable, but only controls HUE */
+  .huewrap { margin-top: 18px; }
+  .huewrap label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 6px; }
+  input[type=range].hue {
+    width: 100%; height: 14px; border-radius: 7px; -webkit-appearance: none; appearance: none;
+    background: linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);
+  }
+  input[type=range].hue::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid #555; cursor: pointer; }
+  input[type=range].hue:focus-visible { outline: 3px solid #5b5bd6; outline-offset: 3px; }
+
+  .readout { margin-top: 18px; display: flex; align-items: center; gap: 12px; }
+  .swatch { width: 46px; height: 46px; border-radius: 10px; border: 1px solid #ddd; }
+  .hex { font-family: ui-monospace, Menlo, monospace; font-size: 1rem; color: #2a2a38; }
+  .save { margin-top: 20px; background: #5b5bd6; color: #fff; border: 0; padding: 11px 20px; border-radius: 9px; font: inherit; cursor: pointer; }
+  footer { color: #9090a3; text-align: center; font-size: .85rem; margin: 28px 0; }
+</style>
+</head>
+<body>
+<div class="top">Canvasly · Brand Kit</div>
+
+<section class="panel">
+  <h1>Primary brand colour</h1>
+  <p class="sub">Pick the saturation and brightness in the square, then fine-tune the hue below.</p>
+
+  <!-- ENDPOINT-dependent picker: only the final (x=saturation, y=brightness) position matters -->
+  <div class="sv" id="sv"
+       role="application"
+       aria-label="Saturation and brightness picker. Drag inside the square to set the colour.">
+    <div class="sv-handle" id="svh" style="left:78%; top:24%;"></div>
+  </div>
+
+  <div class="huewrap">
+    <label for="hue">Hue</label>
+    <input class="hue" id="hue" type="range" min="0" max="360" value="265"
+           aria-label="Hue" aria-valuetext="265 degrees">
+  </div>
+
+  <div class="readout">
+    <div class="swatch" id="swatch" aria-hidden="true"></div>
+    <span class="hex" id="hex" role="status" aria-live="polite">#7A33E6</span>
+  </div>
+
+  <button class="save" type="button">Save brand colour</button>
+</section>
+
+<footer>Canvasly · changes apply to your whole workspace</footer>
+
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  This page has a fully keyboard-operable HUE control — a NATIVE <input type="range"> — so a
+  scanner sees a real, focusable, labeled slider and is satisfied that "the colour picker" has
+  keyboard support. It does NOT. The 2D saturation/brightness square is a div with pointer
+  drag handlers only: no role=slider(s), no tabindex, no key handler, so SATURATION and BRIGHTNESS
+  cannot be set by keyboard AT ALL. Two human judgments are required, both invisible to automation:
+  (1) The square is ENDPOINT-dependent, not path-dependent: only the final (x,y) the handle lands on
+      matters — the wandering path of the drag is irrelevant — so it is NOT the free-hand/watercolour
+      exception and DOES require a keyboard equivalent (e.g. arrow keys on a 2D slider, or S/V number
+      inputs). A reviewer who lazily lumps "drag on a colour square" with "free-hand drawing" would
+      wrongly exempt it.
+  (2) The hue slider is NOT the same function: it sets a DIFFERENT dimension (hue), so its keyboard
+      operability does not provide a keyboard route to saturation/brightness. The G202 "keyboard
+      alternative exists elsewhere" allowance does not apply, because no control anywhere on the page
+      lets a keyboard user change S or V. Distinguishing "same function, different control" (would
+      pass) from "different function" (still fails) is a semantic call no linter makes.
+-->
+<script>
+  const sv = document.getElementById('sv');
+  const svh = document.getElementById('svh');
+  const hue = document.getElementById('hue');
+  const swatch = document.getElementById('swatch');
+  const hexEl = document.getElementById('hex');
+  let s = 0.78, v = 0.76; // saturation, value (brightness) from the square's endpoint
+
+  function hsvToHex(h, s, v) {
+    const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+    let r = 0, g = 0, b = 0;
+    if (h < 60) [r, g, b] = [c, x, 0]; else if (h < 120) [r, g, b] = [x, c, 0];
+    else if (h < 180) [r, g, b] = [0, c, x]; else if (h < 240) [r, g, b] = [0, x, c];
+    else if (h < 300) [r, g, b] = [x, 0, c]; else [r, g, b] = [c, 0, x];
+    const to = n => Math.round((n + m) * 255).toString(16).padStart(2, '0').toUpperCase();
+    return '#' + to(r) + to(g) + to(b);
+  }
+  function render() {
+    const h = +hue.value;
+    sv.style.background =
+      'linear-gradient(to top,#000,rgba(0,0,0,0)),' +
+      'linear-gradient(to right,#fff,rgba(255,255,255,0)),' +
+      'hsl(' + h + ',100%,50%)';
+    const hex = hsvToHex(h, s, v);
+    swatch.style.background = hex;
+    hexEl.textContent = hex;
+  }
+  // POINTER-ONLY saturation/brightness. No keydown -> S and V unreachable by keyboard.
+  function setFromEvent(e) {
+    const r = sv.getBoundingClientRect();
+    let x = Math.min(Math.max(e.clientX - r.left, 0), r.width);
+    let y = Math.min(Math.max(e.clientY - r.top, 0), r.height);
+    s = x / r.width; v = 1 - y / r.height;
+    svh.style.left = (s * 100) + '%';
+    svh.style.top = ((1 - v) * 100) + '%';
+    render();
+  }
+  let down = false;
+  sv.addEventListener('pointerdown', e => { down = true; sv.setPointerCapture(e.pointerId); setFromEvent(e); });
+  sv.addEventListener('pointermove', e => { if (down) setFromEvent(e); });
+  sv.addEventListener('pointerup', () => { down = false; });
+
+  // Hue IS keyboard-operable, but only changes hue (a different dimension).
+  hue.addEventListener('input', () => { hue.setAttribute('aria-valuetext', hue.value + ' degrees'); render(); });
+
+  render();
+</script>
+</body>
+</html>

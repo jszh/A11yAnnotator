@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coastline Dashboard — Local Weather</title>
+<!--
+  SC 1.1.1 FAILURE (informative CSS background-image — script-injected background, F3 ex.3
+  carrier; dynamic-state facet). A weather widget injected by script sets the day's
+  CONDITION (rain) purely as a background-image glyph on an empty <span class="glyph">.
+  The temperature and "feels like" ARE real text, so the widget looks adequately labelled
+  to a casual reviewer; but the single most decision-relevant fact ("is it going to rain?")
+  exists only as a cloud-with-raindrops picture. A blind user hears "12 degrees, feels like
+  9 degrees" and cannot tell rain from sun. Disable JS / hide backgrounds / forced-colors
+  -> the condition glyph is gone and no text says "rain".
+  WHY AUTOMATED TOOLS MISS IT: the glyph is a script-set CSS background on a <span> with no
+  role/name -> ACT 1.1.1 Inapplicable. The widget HAS visible text (temperature), so
+  text-presence heuristics are satisfied. No tool can OCR the raincloud SVG, nor reason that
+  the *condition* (distinct from temperature) is missing as text.
+-->
+<style>
+  body { font-family: "Inter", system-ui, sans-serif; margin:0; background:#0f1b2d; color:#e8eef7; }
+  .grid { max-width: 940px; margin: 30px auto; padding:0 18px; display:grid; grid-template-columns: 2fr 1fr; gap:18px; }
+  .panel { background:#1a2942; border:1px solid #294063; border-radius:16px; padding:22px; }
+  .panel h2 { margin:0 0 12px; font-size:1rem; color:#9fc0ec; text-transform:uppercase; letter-spacing:1px; }
+  .news li { margin:8px 0; color:#c6d3e6; }
+
+  .wx { display:flex; align-items:center; gap:20px; }
+  .wx .place { font-size:.85rem; color:#9fc0ec; text-transform:uppercase; letter-spacing:1px; }
+  .wx .temp { font-size:3rem; font-weight:700; line-height:1; }
+  .wx .feels { color:#9fb3d0; font-size:.9rem; margin-top:4px; }
+
+  /* THE DEFECT carrier: the condition is ONLY this background-image glyph, set by script. */
+  .wx .glyph {
+    width:72px; height:72px; flex:0 0 72px;
+    background-repeat:no-repeat; background-position:center; background-size:contain;
+  }
+  .hours { display:flex; gap:18px; margin-top:18px; }
+  .hours .h { text-align:center; font-size:.8rem; color:#aebdd4; }
+  .hours .h .g { width:34px; height:34px; margin:6px auto 0;
+    background-repeat:no-repeat; background-position:center; background-size:contain; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <section class="panel" aria-labelledby="wxh">
+    <h2 id="wxh">Today</h2>
+    <div class="wx">
+      <span class="glyph" id="nowGlyph" data-cond="rain"></span>
+      <div>
+        <div class="place">Whitby, North Yorkshire</div>
+        <div class="temp"><span id="nowTemp">12</span>&deg;</div>
+        <div class="feels">Feels like 9&deg; &middot; Humidity 88% &middot; Wind 24 mph</div>
+      </div>
+    </div>
+
+    <div class="hours" aria-label="Next hours">
+      <div class="h">3 PM<div class="g" data-cond="rain"></div>12&deg;</div>
+      <div class="h">4 PM<div class="g" data-cond="rain"></div>11&deg;</div>
+      <div class="h">5 PM<div class="g" data-cond="cloud"></div>11&deg;</div>
+      <div class="h">6 PM<div class="g" data-cond="cloud"></div>10&deg;</div>
+      <div class="h">7 PM<div class="g" data-cond="sun"></div>9&deg;</div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="nh">
+    <h2 id="nh">Harbour notices</h2>
+    <ul class="news">
+      <li>High tide 14:52 &middot; Low tide 21:10</li>
+      <li>Lifeboat station open to visitors 10&ndash;4.</li>
+      <li>Park-and-ride running normal service.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+  // CMS weather plug-in renders condition as an icon background only; temperature is text.
+  var icons = {
+    sun:  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="13" fill="%23ffce3d"/><g stroke="%23ffce3d" stroke-width="3" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M14 14l6 6M44 44l6 6M50 14l-6 6M20 44l-6 6"/></g></svg>',
+    cloud:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M20 44a12 12 0 010-24 16 16 0 0131-3 11 11 0 01-2 27z" fill="%23c4d2e6"/></svg>',
+    rain: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M20 38a12 12 0 010-24 16 16 0 0131-3 11 11 0 01-2 27z" fill="%238fa6c4"/><g stroke="%234f86d6" stroke-width="3" stroke-linecap="round"><path d="M22 46l-3 8M34 46l-3 8M46 46l-3 8"/></g></svg>'
+  };
+  function paint(el) {
+    var c = el.getAttribute('data-cond');
+    if (icons[c]) el.style.backgroundImage = "url('data:image/svg+xml;utf8," + icons[c] + "')";
+  }
+  document.querySelectorAll('[data-cond]').forEach(paint);
+</script>
+</body>
+</html>

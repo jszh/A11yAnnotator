@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your itinerary — AeroSur booking VK7Q2P</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  All times, codes and labels are real text; nothing is empty or unlabeled. The itinerary
+  uses grid-template-areas so each leg visually shows DEPART -> ARRIVE in the right cell.
+  But the markup authors all DEPART times first, then all ARRIVE times (a localization
+  refactor split the template into "departures block" + "arrivals block" so the i18n team
+  could translate them in two passes). Grid placement re-interleaves them on screen, but the
+  source order is: depart-out, depart-return, arrive-out, arrive-return. Linearized, a screen
+  reader reads "Departs 07:15 ... Departs 19:40 ... Arrives 10:05 ... Arrives 22:30", so a
+  blind traveller binds the RETURN departure to the OUTBOUND arrival and books a connection
+  that doesn't exist. No automated tool models that a flight leg's depart and arrive must be
+  read adjacently; judging the scrambled meaning needs a human reading the linear stream.
+-->
+<style>
+  :root { --ink:#15202b; --air:#22577a; --paper:#fff; --line:#dbe3ea; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.6 system-ui,"Segoe UI",sans-serif; color:var(--ink);
+         background:#eef2f5; }
+  header { background:var(--air); color:#fff; padding:24px; }
+  header h1 { margin:0; font-size:1.35rem; }
+  header p { margin:.35rem 0 0; opacity:.9; }
+  main { max-width:680px; margin:0 auto; padding:28px 20px 64px; }
+  h2 { font-size:1.05rem; color:var(--air); text-transform:uppercase; letter-spacing:.6px; }
+
+  .legs {
+    background:var(--paper); border:1px solid var(--line); border-radius:14px;
+    padding:24px 26px; margin-top:8px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "outlabel   outlabel"
+      "outdep     outarr"
+      "retlabel   retlabel"
+      "retdep     retarr";
+    row-gap:6px; column-gap:30px;
+  }
+  .leg-label { font-weight:700; color:var(--air); margin-top:14px; }
+  .ol  { grid-area:outlabel; }   /* outbound label */
+  .rl  { grid-area:retlabel; }   /* return label   */
+  .time { font-size:1.5rem; font-weight:800; }
+  .time small { display:block; font-size:.8rem; font-weight:500; color:#5e6c78; }
+  /* placement: each leg's depart sits left, arrive sits right */
+  .od { grid-area:outdep; }  .oa { grid-area:outarr; }
+  .rd { grid-area:retdep; }  .ra { grid-area:retarr; }
+
+  .ref { margin-top:22px; color:#5e6c78; font-size:.9rem; }
+  footer { border-top:1px solid var(--line); margin-top:40px; padding-top:16px;
+           font-size:.85rem; color:#5e6c78; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Your itinerary is confirmed</h1>
+  <p>Booking reference VK7Q2P · 1 passenger · AeroSur</p>
+</header>
+<main>
+  <h2>Flights</h2>
+
+  <!-- Visual (grid-area) layout per leg:
+         OUTBOUND  Sat 14 Jun
+           Depart 07:15 BUE        Arrive 10:05 SCL
+         RETURN    Sat 21 Jun
+           Depart 19:40 SCL        Arrive 22:30 BUE
+       But the SOURCE/linearized order, after the i18n "all departures, then all arrivals"
+       split, is:
+         "Outbound" "Return"  Depart 07:15  Depart 19:40  Arrive 10:05  Arrive 22:30
+       A screen-reader user hears the two DEPARTURE times back to back, then the two
+       ARRIVALS — binding the 19:40 return departure to the 10:05 outbound arrival. -->
+  <section class="legs" aria-label="Flight times">
+    <div class="leg-label ol">Outbound · Sat 14 Jun</div>
+    <div class="leg-label rl">Return · Sat 21 Jun</div>
+
+    <!-- DEPARTURES block (both legs) authored first -->
+    <div class="time od">07:15<small>Depart · Buenos Aires (BUE)</small></div>
+    <div class="time rd">19:40<small>Depart · Santiago (SCL)</small></div>
+
+    <!-- ARRIVALS block (both legs) authored second -->
+    <div class="time oa">10:05<small>Arrive · Santiago (SCL)</small></div>
+    <div class="time ra">22:30<small>Arrive · Buenos Aires (BUE)</small></div>
+  </section>
+
+  <p class="ref">Each flight is 1 h 50 m nonstop. Times are local. Check-in opens 48 hours
+     before departure.</p>
+
+  <footer>
+    AeroSur · This confirmation renders from file:// with no external resources.
+  </footer>
+</main>
+</body>
+</html>

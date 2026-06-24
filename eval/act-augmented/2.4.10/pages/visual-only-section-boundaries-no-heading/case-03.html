@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preferences — Meridian Mail</title>
+<!--
+  WCAG 2.4.10 Section Headings (AAA) — EXPECTED: FAILED
+  Pattern: visual-only section boundaries (tab panels) with no programmatic
+  heading per section.
+
+  This is the Understanding's OTHER named example, built WRONG: "A web
+  application contains a settings page that is divided into groups of related
+  settings. Each section contains a heading describing the class of settings."
+  Here the settings page is a proper APG tablist with three panels (General,
+  Signatures, Filters & Rules). Each panel is unmistakably a distinct section of
+  related settings. Inside each panel the visual section title ("General
+  preferences", "Signature settings", "Filters & rules") is a styled <div>, and
+  the panel-content GROUP titles are styled <div>s too — none is a heading
+  element or role="heading". The only heading is the page <h1>.
+
+  ESCALATION (Evol-Instruct): I did NOT just omit headings — I shipped a fully
+  correct, keyboard-operable ARIA tabs widget (roles, aria-selected,
+  aria-controls, roving tabindex, arrow keys). So the page is rich and passes
+  every structural lint. The tab BUTTONS are not headings (tabs never are), and
+  the active panel still contains zero heading markup. A screen-reader user who
+  navigates by heading inside the active "Signatures" panel finds nothing
+  describing the section; only sighted users see the big "Signature settings"
+  title and the visually grouped sub-sections.
+
+  WHY AUTOMATED TOOLS MISS IT: the tabs widget is ARIA-valid (axe reports no
+  violations), the page has an <h1>, all inputs are labelled. No tool can decide
+  that each tab PANEL is a settings SECTION that the Understanding says must
+  carry a heading — tabs are deliberately not headings, so there is nothing
+  "missing" to a checker. Recognising the panel as a headed-looking section and
+  that its title is a non-heading <div> is human judgment.
+-->
+<style>
+  :root{--ink:#1c2733;--muted:#5d6b7a;--line:#dde3ea;--bg:#f3f5f8;--brand:#1f6feb}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .app{max-width:820px;margin:0 auto;padding:26px 22px 60px}
+  h1{font-size:22px;margin:0 0 18px}
+  .tabs{display:flex;gap:4px;border-bottom:2px solid var(--line)}
+  .tabs [role=tab]{appearance:none;border:0;background:transparent;
+    padding:11px 16px;font:inherit;font-weight:600;color:var(--muted);
+    cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+  .tabs [role=tab][aria-selected=true]{color:var(--brand);
+    border-bottom-color:var(--brand)}
+  .tabs [role=tab]:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .panel{background:#fff;border:1px solid var(--line);border-top:0;
+    border-radius:0 0 10px 10px;padding:22px 24px 26px}
+  .panel[hidden]{display:none}
+  /* THE DEFECT: the panel's section title is a styled div, not a heading. */
+  .panel-title{font-size:20px;font-weight:700;margin:0 0 4px}
+  .panel-sub{color:var(--muted);margin:0 0 18px;font-size:14px}
+  /* grouped sub-sections within a panel — also titled by styled divs. */
+  .group{padding:14px 0;border-top:1px solid #eef1f5}
+  .group:first-of-type{border-top:0;padding-top:0}
+  .group-title{font-size:15px;font-weight:700;margin:0 0 10px;
+    text-transform:uppercase;letter-spacing:.6px;color:#34404d}
+  .field{display:flex;justify-content:space-between;align-items:center;
+    gap:14px;padding:8px 0}
+  .field label{font-weight:500}
+  select,input[type=text],textarea{font:inherit;border:1px solid #b9c4cf;
+    border-radius:7px;padding:7px 9px}
+  textarea{width:100%;min-height:64px}
+  input[type=checkbox]{width:17px;height:17px}
+</style>
+</head>
+<body>
+  <main class="app">
+    <h1>Preferences</h1>
+
+    <div class="tabs" role="tablist" aria-label="Preferences sections">
+      <button role="tab" id="tab-gen" aria-selected="true" aria-controls="p-gen" tabindex="0">General</button>
+      <button role="tab" id="tab-sig" aria-selected="false" aria-controls="p-sig" tabindex="-1">Signatures</button>
+      <button role="tab" id="tab-flt" aria-selected="false" aria-controls="p-flt" tabindex="-1">Filters &amp; Rules</button>
+    </div>
+
+    <!-- PANEL/SECTION 1 -->
+    <section class="panel" id="p-gen" role="tabpanel" aria-labelledby="tab-gen" tabindex="0">
+      <div class="panel-title">General preferences</div>
+      <p class="panel-sub">Defaults that apply to your whole mailbox.</p>
+
+      <div class="group">
+        <div class="group-title">Display</div>
+        <div class="field"><label for="g-density">Message density</label>
+          <select id="g-density"><option>Comfortable</option><option>Compact</option></select></div>
+        <div class="field"><label for="g-preview">Reading pane</label>
+          <select id="g-preview"><option>Right</option><option>Bottom</option><option>Off</option></select></div>
+      </div>
+      <div class="group">
+        <div class="group-title">Composing</div>
+        <div class="field"><label for="g-undo">Undo send window</label>
+          <select id="g-undo"><option>5s</option><option>10s</option><option>30s</option></select></div>
+        <div class="field"><label for="g-spell">Spell-check before sending</label>
+          <input type="checkbox" id="g-spell" checked></div>
+      </div>
+    </section>
+
+    <!-- PANEL/SECTION 2 -->
+    <section class="panel" id="p-sig" role="tabpanel" aria-labelledby="tab-sig" tabindex="0" hidden>
+      <div class="panel-title">Signature settings</div>
+      <p class="panel-sub">Appended to outgoing mail per identity.</p>
+
+      <div class="group">
+        <div class="group-title">Default signature</div>
+        <div class="field" style="align-items:flex-start">
+          <label for="s-text">Text</label>
+          <textarea id="s-text">Avery Cole — Meridian Mail
+Customer Success</textarea>
+        </div>
+        <div class="field"><label for="s-new">Use on new messages</label>
+          <input type="checkbox" id="s-new" checked></div>
+        <div class="field"><label for="s-reply">Use on replies</label>
+          <input type="checkbox" id="s-reply"></div>
+      </div>
+    </section>
+
+    <!-- PANEL/SECTION 3 -->
+    <section class="panel" id="p-flt" role="tabpanel" aria-labelledby="tab-flt" tabindex="0" hidden>
+      <div class="panel-title">Filters &amp; rules</div>
+      <p class="panel-sub">Automatically sort and act on incoming mail.</p>
+
+      <div class="group">
+        <div class="group-title">Active rules</div>
+        <div class="field"><label for="f-1">Move "Receipts" to Finance</label><input type="checkbox" id="f-1" checked></div>
+        <div class="field"><label for="f-2">Star messages from leadership</label><input type="checkbox" id="f-2" checked></div>
+        <div class="field"><label for="f-3">Archive newsletters after 7 days</label><input type="checkbox" id="f-3"></div>
+      </div>
+    </section>
+  </main>
+
+<script>
+  // APG-style tabs: roving tabindex + arrow-key navigation. Fully keyboard
+  // operable — but tabs are NOT headings, and the panels carry no headings.
+  (function(){
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[role=tab]'));
+    function select(tab){
+      tabs.forEach(function(t){
+        var sel = t === tab;
+        t.setAttribute('aria-selected', sel ? 'true':'false');
+        t.tabIndex = sel ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !sel;
+      });
+      tab.focus();
+    }
+    tabs.forEach(function(tab, i){
+      tab.addEventListener('click', function(){ select(tab); });
+      tab.addEventListener('keydown', function(e){
+        var n = null;
+        if(e.key==='ArrowRight') n = tabs[(i+1)%tabs.length];
+        else if(e.key==='ArrowLeft') n = tabs[(i-1+tabs.length)%tabs.length];
+        else if(e.key==='Home') n = tabs[0];
+        else if(e.key==='End') n = tabs[tabs.length-1];
+        if(n){ e.preventDefault(); select(n); }
+      });
+    });
+  })();
+</script>
+</body>
+</html>

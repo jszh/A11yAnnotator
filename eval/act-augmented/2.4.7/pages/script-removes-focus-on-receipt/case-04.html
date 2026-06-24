@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TalentBridge — Senior Data Engineer</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The "Apply now" control is a custom widget: <div role="button" tabindex="0"> with a
+  correct accessible name and a valid :focus style. axe/WAVE/Lighthouse see a named,
+  focusable, role-button element and report nothing; there is no 2.4.7 automated rule.
+  The defect is a delegated focusin listener that, when this widget gains focus, calls
+  document.body.focus() — bouncing focus off the control to the <body> (focused via a
+  tabindex=-1 on body). The widget's :focus style never paints, and keyboard users can
+  reach but never land on the apply button. A static snapshot shows the body focused,
+  not the button; only stepping through Tab over time reveals the silent bounce.
+-->
+<style>
+  :root { --indigo: #2d2a8c; --teal: #0b7285; --bg: #f4f5f9; --line: #d9dbe9; }
+  * { box-sizing: border-box; }
+  body { font-family: "Inter", "Segoe UI", Arial, sans-serif; margin: 0; background: var(--bg);
+    color: #20222e; line-height: 1.55; }
+  body:focus { outline: none; } /* body is given tabindex=-1; suppress its outline so the bounce is silent */
+  header.site { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 28px;
+    display: flex; align-items: center; gap: 10px; }
+  header.site .mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg,var(--indigo),var(--teal)); }
+  header.site strong { font-size: 1.05rem; }
+  main { max-width: 760px; margin: 28px auto; padding: 0 22px; }
+  .job { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 28px 32px; }
+  .job h1 { margin: 0 0 4px; font-size: 1.5rem; color: var(--indigo); }
+  .job .meta { color: #5b5f72; font-size: .9rem; margin: 0 0 6px; }
+  .job .tags { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 20px; }
+  .job .tags span { background: #eceffa; color: var(--indigo); font-size: .76rem;
+    padding: 4px 10px; border-radius: 999px; }
+  .job h2 { font-size: 1.05rem; margin: 22px 0 8px; }
+  .job ul { margin: 0 0 8px 1.1rem; padding: 0; }
+  .job li { margin: 4px 0; }
+  .apply-bar { display: flex; gap: 14px; align-items: center; margin-top: 26px;
+    padding-top: 20px; border-top: 1px solid var(--line); }
+  /* Custom button widget with a perfectly valid focus indicator. */
+  .apply-btn {
+    display: inline-flex; align-items: center; gap: 8px; background: var(--indigo);
+    color: #fff; font-weight: 600; font-size: 1rem; padding: 12px 26px; border-radius: 8px;
+    cursor: pointer; user-select: none;
+  }
+  .apply-btn:focus { outline: 3px solid #ffb703; outline-offset: 3px; }
+  .save-link { color: var(--teal); text-decoration: none; font-size: .95rem; }
+  .save-link:focus { outline: 3px solid #ffb703; outline-offset: 2px; }
+</style>
+</head>
+<body tabindex="-1">
+<header class="site"><span class="mark" aria-hidden="true"></span><strong>TalentBridge</strong></header>
+
+<main>
+  <article class="job" aria-labelledby="job-title">
+    <h1 id="job-title">Senior Data Engineer</h1>
+    <p class="meta">Aurora Health Systems · Remote (US) · Full-time · $158k–$182k</p>
+    <div class="tags"><span>Python</span><span>Airflow</span><span>dbt</span><span>Snowflake</span><span>HIPAA</span></div>
+
+    <h2>About the role</h2>
+    <p>You will own the patient-analytics data platform that powers care-quality dashboards
+       used by 40+ hospitals. Expect to design batch and streaming pipelines, mentor two
+       junior engineers, and partner closely with clinical informatics.</p>
+
+    <h2>What we look for</h2>
+    <ul>
+      <li>6+ years building production data pipelines at scale</li>
+      <li>Deep SQL plus one of Python/Scala; comfort with orchestration (Airflow/Dagster)</li>
+      <li>Experience handling PHI under HIPAA controls</li>
+    </ul>
+
+    <div class="apply-bar">
+      <!--
+        Custom button: correct role + tabindex + accessible name + :focus style.
+        But a delegated focusin listener (below) calls document.body.focus() whenever
+        this widget receives focus, bouncing focus off it onto the (outline-suppressed)
+        body. The widget never shows its focus ring; it is operable only by mouse click.
+      -->
+      <div class="apply-btn" role="button" tabindex="0"
+           data-action="apply" aria-label="Apply now for Senior Data Engineer">
+        Apply now
+      </div>
+      <a class="save-link" href="/jobs/sde-aurora/save">Save for later</a>
+    </div>
+  </article>
+</main>
+
+<script>
+  // Delegated focus handler. Intent (per the persona) was to "park" stray focus on the
+  // page body during a modal flow; instead it fires for the apply widget itself and
+  // immediately relocates focus to <body>, the F55 "moves focus elsewhere on receipt"
+  // variant. focusin bubbles, so a single document-level listener catches the widget.
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (t && t.matches && t.matches('[data-action="apply"]')) {
+      // Programmatic focus theft: focus never settles on the apply button.
+      document.body.focus();
+    }
+  });
+
+  // Real click behavior still works for mouse users, masking the keyboard defect.
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('[data-action="apply"]');
+    if (t) { window.location.href = '/jobs/sde-aurora/apply'; }
+  });
+</script>
+</body>
+</html>

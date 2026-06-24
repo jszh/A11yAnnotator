@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Alerts &amp; Notifications — Meridian Bank</title>
+<style>
+  :root { --green:#1d8a4e; --grey:#c4c9d0; --ink:#1a2230; --muted:#5b6573; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI", system-ui, sans-serif; color:var(--ink); background:#f4f6f9; }
+  header { background:#0b2545; color:#fff; padding:14px 24px; display:flex; align-items:center; gap:12px; }
+  header .logo { width:28px; height:28px; border-radius:6px; background:#3a86ff; display:grid; place-items:center; font-weight:700; }
+  main { max-width:760px; margin:24px auto; background:#fff; border:1px solid #e1e5ea; border-radius:10px; padding:28px 32px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 24px; }
+  .pref { display:flex; align-items:center; justify-content:space-between; padding:18px 0; border-top:1px solid #eef1f4; gap:24px; }
+  .pref:first-of-type { border-top:none; }
+  .pref-text h2 { font-size:1rem; margin:0 0 3px; }
+  .pref-text p { margin:0; color:var(--muted); font-size:.88rem; }
+  /* Custom switch widget */
+  .switch { position:relative; width:52px; height:30px; flex:0 0 auto; cursor:pointer; background:transparent; border:0; padding:0; }
+  .switch .track { position:absolute; inset:0; border-radius:15px; background:var(--grey); transition:background .15s; }
+  .switch .thumb { position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:left .15s; }
+  /* The ON visual state, applied via the .is-on class on the wrapper */
+  .switch.is-on .track { background:var(--green); }
+  .switch.is-on .thumb { left:25px; }
+  .switch:focus-visible { outline:3px solid #3a86ff; outline-offset:2px; border-radius:18px; }
+  footer { max-width:760px; margin:0 auto 40px; color:var(--muted); font-size:.8rem; padding:0 32px; }
+  .note { background:#fff8e1; border:1px solid #f0e0a0; border-radius:8px; padding:14px 16px; margin-top:24px; font-size:.82rem; color:#5b5320; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">M</span>
+  <strong>Meridian Bank</strong>
+  <span style="opacity:.7;font-size:.85rem;margin-left:auto">Account ending 4471 · Alex Tran</span>
+</header>
+
+<main>
+  <h1>Security Alerts &amp; Notifications</h1>
+  <p class="lead">Choose how Meridian contacts you about activity on your account.</p>
+
+  <div class="pref">
+    <div class="pref-text">
+      <h2>Sign-in alerts</h2>
+      <p>Email me whenever a new device signs in to online banking.</p>
+    </div>
+    <!-- Rendered ON: green track + thumb on the right. But aria-checked is hard-coded false. -->
+    <button type="button" role="switch" aria-checked="false" aria-label="Sign-in alerts" class="switch is-on">
+      <span class="track" aria-hidden="true"></span>
+      <span class="thumb" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <div class="pref">
+    <div class="pref-text">
+      <h2>Large transaction alerts</h2>
+      <p>Text me when a single purchase exceeds $500.</p>
+    </div>
+    <button type="button" role="switch" aria-checked="false" aria-label="Large transaction alerts" class="switch">
+      <span class="track" aria-hidden="true"></span>
+      <span class="thumb" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <div class="pref">
+    <div class="pref-text">
+      <h2>Marketing offers</h2>
+      <p>Occasional emails about new products and rates.</p>
+    </div>
+    <button type="button" role="switch" aria-checked="false" aria-label="Marketing offers" class="switch">
+      <span class="track" aria-hidden="true"></span>
+      <span class="thumb" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <div class="note">
+    Why automated tools miss this: every switch has role="switch", an accessible name, and a syntactically
+    valid aria-checked value ("false") — so ACT rules 4e8ab6 (required states present), 5c01ea (state permitted),
+    and 6a7281 (state has a valid value) all pass. No checker compares the green/right ON rendering of the first
+    switch against its exposed aria-checked="false"; that visual-vs-attribute comparison needs a human or a vision model.
+  </div>
+</main>
+
+<footer>
+  Meridian Bank · Member FDIC · These preferences were last reviewed on 2026-06-14.
+</footer>
+
+<script>
+  // Toggling flips BOTH the visual class and aria-checked, so the widget behaves correctly once touched.
+  // The bug is purely the INITIAL render: "Sign-in alerts" ships visually ON while aria-checked stays "false".
+  document.querySelectorAll('.switch').forEach(function (sw) {
+    sw.addEventListener('click', function () {
+      var on = sw.classList.toggle('is-on');
+      sw.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  });
+</script>
+</body>
+</html>

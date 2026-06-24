@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.3 (Focus Order), failure F44: positive tabindex creates a tab order
+    that does not follow the sequences and relationships in the content.
+
+    This is a course/textbook "Table of Contents" rendered as an ordered list.
+    Visually it reads Homepage, Module 1, Module 2, Module 3, Module 4 (top to
+    bottom, the meaningful study sequence). But the links carry explicit positive
+    tabindex values 1, 5, 4, 3, 2 — so pressing Tab visits Homepage, then Module 4,
+    Module 3, Module 2, Module 1. The numeric order REVERSES the modules against
+    the visible, content-meaningful order. A keyboard-only or screen-reader-plus-
+    keyboard learner tabbing through "what's next" is steered through the course
+    backwards.
+
+    WHY THIS IS NOT FAKED: the tabindex attributes are real and live; a browser
+    really moves focus 1 -> 5 -> 4 -> 3 -> 2. The list is otherwise valid: real
+    href targets, semantic <ol>, accessible link text.
+
+    WHY AUTOMATED TOOLS MISS IT: axe-core has only a best-practice flag for the
+    PRESENCE of positive tabindex ("tabindex" rule, needs-review / best-practice),
+    not a 2.4.3 failure. It cannot decide whether 1,5,4,3,2 happens to MATCH the
+    content order or CONTRADICTS it — that requires reading the visible labels
+    (Module 1..4), inferring the intended study sequence, and comparing it to the
+    actual focus traversal. If a tool flagged every positive tabindex it would also
+    falsely flag case-03 (legitimate reflow repair) and case-06 (order-irrelevant
+    icons). The meaning-preservation judgment is human.
+  -->
+  <title>Course Outline · Foundations of Data Structures | OpenLearn</title>
+  <style>
+    :root { --ink:#1c2530; --muted:#5d6b7a; --rule:#d9e0e8; --brand:#10518a; --tint:#eef4fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:#fff; line-height:1.55; }
+    header.site { background:var(--brand); color:#fff; padding:.9rem 1.4rem; display:flex; align-items:center; gap:.6rem; }
+    header.site .logo { font-weight:800; letter-spacing:.02em; font-size:1.15rem; }
+    header.site .crumb { margin-left:auto; font-size:.82rem; opacity:.9; }
+    main { max-width:760px; margin:0 auto; padding:2rem 1.4rem 4rem; }
+    .kicker { text-transform:uppercase; letter-spacing:.12em; font-size:.72rem; color:var(--brand); font-weight:700; }
+    h1 { font-size:1.9rem; line-height:1.2; margin:.3rem 0 .4rem; }
+    .lede { color:var(--muted); font-size:1.05rem; margin:0 0 1.6rem; }
+    .toc { border:1px solid var(--rule); border-radius:10px; overflow:hidden; }
+    .toc h2 { margin:0; font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); padding:.9rem 1.1rem; background:var(--tint); border-bottom:1px solid var(--rule); }
+    ol.modules { list-style:none; margin:0; padding:0; counter-reset:mod; }
+    ol.modules li { border-bottom:1px solid var(--rule); }
+    ol.modules li:last-child { border-bottom:0; }
+    ol.modules a { display:flex; align-items:baseline; gap:.85rem; padding:1rem 1.1rem; text-decoration:none; color:var(--ink); }
+    ol.modules a:hover, ol.modules a:focus { background:var(--tint); outline:3px solid #ffbf47; outline-offset:-3px; }
+    ol.modules .n { flex:0 0 auto; width:1.8rem; height:1.8rem; border-radius:50%; background:var(--brand); color:#fff; font-weight:700; font-size:.85rem; display:flex; align-items:center; justify-content:center; }
+    ol.modules .label { font-weight:600; }
+    ol.modules .sub { display:block; font-weight:400; color:var(--muted); font-size:.86rem; margin-top:.15rem; }
+    .home a { color:var(--brand); font-weight:600; }
+    footer { color:var(--muted); font-size:.8rem; text-align:center; padding:2rem 1rem; border-top:1px solid var(--rule); }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <span class="logo">OpenLearn</span>
+    <span class="crumb">Catalog › Computer Science › This course</span>
+  </header>
+
+  <main>
+    <p class="kicker">Self-paced course</p>
+    <h1>Foundations of Data Structures</h1>
+    <p class="lede">Work through the modules in order. Each builds on the last — finish Module 1 before starting Module 2.</p>
+
+    <nav class="toc" aria-label="Course outline">
+      <h2>Course outline</h2>
+      <ol class="modules">
+        <!--
+          Visible/content order is top-to-bottom: Start here, then Module 1, 2, 3, 4.
+          The tabindex values impose 1, 5, 4, 3, 2 -> Tab goes Start, M4, M3, M2, M1.
+        -->
+        <li class="home">
+          <a href="start.html" tabindex="1">
+            <span class="n" aria-hidden="true">↳</span>
+            <span class="label">Start here — how this course works
+              <span class="sub">Orientation, grading, and the lab setup</span>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="module-1.html" tabindex="5">
+            <span class="n" aria-hidden="true">1</span>
+            <span class="label">Module 1 · Arrays &amp; linked lists
+              <span class="sub">Contiguous vs. pointer-based storage</span>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="module-2.html" tabindex="4">
+            <span class="n" aria-hidden="true">2</span>
+            <span class="label">Module 2 · Stacks &amp; queues
+              <span class="sub">LIFO and FIFO, builds on linked lists</span>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="module-3.html" tabindex="3">
+            <span class="n" aria-hidden="true">3</span>
+            <span class="label">Module 3 · Trees &amp; heaps
+              <span class="sub">Hierarchies, builds on stacks &amp; queues</span>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="module-4.html" tabindex="2">
+            <span class="n" aria-hidden="true">4</span>
+            <span class="label">Module 4 · Hash tables &amp; graphs
+              <span class="sub">Capstone, assumes all prior modules</span>
+            </span>
+          </a>
+        </li>
+      </ol>
+    </nav>
+  </main>
+
+  <footer>© OpenLearn. Continue where you left off from your dashboard.</footer>
+</body>
+</html>

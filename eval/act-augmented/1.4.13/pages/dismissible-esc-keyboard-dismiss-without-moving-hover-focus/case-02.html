@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medication details — Lakeside Patient Portal</title>
+<style>
+  body { font-family: "Segoe UI", system-ui, Arial, sans-serif; margin: 0;
+         background: #eef3f1; color: #20302a; }
+  .topbar { background: #186a52; color: #fff; padding: 12px 24px; font-weight: 600; }
+  main { max-width: 700px; margin: 26px auto; background: #fff; border-radius: 8px;
+         border: 1px solid #cfe0d9; padding: 24px 28px; }
+  h1 { font-size: 21px; margin-top: 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #e1ebe6;
+           font-size: 15px; vertical-align: top; }
+  th { color: #355; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; position: relative; }
+  .warn-trigger { border: 1px solid #b06a00; background: #fff5e6; color: #8a5200;
+        border-radius: 14px; padding: 3px 10px; font-size: 13px; font-weight: 600;
+        cursor: help; }
+  .warn-trigger:focus { outline: 3px solid #1466d6; outline-offset: 2px; }
+  /* Interaction note pops up OVER the dosage instructions in the row below. */
+  .interaction { position: absolute; top: 26px; left: 0; width: 360px; z-index: 9;
+        background: #fff; border: 2px solid #b06a00; border-radius: 8px; padding: 12px 14px;
+        font-size: 14px; line-height: 1.5; box-shadow: 0 8px 22px rgba(0,0,0,.22);
+        display: none; }
+  .interaction.open { display: block; }
+  .interaction h2 { font-size: 14px; margin: 0 0 6px; color: #8a5200; }
+  .dose { color: #2a3b34; }
+  .footer-note { font-size: 12px; color: #6a7b73; margin-top: 22px;
+        border-top: 1px dashed #cfe0d9; padding-top: 12px; }
+</style>
+</head>
+<body>
+<div class="topbar">Lakeside Health — Patient Portal</div>
+<main>
+  <h1>Your medications</h1>
+  <table>
+    <thead>
+      <tr><th>Medication</th><th>Schedule</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <span class="pill">
+            Warfarin 5 mg
+            <button type="button" class="warn-trigger" id="warnBtn"
+                    aria-describedby="warnPop">interactions</button>
+            <div class="interaction" id="warnPop" role="tooltip">
+              <h2>Major interaction</h2>
+              Avoid taking with <strong>ibuprofen</strong> or other NSAIDs —
+              increased bleeding risk. Tell your care team before starting any
+              new over-the-counter pain reliever.
+            </div>
+          </span>
+        </td>
+        <td class="dose">1 tablet by mouth once daily, evening</td>
+        <td>Routine INR check due Friday</td>
+      </tr>
+      <tr>
+        <td>Lisinopril 10 mg</td>
+        <td class="dose">1 tablet by mouth every morning with water</td>
+        <td>—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="footer-note">The "interactions" pill opens a warning box that covers the
+     "1 tablet by mouth once daily" dosage text. An Escape handler exists — but it is
+     bound to the trigger button, and the trigger does not keep focus, so Escape never
+     reaches the handler while the box is open.</p>
+</main>
+
+<script>
+  var btn = document.getElementById('warnBtn');
+  var pop = document.getElementById('warnPop');
+
+  // Show the interaction note on hover and on focus.
+  btn.addEventListener('mouseenter', function () { pop.classList.add('open'); });
+  btn.addEventListener('focus',      function () { pop.classList.add('open'); });
+  btn.addEventListener('mouseleave', function () { pop.classList.remove('open'); });
+
+  // INTENTIONAL DEFECT: the Esc-to-dismiss handler is attached to the TRIGGER
+  // element, not to document. The dev assumed Esc would fire on the focused
+  // trigger. But on activation the script immediately moves focus to <body>
+  // (see the click handler below, simulating a "scroll the warning into view"
+  // convenience that blurs the button). With the trigger no longer focused,
+  // keydown events go to document.body, never to this listener — so Esc is
+  // inert while the warning box is visible and obscuring the dosage row.
+  btn.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+      pop.classList.remove('open');
+    }
+  });
+
+  // "Helpful" behavior that strands focus: activating the trigger scrolls the
+  // warning into view and blurs the button so the outline doesn't distract.
+  btn.addEventListener('click', function () {
+    pop.classList.add('open');
+    pop.scrollIntoView({ block: 'nearest' });
+    this.blur();              // <-- focus goes to document.body
+    document.body.focus && document.body.focus();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building My First Mechanical Keyboard — keebs.dev</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.10, aspect: heading-text-mismatched-or-generic):
+  The article is split into real sections, each opened by a non-empty <h2> in valid order,
+  so axe-core, WAVE and Lighthouse all pass (heading present, not empty, order fine). The
+  failure is that three of the section headings are content-free generic words — "More",
+  "Stuff", and "Other" — over substantive, topically-specific bodies (a parts list, a
+  soldering walkthrough, and a firmware-flashing guide). The words are valid English and
+  non-empty, so no linter objects; only a human who reads the body can see that "Stuff"
+  does not name "how to solder the switches" and gives a screen-reader user scanning the
+  heading list no orientation at all.
+-->
+<style>
+  :root { --ink:#11161c; --muted:#5b6775; --line:#e2e7ee; --accent:#e8590c; --code:#0d1117; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+         background:#f7f9fb; line-height:1.65; }
+  header.blog { max-width:720px; margin:0 auto; padding:36px 24px 8px; }
+  header.blog .kicker { color:var(--accent); font-weight:700; font-size:.78rem;
+         letter-spacing:1.5px; text-transform:uppercase; }
+  header.blog h1 { font-size:2rem; margin:6px 0 6px; line-height:1.2; }
+  header.blog .byline { color:var(--muted); font-size:.88rem; }
+  article { max-width:720px; margin:0 auto 60px; padding:0 24px; }
+  article > p { margin:0 0 14px; font-size:1.02rem; }
+  article h2 { font-size:1.4rem; margin:34px 0 10px; }
+  article h3 { font-size:1.05rem; margin:18px 0 6px; }
+  ul, ol { margin:0 0 14px; padding-left:22px; }
+  li { margin:0 0 6px; }
+  pre { background:var(--code); color:#e6edf3; padding:14px 16px; border-radius:8px;
+        overflow:auto; font-size:.85rem; line-height:1.5; }
+  code { font-family:"SF Mono",Menlo,Consolas,monospace; }
+  .tag { display:inline-block; background:#fff3e6; color:var(--accent); border:1px solid #ffd9b3;
+         border-radius:999px; padding:2px 10px; font-size:.72rem; margin-right:6px; }
+  figure.warn { background:#fff8e1; border-left:4px solid #f08c00; padding:12px 16px;
+        margin:0 0 14px; border-radius:0 6px 6px 0; }
+  figure.warn figcaption { font-size:.82rem; color:#7a5a00; }
+</style>
+</head>
+<body>
+  <header class="blog">
+    <div class="kicker">DIY · Mechanical Keyboards</div>
+    <h1>Building My First Mechanical Keyboard</h1>
+    <p class="byline">by Sam · posted 8 June 2026 ·
+       <span class="tag">soldering</span><span class="tag">QMK</span><span class="tag">hot-swap</span></p>
+  </header>
+
+  <article>
+    <p>I finally built a 65% keyboard from a kit this weekend. It took about four hours and
+       one minor burn. Here's the whole process so you can avoid the mistakes I made —
+       especially around firmware, which nearly defeated me.</p>
+
+    <!-- Section 1: real intro -->
+    <section aria-labelledby="h-why">
+      <h2 id="h-why">Why I built one</h2>
+      <p>I'd been typing on a mushy membrane board for years. I wanted tactile switches, a
+         layout I could remap, and something I could repair myself instead of binning. A
+         barebones kit plus switches and keycaps came to about $140 — cheaper than most
+         pre-built boards and far more satisfying.</p>
+    </section>
+
+    <!-- Section 2: real PARTS LIST under generic heading "More" -->
+    <section aria-labelledby="h-more">
+      <h2 id="h-more">More</h2>
+      <p>Here's exactly what I ordered. Buy the stabilisers separately — the ones bundled
+         with most kits rattle.</p>
+      <ul>
+        <li><strong>PCB + case:</strong> a hot-swap 65% aluminium kit (gasket-mounted)</li>
+        <li><strong>Switches:</strong> 70× Gateron Brown (you need spares)</li>
+        <li><strong>Keycaps:</strong> a PBT double-shot Cherry-profile set</li>
+        <li><strong>Stabilisers:</strong> screw-in PCB-mount, lubed with dielectric grease</li>
+        <li><strong>Tools:</strong> switch puller, keycap puller, hex key (usually included)</li>
+      </ul>
+    </section>
+
+    <!-- Section 3: real SOLDERING walkthrough under generic heading "Stuff" -->
+    <section aria-labelledby="h-stuff">
+      <h2 id="h-stuff">Stuff</h2>
+      <p>My kit was hot-swap, so technically no soldering — but the per-key RGB LEDs on the
+         underside still needed it. If your board is solder-only, the same idea applies to
+         every switch.</p>
+      <figure class="warn">
+        <p>Set the iron to about 320&nbsp;°C for leaded solder. Too hot and you lift the pad;
+           too cool and you get a cold joint that fails intermittently.</p>
+        <figcaption>The burn happened here. Don't grab the barrel.</figcaption>
+      </figure>
+      <ol>
+        <li>Seat the LED on the correct polarity (the flat corner faces the silkscreen mark).</li>
+        <li>Tack one leg, check the LED sits flush, then solder the remaining legs.</li>
+        <li>Trim the legs flush and test continuity before moving on.</li>
+      </ol>
+    </section>
+
+    <!-- Section 4: real FIRMWARE / QMK guide under generic heading "Other" -->
+    <section aria-labelledby="h-other">
+      <h2 id="h-other">Other</h2>
+      <p>This is the part the tutorials gloss over. The board ships with default firmware,
+         but to remap keys you flash your own QMK build. Put the board into bootloader mode
+         first (short the reset pads or hold Esc while plugging in).</p>
+      <pre><code>qmk setup
+qmk compile -kb my65 -km default
+qmk flash   -kb my65 -km default</code></pre>
+      <p>If <code>qmk flash</code> can't find the device, it's almost always that the board
+         never entered bootloader mode — not a driver problem. That cost me an hour.</p>
+    </section>
+
+    <!-- Section 5: real conclusion -->
+    <section aria-labelledby="h-end">
+      <h2 id="h-end">Was it worth it?</h2>
+      <p>Completely. Typing feels better, I learned to solder, and I can swap a dead switch
+         in thirty seconds. Next time I'll lube the switches before assembly instead of after.</p>
+    </section>
+  </article>
+</body>
+</html>

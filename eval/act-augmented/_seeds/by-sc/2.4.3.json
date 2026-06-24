@@ -1,0 +1,338 @@
+{
+  "sc": "2.4.3",
+  "count": 22,
+  "patterns": [
+    {
+      "platform": "Wix Editor (absolute-positioned canvas layout)",
+      "name": "DOM/reading order diverges from visual order on overlapping layouts",
+      "description": "Wix's drag-anywhere canvas positions elements absolutely; the algorithm that derives DOM order from on-screen coordinates can mis-order overlapping, stacked, or strip-based sections, so keyboard Tab order and screen-reader reading order jump around (e.g., footer CTA before main content, a caption before its image, a price before the product name).",
+      "wcagScs": [
+        "1.3.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div style=\"position:absolute; top:480px; left:20px\">Add to cart</div>\n<div style=\"position:absolute; top:120px; left:20px\">Handmade Mug — $24</div>\n<!-- visually price is on top, but 'Add to cart' precedes it in source/tab order -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Automated tools generally cannot determine the 'correct' meaningful sequence — they don't know the visually-intended reading order, so they can't tell that DOM order contradicts it. Detecting the mismatch requires a human comparing the visual layout to the tab/reading order.",
+      "realWorldNote": "Wix Engineering describes building an algorithm to make DOM order reflect visual position precisely because the canvas otherwise breaks navigation order; Wix support has a dedicated 'Checking and Adjusting a Site's DOM Order' article. https://www.wix.engineering/post/the-story-of-making-wix-accessible",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Wix Slideshow / Pro Gallery slider & lightbox; Wix popups",
+      "name": "Carousel/slider/lightbox not keyboard operable or focus-trapping",
+      "description": "Wix sliders and popups frequently can't be advanced/controlled by keyboard, and opened lightboxes/popups either don't move focus in, leave focus on the page behind, or trap it without an Esc exit. Arrow controls are mouse-only; the auto-rotating slideshow can't be paused.",
+      "wcagScs": [
+        "2.1.1",
+        "2.1.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div class=\"slider-arrow next\" onclick=\"next()\"></div>\n<!-- div, no tabindex, no role=button, no keydown; lightbox opens with focus left on body -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Whether a control is reachable AND operable by keyboard, whether focus moves into a dialog, and whether Esc escapes are runtime/interaction facts. Static scans see divs/images; they can't exercise Tab/Enter/Esc to discover the inoperability or the trap.",
+      "realWorldNote": "Wix ADA guides: 'Wix sliders are frequently keyboard inaccessible' and 'Wix popups often fail keyboard navigation.' https://www.lowcodewebsite.com/post/wix-accessibility-complete-guide-to-fix-issues-achieve-ada-compliance-2026",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Shopify / WooCommerce — Add to Cart confirmation & cart drawer",
+      "name": "Silent add-to-cart: drawer/toast update not in a live region",
+      "description": "Clicking 'Add to cart' updates a cart-count bubble and slides open a cart drawer or shows a toast, but the success message is injected into a normal <div> with no role=status / aria-live. Sighted users see the confirmation; screen reader users get no announcement that the item was added, and focus is not moved into the drawer either.",
+      "wcagScs": [
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div class=\"cart-notification\" hidden>\n  <p>Item added to your cart</p>\n  <a href=\"/cart\">View cart (1)</a>\n</div>\n<!-- toggled visible via JS; no role=\"status\", no aria-live, focus stays on the button -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The notification element is valid HTML with valid contrast and a labeled link, so static scanners pass it. The failure only manifests on interaction (clicking add-to-cart) and depends on whether the dynamically-shown node is in a live region AND whether focus is managed — a runtime behavior automated DOM scans don't simulate, and judging the right remediation (announce vs. move focus) is contextual.",
+      "realWorldNote": "TestParty 'Beyond Alt Text' lists 'silent cart updates — screen reader users receive no confirmation' as a top hidden Shopify barrier; WooCommerce filed its own 4.1.3 fix for the added-to-cart message. https://testparty.ai/blog/beyond-alt-text-hidden-shopify-accessibility-barriers",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Shopify / BigCommerce — quick-view modal (Add to cart from grid)",
+      "name": "Quick-view modal keyboard trap / no focus return",
+      "description": "Quick-view modals open over the product grid. Two common failures: (a) focus stays on the underlying page so keyboard users tab through background content behind the overlay, or (b) focus enters the modal but Escape doesn't close it and Tab can cycle but never escape, and on close focus is not returned to the triggering 'Quick view' button — keyboard users are stranded or lose their place.",
+      "wcagScs": [
+        "2.1.2",
+        "2.4.3",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<div class=\"quick-view-overlay\" role=\"dialog\">\n  <div class=\"quick-view\">\n    <button class=\"qv-close\" onclick=\"closeQV()\">×</button>\n    <!-- product form -->\n  </div>\n</div>\n<!-- aria-modal absent; no Esc handler; focus not moved in or restored on close -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "role=dialog may be present so structural checks pass. The trap, the missing Escape handler, and the failure to restore focus to the trigger are dynamic, interaction-time behaviors that require actually tabbing through the open modal and closing it — automated DOM snapshots don't exercise focus flow or key handlers.",
+      "realWorldNote": "TestParty's Shopify checkout/keyboard guides explicitly call out 'quick-view modals that trap focus so keyboard users cannot escape' and modals that 'capture focus and never give it back'. https://testparty.ai/blog/shopify-checkout-keyboard-navigation-fixes ; https://testparty.ai/blog/modal-dialog-accessibility",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Headless / Hydrogen / React+SPA storefronts (Shopify, BigCommerce)",
+      "name": "<title> and H1 never update on client-side route change",
+      "description": "Navigating from collection to product to cart happens client-side; the document <title> stays at the homepage/store name on every route, and focus is not moved to the new page's H1. Screen reader users hear the same title on every 'page' and get no signal that navigation occurred.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<head><title>Acme Store</title></head>\n<!-- after client-side nav to /products/blue-shirt the title is still \"Acme Store\";\n     no React Helmet update, no focus moved to the product <h1> -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-page audit finds a non-empty <title> and passes 2.4.2. The failure is that the title doesn't CHANGE across virtual route transitions and is identical/non-descriptive for each view — a multi-state behavior. Tools scan one DOM state and have no concept of route changes, so they never compare titles across navigations.",
+      "realWorldNote": "Widely documented SPA failure (Hidde Blog, Kitty Giraudel, Helsinki a11y model): SPAs keep a static <title> unless JS updates it on every route change. https://hidde.blog/accessible-page-titles-in-a-single-page-app/ ; https://saavutettavuusmalli.hel.fi/en/saavutettavuus-palvelukehityksessa/toteutus-ja-ohjelmistotestaus/single-page-applications-spas-notes-on-accessibility/",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Webflow native Slider component",
+      "name": "Off-screen carousel slides keep focusable controls and links",
+      "description": "Webflow's Slider hides non-active slides with CSS transforms/opacity (not display:none), so links, buttons, and form fields inside the off-screen slides remain in the tab order. Keyboard users tab into invisible content, focus disappears off-screen, and the slide-dot/arrow controls are often unlabeled icon buttons.",
+      "wcagScs": [
+        "2.4.3",
+        "2.1.1",
+        "4.1.2",
+        "2.4.7"
+      ],
+      "typicalMarkup": "<div class=\"w-slide\" style=\"transform:translateX(100%);opacity:0\">\n  <a href=\"/offer\" class=\"slide-cta w-inline-block\">Shop now</a>\n</div>\n<div class=\"w-slider-arrow-left\" role=\"button\" tabindex=\"0\"></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The off-screen slide is still visible to the accessibility tree (no display:none / aria-hidden), so scanners see normal in-DOM links and report nothing wrong; detecting that focus visually 'leaves the screen' onto a translated-off slide requires running the keyboard sequence and watching where the focus ring goes — a dynamic, visual check tools don't perform.",
+      "realWorldNote": "Accessibility guidance for sliders specifies off-screen slides must be hidden via display:none/visibility:hidden or aria-hidden + tabindex=-1, which Webflow's default Slider does not do: https://dev.to/jasonwebb/how-to-build-a-more-accessible-carousel-or-slider-35lp and https://www.flowradar.com/answer/fix-issue-slider-webflow-not-accessible-screen-readers",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow native Lightbox component",
+      "name": "Lightbox opens without focus trap, dialog role, or labeled close",
+      "description": "Webflow's built-in Lightbox opens an overlay but does not trap focus (Tab leaves the modal to the page behind it), has no role=dialog / aria-modal, no accessible name on the dialog, and the close 'X' is an unlabeled icon. Esc behavior and focus return to the trigger are not handled.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.3",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"w-lightbox-backdrop\">\n  <div class=\"w-lightbox-container\">\n    <img class=\"w-lightbox-img\" src=\"/full.jpg\">\n    <div class=\"w-lightbox-close\"></div>\n  </div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A missing focus trap is a behavioral property: nothing in the static markup is 'invalid', so axe/Lighthouse cannot detect that Tab escapes the open overlay. The unlabeled close MIGHT be flagged, but confirming the dialog lacks a name and that focus returns to the trigger requires opening it and operating it by keyboard.",
+      "realWorldNote": "Documented that the Webflow lightbox lacks a focus trap (users can tab out), is missing a descriptive accessible name on the dialog, and needs custom code/ARIA to fix: https://www.gracefulwebstudio.com/blog-articles/webflow-video-lightbox-accessibility-and-focus-management and Webflow's own checklist task 'Ensure modals are keyboard navigable': https://webflow.com/accessibility/checklist/task/ensure-modals-are-keyboard-navigable",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow / Framer absolute-positioned layout (CSS grid-area, position:absolute, flex order)",
+      "name": "Visual order diverges from DOM/tab order in free-canvas layouts",
+      "description": "On a free design canvas, authors drag elements into a visual arrangement while the DOM source order stays whatever was authored. Absolute positioning, CSS order, and grid placement make the reading/tab order jump around — e.g., a CTA visually at top-left is last in the DOM, or a sidebar reads before the main column for a screen reader.",
+      "wcagScs": [
+        "2.4.3",
+        "1.3.2"
+      ],
+      "typicalMarkup": "<section class=\"hero\">\n  <div class=\"col\" style=\"order:3\">Primary CTA</div>\n  <div class=\"col\" style=\"order:1\">Legal footnote</div>\n  <div class=\"col\" style=\"order:2\">Headline</div>\n</section>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Both the DOM order and the CSS are individually valid; determining that the resulting tab/reading order is 'illogical' relative to the visual layout requires a human to compare what they SEE to the order focus actually moves — automated tools have no model of the intended visual narrative.",
+      "realWorldNote": "Webflow's checklist 'Ensure focus order is logical' explicitly warns that arranging elements with CSS instead of the Navigator yields nonlinear/illogical focus order; WCAG technique C27 covers DOM-vs-visual order: https://webflow.com/accessibility/checklist/task/ensure-focus-order-is-logical and https://www.w3.org/TR/WCAG20-TECHS/C27.html",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Framer (and other React SPA exporters: Typedream, Readymag)",
+      "name": "SPA route change leaves <title> stale and focus unmoved",
+      "description": "Page-to-page navigation is client-side. The document <title> is not updated on route change, focus stays on the clicked link (or resets to <body>), and there is no route-change announcement. Screen-reader users get no signal a new page loaded and the title still reads the landing page.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<!-- Home -->\n<title>Acme — Home</title>\n<a href=\"/pricing\" data-framer-name=\"Nav Pricing\">Pricing</a>\n<!-- after client-side nav to /pricing, title is STILL 'Acme — Home' -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-page snapshot has a valid, non-empty <title>, so a page-load scan passes 2.4.2. The defect only appears across an in-app navigation: the scanner would need to click through routes and re-check title + focus + live announcement, which static and single-load automated tools don't do.",
+      "realWorldNote": "Well-documented SPA failure: screen readers announce titles only on full page load and don't monitor title changes, and focus must be moved on route change — directly applicable to Framer/React-exported sites: https://medium.com/design-bootcamp/accessible-by-design-part-2-your-spa-single-page-application-is-broken-for-screen-readers-739769110ce1 and https://a11y-guidelines.orange.com/en/articles/single-page-app/",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "React Router / Vue Router / Angular Router SPA",
+      "name": "No focus reset or route announcement on navigation",
+      "description": "After a client-side route change the new view is rendered but keyboard focus stays on the link that was clicked (or is lost to <body>) and nothing is announced via a live region. A screen-reader user hears no indication that navigation occurred; a keyboard user must tab from wherever focus was stranded. There is no route-announcer and focus is not moved to the new page heading.",
+      "wcagScs": [
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<a href=\"/pricing\">Pricing</a>\n<!-- after click: URL & main content change, but: -->\n<!-- - focus remains on the <a> (or jumps to body) -->\n<!-- - no <div aria-live=\"polite\"> announces \"Pricing page\" -->\n<main id=\"content\"><h1>Pricing</h1> ... </main>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Focus location after a JS navigation and the presence/firing of a route-announcer live region are runtime behaviors triggered by user interaction. Static and single-snapshot scanners do not perform the navigation and observe where focus lands or whether anything was announced, so they report nothing.",
+      "realWorldNote": "react-router discussion #9863 and the long-running issue #5210 (\"focus not reset when route changed\") document this; James Shakespeare and TestParty both prescribe moving focus to an autofocusing h1. https://github.com/remix-run/react-router/discussions/9863",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Bootstrap Modal (and hand-rolled React modals)",
+      "name": "Background page not inert / aria-hidden focus conflict behind modal",
+      "description": "When a Bootstrap/custom modal opens, the underlying page is not made inert and is not hidden from AT (or, conversely, aria-hidden=\"true\" is placed on an ancestor that still contains the focused trigger). Screen-reader users can read and tab into the page behind the dialog, and focus can land on aria-hidden content, producing the \"focusable element inside aria-hidden\" conflict.",
+      "wcagScs": [
+        "2.4.3",
+        "4.1.2",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<div aria-hidden=\"true\"> <!-- whole app -->\n  <button id=\"open\">Open</button> <!-- focus may still be here -->\n</div>\n<div class=\"modal\" role=\"dialog\"> ... </div>\n<!-- background not inert; SR can swipe into it -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe flags aria-hidden containing a focusable element only when the snapshot is in that exact state; whether the background is truly inert / focus is trapped is a runtime, interaction-driven property. Confirming a SR can reach behind-modal content or that Tab escapes requires actually operating the dialog with the keyboard/AT.",
+      "realWorldNote": "Bootstrap issue #29769 and MDN's aria-modal docs cover the inert/aria-hidden tradeoff; the focusable-inside-aria-hidden conflict is a frequent audit finding. https://github.com/twbs/bootstrap/issues/29769",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Modal dialog (jQuery UI dialog, hand-rolled overlay, many CMS lightboxes)",
+      "name": "Fake modal: aria-modal set but background not inert and focus not trapped",
+      "description": "The overlay div carries role=\"dialog\" aria-modal=\"true\" and looks modal, but the developer never traps Tab, never moves initial focus into the dialog, and leaves the background page focusable. Keyboard users Tab straight out of the dialog and onto hidden page content behind the scrim; screen reader users may also reach background content because aria-modal alone does not make content inert.",
+      "wcagScs": [
+        "2.4.3",
+        "2.1.2",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div role=\"dialog\" aria-modal=\"true\" aria-label=\"Newsletter\">\n  <input type=\"email\"><button>Sign up</button>\n</div>\n<!-- page body still has tabindex-reachable links, no inert/aria-hidden -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Static analysis sees correct ARIA: role=dialog + aria-modal=true + accessible name all pass. Whether focus is actually trapped, whether initial focus moves into the dialog, and whether the background is truly inert are runtime keyboard behaviors that require operating the page with Tab/Shift+Tab — axe/WAVE/Lighthouse never press keys.",
+      "realWorldNote": "MDN and TPGi stress that aria-modal=\"true\" 'does not actually make the element modal — the developer must implement the modal behaviour'; TPGi's modal-accessibility survey found focus management as the most common real failure. https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-modal and https://www.tpgi.com/the-current-state-of-modal-dialog-accessibility/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Single-page app (React Router, Vue Router, Angular) route transitions",
+      "name": "<title> and focus never update on client-side route change",
+      "description": "Navigating between SPA 'pages' swaps the DOM without a reload, but document.title is left at the template default ('My App') for every route, focus stays on the clicked link or the top of the old view, and no live region announces the new page. Screen reader users have no idea they navigated or where they are; the page title — a primary orientation cue — is identical or stale across routes.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<title>My App</title>\n<!-- user clicks 'Checkout'; URL becomes /checkout; main content swaps -->\n<!-- <title> still 'My App'; focus still on the clicked nav link; no aria-live announcement -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-snapshot scan sees one <title> that is present and non-empty, so 2.4.2 passes. The defect is that the title is the SAME (or unchanged) across multiple distinct views — only visible by navigating between routes and comparing, plus judging that the title no longer describes the content. Automated tools audit one URL state, not transitions.",
+      "realWorldNote": "Hidde de Vries, Kitty Giraudel, and Deque all document SPA route changes leaving document.title stale and focus unmanaged as a flagship screen-reader failure of frameworks. https://hidde.blog/accessible-page-titles-in-a-single-page-app/ and https://www.deque.com/blog/accessibility-tips-in-single-page-applications/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Carousel / slider (Slick, Swiper defaults, hero banners on CMS themes)",
+      "name": "Auto-rotating carousel with no pause control and no slide announcement",
+      "description": "A hero carousel auto-advances every few seconds with no visible/operable pause-stop-hide control. Slides change under keyboard focus, focus is lost when the focused slide rotates away, off-screen slides remain in the tab order and accessibility tree, and slide changes are not exposed via group/aria-roledescription/live region. Vestibular and cognitive users get unstoppable motion; keyboard users get focus thrown to the top of the page.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.3",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div class=\"carousel\">\n  <div class=\"slide active\"><a href=\"/sale\">Big Sale</a></div>\n  <div class=\"slide\" aria-hidden=\"false\"><a href=\"/new\">New In</a></div>\n</div>\n<script>setInterval(next, 4000)</script>\n<!-- no pause button; offscreen slide links still focusable -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Auto-rotation, the absence of a pause control, focus loss when slides swap, and links inside hidden slides remaining tabbable are all timing/runtime behaviors. A static scan cannot tell the content is moving or that a pause mechanism is required; deciding whether off-screen slides are correctly hidden needs observing the rotation. WebAIM notes carousels are 'one of the most problematic' widgets precisely for these reasons.",
+      "realWorldNote": "WebAIM 'Animation and Carousels' and the APG carousel pattern require a pause/stop control, pausing on focus, and hiding non-visible slides; Smashing Magazine's accessible-carousel guide documents the focus-loss-on-rotate bug. https://webaim.org/techniques/carousels/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "alertdialog (confirm/destructive dialogs, 'Are you sure?' modals)",
+      "name": "Critical confirm dialog uses role=dialog (or none) so it is not announced",
+      "description": "A 'Delete account — are you sure?' modal is built with role=\"dialog\" (or plain divs) rather than role=\"alertdialog\", and focus is not moved into it. The urgent message is not announced as an alert, focus stays behind it, and a screen reader user may confirm a destructive action without ever hearing the warning.",
+      "wcagScs": [
+        "4.1.2",
+        "4.1.3",
+        "2.4.3",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div role=\"dialog\" class=\"confirm\">\n  <p>Delete your account? This cannot be undone.</p>\n  <button>Delete</button><button>Cancel</button>\n</div>\n<!-- should be role=alertdialog; focus not moved into dialog on open -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "role=dialog is valid ARIA, so no rule fails. Whether the dialog SHOULD be an alertdialog (because it carries an urgent, action-blocking message) is a semantic/contextual judgment about the content's importance; whether focus moves into it and the alert is announced are runtime behaviors. No static linter weighs the urgency of a message.",
+      "realWorldNote": "APG distinguishes alertdialog (interrupts with an important message requiring a response) from dialog; MDN dialog-role docs note focus must move into the dialog — both are commonly skipped on confirm/destructive modals. https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/dialog_role",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "React/Vue/Angular SPAs built on Next.js, Gatsby, Shopify Hydrogen, headless storefronts",
+      "name": "SPA <title> and focus never update on client-side route change",
+      "description": "Navigating between client-rendered views swaps the main content but never updates document.title and never moves focus, so the page title is frozen at the initial route ('Home') and the screen reader is left on a now-detached element. The user has no confirmation a navigation happened or where they landed.",
+      "wcagScs": [
+        "2.4.2",
+        "4.1.3",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<!-- title stuck on first load across every route -->\n<title>Acme Store - Home</title>\n<!-- /products, /cart, /checkout all render under this same title; no focus move, no live-region announce -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-snapshot scan sees a valid, non-empty <title> and passes 2.4.2. The failure is DYNAMIC and BEHAVIORAL — it only manifests across a route transition, which axe/Lighthouse (point-in-time DOM scans) never exercise. Catching it requires interacting (clicking a nav link) and observing that title/focus did not change.",
+      "realWorldNote": "Documented SPA failure mode; Kitty Giraudel and Deque both cover the fix (update title + manage focus/live region on route change): https://kittygiraudel.com/2020/01/15/accessible-title-in-a-single-page-react-application/ , https://www.deque.com/blog/accessibility-tips-in-single-page-applications/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "WordPress slider plugins (Slider Revolution, Smart Slider), Elementor/Divi carousels, Wix Pro Gallery",
+      "name": "Auto-rotating carousel, keyboard-inaccessible, no pause",
+      "description": "A hero carousel auto-advances on a timer with no pause/stop control, prev/next arrows are non-focusable divs, and slide changes are not announced. Keyboard users cannot reach controls; the moving content steals reading position; offscreen slides may still be in the tab order as hidden focusable links.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.7",
+        "2.4.3",
+        "4.1.3",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<div class=\"slider\" data-autoplay=\"true\" data-interval=\"4000\">\n  <div class=\"slide\"><a href=\"/promo\">Shop the sale</a></div>\n  <div class=\"arrow next\" onclick=\"next()\"></div> <!-- div, not focusable -->\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Auto-rotation timing and the absence of a pause control are temporal/behavioral and not in the static DOM signature. Tools may catch a div with onclick lacking a role, but cannot verify keyboard reachability of the rotation, that focus is trapped/lost between slides, or that offscreen slides leak into the tab order — all need manual keyboard testing.",
+      "realWorldNote": "WCAG-ART and the A11Y Collective document carousel pause/keyboard/announce failures as classic manual-test items: https://www.a11y-collective.com/blog/accessible-carousel/ ; WP slider accessibility caveats: https://www.abrightclearweb.com/accessible-slider-wordpress/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Cookie-consent banners, newsletter modals, promo pop-ups (OneTrust, Privy, Mailchimp, Wix popups)",
+      "name": "Modal/pop-up keyboard trap or focus-not-managed",
+      "description": "A modal or interstitial appears but focus is not moved into it, focus is not trapped within it (so keyboard users tab to the obscured page behind), or — the inverse failure — focus IS trapped with no keyboard-reachable close, stranding the user. The page behind also remains in the tab order under the overlay.",
+      "wcagScs": [
+        "2.1.2",
+        "2.4.3",
+        "2.4.7",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<div class=\"modal\" style=\"position:fixed;inset:0\"> <!-- no role=dialog, no aria-modal, focus stays on body -->\n  <button onclick=\"close()\">×</button> <!-- '×' close, empty name; no Esc handler -->\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Focus behavior is dynamic and only observable by actually tabbing through after the modal opens. A static scan sees a div with some content; it cannot detect that focus was never moved in, that the user can tab behind the overlay, or that there is no keyboard escape (2.1.2). Requires manual keyboard testing.",
+      "realWorldNote": "The Murphy v. Eyebobs overlay case specifically cited a promo pop-up and a modal dialog that were not keyboard/screen-reader accessible: https://www.accessibility.works/blog/avoid-accessibility-overlay-tools-toolbar-plugins/ ; modal focus-trap failures are a top serial-plaintiff demand-letter item.",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Modal dialogs, off-canvas drawers, and carousels (Bootstrap modal backdrops, slick/swiper slides, third-party overlay libs) that set aria-hidden on containers holding focusable elements",
+      "name": "aria-hidden=\"true\" on (or wrapping) focusable elements",
+      "description": "A container is hidden from AT with aria-hidden=\"true\" but still contains tabbable controls (links, buttons, inputs) that were not made inert / tabindex=-1. Keyboard users can Tab into a control the screen reader refuses to announce — 'focus goes nowhere' — producing a phantom/ghost focus and broken navigation. Common on inactive carousel slides and behind-modal page content.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.1",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div aria-hidden=\"true\">\n  <a href=\"/buy\">Buy now</a>  <!-- still in tab order -->\n</div>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "Mostly auto-detectable (axe rule 'aria-hidden elements do not contain focusable elements'). Included for completeness. Tools can miss it when focusability comes from runtime-added tabindex, or when the aria-hidden is toggled on only in a state (modal open) the scanner never enters; reaching that state is a human/dynamic step.",
+      "realWorldNote": "GetWCAG 4.1.2 fix guide 'avoid focusable elements inside aria-hidden containers'; ACT rules issue 643; UW accessibility 'aria-hidden elements'. https://getwcag.com/en/accessibility-guide/aria-hidden-focus",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "React / Vue / Angular SPA with client-side router (React Router, Vue Router)",
+      "name": "<title> and focus never update on route change",
+      "description": "Client-side navigation swaps the view in place without a full page load. document.title stays at the app's default, and focus remains wherever the user clicked, so screen-reader users hear no page-change announcement and keyboard users are stranded mid-page. The browser history changes but AT perceives nothing — the user has no idea they navigated or where they are.",
+      "wcagScs": [
+        "2.4.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<!-- after navigating /home -> /checkout, title is unchanged -->\n<head><title>My App</title></head>\n<!-- new view rendered; no focus move, no title update -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A single-snapshot scan of any one route finds a present, non-empty <title>, so 2.4.2 passes per page. The failure is the absence of an update across a runtime navigation event — automation auditing one DOM state cannot observe that the title/focus failed to change on transition.",
+      "realWorldNote": "Widely documented SPA failure mode; routers don't reset focus or title on navigation. https://kittygiraudel.com/2020/01/15/accessible-title-in-a-single-page-react-application/ and https://github.com/remix-run/react-router/discussions/9863",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "Page builders using CSS flexbox/grid order (Elementor, Webflow, Bricks, custom responsive layouts)",
+      "name": "Visual reorder via CSS order/row-reverse desyncs DOM/focus order",
+      "description": "Designers rearrange columns/cards visually with flex order, order: -1, flex-direction: row-reverse, or grid placement while leaving DOM order untouched. The page looks correct, but keyboard Tab order and screen-reader reading order follow the (now-stale) DOM, so focus jumps erratically across the page and content is read in a sequence that doesn't match the visual layout. Especially common at the responsive breakpoint where source order was authored for desktop.",
+      "wcagScs": [
+        "1.3.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div style=\"display:flex\">\n  <div style=\"order:2\">Step 1</div>\n  <div style=\"order:1\">Step 2 (appears first visually)</div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "DOM and focus order are technically valid and tools don't compute the rendered visual geometry to compare against tab sequence. Deciding that the visual order is meaningful (a sequence of steps) and therefore must match DOM order requires understanding content meaning and seeing the rendered layout.",
+      "realWorldNote": "Classic Flexbox/Grid reorder pitfall affecting 1.3.2 and 2.4.3. https://wcag.dock.codes/documentation/wcag132/ and https://testparty.ai/blog/wcag-2-4-3-focus-order-2025-guide",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "PDF-to-HTML export tools (Acrobat \"Export as HTML\", InDesign publish, pdf2htmlEX preserved-layout mode)",
+      "name": "Absolutely-positioned spans replace semantic structure",
+      "description": "\"Preserved layout\" conversion reproduces the PDF pixel-for-pixel by emitting hundreds of absolutely-positioned <span>/<div> elements, one per text run, with no headings, lists, or paragraphs — and DOM order driven by the PDF's internal object order, not reading order. Visually identical to the source, but linearized AT output is scrambled: column text interleaves, headings are plain spans, and there is no navigable structure.",
+      "wcagScs": [
+        "1.3.1",
+        "1.3.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div style=\"position:absolute;top:120px;left:48px\">Annual</div>\n<div style=\"position:absolute;top:120px;left:300px\">Report 2024</div>\n<div style=\"position:absolute;top:160px;left:48px\">Revenue grew...</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Markup is valid; there are no missing alts or empty headings to flag. Tools don't reconstruct visual reading flow from absolute coordinates to detect that the DOM sequence diverges from the visual sequence, nor that prominent spans are functioning as headings. Reading order correctness and implied structure are human judgments.",
+      "realWorldNote": "Preserved-layout PDF-to-HTML uses absolutely-positioned spans that destroy semantic structure and reading order. https://www.chhs.colostate.edu/accessibility/best-practices-how-tos/pdf-converted/ and conversion-tool comparisons noting preserved vs reflowable trade-offs.",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

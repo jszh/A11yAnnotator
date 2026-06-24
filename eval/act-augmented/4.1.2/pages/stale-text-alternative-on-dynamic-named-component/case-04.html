@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regional Revenue — NorthStar Analytics</title>
+<!--
+  SC 4.1.2 (with 1.1.1) stale text alternative on a script-repointed NAMED
+  image region. ASPECT: F20, lifted verbatim from F20's own Failure Example 1
+  ("A Sales chart is updated to October results, but the text alternative still
+  describes September results"). Here a quarter selector repoints the chart's
+  rendered bars from Q1 to Q2 data, but the chart's accessible name — supplied
+  by aria-label on a role="img" figure — stays frozen on the Q1 description.
+
+  WHY AUTOMATED TOOLS MISS IT:
+  - The chart is role="img" with a long, descriptive, NON-EMPTY aria-label —
+    exactly what good practice (a "long" text alternative for a complex image)
+    recommends. axe / Lighthouse see a named graphic and pass.
+  - The aria-label even contains real numbers ("Q1: West $1.20M, East $0.94M
+    ...") so it reads as a careful, correct alt — the failure is that those are
+    LAST quarter's numbers after the swap, not that the alt is missing/garbage.
+  - Detecting it requires reading the bar heights/labels NOW rendered and
+    comparing them to the prose numbers in the frozen aria-label. No scanner
+    extracts data from drawn rects and reconciles it with the name string.
+-->
+<style>
+  body { margin:0; font-family:"Inter","Segoe UI",Arial,sans-serif;
+         background:#0f1620; color:#e7edf5; }
+  .app { display:grid; grid-template-columns:200px 1fr; min-height:100vh; }
+  .side { background:#0b1119; border-right:1px solid #1d2836; padding:18px 16px; }
+  .side .logo { font-weight:800; letter-spacing:.5px; color:#5ea0ff;
+                margin-bottom:22px; }
+  .side a { display:block; color:#9fb0c4; text-decoration:none; padding:8px 6px;
+            border-radius:6px; font-size:14px; }
+  .side a.active { background:#16273d; color:#fff; }
+  main { padding:26px 30px; }
+  h1 { font-size:20px; margin:0 0 2px; }
+  .crumb { color:#7c8da0; font-size:13px; margin-bottom:22px; }
+  .toolbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .toolbar .seg { display:inline-flex; border:1px solid #29384a;
+                  border-radius:8px; overflow:hidden; }
+  .toolbar .seg button { background:#121d2b; color:#aebfd2; border:none;
+                         padding:8px 16px; cursor:pointer; font-weight:600;
+                         font-size:13px; }
+  .toolbar .seg button[aria-pressed="true"] { background:#1f63c6; color:#fff; }
+  .toolbar .seg button:focus-visible { outline:3px solid #ffd166;
+                                       outline-offset:-3px; }
+  .chartcard { background:#111a26; border:1px solid #1d2836; border-radius:12px;
+               padding:20px; max-width:620px; }
+  .chartcard figcaption { font-size:13px; color:#9fb0c4; margin-top:12px; }
+  svg { display:block; width:100%; height:auto; }
+  .barlabel { fill:#cdd9e8; font-size:11px; }
+  .axis { stroke:#33455a; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="logo">NorthStar</div>
+    <nav aria-label="Primary">
+      <a href="#" class="active">Revenue</a>
+      <a href="#">Pipeline</a>
+      <a href="#">Retention</a>
+      <a href="#">Forecast</a>
+    </nav>
+  </aside>
+  <main>
+    <h1>Regional Revenue</h1>
+    <div class="crumb">Dashboards / Finance / Regional Revenue</div>
+
+    <div class="toolbar">
+      <span style="font-size:13px;color:#9fb0c4;">Quarter:</span>
+      <div class="seg" role="group" aria-label="Select quarter">
+        <button id="q1" type="button" aria-pressed="true"  onclick="showQuarter('Q1')">Q1</button>
+        <button id="q2" type="button" aria-pressed="false" onclick="showQuarter('Q2')">Q2</button>
+      </div>
+    </div>
+
+    <!-- THE DEFECTIVE NAMED COMPONENT: a role="img" figure whose aria-label is
+         the text alternative for the drawn chart. -->
+    <figure class="chartcard" style="margin:0">
+      <div id="chart" role="img"
+           aria-label="Bar chart, Q1 revenue by region: West $1.20M, East $0.94M, Central $0.71M, South $0.55M. West leads; South trails.">
+        <svg viewBox="0 0 560 240" aria-hidden="true">
+          <line class="axis" x1="60" y1="200" x2="540" y2="200"/>
+          <!-- Bars; heights are rewritten by script. -->
+          <rect id="b0" x="90"  y="40"  width="60" height="160" fill="#5ea0ff"/>
+          <rect id="b1" x="210" y="74"  width="60" height="126" fill="#5ea0ff"/>
+          <rect id="b2" x="330" y="105" width="60" height="95"  fill="#5ea0ff"/>
+          <rect id="b3" x="450" y="127" width="60" height="73"  fill="#5ea0ff"/>
+          <text class="barlabel" x="120" y="216" text-anchor="middle">West</text>
+          <text class="barlabel" x="240" y="216" text-anchor="middle">East</text>
+          <text class="barlabel" x="360" y="216" text-anchor="middle">Central</text>
+          <text class="barlabel" x="480" y="216" text-anchor="middle">South</text>
+          <text id="v0" class="barlabel" x="120" y="32"  text-anchor="middle">$1.20M</text>
+          <text id="v1" class="barlabel" x="240" y="66"  text-anchor="middle">$0.94M</text>
+          <text id="v2" class="barlabel" x="360" y="97"  text-anchor="middle">$0.71M</text>
+          <text id="v3" class="barlabel" x="480" y="119" text-anchor="middle">$0.55M</text>
+        </svg>
+      </div>
+      <figcaption id="cap">Q1 2026 &mdash; figures in USD millions.</figcaption>
+    </figure>
+  </main>
+</div>
+
+<script>
+  // Persona: a data-viz contractor wrote the redraw routine. It updates bar
+  // geometry, value labels, the visible <figcaption>, and the pressed state of
+  // the Q1/Q2 buttons. The contractor thought of aria-label as a one-time
+  // "describe the chart" string set in the template — not as state that must
+  // track the data — so the chart's NAME is permanently the Q1 description.
+  var DATA = {
+    Q1: { vals:[1.20,0.94,0.71,0.55], cap:"Q1 2026" },
+    Q2: { vals:[0.83,1.31,0.78,0.69], cap:"Q2 2026" }
+  };
+  var MAXH = 160, BASE = 200, FULL = 1.35; // scale ref
+  function showQuarter(q) {
+    var d = DATA[q];
+    document.getElementById('q1').setAttribute('aria-pressed', q==='Q1');
+    document.getElementById('q2').setAttribute('aria-pressed', q==='Q2');
+    for (var k=0;k<4;k++) {
+      var h = Math.round((d.vals[k]/FULL)*MAXH);
+      var rect = document.getElementById('b'+k);
+      rect.setAttribute('height', h);
+      rect.setAttribute('y', BASE - h);
+      var vt = document.getElementById('v'+k);
+      vt.textContent = "$"+d.vals[k].toFixed(2)+"M";
+      vt.setAttribute('y', (BASE - h) - 8);
+    }
+    document.getElementById('cap').textContent = d.cap + " — figures in USD millions.";
+    // BUG (F20, Failure Example 1): the chart's aria-label still describes Q1
+    // ("West $1.20M ... West leads; South trails"). After switching to Q2 the
+    // drawn bars show East leading at $1.31M, but a screen-reader user is told
+    // West leads at $1.20M. The text alternative is no longer a substitute for
+    // the chart. Correct: regenerate aria-label from DATA[q] on every switch.
+  }
+</script>
+</body>
+</html>

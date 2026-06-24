@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quillbeck — Add a vendor</title>
+<style>
+  body { margin: 0; font-family: "Helvetica Neue", Arial, sans-serif; background: #eef1f4;
+    color: #23272e; }
+  .topbar { background: #fff; border-bottom: 1px solid #dde1e7; padding: 12px 24px;
+    display: flex; align-items: center; gap: 10px; }
+  .topbar .mark { display: inline-flex; align-items: center; gap: 8px; font-weight: 700;
+    color: #b8472e; font-size: 16px; }
+  .topbar .mark svg { width: 22px; height: 22px; }
+  .crumbs { color: #7a818b; font-size: 12.5px; margin-left: 8px; }
+  .container { max-width: 680px; margin: 30px auto; background: #fff; border: 1px solid #dde1e7;
+    border-radius: 10px; padding: 28px 30px 34px; }
+  h1 { font-size: 19px; margin: 0 0 24px; }
+  label.txt { display: block; font-size: 13px; font-weight: 600; color: #3a3f47;
+    margin: 0 0 6px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 22px; }
+  .full { grid-column: 1 / -1; }
+  input.std { width: 100%; box-sizing: border-box; border: 1px solid #cbd1d9; border-radius: 7px;
+    padding: 10px 12px; font-size: 14px; }
+  input.std:focus { outline: 0; border-color: #b8472e; box-shadow: 0 0 0 3px rgba(184,71,46,.15); }
+
+  /* The mystery field: only cue is the Quillbeck brand-mark glyph (a decorative quill+square). */
+  .branded { display: flex; align-items: stretch; border: 1px solid #cbd1d9; border-radius: 7px;
+    overflow: hidden; }
+  .branded:focus-within { border-color: #b8472e; box-shadow: 0 0 0 3px rgba(184,71,46,.15); }
+  .branded .brandcue { width: 46px; flex: 0 0 46px; display: grid; place-items: center;
+    background: #fbeeea; border-right: 1px solid #f0d8d0; color: #b8472e; }
+  .branded .brandcue svg { width: 22px; height: 22px; }
+  .branded input { border: 0; outline: 0; flex: 1 1 auto; min-width: 0; padding: 10px 12px;
+    font-size: 14px; }
+
+  .save { margin-top: 28px; background: #b8472e; color: #fff; border: 0; border-radius: 7px;
+    padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .devnote { max-width: 680px; margin: 22px auto 60px; font-size: 12px; color: #6b727c;
+    line-height: 1.55; padding: 0 4px; }
+  code { background: #eef1f4; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="mark">
+      <!-- The brand mark: a stylised quill nib inside a rounded square. Decorative. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="5"></rect>
+        <path d="M8 16c4-1 6-3 8-8-3 1-6 3-8 8z"></path>
+        <line x1="8" y1="16" x2="10" y2="14"></line>
+      </svg>
+      Quillbeck
+    </span>
+    <span class="crumbs">Accounts payable › Vendors › New</span>
+  </div>
+
+  <main class="container" aria-labelledby="vh">
+    <h1 id="vh">Add a vendor</h1>
+
+    <form onsubmit="return false" novalidate>
+      <div class="grid">
+        <div>
+          <label class="txt" for="vname">Vendor name</label>
+          <input class="std" id="vname" type="text" autocomplete="organization">
+        </div>
+        <div>
+          <label class="txt" for="vemail">Billing email</label>
+          <input class="std" id="vemail" type="email" autocomplete="email">
+        </div>
+
+        <!-- FAILURE: the field below has NO text label. Its only visible cue is the Quillbeck
+             brand-mark glyph (the same decorative quill icon from the top bar), repurposed as
+             the field's icon. The brand mark carries no inherent meaning about data entry; it
+             does not signify "Quillbeck Vendor ID". A sighted user cannot infer the field wants
+             the internal vendor account number. The icon has an accessible name (aria-label),
+             so 4.1.2 sees a name and passes — but a decorative brand mark is not a label that
+             communicates the field's purpose to a sighted user, so 3.3.2 fails. -->
+        <div class="full">
+          <div class="branded">
+            <span class="brandcue" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="5"></rect>
+                <path d="M8 16c4-1 6-3 8-8-3 1-6 3-8 8z"></path>
+                <line x1="8" y1="16" x2="10" y2="14"></line>
+              </svg>
+            </span>
+            <input type="text" aria-label="Quillbeck vendor account ID"
+                   autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="save">Save vendor</button>
+    </form>
+  </main>
+
+  <p class="devnote">
+    Why automated checkers pass: the input exposes an accessible name via
+    <code>aria-label="Quillbeck vendor account ID"</code>, so axe-core / WAVE report a labeled
+    field, and the decorative brand SVG is <code>aria-hidden="true"</code>. No tool can recognise
+    that the rendered glyph is merely the company logo reused as a field icon, nor reason that a
+    brand mark conveys no field-purpose meaning to a sighted user. That is a human visual-semantic
+    judgment about whether the glyph is "widely understood" for this field.
+  </p>
+</body>
+</html>

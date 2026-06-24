@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seat Selection — TransAlpine Rail Booking</title>
+<style>
+  body { margin: 0; font-family: "DejaVu Sans", Verdana, sans-serif; background: #10231f; color: #e7f0ec; }
+  header { background: #0c1a17; padding: 14px 22px; border-bottom: 2px solid #2f8f6b; }
+  header h1 { margin: 0; font-size: 1.15rem; color: #7fe3b8; }
+  .wrap { max-width: 760px; margin: 24px auto; padding: 0 16px; }
+  .stepper { display: flex; gap: 6px; font-size: .8rem; color: #9fc8b8; margin-bottom: 18px; }
+  .stepper span { padding: 4px 10px; border-radius: 12px; background: #173a32; }
+  .stepper span.cur { background: #2f8f6b; color: #04140e; font-weight: 700; }
+  .seatmap { border: 1px solid #2f8f6b; border-radius: 10px; padding: 18px; background: #0e2620; }
+  .seatmap p.lead { margin-top: 0; color: #bfe6d6; }
+  .coach { display: grid; grid-template-columns: repeat(4, 56px); gap: 10px; margin: 14px 0; justify-content: center; }
+  .seat { width: 56px; height: 44px; border: 1px solid #3aa178; border-radius: 6px; background: #143a31;
+          color: #d8f3e8; font-size: .8rem; cursor: pointer; }
+  .seat[aria-pressed="true"] { background: #34c98a; color: #04140e; font-weight: 700; }
+  .seat:focus { outline: 3px solid #f4c542; outline-offset: 2px; }
+  .legend { font-size: .78rem; color: #9fc8b8; display: flex; gap: 18px; align-items: center; }
+  .legend .exit-note { margin-left: auto; }
+  .legend .exit-note strong { color: #f4c542; }
+  .next { margin-top: 18px; background: #34c98a; border: 0; color: #04140e; padding: 10px 22px;
+          border-radius: 6px; font-weight: 700; cursor: pointer; }
+  a { color: #7fe3b8; }
+  footer { max-width: 760px; margin: 16px auto 44px; padding: 0 16px; font-size: .76rem; color: #6f9a8a; }
+</style>
+</head>
+<body>
+<header><h1>TransAlpine Rail &middot; Zürich → Milano</h1></header>
+<div class="wrap">
+  <div class="stepper">
+    <span>Journey</span><span>Passengers</span><span class="cur">Seats</span><span>Payment</span>
+  </div>
+
+  <a href="/journey/edit">&larr; Change journey</a>
+
+  <!-- The seat grid is an arrow-key roving-tabindex widget that TRAPS: arrow keys move between
+       seats, Tab is intercepted so focus stays in the coach map, and a custom exit advances to the
+       "Continue" button. The visible exit advice tells the user to press Ctrl+M — and that text is
+       ACCURATE-LOOKING. But the keydown handler actually releases on Alt+M (right key letter, wrong
+       modifier). A keyboard user who reads the on-screen instruction and presses the documented
+       combo stays trapped. The advice is present and reachable, but it does not match the working
+       escape. -->
+  <section class="seatmap" aria-label="Coach 7 seat map">
+    <p class="lead">Choose a seat in Coach 7. Use the arrow keys to move between seats and Enter to select.</p>
+    <div class="coach" id="coach" role="grid" aria-label="Seats">
+      <button class="seat" type="button" aria-pressed="false">3A</button>
+      <button class="seat" type="button" aria-pressed="false">3B</button>
+      <button class="seat" type="button" aria-pressed="false">3C</button>
+      <button class="seat" type="button" aria-pressed="false">3D</button>
+      <button class="seat" type="button" aria-pressed="false">4A</button>
+      <button class="seat" type="button" aria-pressed="false">4B</button>
+      <button class="seat" type="button" aria-pressed="false">4C</button>
+      <button class="seat" type="button" aria-pressed="false">4D</button>
+    </div>
+    <p class="legend">
+      <span>Selected seat is highlighted.</span>
+      <span class="exit-note">To leave the seat map, <strong>press Ctrl+M</strong>.</span>
+    </p>
+  </section>
+
+  <button class="next" id="continue" type="button">Continue to payment</button>
+</div>
+<footer>
+  TransAlpine Rail AG &middot; Need help? Call +41 44 000 00 00
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    Every control is a real <button> with a visible name; the exit instruction is present, on-screen,
+    and reachable; the grid has roles. Nothing is missing or empty, so axe / WAVE / Lighthouse pass
+    it. The defect is a SEMANTIC MISMATCH between the documented keystroke ("Ctrl+M") and the keystroke
+    the handler actually listens for (Alt+M). A static scanner does not read prose instructions, does
+    not parse the keydown handler's modifier check, and certainly does not cross-reference the two. Only
+    a human who reads "press Ctrl+M", then drives the keyboard and finds Ctrl+M does nothing while
+    Alt+M escapes, can detect that the documented exit is inaccurate. G21 requires the documented
+    feature to actually be the one that moves focus away.
+  -->
+</footer>
+
+<script>
+(function () {
+  var seats = Array.prototype.slice.call(document.querySelectorAll('.seat'));
+  var coach = document.getElementById('coach');
+  var trapOn = false;
+  var idx = 0;
+
+  seats.forEach(function (s, i) {
+    s.tabIndex = i === 0 ? 0 : -1;
+    s.addEventListener('focus', function () { trapOn = true; idx = i; });
+    s.addEventListener('click', function () {
+      var on = s.getAttribute('aria-pressed') === 'true';
+      seats.forEach(function (o) { o.setAttribute('aria-pressed', 'false'); });
+      s.setAttribute('aria-pressed', on ? 'false' : 'true');
+    });
+  });
+
+  coach.addEventListener('keydown', function (e) {
+    // Trap Tab inside the coach map.
+    if (e.key === 'Tab') { e.preventDefault(); }
+
+    // Arrow roving.
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault(); idx = (idx + 1) % seats.length;
+      seats.forEach(function (o) { o.tabIndex = -1; });
+      seats[idx].tabIndex = 0; seats[idx].focus();
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); idx = (idx - 1 + seats.length) % seats.length;
+      seats.forEach(function (o) { o.tabIndex = -1; });
+      seats[idx].tabIndex = 0; seats[idx].focus();
+    }
+
+    // DOCUMENTED exit is "Ctrl+M" — but the handler fires on Alt+M. Right key, wrong modifier.
+    if (e.altKey && (e.key === 'm' || e.key === 'M')) {
+      e.preventDefault();
+      trapOn = false;
+      document.getElementById('continue').focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

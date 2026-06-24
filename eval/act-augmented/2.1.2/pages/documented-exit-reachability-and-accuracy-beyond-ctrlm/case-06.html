@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signature Capture — LeaseFlow Tenant Onboarding</title>
+<style>
+  body { margin: 0; font-family: "PT Sans", Tahoma, sans-serif; background: #eceff3; color: #232a33; }
+  header { background: #2b3a55; color: #fff; padding: 14px 24px; }
+  header h1 { margin: 0; font-size: 1.15rem; }
+  .doc { max-width: 760px; margin: 22px auto; background: #fff; border: 1px solid #c8d0db; border-radius: 8px; padding: 24px; }
+  .clause { font-size: .9rem; line-height: 1.5; color: #3c4654; }
+  .sign-region { border: 2px solid #2b3a55; border-radius: 8px; padding: 16px; margin: 18px 0; background: #f7f9fc; position: relative; }
+  .sign-region h2 { margin: 0 0 8px; font-size: 1rem; color: #2b3a55; }
+  .sign-region .hdr { display: flex; align-items: center; gap: 8px; }
+  .pad { border: 1px dashed #9aa7b8; border-radius: 6px; height: 90px; background: #fff; margin: 10px 0; display: flex; align-items: center; justify-content: center; color: #9aa7b8; font-style: italic; }
+  .sign-region input[type=text] { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #aab6c6; border-radius: 4px; }
+  .sign-region .clear { margin-top: 8px; border: 0; background: #2b3a55; color: #fff; border-radius: 4px; padding: 7px 14px; cursor: pointer; font-size: .85rem; }
+  .info-dot { margin-left: auto; width: 26px; height: 26px; border-radius: 50%; background: #2b3a55; color: #fff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+  .popover { position: absolute; right: 16px; top: 48px; width: 250px; background: #232a33; color: #fff; padding: 12px 14px; border-radius: 8px; font-size: .82rem; box-shadow: 0 6px 18px rgba(0,0,0,.3); display: none; z-index: 5; }
+  .popover.open { display: block; }
+  .popover kbd { background: #fff; color: #232a33; border-radius: 3px; padding: 1px 5px; font-size: .76rem; }
+  .finish { display: block; margin: 20px auto 0; background: #1f7a4d; color: #fff; border: 0; border-radius: 6px; padding: 10px 24px; font-weight: 700; cursor: pointer; }
+  a { color: #2f6fb0; }
+  footer { max-width: 760px; margin: 16px auto 44px; padding: 0 16px; font-size: .78rem; color: #6c7888; }
+</style>
+</head>
+<body>
+<header><h1>LeaseFlow &middot; Tenant Onboarding</h1></header>
+<div class="doc">
+  <p class="clause">By signing below you acknowledge the terms of the 12-month residential lease for
+     Unit 4B, 88 Harbor Lane, including the pet addendum and the utility allocation schedule.</p>
+
+  <a href="/lease/download.pdf">Download full lease (PDF)</a>
+
+  <!-- The signature region is a focus-trapping subset: the legal-name field and the Clear button loop
+       focus so the tenant completes the signature before tabbing on. The real, working exit is Ctrl+M.
+       The escape advice is locked inside a popover that opens ONLY from the round "i" badge — and that
+       badge is a <div> with an onclick handler but NO tabindex, NO role, and NO key handler, so a
+       keyboard user can never open the popover. On top of that, the advice the popover would reveal is
+       itself WRONG: it tells the user to "press Esc", but Esc does nothing; the working key is Ctrl+M.
+       So the documented exit is both unreachable by keyboard AND inaccurate. -->
+  <section class="sign-region" id="signRegion" aria-label="Signature">
+    <div class="hdr">
+      <h2>Sign here</h2>
+      <!-- Mouse-only opener: div with onclick, not focusable, no key handler. -->
+      <div class="info-dot" id="infoDot" onclick="togglePop()" aria-hidden="true">i</div>
+    </div>
+    <div class="popover" id="popover">
+      <strong>Keyboard tip:</strong> this signature box keeps focus until you finish. To move on,
+      press <kbd>Esc</kbd>.
+    </div>
+    <div class="pad">Draw or type your signature</div>
+    <input type="text" id="legalName" placeholder="Type your full legal name" aria-label="Full legal name">
+    <button class="clear" type="button" id="clearSig">Clear signature</button>
+  </section>
+
+  <button class="finish" id="finish" type="button">Finish &amp; submit lease</button>
+</div>
+<footer>
+  LeaseFlow Inc. &middot; Electronic signatures are legally binding under the E-SIGN Act.
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    Markup looks fine to a scanner: the field has an aria-label, the Clear/Finish controls are real
+    buttons, and an escape instruction string exists in the DOM. Two human-only defects stack here.
+    (1) REACHABILITY: the advice lives in a popover whose ONLY trigger is a <div onclick> with no
+    tabindex/role/keydown — invisible to the keyboard and to the accessibility tree as a control, so a
+    trapped keyboard user can never open it. axe may not even flag the div (it has no name to be wrong)
+    and certainly can't tell the popover is the sole home of the exit instruction. (2) ACCURACY: even if
+    opened, the popover says "press Esc", but the working exit is Ctrl+M — Esc is dead. Catching either
+    defect needs a human to drive the keyboard, discover the popover is unopenable, then discover the
+    documented key is the wrong one. G21 requires the feature be documented "in an accessible manner
+    within the subset" — a mouse-only, inaccurate tip is neither accessible nor correct.
+  -->
+</footer>
+
+<script>
+(function () {
+  var region = document.getElementById('signRegion');
+  var fields = [document.getElementById('legalName'), document.getElementById('clearSig')];
+  var first = fields[0];
+  var trapOn = false;
+
+  fields.forEach(function (el) {
+    el.addEventListener('focus', function () { trapOn = true; });
+    el.addEventListener('blur', function () {
+      if (trapOn) setTimeout(function () { if (trapOn) first.focus(); }, 0);
+    });
+  });
+
+  // Working custom exit is Ctrl+M. (Esc — which the popover advertises — does nothing.)
+  region.addEventListener('keydown', function (e) {
+    if (e.ctrlKey && (e.key === 'm' || e.key === 'M')) {
+      e.preventDefault();
+      trapOn = false;
+      document.getElementById('finish').focus();
+    }
+    // Note: no Esc branch on purpose — the documented key is wrong.
+  });
+
+  // Popover opener is mouse-only by design (div onclick, no keyboard path).
+  window.togglePop = function () {
+    document.getElementById('popover').classList.toggle('open');
+  };
+})();
+</script>
+</body>
+</html>

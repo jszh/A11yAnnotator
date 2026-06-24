@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Casework — Document Upload</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#13202b; background:#eef2f5; }
+  .app { max-width:560px; margin:40px auto; background:#fff; border:1px solid #d8dee3; border-radius:12px; padding:28px; }
+  h1 { font-size:19px; margin:0 0 4px; }
+  .sub { color:#5d6b76; font-size:13px; margin:0 0 22px; }
+  .file { display:flex; align-items:center; gap:12px; padding:14px; border:1px solid #e2e8ed; border-radius:9px; }
+  .file .nm { font-weight:600; }
+  .file .meta { color:#5d6b76; font-size:12.5px; }
+  .bar { height:8px; background:#e2e8ed; border-radius:99px; overflow:hidden; margin-top:14px; }
+  .bar > i { display:block; height:100%; width:0; background:#2f7d4f; transition:width .25s; }
+  .status-line { margin-top:10px; font-size:14px; color:#2f7d4f; font-weight:600; }
+  button { font:inherit; margin-top:20px; cursor:pointer; border:0; border-radius:8px; padding:11px 18px; background:#13202b; color:#fff; }
+  button:focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
+  footer { max-width:560px; margin:18px auto; color:#5d6b76; font-size:12.5px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Upload supporting document</h1>
+  <p class="sub">Case #C-20418 · Allowed: PDF, JPG · Max 25 MB</p>
+
+  <div class="file">
+    <span aria-hidden="true">📄</span>
+    <span>
+      <span class="nm">deed-of-trust.pdf</span><br>
+      <span class="meta">4.2 MB</span>
+    </span>
+  </div>
+
+  <div class="bar"><i id="fill"></i></div>
+
+  <!--
+    The author DID read part of ARIA22 ("add aria-atomic") but mis-applied it: they set
+    aria-atomic="FALSE" on the live region (perhaps copy-pasting a snippet, perhaps to "stop
+    it repeating the filename"). With aria-atomic=false, only the changed subtree is spoken.
+    JS rewrites ONLY the inner <span id="pct"> percentage node, so AT announces a bare "85"
+    on each tick — never "85 percent complete".
+  -->
+  <p class="status-line" id="upload-status" role="status" aria-atomic="false">
+    Uploading: <span id="pct">0</span>% complete
+  </p>
+
+  <button id="go" type="button">Start upload</button>
+</div>
+
+<footer>
+  <strong>Why automated tools miss this:</strong> a <code>role="status"</code> region with
+  <code>aria-atomic="false"</code> is entirely valid ARIA — no linter flags a false-valued
+  boolean attribute, and axe/Lighthouse/WAVE applaud the live region's presence. The defect
+  is behavioural and semantic: only the inner percentage node mutates, and aria-atomic=false
+  forces AT to speak the bare "85" with no "percent complete." No automated rule evaluates
+  whether the announced fragment is intelligible alone.
+</footer>
+
+<script>
+  // Progressive upload simulation. Only the inner percentage node is rewritten each tick.
+  var pctEl = document.getElementById('pct');
+  var fill = document.getElementById('fill');
+  var t = null;
+  document.getElementById('go').addEventListener('click', function () {
+    if (t) return;
+    var p = 0;
+    t = setInterval(function () {
+      p += Math.floor(Math.random() * 9) + 4;
+      if (p >= 100) { p = 100; clearInterval(t); t = null; }
+      fill.style.width = p + '%';
+      // ONLY the percentage value node updates; aria-atomic="false" means AT speaks only "85".
+      pctEl.textContent = String(p);
+    }, 420);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auto Insurance Quote — Coverage &amp; Payment</title>
+<style>
+  :root { --page: #ffffff; }
+  body {
+    font-family: "Segoe UI", system-ui, Arial, sans-serif;
+    margin: 0; background: var(--page); color: #1a1a1a; line-height: 1.5;
+  }
+  header { background: #0b3d62; color: #fff; padding: 18px 28px; }
+  header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+  header p { margin: 4px 0 0; font-size: .85rem; color: #cfe2f0; }
+  main { max-width: 760px; margin: 0 auto; padding: 28px; }
+  fieldset { border: 1px solid #d6d6d6; border-radius: 8px; margin: 0 0 26px; padding: 18px 20px; }
+  legend { font-weight: 600; padding: 0 6px; color: #0b3d62; }
+  label { display: block; font-size: .9rem; margin: 12px 0 4px; }
+  input[type=text], input[type=email], select {
+    width: 100%; box-sizing: border-box; padding: 9px 10px;
+    border: 1px solid #767676; border-radius: 5px; font-size: .95rem;
+  }
+  .row { display: flex; gap: 16px; }
+  .row > div { flex: 1; }
+  .actions { display: flex; gap: 14px; align-items: center; margin-top: 8px; }
+
+  /*
+   * The two action buttons below are STYLED IDENTICALLY: a ~1.66:1 faint grey
+   * border (#c9c9c9) on a white page, faint grey label text. The ONLY
+   * difference is behavioral: #pay-now is a live, operable button; #autopay
+   * carries the native `disabled` attribute and is inert.
+   * Contrast of border #c9c9c9 on #ffffff ≈ 1.66:1 (well under 3:1).
+   */
+  .ghost-btn {
+    appearance: none; background: #ffffff;
+    border: 2px solid #c9c9c9;          /* ~1.66:1 vs white — fails 3:1 */
+    color: #8a8a8a;                      /* label color */
+    border-radius: 6px; padding: 11px 22px;
+    font-size: .95rem; font-weight: 600; cursor: pointer;
+  }
+  .ghost-btn:disabled { cursor: not-allowed; }   /* same colors, no palette change */
+  .note {
+    background: #f4f8fb; border-left: 4px solid #0b3d62;
+    padding: 12px 16px; font-size: .82rem; color: #33424d; margin-top: 26px;
+  }
+  .hint { font-size: .78rem; color: #555; margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Harbourline Auto — Step 4 of 4: Coverage &amp; Payment</h1>
+  <p>Policy #HL-2026-44871 · Review your selections and confirm payment</p>
+</header>
+
+<main>
+  <form id="quote" novalidate>
+    <fieldset>
+      <legend>Cardholder details</legend>
+      <div class="row">
+        <div>
+          <label for="name">Name on card</label>
+          <input type="text" id="name" name="name" autocomplete="cc-name" value="J. Okafor">
+        </div>
+        <div>
+          <label for="email">Receipt email</label>
+          <input type="email" id="email" name="email" autocomplete="email" value="j.okafor@example.com">
+        </div>
+      </div>
+      <label for="plan">Billing plan</label>
+      <select id="plan" name="plan">
+        <option>Pay in full — $1,184/yr</option>
+        <option selected>Monthly — $104/mo</option>
+      </select>
+    </fieldset>
+
+    <fieldset>
+      <legend>Confirm</legend>
+      <p style="font-size:.9rem;margin:4px 0 14px">
+        Your card ending <strong>•••• 4012</strong> will be charged today.
+      </p>
+
+      <div class="actions">
+        <!-- ACTIVE, operable control: must meet 3:1 for its identifying border -->
+        <button type="submit" id="pay-now" class="ghost-btn">Pay now</button>
+
+        <!-- GENUINELY inactive: native disabled attribute, removed from tab order -->
+        <button type="button" id="autopay" class="ghost-btn" disabled
+                aria-describedby="autopay-hint">Enroll in AutoPay</button>
+      </div>
+      <p id="autopay-hint" class="hint">
+        AutoPay enrollment opens after your first successful payment.
+      </p>
+    </fieldset>
+  </form>
+
+  <div class="note">
+    <strong>Why automated tools miss this:</strong> Both buttons share the exact
+    same faint palette (2px <code>#c9c9c9</code> border ≈ 1.46:1 on white). A
+    contrast scanner measures pixels, so it will treat the two buttons
+    identically — either flagging <em>both</em> or, because many scanners skip
+    the <code>disabled</code> subtree, skipping <em>both</em>. Neither is correct.
+    The disabled <q>Enroll in AutoPay</q> button is exempt (inactive UI), but
+    the operable <q>Pay now</q> button is NOT — its border is the only thing
+    distinguishing the control from the page and it must reach 3:1. Deciding
+    which faint button is in scope requires recognizing which one is actually
+    operable, a behavioral/semantic judgement no pixel scan makes.
+  </div>
+</main>
+
+<script>
+  // #pay-now is genuinely live (proves it is an active UI component).
+  document.getElementById('quote').addEventListener('submit', function (e) {
+    e.preventDefault();
+    document.getElementById('pay-now').textContent = 'Processing…';
+  });
+</script>
+</body>
+</html>

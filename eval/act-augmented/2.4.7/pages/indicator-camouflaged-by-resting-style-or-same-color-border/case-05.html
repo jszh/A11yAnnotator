@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>هيئة النقل العام — حجز بطاقة الحافلة</title>
+  <style>
+    body {
+      font-family: "Cairo", "Segoe UI", Tahoma, sans-serif;
+      margin: 0;
+      background: #f6f4ef;
+      color: #1a1a1a;
+      line-height: 1.7;
+    }
+    .container { max-width: 540px; margin: 0 auto; padding: 28px 18px 70px; }
+    .agency {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .agency .logo {
+      width: 42px; height: 42px;
+      background: #0a6b3b;
+      color: #fff;
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .agency h1 { font-size: 19px; margin: 0; }
+    .agency p  { font-size: 12px; margin: 0; color: #5c5c5c; }
+    .form-card {
+      background: #fff;
+      border: 1px solid #e2ded4;
+      border-radius: 10px;
+      padding: 22px;
+      margin-top: 18px;
+    }
+    .field { margin-bottom: 18px; }
+    label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 7px; }
+
+    /* ---- The defect lives here (F78 mode 3, RTL form) --------------------
+       A government transit agency themed its booking form with a strong
+       "framed input" look: every field carries a permanent 3px solid
+       near-black (#1a1a1a) border so the form reads as bold and official.
+
+       The author DID write a focus style (so this does not depend on any
+       UA default ring): on :focus-visible the control draws a 2px solid
+       outline -- BUT the author picked the same near-black #1a1a1a as the
+       resting border, and used outline-offset:0 so the thin ring is laid
+       directly against the thicker 3px near-black frame and is absorbed by
+       it. Focus therefore DOES paint pixels (the 2px outline is really
+       drawn), so nothing reports "outline:none"; yet a keyboard user cannot
+       tell which field is focused because a 2px near-black ring is occluded
+       by the surrounding 3px near-black border -- exactly F78 mode 3. The
+       colour is author-chosen, so the failure is renderer-independent (it
+       does not rely on the browser's default blue ring). The RTL direction
+       does not change the failure; it broadens the corpus beyond LTR
+       link-only fixtures.                                                   */
+    input[type="text"],
+    input[type="date"],
+    select {
+      width: 100%;
+      box-sizing: border-box;
+      font: inherit;
+      font-size: 15px;
+      padding: 9px 11px;
+      border: 3px solid #1a1a1a;     /* thick near-black resting frame */
+      border-radius: 6px;
+      background: #fff;
+      color: #1a1a1a;
+    }
+    /* Author-supplied focus ring -- SAME near-black as the resting border,
+       drawn flush against it (offset 0), so it is swallowed by the 3px frame. */
+    input[type="text"]:focus-visible,
+    input[type="date"]:focus-visible,
+    select:focus-visible,
+    .submit:focus-visible {
+      outline: 2px solid #1a1a1a;    /* == resting border colour */
+      outline-offset: 0;             /* ring laid on top of the near-black frame */
+    }
+    .row { display: flex; gap: 12px; }
+    .row .field { flex: 1; }
+    .submit {
+      font: inherit;
+      font-weight: 700;
+      width: 100%;
+      padding: 12px;
+      border: 3px solid #1a1a1a;     /* same framed style on the button */
+      border-radius: 6px;
+      background: #0a6b3b;
+      color: #fff;
+      cursor: pointer;
+    }
+    .note {
+      margin-top: 26px;
+      font-size: 12.5px;
+      color: #333;
+      background: #f1efe8;
+      border-inline-start: 4px solid #b3ad9e;
+      padding: 12px 14px;
+      line-height: 1.6;
+      direction: rtl;
+    }
+    .note .en { display: block; margin-top: 8px; direction: ltr; text-align: left; color: #444; }
+    code { background: #e9e6dd; padding: 1px 4px; border-radius: 3px; direction: ltr; display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="agency">
+      <span class="logo" aria-hidden="true">نقل</span>
+      <div>
+        <h1>حجز بطاقة الحافلة الشهرية</h1>
+        <p>هيئة النقل العام — خدمة المواطنين</p>
+      </div>
+    </div>
+
+    <form class="form-card" action="/booking" method="post" novalidate>
+      <div class="field">
+        <label for="name">الاسم الكامل</label>
+        <input type="text" id="name" name="name" value="منى عبد الرحمن">
+      </div>
+
+      <div class="field">
+        <label for="id">رقم الهوية الوطنية</label>
+        <input type="text" id="id" name="id" placeholder="١٠ أرقام">
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="line">خط الحافلة</label>
+          <select id="line" name="line">
+            <option>الخط ٢٧ — وسط المدينة</option>
+            <option>الخط ٤٢ — المطار</option>
+            <option>الخط ٩ — الجامعة</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="start">تاريخ البدء</label>
+          <input type="date" id="start" name="start" value="2026-07-01">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="zone">المنطقة</label>
+        <select id="zone" name="zone">
+          <option>منطقة واحدة</option>
+          <option>منطقتان</option>
+          <option>كل المناطق</option>
+        </select>
+      </div>
+
+      <button type="submit" class="submit">تأكيد الحجز</button>
+    </form>
+
+    <div class="note">
+      <strong>ملاحظة حول إمكانية الوصول.</strong>
+      كتب المطوّر نمطًا للتركيز فعلاً، لكنه اختار حلقةً بسمك بكسلين وبلون أسود
+      (‎#1a1a1a‎) يطابق لون الإطار الدائم بسمك ٣ بكسل، وبدون إزاحة، فتُرسم الحلقة
+      ملاصقةً للإطار السميك بنفس اللون فيبتلعها، ولا يستطيع مستخدم لوحة المفاتيح
+      تمييز الحقل الذي يحمل التركيز.
+      <span class="en">
+        <strong>Why automated tools miss this.</strong>
+        Focus is NOT disabled: an author <code>:focus-visible</code> rule paints
+        a real <code>outline:2px solid #1a1a1a</code>, so no control uses
+        <code>outline:none</code> and a focused/unfocused pixel diff is non-zero
+        — axe-core, WAVE and Lighthouse pass 2.4.7. But the author chose the
+        ring in the SAME near-black as the permanent <code>border:3px solid
+        #1a1a1a</code> and set <code>outline-offset:0</code>, so the thinner ring
+        is drawn flush against the thicker same-colour frame and is occluded by
+        it; a keyboard user cannot tell which control is focused. Concluding that
+        a same-colour ring against a thicker same-colour border fails the
+        "visible" definition requires a human comparing the focused edge to its
+        adjacent border colour (F78 mode&nbsp;3). The colour is author-set, so
+        the failure does not depend on the browser's default ring; the
+        RTL/Arabic context does not change the verdict.
+      </span>
+    </div>
+  </div>
+</body>
+</html>

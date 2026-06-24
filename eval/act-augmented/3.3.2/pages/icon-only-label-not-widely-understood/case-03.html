@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northvale Invest — Build your portfolio</title>
+<style>
+  body { margin: 0; font-family: Georgia, "Times New Roman", serif; background: #fbfaf7;
+    color: #20211f; }
+  .wrap { max-width: 600px; margin: 0 auto; padding: 40px 22px 80px; }
+  .masthead { border-bottom: 2px solid #0a3d2e; padding-bottom: 14px; margin-bottom: 30px; }
+  .masthead .name { font-size: 22px; color: #0a3d2e; letter-spacing: .5px; }
+  .masthead .tag { font-size: 12px; color: #6d7068; font-family: Arial, sans-serif;
+    text-transform: uppercase; letter-spacing: 1.5px; }
+  h1 { font-size: 21px; margin: 0 0 6px; }
+  .intro { color: #555851; font-size: 14.5px; line-height: 1.6; margin: 0 0 30px; }
+
+  .card { background: #fff; border: 1px solid #e4e1d8; border-radius: 6px;
+    padding: 26px 24px; box-shadow: 0 1px 0 rgba(0,0,0,.03); }
+  .qtext { font-family: Arial, sans-serif; }
+
+  .control { display: flex; align-items: center; gap: 16px; margin: 24px 0 6px; }
+  /* The sole cue: an "equalizer / sliders" glyph standing in for "risk tolerance". */
+  .eq { width: 46px; height: 46px; flex: 0 0 46px; border: 1px solid #cfd3c9;
+    border-radius: 50%; display: grid; place-items: center; color: #0a3d2e; background: #f3f6f1; }
+  .eq svg { width: 24px; height: 24px; }
+  .control input { flex: 1 1 auto; min-width: 0; font-family: Arial, sans-serif; font-size: 15px;
+    border: 0; border-bottom: 2px solid #b9bdb2; padding: 8px 2px; background: transparent; }
+  .control input:focus { outline: 0; border-bottom-color: #0a3d2e; }
+  .units { font-family: Arial, sans-serif; font-size: 13px; color: #6d7068; }
+
+  .next { font-family: Arial, sans-serif; margin-top: 30px; background: #0a3d2e; color: #fff;
+    border: 0; border-radius: 4px; padding: 12px 26px; font-size: 14px; cursor: pointer; }
+  .legal { font-family: Arial, sans-serif; font-size: 11.5px; color: #8a8d83; margin-top: 22px; line-height: 1.5; }
+  .devnote { font-family: Arial, sans-serif; font-size: 12px; color: #6d7068;
+    line-height: 1.55; margin-top: 30px; }
+  code { background: #f0efe9; padding: 1px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+    <div class="name">Northvale Invest</div>
+    <div class="tag">Private Wealth · Robo-Advisor</div>
+  </div>
+
+  <h1>Build your portfolio</h1>
+  <p class="intro">
+    We use a short set of inputs to model an allocation across equities, bonds, and cash.
+    You can revise any of these later from your dashboard.
+  </p>
+
+  <section class="card" aria-labelledby="step2">
+    <h2 class="qtext" id="step2" style="font-size:15px;margin:0 0 4px;">Step 2 of 4 — Preferences</h2>
+
+    <form onsubmit="return false" novalidate>
+      <!-- FAILURE: the only visible cue for this field is a generic "equalizer / sliders"
+           glyph. Sliders are conventionally a MIXING / settings metaphor; here the field
+           silently expects the investor's risk-tolerance score (1-10). There is no text,
+           no tooltip. A sighted user cannot infer from three horizontal sliders that the
+           field means "how much risk can you tolerate". The icon has an accessible name
+           (aria-label) so 4.1.2 passes, but the rendered glyph is not conventionally
+           associated with "risk tolerance", so the visible-cue limb of 3.3.2 fails. -->
+      <div class="control">
+        <span class="eq" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round">
+            <line x1="4" y1="7" x2="20" y2="7"></line>
+            <circle cx="9" cy="7" r="2.3" fill="#f3f6f1"></circle>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <circle cx="15" cy="12" r="2.3" fill="#f3f6f1"></circle>
+            <line x1="4" y1="17" x2="20" y2="17"></line>
+            <circle cx="7" cy="17" r="2.3" fill="#f3f6f1"></circle>
+          </svg>
+        </span>
+        <input type="text" inputmode="numeric"
+               aria-label="Risk tolerance score from 1 to 10" autocomplete="off">
+        <span class="units">/ 10</span>
+      </div>
+
+      <button type="submit" class="next">Continue</button>
+    </form>
+
+    <p class="legal">
+      Investing involves risk, including possible loss of principal. Northvale Invest LLC is a
+      registered investment adviser. This is not an offer or solicitation in any jurisdiction.
+    </p>
+  </section>
+
+  <p class="devnote">
+    Why automated checkers pass: the input has an <code>aria-label="Risk tolerance score…"</code>,
+    so axe-core / Lighthouse confirm an accessible name and report no label violation; the SVG is
+    <code>aria-hidden</code>. No tool renders the three-slider glyph or knows that an "equalizer"
+    is not a recognised symbol for financial risk tolerance. Judging that a sighted investor cannot
+    read "risk tolerance" out of a mixer-style glyph is an audience-relative semantic judgment.
+  </p>
+</div>
+</body>
+</html>

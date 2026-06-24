@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New transfer — Meridian Bank online banking</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  This is a fintech dashboard. The recipient IBAN is validated asynchronously after the
+  field blurs; the result is announced through a PROPERLY built toast: an empty
+  role="status" aria-live="polite" container is pre-rendered and its text is updated on
+  change, so screen readers DO announce it. aria-invalid is set and the toast is tied via
+  aria-describedby. axe / WAVE / Lighthouse confirm: live region present and correct, error
+  associated, contrast on the dark theme passes, roles clean. SC 4.1.3 (Status Messages)
+  PASSES — the message is genuinely announced — and 3.3.1 passes (error identified).
+  THE DEFECT IS SEMANTIC ADEQUACY (3.3.3): the toast says only "We couldn't process that —
+  please review the details and try again." The IBAN's structure is fully knowable: a
+  country code + check digits + account part, validated here by length-per-country and the
+  mod-97 checksum. The user typed "GB29 NWBK 6016 1331 9268 1" (one digit short); the
+  message never states the expected length, the country format, or that the checksum failed
+  — all determinate, suggestable facts. Because the toast is correctly announced, every
+  dynamic/live-region check is satisfied; the ONLY failure is that the announced words carry
+  no actionable content. No checker can read the validator, see the IBAN rule is determinate,
+  and judge the announced sentence inadequate.
+-->
+<style>
+  :root{ --bg:#0e1320; --panel:#161d2e; --panel-2:#1d2740; --line:#2b3654; --ink:#e8edf6;
+         --muted:#93a0bd; --brand:#4d7cfe; --brand-d:#3a63d6; --danger:#ff6b6b; --ok:#37d39b;
+         --focus:#9cc0ff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.5 "Inter",system-ui,Segoe UI,Arial,sans-serif;
+        color:var(--ink); background:var(--bg); }
+  .top{ background:var(--panel); border-bottom:1px solid var(--line); padding:14px 0; }
+  .wrap{ max-width:620px; margin:0 auto; padding:0 22px; }
+  .top .brand{ font-weight:800; letter-spacing:.3px; }
+  .top .brand span{ color:var(--brand); }
+  main{ padding:30px 0 70px; }
+  h1{ font-size:1.45rem; margin:0 0 4px; }
+  .sub{ color:var(--muted); margin:0 0 24px; font-size:.9rem; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:24px 26px; }
+  .field{ margin:0 0 20px; }
+  label{ display:block; font-weight:600; margin:0 0 6px; }
+  input{ width:100%; padding:11px 13px; font-size:1rem; border:1px solid var(--line);
+         border-radius:9px; background:var(--panel-2); color:var(--ink);
+         font-variant-numeric:tabular-nums; letter-spacing:.6px; }
+  input::placeholder{ color:#6b779a; }
+  input:focus{ outline:3px solid var(--focus); outline-offset:1px; border-color:var(--brand); }
+  input[aria-invalid="true"]{ border:2px solid var(--danger); }
+  .hint{ color:var(--muted); font-size:.85rem; margin:6px 0 0; }
+  button{ background:var(--brand); color:#fff; border:0; border-radius:9px; font-size:1rem;
+          font-weight:700; padding:13px 28px; cursor:pointer; }
+  button:hover{ background:var(--brand-d); }
+  button:focus{ outline:3px solid var(--focus); outline-offset:2px; }
+  /* Toast: correctly built live region (pre-rendered, polite, updated on change). */
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%);
+          min-width:300px; max-width:90vw; background:#2a1620; border:1px solid var(--danger);
+          color:#ffd9d9; border-radius:10px; padding:13px 16px; font-size:.92rem; font-weight:600;
+          box-shadow:0 10px 30px rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:opacity .2s; }
+  .toast.show{ opacity:1; }
+  .toast.ok{ background:#0f2a20; border-color:var(--ok); color:#c8f7e4; }
+  .foot{ color:var(--muted); font-size:.78rem; margin-top:22px; }
+</style>
+</head>
+<body>
+  <div class="top"><div class="wrap"><div class="brand">Meridian<span>Bank</span></div></div></div>
+  <main>
+    <div class="wrap">
+      <h1>New transfer</h1>
+      <p class="sub">Send money to a new recipient · payments settle in 1 business day</p>
+
+      <form class="panel" action="#" method="post" novalidate autocomplete="off">
+        <div class="field">
+          <label for="name">Recipient name</label>
+          <input type="text" id="name" name="name" value="A. Whitford" autocomplete="name">
+        </div>
+
+        <div class="field">
+          <!-- DEFECTIVE: async validation announces only content-free filler in the toast,
+               though the IBAN rule (country length + mod-97) is fully determinate. -->
+          <label for="iban">Recipient IBAN</label>
+          <input type="text" id="iban" name="iban" value="GB29 NWBK 6016 1331 9268 1"
+                 inputmode="text" aria-describedby="iban-toast">
+          <p class="hint" id="iban-hint">We'll check the account when you leave this field.</p>
+        </div>
+
+        <div class="field">
+          <label for="amt">Amount (GBP)</label>
+          <input type="text" id="amt" name="amt" value="250.00" inputmode="decimal">
+        </div>
+
+        <button type="submit">Review transfer</button>
+      </form>
+
+      <p class="foot">Demo · renders from file:// · no data leaves this page.</p>
+    </div>
+  </main>
+
+  <!-- Pre-rendered, polite live region — this is what makes 4.1.3 pass. -->
+  <div class="toast" id="iban-toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  var iban  = document.getElementById('iban');
+  var toast = document.getElementById('iban-toast');
+  var timer;
+
+  function showToast(text, ok){
+    toast.textContent = text;            // announced because the region pre-exists
+    toast.className = 'toast show' + (ok ? ' ok' : '');
+    clearTimeout(timer);
+    timer = setTimeout(function(){ toast.className = 'toast' + (ok ? ' ok' : ''); }, 6000);
+  }
+
+  // KNOWABLE RULE: GB IBAN = 22 chars; structure + mod-97 checksum. Determinate & suggestable.
+  function validIBAN(raw){
+    var v = raw.replace(/\s+/g,'').toUpperCase();
+    if (!/^GB\d{2}[A-Z]{4}\d{14}$/.test(v)) return false;      // length/format
+    var re = v.slice(4) + v.slice(0,4);
+    var num = re.replace(/[A-Z]/g, function(c){ return c.charCodeAt(0) - 55; });
+    var rem = 0;
+    for (var i=0;i<num.length;i++) rem = (rem*10 + (+num[i])) % 97;
+    return rem === 1;                                           // checksum
+  }
+
+  iban.addEventListener('blur', function(){
+    if (!iban.value.trim()) return;
+    var ok = validIBAN(iban.value);
+    iban.setAttribute('aria-invalid', ok ? 'false' : 'true');
+    // The announcement is delivered correctly — but it is content-free.
+    showToast(ok ? 'Recipient verified.'
+                 : "We couldn't process that — please review the details and try again.", ok);
+  });
+
+  document.querySelector('form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var ok = validIBAN(iban.value);
+    iban.setAttribute('aria-invalid', ok ? 'false' : 'true');
+    if (!ok) {
+      showToast("We couldn't process that — please review the details and try again.", false); // still vague
+      iban.focus();
+    } else {
+      showToast('Recipient verified. Continuing to review…', true);
+    }
+  });
+})();
+</script>
+</body>
+</html>

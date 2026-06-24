@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apply — Warehouse Operative (Nights) · Greycliff Logistics Careers</title>
+<!--
+  SC 1.4.10 Reflow — F102: visible field LABELS disappear at narrow width with no
+  equivalent shown after reflow.
+
+  At desktop width every input has a real, visible <label> sitting to its left in
+  a two-column form grid. The labels are correctly associated (for/id), so naive
+  automated label checks PASS. But a @media (max-width:480px) rule sets the label
+  column to display:none "to save vertical space," leaving the inputs with only
+  their placeholder text. The placeholders are not labels: they vanish the instant
+  the user types, they are not exposed as accessible names after the visual label
+  is gone for sighted-low-vision users zoomed in, and — critically — the labels do
+  NOT reappear on focus. So at 320px a low-vision user who zooms sees a stack of
+  inputs whose purpose is gone the moment any character is entered, and there is no
+  mechanism that restores the dropped label text.
+
+  THE TRAP / why it is hard: the for/id wiring is intact, so a screen reader STILL
+  announces a name and axe is satisfied. The failure is specifically the VISUAL
+  loss of persistent label text at 320px for the low-vision / zoom audience this SC
+  serves — the labels were information present at desktop width and are not
+  available after reflow. Compare the PASS technique C38, which keeps labels by
+  stacking them ABOVE the inputs rather than deleting them.
+
+  WHY AUTOMATED TOOLS MISS IT: label association (for/id) is present, so the
+  programmatic-name rules pass at every width. Tools do not render at 320px and
+  judge that the *visible, persistent* label was removed in favour of a
+  disappear-on-type placeholder, nor that nothing restores it on focus. That is a
+  human visual + reflow comparison.
+-->
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI", system-ui, sans-serif; color:#13212e; background:#eef2f5; }
+  header { background:#0d3b66; color:#fff; padding:16px 24px; }
+  header .brand { font-weight:700; font-size:1.05rem; }
+  header .crumb { font-size:.8rem; opacity:.85; margin-top:2px; }
+  main { max-width:760px; margin:24px auto; background:#fff; border:1px solid #d3dce3;
+    border-radius:10px; padding:28px 32px 36px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .req-note { font-size:.82rem; color:#5a6b78; margin:0 0 24px; }
+  form { display:block; }
+  .field {
+    display:grid; grid-template-columns: 190px 1fr; gap:16px;
+    align-items:center; padding:12px 0; border-bottom:1px solid #eef2f5;
+  }
+  .field > label {
+    font-weight:600; font-size:.92rem; text-align:right; color:#1d3144;
+  }
+  .field > label .req { color:#b32020; }
+  .field input, .field select, .field textarea {
+    width:100%; font:inherit; padding:10px 12px; border:1px solid #b6c2cc;
+    border-radius:6px; background:#fff;
+  }
+  .field textarea { min-height:90px; resize:vertical; }
+  .actions { margin-top:24px; display:flex; gap:12px; justify-content:flex-end; }
+  button { font:inherit; padding:11px 22px; border-radius:6px; border:0; cursor:pointer; }
+  .primary { background:#0d3b66; color:#fff; font-weight:600; }
+  .secondary { background:#e3e9ee; color:#1d3144; }
+  footer { max-width:760px; margin:16px auto 48px; font-size:.78rem; color:#5a6b78; padding:0 8px; }
+
+  /* RESPONSIVE: collapse the label column to save space.
+     Inputs keep ONLY their placeholder text. Labels do not reappear on focus. */
+  @media (max-width: 480px) {
+    .field { grid-template-columns: 1fr; gap:6px; }
+    .field > label { display: none; }   /* <-- F102: persistent visible label text lost at 320px, no equivalent */
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">Greycliff Logistics — Careers</div>
+    <div class="crumb">Jobs › Warehouse Operative (Nights), Dunfield DC › Apply</div>
+  </header>
+
+  <main>
+    <h1>Apply: Warehouse Operative (Nights)</h1>
+    <p class="req-note">Fields marked <span style="color:#b32020">*</span> are required. This takes about five minutes.</p>
+
+    <form action="/apply/submit" method="post" novalidate>
+      <div class="field">
+        <label for="full-name">Full legal name <span class="req" aria-hidden="true">*</span></label>
+        <input id="full-name" name="full_name" type="text" required autocomplete="name"
+               placeholder="As it appears on your passport or driving licence">
+      </div>
+
+      <div class="field">
+        <label for="ni">National Insurance number <span class="req" aria-hidden="true">*</span></label>
+        <input id="ni" name="ni_number" type="text" required autocomplete="off"
+               placeholder="e.g. QQ 12 34 56 C" pattern="[A-Za-z ]{2}[ ]?\d{2}[ ]?\d{2}[ ]?\d{2}[ ]?[A-Za-z]">
+      </div>
+
+      <div class="field">
+        <label for="phone">Daytime phone <span class="req" aria-hidden="true">*</span></label>
+        <input id="phone" name="phone" type="tel" required autocomplete="tel"
+               placeholder="Mobile or landline we can reach you on">
+      </div>
+
+      <div class="field">
+        <label for="start">Earliest start date <span class="req" aria-hidden="true">*</span></label>
+        <input id="start" name="start_date" type="text" required
+               placeholder="DD/MM/YYYY — leave today or later">
+      </div>
+
+      <div class="field">
+        <label for="shift">Shift availability <span class="req" aria-hidden="true">*</span></label>
+        <select id="shift" name="shift" required>
+          <option value="" selected disabled>Choose the nights you can work</option>
+          <option>Sun–Thu nights</option>
+          <option>Mon–Fri nights</option>
+          <option>Weekends only</option>
+          <option>Any night</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="licence">Forklift licence number</label>
+        <input id="licence" name="licence" type="text"
+               placeholder="RTITB / ITSSAR number, if you hold one">
+      </div>
+
+      <div class="field">
+        <label for="why">Why this role?</label>
+        <textarea id="why" name="cover" placeholder="A sentence or two on your relevant experience"></textarea>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="secondary">Save and finish later</button>
+        <button type="submit" class="primary">Submit application</button>
+      </div>
+    </form>
+  </main>
+
+  <footer>
+    Greycliff Logistics is an equal-opportunities employer. Your data is processed under our
+    recruitment privacy notice.
+  </footer>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.5 FAILURE (logotype/branding exception abused) — and a PASS twin on the SAME page.
+
+    HEADER ZONE, TWO IMAGES OF TEXT stacked in the masthead:
+      (A) <img class="wordmark" alt="Northwind"> — a genuine ONE-WORD company wordmark in a
+          custom display face. This is a logotype: "text that is part of a logo or brand name."
+          Its visual presentation IS the brand identity, so 1.4.5 EXEMPTS it. -> PASS contribution.
+      (B) <img class="tagline-banner" alt="Northwind — the smartest way to manage your money,
+          every day"> — the full MARKETING TAGLINE baked into a flat image, parked right under
+          the wordmark in the same branding zone and given the same brand styling so it "feels"
+          like part of the logo lockup. It is NOT a logotype: it is a sentence of ordinary
+          informational/marketing prose that could trivially be live, resizable, recolorable
+          text. Setting it in a nice typeface and exporting it as pixels to "match the brand"
+          is exactly the dodge 1.4.5 / TT step 1a forbids. -> FAILS 1.4.5.
+
+    Both images are inline-SVG data: URIs, so the glyphs are real pixels, not DOM text — a
+    low-vision user cannot enlarge/recolor the tagline, and at 200% browser zoom it pixelates.
+
+    WHY AUTOMATED TOOLS MISS IT: both <img> have non-empty, accurate alt, so axe/WAVE/
+    Lighthouse "image-alt" passes for BOTH. No checker OCRs the pixels, and none can reason
+    that image (A)'s text is a brand identity (exempt) while image (B)'s identically-styled
+    text is a marketing sentence (not exempt). The pass/fail split is a pure
+    logotype-vs-ordinary-text semantic judgment — human-only.
+  -->
+  <title>Northwind — Personal Finance</title>
+  <style>
+    :root { --ink:#0d1b2a; --teal:#0a7c74; --muted:#5b6b7a; --line:#e1e7ec; --bg:#f6f9fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Georgia, "Times New Roman", serif; color:var(--ink); background:var(--bg); }
+    header.masthead { background:#fff; border-bottom:1px solid var(--line); padding:26px 28px 22px; text-align:center; }
+    /* The wordmark and the tagline banner are given the SAME visual treatment so a viewer
+       reads them as one branded lockup. The distinction is semantic, not visual. */
+    .wordmark { display:block; margin:0 auto 14px; height:46px; width:auto; }
+    .tagline-banner { display:block; margin:0 auto; height:26px; width:auto; }
+    nav { display:flex; gap:22px; justify-content:center; padding:14px; background:var(--ink); }
+    nav a { color:#dfeaf0; text-decoration:none; font-family:Arial, sans-serif; font-size:14px; letter-spacing:.02em; }
+    nav a:hover { color:#fff; text-decoration:underline; }
+    main { max-width:760px; margin:0 auto; padding:34px 24px; }
+    main h1 { font-size:30px; margin:0 0 14px; }
+    main p { line-height:1.7; color:#243140; font-size:17px; }
+    .cards { display:flex; gap:18px; margin-top:26px; flex-wrap:wrap; }
+    .card { flex:1 1 200px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px; }
+    .card h2 { font-family:Arial, sans-serif; font-size:16px; margin:0 0 8px; color:var(--teal); }
+    .card p { font-size:15px; }
+    footer { color:var(--muted); font-size:13px; text-align:center; padding:26px; }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <!-- (A) EXEMPT: one-word company wordmark. The display typeface IS the brand identity. -->
+    <img class="wordmark"
+         alt="Northwind"
+         src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='320'%20height='60'%20viewBox='0%200%20320%2060'%3E%3Ctext%20x='0'%20y='46'%20fill='%230a7c74'%20font-family='Georgia,serif'%20font-size='52'%20font-style='italic'%20font-weight='bold'%3ENorthwind%3C/text%3E%3C/svg%3E">
+
+    <!-- (B) NOT EXEMPT: the marketing tagline as a flat image, styled to match the brand
+         lockup. Ordinary informational/marketing text that should be live, resizable text. -->
+    <img class="tagline-banner"
+         alt="Northwind — the smartest way to manage your money, every day"
+         src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='620'%20height='30'%20viewBox='0%200%20620%2030'%3E%3Ctext%20x='0'%20y='22'%20fill='%235b6b7a'%20font-family='Georgia,serif'%20font-size='20'%20font-style='italic'%3ENorthwind%20%E2%80%94%20the%20smartest%20way%20to%20manage%20your%20money,%20every%20day%3C/text%3E%3C/svg%3E">
+  </header>
+
+  <nav aria-label="Primary">
+    <a href="#accounts">Accounts</a>
+    <a href="#cards">Cards</a>
+    <a href="#invest">Invest</a>
+    <a href="#help">Help</a>
+  </nav>
+
+  <main>
+    <h1>Banking that keeps up with you</h1>
+    <p>Open an everyday account in minutes, round up your spare change into savings, and see
+       all your money in one place. No monthly fee, no minimum balance, and 24/7 support from
+       a real person.</p>
+    <div class="cards">
+      <div class="card"><h2>Smart savings</h2><p>Automatic round-ups move pennies into a pot you actually watch grow.</p></div>
+      <div class="card"><h2>Spending insights</h2><p>See where it goes, in plain language, every week.</p></div>
+      <div class="card"><h2>Instant cards</h2><p>Freeze, unfreeze, and set limits from your phone.</p></div>
+    </div>
+  </main>
+
+  <footer>© 2026 Northwind Financial. Authorised and regulated. Member FSCS.</footer>
+</body>
+</html>

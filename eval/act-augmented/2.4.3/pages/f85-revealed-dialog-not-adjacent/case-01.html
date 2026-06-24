@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Brookhaven — Residents</title>
+<style>
+  :root { --ink:#10243a; --accent:#0b5fa5; --line:#d7dee6; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI", system-ui, sans-serif; color: var(--ink); line-height:1.55; }
+  a { color: var(--accent); }
+  header.site { background:#0b3b66; color:#fff; padding:14px 28px; display:flex; align-items:center; gap:24px; }
+  header.site .brand { font-weight:700; font-size:1.1rem; }
+  header.site nav a { color:#dbe7f3; margin-right:18px; text-decoration:none; font-size:.95rem; }
+  header.site nav a:hover { text-decoration:underline; }
+  .subscribe-bar { background:#eef4fa; border-bottom:1px solid var(--line); padding:12px 28px; display:flex; align-items:center; gap:14px; }
+  .subscribe-bar p { margin:0; font-size:.95rem; }
+  .btn { font: inherit; cursor:pointer; border:1px solid var(--accent); background:var(--accent); color:#fff; padding:8px 16px; border-radius:5px; }
+  .btn.ghost { background:#fff; color:var(--accent); }
+  main { max-width: 860px; margin: 0 auto; padding: 28px; }
+  h1 { font-size:1.7rem; margin:.2em 0 .4em; }
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin:22px 0; }
+  .card { border:1px solid var(--line); border-radius:8px; padding:16px; }
+  .card h2 { font-size:1.05rem; margin:.1em 0 .4em; }
+  .card a { display:inline-block; margin-top:8px; }
+  footer.site { border-top:1px solid var(--line); padding:24px 28px; font-size:.9rem; color:#445; }
+  footer.site nav a { margin-right:16px; }
+  /* The dialog is visually centered over the page when shown */
+  .modal-scrim { position:fixed; inset:0; background:rgba(6,20,38,.45); display:none; }
+  .modal-scrim.open { display:block; }
+  .modal {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:min(420px,92vw); background:#fff; border-radius:10px; padding:24px;
+    box-shadow:0 18px 48px rgba(0,0,0,.3); display:none;
+  }
+  .modal.open { display:block; }
+  .modal h2 { margin-top:0; }
+  .modal label { display:block; font-weight:600; margin:14px 0 4px; }
+  .modal input[type=email] { width:100%; padding:9px; border:1px solid var(--line); border-radius:5px; font:inherit; }
+  .modal .actions { margin-top:18px; display:flex; gap:10px; justify-content:flex-end; }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="brand">City of Brookhaven</span>
+  <nav aria-label="Primary">
+    <a href="#services">Services</a>
+    <a href="#permits">Permits &amp; Licenses</a>
+    <a href="#meetings">Council Meetings</a>
+    <a href="#pay">Pay a Bill</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<!-- The trigger sits near the top of the page, in the announcement bar -->
+<div class="subscribe-bar">
+  <p>Get weather alerts, trash-pickup changes, and meeting agendas by email.</p>
+  <button id="openSubscribe" class="btn" aria-haspopup="dialog">Subscribe to alerts</button>
+</div>
+
+<main>
+  <h1>Resident Services</h1>
+  <p>Find the services you use most. For emergencies dial 911. For non-emergency police
+     and fire, call (555) 010-2020.</p>
+
+  <div class="card-grid">
+    <section class="card" id="services">
+      <h2>Report a Problem</h2>
+      <p>Potholes, broken streetlights, graffiti, and missed collections.</p>
+      <a href="#report">Open a service request</a>
+    </section>
+    <section class="card" id="permits">
+      <h2>Permits &amp; Licenses</h2>
+      <p>Building, fence, sign, food-truck, and special-event permits.</p>
+      <a href="#permitsearch">Search permits</a>
+    </section>
+    <section class="card" id="meetings">
+      <h2>Council Meetings</h2>
+      <p>Agendas, minutes, and the live-stream of regular and special sessions.</p>
+      <a href="#agenda">View upcoming agenda</a>
+    </section>
+    <section class="card" id="pay">
+      <h2>Pay a Bill</h2>
+      <p>Water, sewer, stormwater, and parking-citation payments.</p>
+      <a href="#billing">Go to billing</a>
+    </section>
+    <section class="card" id="taxes">
+      <h2>Property &amp; Taxes</h2>
+      <p>Assessment lookup, tax bills, and exemption applications.</p>
+      <a href="#tax">Property &amp; tax tools</a>
+    </section>
+    <section class="card" id="parks">
+      <h2>Parks &amp; Recreation</h2>
+      <p>Field reservations, class registration, and pool schedules.</p>
+      <a href="#parks-reg">Reserve or register</a>
+    </section>
+  </div>
+
+  <h2 id="contact">Contact</h2>
+  <p>City Hall, 1 Civic Plaza. Open Monday–Friday, 8:00&nbsp;a.m.–5:00&nbsp;p.m.
+     <a href="#directory">Staff directory</a> · <a href="#feedback">Send feedback</a></p>
+</main>
+
+<footer class="site">
+  <nav aria-label="Footer">
+    <a href="#accessibility">Accessibility</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#foia">Public Records</a>
+    <a href="#jobs">Jobs</a>
+    <a href="#espanol">Español</a>
+  </nav>
+  <p>© 2026 City of Brookhaven. This site is an official government website.</p>
+</footer>
+
+<!--
+  THE BUG (F85, open branch): the subscribe dialog is the LAST thing before </body>,
+  far from its trigger in the subscribe-bar near the top. The open script only toggles
+  the .open class — it never moves focus into the dialog. So after a keyboard user
+  activates "Subscribe to alerts", focus stays on that button; the very next Tab does
+  NOT land in the dialog — it lands on the next link in source order (the "Services"
+  nav link / main-content links), forcing the user to Tab through the entire page,
+  past the footer, to reach the email field that is visually centered in front of them.
+-->
+<div class="modal-scrim" id="scrim"></div>
+<div class="modal" id="subscribeDialog" role="dialog" aria-modal="false"
+     aria-labelledby="subTitle" aria-describedby="subDesc">
+  <h2 id="subTitle">Subscribe to city alerts</h2>
+  <p id="subDesc">We'll send a confirmation link. You can unsubscribe at any time.</p>
+  <label for="subEmail">Email address</label>
+  <input type="email" id="subEmail" name="email" autocomplete="email" placeholder="you@example.com">
+  <div class="actions">
+    <button type="button" class="btn ghost" id="cancelSub">Cancel</button>
+    <button type="button" class="btn" id="confirmSub">Subscribe</button>
+  </div>
+</div>
+
+<script>
+  // NOTE: deliberately a visibility-only toggle. No focus management whatsoever —
+  // this mirrors the F85 example "Script was created to reveal the dialog, but no
+  // script was added to move focus to it."
+  var dlg = document.getElementById('subscribeDialog');
+  var scrim = document.getElementById('scrim');
+  function openDialog() {
+    dlg.classList.add('open');
+    scrim.classList.add('open');
+    // (No dlg.focus(), no subEmail.focus(), no focus trap.)
+  }
+  function closeDialog() {
+    dlg.classList.remove('open');
+    scrim.classList.remove('open');
+  }
+  document.getElementById('openSubscribe').addEventListener('click', openDialog);
+  document.getElementById('cancelSub').addEventListener('click', closeDialog);
+  document.getElementById('confirmSub').addEventListener('click', closeDialog);
+  scrim.addEventListener('click', closeDialog);
+</script>
+</body>
+</html>

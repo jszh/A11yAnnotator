@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Long Tide — Why the salt marsh is moving inland</title>
+<!--
+  SC 1.3.2 — EXPECTED: FAIL (a sidebar is interleaved INTO the middle of a sentence)
+
+  This is the FAIL counterpart to the "magazine + sidebars" PASS pattern. A feature article runs
+  as several paragraphs. A pull-quote / callout aside would be harmless if it sat BEFORE or AFTER
+  the body (order of article-vs-sidebar carries no meaning — that would PASS). But here the author
+  used CSS flexbox `order` to *visually* float the callout to the right margin, while in the DOM
+  the callout <aside> is physically inserted BETWEEN the first half and the second half of a single
+  running sentence. The sentence is split across two <p> fragments (".../p> <aside> <p>...") and the
+  aside sits in source order in the gap.
+
+  Result when linearized / read by AT: the reader hears the opening of the sentence, then the entire
+  pull-quote and its attribution, then the back half of the same sentence — the sentence is broken
+  and the meaning is scrambled. This is interleaving, which the Understanding explicitly excludes
+  from the "harmless independent blocks" case.
+
+  WHY AUTOMATED TOOLS MISS IT: the <aside>, <p> fragments and flex CSS are all valid; there is no
+  missing attribute. axe/WAVE/Lighthouse have no 1.3.2 rule and cannot tell that the DOM splits one
+  sentence around an aside — that requires reading the prose and noticing the sentence is severed.
+-->
+<style>
+  :root { --ink:#20262e; --muted:#5b6770; --accent:#9a3b2e; --rule:#e0d9cf; --paper:#fcfaf6; }
+  body { margin:0; font:18px/1.7 Georgia, serif; color:var(--ink); background:var(--paper); }
+  .wrap { max-width:820px; margin:0 auto; padding:32px 22px 60px; }
+  .kicker { font:600 .8rem/1 "Helvetica Neue",sans-serif; letter-spacing:.12em;
+            text-transform:uppercase; color:var(--accent); }
+  h1 { font-size:2.3rem; line-height:1.15; margin:.3rem 0 .2rem; }
+  .standfirst { font-size:1.2rem; color:var(--muted); margin:0 0 1.4rem; }
+  .byline { font:italic .95rem/1.4 Georgia,serif; color:var(--muted);
+            border-bottom:1px solid var(--rule); padding-bottom:1rem; margin-bottom:1.4rem; }
+
+  /* The article body and the callout are flex siblings. CSS `order` floats the
+     callout to the right margin VISUALLY, but in the DOM it is wedged between the
+     two halves of one sentence (p#part-a and p#part-b). */
+  .body-flow { display:flex; flex-wrap:wrap; align-items:flex-start; column-gap:28px; }
+  .body-flow > p { flex:1 1 100%; margin:0 0 1.1rem; }
+
+  aside.callout {
+    order:99;                /* visually shoved to the end of the flex line / right rail */
+    flex:0 0 250px;
+    margin:.2rem 0 1rem 8px; padding:14px 18px;
+    border-left:4px solid var(--accent); background:#fff;
+    box-shadow:0 1px 0 var(--rule);
+    align-self:flex-start;
+    /* float-style placement so it sits in the right margin beside the body text */
+    float:right; width:250px;
+  }
+  aside.callout p { font:600 1.15rem/1.45 Georgia,serif; color:var(--accent); margin:0 0 .4rem; }
+  aside.callout cite { font:italic .85rem/1.4 Georgia,serif; color:var(--muted); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="kicker">Coastlines</p>
+    <h1>The long tide</h1>
+    <p class="standfirst">A salt marsh that has held the same line for two centuries is now
+       walking inland a metre a year &mdash; and the village behind it is deciding whether to
+       follow.</p>
+    <p class="byline">By Marisol Tan &middot; Photographs by the author &middot; 9 min read</p>
+
+    <div class="body-flow">
+
+      <p>
+        Stand on the sea wall at Fenwick Hythe at the top of a spring tide and you can watch the
+        marsh breathe. The water slides up the creeks, fills the pans, and for twenty minutes the
+        whole green plain shivers like the skin of an animal. For two hundred years the seaward
+        edge of that plain sat almost exactly where the old enclosure map of 1820 says it should.
+      </p>
+
+      <!-- FAIL: this single sentence is split. part-a is the opening clause... -->
+      <p id="part-a">
+        What changed, the parish engineer told me as we walked the wall, is not the sea so much as
+        the supply of sediment, because the river that once fed the marsh
+      </p>
+
+      <!-- ...and the callout is interleaved HERE, between the two halves of the sentence. -->
+      <aside class="callout" aria-label="Pull quote">
+        <p>&ldquo;We are not losing the marsh. The marsh is leaving, and asking us to move with
+           it.&rdquo;</p>
+        <cite>&mdash; Dr. Helen Okafor, coastal geomorphologist</cite>
+      </aside>
+
+      <!-- part-b is the rest of the SAME sentence. Read after the aside, the sentence breaks. -->
+      <p id="part-b">
+        was dammed upstream in the 1970s, so the grains that used to settle out and raise the
+        marsh surface each winter simply never arrive, and the plain can no longer keep its head
+        above the rising water.
+      </p>
+
+      <p>
+        The result is a marsh that is, in the engineer&rsquo;s flat phrase, &ldquo;migrating&rdquo;
+        &mdash; retreating landward as its seaward edge drowns. Where it meets the old sea wall it
+        has nowhere to go, so it thins and dies, and the wall is left holding back open water it
+        was never built to face.
+      </p>
+
+      <p>
+        Fenwick Hythe now has a choice the 1820 surveyors never imagined: hold the line with ever
+        higher concrete, or breach the wall on purpose and let the marsh climb into the low fields
+        behind, taking three farms and a lane with it. The parish votes in October.
+      </p>
+
+    </div>
+  </div>
+</body>
+</html>

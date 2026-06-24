@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set your display name — Kawa community</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (and why this page PASSES 3.3.3):
+  Post-submit error state. A multilingual community platform lets members pick any
+  display name in any script. The user left it blank, so a visible, correctly
+  associated error reads "Please enter a display name." No specific suggestion is
+  offered, and none is possible: a self-chosen display name is open-ended — the system
+  cannot know or enumerate what a member wants to be called. The only knowable rule is
+  non-empty, which the message states. Generic message -> conformant (DNA / gate PASS).
+
+  Extra subtlety: a passage of guidance is in Japanese and is correctly marked
+  lang="ja"; one example name is in Arabic with dir="rtl". These i18n details are
+  decoys for the gate — they don't change the verdict, but they make the page look
+  busy enough that a reviewer might over-scrutinize. The gate decision is still simply:
+  is a correction knowable for a free-choice display name? No -> the generic required
+  message is conformant.
+
+  A checker that flagged "error without a suggested value" would WRONGLY fail this.
+  No tool can decide that a self-chosen name is un-inferable; that is a meaning call.
+-->
+<style>
+  :root{ --ink:#1a1d23; --muted:#5e6672; --line:#d5dae0; --brand:#0f766e; --danger:#be123c; --paper:#fff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.6 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink); background:#eef4f3; }
+  .wrap{ max-width:560px; margin:40px auto; padding:0 18px; }
+  header.brand{ display:flex; align-items:center; gap:9px; margin-bottom:18px; }
+  header.brand .logo{ width:28px; height:28px; border-radius:50%; background:var(--brand); }
+  header.brand strong{ font-size:1.05rem; }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:28px 26px; }
+  h1{ font-size:1.4rem; margin:0 0 6px; }
+  .lede{ color:var(--muted); margin:0 0 18px; font-size:.94rem; }
+  .note{ font-size:.86rem; color:var(--muted); background:#f0f7f6; border:1px solid #cfe3e0;
+         border-radius:8px; padding:10px 12px; margin:0 0 22px; }
+  .note p{ margin:0 0 6px; }
+  .note p:last-child{ margin:0; }
+  .examples{ font-size:.84rem; color:var(--muted); margin:0 0 22px; }
+  .examples span{ display:inline-block; background:#f1f5f4; border:1px solid var(--line);
+                  border-radius:999px; padding:3px 10px; margin:3px 4px 0 0; color:var(--ink); }
+  .field{ margin-bottom:18px; }
+  label{ display:block; font-weight:600; font-size:.92rem; margin-bottom:6px; }
+  .hint{ color:var(--muted); font-size:.84rem; margin:0 0 8px; }
+  input[type=text]{ width:100%; padding:11px 12px; font-size:1.05rem; border:2px solid var(--line);
+        border-radius:8px; background:#fff; color:var(--ink); }
+  input[aria-invalid="true"]{ border-color:var(--danger); background:#fffafb; }
+  input:focus{ outline:2px solid var(--brand); outline-offset:1px; }
+  .err{ display:flex; gap:7px; align-items:flex-start; margin-top:8px; color:var(--danger); font-size:.88rem; }
+  .err svg{ flex:0 0 auto; margin-top:2px; }
+  button{ margin-top:6px; padding:12px 22px; font-size:1rem; font-weight:600; color:#fff;
+          background:var(--brand); border:0; border-radius:8px; cursor:pointer; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="brand"><span class="logo" aria-hidden="true"></span><strong>Kawa community</strong></header>
+    <main class="card">
+      <h1>Set your display name</h1>
+      <p class="lede">This is the name other members see on your posts and replies.</p>
+
+      <div class="note">
+        <p>Use any name you like — your real name, a nickname, or a handle. Any language or script is welcome.</p>
+        <p lang="ja">他のメンバーに表示される名前です。好きな名前を使ってください。</p>
+      </div>
+
+      <p class="examples">Members go by all sorts of names, e.g.
+        <span>Lena from Oslo</span>
+        <span lang="ar" dir="rtl">سارة</span>
+        <span lang="ja">たけし</span>
+        <span>pixel_wren</span>
+      </p>
+
+      <form action="#" method="post" novalidate>
+        <div class="field">
+          <label for="dname">Display name</label>
+          <p class="hint" id="dname-hint">2–40 characters. You can change this anytime in your profile.</p>
+          <!--
+            FREE-CHOICE display name, left empty, now in error. The correct value is
+            whatever the member wants to be called — un-inferable and not enumerable.
+            The only knowable rule is non-empty. "Please enter a display name" is the
+            most specific message possible. -> PASS (DNA / knowability gate).
+          -->
+          <input type="text" id="dname" name="dname"
+                 aria-describedby="dname-hint error-dname" aria-invalid="true"
+                 value="" maxlength="40" autocomplete="nickname">
+          <p class="err" id="error-dname">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 4.2v4.4M8 11.0h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <span>Please enter a display name.</span>
+          </p>
+        </div>
+
+        <button type="submit">Save and continue</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rivermark Conservancy — Make a donation</title>
+<!--
+  WHY THIS PAGE PASSES (case-06 — boundary variant):
+  This donation form deliberately conveys EVERY form relationship programmatically,
+  not just visually, so it is the PASS counterpart to cases 01–05:
+    * The "Gift frequency" radio group is a real <fieldset> with <legend>, so the
+      group question is announced when entering the radios.
+    * The "Designate your gift" radios use role="radiogroup" + aria-labelledby
+      pointing at the visible question — the alternative grouping mechanism.
+    * Required fields use aria-required="true" AND an in-label "(required)" text
+      token, so the required cue reaches AT (not color-only); the top note is also
+      tied to the relevant fields via aria-describedby.
+    * The multi-part phone field is wrapped in role="group" with aria-labelledby so
+      the three boxes are tied to the single "Daytime phone" question.
+  A human verifying TT 5.C would find the accessible name + description + group
+  associations fully describe each field, including the required cue and each
+  group's question. Automated tools also pass — but here the human verdict AGREES,
+  which is the point of including a pass boundary.
+-->
+<style>
+  body { font-family: "Helvetica Neue", Arial, sans-serif; background: #f1f6f3; color: #243b30; margin: 0; }
+  .give { max-width: 580px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 14px rgba(20,60,40,.1); padding: 32px 38px 40px; }
+  .org { color: #2f7d4f; font-weight: bold; letter-spacing: .04em; font-size: 13px; }
+  h1 { font-size: 23px; margin: 4px 0 6px; }
+  .lead { color: #4f6a5c; font-size: 14px; line-height: 1.5; margin-bottom: 8px; }
+  .req-note { font-size: 13px; color: #5a4a1f; background: #fbf4e0; border: 1px solid #ecdca6; padding: 8px 12px; border-radius: 4px; margin: 14px 0 24px; }
+  fieldset { border: 1px solid #cfe0d6; border-radius: 8px; margin: 0 0 22px; padding: 12px 16px 16px; }
+  legend { font-weight: 600; font-size: 15px; padding: 0 6px; }
+  .opt { display: flex; align-items: center; gap: 9px; padding: 6px 0; font-size: 15px; }
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-size: 14px; margin-bottom: 5px; }
+  .reqmark { color: #b3261e; font-weight: 600; }
+  input[type=text], input[type=email] { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #c2d4ca; border-radius: 4px; font-size: 14px; }
+  [role=radiogroup] { border: 1px solid #cfe0d6; border-radius: 8px; padding: 12px 16px 16px; margin-bottom: 22px; }
+  .rg-q { font-weight: 600; font-size: 15px; margin: 0 0 8px; }
+  .phone { display: flex; gap: 8px; align-items: center; }
+  .phone input { text-align: center; }
+  .phone .area { flex: .8; } .phone .pre { flex: .8; } .phone .line { flex: 1.1; }
+  .donate { background: #2f7d4f; color: #fff; border: none; border-radius: 6px; padding: 13px 32px; font-size: 15px; cursor: pointer; margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div class="give">
+    <p class="org">Rivermark Conservancy</p>
+    <h1>Make a donation</h1>
+    <p class="lead">Your gift protects 4,200 acres of river habitat. Thank you.</p>
+
+    <p class="req-note" id="reqNote">Fields marked “(required)” must be completed before you submit.</p>
+
+    <form action="#" method="post" novalidate>
+
+      <!-- Required text field: aria-required + in-label text token + described by note -->
+      <div class="field">
+        <label for="email">Email for your receipt <span class="reqmark">(required)</span></label>
+        <input type="email" id="email" autocomplete="email" aria-required="true" aria-describedby="reqNote">
+      </div>
+
+      <!-- Radio GROUP question via real fieldset/legend -->
+      <fieldset>
+        <legend>Gift frequency <span class="reqmark">(required)</span></legend>
+        <div class="opt"><input type="radio" id="f1" name="freq" value="once" aria-required="true"><label for="f1">One-time gift</label></div>
+        <div class="opt"><input type="radio" id="f2" name="freq" value="monthly" aria-required="true"><label for="f2">Monthly</label></div>
+        <div class="opt"><input type="radio" id="f3" name="freq" value="annual" aria-required="true"><label for="f3">Annually</label></div>
+      </fieldset>
+
+      <!-- Radio GROUP question via role=radiogroup + aria-labelledby (alternative mechanism) -->
+      <div role="radiogroup" aria-labelledby="desigQ">
+        <p class="rg-q" id="desigQ">Designate your gift</p>
+        <div class="opt"><input type="radio" id="d1" name="desig" value="general"><label for="d1">Where most needed</label></div>
+        <div class="opt"><input type="radio" id="d2" name="desig" value="trails"><label for="d2">Trail restoration</label></div>
+        <div class="opt"><input type="radio" id="d3" name="desig" value="water"><label for="d3">Water-quality monitoring</label></div>
+      </div>
+
+      <!-- Multi-part phone field tied to one question via role=group + aria-labelledby -->
+      <div class="field" role="group" aria-labelledby="phoneQ">
+        <span id="phoneQ" style="display:block; font-size:14px; margin-bottom:5px;">Daytime phone (optional)</span>
+        <div class="phone">
+          <input type="text" class="area" inputmode="numeric" maxlength="3" title="Area code" aria-describedby="phoneQ">
+          <span aria-hidden="true">–</span>
+          <input type="text" class="pre" inputmode="numeric" maxlength="3" title="Prefix" aria-describedby="phoneQ">
+          <span aria-hidden="true">–</span>
+          <input type="text" class="line" inputmode="numeric" maxlength="4" title="Line number" aria-describedby="phoneQ">
+        </div>
+      </div>
+
+      <button type="submit" class="donate">Donate now</button>
+    </form>
+  </div>
+</body>
+</html>

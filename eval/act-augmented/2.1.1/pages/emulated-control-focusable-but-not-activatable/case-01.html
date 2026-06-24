@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pay your Council Tax — Riverleigh Borough Council</title>
+<style>
+  :root { --rb-navy:#0b2a4a; --rb-teal:#0e7c7b; --rb-ink:#1c2024; --rb-line:#c9d2db; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI",Arial,sans-serif; color:var(--rb-ink); background:#f4f6f8; line-height:1.5; }
+  a { color:var(--rb-teal); }
+  header.gov { background:var(--rb-navy); color:#fff; padding:.9rem 1.25rem; display:flex; align-items:center; gap:.75rem; }
+  header.gov .crest { width:34px; height:34px; border:2px solid #fff; border-radius:4px; display:grid; place-items:center; font-weight:700; }
+  header.gov h1 { font-size:1.05rem; margin:0; font-weight:600; }
+  .wrap { max-width:920px; margin:0 auto; padding:1.5rem 1.25rem 4rem; }
+  nav.crumbs { font-size:.85rem; margin:.5rem 0 1.25rem; color:#5a6672; }
+  nav.crumbs a { text-decoration:none; }
+  h2 { font-size:1.6rem; margin:.25rem 0 1rem; color:var(--rb-navy); }
+  p.lede { font-size:1.05rem; max-width:60ch; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; margin:1.75rem 0; }
+  .service-tile {
+    background:#fff; border:1px solid var(--rb-line); border-left:6px solid var(--rb-teal);
+    border-radius:6px; padding:1.15rem 1.2rem; cursor:pointer; transition:box-shadow .12s, transform .12s;
+  }
+  .service-tile:hover { box-shadow:0 4px 14px rgba(11,42,74,.14); transform:translateY(-1px); }
+  .service-tile:focus { outline:3px solid #ffbf47; outline-offset:2px; }
+  .service-tile h3 { margin:0 0 .35rem; font-size:1.12rem; color:var(--rb-navy); }
+  .service-tile p { margin:0; font-size:.92rem; color:#48535f; }
+  .service-tile .go { display:inline-block; margin-top:.7rem; font-weight:600; color:var(--rb-teal); }
+  .panel { background:#eef4f4; border:1px solid #b9d6d5; border-radius:6px; padding:1rem 1.15rem; margin-top:2rem; font-size:.9rem; }
+  footer { margin-top:3rem; font-size:.8rem; color:#5a6672; border-top:1px solid var(--rb-line); padding-top:1rem; }
+  #toast { position:fixed; left:50%; bottom:1.5rem; transform:translateX(-50%); background:var(--rb-navy);
+    color:#fff; padding:.65rem 1.1rem; border-radius:6px; font-size:.9rem; opacity:0; transition:opacity .2s; pointer-events:none; }
+  #toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<header class="gov">
+  <span class="crest" aria-hidden="true">RB</span>
+  <h1>Riverleigh Borough Council</h1>
+</header>
+
+<div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="#home">Home</a> &rsaquo; <a href="#bills">Bills &amp; payments</a> &rsaquo; <span aria-current="page">Council Tax</span>
+  </nav>
+
+  <h2>Pay your Council Tax</h2>
+  <p class="lede">Choose how you would like to manage your Council Tax account. You can pay a one-off
+     amount, set up a Direct Debit, or tell us you are moving home.</p>
+
+  <div class="tiles">
+    <!-- The defect lives here: a focusable DIV with onclick only and NO key handler. -->
+    <div class="service-tile" tabindex="0" role="button"
+         onclick="startPayment()"
+         aria-describedby="paydesc">
+      <h3>Make a payment</h3>
+      <p id="paydesc">Pay your current instalment by debit or credit card. Takes about 3 minutes.</p>
+      <span class="go">Start now &rarr;</span>
+    </div>
+
+    <a class="service-tile" href="#direct-debit" style="cursor:pointer;">
+      <h3>Set up a Direct Debit</h3>
+      <p>Spread the cost across 10 or 12 monthly payments collected automatically.</p>
+      <span class="go">Set up &rarr;</span>
+    </a>
+
+    <a class="service-tile" href="#moving">
+      <h3>Tell us you're moving</h3>
+      <p>Let us know your moving date so we can close or open your account.</p>
+      <span class="go">Update details &rarr;</span>
+    </a>
+  </div>
+
+  <div class="panel">
+    <strong>Need help?</strong> Call us on 01927 555 0100 (Mon–Fri, 9am–5pm) or
+    <a href="#contact">send a secure message</a>.
+  </div>
+
+  <footer>
+    &copy; 2026 Riverleigh Borough Council. <a href="#privacy">Privacy</a> · <a href="#accessibility">Accessibility statement</a>
+  </footer>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  function startPayment() {
+    // Real handler would navigate to the card-payment journey.
+    var t = document.getElementById('toast');
+    t.textContent = 'Opening the secure card payment form…';
+    t.classList.add('show');
+    setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+  // NOTE: there is deliberately NO keydown/keypress/keyup handler on the
+  // "Make a payment" tile. It receives focus (tabindex="0") and announces as a
+  // button (role="button"), but a generic DIV element has no implicit activation
+  // behaviour, so pressing Enter or Space does nothing. The other two services are
+  // real anchor links with href, so they remain keyboard operable.
+</script>
+</body>
+</html>

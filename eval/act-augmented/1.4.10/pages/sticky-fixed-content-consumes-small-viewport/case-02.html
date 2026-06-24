@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- Zoom allowed; ACT b4f0c3 passes. Reflows fine at 320px WIDTH. The defect is the
+       two fixed bars (top nav + bottom cookie/consent bar) that SANDWICH the content into
+       a thin strip at the 256px reflow HEIGHT. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menu &amp; Allergens — The Copper Kettle, Ludlow</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      font: 16px/1.55 "Helvetica Neue", Arial, sans-serif;
+      color: #21201c;
+      background: #fffdf8;
+    }
+    /* FIXED top nav ~92px. FIXED bottom consent bar ~96px. Together ~188px of fixed
+       chrome. At a 256px-tall reflow viewport that leaves ~68px of scrollable content
+       window — a thin strip. At desktop height (900px) the same two bars are unremarkable. */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+      background: #6e2c14; color: #fff;
+      padding: 10px 16px;
+      min-height: 92px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    }
+    .topbar .brand { font-weight: 700; font-size: 20px; letter-spacing: .3px; }
+    .topbar .sub { font-size: 12px; opacity: .85; }
+    .topbar nav { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 13px; }
+    .topbar nav a { color: #ffd9c2; text-decoration: none; }
+    .topbar nav a:focus, .topbar nav a:hover { text-decoration: underline; }
+
+    /* The consent bar is fixed to the bottom and — critically — is NOT dismissible.
+       It has an "Accept" button that sets a flag, but the markup gives no "close"/"reject"
+       affordance that REMOVES the bar, so it permanently consumes the bottom of the viewport. */
+    .consent {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 41;
+      background: #1f2a24; color: #eef3ef;
+      padding: 12px 16px;
+      min-height: 96px;
+      font-size: 13px; line-height: 1.45;
+      border-top: 3px solid #3a4f44;
+    }
+    .consent p { margin: 0 0 8px; }
+    .consent .btns { display: flex; gap: 10px; }
+    .consent button {
+      font: inherit; font-weight: 600; cursor: pointer;
+      border: 0; border-radius: 4px; padding: 7px 14px;
+    }
+    .consent .ok { background: #c8902f; color: #1d1402; }
+    .consent .prefs { background: transparent; color: #cfe0d6; border: 1px solid #6b7d72; }
+
+    /* Content padded clear of both fixed bars so nothing overlaps — it just gets squeezed
+       into the narrow band between them when the viewport is short. */
+    main { padding: 104px 16px 116px; max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 23px; margin: 6px 0 4px; }
+    h2 { font-size: 18px; margin: 22px 0 6px; color: #6e2c14; }
+    .lede { color: #444; margin: 0 0 18px; }
+    .dish { border-bottom: 1px solid #ece6da; padding: 10px 0; }
+    .dish .name { font-weight: 700; }
+    .dish .price { float: right; font-variant-numeric: tabular-nums; }
+    .dish .desc { color: #555; font-size: 14px; margin: 3px 0 0; }
+    .dish .allergens { font-size: 12px; color: #8a4b2e; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <!-- WHY AUTOMATED TOOLS MISS THIS:
+       Two position:fixed bars are completely standard. The cookie bar even has visible,
+       named, focusable buttons (passes axe button-name, color-contrast, etc.). No tool
+       computes the combined fixed-chrome height as a fraction of a 256px viewport, and no
+       tool reasons that "Accept" does not actually free the space because there is no
+       dismiss path that removes the bar. Recognising that the surviving content band is an
+       unreadable strip — and that the consent bar can never be dismissed to recover it — is
+       a visual-proportion + functional judgment for a human at the reflow viewport. -->
+  <header class="topbar">
+    <div class="brand">The Copper Kettle</div>
+    <div class="sub">Modern British · Ludlow · est. 2009</div>
+    <nav aria-label="Primary">
+      <a href="#menu">Menu</a>
+      <a href="#allergens">Allergens</a>
+      <a href="#book">Book a table</a>
+      <a href="#hours">Hours &amp; map</a>
+    </nav>
+  </header>
+
+  <main id="menu">
+    <h1>Spring Lunch Menu</h1>
+    <p class="lede">Served Tuesday to Saturday, 12:00–2:30 p.m. Allergen notes follow each dish;
+      please tell your server about any intolerance before ordering.</p>
+
+    <h2>To Start</h2>
+    <div class="dish">
+      <span class="price">£8.50</span>
+      <span class="name">Wye Valley asparagus</span>
+      <p class="desc">Soft duck egg, brown butter hollandaise, toasted hazelnut.</p>
+      <p class="allergens">Contains: egg, milk, tree nuts.</p>
+    </div>
+    <div class="dish">
+      <span class="price">£9.00</span>
+      <span class="name">Smoked trout rillette</span>
+      <p class="desc">Pickled fennel, horseradish crème fraîche, rye crisp.</p>
+      <p class="allergens">Contains: fish, milk, gluten.</p>
+    </div>
+
+    <h2>Mains</h2>
+    <div class="dish">
+      <span class="price">£17.50</span>
+      <span class="name">Slow-braised shin of beef</span>
+      <p class="desc">Creamed potato, glazed carrot, red wine and thyme jus.</p>
+      <p class="allergens">Contains: milk. May contain: celery.</p>
+    </div>
+    <div class="dish">
+      <span class="price">£15.00</span>
+      <span class="name">Wild garlic gnocchi</span>
+      <p class="desc">Charred leek, aged Hafod cheddar, crisp sage.</p>
+      <p class="allergens">Contains: gluten, milk, egg.</p>
+    </div>
+    <div class="dish">
+      <span class="price">£18.00</span>
+      <span class="name">Cornish hake</span>
+      <p class="desc">Brown shrimp butter, samphire, new potatoes.</p>
+      <p class="allergens">Contains: fish, crustacean, milk.</p>
+    </div>
+
+    <h2 id="allergens">A note on cross-contamination</h2>
+    <p class="desc">Our kitchen handles all fourteen named allergens. While we take every care,
+      we cannot guarantee any dish is entirely free from traces. The fryer is shared. If you
+      have a severe allergy, please speak to the chef directly and we will advise.</p>
+  </main>
+
+  <div class="consent" role="region" aria-label="Cookie consent">
+    <p>We use cookies to remember your table preferences and to measure how our menu pages are
+      used. By continuing to browse you agree to our use of analytics cookies.</p>
+    <div class="btns">
+      <button class="ok" type="button" onclick="this.closest('.consent').dataset.accepted='1'">Accept all</button>
+      <button class="prefs" type="button">Manage preferences</button>
+    </div>
+  </div>
+</body>
+</html>

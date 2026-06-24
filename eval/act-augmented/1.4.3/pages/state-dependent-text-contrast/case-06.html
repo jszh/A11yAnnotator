@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading list — Department of History, Coursework Wiki</title>
+<!--
+  WHY THIS IS A PASS (BOUNDARY / VISITED-LINK EXCLUSION):
+  This page is built to be the EASY-TO-MISFIRE case. The reading-list links use a faint
+  :visited color on purpose:
+      a:visited { color:#b9b3c9; }   /* ~2.03:1 on white — BELOW 4.5:1 */
+  A naive judge who drives the page, clicks a link, and measures the now-faint visited
+  color would WRONGLY flag 1.4.3. But Trusted Tester and F24's best-practice framing put
+  visited-link styling OUTSIDE the contrast requirement: text "Changed to indicate it is
+  a 'visited' link" is on the EXCLUDE list. So the faint visited color is NOT a failure.
+  Every IN-SCOPE state passes:
+      - rest (unvisited a:link)  #20355e on #fff  => ~12.1:1  PASS
+      - :hover                   #16264a on #fff  => ~14.9:1  PASS
+      - :focus-visible           #16264a + outline                PASS
+  The only sub-threshold state is :visited, which is excluded. Automated tools also do
+  not synthesize :visited (privacy: getComputedStyle never reports the real visited
+  color), so they never even see the faint color — but the CORRECT human verdict is the
+  same as theirs (pass) for a DIFFERENT, judgment-based reason: the exclusion applies.
+  The page is included to confirm the judge HONORS the visited exclusion instead of
+  over-flagging a driven low-contrast state.
+-->
+<style>
+  :root { --ink:#1d2330; --line:#e2e5ec; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.65 "Iowan Old Style", Georgia, serif; color:var(--ink); background:#fbfbfd; }
+  .page { max-width:720px; margin:40px auto; padding:0 22px; }
+  header h1 { font-size:1.6rem; margin:0 0 2px; }
+  header .meta { font-family:system-ui,sans-serif; color:#5c6473; font-size:.85rem; margin:0 0 8px; }
+  .wikinote { font-family:system-ui,sans-serif; background:#eef4ff; border:1px solid #cfe0ff; color:#23457e;
+              border-radius:8px; padding:10px 14px; font-size:.86rem; margin:0 0 22px; }
+  h2 { font-size:1.15rem; margin:26px 0 8px; border-bottom:1px solid var(--line); padding-bottom:4px; }
+  ol.readings { padding-left:1.3em; }
+  ol.readings li { margin:0 0 10px; }
+  .cite { color:#3a4252; }
+
+  /* In-scope link states — all comfortably pass. */
+  a:link            { color:#20355e; text-decoration:underline; }   /* ~12.1:1 PASS */
+  a:hover           { color:#16264a; }                              /* ~14.9:1 PASS */
+  a:focus-visible   { color:#16264a; outline:2px solid #20355e; outline-offset:2px; }
+
+  /* Excluded state — faint by design to mark a link as already read. NOT a 1.4.3 failure. */
+  a:visited         { color:#b9b3c9; }                              /* ~2.03:1 — visited exclusion */
+
+  footer { font-family:system-ui,sans-serif; color:#5c6473; font-size:.82rem; margin-top:30px; border-top:1px solid var(--line); padding-top:12px; }
+</style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>HIST 214 — The Age of Revolutions: Reading List</h1>
+      <p class="meta">Coursework wiki · maintained by the teaching team · Week 1–6</p>
+    </header>
+
+    <p class="wikinote">Links you have already opened appear faded — that is the “already read” marker for this list. Unread links stay dark blue.</p>
+
+    <section>
+      <h2>Core readings</h2>
+      <ol class="readings">
+        <li><a href="#r1">Hobsbawm, E.</a> — <span class="cite">“The Dual Revolution”, in <em>The Age of Revolution 1789–1848</em>, ch. 1.</span></li>
+        <li><a href="#r2">Palmer, R. R.</a> — <span class="cite"><em>The Age of the Democratic Revolution</em>, vol. 1, intro.</span></li>
+        <li><a href="#r3">Doyle, W.</a> — <span class="cite"><em>The Oxford History of the French Revolution</em>, ch. 4.</span></li>
+        <li><a href="#r4">Bayly, C. A.</a> — <span class="cite"><em>The Birth of the Modern World</em>, ch. 3.</span></li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Further reading</h2>
+      <ol class="readings">
+        <li><a href="#r5">Scott, J. C.</a> — <span class="cite"><em>Seeing Like a State</em>, ch. 2.</span></li>
+        <li><a href="#r6">Hunt, L.</a> — <span class="cite"><em>Politics, Culture, and Class in the French Revolution</em>.</span></li>
+      </ol>
+    </section>
+
+    <footer>
+      Hover or tab a link: the in-scope states stay dark and high-contrast. Already-visited links fade by design (visited-link exclusion). Renders from file://
+    </footer>
+  </div>
+</body>
+</html>

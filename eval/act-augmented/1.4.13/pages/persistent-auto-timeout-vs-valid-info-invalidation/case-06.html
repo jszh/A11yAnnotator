@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>اختيار المقاعد — رحلة القاهرة ⇆ جدة | طيران الواحة</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.7 "Segoe UI", Tahoma, "Noto Naskh Arabic", sans-serif; color:#22303c; background:#eef3f6; }
+  header { background:#0a4d68; color:#fff; padding:14px 24px; }
+  header b { font-size:19px; }
+  main { max-width:720px; margin:24px auto; background:#fff; border:1px solid #d3dde3; border-radius:12px; padding:26px 30px; }
+  h1 { font-size:21px; margin:0 0 4px; }
+  p.sub { color:#5b6c78; margin:0 0 20px; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; color:#5b6c78; margin-bottom:14px; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .sw { width:16px; height:16px; border-radius:4px; display:inline-block; }
+  .cabin { display:grid; grid-template-columns:repeat(6, 1fr); gap:8px; max-width:360px; margin:0 auto; }
+  .seat {
+    position:relative; aspect-ratio:1/1; border:1px solid #b9c6cf; border-radius:7px;
+    background:#fff; font-size:13px; cursor:pointer; color:#2b3a45;
+  }
+  .seat:focus-visible { outline:3px solid #1a73e8; outline-offset:2px; }
+  .seat.taken { background:#cdd6dc; color:#8a98a2; cursor:not-allowed; }
+  .seat.held  { background:#fde9b8; border-color:#e0a800; }
+  /* the hold-countdown popup: appears on hover/focus of a seat you are holding */
+  .hold-pop {
+    position:absolute; top:115%; right:50%; transform:translateX(50%);
+    width:230px; background:#1f2933; color:#f4f7fa; padding:11px 13px; border-radius:9px;
+    font-size:13px; line-height:1.55; box-shadow:0 10px 24px rgba(0,0,0,.3);
+    z-index:30; opacity:0; visibility:hidden; transition:opacity .12s;
+  }
+  .hold-pop.show { opacity:1; visibility:visible; }
+  .hold-pop strong { color:#ffd86b; }
+  .actions { margin-top:24px; display:flex; gap:10px; justify-content:flex-start; }
+  button.go { background:#0a4d68; color:#fff; border:0; padding:12px 22px; border-radius:8px; font-size:16px; cursor:pointer; }
+  button.go[disabled] { background:#9fb4bf; cursor:not-allowed; }
+  footer { max-width:720px; margin:14px auto 60px; color:#7c8b95; font-size:12px; }
+</style>
+</head>
+<body>
+<header><b>طيران الواحة</b> &nbsp;·&nbsp; اختيار المقاعد</header>
+
+<main>
+  <h1>اختر مقعدك — رحلة OW 412</h1>
+  <p class="sub">القاهرة (CAI) ⇐ جدة (JED) · الدرجة الاقتصادية · الصف ١٢</p>
+
+  <div class="legend">
+    <span><i class="sw" style="background:#fff;border:1px solid #b9c6cf"></i> متاح</span>
+    <span><i class="sw" style="background:#cdd6dc"></i> محجوز</span>
+    <span><i class="sw" style="background:#fde9b8;border:1px solid #e0a800"></i> محجوز مؤقتًا لك</span>
+  </div>
+
+  <div class="cabin" id="cabin">
+    <button class="seat" type="button">A١</button>
+    <button class="seat taken" type="button" disabled aria-disabled="true">B١</button>
+    <button class="seat" type="button">C١</button>
+    <button class="seat" type="button">D١</button>
+    <button class="seat taken" type="button" disabled aria-disabled="true">E١</button>
+    <button class="seat" type="button">F١</button>
+    <button class="seat taken" type="button" disabled aria-disabled="true">A٢</button>
+    <button class="seat" type="button">B٢</button>
+    <button class="seat" id="heldSeat" type="button" aria-describedby="holdPop">C٢
+      <span id="holdPop" role="tooltip" class="hold-pop" lang="ar">
+        تم حجز المقعد <strong>C٢</strong> مؤقتًا باسمك. الوقت المتبقّي:
+        <strong><span id="holdLeft">٠٠:٤٥</span></strong>. أكمل الدفع قبل انتهاء المهلة.
+      </span>
+    </button>
+    <button class="seat" type="button">D٢</button>
+    <button class="seat" type="button">E٢</button>
+    <button class="seat" type="button">F٢</button>
+  </div>
+
+  <div class="actions">
+    <button class="go" id="pay" type="button">متابعة الدفع</button>
+  </div>
+</main>
+
+<footer>صفحة تجريبية افتراضية — لا تتم معالجة أي حجز فعلي. (Fictional demo, no real booking.)</footer>
+
+<script>
+  // The held seat (C2) shows, on hover/focus, a popup with the LIVE remaining hold time.
+  // It is hoverable, Esc-dismissible, and stays visible the whole time the hold is valid.
+  var seat   = document.getElementById('heldSeat');
+  var pop    = document.getElementById('holdPop');
+  var leftEl = document.getElementById('holdLeft');
+  var payBtn = document.getElementById('pay');
+  seat.classList.add('held');
+
+  function show(){ pop.classList.add('show'); }
+  function hide(){ pop.classList.remove('show'); }
+  seat.addEventListener('mouseenter', show);
+  seat.addEventListener('mouseleave', hide);
+  seat.addEventListener('focus', show);
+  seat.addEventListener('blur', hide);
+  pop.addEventListener('mouseenter', show);
+  pop.addEventListener('mouseleave', hide);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') hide(); });
+
+  // Western-to-Arabic-Indic digit rendering for the countdown
+  function ar(n){ return String(n).replace(/[0-9]/g, function(d){ return '٠١٢٣٤٥٦٧٨٩'[+d]; }); }
+
+  // ---- the LEGITIMATE exception (info-invalidation), NOT a disallowed timer ----
+  // The popup describes a temporary HOLD. A countdown ticks down the genuinely
+  // remaining time. The popup keeps showing while the hold is valid AND the seat is
+  // hovered/focused. When the timer reaches zero the hold actually EXPIRES: the seat
+  // is released (no longer "held for you"), the conveyed information is now false, so
+  // the popup is dismissed because its information became invalid. (For the demo we
+  // start at 8s remaining so the timeline is observable.)
+  var remaining = 8; // seconds; real product uses minutes
+  function render(){
+    var m = Math.floor(remaining/60), s = remaining%60;
+    leftEl.textContent = ar(String(m).padStart(2,'0')) + ':' + ar(String(s).padStart(2,'0'));
+  }
+  render();
+  var tick = setInterval(function(){
+    remaining--;
+    if (remaining > 0){ render(); return; }
+    // hold expired => the popup's information is now INVALID => remove it (allowed)
+    clearInterval(tick);
+    pop.textContent = '';                 // the "held for you" message is no longer true
+    pop.classList.remove('show');
+    seat.classList.remove('held');        // seat returns to "available" state
+    seat.removeAttribute('aria-describedby');
+    payBtn.disabled = true;
+    payBtn.textContent = 'انتهت مهلة الحجز';
+  }, 1000);
+</script>
+
+<!--
+  WHY THIS IS A PASS (and why automated tools can't decide it):
+  Structurally this looks like an auto-dismiss-on-timer (a setInterval that ends by
+  hiding a popup) — superficially identical to the case-01/case-02 FAIL pattern, and a
+  forced-colors / static check sees only valid role="tooltip" markup with correct
+  RTL/lang and an Esc handler. But the popup conveys a TEMPORARY HOLD whose validity is
+  inherently time-bound: when the countdown hits zero the seat hold truly expires, so
+  the "محجوز مؤقتًا لك / held for you" information becomes FALSE. The Persistent
+  condition permits content to end when "the information conveyed by the additional
+  content becomes invalid." Distinguishing this legitimate info-invalidation from a
+  disallowed auto-timeout requires reading what the content MEANS and whether it is
+  still true — semantic, temporal reasoning that automated tools (and naive timer-
+  presence heuristics) cannot perform.
+-->
+</body>
+</html>

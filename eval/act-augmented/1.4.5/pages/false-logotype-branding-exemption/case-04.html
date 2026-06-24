@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.5 — a PASS (crest logo) and a FAIL (deadline notice as image) side by side, on a
+    government permits portal.
+
+    LEFT: <img class="crest" alt="Department of Transport"> — a circular departmental CREST
+    with the agency name curved around a graphic emblem. This is a logo/branding mark: the
+    visual presentation (the seal) is essential to the identity. EXEMPT by 1.4.5. -> PASS.
+
+    RIGHT: <img class="deadline" alt="Apply for your permit before March 31"> — a sub-banner
+    whose pixels read "Apply for your permit before 31 March 2026". It is dressed in the same
+    departmental colours and parked in the masthead "branding strip" beside the crest, so it
+    looks like part of the official lockup. But it is a TIME-SENSITIVE INFORMATIONAL NOTICE
+    (a deadline), not a logo or brand name. The branding/logotype exemption does not reach it;
+    a citizen who needs to enlarge or recolour that date is blocked because it is pixels. The
+    deadline must be live, resizable text. -> FAILS 1.4.5.
+
+    The alt on the deadline image even REPRODUCES the visible text, which would satisfy 1.1.1
+    (the words reach AT) — making this purely a 1.4.5 visual-customisation failure, not a
+    missing-text-alternative failure. That is the trap: a captioned-image heuristic is fooled.
+
+    WHY AUTOMATED TOOLS MISS IT: both images have correct non-empty alt -> image-alt passes.
+    No tool OCRs to see one image is a seal (exempt) and the other is a deadline sentence (not
+    exempt). The crest-vs-notice distinction is human-only.
+  -->
+  <title>Apply for a Heavy Vehicle Permit — Dept. of Transport</title>
+  <style>
+    :root { --gov:#0b3d62; --gov2:#1b5e8c; --ink:#1a1f24; --muted:#566069; --line:#d8e0e6; --bg:#f4f7f9; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Source Sans Pro", Arial, sans-serif; color:var(--ink); background:var(--bg); }
+    .gov-strip { background:#06283f; color:#cfe0ec; font-size:12.5px; padding:6px 24px; }
+    /* The masthead "branding strip" holds the crest AND the deadline banner, side by side. */
+    .masthead { display:flex; align-items:center; gap:20px; background:var(--gov); color:#fff; padding:18px 24px; }
+    .masthead .crest { height:64px; width:64px; flex:0 0 auto; }
+    .masthead .titles { line-height:1.2; }
+    .masthead .titles .dept { font-size:20px; font-weight:700; }
+    .masthead .titles .sub { font-size:13px; color:#bcd3e4; }
+    .masthead .deadline { height:36px; width:auto; margin-left:auto; }
+    nav.crumbs { background:#fff; border-bottom:1px solid var(--line); padding:10px 24px; font-size:13px; }
+    nav.crumbs a { color:var(--gov2); text-decoration:none; }
+    main { max-width:780px; margin:0 auto; padding:30px 22px; }
+    main h1 { font-size:28px; margin:0 0 12px; }
+    main p { line-height:1.7; font-size:16px; color:#2a323a; }
+    .callout { background:#eef5fa; border-left:4px solid var(--gov2); padding:14px 16px; margin:18px 0; font-size:15px; }
+    form.permit { background:#fff; border:1px solid var(--line); border-radius:10px; padding:20px; margin-top:18px; }
+    form.permit label { display:block; font-size:14px; font-weight:600; margin:12px 0 4px; }
+    form.permit input, form.permit select { width:100%; padding:9px; border:1px solid #c4ccd2; border-radius:6px; font-size:15px; }
+    form.permit button { margin-top:16px; background:var(--gov2); color:#fff; border:0; padding:11px 22px; border-radius:6px; font-size:15px; cursor:pointer; }
+    footer { color:var(--muted); font-size:13px; padding:24px; border-top:1px solid var(--line); margin-top:30px; }
+  </style>
+</head>
+<body>
+  <div class="gov-strip">An official service of the State Government</div>
+
+  <header class="masthead">
+    <!-- EXEMPT: departmental crest (a seal/logo). Its presentation is the identity. -->
+    <img class="crest" alt="Department of Transport"
+         src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='128'%20height='128'%20viewBox='0%200%20128%20128'%3E%3Ccircle%20cx='64'%20cy='64'%20r='60'%20fill='none'%20stroke='%23ffffff'%20stroke-width='3'/%3E%3Ccircle%20cx='64'%20cy='64'%20r='34'%20fill='%231b5e8c'/%3E%3Cpath%20d='M40%2070%20l24%20-26%20l24%2026'%20fill='none'%20stroke='%23ffffff'%20stroke-width='4'/%3E%3Cpath%20d='M40%2070%20h48'%20stroke='%23ffffff'%20stroke-width='4'/%3E%3Ctext%20x='64'%20y='16'%20fill='%23ffffff'%20font-family='Georgia,serif'%20font-size='9'%20text-anchor='middle'%3EDEPARTMENT%20OF%20TRANSPORT%3C/text%3E%3C/svg%3E">
+
+    <div class="titles">
+      <div class="dept">Department of Transport</div>
+      <div class="sub">Heavy Vehicle Permits</div>
+    </div>
+
+    <!-- NOT EXEMPT: a time-sensitive DEADLINE notice baked into an image, styled to sit in the
+         branding strip beside the crest. Informational text that must be live/resizable. The
+         alt even reproduces it (so 1.1.1 is satisfied) — this is purely a 1.4.5 failure. -->
+    <img class="deadline" alt="Apply for your permit before 31 March 2026"
+         src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='340'%20height='40'%20viewBox='0%200%20340%2040'%3E%3Crect%20width='340'%20height='40'%20rx='6'%20fill='%23f4c542'/%3E%3Ctext%20x='170'%20y='26'%20fill='%2306283f'%20font-family='Arial,sans-serif'%20font-size='16'%20font-weight='bold'%20text-anchor='middle'%3EApply%20for%20your%20permit%20before%2031%20March%202026%3C/text%3E%3C/svg%3E">
+  </header>
+
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="#">Home</a> › <a href="#">Roads &amp; vehicles</a> › <span>Heavy vehicle permits</span>
+  </nav>
+
+  <main>
+    <h1>Apply for a heavy vehicle permit</h1>
+    <p>Heavy and oversize vehicles operating on state roads need a valid permit. Permits are
+       issued per route and are valid for twelve months. Processing currently takes up to ten
+       working days, so apply well ahead of your travel date.</p>
+
+    <div class="callout">Permits for the 2026 season must be lodged before the cut-off shown
+       in the banner above. Late applications are processed in the next cycle.</div>
+
+    <form class="permit" aria-label="Permit application">
+      <label for="abn">Operator ABN</label>
+      <input id="abn" name="abn" inputmode="numeric" autocomplete="off">
+      <label for="vclass">Vehicle class</label>
+      <select id="vclass" name="vclass">
+        <option>Class 1 — Special purpose</option>
+        <option>Class 2 — B-double</option>
+        <option>Class 3 — Road train</option>
+      </select>
+      <label for="route">Primary route</label>
+      <input id="route" name="route" autocomplete="off">
+      <button type="submit">Start application</button>
+    </form>
+  </main>
+
+  <footer>© State of Example · Department of Transport · Contact 13 11 71</footer>
+</body>
+</html>

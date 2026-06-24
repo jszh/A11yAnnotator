@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.3 PASS (large-scale image of text at 3:1) — the size-threshold judgment that decides
+    pass vs fail for an in-scope image of text.
+
+    A nonprofit annual-report page features a pull-quote rendered as a flat IMAGE OF TEXT (for a
+    hand-set serif look) on a near-white card — no significant other visual content, so it is
+    IN SCOPE (not exempt). The lettering is #888888 on #f4f2ed = 3.17:1. That value is BELOW
+    4.5:1 (would fail as normal text) but AT/ABOVE 3:1 (passes as large-scale text). The image
+    is rendered at a large display size: the SVG sets font-size 40 and the <img> is shown at its
+    natural width spanning a wide card, well above the 18pt / 24px large-scale threshold
+    (~1.5x body). So the correct threshold is 3:1, and 3.17:1 MEETS it → PASS.
+
+    THE HUMAN JUDGMENT THIS PAGE FORCES: you cannot decide pass/fail from the 3.17:1 number
+    alone — you must first determine whether the rendered text in the image is large-scale.
+    Trusted Tester notes there is no tool to compare text size INSIDE an image, so a human must
+    demonstrate it is large-scale to apply 3:1 (otherwise 4.5:1 applies and it would fail). A
+    naive reviewer who applies 4.5:1 to everything would WRONGLY fail this page; a reviewer who
+    measures 3.17:1 and confirms the text renders large-scale correctly PASSES it.
+
+    WHY AUTOMATED TOOLS MISS IT: the quote is an <img> with no live text node, so axe/WAVE/
+    Lighthouse measure no contrast and cannot read the text or judge its rendered size. They
+    can neither flag nor clear it. Both the size determination and the eyedropper are human-only.
+  -->
+  <title>2025 Impact Report — Riverkeep Conservancy</title>
+  <style>
+    :root{--ink:#1d2a24;--muted:#566b60;--line:#dde6e0;--paper:#ffffff;--brand:#2f6b4f;}
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:#eef4f0;}
+    header{background:var(--brand);color:#eafaf2;padding:20px 28px;}
+    header .org{font-weight:800;letter-spacing:.04em;}
+    header .sub{opacity:.9;font-size:14px;margin-top:2px;}
+    main{max-width:820px;margin:18px auto;background:var(--paper);padding:30px;box-shadow:0 1px 0 var(--line);}
+    h1{font-size:28px;margin:0 0 10px;}
+    p{line-height:1.8;color:#27332c;}
+    .pull{margin:26px 0;}
+    .pull img{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line);}
+    .pull .attrib{font-size:14px;color:var(--muted);margin-top:8px;font-style:italic;}
+    .stats{display:flex;gap:30px;flex-wrap:wrap;margin:24px 0;}
+    .stat{flex:1 1 180px;background:#eef6f1;border-radius:10px;padding:16px;}
+    .stat b{display:block;font-size:26px;color:var(--brand);}
+    .stat span{color:var(--muted);font-size:14px;}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="org">RIVERKEEP CONSERVANCY</div>
+    <div class="sub">2025 Impact Report</div>
+  </header>
+
+  <main>
+    <h1>A year of clearer water</h1>
+    <p>With volunteers in twelve watershed towns, we removed two derelict dams, restored
+       fourteen miles of riparian buffer, and reopened spawning runs that had been blocked for
+       a generation. Here is what that work made possible.</p>
+
+    <div class="stats">
+      <div class="stat"><b>14 mi</b><span>riparian buffer restored</span></div>
+      <div class="stat"><b>2</b><span>derelict dams removed</span></div>
+      <div class="stat"><b>9,300</b><span>volunteer hours</span></div>
+    </div>
+
+    <figure class="pull" aria-labelledby="quoteImg">
+      <!--
+        IN-SCOPE image of text (pull-quote set in a hand-serif for look), no other significant
+        content. Contrast #888888 on #f4f2ed = 3.17:1: BELOW 4.5:1 (fails as normal) but ABOVE
+        3:1 (passes as large-scale). The image renders large-scale (font-size 40 in a full-width
+        card), so 3:1 applies → PASS. Deciding pass/fail REQUIRES first judging the rendered
+        size, then eyedroppering. The alt transcribes the quote.
+      -->
+      <img id="quoteImg" alt="“The river remembers every dam we take down.” — Dolores Hartmann, founding board chair"
+        src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='760'%20height='200'%20viewBox='0%200%20760%20200'%3E%3Crect%20width='760'%20height='200'%20fill='%23f4f2ed'/%3E%3Ctext%20x='380'%20y='86'%20fill='%23888888'%20font-family='Georgia,serif'%20font-size='40'%20font-style='italic'%20text-anchor='middle'%3E%E2%80%9CThe%20river%20remembers%20every%3C/text%3E%3Ctext%20x='380'%20y='140'%20fill='%23888888'%20font-family='Georgia,serif'%20font-size='40'%20font-style='italic'%20text-anchor='middle'%3Edam%20we%20take%20down.%E2%80%9D%3C/text%3E%3C/svg%3E">
+      <figcaption class="attrib">— Dolores Hartmann, founding board chair</figcaption>
+    </figure>
+
+    <p>That belief has guided thirty years of patient work. Thank you for standing with us —
+       and with the rivers — for another year.</p>
+  </main>
+</body>
+</html>

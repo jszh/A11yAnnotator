@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weeknight miso-glazed salmon — Saffron &amp; Salt</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (DISCRIMINATOR, boundary in the OTHER direction):
+  The page has many NON-data-entry controls that must NOT be flagged under 3.3.2:
+    - a "Recipe actions" menu-button (Print / Save / Share) -> links & actions
+    - 4 expand/collapse step disclosures (aria-expanded)
+    - a "jump to recipe" link, tag links, a "scale x2 / x3" group of action buttons
+  Those are buttons/links/disclosures; 3.3.2 does not apply to them.
+
+  BUT there IS a genuine data-entry selection control: an ingredient SHOPPING
+  CHECKLIST built from real <input type="checkbox"> controls — these are exactly
+  the "checkboxes ... that provide users with options" the SC's Intent names as IN
+  SCOPE. The defect: the heading "Add to shopping list" sits in a sibling <h3>, the
+  list has NO group label tying the checkboxes to that purpose (no fieldset/legend,
+  no role=group + name), and crucially the INDIVIDUAL checkbox labels are
+  AMBIGUOUS QUANTITY-ONLY fragments — "2 fillets", "1 tbsp", "2 cloves", "to taste"
+  — with the actual ingredient noun living in a separate visual column that is NOT
+  part of each checkbox's label. Each checkbox's accessible name is just its
+  quantity ("2 fillets", "1 tbsp"), so a screen-reader user checking the list hears
+  "2 fillets, checkbox" / "1 tbsp, checkbox" and cannot tell WHAT they are
+  selecting. The SC's Intent: "each option must have an appropriate label so that
+  users know what they are actually selecting." These options do NOT. -> FAIL on
+  the checkbox group only.
+
+  Correct evaluation: FAIL the ingredient checkbox options (ambiguous per-option
+  labels); leave the menu-button, step disclosures, scale buttons, and links alone.
+
+  WHY AUTO TOOLS MISS: every checkbox HAS an associated <label> (the quantity text),
+  so axe sees "form element has a label" and passes. No checker judges that the
+  label "2 fillets" fails to tell the user WHAT they are selecting — that the noun
+  is in an adjacent column not in the accessible name. That is a semantic
+  "do you know what you're selecting?" judgment, not an attribute presence check.
+-->
+<style>
+  :root{ --ink:#2a2118; --muted:#7a6e60; --line:#e7ded2; --herb:#5a7d3c; --bg:#fbf7f0; --warm:#b5532a; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:17px/1.65 "Georgia",serif; color:var(--ink); background:var(--bg); }
+  a{ color:var(--warm); }
+  .wrap{ max-width:760px; margin:26px auto; padding:0 20px; }
+  .top{ display:flex; align-items:center; gap:12px; margin-bottom:14px; font:14px/1 "Helvetica Neue",Arial,sans-serif; }
+  .top .logo{ font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--herb); }
+  .top .acts{ margin-left:auto; position:relative; }
+  .top .acts button{ font:.85rem/1 "Helvetica Neue",Arial,sans-serif; border:1px solid var(--line); background:#fff; color:var(--ink); padding:8px 12px; border-radius:8px; cursor:pointer; }
+  .top .acts button:focus{ outline:2px solid var(--herb); outline-offset:2px; }
+  .top .acts .menu{ position:absolute; right:0; top:40px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.12); min-width:180px; padding:6px; z-index:5; }
+  .top .acts .menu[hidden]{ display:none; }
+  .top .acts .menu a, .top .acts .menu button.mi{ display:block; width:100%; text-align:left; padding:9px 11px; border:0; background:none; border-radius:7px; text-decoration:none; color:var(--ink); font:14px/1.4 "Helvetica Neue",Arial,sans-serif; cursor:pointer; }
+  .top .acts .menu a:hover, .top .acts .menu button.mi:hover{ background:#f4efe6; }
+  h1{ font-size:2rem; line-height:1.2; margin:6px 0 6px; }
+  .meta{ font:14px/1.5 "Helvetica Neue",Arial,sans-serif; color:var(--muted); display:flex; gap:16px; flex-wrap:wrap; margin-bottom:6px; }
+  .jump{ font:14px/1 "Helvetica Neue",Arial,sans-serif; margin:0 0 18px; }
+  .hero{ height:220px; border-radius:12px; background:linear-gradient(135deg,#e8c9a0,#cf9b6b); margin-bottom:20px; }
+  .intro{ margin:0 0 22px; }
+  .scale{ font:14px/1 "Helvetica Neue",Arial,sans-serif; display:flex; gap:8px; align-items:center; margin:0 0 12px; }
+  .scale span{ color:var(--muted); }
+  .scale button{ border:1px solid var(--line); background:#fff; color:var(--ink); padding:6px 12px; border-radius:7px; cursor:pointer; }
+  .scale button[aria-pressed="true"]{ background:var(--herb); color:#fff; border-color:var(--herb); }
+  h2.sec{ font-size:1.3rem; margin:26px 0 6px; border-bottom:2px solid var(--line); padding-bottom:6px; }
+  h3.sub{ font-size:1.05rem; font-family:"Helvetica Neue",Arial,sans-serif; margin:18px 0 8px; }
+  /* The ingredient shopping checklist: REAL checkboxes (data-entry selection control). */
+  .ing{ list-style:none; margin:0; padding:0; font:16px/1.5 "Helvetica Neue",Arial,sans-serif; }
+  .ing li{ display:grid; grid-template-columns:24px 92px 1fr; align-items:center; gap:10px; padding:7px 0; border-bottom:1px dotted var(--line); }
+  .ing input[type=checkbox]{ width:18px; height:18px; accent-color:var(--herb); }
+  /* The qty is the checkbox's LABEL; the ingredient NOUN is a separate column, NOT in the label. */
+  .ing .qty{ font-weight:600; }
+  .ing .name{ color:var(--ink); }
+  .steps .acc{ border:1px solid var(--line); border-radius:9px; background:#fff; margin-bottom:10px; overflow:hidden; }
+  .steps .acc button{ width:100%; text-align:left; background:#fff; border:0; padding:13px 15px; font:1rem/1.3 "Helvetica Neue",Arial,sans-serif; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; align-items:center; color:var(--ink); }
+  .steps .acc button:focus{ outline:2px solid var(--herb); outline-offset:-2px; }
+  .steps .acc .body{ padding:0 15px 14px; color:#43392c; font:15px/1.55 "Georgia",serif; }
+  .steps .acc .body[hidden]{ display:none; }
+  .tags{ margin:22px 0; font:13px/1.6 "Helvetica Neue",Arial,sans-serif; }
+  .tags a{ display:inline-block; background:#efe7da; color:var(--ink); padding:4px 11px; border-radius:14px; text-decoration:none; margin:0 6px 6px 0; }
+  footer{ margin:24px 0; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font:13px/1.6 "Helvetica Neue",Arial,sans-serif; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <span class="logo">Saffron &amp; Salt</span>
+      <div class="acts">
+        <button type="button" id="actBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="actMenu">Recipe actions ▾</button>
+        <div class="menu" id="actMenu" role="menu" aria-label="Recipe actions" hidden>
+          <button type="button" class="mi" role="menuitem">Print recipe</button>
+          <button type="button" class="mi" role="menuitem">Save to cookbook</button>
+          <a role="menuitem" href="#share">Share a link</a>
+        </div>
+      </div>
+    </div>
+
+    <p class="jump"><a href="#recipe">↓ Jump to recipe</a></p>
+
+    <h1>Weeknight miso-glazed salmon</h1>
+    <div class="meta"><span>Serves 2</span><span>25 minutes</span><span>by Priya Anand</span></div>
+
+    <div class="hero" role="img" aria-label="Two glazed salmon fillets on rice with scallions."></div>
+
+    <p class="intro">A sweet-savoury glaze comes together in the time it takes the rice to cook. The whole thing is a Tuesday-night affair: one pan, one bowl, and a grill that does the rest.</p>
+
+    <h2 class="sec" id="recipe">Ingredients</h2>
+    <h3 class="sub" id="ing-head">Add to shopping list</h3>
+
+    <div class="scale" role="group" aria-label="Scale the recipe">
+      <span>Scale:</span>
+      <button type="button" aria-pressed="true">1×</button>
+      <button type="button" aria-pressed="false">2×</button>
+      <button type="button" aria-pressed="false">3×</button>
+    </div>
+
+    <!--
+      REAL checkboxes = data-entry selection controls (IN SCOPE for 3.3.2).
+      Each checkbox's <label> is the QUANTITY ONLY ("2 fillets", "1 tbsp", "2 cloves",
+      "to taste"). The ingredient NOUN lives in the .name column, which is NOT part of
+      the label/accessible name. So each option's name fails to say WHAT is selected.
+      No fieldset/legend or group name ties the checkboxes to "Add to shopping list".
+    -->
+    <ul class="ing">
+      <li>
+        <input type="checkbox" id="i1">
+        <label for="i1" class="qty">2 fillets</label>
+        <span class="name" aria-hidden="true">skin-on salmon</span>
+      </li>
+      <li>
+        <input type="checkbox" id="i2">
+        <label for="i2" class="qty">3 tbsp</label>
+        <span class="name" aria-hidden="true">white miso paste</span>
+      </li>
+      <li>
+        <input type="checkbox" id="i3">
+        <label for="i3" class="qty">1 tbsp</label>
+        <span class="name" aria-hidden="true">mirin</span>
+      </li>
+      <li>
+        <input type="checkbox" id="i4">
+        <label for="i4" class="qty">2 cloves</label>
+        <span class="name" aria-hidden="true">garlic, grated</span>
+      </li>
+      <li>
+        <input type="checkbox" id="i5">
+        <label for="i5" class="qty">1 cup</label>
+        <span class="name" aria-hidden="true">short-grain rice</span>
+      </li>
+      <li>
+        <input type="checkbox" id="i6">
+        <label for="i6" class="qty">to taste</label>
+        <span class="name" aria-hidden="true">scallions &amp; sesame</span>
+      </li>
+    </ul>
+
+    <h2 class="sec">Method</h2>
+    <div class="steps">
+      <div class="acc">
+        <button type="button" aria-expanded="false" aria-controls="s1">Step 1 — Make the glaze<span aria-hidden="true">＋</span></button>
+        <div class="body" id="s1" hidden>Whisk the miso, mirin, a tablespoon of soy, and the grated garlic into a smooth paste.</div>
+      </div>
+      <div class="acc">
+        <button type="button" aria-expanded="false" aria-controls="s2">Step 2 — Start the rice<span aria-hidden="true">＋</span></button>
+        <div class="body" id="s2" hidden>Rinse the rice until the water runs clear, then cook by your usual method while you glaze the fish.</div>
+      </div>
+      <div class="acc">
+        <button type="button" aria-expanded="false" aria-controls="s3">Step 3 — Glaze and grill<span aria-hidden="true">＋</span></button>
+        <div class="body" id="s3" hidden>Pat the salmon dry, coat with the glaze, and grill 6–8 minutes until the top caramelises and the fish flakes.</div>
+      </div>
+      <div class="acc">
+        <button type="button" aria-expanded="false" aria-controls="s4">Step 4 — Finish<span aria-hidden="true">＋</span></button>
+        <div class="body" id="s4" hidden>Spoon over rice, shower with sliced scallions and sesame, and serve at once.</div>
+      </div>
+    </div>
+
+    <div class="tags" aria-label="Tags">
+      <a href="#t1">Seafood</a><a href="#t2">Weeknight</a><a href="#t3">30 minutes or less</a>
+    </div>
+
+    <footer>Saffron &amp; Salt · Renders from file:// · The action menu, scale buttons, and step toggles are not data-entry controls; the ingredient checkboxes are.</footer>
+  </div>
+
+<script>
+  var ab = document.getElementById('actBtn'), am = document.getElementById('actMenu');
+  ab.addEventListener('click', function(){
+    var open = ab.getAttribute('aria-expanded') === 'true';
+    ab.setAttribute('aria-expanded', String(!open)); am.hidden = open;
+  });
+  document.addEventListener('click', function(e){ if(!ab.contains(e.target) && !am.contains(e.target)){ ab.setAttribute('aria-expanded','false'); am.hidden = true; } });
+  document.querySelectorAll('.steps .acc button').forEach(function(b){
+    b.addEventListener('click', function(){
+      var open = b.getAttribute('aria-expanded') === 'true';
+      b.setAttribute('aria-expanded', String(!open));
+      document.getElementById(b.getAttribute('aria-controls')).hidden = open;
+    });
+  });
+  document.querySelectorAll('.scale button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.scale button').forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+    });
+  });
+</script>
+</body>
+</html>

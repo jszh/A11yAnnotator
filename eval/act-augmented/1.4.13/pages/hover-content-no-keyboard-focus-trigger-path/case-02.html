@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rate limiting — Pulsar API reference</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    background: #fbfcfd;
+    color: #1c2530;
+    line-height: 1.6;
+  }
+  .topbar {
+    background: #11161d; color: #e7ebf0;
+    padding: 12px 28px; display: flex; align-items: center; gap: 10px;
+    font-size: 14px;
+  }
+  .topbar .dot { width: 10px; height: 10px; border-radius: 50%; background: #3ddc97; }
+  .layout { display: grid; grid-template-columns: 220px 1fr; max-width: 1080px; margin: 0 auto; }
+  nav { border-right: 1px solid #e6eaef; padding: 24px 18px; font-size: 14px; }
+  nav ul { list-style: none; margin: 0; padding: 0; }
+  nav li { margin: 7px 0; }
+  nav a { color: #4a5666; text-decoration: none; }
+  nav a.current { color: #0a66c2; font-weight: 600; }
+  article { padding: 30px 36px; max-width: 740px; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  .crumbs { color: #7a8696; font-size: 13px; margin: 0 0 18px; }
+  h2 { font-size: 18px; margin: 28px 0 8px; }
+  p { margin: 0 0 14px; }
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    background: #eef1f5; border-radius: 4px; padding: 1px 5px; font-size: 13.5px;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0 18px; }
+  th, td { text-align: left; border-bottom: 1px solid #e6eaef; padding: 9px 10px; }
+  th { color: #4a5666; font-weight: 600; }
+
+  /* Glossary abbreviation styled with a hover-only CSS tooltip.
+     This is PURE CSS — there is no JS at all, and CSS :hover cannot
+     respond to keyboard focus on a non-focusable <abbr>. */
+  abbr.term {
+    position: relative;
+    border-bottom: 1px dotted #0a66c2;
+    text-decoration: none;
+    cursor: help;
+    color: inherit;
+  }
+  abbr.term .bubble {
+    position: absolute;
+    left: 0;
+    bottom: 140%;
+    width: 280px;
+    background: #11161d;
+    color: #f3f5f8;
+    font-size: 12.5px;
+    line-height: 1.45;
+    font-weight: 400;
+    padding: 10px 12px;
+    border-radius: 7px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.25);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .12s ease;
+    z-index: 30;
+  }
+  abbr.term:hover .bubble { opacity: 1; visibility: visible; }
+  .note { background: #fff7e6; border: 1px solid #f3d98b; border-radius: 8px; padding: 12px 14px; font-size: 13.5px; }
+</style>
+</head>
+<body>
+  <div class="topbar"><span class="dot" aria-hidden="true"></span> Pulsar Platform · Developer docs</div>
+  <div class="layout">
+    <nav aria-label="API sections">
+      <ul>
+        <li><a href="#">Authentication</a></li>
+        <li><a href="#">Pagination</a></li>
+        <li><a class="current" href="#" aria-current="page">Rate limiting</a></li>
+        <li><a href="#">Webhooks</a></li>
+        <li><a href="#">Errors</a></li>
+      </ul>
+    </nav>
+
+    <article>
+      <p class="crumbs">API reference / Rate limiting</p>
+      <h1>Rate limiting</h1>
+      <p>Every endpoint enforces per-key throttling. When you exceed your quota the API
+      responds with <code>429 Too Many Requests</code> and a set of headers describing your
+      current window.</p>
+
+      <h2>Response headers</h2>
+      <table>
+        <thead>
+          <tr><th>Header</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>X-RateLimit-Limit</code></td>
+            <td>Requests allowed in the current window.</td>
+          </tr>
+          <tr>
+            <td><code>X-RateLimit-Remaining</code></td>
+            <td>Requests left before you are throttled.</td>
+          </tr>
+          <tr>
+            <td><code>Retry-After</code></td>
+            <td>Seconds to wait before retrying after a <code>429</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Burst behavior</h2>
+      <p>Limits are smoothed using a
+        <abbr class="term" tabindex="-1">TBA<span class="bubble" role="tooltip">
+          <strong>Token Bucket Algorithm.</strong> Your key accrues tokens at a steady refill
+          rate; each request spends one. A bucket of unspent tokens lets you burst briefly
+          above the nominal limit — up to 2&times; the per-second rate for ~5&nbsp;seconds —
+          before throttling kicks in. This is why short spikes succeed but sustained traffic
+          is capped.
+        </span></abbr>,
+        so a brief spike can exceed the nominal per-second limit while sustained traffic
+        cannot.</p>
+
+      <div class="note">
+        Tip: read <code>Retry-After</code> on every <code>429</code> rather than backing off a
+        fixed amount — the value reflects your real refill schedule.
+      </div>
+    </article>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT (and why this FAILS 1.4.13 on the focus limb):
+    This is a pure-CSS tooltip: the bubble is revealed solely by the selector
+    "abbr.term:hover .bubble". There is no JavaScript anywhere, so there is structurally
+    NO way for keyboard focus to reveal it. The author even added tabindex="-1" — which
+    makes the <abbr> programmatically focusable but DELIBERATELY removes it from the Tab
+    order, so the keyboard user never reaches it and, even if scripted focus landed there,
+    :hover would still not fire. The bubble carries unique, load-bearing information: the
+    exact burst formula (2x rate for ~5s) that is stated nowhere else. axe/WAVE/Lighthouse
+    see valid HTML — an <abbr> with role="tooltip" on a non-empty bubble, correct headings,
+    a real <title>, good contrast — and report nothing, because they cannot evaluate that a
+    CSS :hover rule has no keyboard equivalent, nor judge that the hidden text is meaningful.
+    Recognizing "the only burst documentation lives in a CSS-hover bubble keyboard users can
+    never trigger" is a human contextual call. Verdict: FAILED.
+  -->
+</body>
+</html>

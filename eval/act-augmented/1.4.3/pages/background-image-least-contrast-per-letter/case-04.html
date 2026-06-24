@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Azulejo Cantina — Today's specials board</title>
+<!--
+  SC 1.4.3 F83 — alternating tile background, EVERY OTHER character fails.
+  WHY AUTOMATED TOOLS MISS IT: the specials-board headings are live dark text (color:#222)
+  set over a ceramic-tile PNG whose tiles alternate cream / charcoal-glaze at roughly one
+  letter-advance per tile. Over cream tiles the dark text reads (worst ~5.6:1); over the
+  charcoal tiles it collapses to ~1.2:1. The result is a comb of failing glyphs — readable
+  letters alternating with vanished ones. Scanners can't sample the raster; against the solid
+  fallback #ece2cf the dark text is ~12:1 and "passes". Detecting this needs a per-letter
+  visual scan (which characters land on a dark tile), the F83 / Trusted Tester least-contrast
+  method. ACT samples the lightest tile pixel in the band (~13.6:1) and reports PASS.
+-->
+<style>
+  body { margin:0; background:#1d1a16; color:#efe6d4;
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif; }
+  .menu { max-width: 1160px; margin:0 auto; padding:34px 18px 60px; }
+  .menu > header { text-align:center; margin-bottom:26px; }
+  .menu > header .name { font-family:Georgia, serif; font-size:1.9rem; color:#e7b765; letter-spacing:.04em; }
+  .menu > header .tag { color:#c9bfa8; font-size:.95rem; }
+  .board {
+    background-color:#ece2cf;                 /* fallback scanners measure */
+    background-image:url("bg-04-tiles.png");
+    background-size:100% 100%; background-position:left center;
+    border-radius:6px; padding:30px 34px; box-shadow:inset 0 0 0 4px rgba(0,0,0,.12);
+  }
+  .board h2 {
+    margin:0 0 6px;
+    color:#222222;                            /* dark text over the alternating tiles */
+    font-size: clamp(1.6rem, 4.2vw, 2.4rem);
+    font-weight:700; letter-spacing:.04em; line-height:1.2;
+  }
+  .board .dish { display:flex; justify-content:space-between; align-items:baseline;
+    color:#222222; font-size:1.05rem; padding:6px 0; border-bottom:1px dotted rgba(0,0,0,.25); }
+  .board .dish:last-child { border-bottom:0; }
+  .board .dish .nm { font-weight:600; }
+  .board .dish .pr { font-variant-numeric:tabular-nums; }
+  .note { margin-top:22px; color:#bdb39c; font-size:.9rem; text-align:center; }
+</style>
+</head>
+<body>
+<div class="menu">
+  <header>
+    <div class="name">Azulejo Cantina</div>
+    <div class="tag">Lisbon &middot; small plates &amp; vinho verde</div>
+  </header>
+
+  <section class="board" aria-label="Today's specials">
+    <h2>TODAY'S SPECIALS</h2>
+    <div class="dish"><span class="nm">Bacalhau à Brás</span><span class="pr">€14</span></div>
+    <div class="dish"><span class="nm">Polvo à Lagareiro</span><span class="pr">€19</span></div>
+    <div class="dish"><span class="nm">Ameijoas à Bulhão Pato</span><span class="pr">€16</span></div>
+    <div class="dish"><span class="nm">Pastel de Nata (2)</span><span class="pr">€5</span></div>
+  </section>
+
+  <p class="note">Kitchen open until 23:00 &middot; specials change daily</p>
+</div>
+</body>
+</html>

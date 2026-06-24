@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply: Backend Engineer — Northwind Talent</title>
+<style>
+  :root { --ink:#1c2430; --indigo:#3850b8; --indigo-dk:#2a3c8c; --line:#dde2ea; --bg:#f4f6fa; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Source Sans 3",Segoe UI,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--indigo); color:#fff; padding:13px 28px; display:flex; align-items:center; gap:14px; }
+  header .brand { font-weight:800; }
+  header .right { margin-left:auto; }
+  header a { color:#dfe5fb; text-decoration:none; font-size:.9rem; }
+  header a:focus { outline:3px solid #ffd24a; outline-offset:3px; }
+
+  main { max-width:660px; margin:30px auto; background:#fff; border:1px solid var(--line);
+         border-radius:12px; padding:28px 30px; box-shadow:0 3px 14px rgba(56,80,184,.07); }
+  h1 { font-size:1.45rem; margin:0 0 2px; color:var(--indigo-dk); }
+  p.role { color:#5d6878; margin:0 0 22px; font-size:.95rem; }
+
+  .field { margin-bottom:20px; }
+  label { display:block; font-weight:600; font-size:.86rem; margin-bottom:6px; }
+  input[type=text], input[type=email] { width:100%; padding:11px 12px; border:1px solid var(--line);
+         border-radius:7px; font-size:1rem; }
+  input:focus { outline:3px solid #2f80c8; outline-offset:1px; }
+
+  .lbl-help { font-weight:400; color:#6b7686; font-size:.8rem; margin-bottom:8px; }
+
+  ul[role="listbox"] {
+    list-style:none; margin:0; padding:4px; border:1px solid var(--line); border-radius:8px;
+    max-width:100%; background:#fff;
+  }
+  li[role="option"] {
+    padding:10px 12px; border-radius:6px; font-size:.95rem; cursor:pointer; outline:none;
+    display:flex; align-items:center; gap:10px;
+  }
+  li[role="option"]:focus { box-shadow:inset 0 0 0 2px var(--indigo); background:#eef1fc; }
+  li[role="option"][aria-selected="true"] { background:#e6eafb; }
+  li[role="option"][aria-selected="true"]::after { content:"✓"; margin-left:auto; color:var(--indigo-dk); font-weight:700; }
+
+  .submit { margin-top:8px; padding:13px 28px; border:0; border-radius:8px; background:var(--indigo);
+            color:#fff; font-size:1.02rem; font-weight:700; cursor:pointer; }
+  .submit:focus { outline:3px solid #ffd24a; outline-offset:2px; }
+
+  .note { background:#eaf7ee; border:1px solid #b7e0c4; border-radius:8px; padding:12px 14px;
+          font-size:.82rem; color:#225b34; margin-top:24px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Northwind Talent</span>
+  <span class="right"><a href="#saved">Saved jobs</a></span>
+</header>
+
+<main>
+  <h1>Apply: Backend Engineer</h1>
+  <p class="role">Remote (US) · Full-time · Platform team</p>
+
+  <form action="#" method="post" novalidate>
+    <div class="field">
+      <label for="fullname">Full name</label>
+      <input type="text" id="fullname" name="fullname" autocomplete="name">
+    </div>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" autocomplete="email">
+    </div>
+
+    <div class="field">
+      <label id="srcLbl" for="srcList">How did you hear about this role?</label>
+      <p class="lbl-help" id="srcHelp">
+        Choose one. <strong>Use Tab to move between options</strong>, then press Enter to select.
+      </p>
+      <ul role="listbox" id="srcList" tabindex="-1" aria-labelledby="srcLbl" aria-describedby="srcHelp" aria-activedescendant="">
+        <li role="option" id="opt-referral" tabindex="0"  aria-selected="false">Employee referral</li>
+        <li role="option" id="opt-linkedin" tabindex="-1" aria-selected="false">LinkedIn</li>
+        <li role="option" id="opt-jobboard" tabindex="-1" aria-selected="false">Job board</li>
+        <li role="option" id="opt-event"    tabindex="-1" aria-selected="false">Conference or meetup</li>
+        <li role="option" id="opt-other"    tabindex="-1" aria-selected="false">Other</li>
+      </ul>
+    </div>
+
+    <button class="submit" id="submitBtn" type="submit">Submit application</button>
+  </form>
+
+  <p class="note">
+    <strong>Why this is a PASS (and why a tool can't conclude it):</strong> This is a roving-tabindex
+    listbox where the <em>arrow</em> keys move between options — and crucially the keydown handler
+    leaves <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> <em>alone</em>, so Tab carries focus
+    cleanly out of the listbox to the "Submit application" button (and Shift+Tab back to the email
+    field). Focus can always leave the widget with an unmodified Tab key, so there is no keyboard
+    trap. The on-screen instruction is <em>wrong</em> — it says "Use Tab to move between options"
+    when arrows actually do that — but a misleading mental model is not a 2.1.2 failure as long as
+    the standard exit (Tab) still works, which it does here. An automated scanner sees the same
+    valid listbox markup as the trapping cases and cannot rule the exit works; deciding PASS
+    requires driving both arrows and Tab and judging that exit is unobstructed despite the
+    inaccurate advice.
+  </p>
+</main>
+
+<script>
+(function () {
+  var list = document.getElementById('srcList');
+  var opts = Array.prototype.slice.call(list.querySelectorAll('[role="option"]'));
+  var idx = 0;
+
+  function rove(n) {
+    n = Math.max(0, Math.min(opts.length - 1, n)); // no wrap; clamps at ends
+    opts[idx].tabIndex = -1;
+    opts[n].tabIndex = 0;
+    opts[n].focus();
+    list.setAttribute('aria-activedescendant', opts[n].id);
+    idx = n;
+  }
+
+  function selectCurrent() {
+    opts.forEach(function (o) { o.setAttribute('aria-selected', 'false'); });
+    opts[idx].setAttribute('aria-selected', 'true');
+  }
+
+  opts.forEach(function (o, i) {
+    o.addEventListener('click', function () { rove(i); selectCurrent(); });
+    o.addEventListener('keydown', function (e) {
+      switch (e.key) {
+        case 'ArrowDown': e.preventDefault(); rove(idx + 1); break;
+        case 'ArrowUp':   e.preventDefault(); rove(idx - 1); break;
+        case 'Home':      e.preventDefault(); rove(0); break;
+        case 'End':       e.preventDefault(); rove(opts.length - 1); break;
+        case 'Enter':
+        case ' ':         e.preventDefault(); selectCurrent(); break;
+        // IMPORTANT: 'Tab' is intentionally NOT handled — the browser default fires, so
+        // Tab moves focus OUT of the listbox to the Submit button and Shift+Tab back to email.
+        // Focus is never trapped, even though arrows (not Tab) are what move between options.
+      }
+    });
+  });
+
+  list.setAttribute('aria-activedescendant', opts[0].id);
+})();
+</script>
+</body>
+</html>

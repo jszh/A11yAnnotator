@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wire transfer — Meridian Trust online banking</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f1f3f6;
+    color: #1a1d21;
+  }
+  .app-bar {
+    background: #ffffff;
+    border-bottom: 1px solid #d9dde3;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .app-bar .logo {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: #003366;
+  }
+  .app-bar strong { font-size: 16px; letter-spacing: .2px; }
+  main { max-width: 720px; margin: 28px auto; padding: 0 20px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  .lede { color: #4a4f57; margin: 0 0 22px; font-size: 14px; }
+
+  /* The dark-blue transfer panel — the surround for the inputs. */
+  .transfer-panel {
+    background: #003366;          /* dark blue surround, matches WCAG figure #003366 */
+    border-radius: 12px;
+    padding: 26px 26px 30px;
+    color: #eaf1fb;
+  }
+  .transfer-panel h2 { margin: 0 0 4px; font-size: 17px; color: #ffffff; }
+  .transfer-panel .hint { margin: 0 0 20px; font-size: 13px; color: #b9cae0; }
+
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block; font-size: 13px; font-weight: 600;
+    margin-bottom: 6px; color: #d7e3f4;
+  }
+
+  /* The text inputs:
+     - white interior (contrasts 12.6:1 with the dark-blue panel => control is identifiable)
+     - a 1px graphite border #3E5168 that is ~1.55:1 against the dark-blue panel.
+     Per the subsumption rule the border is "subsumed into the color closest in
+     brightness" (the dark panel); the meaningful adjacency is interior-vs-panel. */
+  .transfer-panel input[type="text"],
+  .transfer-panel input[type="number"] {
+    width: 100%;
+    padding: 11px 13px;
+    font-size: 15px;
+    color: #15233a;
+    background: #ffffff;          /* white interior */
+    border: 1px solid #3E5168;    /* graphite border, subsumed into the dark panel */
+    border-radius: 7px;
+    outline: none;
+  }
+  .transfer-panel input::placeholder { color: #6b7686; }
+
+  .row { display: flex; gap: 16px; }
+  .row .field { flex: 1; }
+
+  .actions { margin-top: 8px; display: flex; gap: 12px; }
+  .btn-primary {
+    background: #ffffff; color: #003366; font-weight: 700;
+    border: 0; border-radius: 7px; padding: 11px 20px; font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-ghost {
+    background: transparent; color: #cdddf2; border: 1px solid #5b7596;
+    border-radius: 7px; padding: 11px 20px; font-size: 14px; cursor: pointer;
+  }
+  footer { max-width: 720px; margin: 18px auto 60px; padding: 0 20px; color: #6b7280; font-size: 12px; }
+</style>
+</head>
+<body>
+  <header class="app-bar">
+    <span class="logo" aria-hidden="true"></span>
+    <strong>Meridian Trust</strong>
+  </header>
+
+  <main>
+    <h1>Send a domestic wire</h1>
+    <p class="lede">Funds typically arrive the same business day if submitted before 3:00&nbsp;PM ET.</p>
+
+    <section class="transfer-panel" aria-labelledby="tp-h">
+      <h2 id="tp-h">Recipient details</h2>
+      <p class="hint">Enter the recipient's information exactly as it appears on their account.</p>
+
+      <div class="field">
+        <label for="payee">Recipient name</label>
+        <input type="text" id="payee" name="payee" placeholder="e.g. Jordan A. Rivera" autocomplete="off">
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="routing">Routing number</label>
+          <input type="text" id="routing" name="routing" inputmode="numeric" placeholder="9 digits">
+        </div>
+        <div class="field">
+          <label for="account">Account number</label>
+          <input type="text" id="account" name="account" inputmode="numeric" placeholder="Account no.">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="amount">Amount (USD)</label>
+        <input type="number" id="amount" name="amount" min="0" step="0.01" placeholder="0.00">
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn-primary">Review transfer</button>
+        <button type="button" class="btn-ghost">Save draft</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Member FDIC. For your security, never share your account or routing numbers by email.
+  </footer>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT (and why this PASSES):
+    A per-edge contrast checker measures the declared 1px border (#3E5168) against the
+    declared surrounding background (the #003366 panel) and computes 1.55:1 < 3:1, so it
+    reports a 1.4.11 FAILURE. That is the WRONG verdict. Per the "Adjacent colors"
+    subsumption rule, a "dark border line between contrasting backgrounds is considered to
+    be subsumed into the color closest in brightness." The graphite border is closest in
+    brightness to the dark-blue panel, so it is subsumed and not measured. The meaningful
+    adjacency is the white interior vs the dark-blue panel (12.6:1), which makes the input
+    clearly identifiable. Correct verdict: PASS. A tool cannot perform the interpretive
+    step of "this border does not interfere with identifying the component"; only a human
+    reasoning about which adjacency is meaningful gets it right.
+  -->
+</body>
+</html>

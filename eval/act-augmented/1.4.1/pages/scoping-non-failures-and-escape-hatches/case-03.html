@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Application review — Northwind Talent</title>
+<style>
+  body { margin:0; font:15px/1.5 "Inter",Segoe UI,Roboto,Arial,sans-serif; color:#1d2330; background:#eef1f6; }
+  .card { max-width:620px; margin:28px auto; background:#fff; border-radius:14px;
+          box-shadow:0 1px 3px rgba(20,30,60,.12); padding:28px 30px 34px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { margin:0 0 22px; color:#5b6475; font-size:14px; }
+  .field { margin:0 0 18px; }
+  .field label { display:block; font-weight:600; margin-bottom:6px; font-size:14px; }
+  .field input, .field select, .field textarea {
+    width:100%; padding:10px 12px; font:inherit; color:#1d2330; background:#fff;
+    border-radius:8px; border:2px solid #b9c0cc; outline:none; }
+  /* After client-side validation, each field's status is shown ONLY by border colour.
+     valid   = light green border  #86d98f
+     invalid = dark   red   border #7a1414
+     These two outline colours have ~6.4:1 contrast WITH EACH OTHER, so a naive evaluator
+     might think the "lightness escape hatch" saves it. It does NOT: the meaning depends on
+     the user perceiving WHICH hue (green = ok vs red = problem). Per the Understanding note,
+     an additional visual indicator is required REGARDLESS of the contrast between the colours.
+     No icon, no "Looks good"/"Required" text, no aria-invalid — colour is the sole carrier. */
+  .field.valid   input, .field.valid   select { border-color:#86d98f; }
+  .field.invalid input, .field.invalid select, .field.invalid textarea { border-color:#7a1414; }
+  .row { display:flex; gap:16px; }
+  .row .field { flex:1; }
+  button { margin-top:6px; padding:11px 20px; font:inherit; font-weight:600; color:#fff;
+           background:#26457a; border:none; border-radius:8px; cursor:pointer; }
+  .note { margin-top:18px; font-size:13px; color:#6b7280; }
+</style>
+</head>
+<body>
+<form class="card" novalidate aria-labelledby="appt">
+  <h1 id="appt">Senior Backend Engineer — application</h1>
+  <p class="sub">We checked your details. Fields with a green outline are accepted; fields with a
+     red outline still need attention before you can submit.</p>
+
+  <div class="row">
+    <div class="field valid">
+      <label for="fname">First name</label>
+      <input id="fname" name="fname" value="Priya">
+    </div>
+    <div class="field valid">
+      <label for="lname">Last name</label>
+      <input id="lname" name="lname" value="Raman">
+    </div>
+  </div>
+
+  <div class="field invalid">
+    <label for="email">Work email</label>
+    <input id="email" name="email" type="email" value="priya.raman@@example">
+  </div>
+
+  <div class="row">
+    <div class="field valid">
+      <label for="loc">Location</label>
+      <input id="loc" name="loc" value="Austin, TX (remote ok)">
+    </div>
+    <div class="field invalid">
+      <label for="years">Years with Go</label>
+      <input id="years" name="years" inputmode="numeric" value="">
+    </div>
+  </div>
+
+  <div class="field valid">
+    <label for="port">Portfolio / GitHub URL</label>
+    <input id="port" name="port" value="https://github.com/praman-dev">
+  </div>
+
+  <div class="field invalid">
+    <label for="cover">Why this role? (max 600 chars)</label>
+    <textarea id="cover" name="cover" rows="3"></textarea>
+  </div>
+
+  <button type="submit">Submit application</button>
+  <p class="note">Saffron-coloured outlines indicate accepted fields; crimson outlines indicate
+     fields needing changes.</p>
+</form>
+
+<!--
+  WHY THIS FAILS (1.4.1, pure-colour reliance — note (b)):
+  Field validity (accepted vs needs-attention) is communicated ONLY by border colour:
+  light green = valid, dark red = invalid. The two border colours have ~6.4:1 contrast with
+  each other, which is well above 3:1 — so this is the TRAP case: the lightness gap is large,
+  yet the criterion still FAILS. The meaning depends on the user accurately perceiving WHICH
+  hue is on each field (green meaning ok, red meaning problem). The Understanding note states
+  that when content relies on differentiating a particular colour, an additional visual
+  indicator is required REGARDLESS of the contrast ratio between those colours. Here there is
+  no second indicator: no check/alert icon, no "Looks good" / "Required" text, no aria-invalid,
+  no message text. A user with red-green colour deficiency sees six outlined boxes and cannot
+  tell which two still need fixing.
+
+  WHY AUTOMATED TOOLS MISS IT: the inputs are all properly labelled (<label for>), the borders
+  pass SC 1.4.11 non-text contrast, and the form is valid HTML, so axe/WAVE/Lighthouse report
+  no errors. No automated rule models "the outline hue is the only thing telling valid from
+  invalid," and the >=3:1 inter-element contrast would even mislead a tool (or a hasty human)
+  into thinking the lightness escape hatch applies. Catching this requires applying the specific
+  pure-colour-reliance rule — that hue-dependent meaning fails irrespective of contrast.
+-->
+</body>
+</html>

@@ -1,0 +1,91 @@
+{
+  "sc": "1.3.2",
+  "count": 6,
+  "patterns": [
+    {
+      "platform": "Wix Editor (absolute-positioned canvas layout)",
+      "name": "DOM/reading order diverges from visual order on overlapping layouts",
+      "description": "Wix's drag-anywhere canvas positions elements absolutely; the algorithm that derives DOM order from on-screen coordinates can mis-order overlapping, stacked, or strip-based sections, so keyboard Tab order and screen-reader reading order jump around (e.g., footer CTA before main content, a caption before its image, a price before the product name).",
+      "wcagScs": [
+        "1.3.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div style=\"position:absolute; top:480px; left:20px\">Add to cart</div>\n<div style=\"position:absolute; top:120px; left:20px\">Handmade Mug — $24</div>\n<!-- visually price is on top, but 'Add to cart' precedes it in source/tab order -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Automated tools generally cannot determine the 'correct' meaningful sequence — they don't know the visually-intended reading order, so they can't tell that DOM order contradicts it. Detecting the mismatch requires a human comparing the visual layout to the tab/reading order.",
+      "realWorldNote": "Wix Engineering describes building an algorithm to make DOM order reflect visual position precisely because the canvas otherwise breaks navigation order; Wix support has a dedicated 'Checking and Adjusting a Site's DOM Order' article. https://www.wix.engineering/post/the-story-of-making-wix-accessible",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Webflow / Framer absolute-positioned layout (CSS grid-area, position:absolute, flex order)",
+      "name": "Visual order diverges from DOM/tab order in free-canvas layouts",
+      "description": "On a free design canvas, authors drag elements into a visual arrangement while the DOM source order stays whatever was authored. Absolute positioning, CSS order, and grid placement make the reading/tab order jump around — e.g., a CTA visually at top-left is last in the DOM, or a sidebar reads before the main column for a screen reader.",
+      "wcagScs": [
+        "2.4.3",
+        "1.3.2"
+      ],
+      "typicalMarkup": "<section class=\"hero\">\n  <div class=\"col\" style=\"order:3\">Primary CTA</div>\n  <div class=\"col\" style=\"order:1\">Legal footnote</div>\n  <div class=\"col\" style=\"order:2\">Headline</div>\n</section>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Both the DOM order and the CSS are individually valid; determining that the resulting tab/reading order is 'illogical' relative to the visual layout requires a human to compare what they SEE to the order focus actually moves — automated tools have no model of the intended visual narrative.",
+      "realWorldNote": "Webflow's checklist 'Ensure focus order is logical' explicitly warns that arranging elements with CSS instead of the Navigator yields nonlinear/illogical focus order; WCAG technique C27 covers DOM-vs-visual order: https://webflow.com/accessibility/checklist/task/ensure-focus-order-is-logical and https://www.w3.org/TR/WCAG20-TECHS/C27.html",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Word / Google Docs paste into a CMS WYSIWYG (mso styles, layout tables)",
+      "name": "Pasted Office HTML: layout tables and lost reading order",
+      "description": "Pasting from Word/Google Docs carries over <table> elements used purely for visual layout (multi-column newsletters, side-by-side text/image), plus mso-* inline styling and empty/merged cells. AT announces \"table, N columns, N rows\" and reads cell-by-cell, scrambling the intended reading order; what was a two-column flyer becomes nonsensical when linearized.",
+      "wcagScs": [
+        "1.3.1",
+        "1.3.2"
+      ],
+      "typicalMarkup": "<table class=\"MsoNormalTable\" style=\"mso-padding-alt:0\">\n  <tr><td>Left column intro...</td><td>Right column sidebar...</td></tr>\n</table>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A layout table with no th and no scope can look identical to a legitimately simple table; tools cannot reliably decide whether a table is conveying tabular data or just positioning content, nor whether the linearized cell order reads sensibly. Distinguishing layout-vs-data and judging resulting reading order is a human semantic task.",
+      "realWorldNote": "Office-paste artifacts (layout tables, jumbled reading order, headings tagged as paragraphs) are a documented conversion problem. https://www.section508.gov/training/documents/aed-cop-docx05/ and https://tlos.vt.edu/digital-accessibility/calm/check-reading-order.html",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "Page builders using CSS flexbox/grid order (Elementor, Webflow, Bricks, custom responsive layouts)",
+      "name": "Visual reorder via CSS order/row-reverse desyncs DOM/focus order",
+      "description": "Designers rearrange columns/cards visually with flex order, order: -1, flex-direction: row-reverse, or grid placement while leaving DOM order untouched. The page looks correct, but keyboard Tab order and screen-reader reading order follow the (now-stale) DOM, so focus jumps erratically across the page and content is read in a sequence that doesn't match the visual layout. Especially common at the responsive breakpoint where source order was authored for desktop.",
+      "wcagScs": [
+        "1.3.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div style=\"display:flex\">\n  <div style=\"order:2\">Step 1</div>\n  <div style=\"order:1\">Step 2 (appears first visually)</div>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "DOM and focus order are technically valid and tools don't compute the rendered visual geometry to compare against tab sequence. Deciding that the visual order is meaningful (a sequence of steps) and therefore must match DOM order requires understanding content meaning and seeing the rendered layout.",
+      "realWorldNote": "Classic Flexbox/Grid reorder pitfall affecting 1.3.2 and 2.4.3. https://wcag.dock.codes/documentation/wcag132/ and https://testparty.ai/blog/wcag-2-4-3-focus-order-2025-guide",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "PDF-to-HTML export tools (Acrobat \"Export as HTML\", InDesign publish, pdf2htmlEX preserved-layout mode)",
+      "name": "Absolutely-positioned spans replace semantic structure",
+      "description": "\"Preserved layout\" conversion reproduces the PDF pixel-for-pixel by emitting hundreds of absolutely-positioned <span>/<div> elements, one per text run, with no headings, lists, or paragraphs — and DOM order driven by the PDF's internal object order, not reading order. Visually identical to the source, but linearized AT output is scrambled: column text interleaves, headings are plain spans, and there is no navigable structure.",
+      "wcagScs": [
+        "1.3.1",
+        "1.3.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div style=\"position:absolute;top:120px;left:48px\">Annual</div>\n<div style=\"position:absolute;top:120px;left:300px\">Report 2024</div>\n<div style=\"position:absolute;top:160px;left:48px\">Revenue grew...</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Markup is valid; there are no missing alts or empty headings to flag. Tools don't reconstruct visual reading flow from absolute coordinates to detect that the DOM sequence diverges from the visual sequence, nor that prominent spans are functioning as headings. Reading order correctness and implied structure are human judgments.",
+      "realWorldNote": "Preserved-layout PDF-to-HTML uses absolutely-positioned spans that destroy semantic structure and reading order. https://www.chhs.colostate.edu/accessibility/best-practices-how-tos/pdf-converted/ and conversion-tool comparisons noting preserved vs reflowable trade-offs.",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "RTL-language sites / themes not built for bidi (Arabic/Hebrew/Persian on LTR-first templates)",
+      "name": "Missing or mismatched dir causing broken bidirectional text",
+      "description": "An RTL-language page is served on a template that only sets <html lang> (or sets neither dir nor a matching lang), so dir defaults to ltr. Mixed Arabic+English or Hebrew+numerals render with mangled visual order (punctuation on the wrong side, embedded LTR runs misplaced), and the lang/dir mismatch means AT cannot apply correct directionality or pronunciation. The page may look mostly right to a casual sighted skim but reads incoherently.",
+      "wcagScs": [
+        "1.3.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<html lang=\"ar\">  <!-- no dir=\"rtl\" -->\n  <p>اشترِ iPhone 15 الآن</p>  <!-- bidi run order breaks -->\n</html>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Tools can check that lang exists but rarely flag a missing dir, and they cannot evaluate whether the rendered bidirectional sequence is correct or whether embedded LTR runs need isolation. Judging that the visual/reading sequence of bidi text is broken requires reading the script and seeing the render.",
+      "realWorldNote": "Missing/incorrect dir breaks RTL display and accessibility; the HTML attribute is required even if CSS sets direction. https://www.w3.org/International/questions/qa-html-dir and https://accessibility-test.org/blog/support/rtl-right-to-left-website-accessibility-considerations/",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

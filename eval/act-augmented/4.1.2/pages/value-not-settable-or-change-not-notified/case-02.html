@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy &amp; Sharing — Lakeside Health Patient Portal</title>
+<style>
+  body { font-family: system-ui, "Helvetica Neue", Arial, sans-serif; margin:0; color:#222; background:#eef2f4; }
+  .topbar { background:#155e63; color:#fff; padding:14px 24px; font-weight:600; }
+  .card { max-width:640px; margin:28px auto; background:#fff; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.12); overflow:hidden; }
+  .card h1 { font-size:1.3rem; margin:0; padding:20px 24px 4px; color:#155e63; }
+  .card .sub { padding:0 24px 14px; color:#5a6b6d; margin:0; }
+  .row { display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-top:1px solid #e3e9ea; }
+  .row .text { padding-right:18px; }
+  .row .text .name { font-weight:600; }
+  .row .text .desc { color:#67767a; font-size:.88rem; margin-top:3px; }
+  /* custom switch */
+  .switch {
+    position:relative; flex:0 0 auto; width:52px; height:30px; border-radius:15px;
+    background:#c4ccce; cursor:pointer; transition:background .15s; border:none; padding:0;
+  }
+  .switch:focus-visible { outline:3px solid #1c6fb8; outline-offset:3px; }
+  .switch .knob {
+    position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.3); transition:left .15s;
+  }
+  .switch.on { background:#2e9b53; }
+  .switch.on .knob { left:25px; }
+  .savebar { padding:18px 24px; background:#f6f9f9; text-align:right; }
+  .savebar button { background:#155e63; color:#fff; border:0; padding:10px 22px; border-radius:5px; font-size:.95rem; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="topbar">Lakeside Health — My Account</div>
+<div class="card">
+  <h1>Privacy &amp; sharing preferences</h1>
+  <p class="sub">Control how your medical information is shared. Changes take effect immediately.</p>
+
+  <div class="row">
+    <div class="text">
+      <div class="name" id="lbl-emerg">Allow emergency providers to view my records</div>
+      <div class="desc">ER and urgent-care staff can read your allergy and medication history.</div>
+    </div>
+    <button class="switch on" id="sw-emerg" role="switch" aria-checked="true" aria-labelledby="lbl-emerg">
+      <span class="knob"></span>
+    </button>
+  </div>
+
+  <div class="row">
+    <div class="text">
+      <div class="name" id="lbl-research">Share de-identified data for medical research</div>
+      <div class="desc">Your anonymized data may be included in approved studies.</div>
+    </div>
+    <button class="switch" id="sw-research" role="switch" aria-checked="false" aria-labelledby="lbl-research">
+      <span class="knob"></span>
+    </button>
+  </div>
+
+  <div class="savebar"><button type="button">Done</button></div>
+</div>
+
+<script>
+/*
+  An agency contractor refactored these switches to use a CSS class (.on) for the
+  green/ON visual because "it animates more smoothly than toggling aria-checked."
+  The click handler toggles ONLY the class. aria-checked is whatever was hard-coded
+  in the HTML and is never reassigned.
+
+  For a screen-reader / AT user:
+    - The first switch announces "on" forever (even after they turn it off visually).
+    - The second switch announces "off" forever (even after they turn it on visually).
+  The control has a valid role (switch), a valid name, and a valid INITIAL aria-checked
+  value, so 4e8ab6 / 674b10 / 6a7281 all pass. But the state the user sets can never be
+  read back by AT, and the change is never notified — a privacy switch whose true setting
+  is invisible to the very users who depend on AT.
+*/
+document.querySelectorAll('.switch').forEach(function (sw) {
+  sw.addEventListener('click', function () {
+    // Toggles the VISUAL only. aria-checked is intentionally left untouched.
+    sw.classList.toggle('on');
+  });
+});
+</script>
+</body>
+</html>

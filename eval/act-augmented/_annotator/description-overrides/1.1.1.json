@@ -1,0 +1,17 @@
+{
+  "meaningful-image-suppressed-as-decorative/case-02": {
+    "mechanism": "The entire tariff comparison (peak / off-peak unit prices and standing charge for three energy plans) is painted onto `<canvas id=\"rateChart\" role=\"presentation\">`. A canvas exposes no DOM descendants to the accessibility tree and role=presentation confirms it is ignored; there is no <table>, <dl>, or text duplicate, so the pricing data is lost to AT (informative graphic declared decorative).",
+    "scenario": "Energy-switching page whose three-tariff price comparison (peak/off-peak unit rates and standing charge) is painted only onto a <canvas role=\"presentation\"> with no table or text fallback, so screen-reader users get no prices.",
+    "note": "Prose described a fashion size-guide (Size/Bust/Waist/Hip/Length, XS-XL, cm) rendered as an inline SVG table; the real page is an energy-tariff comparison painted on a <canvas>. The primarySelector `section.panel svg[role=\"presentation\"]` matches no element (there is no SVG); the carrier is `section.panel canvas#rateChart[role=\"presentation\"]`. The aspect's defect (informative graphic declared decorative, no text duplicate) is genuinely present."
+  },
+  "meaningful-image-suppressed-as-decorative/case-04": {
+    "mechanism": "The safety-critical Warfarin 5 mg regimen — Morning 2 tablets, Midday 1 tablet, Night 1 tablet, TAKE WITH FOOD, DO NOT crush (swallow whole) — is drawn only in a pictogram marked `aria-hidden=\"true\"`, which removes the SVG and all its <text> dose-count nodes from the accessibility tree. The caption ('Take your morning and midday doses as shown above. Do not skip doses.') is a pointer that omits the counts, the night dose, and both safety warnings.",
+    "scenario": "Pharmacy prescription page for Warfarin 5 mg whose dosing schedule (Morning 2 tablets, Midday 1, Night 1, take with food, do not crush) is conveyed only by an aria-hidden SVG pictogram; the caption restates only 'morning and midday doses as shown above'.",
+    "note": "Prose gave the wrong dose values (Morning 1 tablet / Midday 1 tablet / Night 0) — the real regimen is Morning 2 / Midday 1 / Night 1 for Warfarin 5 mg, plus 'do not crush'. The suppression is `aria-hidden=\"true\"` on the SVG, not `role=\"none\"`, so the primarySelector `.schedule svg[role=\"none\"]` does not match (use `.schedule svg[aria-hidden=\"true\"]`). The decorative-suppression defect is genuinely present."
+  },
+  "text-lookalike-glyph-substitution/case-02": {
+    "mechanism": "Checkout trust copy contains `p.note > span.brand` whose 'PayPal' is encoded as confusables: U+0420, U+0430, U+0443, U+0420, U+0430 (five Cyrillic look-alikes) plus a Latin l (U+006C). The brand name in body text is mostly Cyrillic with no aria-label or visually-hidden Latin equivalent, so a screen reader announces the Cyrillic code points instead of 'PayPal' (F71).",
+    "scenario": "Checkout trust copy 'You'll be redirected to PayPal to approve $2,040.00' where the brand name PayPal in a p.note span is encoded mostly in Cyrillic look-alikes, with no real-text brand label.",
+    "note": "primarySelector `div.pay > span.brand` is wrong: span.brand actually sits inside `p.note` (a sibling of div.pay), so the correct selector is `p.note > span.brand`. The confusable code points and the F71 defect are exactly as described."
+  }
+}

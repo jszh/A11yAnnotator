@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Provider Credentialing — MeridianCare Network</title>
+<!--
+  ASPECT: Error Suggestion (3.3.3) — suggestion mis-associated (printed under the WRONG field/section).
+  The user's NPI (Section 1) is invalid. The CORRECT suggestion for it ("Your NPI must be exactly
+  10 digits...") is rendered inside SECTION 3's panel, immediately under the State license number
+  field. So the suggestion physically/semantically reads as belonging to the license field, and
+  the field that actually erred (NPI, Section 1) shows only a bare "Please review this entry."
+  The suggestion is correct and adequate but is attached to the wrong field.
+  WHY AUTOMATED TOOLS MISS IT: the suggestion text is present, correct, and inside a labelled
+  panel near A field; nothing in the DOM is empty or invalid. Deciding that the suggestion is
+  sitting under the WRONG field — that a human reading the page would attribute the 10-digit NPI
+  rule to the license number — is a semantic/spatial relevance judgment scanners cannot make.
+-->
+<style>
+  body { font: 15px/1.55 "Helvetica Neue", Arial, sans-serif; color:#1d2733; background:#eef1f5; margin:0; }
+  .shell { max-width: 760px; margin: 0 auto; }
+  header { background:#0b3d6b; color:#fff; padding: 18px 26px; }
+  header h1 { margin:0; font-size: 21px; }
+  header p { margin:4px 0 0; font-size:13px; opacity:.85; }
+  .steps { display:flex; gap:0; background:#dde4ee; font-size:13px; }
+  .steps span { flex:1; text-align:center; padding:9px 4px; color:#48566a; border-right:1px solid #cdd6e2; }
+  .steps span.cur { background:#fff; font-weight:700; color:#0b3d6b; }
+  main { padding: 8px 26px 40px; }
+  section.panel { background:#fff; border:1px solid #d3dbe6; border-radius:8px; margin: 18px 0; padding: 4px 20px 16px; }
+  section.panel > h2 { font-size:16px; color:#0b3d6b; border-bottom:1px solid #e3e9f1; padding-bottom:8px; }
+  .field { margin: 14px 0; }
+  label { display:block; font-weight:600; margin-bottom:4px; }
+  input { width:100%; max-width:340px; padding:8px 10px; border:1px solid #9aa8bb; border-radius:5px; font: inherit; }
+  input[aria-invalid="true"] { border:2px solid #c0392b; }
+  .err-bare { color:#c0392b; font-weight:600; font-size:13px; margin-top:5px; }
+  .help { background:#fff6e6; border:1px solid #f0d9a8; border-radius:6px; padding:10px 12px; margin-top:8px; font-size:13px; color:#5b4a1e; }
+  .help strong { color:#7a5c00; }
+  .actions { margin-top:8px; }
+  button { background:#0b3d6b; color:#fff; border:0; border-radius:6px; padding:11px 22px; font:600 15px Arial; cursor:pointer; }
+  .topnote { background:#fdecea; border:1px solid #c0392b; border-radius:8px; padding:12px 16px; margin:14px 0; }
+  .topnote h2 { margin:0 0 4px; color:#a5281b; font-size:15px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <h1>MeridianCare Network &mdash; Provider Credentialing</h1>
+    <p>Annual re-attestation · Section 1 of 3 expanded</p>
+  </header>
+  <div class="steps" aria-hidden="true">
+    <span class="cur">1. Identifiers</span>
+    <span>2. Education</span>
+    <span>3. Licensure</span>
+  </div>
+
+  <main>
+    <form action="#" novalidate>
+      <div class="topnote" role="alert">
+        <h2>1 entry needs your attention</h2>
+        <p>One of your provider identifiers was not accepted. Please review the highlighted field.</p>
+      </div>
+
+      <!-- SECTION 1: the NPI field actually erred, but shows only a BARE error with no suggestion -->
+      <section class="panel" aria-labelledby="s1">
+        <h2 id="s1">Section 1 &mdash; Provider identifiers</h2>
+        <div class="field">
+          <label for="npi">National Provider Identifier (NPI)</label>
+          <input type="text" id="npi" name="npi" value="13499283"
+                 aria-invalid="true" aria-describedby="npi-err" inputmode="numeric" autocomplete="off">
+          <p class="err-bare" id="npi-err">Please review this entry.</p>
+        </div>
+        <div class="field">
+          <label for="taxid">Tax ID (TIN)</label>
+          <input type="text" id="taxid" name="taxid" value="84-1119077">
+        </div>
+      </section>
+
+      <!-- SECTION 2 -->
+      <section class="panel" aria-labelledby="s2">
+        <h2 id="s2">Section 2 &mdash; Education</h2>
+        <div class="field">
+          <label for="school">Medical school</label>
+          <input type="text" id="school" name="school" value="Oregon Health &amp; Science University">
+        </div>
+        <div class="field">
+          <label for="gradyear">Graduation year</label>
+          <input type="text" id="gradyear" name="gradyear" value="2009">
+        </div>
+      </section>
+
+      <!-- SECTION 3: the CORRECT NPI suggestion is mis-placed here, under the LICENSE field,
+           where it reads as guidance for the State license number. -->
+      <section class="panel" aria-labelledby="s3">
+        <h2 id="s3">Section 3 &mdash; Licensure</h2>
+        <div class="field">
+          <label for="license">State license number</label>
+          <input type="text" id="license" name="license" value="MD-OR-44120">
+          <!-- This help text is the suggestion for the NPI in Section 1, but it sits under
+               the license field and looks like license guidance. -->
+          <p class="help"><strong>Tip:</strong> Your NPI must be exactly 10 digits with no spaces
+            or dashes (for example, 1346548275). Re-enter it without the leading zeros stripped.</p>
+        </div>
+        <div class="field">
+          <label for="licstate">License state</label>
+          <input type="text" id="licstate" name="licstate" value="Oregon">
+        </div>
+        <div class="actions">
+          <button type="submit">Submit attestation</button>
+        </div>
+      </section>
+    </form>
+  </main>
+</div>
+</body>
+</html>

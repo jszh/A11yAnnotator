@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice INV-2026-0418 — Meridian Billing</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+         background: #f4f5f7; color: #1f242b; }
+  .doc { max-width: 760px; margin: 36px auto; background: #fff; border-radius: 10px;
+         box-shadow: 0 2px 16px rgba(31,36,43,.10); padding: 36px 40px 44px; }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 26px; }
+  .brand { font-size: 20px; font-weight: 800; color: #1f242b; }
+  .meta { text-align: right; font-size: 13px; color: #4b5560; line-height: 1.7; }  /* passes */
+  .meta strong { color: #1f242b; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  thead th { text-align: left; font-size: 12px; text-transform: uppercase;
+             letter-spacing: .06em; color: #6b7480; border-bottom: 2px solid #e3e7ec;
+             padding: 8px 10px; }
+  tbody td { font-size: 14px; color: #2b2b2b; border-bottom: 1px solid #eef1f4;
+             padding: 12px 10px; vertical-align: top; }
+  td.amt, th.amt { text-align: right; white-space: nowrap; }
+
+  /* A line item that was cancelled. The ONLY indication that this charge no longer
+     applies is a faint diagonal "VOID" stamp laid across the row. The row text
+     itself is NOT struck through and NOT greyed — it reads like a live charge.
+     The stamp is #cdb3b3 ≈ 1.96:1. The anchor cell is position:relative and the
+     stamp overflows across the full row (valid: span lives inside a <td>). */
+  td.line { position: relative; }
+  .void-stamp {
+    position: absolute; left: 0; top: 50%;
+    transform: translateY(-50%) rotate(-12deg);
+    font-size: 30px; font-weight: 800; letter-spacing: .22em;
+    color: #cdb3b3;                 /* faded red-gray stamp ≈ 1.96:1 on white */
+    border: 3px solid #cdb3b3;
+    padding: 1px 12px; border-radius: 4px;
+    pointer-events: none; user-select: none;
+    white-space: nowrap;
+  }
+
+  tfoot td { padding: 12px 10px; font-size: 14px; }
+  tfoot .label { text-align: right; color: #4b5560; }
+  tfoot .total { text-align: right; font-weight: 800; font-size: 18px; color: #1f242b; }
+  .pay { display: inline-block; margin-top: 22px; background: #1763d6; color: #fff;
+         text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="doc">
+    <div class="top">
+      <div class="brand">Meridian&nbsp;Billing</div>
+      <div class="meta">
+        Invoice <strong>INV-2026-0418</strong><br>
+        Issued <strong>04 Jun 2026</strong> &middot; Due <strong>04 Jul 2026</strong><br>
+        Bill to: Harborview Dental Group
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Description</th>
+          <th scope="col" class="amt">Qty</th>
+          <th scope="col" class="amt">Unit</th>
+          <th scope="col" class="amt">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Annual platform subscription (Pro)</td>
+          <td class="amt">1</td>
+          <td class="amt">$2,400.00</td>
+          <td class="amt">$2,400.00</td>
+        </tr>
+        <tr>
+          <!-- This line was cancelled. The faint diagonal VOID stamp is the ONLY
+               signal that this $1,800 charge no longer applies. The row text is
+               full-contrast and not struck through. The stamp <span> lives inside
+               the first <td> (valid markup) and overflows across the row. -->
+          <td class="line">On-site implementation &mdash; 3 days<span class="void-stamp" aria-hidden="false">VOID</span></td>
+          <td class="amt">3</td>
+          <td class="amt">$600.00</td>
+          <td class="amt">$1,800.00</td>
+        </tr>
+        <tr>
+          <td>Premium support add-on (12 mo)</td>
+          <td class="amt">1</td>
+          <td class="amt">$960.00</td>
+          <td class="amt">$960.00</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" class="label">Amount due</td>
+          <td class="total">$3,360.00</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <a class="pay" href="/pay/INV-2026-0418">Pay invoice</a>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    The "VOID" stamp (#cdb3b3 ≈ 1.96:1) is the single signal that the $1,800 implementation
+    line no longer applies — note the row text is full-contrast and NOT struck through, and
+    the line amount is still printed, so without reading the stamp a viewer would think the
+    charge is live (and the printed $1,800 even appears to conflict with the $3,360 total,
+    which already excludes it). The stamp therefore carries critical financial STATUS
+    information and must meet contrast; at 1.96:1 it FAILS. But a contrast checker sees a
+    faint rotated word that is visually identical to a purely decorative "stamp" graphic
+    (the kind designers add for flavor), and the author rationalized it as a stylistic
+    overlay. Some scanners also ignore absolutely-positioned rotated overlays as decorative
+    chrome. Deciding that "VOID" conveys non-substitutable status (you cannot swap it for
+    "PAID" or remove it) requires reading the word and reconciling it with the line amount
+    and the total — a meaning judgment no automated tool performs.
+  -->
+</body>
+</html>

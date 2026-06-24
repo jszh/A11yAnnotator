@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hollowmere Museum — Galleries of Early Britain</title>
+<style>
+  :root { --ink:#241f1a; --muted:#6b6157; --line:#e4ddd2; --accent:#7a3b2e; --bg:#faf7f1; --card:#fff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.62 Georgia,"Iowan Old Style","Times New Roman",serif; color:var(--ink); background:var(--bg); }
+  .wrap { max-width:740px; margin:0 auto; padding:28px 22px 80px; }
+  .kicker { font:700 12px/1 "Helvetica Neue",Arial,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-size:32px; margin:10px 0 4px; line-height:1.15; }
+  .lede { color:var(--muted); margin:0 0 14px; font-size:17px; }
+  nav.toc { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; margin:0 0 30px; font:400 14px/1.7 "Helvetica Neue",Arial,sans-serif; }
+  nav.toc strong { display:block; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  nav.toc a { color:var(--accent); text-decoration:none; margin-right:14px; }
+  nav.toc a:hover, nav.toc a:focus { text-decoration:underline; }
+  section.gallery { border-top:1px solid var(--line); padding-top:22px; margin-top:28px; }
+  h2 { font-size:24px; margin:0 0 8px; }
+  p { margin:0 0 14px; }
+  .artifact { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px 16px; margin:14px 0; font:400 14.5px/1.55 "Helvetica Neue",Arial,sans-serif; }
+  .artifact .cap { font-weight:700; color:var(--ink); }
+  .artifact .meta { color:var(--muted); font-size:13px; margin-top:2px; }
+  .date { font:400 13px/1 "Helvetica Neue",Arial,sans-serif; color:var(--muted); margin-bottom:10px; }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="kicker">Hollowmere Museum &middot; Permanent Collection</div>
+    <h1>Galleries of Early Britain</h1>
+    <p class="lede">A walk through eight centuries, from the legions to the longships. Each gallery
+       below gathers the objects that define its age.</p>
+
+    <nav class="toc" aria-label="Galleries on this page">
+      <strong>On this page</strong>
+      <a href="#g-roman">Roman Britain</a>
+      <a href="#g-saxon">Anglo-Saxon Treasures</a>
+      <a href="#g-viking">The Viking Incursions</a>
+    </nav>
+
+    <!-- ================================================================================
+         THE DEFECT IS ON THE FIRST GALLERY HEADING (h2#h-roman, in section #g-roman).
+
+         VISIBLE heading text reads "Roman Britain", and it is perfectly descriptive of the
+         section it sits above (samian ware, a legionary's pay chit, a Mithraic altar — all
+         Roman-era objects, c. AD 43–410).
+
+         BUT this site was built from a copy-pasted gallery template. To make each gallery
+         heading announce together with the kicker line, the author used aria-labelledby. On
+         the FIRST gallery they fat-fingered the IDREF: instead of pointing at this gallery's
+         OWN heading text node (id="h-roman"), aria-labelledby points at the NEXT gallery's
+         heading, id="h-saxon" ("Anglo-Saxon Treasures").
+
+         aria-labelledby takes ABSOLUTE precedence over the element's own text content, so the
+         <h2>'s COMPUTED ACCESSIBLE NAME is "Anglo-Saxon Treasures" — a completely fluent,
+         grammatical, descriptive-sounding heading. A screen-reader user navigating by heading
+         (the H key) or pulling up the headings list hears "Anglo-Saxon Treasures, heading
+         level 2" and jumps here expecting brooches and seaxes — but the prose and objects
+         beneath are ROMAN. The visible surface (Roman Britain) and the announced surface
+         (Anglo-Saxon Treasures) DIVERGE: both are individually descriptive, so neither looks
+         wrong in isolation; the defect is ONLY visible by comparing the announced heading
+         against the CONTENT it actually labels.
+
+         Why this clears every automated checker: the <h2> is a real heading (1.3.1 passes),
+         it has a non-empty accessible name whose aria-labelledby IDREF resolves to a present,
+         rendered element (4.1.2 passes, no dangling-reference lint), the name is a fluent real
+         phrase (no empty/slug heuristic), and it is not a labelled control with a contained
+         visible-text node, so label-content-name-mismatch (ACT 2ee8b8) does not apply to a
+         heading. There is nothing missing, empty, or structurally malformed to flag. Deciding
+         that "Anglo-Saxon Treasures" misdescribes a gallery of Roman objects requires reading
+         the section's prose and judging topic-vs-heading agreement — the exact human call of
+         Trusted Tester 10.A. The OTHER two galleries (#g-saxon, #g-viking) have correct
+         self-referential aria-labelledby and pass.
+         ================================================================================ -->
+    <section class="gallery" id="g-roman">
+      <p class="date">c. AD 43 – 410</p>
+      <h2 id="h-roman" aria-labelledby="h-saxon">Roman Britain</h2>
+      <p>Four centuries of occupation left Britain criss-crossed with roads, walled towns and
+         villas. This gallery centres on everyday life in the province of Britannia — the soldier,
+         the merchant and the household shrine.</p>
+      <div class="artifact">
+        <div class="cap">Samian-ware bowl, terra sigillata</div>
+        <div class="meta">Red-gloss tableware imported from Gaulish kilns, found at Verulamium.</div>
+      </div>
+      <div class="artifact">
+        <div class="cap">Legionary pay chit (stipendium tablet)</div>
+        <div class="meta">A wax tablet recording a soldier's deduction for boots and bedding.</div>
+      </div>
+      <div class="artifact">
+        <div class="cap">Altar to Mithras</div>
+        <div class="meta">Dedicated by a centurion of the Sixth Legion; carved tufa, 3rd century.</div>
+      </div>
+    </section>
+
+    <section class="gallery" id="g-saxon">
+      <p class="date">c. AD 410 – 793</p>
+      <h2 id="h-saxon" aria-labelledby="h-saxon">Anglo-Saxon Treasures</h2>
+      <p>After Rome withdrew, new kingdoms rose across the island. Gold, garnet and the great
+         ship-burials speak of warrior aristocracies and a craft tradition of dazzling skill.</p>
+      <div class="artifact">
+        <div class="cap">Cloisonné shoulder-clasp</div>
+        <div class="meta">Gold inlaid with garnet and millefiori glass, in the Sutton Hoo manner.</div>
+      </div>
+      <div class="artifact">
+        <div class="cap">Pattern-welded seax</div>
+        <div class="meta">A single-edged knife with an inscribed blade and bone handle.</div>
+      </div>
+    </section>
+
+    <section class="gallery" id="g-viking">
+      <p class="date">c. AD 793 – 1066</p>
+      <h2 id="h-viking" aria-labelledby="h-viking">The Viking Incursions</h2>
+      <p>Raiding gave way to settlement as Scandinavian fleets wintered on English soil. The
+         objects here trace trade, silver hoards and the slow merging of two cultures.</p>
+      <div class="artifact">
+        <div class="cap">Hacksilver hoard</div>
+        <div class="meta">Cut arm-rings and coin fragments weighed for bullion exchange.</div>
+      </div>
+      <div class="artifact">
+        <div class="cap">Trefoil brooch</div>
+        <div class="meta">Cast copper-alloy dress fitting, Borre-style interlace.</div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

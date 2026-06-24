@@ -1,0 +1,369 @@
+{
+  "sc": "1.1.1",
+  "count": 25,
+  "patterns": [
+    {
+      "platform": "Wix ProGallery / Wix Pro Gallery & Slideshow image blocks",
+      "name": "Filename-as-alt-text on auto-imported gallery images",
+      "description": "When a user drags images into a Wix gallery/slideshow without filling the optional alt field, the rendered <img> gets either an empty/absent alt or the raw upload filename echoed into a title/alt-like attribute, so informative product/portfolio images announce as 'IMG_4821' or 'DSC0093-2-1024x768' or nothing at all. The alt field is optional in the editor and routinely skipped.",
+      "wcagScs": [
+        "1.1.1"
+      ],
+      "typicalMarkup": "<wow-image><img src=\"//static.wixstatic.com/media/IMG_4821~mv2.jpg\" alt=\"IMG_4821~mv2.jpg\" /></wow-image>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "An alt attribute IS present and non-empty, so axe/Lighthouse 'image-alt' passes. Only a human reading the page can tell that 'IMG_4821~mv2.jpg' is a meaningless filename rather than a description of what the image conveys, and whether the image is informative (needs real alt) or decorative (needs alt=\"\").",
+      "realWorldNote": "WebAIM 2025 Million found 55.5% of pages have alt-text problems; Wix support docs make the gallery alt field optional, and Wix accessibility guides repeatedly flag ProGallery/Slideshow images as the most common missing/inadequate-alt source. https://support.wix.com/en/article/accessibility-preparing-your-images-and-galleries",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Squarespace blog / Summary block grid",
+      "name": "Triple-redundant 'Read More →' links sharing one destination",
+      "description": "Each summary item auto-emits the thumbnail image, the post title, AND a 'Read More →' link, all three pointing to the same post URL. Screen-reader users tabbing the link list hear 'Read More, link / Read More, link / Read More, link' with no way to distinguish posts, and the same destination is reachable three times. The 'Read More →' text cannot be edited or removed through built-in settings.",
+      "wcagScs": [
+        "2.4.4",
+        "1.1.1"
+      ],
+      "typicalMarkup": "<div class=\"summary-item\">\n  <a class=\"summary-thumbnail-container\" href=\"/blog/post-slug\"><img src=\"...\" alt=\"\"></a>\n  <a class=\"summary-title-link\" href=\"/blog/post-slug\">Spring Tips</a>\n  <a class=\"summary-read-more-link\" href=\"/blog/post-slug\">Read More →</a>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Each <a> has non-empty text ('Read More →'), so link-name checks pass; the redundancy/ambiguity is only a problem when the links are read out of context as a list, which requires human judgment about whether the link purpose is determinable. Tools can't know the three links go to the same place is intended vs. confusing.",
+      "realWorldNote": "Amy Carney's hands-on Squarespace audit: 'Redundant links: image, heading, and Read More all link to same destination' and the Read More link cannot be customized or unlinked. https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "WordPress Media Library / auto-alt plugins (Auto Image Alt Text from Filename, Image Attributes Pro) on any Twenty* or builder theme",
+      "name": "Alt text is the raw filename (or template default 'image')",
+      "description": "WordPress core never auto-populates the alt attribute, so editors either leave it blank or install a plugin that copies the filename into alt. The img then carries semantically useless alt like 'IMG_4521', 'DSC00231-1024x683', 'hero-banner-final-v2' or a slug like 'untitled-1'. It passes the 'has alt' check but conveys nothing; informative images get garbage and decorative images get noise.",
+      "wcagScs": [
+        "1.1.1"
+      ],
+      "typicalMarkup": "<img src=\"/wp-content/uploads/2024/06/DSC00231-1024x683.jpg\" alt=\"DSC00231-1024x683\" width=\"1024\" height=\"683\" class=\"wp-image-512\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe/WAVE/Lighthouse only check that alt is present and non-empty; a filename string satisfies that. Deciding whether alt actually describes the image's purpose, or whether the image is decorative and should have empty alt, requires looking at the image and the surrounding context.",
+      "realWorldNote": "WordPress core does not set alt from anything; WPBeginner and the 'Auto Image Attributes From Filename' plugin (200k+ installs) explicitly populate alt from the filename. https://wordpress.org/plugins/auto-image-attributes-from-filename-with-bulk-updater/ and https://brutalbusiness.com/automatically-set-the-wordpress-image-title-alt-text-other-meta/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Elementor Icon Box / Icon List widget (Font Awesome icon fonts)",
+      "name": "Icon-only link/button whose accessible name is the icon glyph or empty",
+      "description": "Icon Box and social-icon widgets render a link wrapping only a Font Awesome <i> with no text. The accessible name comes out empty (empty link) or, when the icon font exposes a glyph/private-use character, a screen reader announces a meaningless symbol name. CSS pseudo-element icons (::before content) can be read aloud as random characters bearing no relation to the visible icon.",
+      "wcagScs": [
+        "1.1.1",
+        "2.4.4",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<a href=\"/cart\" class=\"elementor-icon\">\n  <i aria-hidden=\"false\" class=\"fas fa-shopping-cart\"></i>\n</a>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "When the accessible name is truly empty, axe catches it (link has no discernible text). But when the icon font leaks a glyph name or a pseudo-element character into the name, the link is technically 'named' and tools pass it while the announced name ('private-use-F07A') is meaningless — judging that requires hearing what's announced vs. seeing the cart icon.",
+      "realWorldNote": "Elementor docs and abrightclearweb note Icon widgets 'create empty links and adjacent identical links'; Divi review notes CSS pseudo-element icons cause screen readers to 'announce the symbol's name, which has no semantic relationship.' https://www.abrightclearweb.com/elementor-accessibility/ and https://elevagedigital.com/improving-wordpress-divi-accessibility/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Elementor Image Carousel / Slides widget, Divi Slider, Smart Slider 3",
+      "name": "Auto-advancing carousel: icon-only controls + slide content/links hidden from AT",
+      "description": "Slider widgets auto-rotate with no clearly labeled pause/stop control. Prev/next arrows are icon-only with empty accessible names; pagination dots are unlabeled buttons. Off-screen slides are not consistently hidden from the accessibility tree, so screen-reader users encounter duplicate/moving content and links to slides they can't see.",
+      "wcagScs": [
+        "4.1.2",
+        "2.4.4",
+        "1.1.1"
+      ],
+      "typicalMarkup": "<div class=\"swiper-wrapper\"> <!-- autoplay:3000, no labeled pause control -->\n  <div class=\"swiper-slide\" aria-hidden=\"false\"><a href=\"/promo\"><img src=\"slide1.jpg\" alt=\"\"></a></div>\n</div>\n<div class=\"elementor-swiper-button-next\"><i class=\"eicon-chevron-right\"></i></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Empty arrow/dot names are partially catchable, but judging that hidden slides leak focusable links into the tab order, and that there is no labeled pause control, requires observing the running carousel and its focus behavior across slide states.",
+      "realWorldNote": "Elementor audit: 'Images in the carousel advance automatically every three seconds with no mechanism for pausing, stopping, or hiding.' https://www.accessibilitychecker.org/blog/elementor-website-accessibility/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "WordPress theme demo import / starter templates (Astra, OceanWP, Elementor Kits, Divi Layouts)",
+      "name": "Placeholder demo content left in production — default title, lorem ipsum, stock alt",
+      "description": "One-click demo imports populate the site with template defaults that editors forget to replace: the page <title> stays 'My WordPress Site' / 'Just another WordPress site' tagline, headings and links read 'Lorem ipsum dolor', CTA buttons say 'Button Text', and stock images carry the kit's generic alt. Titles don't uniquely describe the page; link text is meaningless Latin.",
+      "wcagScs": [
+        "2.4.2",
+        "2.4.4",
+        "1.1.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<title>Home – Just another WordPress site</title>\n<h2>Lorem Ipsum Dolor</h2>\n<a class=\"elementor-button\" href=\"#\">Click Here</a>\n<img src=\"placeholder-1.jpg\" alt=\"placeholder image\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A <title> of 'Just another WordPress site' is present and non-empty (2.4.2 passes a presence check); lorem-ipsum link text is non-empty. Recognizing the content is unreplaced placeholder that fails to describe topic/purpose is a semantic judgment a linter can't make.",
+      "realWorldNote": "Demo/starter imports use lorem ipsum and template defaults; WPBeginner documents importing dummy content; 'Just another WordPress site' is the stock tagline. https://www.wpbeginner.com/wp-themes/how-to-add-dummy-content-for-theme-development-in-wordpress/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "WooCommerce / Elementor product loop on Storefront, Astra, Divi shops",
+      "name": "Color/variant swatches conveyed by color only; 'Add to cart' names not unique",
+      "description": "Product variation swatches are colored squares/links with no text or accessible name ('Red', 'Blue' is visual-only), so the choice is unperceivable without color. In the shop grid every product's 'Add to cart' / 'Select options' button has the same name, indistinguishable by product when navigating by button.",
+      "wcagScs": [
+        "1.4.1",
+        "1.1.1",
+        "2.4.4",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<ul class=\"variations\">\n  <li><a class=\"swatch\" style=\"background:#c00\" data-value=\"red\"></a></li>\n  <li><a class=\"swatch\" style=\"background:#00c\" data-value=\"blue\"></a></li>\n</ul>\n<a href=\"?add-to-cart=42\" class=\"button\">Add to cart</a>  <!-- repeated per product -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Color-only meaning (1.4.1) is not statically detectable — a tool can't know the red square MEANS 'red' with no text backup. Repeated 'Add to cart' names are valid names. Both require understanding what the visual conveys and the by-button navigation experience.",
+      "realWorldNote": "WooCommerce color-swatch plugins render color-only links; equalizedigital and WebAIM repeatedly flag color-only controls and duplicate 'add to cart' button names as a top WordPress-shop barrier. https://equalizedigital.com/accessibility-checker/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Shopify Dawn theme — product variant picker (color)",
+      "name": "Color-only variant swatches with no text alternative",
+      "description": "Color variant options render as colored circles/squares (radio inputs visually replaced by background-color chips). The only way to know which color is which is to see the chip; the accessible name is often the hex/handle or absent, so a screen reader announces 'option 1, option 2' or just the color value, and there is no non-color cue distinguishing selected vs available swatches. Color is the sole means of conveying the choice.",
+      "wcagScs": [
+        "1.4.1",
+        "1.1.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<fieldset class=\"product-form__input\">\n  <legend class=\"form__label\">Color</legend>\n  <input type=\"radio\" id=\"Color-0\" name=\"Color\" value=\"Forest\" checked>\n  <label for=\"Color-0\" style=\"background:#1a3a1f\"><span class=\"visually-hidden\"></span></label>\n  <input type=\"radio\" id=\"Color-1\" name=\"Color\" value=\"Slate\">\n  <label for=\"Color-1\" style=\"background:#5b6770\"></label>\n</fieldset>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The radio inputs are technically labeled (the <label for> exists and the value attribute carries the color name), so axe/Lighthouse see a valid, named form control and pass it. They cannot perceive that the swatch communicates the choice purely through a CSS background-color, nor judge whether the visible chip and the accessible name actually correspond, nor whether selection state has a non-color indicator.",
+      "realWorldNote": "Shopify Dawn ships swatches as color chips and merchants add color-only swatches via tutorials (made4uo.com swatch guide; Dawn issue #3112 on color swatches). Audits of Dawn flag color contrast and ARIA on swatches. https://github.com/Shopify/dawn/issues/3112 ; https://testparty.ai/blog/shopify-dawn-theme-accessibility",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Shopify / WooCommerce — bulk-uploaded product images",
+      "name": "Alt text is the filename or a generic default",
+      "description": "Product images imported via CSV/feed or drag-drop bulk upload inherit alt text equal to the filename (e.g. 'IMG_4823' or 'product-1_2048x.jpg') or a templated default like 'Product image' / the store name. The image is informational (shows the actual product) but the alt conveys nothing about color, style, or what is shown.",
+      "wcagScs": [
+        "1.1.1"
+      ],
+      "typicalMarkup": "<img src=\"/cdn/shop/products/DSC_0234_2048x.jpg\"\n     alt=\"DSC_0234_2048x\"\n     class=\"product__media-img\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "An alt attribute is present and non-empty, which is exactly what axe/WAVE check for — so it passes 'images have alt text'. Recognizing that 'DSC_0234_2048x' or 'Product image' is meaningless and fails to describe the actual product requires reading the alt against the visible image: a semantic/visual human judgment of quality, not presence.",
+      "realWorldNote": "Baymard found 55% of ecommerce sites don't communicate informational image content via alt; WCAG.com and Siteimprove note auto/bulk imports default to filenames; AI alt-text apps exist precisely because the default is filename/blank. https://baymard.com/blog/informational-image-accessibility",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Magento Luma / third-party review widgets — star ratings",
+      "name": "Star rating rendered with CSS width %, no text alternative",
+      "description": "Average rating shows as filled/empty stars implemented as a background-image bar with inline width (e.g. width:80%). There is no aria-label or visually-hidden text, so screen readers announce nothing, or announce a raw '80%' with no unit, instead of 'Rated 4 out of 5 stars'. Same in third-party Shopify review apps.",
+      "wcagScs": [
+        "1.1.1",
+        "1.4.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<div class=\"rating-summary\">\n  <span class=\"rating-label\">Rating:</span>\n  <div class=\"rating-result\" title=\"80%\">\n    <span style=\"width:80%\"></span>\n  </div>\n</div>\n<!-- stars are background images; no aria-label, value only as % -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "There is no <img> to require alt on — the stars are CSS background images, which automated scanners ignore entirely. A title='80%' may exist but tools won't judge that '80%' is meaningless as a rating. Determining that this visual is conveying a 4-of-5 rating that needs a textual equivalent is a human contextual/visual judgment.",
+      "realWorldNote": "Magento Luma uses CSS-width rating bars; TestParty's Shopify barriers list cites third-party 'review widgets with star ratings without text alternatives'. https://testparty.ai/blog/beyond-alt-text-hidden-shopify-accessibility-barriers",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Webflow CMS dynamic image / multi-image field",
+      "name": "CMS-bound images ship with empty or filename alt at scale",
+      "description": "Static images can get alt text in the Designer, but CMS Collection images default to empty alt unless the author explicitly binds an alt field, and multi-image (gallery) fields ALWAYS render alt=\"\". Editors rarely populate a dedicated alt field, so dozens of meaningful content images (product photos, team headshots, article heroes) publish with empty or auto-filename alt across every collection-list and template page.",
+      "wcagScs": [
+        "1.1.1"
+      ],
+      "typicalMarkup": "<img src=\"/cdn/.../product-7f3a91.jpg\" alt=\"\" loading=\"lazy\"\n     sizes=\"(max-width: 479px) 100vw, 480px\">\n<img src=\"/cdn/.../team_photo_final_v2.png\" alt=\"team_photo_final_v2\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "alt=\"\" is VALID markup (correct for decorative images), so a linter cannot know a CMS hero photo is meaningful content that needs a description rather than a deliberately-decorative image. When alt is the filename, axe/WAVE treat it as 'has alt' and pass it — judging that 'product-7f3a91' or 'team_photo_final_v2' is useless requires a human to compare the text to the actual image.",
+      "realWorldNote": "Finsweet/SAYU SEO guides document that Webflow CMS and multi-image fields default to empty alt and require manual field binding, and Webflow's own audit panel only inspects static images, not dynamic CMS images: https://finsweet.com/seo/article/cms-image-dynamic-alt-tags and https://help.webflow.com/hc/en-us/articles/33961330170643-Include-alt-text-on-images",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Framer / Webflow link styled by color only (nav, inline text links, variant swatches)",
+      "name": "Information conveyed by color alone (links, swatches, states)",
+      "description": "Designers distinguish links from body text, active nav items, or product color/variant swatches using color only — no underline, no text label, no shape/border difference. Color swatches in particular carry the variant name ('Red', 'Forest') purely as a colored circle with no text or accessible name.",
+      "wcagScs": [
+        "1.4.1",
+        "1.1.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<p>Read our <a href=\"/terms\" style=\"color:#3a6;text-decoration:none\">terms</a> first.</p>\n<button class=\"swatch\" style=\"background:#2e5e3a\"></button>\n<button class=\"swatch\" style=\"background:#7a2e2e\"></button>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Tools can't tell that the only cue distinguishing a link from surrounding text is color (they'd have to compare the link's styling to adjacent text and the rest of the page). For color swatches, an unlabeled colored button looks like a generic empty button; recognizing it ENCODES a named option that's conveyed by color alone needs human/visual judgment.",
+      "realWorldNote": "Use-of-color is a top WCAG failure category; design-tool defaults frequently strip link underlines and rely on hue. Background on the swatch/color-only pattern and 1.4.1: https://www.w3.org/WAI/WCAG21/Understanding/use-of-color.html and contrast/use-of-color prevalence: https://www.studiolimb.com/guides/wcag-color-contrast-guide.html",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Webflow / Framer hero text baked into an exported image or background",
+      "name": "Images of text in hero/banner graphics",
+      "description": "To preserve exact typography, designers export a hero headline, promotional banner, or pricing graphic as a flattened PNG/JPG (or set it as a CSS background-image) instead of live text. The 'text' is pixels: it can't be resized/restyled, and if alt is missing or generic the content is also lost to screen readers.",
+      "wcagScs": [
+        "1.4.5",
+        "1.1.1"
+      ],
+      "typicalMarkup": "<img src=\"/hero-headline.png\" alt=\"\">  <!-- '50% OFF — ENDS FRIDAY' as pixels -->\n<div class=\"banner\" style=\"background-image:url('/promo-text.jpg')\"></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Nothing in the markup declares that an image's pixels contain readable text; an automated tool can't OCR/decide an image is 'an image of text' that could have been real text (1.4.5) vs. a legitimate photo/logo. Even an image with alt passes 1.1.1 — judging it's text-as-image needs human visual inspection.",
+      "realWorldNote": "Design-to-site workflows commonly flatten styled headlines to images to preserve fonts; 1.4.5 prohibits images of text except logos/essential cases: https://www.w3.org/WAI/WCAG21/Understanding/images-of-text.html",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Font Awesome (web-font / CSS pseudo-element icons)",
+      "name": "Decorative icon-font glyph read aloud (or interactive icon with no name)",
+      "description": "Font Awesome's web-font method renders a glyph via a CSS ::before pseudo-element on an empty <i>/<span>. If the author omits aria-hidden=\"true\", some AT/browsers expose the private-use Unicode glyph as garbage or a literal character name. Conversely, when the icon IS the only content of a link/button and is hidden (or carries no text alternative), the control has no accessible name at all.",
+      "wcagScs": [
+        "1.1.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<!-- decorative, but not hidden -> glyph announced -->\n<i class=\"fas fa-star\"></i>\n<!-- icon-only action with no accessible name -->\n<a href=\"/cart\"><i class=\"fas fa-shopping-cart\" aria-hidden=\"true\"></i></a>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Whether the glyph is decorative (needs aria-hidden) or meaningful (needs a label) is a semantic call. An empty <i> with classes has no text for a linter to evaluate, and the icon-only-link-with-no-name case is sometimes caught by axe but not when a stray whitespace/title gives a spurious name; deciding the name is wrong/missing in context needs human review.",
+      "realWorldNote": "Font Awesome's own accessibility docs state web-font icons must be manually given aria-hidden if decorative and role=img + visually-hidden text if meaningful. https://docs.fontawesome.com/web/dig-deeper/accessibility",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Inline SVG icon system (Heroicons, Lucide, Feather, Material Symbols inlined)",
+      "name": "Icon-only button/link with no accessible name (SVG provides none)",
+      "description": "A button or link whose only content is an inline <svg> with no <title>, no aria-label on the control, and no visually-hidden text. Screen readers announce just \"button\" / \"link\". Even when a <title> is added inside the SVG, several browser+SR combinations fail to surface it as the control's name, so it must be on the button.",
+      "wcagScs": [
+        "4.1.2",
+        "1.1.1",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<button class=\"icon-btn\">\n  <svg viewBox=\"0 0 24 24\"><path d=\"M...\"/></svg>\n</button>\n<!-- announced as just \"button\" -->",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "axe and Lighthouse DO reliably flag a button/link with an empty accessible name (\"Buttons must have discernible text\"), so a linter catches the no-name case. (Choosing a CORRECT label, however, would need human judgment — but the bare detection is automatable, hence flagged false.)",
+      "realWorldNote": "Sara Soueidan and CSS-Tricks document that there is no reliable way to use an SVG as the sole accessible name and that icon-only controls need aria-label on the control. https://www.sarasoueidan.com/blog/accessible-icon-buttons/",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "E-commerce product page (React/Vue store, Shopify/SFCC swatch components)",
+      "name": "Color-only variant swatches with no text label or non-color selected state",
+      "description": "Product color/variant options render as colored squares (often div with a background-color and a click handler) with no accompanying text name, and the selected swatch is indicated only by a colored ring. Users who cannot perceive color cannot tell which variant they are choosing or which is currently selected; the swatches may also lack accessible names entirely.",
+      "wcagScs": [
+        "1.4.1",
+        "1.1.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<div class=\"swatches\">\n  <div class=\"swatch\" style=\"background:#1a3d8f\"></div>\n  <div class=\"swatch selected\" style=\"background:#7a1f1f\"></div>\n</div>\n<!-- no text \"Navy\"/\"Maroon\"; selected = blue ring only -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Whether information (the color name / which is selected) is conveyed by color ALONE requires understanding what the UI means and checking for an equivalent non-color cue (text, checkmark, label). Tools cannot determine that a background-color is the sole carrier of meaning, nor that the selected-ring is color-only.",
+      "realWorldNote": "Section508 and WCAG 1.4.1 cover color-only selection; Craftshift and the EAA-2025 swatch guidance note most Shopify swatch apps render unlabeled clickable divs. https://craftshift.com/shopify-european-accessibility-act-swatches/",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Spinbutton / number stepper (quantity +/- controls in carts)",
+      "name": "Stepper +/- buttons with icon-only names and no spinbutton value semantics",
+      "description": "A quantity stepper has '+' and '−' buttons (often unlabeled icon glyphs) around a value, but the value display is a plain <span> with no role=\"spinbutton\"/aria-valuenow, and the increment/decrement buttons have no accessible name (just a glyph) or a name that does not say what they change. Screen reader users hear 'button button' and an unchanging value when they press them.",
+      "wcagScs": [
+        "4.1.2",
+        "4.1.3",
+        "1.1.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<button onclick=\"dec()\">−</button>\n<span class=\"qty\">1</span>\n<button onclick=\"inc()\">+</button>\n<!-- glyph-only names; qty is a span, not role=spinbutton with aria-valuenow -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "If the buttons contain a glyph character (−/+) axe may consider them to have text and pass discernible-text; the '−' may even be read as 'minus' or skipped. Judging that the name does not convey 'decrease quantity' is semantic, and the value <span> not exposing changes (no spinbutton role / live update) is a runtime announcement gap a snapshot scan cannot detect.",
+      "realWorldNote": "The APG spinbutton pattern requires role=spinbutton with aria-valuenow/min/max and accessible names on the controls; e-commerce quantity steppers commonly ship as glyph-only buttons around a non-semantic value span, a frequent audit finding. https://www.w3.org/WAI/ARIA/apg/patterns/spinbutton/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "WebAIM Million corpus / Squarespace poster & card image blocks, WordPress media library",
+      "name": "Alt text is the filename or a generic placeholder",
+      "description": "An image carries alt text, so the linter sees it as 'present' and passes, but the value is the upload filename (DSC_0042.jpg, hero-banner-final-v2.png), the word 'image', or a stock-photo ID. A screen reader announces 'D S C 0 0 4 2 dot j p g, image' which conveys nothing. Squarespace poster/card/overlap styles silently default alt to the file name when the author leaves it blank, so the markup looks complete while the semantics are useless.",
+      "wcagScs": [
+        "1.1.1"
+      ],
+      "typicalMarkup": "<a href=\"/sale\"><img src=\"/s/DSC_0042.jpg\" alt=\"DSC_0042.jpg\"></a>\n<img src=\"banner.png\" alt=\"image\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe/WAVE/Lighthouse only test for the PRESENCE of an alt attribute (or a non-empty string). They cannot judge whether the string is meaningful — 'DSC_0042.jpg' is a valid non-empty string. Deciding the alt fails to describe the image, or is redundant filename junk, requires a human to look at the picture and read the text.",
+      "realWorldNote": "WebAIM Million 2025: missing/poor alt text is the #2 detectable error (18.5% of images, 44% of those on linked images). Squarespace docs confirm poster/card/overlap blocks default alt to the file name when blank: https://support.squarespace.com/hc/en-us/articles/206542357-Adding-alt-text-to-images",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "WebAIM Million corpus (all builders) — buttons styled as div/span, icon-only controls",
+      "name": "Empty button / icon control with no accessible name",
+      "description": "A control is rendered as <div>, <span>, <a>, or an icon font/SVG with no text node and no aria-label, so its accessible name is empty. Screen readers announce 'button' or 'link' with nothing else. Common with hamburger menus, cart/search icons, social-share icons, and 'X' close buttons in page-builder widgets.",
+      "wcagScs": [
+        "4.1.2",
+        "1.1.1",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<button class=\"icon-cart\"><i class=\"fa fa-shopping-cart\" aria-hidden=\"true\"></i></button>\n<a href=\"/menu\"><svg><use href=\"#hamburger\"/></svg></a>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "This one IS reliably caught by axe/WAVE ('button-name', 'link-name', 'Empty Button', 'Empty Link') — it is a pure programmatic check for an empty accessible name. Included for completeness as a high-prevalence baseline. Flagged humanJudgmentNeeded=false.",
+      "realWorldNote": "WebAIM Million 2026: empty buttons on 30.6% of home pages, empty links on 46.3% — both in the top six errors: https://webaim.org/projects/million/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Shopify product pages, WooCommerce variation swatches, custom theme color/size pickers",
+      "name": "Color-only variant swatches with no text label",
+      "description": "Product variants are presented as colored squares/circles with no visible or programmatic text. The accessible name is empty or just a hex/SKU, and the selected state is shown only by a border or color change. Screen-reader and colorblind users cannot tell which color is which, nor which is currently selected.",
+      "wcagScs": [
+        "1.4.1",
+        "4.1.2",
+        "1.1.1",
+        "1.4.11"
+      ],
+      "typicalMarkup": "<div class=\"swatch\" style=\"background:#1b3a6b\" data-variant=\"40293\"></div>\n<div class=\"swatch swatch--selected\" style=\"background:#7a0c0c\"></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "An empty-name swatch built as a div may trip a name check, but the deeper failures — that COLOR is the only means of conveying the option (1.4.1) and that the SELECTED state is communicated by visual styling alone — require a human to perceive the colors and reason that meaning is lost without them. No linter knows 'navy vs maroon' is the information.",
+      "realWorldNote": "Shopify's own accessibility best-practices doc warns custom swatches commonly lose keyboard access and text labels: https://shopify.dev/docs/storefronts/themes/best-practices/accessibility . EAA-driven swatch fixes: https://craftshift.com/shopify-european-accessibility-act-swatches/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Banner/promo graphics, pricing tables, infographics rendered as flat images on Wix/Squarespace/Mailchimp landing pages",
+      "name": "Images of text carrying essential information with no text equivalent",
+      "description": "Headlines, sale terms, pricing tables, and event details are baked into a single flattened JPG/PNG (often exported from Canva/Figma). The alt text, if any, is a short label that omits the embedded copy, so the actual information (prices, dates, fine print) is unavailable non-visually and pixelates/blurs on zoom.",
+      "wcagScs": [
+        "1.4.5",
+        "1.1.1",
+        "1.4.10"
+      ],
+      "typicalMarkup": "<img src=\"summer-sale-flyer.png\" alt=\"Summer sale\">\n<!-- the image itself contains: '40% OFF everything, ends June 30, code SUN40' -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "No automated tool performs OCR to discover that an image contains essential text, nor that the alt fails to reproduce it. Recognizing 'this picture is really a block of text and the alt drops the price/date' requires a human to read both the image and the alt and compare.",
+      "realWorldNote": "Images-of-text is a perennial manual-audit and VPAT partial-support item; tied to the alt-text gap WebAIM measures: https://webaim.org/projects/million/2025 . Litigation grounding: the Robles v. Domino's case turned on screen-reader-inaccessible image/graphic content: https://www.boia.org/blog/the-robles-v.-dominos-settlement-and-why-it-matters",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Icon-only controls (font-icon or SVG) labelled only via the HTML title attribute (e.g. linked social icons, table action icons)",
+      "name": "title attribute as the sole accessible name",
+      "description": "A linked icon or icon button has no text and no aria-label; its only name is a title attribute. title is exposed inconsistently across screen readers (JAWS/NVDA/VoiceOver differ, and it is suppressed when an img alt is present), so the control is effectively unnamed for many users and provides only a flaky mouse-hover tooltip with no keyboard equivalent.",
+      "wcagScs": [
+        "4.1.2",
+        "1.1.1",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<a href=\"/twitter\" title=\"Twitter\"><i class=\"icon-twitter\" aria-hidden=\"true\"></i></a>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Per the accname algorithm title IS a valid (last-resort) name source, so axe computes a non-empty accessible name and passes the element. Whether the title is actually announced (and is adequate) depends on the screen reader and on whether better naming was intended; judging the real-world failure needs a human testing with AT.",
+      "realWorldNote": "24a11y 'Trials and Tribulations of the Title Attribute'; Silktide 'I thought title text improved accessibility. I was wrong.'; W3C issue 867 on title as sole accName. https://www.24a11y.com/2017/the-trials-and-tribulations-of-the-title-attribute/",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Squarespace 7.1 image block (AI alt-text suggestion / filename fallback)",
+      "name": "Alt text left as filename or generic AI stub",
+      "description": "When an editor uploads an image and skips the alt field, or accepts an unedited AI suggestion, the rendered alt ends up being the literal upload filename (e.g. IMG_4729.jpg, Screen-Shot-2024.png) or a vague generic phrase like \"image\"/\"a person standing\". A screen reader announces a meaningless string of digits and extension, or text that does not convey the image's actual purpose in context (a product hero, a chart, a logo).",
+      "wcagScs": [
+        "1.1.1"
+      ],
+      "typicalMarkup": "<img src=\"/s/IMG_4729.jpg\" alt=\"IMG_4729.jpg\">\n<img src=\"/uploads/hero.png\" alt=\"a person\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The alt attribute is present and non-empty, so axe/WAVE/Lighthouse all pass it — they cannot tell that \"IMG_4729.jpg\" or \"image\" is not a meaningful description, nor whether a generic AI caption matches what the image actually communicates in this context. Judging adequacy of alt text is inherently semantic/visual.",
+      "realWorldNote": "Squarespace's own alt-text guidance warns that a missing/auto alt causes the screen reader to announce the filename; community threads document file names leaking as alt text. https://support.squarespace.com/hc/en-us/articles/206542357-Adding-alt-text-to-images and https://forum.squarespace.com/topic/235326-showing-file-names-acting-as-alt-text-on-your-website/",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "Shopify / WooCommerce / Magento product-variant color swatches",
+      "name": "Color-only swatch with no text label or out-of-stock cue",
+      "description": "Selectable variant swatches are rendered as colored squares/circles whose only differentiator is the fill color, with no accessible name for the color and no non-color indication of state. \"Out of stock\" or \"unavailable\" variants are signaled purely by graying-out, and the selected swatch is shown only by a subtle color/border change. Color-blind and screen-reader users cannot tell red from green, which swatch is chosen, or which are unavailable.",
+      "wcagScs": [
+        "1.4.1",
+        "1.1.1",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<button class=\"swatch\" style=\"background:#0a0\"></button>\n<button class=\"swatch out-of-stock\" style=\"background:#a00\"></button>\n<span class=\"swatch selected\" style=\"background:#00a;border:2px solid #00a\"></span>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "An empty <button> with no name may trip a 4.1.2 rule, but the use-of-color failure (state and meaning conveyed only by hue, no text/icon equivalent) is invisible to automation — tools cannot determine that color is the sole carrier of \"selected\"/\"out of stock\" or that two swatches are only distinguishable by hue. That is a visual-semantic call.",
+      "realWorldNote": "Shopify/EAA swatch guidance and Bricks/Salesforce CC audits flag color-only swatches and out-of-stock graying as a11y problems requiring text labels. https://craftshift.com/shopify-european-accessibility-act-swatches/ and https://forum.bricksbuilder.io/t/accessibility-issue-with-color-variation-swatches-edited-new-issue/38992",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "Marketing hero banners / promo slides in CMS slideshows (Shopify slideshow, Squarespace banner, email-style heroes)",
+      "name": "Headline baked into a hero image (image of text)",
+      "description": "The campaign headline, price, and CTA wording are composited into a single hero JPG/PNG by a designer, then placed with a generic or empty alt. The visible \"text\" pixelates on zoom, can't be restyled for users who need larger/high-contrast type, and is either unreadable to AT (empty alt) or crammed into one alt string. Often the same banner is the page's only H1-level content, so the heading is also an image.",
+      "wcagScs": [
+        "1.4.5",
+        "1.1.1"
+      ],
+      "typicalMarkup": "<div class=\"hero\">\n  <img src=\"/cdn/summer-sale-50-off.jpg\" alt=\"\">\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "An empty-alt decorative image passes 1.1.1 trivially, and a non-empty alt passes too — tools cannot OCR the image to discover it contains essential text that should have been live HTML, nor judge whether that text is \"essential\" (logo) versus avoidable. Detecting text-in-image and deciding it's a 1.4.5 violation is a visual/semantic call.",
+      "realWorldNote": "Compositing headline text into hero images is a documented 1.4.5 failure; fix is extracting to HTML/CSS overlay. https://www.w3.org/WAI/WCAG22/Understanding/images-of-text.html and https://testparty.ai/blog/wcag-1-4-5-images-of-text-2025-guide",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

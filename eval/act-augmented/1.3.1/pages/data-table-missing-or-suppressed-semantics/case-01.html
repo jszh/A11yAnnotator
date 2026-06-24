@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compare plans — Northwind Analytics</title>
+<style>
+  :root { --ink:#1c2430; --line:#d7dee8; --accent:#0b5fff; --muted:#5b6675; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink);
+         margin: 0; background: #f5f7fb; line-height: 1.5; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 32px 20px 64px; }
+  header.site { display:flex; align-items:center; gap:10px; margin-bottom: 8px; }
+  .logo { width:30px; height:30px; border-radius:7px; background:linear-gradient(135deg,#0b5fff,#7a3cff); }
+  .brand { font-weight:700; letter-spacing:.2px; }
+  h1 { font-size: 1.85rem; margin: 18px 0 6px; }
+  .lede { color: var(--muted); margin: 0 0 26px; max-width: 60ch; }
+
+  /* The comparison "table". Built as a real <table> so it lays out as a grid,
+     but every cell is a plain <td>. The first ROW (plan names) and the first
+     COLUMN (feature names) are styled to read unmistakably as headers. */
+  table.compare { width:100%; border-collapse: collapse; background:#fff;
+                  border:1px solid var(--line); border-radius:12px; overflow:hidden;
+                  box-shadow: 0 1px 2px rgba(20,30,50,.05); }
+  table.compare td { padding: 14px 16px; border-bottom:1px solid var(--line);
+                     border-right:1px solid var(--line); text-align:center; vertical-align: middle; }
+  table.compare td:last-child { border-right:0; }
+  table.compare tr:last-child td { border-bottom:0; }
+
+  /* visual header row: bold, larger, accent-tinted band */
+  table.compare tr:first-child td {
+    background:#eef3ff; font-weight:700; font-size:1.05rem; color:#0b3aa8;
+    border-bottom:2px solid var(--accent);
+  }
+  /* visual header column: bold, left-aligned, grey band */
+  table.compare td:first-child {
+    background:#f7f9fc; font-weight:600; text-align:left; color:var(--ink);
+    border-right:2px solid var(--line);
+  }
+  /* the top-left empty corner */
+  table.compare tr:first-child td:first-child { background:#fff; border-bottom:2px solid var(--accent); }
+
+  .yes { color:#147d3f; font-weight:600; }
+  .no  { color:#b7c0cc; }
+  .price { font-size:1.3rem; }
+  .per { color:var(--muted); font-weight:400; font-size:.85rem; }
+  .cta { display:inline-block; margin-top:8px; padding:7px 14px; background:var(--accent);
+         color:#fff; border-radius:8px; text-decoration:none; font-size:.9rem; }
+  .note { margin-top:22px; font-size:.8rem; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site"><span class="logo" aria-hidden="true"></span><span class="brand">Northwind Analytics</span></header>
+
+  <h1>Compare plans</h1>
+  <p class="lede">Pick the plan that fits your team. Every plan includes the core dashboard,
+     unlimited viewers, and email support.</p>
+
+  <table class="compare">
+    <tr>
+      <td></td>
+      <td>Starter</td>
+      <td>Growth</td>
+      <td>Scale</td>
+      <td>Enterprise</td>
+    </tr>
+    <tr>
+      <td>Monthly price</td>
+      <td><span class="price">$0</span><div class="per">free forever</div></td>
+      <td><span class="price">$49</span><div class="per">per seat</div></td>
+      <td><span class="price">$120</span><div class="per">per seat</div></td>
+      <td><span class="price">Custom</span><div class="per">contact us</div></td>
+    </tr>
+    <tr>
+      <td>Included projects</td>
+      <td>1</td>
+      <td>10</td>
+      <td>50</td>
+      <td>Unlimited</td>
+    </tr>
+    <tr>
+      <td>Data retention</td>
+      <td>7 days</td>
+      <td>1 year</td>
+      <td>3 years</td>
+      <td>7 years</td>
+    </tr>
+    <tr>
+      <td>API rate limit</td>
+      <td>60 / min</td>
+      <td>600 / min</td>
+      <td>5,000 / min</td>
+      <td>Negotiated</td>
+    </tr>
+    <tr>
+      <td>SAML / SSO</td>
+      <td><span class="no">—</span></td>
+      <td><span class="no">—</span></td>
+      <td><span class="yes">Yes</span></td>
+      <td><span class="yes">Yes</span></td>
+    </tr>
+    <tr>
+      <td>Audit log export</td>
+      <td><span class="no">—</span></td>
+      <td><span class="yes">Yes</span></td>
+      <td><span class="yes">Yes</span></td>
+      <td><span class="yes">Yes</span></td>
+    </tr>
+    <tr>
+      <td>Dedicated success manager</td>
+      <td><span class="no">—</span></td>
+      <td><span class="no">—</span></td>
+      <td><span class="no">—</span></td>
+      <td><span class="yes">Yes</span></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td><a class="cta" href="#start">Start free</a></td>
+      <td><a class="cta" href="#growth">Choose Growth</a></td>
+      <td><a class="cta" href="#scale">Choose Scale</a></td>
+      <td><a class="cta" href="#sales">Talk to sales</a></td>
+    </tr>
+  </table>
+
+  <p class="note">
+    Prices shown in USD, billed monthly. Annual billing saves 20%.
+    <!--
+      WHY AUTOMATED TOOLS MISS THIS:
+      ACT table rules a25f45 (headers attribute) and d0f69e (header cell has assigned
+      cells) are only APPLICABLE when the table contains a <th> or role=columnheader/
+      rowheader. This table contains zero header cells — every cell is a plain <td> —
+      so both rules return INAPPLICABLE and the table is silently out of scope.
+      axe-core, WAVE, and Lighthouse therefore raise no error: a table made entirely
+      of <td> is valid HTML. Recognising that "Starter / Growth / Scale / Enterprise"
+      is functioning as a column-header row, and that "Monthly price / Included
+      projects / ..." is functioning as a row-header column — and that a screen-reader
+      user navigating cell-by-cell will hear a bare "Yes" or "$120" with no plan and no
+      feature attached — requires reading the rendered grid and judging that this IS a
+      data table whose cells are unintelligible without headers. That is the omitted
+      human judgment (F91).
+    -->
+  </p>
+</div>
+</body>
+</html>

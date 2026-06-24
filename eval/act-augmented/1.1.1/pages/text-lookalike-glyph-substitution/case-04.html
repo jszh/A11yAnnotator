@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 (Non-text Content), Failure Technique F71 — the CHARACTER-ENTITY
+    variant. F71 explicitly notes: "This failure also applies to the use of
+    character entities. It is the incorrect character used because of its glyph
+    representation that comprises a failure, not the mechanism by which that
+    character is implemented." Here the page word "Login" (the form's heading AND
+    the submit button label) is built ENTIRELY from numeric character entities that
+    decode to look-alike codepoints:
+        &#x004C;  L  U+004C  Latin 'L'
+        &#x03BF;  o  U+03BF  Greek small 'o'        (looks like 'o')
+        &#x0067;  g  U+0067  Latin 'g'
+        &#x0456;  i  U+0456  Cyrillic small 'i'     (looks like 'i')
+        &#x006E;  n  U+006E  Latin 'n'
+    After the browser decodes the entities, the DOM text node contains the Greek
+    'o' and Cyrillic 'i' codepoints — so a screen reader announces a mixed-script
+    string, not "Login". The accessible name of the submit button (computed from
+    its text) is therefore the confusable word, with no aria-label override and no
+    visually-hidden Latin alternative.
+
+    WHY AUTOMATED TOOLS MISS IT: after parsing, the entities ARE characters, so
+    "view source shows entities" is irrelevant to scanners — and they still see a
+    valid, non-empty heading and a valid, non-empty button name, so axe / WAVE /
+    Lighthouse pass. No img/svg/role=img exists, so all ACT 1.1.1 rules are
+    Inapplicable. Catching this needs decoding the entities and comparing the
+    resulting glyphs to the page language — a human reading judgment.
+  -->
+  <title>Sign in — Riverbank Credit Union</title>
+  <style>
+    :root { --ink:#10243a; --teal:#0d6b6b; --rule:#dfe6ec; --bg:#eef3f6; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI", Arial, sans-serif; background:var(--bg); color:var(--ink); line-height:1.6; display:flex; min-height:100vh; align-items:flex-start; justify-content:center; }
+    .card { background:#fff; border:1px solid var(--rule); border-radius:14px; width:100%; max-width:400px; margin:3rem 1rem; padding:1.8rem 1.8rem 2rem; box-shadow:0 8px 28px rgba(16,36,58,.07); }
+    .logo { font-weight:800; color:var(--teal); letter-spacing:.02em; margin-bottom:.2rem; }
+    .logo span { color:var(--ink); }
+    h1 { font-size:1.5rem; margin:.8rem 0 1.2rem; }
+    label { display:block; font-size:.85rem; font-weight:600; margin:.9rem 0 .3rem; }
+    input { width:100%; padding:.65rem .7rem; border:1px solid #c7d0d8; border-radius:8px; font-size:1rem; }
+    input:focus { outline:2px solid var(--teal); outline-offset:1px; }
+    .row { display:flex; justify-content:space-between; align-items:center; margin-top:1rem; font-size:.85rem; }
+    .row a { color:var(--teal); text-decoration:none; }
+    button { width:100%; margin-top:1.3rem; background:var(--teal); color:#fff; border:0; border-radius:8px; padding:.8rem; font-size:1rem; font-weight:700; cursor:pointer; }
+    .secure { font-size:.78rem; color:#5b6b78; margin-top:1.2rem; text-align:center; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <p class="logo">Riverbank <span>Credit Union</span></p>
+    <!-- HEADING: "Login" assembled from confusable entities (Greek o, Cyrillic i). -->
+    <h1>&#x004C;&#x03BF;&#x0067;&#x0456;&#x006E;</h1>
+
+    <form action="#" method="post" novalidate>
+      <label for="user">Member number or username</label>
+      <input id="user" name="user" type="text" autocomplete="username" inputmode="text">
+
+      <label for="pw">Password</label>
+      <input id="pw" name="pw" type="password" autocomplete="current-password">
+
+      <div class="row">
+        <label style="font-weight:400;display:flex;gap:.4rem;align-items:center;margin:0;">
+          <input type="checkbox" style="width:auto;"> Remember this device
+        </label>
+        <a href="#">Forgot password?</a>
+      </div>
+
+      <!-- SUBMIT BUTTON: label is again the confusable "Login" via entities. -->
+      <button type="submit">&#x004C;&#x03BF;&#x0067;&#x0456;&#x006E;</button>
+    </form>
+
+    <p class="secure">Your connection is encrypted. Riverbank will never ask for your full password by email or phone.</p>
+  </main>
+</body>
+</html>

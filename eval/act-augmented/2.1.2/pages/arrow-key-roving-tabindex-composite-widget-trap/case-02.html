@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search flights — Meridian Air</title>
+<style>
+  :root { --sky:#0b4f9c; --sky-dk:#083a73; --line:#d4dde8; --ink:#1b2733; --bg:#f1f5fa; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",Segoe UI,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--sky); color:#fff; padding:14px 30px; display:flex; align-items:center; gap:14px; }
+  header .brand { font-weight:800; font-size:1.2rem; }
+  header nav { margin-left:auto; display:flex; gap:18px; }
+  header nav a { color:#dcebfb; text-decoration:none; font-size:.9rem; }
+  header nav a:focus { outline:3px solid #ffd24a; outline-offset:3px; }
+
+  main { max-width:720px; margin:34px auto; background:#fff; border:1px solid var(--line);
+         border-radius:12px; padding:28px 30px; box-shadow:0 3px 14px rgba(11,79,156,.08); }
+  h1 { font-size:1.5rem; color:var(--sky-dk); margin:0 0 4px; }
+  p.sub { color:#5d6b7a; margin:0 0 22px; }
+
+  .field { margin-bottom:18px; }
+  label { display:block; font-weight:600; font-size:.85rem; margin-bottom:6px; }
+  input[type=text] { width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:7px; font-size:1rem; }
+  input[type=text]:focus { outline:3px solid #2f80c8; outline-offset:1px; }
+
+  .datebtn {
+    width:100%; text-align:left; padding:11px 12px; border:1px solid var(--line); border-radius:7px;
+    background:#fff; font-size:1rem; cursor:pointer; color:var(--ink);
+  }
+  .datebtn:focus { outline:3px solid #2f80c8; outline-offset:1px; }
+
+  .cal {
+    margin-top:10px; border:1px solid var(--line); border-radius:10px; padding:14px; max-width:320px;
+    box-shadow:0 8px 24px rgba(11,79,156,.12); display:none;
+  }
+  .cal.open { display:block; }
+  .cal .calhead { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; font-weight:700; }
+  .cal .calhead button { background:#eef4fb; border:1px solid var(--line); border-radius:6px; padding:4px 9px; cursor:pointer; }
+  .cal .calhead button:focus { outline:3px solid #2f80c8; }
+  table.grid { border-collapse:collapse; width:100%; }
+  table.grid th { font-size:.72rem; color:#5a6675; font-weight:600; padding:4px 0; }
+  table.grid td { text-align:center; padding:0; }
+  td[role="gridcell"] {
+    width:38px; height:36px; line-height:36px; border-radius:6px; cursor:pointer; font-size:.9rem; outline:none;
+  }
+  td[role="gridcell"]:focus { background:var(--sky); color:#fff; box-shadow:inset 0 0 0 2px var(--sky-dk); }
+  td.muted { color:#bcc6d2; cursor:default; }
+
+  .submit { margin-top:8px; padding:13px 26px; border:0; border-radius:8px; background:var(--sky);
+            color:#fff; font-size:1.02rem; font-weight:700; cursor:pointer; }
+  .submit:focus { outline:3px solid #ffd24a; outline-offset:2px; }
+
+  .note { background:#fffbe9; border:1px solid #f0e3a8; border-radius:8px; padding:12px 14px;
+          font-size:.82rem; color:#6b5e23; margin-top:24px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Meridian Air</span>
+  <nav aria-label="Account">
+    <a href="#trips">My trips</a>
+    <a href="#miles">Miles</a>
+    <a href="#help">Help</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Search flights</h1>
+  <p class="sub">Round trip · 1 adult · Economy</p>
+
+  <div class="field">
+    <label for="from">From</label>
+    <input type="text" id="from" name="from" value="SEA — Seattle" autocomplete="off">
+  </div>
+
+  <div class="field">
+    <label for="to">To</label>
+    <input type="text" id="to" name="to" value="AUS — Austin" autocomplete="off">
+  </div>
+
+  <div class="field">
+    <label id="depLbl" for="depBtn">Departure date</label>
+    <button class="datebtn" id="depBtn" aria-haspopup="grid" aria-expanded="false" aria-controls="calGrid">
+      Select departure date
+    </button>
+
+    <div class="cal" id="depCal">
+      <div class="calhead">
+        <button type="button" id="prevMo" aria-label="Previous month">‹</button>
+        <span>October 2026</span>
+        <button type="button" id="nextMo" aria-label="Next month">›</button>
+      </div>
+      <table class="grid">
+        <thead>
+          <tr><th>Su</th><th>Mo</th><th>Tu</th><th>We</th><th>Th</th><th>Fr</th><th>Sa</th></tr>
+        </thead>
+        <tbody id="calGrid" role="grid" aria-labelledby="depLbl">
+          <!-- one row built; gridcells carry roving tabindex -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <button class="submit" id="searchBtn">Search flights</button>
+
+  <p class="note">
+    <strong>Why automated checkers miss this:</strong> This is a textbook ARIA grid date picker —
+    <code>role="grid"</code>, <code>role="gridcell"</code>, roving tabindex, an accessible name via
+    <code>aria-labelledby</code>, and arrow-key navigation between days exactly as the WCAG
+    Understanding "calendar widget" example describes. Tools confirm the structure is valid. But the
+    keydown handler captures <em>both</em> <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> with
+    <code>preventDefault()</code> to "keep focus in the calendar until a date is picked," and there is
+    no <kbd>Esc</kbd> handler and no on-screen instruction for leaving. So once focus enters the grid,
+    the only thing Tab does is move to the next day — the user can never reach the <em>Search flights</em>
+    button. A scanner cannot tell an arrow-captured-but-Tab-exits grid (fine) from an
+    arrow-captured-and-Tab-also-swallowed grid (a trap) without driving both key classes.
+  </p>
+</main>
+
+<script>
+(function () {
+  var btn  = document.getElementById('depBtn');
+  var cal  = document.getElementById('depCal');
+  var grid = document.getElementById('calGrid');
+
+  // Build a 5x7 October-2026 grid (Oct 1 2026 = Thursday).
+  var firstDow = 4; // Thu
+  var days = 31;
+  var cells = [];
+  var row = document.createElement('tr');
+  for (var i = 0; i < firstDow; i++) { var e = document.createElement('td'); e.className='muted'; row.appendChild(e); }
+  for (var d = 1; d <= days; d++) {
+    var td = document.createElement('td');
+    td.setAttribute('role', 'gridcell');
+    td.tabIndex = -1;
+    td.textContent = d;
+    td.dataset.day = d;
+    cells.push(td);
+    row.appendChild(td);
+    if ((firstDow + d) % 7 === 0) { grid.appendChild(row); row = document.createElement('tr'); }
+  }
+  if (row.children.length) { grid.appendChild(row); }
+  cells[0].tabIndex = 0; // roving start
+  var cur = 0;
+
+  function focusCell(n) {
+    if (n < 0 || n >= cells.length) return;
+    cells[cur].tabIndex = -1;
+    cells[n].tabIndex = 0;
+    cells[n].focus();
+    cur = n;
+  }
+
+  function openCal() {
+    cal.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    focusCell(cur);
+  }
+
+  btn.addEventListener('click', function () {
+    if (cal.classList.contains('open')) {
+      cal.classList.remove('open'); btn.setAttribute('aria-expanded', 'false');
+    } else { openCal(); }
+  });
+
+  // Arrows move among day cells (the Understanding's calendar model — correct).
+  // BUG: Tab AND Shift+Tab are ALSO preventDefault()'d and remapped to day movement,
+  // so focus can never exit the grid to the Search button. No Esc, no advice.
+  grid.addEventListener('keydown', function (e) {
+    switch (e.key) {
+      case 'ArrowRight': e.preventDefault(); focusCell(cur + 1); break;
+      case 'ArrowLeft':  e.preventDefault(); focusCell(cur - 1); break;
+      case 'ArrowDown':  e.preventDefault(); focusCell(cur + 7); break;
+      case 'ArrowUp':    e.preventDefault(); focusCell(cur - 7); break;
+      case 'Home':       e.preventDefault(); focusCell(cur - (cur % 7)); break;
+      case 'End':        e.preventDefault(); focusCell(cur - (cur % 7) + 6); break;
+      case 'Tab':
+        // "Don't let the user tab out of the calendar before choosing a date."
+        e.preventDefault();
+        if (e.shiftKey) { focusCell(cur - 1); } else { focusCell(cur + 1); }
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        btn.textContent = 'Oct ' + cells[cur].dataset.day + ', 2026';
+        // closes visually but focus stays trapped on the (now hidden) grid cell until then;
+        // and re-opening re-traps. No keyboard exit is ever exposed.
+        cal.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.focus();
+        break;
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Before Your Appointment — Riverside Family Health Portal</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: Georgia, "Times New Roman", serif; color:#23292e; background:#eef3f1; }
+  .bar { background:#0f5c4e; color:#fff; padding:12px 22px; font-family:system-ui,sans-serif; }
+  .bar small { opacity:.8; }
+  .wrap { max-width:720px; margin:26px auto; padding:0 18px; }
+  h1 { font-size:1.5rem; }
+  .intro { color:#4a565d; }
+  .acc { background:#fff; border:1px solid #d6e0db; border-radius:8px; overflow:hidden; margin-bottom:14px; }
+  .acc-header { margin:0; }
+  .acc-trigger {
+    width:100%; text-align:left; background:#f7faf8; border:0; padding:16px 18px;
+    font:600 1.02rem system-ui,sans-serif; color:#0f5c4e; cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .acc-trigger:focus-visible { outline:3px solid #1b9e83; outline-offset:-3px; }
+  .acc-trigger .chev { transition:transform .2s; font-size:.8rem; }
+  /* Open panels add .open on the .acc wrapper; the chevron points down and the panel shows. */
+  .acc.open .acc-trigger .chev { transform:rotate(90deg); }
+  .acc-panel { padding:0 18px; max-height:0; overflow:hidden; transition:max-height .2s; }
+  .acc.open .acc-panel { max-height:600px; padding:6px 18px 18px; }
+  .acc-panel p, .acc-panel li { color:#3a454c; line-height:1.55; }
+  footer { color:#7a868d; font-size:.8rem; text-align:center; margin:30px 0; font-family:system-ui,sans-serif; }
+  .why { background:#fff; border-left:4px solid #0f5c4e; padding:12px 16px; font-family:system-ui,sans-serif; font-size:.82rem; color:#43525a; margin-top:20px; }
+</style>
+</head>
+<body>
+<div class="bar">Riverside Family Health <small>· Patient Portal · Welcome back, Dana</small></div>
+
+<div class="wrap">
+  <h1>Before Your Appointment</h1>
+  <p class="intro">Answers to common questions about preparing for your visit with Dr. Patel on Thursday.</p>
+
+  <!-- FIRST item ships OPEN: wrapper has .open (panel visible, chevron rotated down),
+       but the trigger's aria-expanded is hard-coded "false". -->
+  <div class="acc open">
+    <h2 class="acc-header">
+      <button type="button" class="acc-trigger" aria-expanded="false" aria-controls="p1">
+        <span>What should I bring to my appointment?</span>
+        <span class="chev" aria-hidden="true">&#9654;</span>
+      </button>
+    </h2>
+    <div class="acc-panel" id="p1" role="region" aria-label="What should I bring to my appointment?">
+      <p>Please bring the following so we can keep your records current:</p>
+      <ul>
+        <li>A photo ID and your current insurance card.</li>
+        <li>A list of all medications and supplements you take, including dosages.</li>
+        <li>Any home blood-pressure or glucose readings from the past two weeks.</li>
+        <li>Your completed pre-visit questionnaire (emailed to you on Monday).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="acc">
+    <h2 class="acc-header">
+      <button type="button" class="acc-trigger" aria-expanded="false" aria-controls="p2">
+        <span>How early should I arrive?</span>
+        <span class="chev" aria-hidden="true">&#9654;</span>
+      </button>
+    </h2>
+    <div class="acc-panel" id="p2" role="region" aria-label="How early should I arrive?">
+      <p>Arrive 15 minutes early so the front desk can verify your insurance and update any paperwork.</p>
+    </div>
+  </div>
+
+  <div class="acc">
+    <h2 class="acc-header">
+      <button type="button" class="acc-trigger" aria-expanded="false" aria-controls="p3">
+        <span>Can I reschedule online?</span>
+        <span class="chev" aria-hidden="true">&#9654;</span>
+      </button>
+    </h2>
+    <div class="acc-panel" id="p3" role="region" aria-label="Can I reschedule online?">
+      <p>Yes. Use the &ldquo;Appointments&rdquo; tab to move your visit up to 24 hours beforehand without a fee.</p>
+    </div>
+  </div>
+
+  <div class="why">
+    <strong>Why automated tools miss this:</strong> the first trigger is a real &lt;button&gt; with role button,
+    an accessible name, and a valid aria-expanded value (&ldquo;false&rdquo;). ACT 4e8ab6 / 5c01ea / 6a7281 all
+    pass because the attribute is present, permitted, and valid. But the panel it controls is visibly expanded
+    (chevron rotated, content showing) while the button announces &ldquo;collapsed.&rdquo; Reconciling the visible
+    open panel against aria-expanded=&ldquo;false&rdquo; is a rendered-state comparison no static checker performs.
+  </div>
+</div>
+
+<footer>Riverside Family Health · Portal content reviewed by clinical staff · 2026</footer>
+
+<script>
+  // Click handler toggles BOTH the wrapper .open class and aria-expanded together.
+  // The defect is the initial markup: panel #1 ships .open with aria-expanded="false".
+  document.querySelectorAll('.acc-trigger').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var acc = btn.closest('.acc');
+      var open = acc.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview · Acme Marketing · Pulse Analytics</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.10, H69 nav-demarcation sub-limb):
+  This SaaS dashboard has TWO distinct navigation regions that a user must
+  tell apart to operate the product:
+  (1) a GLOBAL top nav that switches PRODUCT AREAS (Dashboards / Reports /
+      Integrations / Settings) and account-level actions, and
+  (2) a WORKSPACE left nav scoped to the current workspace ("Acme Marketing":
+      Overview / Campaigns / Audiences / Conversions / Budgets).
+  Both are <nav> landmarks. The page has a single <h1> ("Overview") for the
+  main panel. NEITHER navigation region has a heading. H69 calls for heading
+  markup to demarcate top/main navigation vs left/secondary navigation.
+  axe / WAVE / Lighthouse PASS: one h1, valid landmarks, no empty headings,
+  no missing attributes. A screen-reader user navigating by heading finds only
+  "Overview" and cannot, by heading, distinguish "switch product area" (global)
+  from "navigate within this workspace" (left) — two operationally different
+  navigations that look obviously different to a sighted user but are
+  undifferentiated to heading navigation. Judging that these are two separate
+  sections each needing a heading is a human semantic/contextual decision.
+-->
+<style>
+  :root { --ink:#0f172a; --bg:#f1f5f9; --panel:#fff; --line:#e2e8f0; --brand:#0ea5a4; --muted:#64748b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  a { color:inherit; text-decoration:none; }
+  /* Region 1: GLOBAL top nav */
+  header.global { background:#0b1324; color:#cbd5e1; display:flex; align-items:center; gap:28px; padding:0 22px; height:54px; }
+  header.global .mark { font-weight:800; color:#fff; letter-spacing:.3px; }
+  header.global nav.product ul { list-style:none; display:flex; gap:6px; margin:0; padding:0; height:54px; }
+  header.global nav.product a { display:flex; align-items:center; padding:0 14px; height:54px; border-bottom:3px solid transparent; font-size:.92rem; }
+  header.global nav.product a[aria-current="page"] { color:#fff; border-bottom-color:var(--brand); }
+  header.global nav.product a:hover { color:#fff; }
+  header.global .spacer { flex:1; }
+  header.global nav.account ul { list-style:none; display:flex; gap:16px; margin:0; padding:0; font-size:.88rem; }
+  header.global nav.account a:hover { color:#fff; }
+  .body { display:grid; grid-template-columns:226px 1fr; min-height:calc(100vh - 54px); }
+  /* Region 2: WORKSPACE left nav */
+  nav.workspace { background:var(--panel); border-right:1px solid var(--line); padding:18px 14px; }
+  nav.workspace .wsname { display:flex; align-items:center; gap:8px; font-weight:700; font-size:.95rem; padding:6px 8px 12px; color:var(--ink); }
+  nav.workspace .wsname .dot { width:22px; height:22px; border-radius:6px; background:var(--brand); color:#fff; display:grid; place-items:center; font-size:.8rem; }
+  nav.workspace ul { list-style:none; margin:0; padding:0; }
+  nav.workspace a { display:flex; gap:10px; align-items:center; padding:8px 10px; border-radius:8px; font-size:.92rem; color:#334155; }
+  nav.workspace a:hover { background:#f1f5f9; }
+  nav.workspace a[aria-current="page"] { background:#e6fbfa; color:#0d7472; font-weight:600; }
+  main { padding:26px 30px; }
+  main h1 { font-size:1.6rem; margin:0 0 4px; }
+  main .sub { color:var(--muted); margin:0 0 22px; font-size:.95rem; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; }
+  .kpi { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .kpi .label { font-size:.8rem; color:var(--muted); }
+  .kpi .num { font-size:1.7rem; font-weight:800; margin:6px 0 2px; }
+  .kpi .delta.up { color:#0d9488; font-size:.82rem; }
+  .kpi .delta.down { color:#dc2626; font-size:.82rem; }
+  .chart { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px; margin-top:18px; height:200px; display:flex; align-items:flex-end; gap:10px; }
+  .chart .bar { flex:1; background:linear-gradient(#34d3d1,#0ea5a4); border-radius:6px 6px 0 0; }
+</style>
+</head>
+<body>
+  <!-- Region 1: GLOBAL top navigation (switch product area + account) — no heading -->
+  <header class="global">
+    <span class="mark">Pulse</span>
+    <nav class="product">
+      <ul>
+        <li><a href="#dash" aria-current="page">Dashboards</a></li>
+        <li><a href="#reports">Reports</a></li>
+        <li><a href="#integrations">Integrations</a></li>
+        <li><a href="#admin">Settings</a></li>
+      </ul>
+    </nav>
+    <span class="spacer"></span>
+    <nav class="account">
+      <ul>
+        <li><a href="#help">Help</a></li>
+        <li><a href="#notifs">Notifications</a></li>
+        <li><a href="#profile">Account: Dana R.</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <div class="body">
+    <!-- Region 2: WORKSPACE left navigation (within current workspace) — no heading -->
+    <nav class="workspace">
+      <div class="wsname"><span class="dot">A</span> Acme Marketing</div>
+      <ul>
+        <li><a href="#overview" aria-current="page">Overview</a></li>
+        <li><a href="#campaigns">Campaigns</a></li>
+        <li><a href="#audiences">Audiences</a></li>
+        <li><a href="#conversions">Conversions</a></li>
+        <li><a href="#budgets">Budgets</a></li>
+        <li><a href="#members">Workspace members</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <h1>Overview</h1>
+      <p class="sub">Acme Marketing workspace · last 30 days · updated 4 minutes ago</p>
+
+      <div class="cards">
+        <div class="kpi"><div class="label">Sessions</div><div class="num">128,402</div><div class="delta up">▲ 12.4% vs prev</div></div>
+        <div class="kpi"><div class="label">Conversions</div><div class="num">3,914</div><div class="delta up">▲ 6.1% vs prev</div></div>
+        <div class="kpi"><div class="label">Cost / conversion</div><div class="num">$18.72</div><div class="delta down">▼ 2.0% vs prev</div></div>
+        <div class="kpi"><div class="label">Active campaigns</div><div class="num">7</div><div class="delta up">▲ 1 vs prev</div></div>
+      </div>
+
+      <div class="chart" role="img" aria-label="Daily sessions trending up over the last fourteen days, from about seven thousand to eleven thousand.">
+        <div class="bar" style="height:42%"></div><div class="bar" style="height:48%"></div>
+        <div class="bar" style="height:40%"></div><div class="bar" style="height:55%"></div>
+        <div class="bar" style="height:58%"></div><div class="bar" style="height:52%"></div>
+        <div class="bar" style="height:64%"></div><div class="bar" style="height:70%"></div>
+        <div class="bar" style="height:66%"></div><div class="bar" style="height:78%"></div>
+        <div class="bar" style="height:82%"></div><div class="bar" style="height:88%"></div>
+        <div class="bar" style="height:84%"></div><div class="bar" style="height:96%"></div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

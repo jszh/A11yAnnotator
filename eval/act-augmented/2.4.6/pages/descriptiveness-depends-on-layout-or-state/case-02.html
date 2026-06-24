@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مصرف النيل — حسابي</title>
+<!--
+  SC 2.4.6 (Headings limb) — descriptiveness holds in SOURCE ORDER but BREAKS
+  under VISUAL READING ORDER via flexbox `order` on an RTL page.
+
+  Locale: Arabic (RTL). A retail-banking "My account" dashboard rendered as a
+  single vertical flex COLUMN of sibling items. In the DOM the items are, in
+  order: (1) heading <h2> "رسوم الخدمة" (Service fees), (2) the fee schedule,
+  (3) heading <h2> "تواصل مع فرعك" (Contact your branch), (4) the contact block.
+  So in the flat tree each heading is immediately followed by the content it
+  describes — ACT rule b49b2e PASSES and any source-order checker passes.
+
+  But the author applied `order` to the flex items to "tidy the visual rhythm":
+  the fee TABLE was pushed down (order:4) and the contact BLOCK pulled up
+  (order:2), without touching the DOM. The rendered visual column therefore reads:
+  "رسوم الخدمة / Service fees" heading  →  the CONTACT block (address, phone,
+  hours)  →  "تواصل مع فرعك / Contact your branch" heading  →  the fee TABLE.
+  A sighted user sees the "Service fees" heading sitting directly over the branch
+  contact details, and the "Contact your branch" heading sitting over the fee
+  table — both headings mis-orient the content actually perceived beneath them.
+
+  WHY AUTOMATED TOOLS MISS IT: a checker walks the DOM, where each heading is glued
+  to its matching content, so it passes. It does not resolve flex `order` into a
+  rendered reading sequence; the RTL writing mode further decouples DOM order from
+  on-screen order. Judging "does this heading describe the content a user actually
+  perceives under it" needs rendering + visual reasoning. b49b2e's own Assumptions
+  say it only holds when flat-tree order is close to the rendered order.
+-->
+<style>
+  body { margin: 0; font-family: "Segoe UI", "Noto Sans Arabic", Tahoma, sans-serif;
+         background: #eef1f5; color: #1b2330; }
+  header { background: #0b3d6b; color: #fff; padding: 16px 26px; }
+  header h1 { margin: 0; font-size: 1.35rem; }
+  main { max-width: 620px; margin: 22px auto; padding: 0 18px; }
+  .lead { color: #475569; margin: 0 0 18px; }
+
+  /* A single vertical column of sibling flex items. `order` reorders the visual
+     stream so headings end up above content they do not describe. */
+  .statement { display: flex; flex-direction: column; }
+
+  .statement > * { background: #fff; border: 1px solid #d9dee6;
+                   padding: 14px 20px; margin-bottom: 12px; border-radius: 8px; }
+  .statement h2 { margin: 0; font-size: 1.05rem; color: #0b3d6b;
+                  border-radius: 8px 8px 0 0; margin-bottom: -12px;
+                  border-bottom: 0; }
+  .block { line-height: 1.6; font-size: .95rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: right; padding: 6px 4px; border-bottom: 1px solid #eef1f5; }
+  dl { margin: 0; } dt { font-weight: 600; margin-top: 8px; } dd { margin: 0; }
+
+  /* DOM order: feesHead(1), feesBody(2), contactHead(3), contactBody(4).
+     order values rearrange the VISUAL column to:
+       feesHead → contactBody → contactHead → feesBody  */
+  #feesHead     { order: 1; }
+  #feesBody     { order: 4; }
+  #contactHead  { order: 3; }
+  #contactBody  { order: 2; }
+
+  footer { text-align: center; color: #6b7280; font-size: .8rem; padding: 26px 0; }
+</style>
+</head>
+<body>
+<header><h1>مصرف النيل — لوحة حسابي</h1></header>
+
+<main>
+  <p class="lead">مرحبًا أحمد، إليك ملخص حسابك الجاري رقم ‎•••• 4821‎.</p>
+
+  <section class="statement">
+
+    <!-- DOM #1: Service-fees HEADING -->
+    <h2 id="feesHead">رسوم الخدمة</h2>
+
+    <!-- DOM #2: fee schedule — the content this heading describes (adjacent in DOM) -->
+    <div class="block" id="feesBody">
+      <table>
+        <tr><th>سحب من صراف بنك آخر</th><td>5.00 ج.م</td></tr>
+        <tr><th>تحويل فوري محلي</th><td>3.50 ج.م</td></tr>
+        <tr><th>كشف حساب ورقي</th><td>10.00 ج.م</td></tr>
+      </table>
+    </div>
+
+    <!-- DOM #3: Contact HEADING -->
+    <h2 id="contactHead">تواصل مع فرعك</h2>
+
+    <!-- DOM #4: contact block — the content this heading describes (adjacent in DOM) -->
+    <div class="block" id="contactBody">
+      <dl>
+        <dt>العنوان</dt><dd>شارع التحرير 14، وسط البلد، القاهرة</dd>
+        <dt>الهاتف</dt><dd>‎+20 2 2576 1100‎</dd>
+        <dt>ساعات العمل</dt><dd>الأحد–الخميس، 8:30 ص – 3:00 م</dd>
+      </dl>
+    </div>
+
+  </section>
+</main>
+
+<footer>مصرف النيل ش.م.م · مرخّص من البنك المركزي</footer>
+</body>
+</html>

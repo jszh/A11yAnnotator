@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>استرداد قيمة التذكرة — هيئة النقل العام</title>
+<style>
+  :root { --ink:#1d2733; --gov:#16604a; --sand:#f4f1ea; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI","Noto Sans Arabic",Tahoma,Arial,sans-serif;
+         color:var(--ink); background:var(--sand); }
+  .page { max-width:600px; margin:0 auto; padding:26px 20px 80px; }
+  .gov-bar { background:var(--gov); color:#fff; padding:16px 20px; border-radius:8px;
+             margin-bottom:20px; }
+  .gov-bar h1 { margin:0; font-size:1.25rem; }
+  .gov-bar p { margin:4px 0 0; font-size:.9rem; opacity:.92; }
+  form { background:#fff; border:1px solid #ddd6c8; border-radius:8px; padding:22px; }
+  .field { margin-bottom:18px; }
+  label { display:block; font-weight:700; margin-bottom:6px; }
+  /* The required marker: a red asterisk, placed by CSS, with no text legend explaining
+     it. On the errored field it INTENSIFIES (darker, bolder) — colour/weight is the only
+     change that signals "this is the problem field." */
+  .req label::after { content:" *"; color:#cf3b2c; font-weight:700; }
+  .field.bad label::after { color:#8e1a0e; font-size:1.15em; }
+  input[type=text] { width:100%; padding:10px 12px; font:inherit; border:1px solid #b7b09f;
+                     border-radius:6px; background:#fff; }
+  .field.bad input { border:2px solid #8e1a0e; background:#fceceb; }
+  .help { font-size:.82rem; color:#5f6b62; margin-top:5px; }
+  .submit { background:var(--gov); color:#fff; border:0; padding:12px 26px; font:inherit;
+            font-weight:700; border-radius:6px; cursor:pointer; }
+  .muted { font-size:.82rem; color:#6a7167; margin-top:18px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="gov-bar">
+    <h1>استرداد قيمة التذكرة</h1>
+    <p>هيئة النقل العام — الخدمات الإلكترونية</p>
+  </div>
+
+  <!-- POST-SUBMIT STATE (server re-render). The resident typed a 9-digit number in the
+       national-ID field, but the ID must be exactly 10 digits and start with 1 or 2. The
+       server rejected it and added class="bad" to the field, which (a) darkens/enlarges
+       the already-present red required asterisk and (b) gives the input a red border +
+       pink fill. There is NO Arabic error text, no aria-invalid, no hidden text — the
+       correction (10 digits, starts with 1 or 2) is knowable but stated nowhere.
+       The asterisk has no legend at all, so even its meaning is colour/symbol-only. -->
+  <form action="/refund" method="post" novalidate>
+    <div class="field req bad">
+      <label for="nid">رقم الهوية الوطنية</label>
+      <input type="text" id="nid" name="nid" value="103847562" inputmode="numeric"
+             dir="ltr" autocomplete="off">
+    </div>
+
+    <div class="field req">
+      <label for="ticket">رقم التذكرة</label>
+      <input type="text" id="ticket" name="ticket" value="TK-558120" dir="ltr" autocomplete="off">
+      <p class="help">يوجد رقم التذكرة في أعلى يمين الإيصال.</p>
+    </div>
+
+    <div class="field req">
+      <label for="iban">رقم الآيبان لاسترداد المبلغ</label>
+      <input type="text" id="iban" name="iban" value="SA44 2000 0001 2345 6789 1234" dir="ltr" autocomplete="off">
+      <p class="help">مثال: SA يتبعها 22 رقمًا.</p>
+    </div>
+
+    <button type="submit" class="submit">إرسال طلب الاسترداد</button>
+  </form>
+
+  <p class="muted">تُعالَج طلبات الاسترداد خلال 7 أيام عمل.</p>
+</div>
+
+<!--
+  WHY THIS FAILS SC 3.3.3 (Error Suggestion) — i18n / RTL variant:
+  The 9-digit national ID was rejected; the correct format is knowable ("must be exactly 10
+  digits and begin with 1 or 2"). That suggestion appears NOWHERE. The only change on the bad
+  field is a darker/larger red asterisk + a red border + pink fill. Per G84 an asterisk or red
+  label does not satisfy the SC — a text description is required. The asterisk also has no
+  legend, so its required-meaning is itself colour/symbol-only. Note the ticket and IBAN fields
+  DO carry Arabic help text; only the errored field has none.
+
+  WHY AUTOMATED TOOLS MISS IT:
+  - lang="ar" dir="rtl" are correct; every input has a programmatic <label for>; nothing empty.
+  - The field is plain type="text" with a well-formed value, so validity.valid is true and the
+    accessibility tree reports invalid:false. No aria-invalid is set.
+  - A scanner cannot read Arabic semantics, cannot know the 10-digit/starts-with-1-or-2 rule,
+    and cannot tell that the asterisk colour-shift + red border is the only error carrier.
+    Judging that the missing thing is the *correction suggestion text* (not just identification)
+    requires reading the page in Arabic and reasoning about the format — human judgment.
+-->
+</body>
+</html>

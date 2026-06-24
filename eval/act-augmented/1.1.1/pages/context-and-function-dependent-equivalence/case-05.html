@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 FAILURE — context/function-dependent equivalence (LINK-PURPOSE limb, i18n).
+    A SaaS marketing site footer offers a language switcher made of clickable country
+    flags. Each flag <img> is wrapped in an <a> whose href switches the site language.
+    The DEFECT: each flag's alt LITERALLY and CORRECTLY names the depicted flag — "Flag of
+    Japan", "Flag of Germany", "Flag of Brazil". Those are accurate descriptions of the
+    images. But the link's PURPOSE is to switch the interface to a LANGUAGE, and a flag is
+    not a language: "Flag of Japan" should serve the purpose "日本語 / Switch to Japanese".
+    The mismatch is especially sharp because the alt is a perfectly good description of the
+    picture (it would pass any "is the flag described?" check) yet the wrong alternative for
+    a language-selection control. One flag (English) is correctly labelled for contrast.
+    WHY AUTOMATED TOOLS MISS IT: every flag <img> has a non-empty, accurate alt, so the
+    links all have non-empty accessible names — image-alt and link-name pass. No tool knows
+    these links change the UI language and that naming the country/flag is the wrong
+    alternative for that function.
+  -->
+  <title>Pricing — Lumen Analytics</title>
+  <style>
+    :root { --ink:#11161f; --muted:#5d6675; --line:#e2e6ec; --bg:#fff; --brand:#5b21b6; --footbg:#13111c; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI",Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    header.nav { display:flex; justify-content:space-between; align-items:center; padding:16px 28px; border-bottom:1px solid var(--line); }
+    header.nav .logo { font-weight:800; font-size:18px; color:var(--brand); }
+    header.nav a { color:var(--ink); text-decoration:none; font-size:14px; margin-left:18px; }
+    main { max-width:880px; margin:40px auto; padding:0 28px; }
+    h1 { font-size:30px; margin:0 0 8px; }
+    p.sub { color:var(--muted); font-size:16px; margin:0 0 28px; }
+    .tiers { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .tier { border:1px solid var(--line); border-radius:12px; padding:22px; }
+    .tier h2 { font-size:18px; margin:0 0 4px; }
+    .tier .price { font-size:28px; font-weight:800; }
+    .tier .price span { font-size:13px; color:var(--muted); font-weight:400; }
+    .tier ul { padding-left:18px; color:var(--muted); font-size:14px; line-height:1.7; }
+    .tier .cta { display:inline-block; margin-top:10px; background:var(--brand); color:#fff; text-decoration:none; padding:9px 16px; border-radius:8px; font-size:14px; }
+    footer { background:var(--footbg); color:#cfd3da; margin-top:48px; padding:28px; }
+    footer .ftwrap { max-width:880px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+    footer .copy { font-size:13px; color:#9aa0ab; }
+    .langswitch { display:flex; align-items:center; gap:10px; }
+    .langswitch .lbl { font-size:13px; color:#9aa0ab; }
+    .langswitch a { display:inline-flex; border:1px solid #2a2735; border-radius:6px; overflow:hidden; }
+    .langswitch a:focus-visible { outline:3px solid #a78bfa; outline-offset:2px; }
+    .langswitch img { display:block; width:34px; height:22px; }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="logo">Lumen Analytics</div>
+    <nav aria-label="Primary">
+      <a href="/product">Product</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/docs">Docs</a>
+      <a href="/login">Log in</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Simple, transparent pricing</h1>
+    <p class="sub">Start free. Upgrade when your team outgrows it. No credit card to begin.</p>
+    <div class="tiers">
+      <div class="tier"><h2>Starter</h2><div class="price">$0<span>/mo</span></div><ul><li>1 dashboard</li><li>7-day history</li><li>Community support</li></ul><a class="cta" href="/signup">Get started</a></div>
+      <div class="tier"><h2>Team</h2><div class="price">$49<span>/mo</span></div><ul><li>Unlimited dashboards</li><li>1-year history</li><li>Email support</li></ul><a class="cta" href="/signup?plan=team">Choose Team</a></div>
+      <div class="tier"><h2>Scale</h2><div class="price">$199<span>/mo</span></div><ul><li>SSO &amp; SAML</li><li>Unlimited history</li><li>Priority support</li></ul><a class="cta" href="/contact">Contact sales</a></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="ftwrap">
+      <div class="copy">© 2026 Lumen Analytics, Inc. · Privacy · Terms</div>
+      <div class="langswitch">
+        <span class="lbl">Language</span>
+        <!-- CONTRAST LINK (correctly labelled): names the language, the link purpose. -->
+        <a href="/?lang=en" hreflang="en">
+          <img alt="English"
+               src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='34' height='22' viewBox='0 0 34 22'&gt;&lt;rect width='34' height='22' fill='%23012169'/&gt;&lt;path d='M0 0l34 22M34 0L0 22' stroke='%23fff' stroke-width='3'/&gt;&lt;path d='M17 0v22M0 11h34' stroke='%23fff' stroke-width='5'/&gt;&lt;path d='M17 0v22M0 11h34' stroke='%23C8102E' stroke-width='3'/&gt;&lt;/svg&gt;">
+        </a>
+        <!-- DEFECTIVE LINKS: alt names the FLAG/COUNTRY, but the link switches the LANGUAGE. -->
+        <a href="/?lang=ja" hreflang="ja">
+          <img alt="Flag of Japan"
+               src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='34' height='22' viewBox='0 0 34 22'&gt;&lt;rect width='34' height='22' fill='%23fff'/&gt;&lt;circle cx='17' cy='11' r='6.5' fill='%23bc002d'/&gt;&lt;/svg&gt;">
+        </a>
+        <a href="/?lang=de" hreflang="de">
+          <img alt="Flag of Germany"
+               src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='34' height='22' viewBox='0 0 34 22'&gt;&lt;rect width='34' height='7.33' y='0' fill='%23000'/&gt;&lt;rect width='34' height='7.33' y='7.33' fill='%23dd0000'/&gt;&lt;rect width='34' height='7.34' y='14.66' fill='%23ffce00'/&gt;&lt;/svg&gt;">
+        </a>
+        <a href="/?lang=pt-BR" hreflang="pt-BR">
+          <img alt="Flag of Brazil"
+               src="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='34' height='22' viewBox='0 0 34 22'&gt;&lt;rect width='34' height='22' fill='%23009b3a'/&gt;&lt;polygon points='17,3 31,11 17,19 3,11' fill='%23fedf00'/&gt;&lt;circle cx='17' cy='11' r='4.2' fill='%23002776'/&gt;&lt;/svg&gt;">
+        </a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

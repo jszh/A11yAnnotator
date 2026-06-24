@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Constellation map — Northern Sky learning module</title>
+<!--
+  ACCESSIBILITY DEFECT (SC 2.4.7, aspect: drawn-indicator-fails-forced-colors-or-at-tracking)
+  The interactive "star" links remove the native focus ring (outline:none) and instead,
+  on focus, JS moves a single shared marker square (#focus-marker) into a FIXED LEGEND BOX
+  in the page corner — i.e. it lights up a star's NAME in a side panel, far from the star
+  itself. The marker is positioned over the legend, not over the focused star.
+  In a default render a sighted mouse user glancing at the legend may infer which star is
+  active, so a naive screenshot-diff sees pixels change somewhere on the page and oj04fd
+  passes. But the indicator is ORPHANED from the real focus position: the focused star in
+  the map has NO visible change, and the cue is a detached painted square elsewhere — the
+  exact G165 failure ("AT will not usually be able to find your focus indicator"; drawn,
+  detached). For a screen-magnifier user (viewport zoomed to the map) and forced-colors
+  users the cue is off-screen / suppressed, and AT cannot associate it with focus.
+  A default-render pixel checker cannot judge that the cue is detached from focus; that is
+  a spatial/semantic judgment. The markup is well-formed; axe/WAVE/Lighthouse report nothing.
+-->
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(ellipse at 30% 20%, #1b2456 0%, #070a1f 70%);
+    color: #dfe6ff;
+    min-height: 100vh;
+  }
+  header { padding: 18px 26px; }
+  header h1 { margin: 0; font-size: 1.2rem; }
+  header p { margin: 4px 0 0; color: #9fb0e6; font-size: .88rem; }
+
+  .stage { position: relative; height: 460px; margin: 10px 26px; }
+
+  /* Star links */
+  .star {
+    position: absolute;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, #cdd9ff 60%, rgba(205,217,255,0) 100%);
+    text-indent: -9999px;
+    overflow: hidden;
+    display: block;
+    cursor: pointer;
+  }
+  /* ---- The defect lives here: native ring removed, NO on-element focus style ---- */
+  .star:focus { outline: none; }      /* nothing replaces it on the star itself */
+
+  /* The legend / "detached" indicator panel, pinned to the corner */
+  .legend {
+    position: fixed;
+    top: 80px; right: 26px;
+    width: 210px;
+    background: rgba(10,16,40,.82);
+    border: 1px solid #2c3a72;
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .legend h2 { margin: 0 0 8px; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: #93a4dd; }
+  .legend li { list-style: none; padding: 4px 6px; border-radius: 6px; position: relative; font-size: .9rem; }
+  /* The shared marker square that JS slides between legend rows */
+  #focus-marker {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%; height: 28px;
+    border: 2px solid #ffd166;
+    border-radius: 6px;
+    pointer-events: none;
+    transition: top .12s ease;
+    display: none;
+  }
+  ul.legend-list { margin: 0; padding: 0; position: relative; }
+  footer { color: #7d8bc2; font-size: .78rem; padding: 16px 26px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>The Northern Sky — interactive constellation map</h1>
+  <p>Use Tab to move between the bright stars of Ursa Major, then press Enter to read about each one.</p>
+</header>
+
+<div class="stage" id="stage">
+  <!-- Stars of the Big Dipper, scattered across the map -->
+  <a class="star" href="#dubhe"   style="left:8%;  top:18%;" data-name="Dubhe">Dubhe</a>
+  <a class="star" href="#merak"   style="left:16%; top:34%;" data-name="Merak">Merak</a>
+  <a class="star" href="#phecda"  style="left:30%; top:52%;" data-name="Phecda">Phecda</a>
+  <a class="star" href="#megrez"  style="left:42%; top:44%;" data-name="Megrez">Megrez</a>
+  <a class="star" href="#alioth"  style="left:58%; top:40%;" data-name="Alioth">Alioth</a>
+  <a class="star" href="#mizar"   style="left:72%; top:30%;" data-name="Mizar">Mizar</a>
+  <a class="star" href="#alkaid"  style="left:86%; top:22%;" data-name="Alkaid">Alkaid</a>
+</div>
+
+<aside class="legend" aria-hidden="true">
+  <h2>Now focused</h2>
+  <ul class="legend-list" id="legend">
+    <span id="focus-marker"></span>
+    <li data-for="Dubhe">Dubhe</li>
+    <li data-for="Merak">Merak</li>
+    <li data-for="Phecda">Phecda</li>
+    <li data-for="Megrez">Megrez</li>
+    <li data-for="Alioth">Alioth</li>
+    <li data-for="Mizar">Mizar</li>
+    <li data-for="Alkaid">Alkaid</li>
+  </ul>
+</aside>
+
+<footer>Northern Sky learning module · for school astronomy clubs</footer>
+
+<script>
+  // On focus, instead of marking the focused STAR, we slide a marker square over the
+  // matching NAME in the corner legend — the indicator is detached from the focus position.
+  var marker = document.getElementById('focus-marker');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#legend li'));
+  document.querySelectorAll('.star').forEach(function (star) {
+    star.addEventListener('focus', function () {
+      var name = star.getAttribute('data-name');
+      var row = rows.filter(function (r) { return r.getAttribute('data-for') === name; })[0];
+      if (row) {
+        marker.style.display = 'block';
+        marker.style.top = (row.offsetTop - 2) + 'px';
+      }
+    });
+    star.addEventListener('blur', function () { marker.style.display = 'none'; });
+  });
+</script>
+</body>
+</html>

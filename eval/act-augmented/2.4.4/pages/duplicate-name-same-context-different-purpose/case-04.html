@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plans &amp; pricing — Foliage plant-care app</title>
+  <style>
+    :root { --green:#2f7d4f; --ink:#1d2b22; --soft:#5b6b60; --bg:#f3f7f2; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink);
+           font:16px/1.55 "Avenir Next", "Segoe UI", system-ui, sans-serif; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+    h1 { text-align:center; font-size:2.1rem; margin:0 0 .4rem; }
+    .lede { text-align:center; color:var(--soft); margin:0 0 2.5rem; }
+
+    /* Pricing grid. Each visual "card" is a CSS GRID COLUMN, but the price block and the
+       buy-link block live in SEPARATE grid rows so that the two "Buy now" links sit in a
+       row of their own — visually under their price, but in the DOM in a shared flow that
+       does not carry the price into each link's context. */
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:0 2rem;
+            grid-template-rows:auto auto auto auto; align-items:start; }
+    .name { font-weight:700; font-size:1.15rem; padding-top:1.25rem; }
+    .price { font-size:2.4rem; font-weight:800; color:var(--green); }
+    .price small { font-size:1rem; color:var(--soft); font-weight:500; }
+    .features { color:var(--soft); font-size:.95rem; }
+    .features ul { margin:.4rem 0; padding-left:1.1rem; }
+    .buyrow { padding-top:1rem; }
+    .buy { display:inline-block; background:var(--green); color:#fff; text-decoration:none;
+           font-weight:700; padding:.7rem 1.6rem; border-radius:999px; }
+    .buy:focus { outline:3px solid #1d5132; outline-offset:3px; }
+    .card-bg { grid-row: 1 / span 4; background:#fff; border:1px solid #d9e6dd;
+               border-radius:16px; }
+    .col1 { grid-column:1; } .col2 { grid-column:2; }
+    .pad { padding:0 1.5rem; }
+    footer { margin-top:3rem; text-align:center; color:var(--soft); font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Keep every plant alive</h1>
+    <p class="lede">Reminders, light meters and a botanist on call. Cancel anytime.</p>
+
+    <div class="grid">
+      <!-- decorative card backgrounds behind each column -->
+      <div class="card-bg col1"></div>
+      <div class="card-bg col2"></div>
+
+      <!-- ROW 1: plan names -->
+      <div class="name col1 pad">Sprout</div>
+      <div class="name col2 pad">Greenhouse</div>
+
+      <!-- ROW 2: prices -->
+      <div class="price col1 pad">$9<small>/mo</small></div>
+      <div class="price col2 pad">$99<small>/mo</small></div>
+
+      <!-- ROW 3: features -->
+      <div class="features col1 pad">
+        <ul><li>Up to 10 plants</li><li>Watering reminders</li><li>Community Q&amp;A</li></ul>
+      </div>
+      <div class="features col2 pad">
+        <ul><li>Unlimited plants</li><li>1:1 botanist chats</li><li>Team &amp; office mode</li><li>Priority disease ID</li></ul>
+      </div>
+
+      <!-- ROW 4: the two identical buy links -->
+      <div class="buyrow col1 pad"><a class="buy" href="#checkout-sprout">Buy now</a></div>
+      <div class="buyrow col2 pad"><a class="buy" href="#checkout-greenhouse">Buy now</a></div>
+    </div>
+
+    <section id="checkout-sprout" hidden>
+      <h2>Checkout — Sprout, $9/month</h2>
+    </section>
+    <section id="checkout-greenhouse" hidden>
+      <h2>Checkout — Greenhouse, $99/month</h2>
+    </section>
+
+    <footer>
+      <!--
+        WHY AUTOMATED TOOLS MISS THIS:
+        Both "Buy now" links have an identical, non-empty accessible name and a valid
+        in-page href, so link-name / discernible-text checks PASS. The two links each sit
+        in their own .buyrow cell; neither cell contains the plan name or price, and the
+        price ($9 vs $99) is in a SEPARATE grid cell laid out visually ABOVE the link.
+        Each link's programmatically determined link context (its own cell) is therefore
+        equally bare — "Buy now" with no price — so the two contexts are effectively
+        identical and neither names a plan. A sighted user knows which plan each "Buy now"
+        purchases ONLY from the visual alignment of the button under the $9 or $99 column.
+        That disambiguation is conveyed purely by layout/position, which an automated tool
+        cannot read and a screen-reader user does not receive: in a links list they hear
+        "Buy now / Buy now" and cannot tell the $9 plan from the $99 plan. Because the page
+        DOES make the distinction available to sighted users (visual alignment), but not
+        programmatically, it FAILS 2.4.4.
+      -->
+      Foliage Labs · plants@foliage.example · 30-day money-back guarantee
+    </footer>
+  </div>
+</body>
+</html>

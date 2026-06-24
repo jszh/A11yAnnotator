@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.1 FAILURE (F43) — heading markup used for visual sizing, asserting a section
+    relationship that does not exist in the content.
+
+    This is a long-form editorial article. The visible heading outline a screen-reader
+    user navigates by (H key / rotor) should be:
+        h1  "The Quiet Collapse of the Local Newsroom"   (article title)
+        h2  "Abstract"                                    (real section)
+        h2  "How the cuts began"                          (real section)
+        h2  "What readers lost"                           (real section)
+    But the CMS author bumped the BYLINE and the DATELINE to "Heading 3" and "Heading 4"
+    in the rich-text editor purely to make them larger/bolder. So the actual outline is:
+        h1  title
+          h3  "By Marguerite Adler and Tomas Vance"   <-- NOT a section. A byline.
+            h4  "Published March 14, 2026 · 11 min read"  <-- NOT a section. A dateline.
+        h2  "Abstract"
+        ...
+    The byline and dateline begin no section. They assert a sub-sub-section relationship
+    under the title that is false, and they fabricate a misleading outline (an h3 and h4
+    that contain nothing). A screen-reader user jumping by heading lands on "By Marguerite
+    Adler and Tomas Vance" expecting a section and finds only author names.
+
+    WHY AUTOMATED TOOLS MISS IT: every heading here is syntactically perfect — non-empty
+    text, valid <h1>..<h4> elements, and the levels do not even skip illegally (h1 -> h3
+    is only a warning at most, and h3 -> h4 is monotonic). axe's "heading-order" only
+    flags increasing-by-more-than-one in some configs and these are content-plausible.
+    No rule can tell that "By Marguerite Adler and Tomas Vance" is a byline rather than a
+    section title — that requires READING the words and knowing a byline begins no section.
+  -->
+  <title>The Quiet Collapse of the Local Newsroom — The Meridian Review</title>
+  <style>
+    :root { --ink:#1a1a1a; --muted:#5a5a5a; --rule:#e2e2e2; --accent:#7a1f2b; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Georgia, "Times New Roman", serif; color: var(--ink);
+           background:#fbfaf7; line-height:1.65; }
+    header.masthead { border-bottom:3px double var(--ink); padding:1rem 1.2rem .6rem;
+           display:flex; align-items:baseline; gap:1rem; }
+    header.masthead .wordmark { font-family: "Playfair Display", Georgia, serif;
+           font-size:1.5rem; font-weight:700; letter-spacing:.04em; }
+    header.masthead .section { color:var(--accent); font-size:.8rem; text-transform:uppercase;
+           letter-spacing:.18em; }
+    main { max-width:44rem; margin:1.4rem auto 4rem; padding:0 1.2rem; }
+    h1 { font-family:"Playfair Display", Georgia, serif; font-size:2.1rem; line-height:1.2;
+         margin:.4rem 0 .2rem; }
+    /* Byline + dateline were bumped to Heading 3 / Heading 4 in the editor for SIZE only. */
+    h3 { font-size:1.15rem; font-weight:600; color:var(--ink); margin:.7rem 0 .1rem; }
+    h4 { font-size:.92rem; font-weight:400; font-style:italic; color:var(--muted);
+         margin:.1rem 0 1.1rem; }
+    h2 { font-size:1.3rem; margin:2rem 0 .4rem; padding-top:.6rem; border-top:1px solid var(--rule); }
+    p  { margin:0 0 1rem; }
+    .abstract { font-size:1.05rem; color:#333; background:#f3efe6; border-left:4px solid var(--accent);
+                padding:.9rem 1.1rem; border-radius:4px; }
+    .photo { width:100%; height:200px; border-radius:6px; margin:1rem 0;
+             background:linear-gradient(120deg,#cfc6b4,#8d8475); }
+    footer { max-width:44rem; margin:0 auto 3rem; padding:0 1.2rem; font-size:.8rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <span class="wordmark">The Meridian Review</span>
+    <span class="section">Media &amp; Society</span>
+  </header>
+
+  <main>
+    <article>
+      <h1>The Quiet Collapse of the Local Newsroom</h1>
+
+      <!-- BYLINE bumped to "Heading 3" in the WYSIWYG editor. It begins NO section. -->
+      <h3>By Marguerite Adler and Tomas Vance</h3>
+      <!-- DATELINE bumped to "Heading 4". Also begins NO section. -->
+      <h4>Published March 14, 2026 · 11 min read</h4>
+
+      <p class="abstract">A two-year study of 312 counties finds that the disappearance of
+      daily local reporting tracks closely with declining municipal-election turnout and
+      rising county borrowing costs — and that the pattern accelerated sharply after 2021.</p>
+
+      <div class="photo" role="img" aria-label="An empty newsroom with overturned chairs and dark monitors"></div>
+
+      <h2>Abstract</h2>
+      <p>Between 2004 and 2024 the United States lost roughly a third of its newspapers and
+      two thirds of its newspaper journalists. This article synthesises field interviews in
+      eleven affected counties with a panel dataset spanning two decades.</p>
+
+      <h2>How the cuts began</h2>
+      <p>The first round was framed as efficiency. Copy desks were consolidated across
+      titles; photographers were let go; the statehouse bureau was "covered remotely."
+      Editors describe a slow hollowing rather than a single dramatic closure.</p>
+      <p>By the time the second round arrived, there was little left to cut except the
+      reporters who physically attended the county-commission meetings.</p>
+
+      <h2>What readers lost</h2>
+      <p>What vanished was not opinion or national news — readers had other sources for
+      those — but the unglamorous transcription of local power: zoning votes, school-board
+      budgets, the police blotter. The study finds these were almost never picked up by any
+      other outlet once the local paper stopped attending.</p>
+    </article>
+  </main>
+
+  <footer>
+    The Meridian Review · Reader-supported, nonprofit journalism since 1998.
+  </footer>
+</body>
+</html>

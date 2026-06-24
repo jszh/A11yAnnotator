@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apply for a Personal Loan — Meridian Credit Union</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #eef1f5;
+      color: #1b2430;
+    }
+    .shell { max-width: 640px; margin: 2rem auto; background: #fff; border-radius: 10px;
+             box-shadow: 0 2px 14px rgba(20,35,60,.08); overflow: hidden; }
+    .shell header { background: #0b3d6b; color: #fff; padding: 1.4rem 1.8rem; }
+    .shell header h1 { margin: 0; font-size: 1.35rem; }
+    .shell header p { margin: .3rem 0 0; opacity: .85; font-size: .9rem; }
+    form { padding: 1.8rem; }
+    .field { margin-bottom: 1.3rem; }
+    .field label { display: block; font-weight: 600; margin-bottom: .35rem; font-size: .92rem; }
+    .field .hint { font-weight: 400; color: #5b6573; font-size: .82rem; }
+
+    .field input[type="text"],
+    .field input[type="number"],
+    .field input[type="email"],
+    .field select {
+      width: 100%;
+      padding: .65rem .7rem;
+      font-size: 1rem;
+      border: 1px solid #c3ccd6;
+      border-radius: 6px;
+      background: #fff;
+      transition: border-color .12s ease, box-shadow .12s ease;
+    }
+
+    /* -----------------------------------------------------------------
+       Snippet pasted from a "make your form feel premium" tutorial.
+       It animates a blue glow when the cursor enters the field. The
+       tutorial demonstrated it with :hover, and that is what shipped.
+       The default focus ring was reset to keep the look "consistent".
+       ----------------------------------------------------------------- */
+    .field input[type="text"]:hover,
+    .field input[type="number"]:hover,
+    .field input[type="email"]:hover,
+    .field select:hover {
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 3px rgba(26,115,232,.20);
+    }
+    .field input:focus,
+    .field select:focus {
+      outline: none;          /* UA ring removed ... */
+      /* ...and no border/box-shadow change defined for the focused state */
+    }
+
+    .actions { display: flex; gap: .8rem; margin-top: .5rem; }
+    .btn {
+      padding: .7rem 1.5rem; border: none; border-radius: 6px; font-size: 1rem;
+      cursor: pointer; font-weight: 600;
+    }
+    .btn-primary { background: #0b3d6b; color: #fff; }
+    .btn-secondary { background: #e3e8ef; color: #1b2430; }
+    .btn:focus { outline: none; }
+    fieldset { border: none; padding: 0; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>Personal Loan Application</h1>
+      <p>Step 2 of 4 — Applicant details</p>
+    </header>
+    <form action="#" method="post">
+      <fieldset>
+        <div class="field">
+          <label for="full-name">Full legal name</label>
+          <input type="text" id="full-name" name="full-name" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="email">Email address</label>
+          <input type="email" id="email" name="email" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="income">Gross annual income
+            <span class="hint">before tax, in USD</span>
+          </label>
+          <input type="number" id="income" name="income" min="0" step="1000">
+        </div>
+        <div class="field">
+          <label for="amount">Requested loan amount</label>
+          <input type="number" id="amount" name="amount" min="1000" step="500">
+        </div>
+        <div class="field">
+          <label for="term">Repayment term</label>
+          <select id="term" name="term">
+            <option value="">Select a term…</option>
+            <option value="24">24 months</option>
+            <option value="36">36 months</option>
+            <option value="48">48 months</option>
+            <option value="60">60 months</option>
+          </select>
+        </div>
+      </fieldset>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Continue</button>
+        <button type="button" class="btn btn-secondary">Save &amp; finish later</button>
+      </div>
+    </form>
+  </div>
+
+  <!--
+    WHY THIS FAILS SC 2.4.7 (Focus Visible) AND WHY AUTOMATED TOOLS MISS IT
+    ----------------------------------------------------------------------
+    The inputs and the <select> get a vivid blue border + glow — but it is bound
+    to :hover, which only the pointer can trigger. The :focus rule deliberately
+    resets `outline: none` and supplies NO border-color or box-shadow change, so
+    tabbing from field to field produces zero visible state on the focused
+    control. The text input is a particularly subtle trap: per C45, browsers DO
+    show :focus-visible for <input> on mouse-click — but here there is no
+    :focus-visible/:focus indicator at all, only the pointer-bound :hover one.
+
+    Automated tools miss it because every input has a programmatic label, the
+    markup is valid, and `outline:none` is legal. A scanner cannot determine that
+    the only state carrying a perceptible change responds to hover (pointer) and
+    not to keyboard focus. A human must tab through the form and notice that the
+    focused field looks identical to an idle one.
+  -->
+</body>
+</html>

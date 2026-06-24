@@ -1,0 +1,132 @@
+{
+  "sc": "3.3.2",
+  "count": 8,
+  "patterns": [
+    {
+      "platform": "Squarespace / Wix contact & booking forms (custom-styled fields)",
+      "name": "Placeholder used as the only label; errors not programmatically tied to fields",
+      "description": "Custom-styled form fields rely on the placeholder as the visible label (no <label>), so the field's name vanishes once the user types, and error messages are shown as text near the form rather than associated with the offending input (no aria-describedby, no aria-invalid, no focus to the error).",
+      "wcagScs": [
+        "3.3.2",
+        "1.3.1",
+        "4.1.2",
+        "3.3.1"
+      ],
+      "typicalMarkup": "<input type=\"email\" placeholder=\"Email\">\n<div class=\"form-error\">Please enter a valid email.</div>\n<!-- no <label for>, no aria-describedby/aria-invalid linking the message -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe can catch an input with NO accessible name, but a placeholder often supplies a name so the input 'passes'; that the label disappears on input and that the visible error isn't programmatically linked to its field are judgment/behavioral checks. Whether helper text constitutes adequate instructions is semantic.",
+      "realWorldNote": "Wix accessibility guides warn that Wix Forms/Bookings with custom field styling can leave 'labels and error messages not programmatically associated'; Amy Carney found Squarespace form errors not linked to inputs or focused. https://accessibe.com/blog/knowledgebase/wix-website-accessibility",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Divi Contact Form module / Elementor Form widget with placeholder-only fields",
+      "name": "Form field labeled only by placeholder (or label visually hidden by default)",
+      "description": "Divi's Contact Form hides labels by default and relies on placeholder text; Elementor forms are frequently configured the same way. The input has no <label>/aria-label, only a placeholder, so once the user types the label vanishes and screen readers may announce the field as unlabeled. Required-field asterisks are color-only with no text alternative.",
+      "wcagScs": [
+        "1.3.1",
+        "3.3.2",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<p class=\"et_pb_contact_field\">\n  <input type=\"text\" name=\"et_pb_contact_name_0\" placeholder=\"Name\">\n</p>\n<p class=\"et_pb_contact_field\">\n  <input type=\"email\" name=\"et_pb_contact_email_0\" placeholder=\"Email *\">\n</p>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "This one is largely linter-catchable: axe flags inputs with no programmatic label. It is included for completeness, though confirming the placeholder text is the only labeling and that the asterisk's meaning is color-only still benefits from human review.",
+      "realWorldNote": "Divi review: 'The Divi Contact Form module hides labels by default, making it difficult for screen readers to interpret form inputs.' https://reciteme.com/us/news/divi-accessibility/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Generic ecommerce — required-field marking on cart/checkout/newsletter forms",
+      "name": "Required fields indicated by red asterisk/color only",
+      "description": "Checkout, account, and newsletter signup forms mark required inputs with a red asterisk styled purely via color (no 'required' word, no required/aria-required attribute, asterisk not in the label text). Users who don't perceive the color, or screen reader users, don't learn the field is mandatory until submission fails.",
+      "wcagScs": [
+        "1.4.1",
+        "3.3.2",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<label for=\"email\">Email <span style=\"color:red\">*</span></label>\n<input id=\"email\" type=\"email\">\n<!-- asterisk meaning never explained; no required / aria-required -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The label is associated and present, so the form passes label checks. Whether 'required' is conveyed by more than color, whether the asterisk's meaning is explained, and whether aria-required is set are partly structural but partly contextual — tools don't flag a red asterisk as a use-of-color failure because they can't tie the color to the 'required' meaning. Recognizing the instruction is missing needs human review.",
+      "realWorldNote": "TestParty 'Beyond Alt Text' lists 'red asterisks only marking required fields without text labels' as a Shopify use-of-color (1.4.1) barrier. https://testparty.ai/blog/beyond-alt-text-hidden-shopify-accessibility-barriers",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Bubble.io input element + 'placeholder as label'",
+      "name": "Form inputs labeled only by placeholder; aria-label mismatches visible text",
+      "description": "Bubble inputs commonly ship with a placeholder instead of a programmatic label, or developers paste an aria-label that differs from the visible text. On submit, native required/format errors are not associated with the field (no aria-describedby), so error identification and suggestion are absent for screen-reader users.",
+      "wcagScs": [
+        "3.3.2",
+        "4.1.2",
+        "3.3.1",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<input type=\"email\" placeholder=\"Email address\"\n       aria-label=\"Work email\" class=\"bubble-element Input\">\n<div class=\"error-msg\" style=\"display:block\">Invalid</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "If an aria-label is present, axe sees 'input has an accessible name' and passes — it can't know the placeholder disappeared on input or that the aria-label ('Work email') contradicts the visible 'Email address' (a Label-in-Name mismatch). Confirming the error div isn't programmatically tied to the field and isn't announced requires interaction.",
+      "realWorldNote": "Bubble accessibility guidance flags placeholder-as-label and warns that replacing visible labels with aria-label causes a screen-reader/visible-text mismatch; Bubble's own marketplace app audited ~60% accessible: https://www.rapidevelopers.com/bubble-tutorial/designing-accessibility-mind-bubble and https://forum.bubble.io/t/is-bubble-accessible-does-it-comply-with-ada-and-wcag/287361",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "React/Vue placeholder-as-label inputs (Tailwind/MUI styled)",
+      "name": "Placeholder used as the only label",
+      "description": "Inputs styled by component libraries frequently use the placeholder attribute as the sole label (no <label>, no aria-label). The hint disappears once the user types, low-contrast placeholder text fails contrast, and there is no programmatic label — screen readers may announce nothing or only \"edit text\".",
+      "wcagScs": [
+        "3.3.2",
+        "1.3.1",
+        "4.1.2",
+        "1.4.3"
+      ],
+      "typicalMarkup": "<input type=\"email\" placeholder=\"Email address\">\n<!-- no <label for>, no aria-label; placeholder is the only cue -->",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "axe reliably flags inputs with no accessible name (\"Form elements must have labels\"), so the bare missing-label case is automatable — flagged false. The residual judgment (is a placeholder an ADEQUATE instruction even when a label exists, contrast of the placeholder) can still need a human, but detection of no-label is a linter check.",
+      "realWorldNote": "WCAG 3.3.2 and broad guidance treat placeholder-as-label as a failure (text vanishes on input, low contrast); extremely common in utility-CSS/component-styled forms.",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Radio group (custom styled radios, form-builder widgets, Shoelace-style components)",
+      "name": "Custom radios: no grouping, every radio a tab stop, no arrow selection",
+      "description": "Styled radio buttons are built from divs (or are native radios stripped of fieldset/legend and group semantics). There is no role=\"radiogroup\" or fieldset/legend, so the question text is never associated; each radio is a separate Tab stop instead of one stop with arrow-key selection; and the group label is unannounced. Screen reader users hear isolated options with no context or count.",
+      "wcagScs": [
+        "1.3.1",
+        "2.1.1",
+        "4.1.2",
+        "3.3.2"
+      ],
+      "typicalMarkup": "<p>Choose a plan</p>\n<div class=\"radio\" role=\"radio\" tabindex=\"0\">Basic</div>\n<div class=\"radio\" role=\"radio\" tabindex=\"0\">Pro</div>\n<!-- no role=radiogroup wrapper / no fieldset+legend; both are tab stops -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Individual role=radio elements with text content pass name/role checks. The missing radiogroup association (the 'Choose a plan' label is a sibling <p>, not a programmatic group name) and the broken single-tab-stop + arrow-key model are a structural-relationship judgment and a runtime behavior respectively — TestParty reports 95% of sites have at least one improperly grouped radio set that scanners do not catch as a hard failure.",
+      "realWorldNote": "TestParty's radio-group remediation writeup and shoelace-style/shoelace issue #218 document ungrouped radios and Tab-per-radio (instead of arrow navigation) as pervasive custom-component failures. https://testparty.ai/blog/accessible-radio-groups-html-fast-remediation-large-sites and https://github.com/shoelace-style/shoelace/issues/218",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "Contact/checkout forms in Gravity Forms, Wix Forms, Shopify checkout, HubSpot forms",
+      "name": "Required state and errors conveyed by color/asterisk only, not programmatically",
+      "description": "Required fields are marked with a red asterisk or red border (color/symbol only) with no required/aria-required and no legend explaining the asterisk. On submit, errors are shown as red text near fields but not associated via aria-describedby and the field gets no aria-invalid, so screen readers never learn the field is required, that it errored, or what the message says.",
+      "wcagScs": [
+        "1.4.1",
+        "3.3.1",
+        "3.3.2",
+        "3.3.3",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<label>Email <span style=\"color:red\">*</span></label>\n<input type=\"email\" name=\"email\">\n<!-- after submit: --> <p style=\"color:red\">Invalid email</p> <!-- not tied to input, no aria-invalid -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A bare visible label may satisfy the form-label check, but tools cannot tell that requiredness/error is conveyed by COLOR alone (1.4.1), cannot verify an error message is the CORRECT suggestion (3.3.3), and cannot confirm the on-submit error text is programmatically tied to the field — these need a human to submit the form and inspect the associations and meaning.",
+      "realWorldNote": "WebAIM Million 2026: missing form labels on 51% of pages (top error): https://webaim.org/projects/million/ ; required-field color-only guidance: https://www.deque.com/blog/aria-requiredtrue-wcag-2-compliance-practice/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Form fields in CMS form builders and templates (WordPress/Webflow forms, custom inputs) where the placeholder is the only label",
+      "name": "placeholder used as the only label / instruction",
+      "description": "An input has no <label>, aria-label, or aria-labelledby — only a placeholder. The placeholder is low-contrast, vanishes on focus/typing (so users lose the field's name mid-entry), is not consistently treated as an accessible name by all AT, and offers no persistent instruction. Often paired with required-field and format hints living only in the placeholder.",
+      "wcagScs": [
+        "3.3.2",
+        "4.1.2",
+        "1.4.3"
+      ],
+      "typicalMarkup": "<input type=\"email\" placeholder=\"Email address\">\n<input type=\"text\" placeholder=\"MM/DD/YYYY\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Browsers may expose placeholder as a fallback accessible name, so some scanners report a name present and pass it (axe does warn in some configs, but inconsistently across the suite). The disappearing-on-input UX failure and the lost-instruction problem are behavioral/visual and need human judgment; the contrast of placeholder text is also an easily-missed visual check.",
+      "realWorldNote": "MDN/WebAIM and reform.app 'Common ARIA Mistakes in Forms' document placeholder-as-label as a top form anti-pattern. https://www.reform.app/blog/common-aria-mistakes-in-forms-and-fixes",
+      "family": "aria-antipatterns-real"
+    }
+  ]
+}

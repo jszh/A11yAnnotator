@@ -1,0 +1,83 @@
+{
+  "sc": "2.1.2",
+  "count": 5,
+  "patterns": [
+    {
+      "platform": "Wix Slideshow / Pro Gallery slider & lightbox; Wix popups",
+      "name": "Carousel/slider/lightbox not keyboard operable or focus-trapping",
+      "description": "Wix sliders and popups frequently can't be advanced/controlled by keyboard, and opened lightboxes/popups either don't move focus in, leave focus on the page behind, or trap it without an Esc exit. Arrow controls are mouse-only; the auto-rotating slideshow can't be paused.",
+      "wcagScs": [
+        "2.1.1",
+        "2.1.2",
+        "2.4.3"
+      ],
+      "typicalMarkup": "<div class=\"slider-arrow next\" onclick=\"next()\"></div>\n<!-- div, no tabindex, no role=button, no keydown; lightbox opens with focus left on body -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Whether a control is reachable AND operable by keyboard, whether focus moves into a dialog, and whether Esc escapes are runtime/interaction facts. Static scans see divs/images; they can't exercise Tab/Enter/Esc to discover the inoperability or the trap.",
+      "realWorldNote": "Wix ADA guides: 'Wix sliders are frequently keyboard inaccessible' and 'Wix popups often fail keyboard navigation.' https://www.lowcodewebsite.com/post/wix-accessibility-complete-guide-to-fix-issues-achieve-ada-compliance-2026",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Shopify / BigCommerce — quick-view modal (Add to cart from grid)",
+      "name": "Quick-view modal keyboard trap / no focus return",
+      "description": "Quick-view modals open over the product grid. Two common failures: (a) focus stays on the underlying page so keyboard users tab through background content behind the overlay, or (b) focus enters the modal but Escape doesn't close it and Tab can cycle but never escape, and on close focus is not returned to the triggering 'Quick view' button — keyboard users are stranded or lose their place.",
+      "wcagScs": [
+        "2.1.2",
+        "2.4.3",
+        "2.1.1"
+      ],
+      "typicalMarkup": "<div class=\"quick-view-overlay\" role=\"dialog\">\n  <div class=\"quick-view\">\n    <button class=\"qv-close\" onclick=\"closeQV()\">×</button>\n    <!-- product form -->\n  </div>\n</div>\n<!-- aria-modal absent; no Esc handler; focus not moved in or restored on close -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "role=dialog may be present so structural checks pass. The trap, the missing Escape handler, and the failure to restore focus to the trigger are dynamic, interaction-time behaviors that require actually tabbing through the open modal and closing it — automated DOM snapshots don't exercise focus flow or key handlers.",
+      "realWorldNote": "TestParty's Shopify checkout/keyboard guides explicitly call out 'quick-view modals that trap focus so keyboard users cannot escape' and modals that 'capture focus and never give it back'. https://testparty.ai/blog/shopify-checkout-keyboard-navigation-fixes ; https://testparty.ai/blog/modal-dialog-accessibility",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Modal dialog (jQuery UI dialog, hand-rolled overlay, many CMS lightboxes)",
+      "name": "Fake modal: aria-modal set but background not inert and focus not trapped",
+      "description": "The overlay div carries role=\"dialog\" aria-modal=\"true\" and looks modal, but the developer never traps Tab, never moves initial focus into the dialog, and leaves the background page focusable. Keyboard users Tab straight out of the dialog and onto hidden page content behind the scrim; screen reader users may also reach background content because aria-modal alone does not make content inert.",
+      "wcagScs": [
+        "2.4.3",
+        "2.1.2",
+        "4.1.2",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<div role=\"dialog\" aria-modal=\"true\" aria-label=\"Newsletter\">\n  <input type=\"email\"><button>Sign up</button>\n</div>\n<!-- page body still has tabindex-reachable links, no inert/aria-hidden -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Static analysis sees correct ARIA: role=dialog + aria-modal=true + accessible name all pass. Whether focus is actually trapped, whether initial focus moves into the dialog, and whether the background is truly inert are runtime keyboard behaviors that require operating the page with Tab/Shift+Tab — axe/WAVE/Lighthouse never press keys.",
+      "realWorldNote": "MDN and TPGi stress that aria-modal=\"true\" 'does not actually make the element modal — the developer must implement the modal behaviour'; TPGi's modal-accessibility survey found focus management as the most common real failure. https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-modal and https://www.tpgi.com/the-current-state-of-modal-dialog-accessibility/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "accessiBe / UserWay / AudioEye overlay widgets injected over any CMS",
+      "name": "Overlay-injected accessible names that mismatch the visible control",
+      "description": "An automated accessibility-overlay 'fixes' controls by injecting aria-labels guessed from nearby text, icons, or filenames. The injected name frequently does not match the control's visible label or function (a 'Search' field labeled 'button', a close 'X' labeled 'menu'), so the accessible name and visible label diverge — and the widget can also trap screen-reader focus after its own dialog closes.",
+      "wcagScs": [
+        "4.1.2",
+        "2.1.2",
+        "4.1.3"
+      ],
+      "typicalMarkup": "<!-- overlay rewrites this -->\n<button aria-label=\"link 2\">Contact Us</button>\n<input type=\"search\" aria-label=\"submit\" placeholder=\"Search...\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Both the overlay's injected name and the visible label are syntactically valid, so a linter sees an accessible name present and passes. Detecting that the programmatic NAME contradicts the VISIBLE label (and that voice-control users can no longer say the label) requires comparing rendered text against the computed name — a human semantic comparison. Tools that scan post-overlay DOM are actively fooled.",
+      "realWorldNote": "FTC fined accessiBe $1M for misleading claims; 800+ overlay users still sued in 2023-24. Adrian Roselli's tracking: https://adrianroselli.com/2020/06/accessibe-will-get-you-sued.html ; FTC: https://techcrunch.com/2025/01/03/ftc-orders-ai-accessibility-startup-accessibe-to-pay-1m-for-misleading-advertising",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Cookie-consent banners, newsletter modals, promo pop-ups (OneTrust, Privy, Mailchimp, Wix popups)",
+      "name": "Modal/pop-up keyboard trap or focus-not-managed",
+      "description": "A modal or interstitial appears but focus is not moved into it, focus is not trapped within it (so keyboard users tab to the obscured page behind), or — the inverse failure — focus IS trapped with no keyboard-reachable close, stranding the user. The page behind also remains in the tab order under the overlay.",
+      "wcagScs": [
+        "2.1.2",
+        "2.4.3",
+        "2.4.7",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<div class=\"modal\" style=\"position:fixed;inset:0\"> <!-- no role=dialog, no aria-modal, focus stays on body -->\n  <button onclick=\"close()\">×</button> <!-- '×' close, empty name; no Esc handler -->\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Focus behavior is dynamic and only observable by actually tabbing through after the modal opens. A static scan sees a div with some content; it cannot detect that focus was never moved in, that the user can tab behind the overlay, or that there is no keyboard escape (2.1.2). Requires manual keyboard testing.",
+      "realWorldNote": "The Murphy v. Eyebobs overlay case specifically cited a promo pop-up and a modal dialog that were not keyboard/screen-reader accessible: https://www.accessibility.works/blog/avoid-accessibility-overlay-tools-toolbar-plugins/ ; modal focus-trap failures are a top serial-plaintiff demand-letter item.",
+      "family": "real-world-audit-findings"
+    }
+  ]
+}

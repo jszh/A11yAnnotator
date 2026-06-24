@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RSVP — Alumni Summer Reunion</title>
+<style>
+  :root { --ink:#23272e; --line:#d5dbe2; --brand:#5b2a86; --err:#cc3b48; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Trebuchet MS",Verdana,sans-serif; color:var(--ink); background:#f4f1f8; }
+  header { background:var(--brand); color:#fff; padding:18px 30px; }
+  header h0 { margin:0; font-size:1.1rem; font-weight:700; letter-spacing:.4px; }
+  header p { margin:4px 0 0; font-size:.85rem; opacity:.9; }
+  main { max-width:520px; margin:36px auto; background:#fff; border:1px solid var(--line);
+         border-radius:11px; padding:30px 34px; }
+  h1 { font-size:1.35rem; margin:0 0 18px; }
+  label { display:block; font-weight:700; font-size:.84rem; margin:16px 0 6px; }
+  .field { display:flex; align-items:center; gap:8px; }
+  .field input { flex:1; padding:11px 12px; border:1px solid var(--line); border-radius:7px; font-size:1rem; }
+  .field input.bad { border-color:var(--err); }
+  .field input:focus { outline:3px solid #2f80c8; outline-offset:1px; }
+  .svgico { width:22px; height:22px; flex:0 0 auto; }
+  .help { font-size:.79rem; color:#6c7782; margin:6px 2px 0; }
+  .send { margin-top:24px; width:100%; padding:13px; border:0; border-radius:7px;
+          background:var(--brand); color:#fff; font-size:1.02rem; font-weight:700; cursor:pointer; }
+  footer { max-width:520px; margin:14px auto 50px; color:#8a93a0; font-size:.74rem; text-align:center; }
+</style>
+</head>
+<body>
+<header>
+  <h0>Alumni Summer Reunion 2026</h0>
+  <p>Saturday 18 July &middot; Old Quad, Pembury College</p>
+</header>
+
+<main>
+  <h1>Reserve your place</h1>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS
+    Two fields are validated: the Preferred date "2024-07-18" is in the PAST (genuine error), and
+    the Email "ravi@@pembury.ac.uk" has a double @ (genuine error). When the dev refactored the
+    form they cut-and-pasted the date row's error icon block above the email row but forgot to
+    update its aria-label, so the EMAIL field now sits beside an SVG whose accessible name reads
+    "Date is in the past" — a perfectly specific, well-formed error description... for the WRONG
+    field. axe/WAVE/Lighthouse see an SVG role=img WITH a non-empty, descriptive accessible name
+    next to the email input: every structural rule passes (name present, role correct, aria
+    wiring valid, contrast fine), and the alt is not even generic. The defect is purely
+    SEMANTIC/POSITIONAL: the alternative describes a DIFFERENT field's error than the one it
+    adjoins. A screen-reader user on the email field hears "Date is in the past", which is
+    actively misleading. Only a human matching each alternative's MEANING to the field it sits
+    beside can detect the mislocation; meanwhile the real date error has no surviving indicator.
+  -->
+
+  <form action="#" method="post" novalidate>
+    <label for="guest">Full name</label>
+    <div class="field"><input type="text" id="guest" value="Ravi Anand"></div>
+
+    <label for="email">Email address</label>
+    <div class="field">
+      <input type="email" id="email" class="bad" aria-invalid="true"
+             aria-describedby="email-ico" value="ravi@@pembury.ac.uk">
+      <!-- Copy-pasted from the date row below; aria-label never updated. -->
+      <svg class="svgico" role="img" id="email-ico" aria-label="Date is in the past" viewBox="0 0 22 22">
+        <circle cx="11" cy="11" r="10" fill="#cc3b48"/>
+        <rect x="10" y="5.5" width="2" height="8" rx="1" fill="#fff"/>
+        <circle cx="11" cy="16.5" r="1.2" fill="#fff"/>
+      </svg>
+    </div>
+    <p class="help">We'll send your e-ticket here.</p>
+
+    <label for="rsvp-date">Preferred dinner date</label>
+    <div class="field">
+      <input type="text" id="rsvp-date" class="bad" aria-invalid="true" value="2024-07-18">
+      <!-- This field is genuinely in the past but its icon/alt was moved to the email row. -->
+    </div>
+    <p class="help">Format: YYYY-MM-DD. Must be on or after today.</p>
+
+    <button type="submit" class="send">Confirm RSVP</button>
+  </form>
+</main>
+
+<footer>Pembury College Alumni Office &middot; reunion@pembury.ac.uk</footer>
+</body>
+</html>

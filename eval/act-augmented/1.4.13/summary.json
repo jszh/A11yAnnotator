@@ -1,0 +1,510 @@
+{
+  "sc": "1.4.13",
+  "title": "Content on Hover or Focus",
+  "level": "AA",
+  "allAspectsHave5ValidPages": true,
+  "aspectsFinalized": [
+    {
+      "slug": "f95-hover-content-not-hoverable-pointer-travel",
+      "validPageCount": 6,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-01.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor (non-defect): page framing notes the failure 'only surfaces under magnification or with a large pointer' — true to F95, but at default zoom a sighted mouse user can read the 250px tip without moving onto it; this does not weaken the verdict since the SC/F95 failure is defined by whether the content CAN be hovered (it categorically cannot), not by whether a given user happens to need to move the pointer."
+          ]
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-02.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": []
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Description imprecision (non-blocking): the .md/HTML claim points are '~26px apart', but 26 is the SVG user-unit spacing; at the inspect viewport the rendered point-to-point spacing is 38.3px. The doc conflates SVG units with rendered pixels. The F95 mechanism still holds at the rendered scale (offset pop-up lands over/beside the next point; neighbour center is only 19.7px off the travel path vs a 7.4px radius), so the outcome is unaffected — but the literal pixel figure is wrong.",
+            "Minor: the dots expose role='button' with empty accessible name in the tab order (AX name=''); this is a separate 4.1.2/name concern, not 1.4.13, and does not affect this case's verdict."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-04.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": []
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-05.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Doc/CSS geometry imprecision (not outcome-changing): the .md and the inline CSS comment claim the popup 'OVERLAPS the term -- no gap at all' (html line 66: 'top:-2px; /* OVERLAPS the term -- no gap at all */'). The probe shows the popup is rendered FULLY ABOVE the term via transform:translateY(-100%), leaving a 2px gap (term.top=454.625, def.bottom=452.625, gap=+2px). So the arrangement is ADJACENT, not overlapping. This does not change the verdict -- the Understanding covers 'overlaps OR is positioned adjacent' and the real failure is pointer-events:none, not geometry -- but the narrative's 'overlap/no gap' wording is inaccurate.",
+            "Minor: because the reveal is keyed only to the term's :hover and the popup sits above with a 2px transparent gap, a pointer moving straight up from the term would already break :hover at the gap even before reaching the popup; the primary, dominant defect remains pointer-events:none (confirmed: elementFromPoint at popup center returns MAIN, and moving the pointer onto the popup collapses it to opacity:0/visibility:hidden)."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.13/pages/f95-hover-content-not-hoverable-pointer-travel/case-06.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": false,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Narrative inaccuracy (non-outcome-changing): the HTML comment and .md repeatedly claim 'the wrapper's bounding box encloses BOTH the button and the tooltip.' This is geometrically FALSE. The tooltip is position:absolute (out of flow), so the .help wrapper's border box remains 26x26 (x212-238, y266-292) while the 260px-wide tip (x95-355, y155-270) overflows it. Probe confirmed 'tip fully inside wrapper box? false'. Additionally mouseenter/mouseleave do not bubble, so the 'wrapper encloses both -> wrapper stays hovered' idea is not even the active mechanism. The PASS is actually carried by the real button/tip overlap + tip.mouseenter(open) cancelling the 120ms hide timer + pointer-events:auto -- all of which DO hold -- so the outcome is unaffected, but limb #1 of the stated rationale is misdescribed.",
+            "Minor: #zone-tip role=tooltip and its text are not surfaced as a standalone subtree in the Chromium AX tree even when rendered open; exposure is via aria-describedby on the button. This is expected for role=tooltip and is irrelevant to 1.4.13 (a visual/pointer-behavior SC), so it does not affect the verdict -- noted only for completeness."
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "applicability-author-vs-ua-title-tooltip",
+      "validPageCount": 6,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-01.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": false,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "By design this case has NO accessibility issue: it is a PASS/inapplicable boundary anchor for SC 1.4.13. Hence errorIsReal=false means 'no issue exists' (correct), while expectedOutcomeCorrect=true confirms the documented 'passed' label is right. Not a defect.",
+            "Minor doc nuance (no impact on verdict): the .md cites F95 condition #2 as if satisfying it alone makes the failure inapplicable. F95's Expected Result is 'if #1 AND #2 are false, content fails.' Reasoning still holds — since #2 is true here (UA-controlled), F95 cannot trigger — so the PASS conclusion is logically sound, just slightly loosely phrased."
+          ]
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-02.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor (not a defect in the 1.4.13 claim): the author bubble is injected as role=tooltip but is never wired via aria-describedby/aria-labelledby, and the trigger only carries aria-label='Status help'. So an AT user gets the name 'Status help' but never the actual tip text. This is a separate 1.3.1/4.1.2 info-conveyance concern that the doc does not mention; the documented 1.4.13 hoverable/dismissible failure is independently real.",
+            "The probe shows opacity stays '0' on hover in headless (transition mid-flight) while visibility flips to 'visible'; the decisive signal (bubble rendered, pointer-events:none, no Escape dismiss) holds, so this does not undermine the claim."
+          ]
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Doc/HTML over-claim: the .md (§20-24) and the in-HTML comment (lines 110-119) frame the failure as 'the ::after exposes no role to AT' / 'no accessibility-tree presence,' implying a screen-reader user cannot perceive the note. That is misleading: the author put the FULL note text in aria-label='Service note: ...' with role='img' on the focusable .feat element, so the AX tree DOES expose each note as the element's accessible name (probe + inspect.js confirm backendNodeIds 22/28/34 with names 'Service note: low-floor bus...' etc.). The genuine, narrower 1.4.13 failure is hoverable+dismissible for sighted low-vision/screen-magnification MOUSE users, not AT-perception. Outcome label (failed) is still correct, but the mechanism narration should be corrected to the magnification audience.",
+            "The CSS reveal is :hover-only; the bubble does NOT appear on keyboard focus (probe: focus opacity stays 0 while .feat is the activeElement). This is fine for the 1.4.13 verdict (the visual hover content is neither hoverable nor dismissible regardless), but the doc could note it is a separate 2.1.1/parity concern rather than part of the 1.4.13 mechanism."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-04.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor citation hygiene: the doc's quote 'A prominent example is the common behavior of browsers to display the title attribute in HTML as a small tooltip' is verbatim only modulo the <code>title</code> markup tag that interrupts it in the source (so it is not one contiguous text run). The other two quotes (Intent 'Examples of such interactions...' and F95 #2 'The appearance of the additional content is controlled by the user agent, not the author.') match the reference files character-for-character. Not a defect, just noted.",
+            "The inspect.js tool reported the GDP bubble innerHTML with style 'visibility: visible' — this is an artifact of the tool focusing/hovering during inspection, NOT the default state. An independent puppeteer probe confirmed the bubble is visibility:hidden/opacity:0/pointer-events:none by default."
+          ]
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-05.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor doc imprecision (not a verdict defect): the .vtip un-hoverability is driven primarily by mouseleave-on-bar hiding (line 120) plus the overlay being pinned to/following the cursor (left=clientX+12, top=clientY-8, lines 116-117), NOT chiefly by pointer-events:none. pointer-events:none alone would not make a fixed tooltip un-hoverable; the doc/scenario lean on it as the headline cause when the real F95 mechanism is the leave-the-bar-and-it-disappears behavior. Net claimed behavior is still correct."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.13/pages/applicability-author-vs-ua-title-tooltip/case-06.html",
+          "expected": "inapplicable",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "No genuine defect — this is an intentional NOT-APPLICABLE (modal carve-out) anchor; the disposition is correct, not an error to fix.",
+            "Minor (not affecting the 1.4.13 verdict): aria-modal='true' alone does not remove background content from the AX tree, and the page applies no inert/aria-hidden to <main> when the dialog opens, so a real implementation would have a small background-shielding gap. Irrelevant to the inapplicable classification.",
+            "Citation source has a cosmetic double-space before 'and' ('keyboard focus  and') — whitespace-only difference, within allowed tolerance; quote is otherwise verbatim."
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "dismissible-esc-keyboard-dismiss-without-moving-hover-focus",
+      "validPageCount": 5,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-esc-keyboard-dismiss-without-moving-hover-focus/case-01.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": []
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-esc-keyboard-dismiss-without-moving-hover-focus/case-02.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "SCR39 nuance (not fatal, but worth noting): the doc cites the SCR39 'content that appears on focus' procedure sentence for the dismiss requirement, but SCR39's Expected Results require the dismiss check (#3) ONLY for the hover path, not the focus path. The normative requirement is carried by SC 1.4.13's own Dismissible bullet and the doc's second (Understanding 1.4.13 Method 2) citation, so the failed label still stands — but the primary SCR39 quote's procedure step is not in SCR39's focus expected-results.",
+            "Modality asymmetry the doc understates: a keyboard user who ONLY Tabs to the trigger (never activates it) CAN dismiss via Esc (verified: focus-then-Esc dismisses). The failure manifests only AFTER activating the trigger by click OR Enter, which runs this.blur() and strands focus on <body>. The defect is real and the label is correct (Enter activation is a standard keyboard action), but the page is not a flat 'Esc never works' case."
+          ]
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-esc-keyboard-dismiss-without-moving-hover-focus/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "No genuine defect in the test artifact. Minor: the citation reproduces SCR39's own source typos verbatim ('focus way' for 'focus away', double space in 'by  pressing', 'another other'). This is faithful quoting, not a fabrication, but a reader unfamiliar with the source may mistake it for an LLM transcription error. The .md does not flag that the quote contains errata from the upstream technique file.",
+            "Pedantic point (does not change verdict): SCR39's three dismiss options all assume focus stays on the trigger; the page correctly lacks ALL THREE (no Esc, no documented shortcut, no toggle-on-trigger), so labeling the single mechanism as 'dismiss requires Tab-into content' is accurate but slightly understates that there is simply no no-move dismiss path of any kind."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-esc-keyboard-dismiss-without-moving-hover-focus/case-04.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor: the note paragraph (lines 61-64) and an HTML comment (lines 69-77) explicitly disclose the failure mechanism in prose ('Esc is gated on an input being focused; on hover nothing is focused, so it is inert'). This is an authoring-hint convention, not a correctness defect, but it telegraphs the answer to any reader/checker.",
+            "Minor: the cited SCR39 source itself contains a typo ('moving the pointer way from the trigger') which the .md faithfully reproduces verbatim; not a citation defect since it matches the reference exactly."
+          ]
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-esc-keyboard-dismiss-without-moving-hover-focus/case-05.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor (non-blocking) doc nuance: the page opens the submenu on BOTH hover (CSS `li:hover > .submenu`) and focus. The .md leans on SCR39's 'content that appears on focus' branch, but SCR39's Expected Results only require the dismissible test (#3) to pass for HOVER content, not focus-only content. The failure is still correct because the hover branch (where #3 IS required) is violated. The verdict 'failed' holds; only the procedure-branch framing in the prose is slightly imprecise."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-esc-keyboard-dismiss-without-moving-hover-focus/case-06.html",
+          "expected": "passed",
+          "status": "needs-fix",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": false,
+          "expectedOutcomeCorrect": false,
+          "recommendation": "fix",
+          "problems": [
+            "EXPECTED-OUTCOME WRONG: page is labeled 'passed' for 1.4.13 but it FAILS the Hoverable condition. SC 1.4.13 requires Dismissible AND Hoverable AND Persistent. Hoverable ('If pointer hover can trigger the additional content, then the pointer can be moved over the additional content without the additional content disappearing') is in scope because line 68 binds mouseenter to the trigger, and it is violated.",
+            "ROOT CAUSE (textbook F95): the footnote popup #fn1 has CSS 'top: 1.4em' (line 22) which renders ~12.25px BELOW the bottom of the trigger (measured: trigger.bottom=219.59, footnote.top=231.84, gap=12.25px), and the popup has ZERO pointer listeners — only the trigger gets mouseenter/mouseleave (lines 68,70). Moving the pointer from the trigger toward the popup fires mouseleave on the trigger -> closeFn() before the pointer reaches the popup.",
+            "RUNTIME-REPRODUCED: with a real mouse, hovering the trigger opens the popup (open=true); moving the pointer down across the gap toward the popup closes it (still open? FALSE). A mouse/magnifier user literally cannot reach the citation text to read it. This is the exact barrier 1.4.13 Hoverable / failure technique F95 was written to catch.",
+            "The .md 'Why automated tools miss it' and 'Exact accessibility mechanism' sections only discuss the keyboard-focus + Escape path and never address the pointer-hover path; the author validated Dismissible but introduced an unintended Hoverable failure, so the control fixture does not actually pass.",
+            "Minor rendering quirk: '.cite-ref' has line-height:0 (line 18) giving the button computed height 0 (box.h=0 in inspect, h=0 in geometry); it remains focusable/named but has no hit area, which is why puppeteer .hover() threw 'Node is not clickable'. Not the primary defect but compounds pointer usability."
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "dismissible-position-obscures-meaningful-vs-decorative",
+      "validPageCount": 6,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-01.html",
+          "status": "valid"
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-02.html",
+          "status": "valid"
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-03.html",
+          "status": "valid"
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-04.html",
+          "status": "valid"
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-05.html",
+          "status": "valid"
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.13/pages/dismissible-position-obscures-meaningful-vs-decorative/case-06.html",
+          "status": "valid"
+        }
+      ],
+      "notes": " [top-up: regenerated to 6 human-judgment cases; case-04 auto-verdict was a manifest<->file mismatch, confirmed sound FAIL on direct inspection]"
+    },
+    {
+      "slug": "persistent-auto-timeout-vs-valid-info-invalidation",
+      "validPageCount": 6,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-01.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": []
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-02.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor (not a defect): the page comment and md assert axe/WAVE/Lighthouse 'report nothing' as a strong claim; that is true for this temporal defect but is an absolute statement about other tools — acceptable but worth noting it is an assertion, not something the harness proves."
+          ]
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor (non-defect): the tab-order snapshot reports the trigger's name as concatenated textContent ('W1 retentionShare of the cohort...'), but the authoritative Chromium AX tree resolves the button name correctly to 'W1 retention' because aria-describedby keeps the gloss as description, not name. So this is not an actual naming bug.",
+            "Minor (expected): inspect.js reports ax.role='none' for #g-w1 because it is visibility:hidden/opacity:0 in the default state and thus not exposed in the AX tree until shown — correct behavior, not a defect."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-04.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": []
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-05.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Selector/scope nuance (not a defect to the outcome): element-under-test #syncLabel is the always-visible status-text span whose textContent changes on the editor's input event ('Saving…'->'Saved.'->'All changes saved'). That is a status-message mechanism (SC 4.1.3 territory), NOT hover/focus-triggered additional content. The actual 1.4.13 subject is #syncDetail[role=tooltip]. The .md does label #syncLabel as the 'boundary/exception element' deliberately, so it is documented, but a strict reader could note the 'Saving…' transient never even falls under 1.4.13 (it is not revealed by hover/focus), which makes it a slightly over-built discriminator rather than a direct application of the Persistent exception.",
+            "The cited Persistent exception ('busy message that is no longer valid') describes hover/focus additional content ending; here the only timed change is to the chip's persistent label text, so the exception is invoked by analogy rather than by direct application — still sound and PASS, but worth noting in adversarial review."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.13/pages/persistent-auto-timeout-vs-valid-info-invalidation/case-06.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "No defects found. This is a correctly-labeled PASS, not a failure case (severity=none reflects no accessibility barrier, which is the intended outcome).",
+            "Minor observational note (not a defect): the static inspect.js snapshot showed the #holdPop span as 'ax: role none' because it was captured while visibility:hidden/opacity:0; the live CDP getFullAXTree with the popup shown confirms role=tooltip, ignored=false. The earlier 'none' is a hidden-state artifact, not a real role loss.",
+            "Strengthening detail (not a defect): the tooltip text is ALSO delivered statically via aria-describedby on button#heldSeat (AX description present even before hover), so a screen-reader user receives the hold info on focus regardless of the visual popup — this reinforces, not undermines, the PASS."
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "hover-content-no-keyboard-focus-trigger-path",
+      "validPageCount": 5,
+      "pages": [
+        {
+          "id": "case-01",
+          "file": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-01.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "See structured problems list."
+          ]
+        },
+        {
+          "id": "case-02",
+          "file": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-02.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor precision note (not a defect): SC 1.4.13's three normative bullets (Dismissible/Hoverable/Persistent) do not themselves mandate that hover content also have a focus trigger; the normative keyboard-triggerable requirement actually lives in SC 2.1.1 Keyboard, which the cited 1.4.13 Additional Note explicitly defers to. The page is most precisely a 2.1.1 failure surfaced via the 1.4.13 Additional Note. The doc is honest about this (focus-modality limb) and the corpus category name reflects it, so the failed label under 1.4.13 is defensible.",
+            "The <abbr> has accessible name empty in the AX tree (no title/aria-label), so a screen reader announces only the literal letters TBA with no expansion even before hover/focus is considered; this compounds the barrier and is consistent with the FAIL verdict."
+          ]
+        },
+        {
+          "id": "case-03",
+          "file": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-03.html",
+          "expected": "failed",
+          "status": "valid",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": true,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Minor whitespace-only deviation in cited quote: the understanding-doc source (line 74) has a double space before 'Refer to' but the .md collapsed it to a single space. Allowed under the verbatim rule; no semantic defect.",
+            "Nuance worth noting (not a defect): the Chromium AX tree shows aria-describedby populating the button's 'description' with the full caveat text, so some screen readers may announce it on focus. This does not rescue the page — SC 1.4.13's focus limb concerns the additional content APPEARING on focus; the visible tooltip never renders, excluding sighted keyboard and magnifier users. The .md/.html already acknowledge this. Outcome remains 'failed'."
+          ]
+        },
+        {
+          "id": "case-04",
+          "file": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-04.html",
+          "expected": "failed",
+          "status": "dropped",
+          "severity": "major",
+          "requiresHumanJudgment": true,
+          "errorIsReal": false,
+          "expectedOutcomeCorrect": false,
+          "recommendation": "drop",
+          "problems": [
+            "duplicate placeholder — see populated list above"
+          ]
+        },
+        {
+          "id": "case-05",
+          "file": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-05.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": false,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "Citation note (not a defect): the md doc's primary quote 'must design the interaction in such a way that users can: perceive the additional content AND dismiss it without disrupting their page experience.' stitches the lead-in sentence (line 29) with two separate <li> items (lines 31-32) of the reference. Each fragment is verbatim and the reconstruction is faithful, but it is presented as one continuous sentence; reviewers relying on a strict contiguous-substring check should be aware it spans an intervening <ul>. The shorter element-under-test citation and the In-brief Goal quote (line 14) are exact contiguous matches.",
+            "Boundary/decoy by design: this is intentionally a PASS (no real error). errorIsReal=false reflects that the documented outcome is 'passed', i.e. there is correctly no genuine 1.4.13 failure here."
+          ]
+        },
+        {
+          "id": "case-06",
+          "file": "eval/act-augmented/1.4.13/pages/hover-content-no-keyboard-focus-trigger-path/case-06.html",
+          "expected": "passed",
+          "status": "valid",
+          "severity": "none",
+          "requiresHumanJudgment": true,
+          "errorIsReal": false,
+          "expectedOutcomeCorrect": true,
+          "recommendation": "keep",
+          "problems": [
+            "No defect — this is an intentional conforming PASS counter-fixture; 'errorIsReal=false' is the correct, expected state for it.",
+            "Minor note (not a defect): the md doc's verbatim SCR39 list-item quote faithfully reproduces the upstream source's own typos ('focus way' and 'another other documented keyboard shortcut'); these typos are present in SCR39.html lines 116-117, so the quote is accurate to the reference."
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": null
+}

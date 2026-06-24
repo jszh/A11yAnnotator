@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.3.2 FAILURE — Responsive-breakpoint order desync (conditional on viewport).
+
+    A long-form investigative article whose CLOSING section is an "Editor's note" that
+    deliberately spoils the ending: it names the source who leaked the documents and the
+    outcome of the investigation. In source order it is LAST, as a recap/afterword, which is
+    fine — by the time you reach it you have read the story.
+
+    The desktop layout uses a flex row: article body (left) + a narrow rail. The editor's
+    note sits at the BOTTOM of the article column in source and renders at the bottom on
+    desktop. Correct.
+
+    At max-width:680px the layout collapses to a single column and the author applied
+    `order:-1` to the editor's note so it "leads" on mobile (a common 'sticky summary on
+    top' pattern). Now the SPOILER note renders ABOVE the article it refers to. A mobile
+    reader is told the outcome and the source's identity in the very first paragraph,
+    turning a closing afterword into a misleading lede that destroys the piece's meaning.
+    The note even opens with "As detailed above," which is now false — nothing is above it.
+
+    WHY AUTOMATED TOOLS MISS IT: DOM order is the correct order (note last). The <aside> is
+    valid and labelled. `order:-1` is legal CSS. A single-viewport scan never renders the
+    mobile state; even if it did, no rule knows that a closing spoiler floated to the top
+    inverts the article's meaning. It takes a human reading both rendered states and judging
+    that the order is meaning-bearing.
+  -->
+  <title>The Riverside Contract — Long Reads — The Bellweather</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Iowan Old Style", Georgia, serif; color:#1d1d1f;
+           background:#fffdf8; line-height:1.7; }
+    header { border-bottom:2px solid #1d1d1f; padding:1rem 1.4rem; display:flex;
+             justify-content:space-between; align-items:baseline; }
+    .wordmark { font-weight:800; font-size:1.3rem; letter-spacing:.02em; }
+    .kicker { font-size:.72rem; text-transform:uppercase; letter-spacing:.2em; color:#9a3b2e; }
+    .wrap { max-width:64rem; margin:1.8rem auto; padding:0 1.3rem; display:flex; gap:2rem; }
+    article { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; }
+    aside.rail { flex:0 0 14rem; font-size:.85rem; color:#5d5750; }
+    aside.rail h3 { font-size:.78rem; text-transform:uppercase; letter-spacing:.12em; color:#9a3b2e; }
+    h1 { font-size:2rem; line-height:1.2; margin:.2rem 0 .3rem; font-family:"Iowan Old Style",Georgia,serif; }
+    .byline { font-size:.85rem; color:#6b655d; margin-bottom:1.2rem; }
+    article p { margin:0 0 1.05rem; }
+    h2 { font-size:1.25rem; margin:1.6rem 0 .4rem; }
+
+    /* The editor's note: a closing spoiler. Last in source, renders last on desktop. */
+    .editors-note {
+      order: 99;                 /* desktop: keep it at the bottom of the column */
+      margin-top:1.6rem; padding:1rem 1.2rem; border-left:4px solid #9a3b2e;
+      background:#f6efe6; font-size:.95rem; color:#3a352e; border-radius:0 6px 6px 0;
+    }
+    .editors-note h2 { margin-top:0; font-size:1.05rem; color:#9a3b2e; }
+
+    /* ===== MOBILE BREAKPOINT — the bug lives here ===== */
+    @media (max-width: 680px) {
+      .wrap { flex-direction:column; gap:1.2rem; }
+      aside.rail { flex:none; }
+      /* "Lead with the editor's takeaway on phones." This floats the CLOSING SPOILER
+         note above the entire article it summarizes. */
+      .editors-note { order: -1; margin-top:0; margin-bottom:1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="wordmark">The Bellweather</span>
+    <span class="kicker">Investigations</span>
+  </header>
+
+  <div class="wrap">
+    <article>
+      <h1>The Riverside Contract</h1>
+      <p class="byline">By Priya Raman · 18 min read · April 2, 2026</p>
+
+      <p>For eleven months the city insisted the waterfront cleanup contract had gone to the
+      lowest qualified bidder. The paperwork said otherwise, but the paperwork was sealed.</p>
+
+      <h2>A bid that wasn't a bid</h2>
+      <p>The first thread came loose in a parking-permit database — an oddity that, pulled
+      slowly, unspooled into a procurement file no one was supposed to see. The numbers did
+      not add up, and the names attached to them were familiar.</p>
+      <p>We spent four months confirming what a single anonymous packet had alleged, because
+      the packet alone proved nothing. The reader deserves to watch us earn the conclusion,
+      not be handed it.</p>
+
+      <h2>The meeting that never appeared on a calendar</h2>
+      <p>Two officials maintained they had never met the contractor. A garage timestamp and a
+      catering invoice, reconstructed here for the first time, say they shared a table for
+      ninety minutes on a Tuesday in October.</p>
+      <p>What follows is the full account of how the contract was steered, and who finally
+      decided to talk.</p>
+
+      <!-- CLOSING editor's note. It deliberately SPOILS the ending. Correct as an afterword
+           AFTER the story; catastrophic if floated to the top. -->
+      <aside class="editors-note" aria-label="Editor's note">
+        <h2>Editor's note</h2>
+        <p>As detailed above, the source who provided the sealed procurement file was the
+        contractor's own former finance director, Dana Whitcomb — and the investigation ended
+        with the contract rescinded and two officials indicted. We name Whitcomb here, at the
+        close, only because the body of the piece establishes the corroboration first.</p>
+      </aside>
+    </article>
+
+    <aside class="rail">
+      <h3>In this series</h3>
+      <p>Part 3 of "Follow the Permits," The Bellweather's year-long look at municipal
+      contracting.</p>
+    </aside>
+  </div>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workspace settings — Cadence Analytics</title>
+<!--
+  SC 1.4.1 Use of Color — FAILING (status limb; relies on the Understanding NOTE about
+  lightness). These settings switches expose an on/off STATE. The state is conveyed ONLY
+  by the pill's fill colour: green #5aa86a = ON, grey #979797 = OFF. Critically there is
+  NO position cue (the knob is centred and does not slide), NO "On"/"Off" text, and the
+  green and grey have a luminance contrast of ~1.0:1 — far below 3:1 — so per the WCAG
+  Understanding note this counts as a colour-(hue)-only distinction, NOT a lightness one.
+  A user with red-green colour deficiency, or viewing in grayscale, cannot tell an enabled
+  setting from a disabled one.
+
+  Deliberately NOT a 4.1.2 / name-role failure: each switch is a real semantic control
+  with role="switch", a correct accessible name (the visible label via aria-labelledby),
+  and aria-checked that updates — so a screen-reader user IS told on/off. The failure is
+  purely visual/1.4.1: the SIGHTED user who cannot distinguish the two hues gets no cue.
+
+  Why automated tools miss it: axe/Lighthouse confirm role=switch + name + aria-checked
+  and pass it; the pill colours each pass 1.4.3 against the page. No tool computes the
+  contrast BETWEEN the on-colour and the off-colour, or reasons that with the knob fixed
+  in place colour is the sole visual differentiator of state. That is a visual judgment.
+-->
+<style>
+  body { font-family: "SF Pro Text", system-ui, Arial, sans-serif; margin: 0; background: #f6f7f9; color: #1f2933; }
+  .shell { max-width: 640px; margin: 30px auto; background: #fff; border: 1px solid #e2e6ea; border-radius: 10px; overflow: hidden; }
+  .shell > header { padding: 18px 24px; border-bottom: 1px solid #eef1f3; }
+  .shell > header h1 { margin: 0; font-size: 1.2rem; }
+  .shell > header p { margin: 3px 0 0; font-size: .85rem; color: #6a7682; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #f0f2f4; }
+  .row:last-child { border-bottom: none; }
+  .meta .name { font-weight: 600; font-size: .96rem; }
+  .meta .desc { font-size: .83rem; color: #6a7682; margin-top: 2px; max-width: 380px; }
+
+  /* Switch: knob is centred and FIXED — only the pill colour changes between states. */
+  .switch {
+    position: relative; width: 46px; height: 26px; border: none; border-radius: 13px;
+    cursor: pointer; padding: 0; background: #979797;   /* default = OFF (grey) */
+    flex: none;
+  }
+  .switch[aria-checked="true"] { background: #5aa86a; } /* ON = green, ~1.0:1 vs grey */
+  .switch .knob {
+    position: absolute; top: 3px; left: 50%; transform: translateX(-50%);  /* centred, never moves */
+    width: 20px; height: 20px; border-radius: 50%; background: #fff;
+  }
+  .switch:focus-visible { outline: 3px solid #2563c9; outline-offset: 2px; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>Notifications</h1>
+      <p>Choose what Cadence sends you. Toggles in green are on; grey are off.</p>
+    </header>
+
+    <div class="row">
+      <div class="meta">
+        <div class="name" id="lbl-digest">Weekly digest email</div>
+        <div class="desc">A Monday summary of dashboard changes from the past week.</div>
+      </div>
+      <button class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-digest"
+              onclick="flip(this)"><span class="knob"></span></button>
+    </div>
+
+    <div class="row">
+      <div class="meta">
+        <div class="name" id="lbl-mentions">Mention alerts</div>
+        <div class="desc">Email me when a teammate @mentions me in a comment.</div>
+      </div>
+      <button class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-mentions"
+              onclick="flip(this)"><span class="knob"></span></button>
+    </div>
+
+    <div class="row">
+      <div class="meta">
+        <div class="name" id="lbl-anomaly">Anomaly detection push</div>
+        <div class="desc">Push a mobile alert when a metric breaches its threshold.</div>
+      </div>
+      <button class="switch" role="switch" aria-checked="true" aria-labelledby="lbl-anomaly"
+              onclick="flip(this)"><span class="knob"></span></button>
+    </div>
+
+    <div class="row">
+      <div class="meta">
+        <div class="name" id="lbl-marketing">Product &amp; tips emails</div>
+        <div class="desc">Occasional emails about new Cadence features.</div>
+      </div>
+      <button class="switch" role="switch" aria-checked="false" aria-labelledby="lbl-marketing"
+              onclick="flip(this)"><span class="knob"></span></button>
+    </div>
+  </div>
+
+  <script>
+    function flip(btn) {
+      var on = btn.getAttribute('aria-checked') === 'true';
+      btn.setAttribute('aria-checked', String(!on));  // state IS exposed to AT; only the visual cue is colour-only
+    }
+  </script>
+</body>
+</html>

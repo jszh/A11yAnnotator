@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ops dashboard</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.6, heading limb b49b2e):
+  An internal ops dashboard renders cards, each with an <h2> card title. Three cards are
+  titled descriptively ("Active subscriptions", "Support backlog"); the fourth is titled
+  "Stuff" over a bar chart that is actually MONTHLY RECURRING REVENUE. The SVG chart even
+  has a correct accessible name ("Monthly recurring revenue, GBP, Jan–Jun") via role=img +
+  aria-label, so 1.1.1/4.1.2 pass. The heading "Stuff" is a real word and is loosely "true"
+  (a chart is stuff), so it is not a 100% mismatch. axe/WAVE/Lighthouse see a non-empty,
+  well-ordered <h2> — no violation. Deciding "Stuff" is too generic to orient the card is a
+  human judgment; note the descriptive truth is carried by the SVG's aria-label, NOT the heading.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"IBM Plex Sans", system-ui, Arial, sans-serif;
+         background:#0f1320; color:#e7ecf5; }
+  .top { display:flex; align-items:center; justify-content:space-between;
+         padding:14px 26px; background:#161c2e; border-bottom:1px solid #232b42; }
+  .top .title { font-weight:700; }
+  .top .who { font-size:.85rem; color:#9aa6c4; }
+  main { padding:26px; }
+  h1 { font-size:1.2rem; font-weight:600; margin:0 0 18px; color:#aeb9d6; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:18px; }
+  .card { background:#171d30; border:1px solid #242c45; border-radius:12px; padding:18px 20px; }
+  .card h2 { margin:0 0 4px; font-size:1.02rem; }
+  .card .big { font-size:2rem; font-weight:700; margin:6px 0 0; }
+  .card .delta { font-size:.82rem; color:#5fcf8e; }
+  .card .delta.bad { color:#f08a8a; }
+  svg { display:block; width:100%; height:120px; margin-top:8px; }
+  .bar { fill:#4f7cff; }
+  .axis { stroke:#3a4262; stroke-width:1; }
+  .lbl { fill:#7e89aa; font-size:9px; font-family:Arial, sans-serif; }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="title">Helm&nbsp;CRM &middot; Operations</span>
+  <span class="who">Signed in as ops@helm.example</span>
+</header>
+
+<main>
+  <h1>This month at a glance</h1>
+  <div class="grid">
+
+    <section class="card" aria-labelledby="c1">
+      <h2 id="c1">Active subscriptions</h2>
+      <p class="big">4,182</p>
+      <p class="delta">&uarr; 3.1% vs last month</p>
+    </section>
+
+    <section class="card" aria-labelledby="c2">
+      <h2 id="c2">Support backlog</h2>
+      <p class="big">37</p>
+      <p class="delta bad">&uarr; 12 open over 48h</p>
+    </section>
+
+    <section class="card" aria-labelledby="c3">
+      <h2 id="c3">Stuff</h2>
+      <!-- The chart's accessible name is correct and descriptive; the CARD HEADING is not. -->
+      <svg viewBox="0 0 240 120" role="img"
+           aria-label="Monthly recurring revenue in GBP, January to June: 71k, 74k, 78k, 81k, 85k, 92k">
+        <line class="axis" x1="20" y1="100" x2="235" y2="100"></line>
+        <rect class="bar" x="28"  y="58" width="24" height="42"></rect>
+        <rect class="bar" x="62"  y="53" width="24" height="47"></rect>
+        <rect class="bar" x="96"  y="46" width="24" height="54"></rect>
+        <rect class="bar" x="130" y="41" width="24" height="59"></rect>
+        <rect class="bar" x="164" y="34" width="24" height="66"></rect>
+        <rect class="bar" x="198" y="22" width="24" height="78"></rect>
+        <text class="lbl" x="30"  y="113">Jan</text>
+        <text class="lbl" x="64"  y="113">Feb</text>
+        <text class="lbl" x="98"  y="113">Mar</text>
+        <text class="lbl" x="130" y="113">Apr</text>
+        <text class="lbl" x="166" y="113">May</text>
+        <text class="lbl" x="200" y="113">Jun</text>
+      </svg>
+    </section>
+
+    <section class="card" aria-labelledby="c4">
+      <h2 id="c4">Churn rate</h2>
+      <p class="big">1.9%</p>
+      <p class="delta">&darr; 0.4 pts vs last month</p>
+    </section>
+
+  </div>
+</main>
+</body>
+</html>

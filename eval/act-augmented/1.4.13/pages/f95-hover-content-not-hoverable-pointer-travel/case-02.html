@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>r/woodworking — Resawing a slab without a bandsaw?</title>
+<!--
+  SC 1.4.13 Content on Hover or Focus — HOVERABLE limb — F95.
+
+  THE DEFECT: a social "hover card" (profile preview) like the ones GitHub/Twitter
+  show when you hover a username. Hovering the author link "@knotwood" opens a card
+  with avatar, bio, karma. The implementation has a TIMING ASYMMETRY plus a GAP:
+
+    - SHOW is delayed 180ms (on the username's mouseenter) — "hover intent".
+    - HIDE is IMMEDIATE (on the username's mouseleave) — clearTimeout + hide now.
+    - The card is rendered into a detached container (#hovercard-layer, a sibling
+      of <main>, the React-portal pattern) and positioned 12px BELOW the username.
+    - The card layer has pointer-events bound, BUT the hide handler is on the
+      USERNAME ONLY; the card has no mouseenter that cancels the hide. And there is
+      a 12px transparent gap between the username's bottom edge and the card's top.
+
+  So when the user moves the pointer down to the card to read it / click "Follow",
+  the pointer first crosses the 12px gap where it is over NEITHER the username NOR
+  the card. mouseleave fires on the username and the card is hidden instantly.
+  Because the card lives in a portal (not a DOM descendant of the username) and has
+  no mouseenter handler, hovering it cannot keep it open. The pointer path from
+  trigger to content destroys the content.
+
+  WHY AUTOMATED TOOLS MISS IT: there is no 1.4.13 automated rule. The card is fully
+  accessible by every static measure — role="dialog" with aria-label, real links,
+  good contrast, appears on focus too. Detecting the failure requires reasoning that
+  (a) the card is a portal sibling, not a descendant, so DOM proximity doesn't help;
+  (b) there is a 12px transparent gap on the travel path; and (c) hide is immediate
+  while the card has no mouseenter — so a continuous pointer path cannot keep it
+  open. That is a layout + event-timing simulation, not a markup check.
+-->
+<style>
+  :root{ --ink:#1a1a1b; --muted:#7c7e80; --line:#e3e5e8; --bg:#ffffff;
+         --up:#ff4500; --link:#1c6cd6; --panel:#f6f7f8; }
+  *{box-sizing:border-box;}
+  body{margin:0; background:#fafafa; color:var(--ink);
+       font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:680px; margin:0 auto; padding:18px 16px 60px;}
+  .post{background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 16px;}
+  .meta{font-size:.8rem; color:var(--muted); margin-bottom:6px;}
+  .post h1{font-size:1.2rem; margin:2px 0 10px;}
+  .post p{margin:0 0 12px;}
+  .byline{font-size:.82rem; color:var(--muted);}
+  a.user{color:var(--link); text-decoration:none; font-weight:600; position:relative; cursor:pointer;}
+  a.user:hover{text-decoration:underline;}
+  a.user:focus-visible{outline:2px solid var(--link); outline-offset:2px;}
+  .comments{margin-top:18px;}
+  .cmt{background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px;}
+  .cmt .byline{margin-bottom:4px;}
+  .vote{color:var(--up); font-weight:700;}
+
+  /* The hover card layer is a DETACHED sibling of <main> (portal pattern). */
+  #hovercard-layer{position:absolute; top:0; left:0; z-index:50; pointer-events:auto;}
+  .hovercard{
+    position:absolute; width:280px; background:var(--bg);
+    border:1px solid var(--line); border-radius:12px; padding:14px 16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.16);
+  }
+  .hovercard .hc-top{display:flex; gap:12px; align-items:center; margin-bottom:8px;}
+  .hovercard .ava{width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#caa472,#8a5a2b); flex:0 0 auto;}
+  .hovercard .hc-name{font-weight:700;}
+  .hovercard .hc-sub{font-size:.78rem; color:var(--muted);}
+  .hovercard .hc-bio{font-size:.85rem; margin:4px 0 10px;}
+  .hovercard .hc-actions{display:flex; gap:8px;}
+  .hovercard .btn{font-size:.82rem; border:1px solid var(--line); background:var(--panel);
+                  border-radius:16px; padding:5px 12px; cursor:pointer;}
+  .hovercard .btn.primary{background:var(--up); border-color:var(--up); color:#fff; font-weight:600;}
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <article class="post">
+    <div class="meta">r/woodworking &middot; Posted 6h ago</div>
+    <h1>Resawing a 10&quot; walnut slab without a bandsaw — is a track saw + handsaw realistic?</h1>
+    <p>I scored a kiln-dried walnut slab but my bandsaw maxes out at 6&quot; resaw height. I&apos;ve seen
+       people score both faces with a track saw and finish the middle with a frame saw. Anyone done this
+       on hardwood that thick? How flat did it come out?</p>
+    <p class="byline">submitted by
+      <a class="user" href="/u/knotwood"
+         id="author-link"
+         role="button" aria-haspopup="dialog"
+         data-hc="knotwood">@knotwood</a>
+    </p>
+  </article>
+
+  <section class="comments" aria-label="Comments">
+    <div class="cmt">
+      <div class="byline">
+        <a class="user" href="/u/flatsawn_fred" data-hc="fred">@flatsawn_fred</a>
+        &middot; 5h ago &middot; <span class="vote">▲ 42</span>
+      </div>
+      <p>Done it on 8/4 maple. Score 1/8&quot; deep both faces as a kerf guide, then a 700mm frame saw.
+         Expect to flatten ~1/16&quot; of cup afterward. Worth it.</p>
+    </div>
+    <div class="cmt">
+      <div class="byline">
+        <a class="user" href="/u/sawdust_sue" data-hc="sue">@sawdust_sue</a>
+        &middot; 4h ago &middot; <span class="vote">▲ 11</span>
+      </div>
+      <p>Track saw from both sides only gets you ~110mm combined on most rails — for a true 10&quot; slab
+         you&apos;ll still have a fat middle to handsaw. Mark a center line and go slow.</p>
+    </div>
+  </section>
+
+  <p style="font-size:.82rem;color:var(--muted);margin-top:14px;">
+    Hover a username to preview the member&apos;s profile card.
+  </p>
+</div>
+
+<!-- The portal layer: a detached sibling of the content, NOT a descendant of any username. -->
+<div id="hovercard-layer" aria-live="off">
+  <div class="hovercard" id="hovercard" role="dialog" aria-label="Profile preview" hidden>
+    <div class="hc-top">
+      <span class="ava" aria-hidden="true"></span>
+      <span>
+        <span class="hc-name" id="hc-name">@knotwood</span><br>
+        <span class="hc-sub" id="hc-sub">Member since 2019 &middot; 18.4k karma</span>
+      </span>
+    </div>
+    <p class="hc-bio" id="hc-bio">Hand-tool woodworker. Frame saws, hide glue, and too many planes.</p>
+    <div class="hc-actions">
+      <button type="button" class="btn primary">Follow</button>
+      <button type="button" class="btn">Message</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Hover card: 180ms show delay (hover-intent), IMMEDIATE hide on mouseleave of
+  // the username. The card lives in a portal (no DOM relationship to the username)
+  // and has NO mouseenter handler to cancel the hide. Combined with the 12px gap
+  // below the username, the pointer cannot travel onto the card without first
+  // hitting the gap and firing mouseleave.
+  (function () {
+    var layer = document.getElementById('hovercard-layer');
+    var card  = document.getElementById('hovercard');
+    var nameEl = document.getElementById('hc-name');
+    var subEl  = document.getElementById('hc-sub');
+    var bioEl  = document.getElementById('hc-bio');
+    var profiles = {
+      knotwood: { name:'@knotwood', sub:'Member since 2019 · 18.4k karma', bio:'Hand-tool woodworker. Frame saws, hide glue, and too many planes.' },
+      fred:     { name:'@flatsawn_fred', sub:'Member since 2021 · 6.1k karma', bio:'Maple, ash, and the occasional ill-advised epoxy river.' },
+      sue:      { name:'@sawdust_sue', sub:'Member since 2017 · 33.2k karma', bio:'Production cabinetmaker. Track-saw evangelist, reformed.' }
+    };
+    var showTimer = null;
+
+    function showFor(link) {
+      var key = link.getAttribute('data-hc');
+      var p = profiles[key]; if (!p) return;
+      nameEl.textContent = p.name; subEl.textContent = p.sub; bioEl.textContent = p.bio;
+      var r = link.getBoundingClientRect();
+      // Position the card 12px BELOW the username (a transparent gap on the path).
+      card.style.left = (window.scrollX + r.left) + 'px';
+      card.style.top  = (window.scrollY + r.bottom + 12) + 'px';
+      card.hidden = false;
+    }
+    function hideNow() { card.hidden = true; }
+
+    document.querySelectorAll('a.user').forEach(function (link) {
+      link.addEventListener('mouseenter', function () {
+        clearTimeout(showTimer);
+        showTimer = setTimeout(function () { showFor(link); }, 180); // delayed show
+      });
+      link.addEventListener('mouseleave', function () {
+        clearTimeout(showTimer);
+        hideNow(); // IMMEDIATE hide — no grace period, card has no mouseenter to cancel it
+      });
+      // Keyboard parity (so this is not also a 2.1.1 failure):
+      link.addEventListener('focus', function () { showFor(link); });
+      link.addEventListener('blur',  function () { hideNow(); });
+    });
+    // NOTE: deliberately NO card.addEventListener('mouseenter', ...) — the card
+    // cannot keep itself open, which is the F95 hoverable failure.
+  })();
+</script>
+</body>
+</html>

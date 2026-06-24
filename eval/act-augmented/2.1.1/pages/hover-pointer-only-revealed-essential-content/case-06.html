@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprint Board — Tasklane</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", system-ui, "Segoe UI", Arial, sans-serif;
+    background: #eef1f5;
+    color: #1d2632;
+    font-size: 14px;
+  }
+  header.board { display: flex; align-items: center; gap: 12px; padding: 14px 24px; background: #fff; border-bottom: 1px solid #e1e6ec; }
+  header.board h1 { font-size: 17px; margin: 0; }
+  header.board .crumb { color: #7b8694; font-size: 13px; }
+  .columns { display: flex; gap: 16px; padding: 22px 24px; align-items: flex-start; }
+  .col { background: #e6eaf0; border-radius: 12px; width: 280px; padding: 12px; }
+  .col h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #66707e; margin: 4px 4px 12px; }
+  .card {
+    position: relative;
+    background: #fff;
+    border: 1px solid #e2e7ee;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  }
+  .card .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 20px; margin-bottom: 7px; }
+  .tag.bug { background: #fde8e6; color: #b3261e; }
+  .tag.feat { background: #e4eefb; color: #1a5fb4; }
+  .tag.chore { background: #eceef1; color: #5b6573; }
+  .card .title { font-weight: 600; margin: 0 0 8px; line-height: 1.4; }
+  .card .foot { display: flex; align-items: center; justify-content: space-between; color: #7b8694; font-size: 12px; }
+  .avatar { width: 22px; height: 22px; border-radius: 50%; background: #b9c4d2; display: inline-block; }
+
+  /* The card overflow ("…") menu button. It is HIDDEN by default and revealed when the
+     card is hovered OR when the button itself receives focus (:focus-within). It is a real
+     <button>, in the DOM and focusable; opacity:0 still allows focus, and the focus rule
+     un-hides it. So keyboard users CAN reach it. */
+  .card .more {
+    position: absolute;
+    top: 8px; right: 8px;
+    border: 1px solid #d7dde5;
+    background: #fff;
+    border-radius: 7px;
+    width: 26px; height: 26px;
+    font-size: 16px; line-height: 1; color: #4a5563;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .12s;
+  }
+  .card:hover .more,
+  .card:focus-within .more,
+  .card .more:focus { opacity: 1; }
+
+  .menu {
+    position: absolute;
+    top: 36px; right: 8px;
+    min-width: 168px;
+    background: #fff;
+    border: 1px solid #dde3ea;
+    border-radius: 9px;
+    box-shadow: 0 12px 30px rgba(20,30,45,.16);
+    padding: 5px 0;
+    z-index: 30;
+    display: none;
+  }
+  .menu[data-open="true"] { display: block; }
+  .menu button {
+    display: block; width: 100%; text-align: left;
+    background: none; border: 0; padding: 8px 14px; font-size: 13px; color: #1d2632; cursor: pointer;
+  }
+  .menu button:hover, .menu button:focus { background: #eef3f9; outline: none; }
+  .menu button.danger { color: #b3261e; }
+  .menu hr { border: 0; border-top: 1px solid #eef1f4; margin: 4px 0; }
+</style>
+</head>
+<body>
+  <header class="board">
+    <h1>Q3 Platform · Sprint 14</h1>
+    <span class="crumb">/ Boards / Q3 Platform</span>
+  </header>
+
+  <div class="columns">
+    <section class="col" aria-labelledby="col-todo">
+      <h2 id="col-todo">To do</h2>
+
+      <article class="card">
+        <span class="tag bug">Bug</span>
+        <p class="title">Session token not refreshed after SSO re-login</p>
+        <button type="button" class="more" aria-haspopup="menu" aria-expanded="false"
+                aria-label="Card actions: Session token not refreshed after SSO re-login">⋯</button>
+        <div class="menu" role="menu" aria-label="Card actions">
+          <button type="button" role="menuitem">Move to In progress</button>
+          <button type="button" role="menuitem">Assign to me</button>
+          <hr>
+          <button type="button" role="menuitem" class="danger">Archive card</button>
+        </div>
+        <div class="foot"><span>PLAT-482</span><span class="avatar" aria-hidden="true"></span></div>
+      </article>
+
+      <article class="card">
+        <span class="tag feat">Feature</span>
+        <p class="title">Add CSV export to the audit log viewer</p>
+        <button type="button" class="more" aria-haspopup="menu" aria-expanded="false"
+                aria-label="Card actions: Add CSV export to the audit log viewer">⋯</button>
+        <div class="menu" role="menu" aria-label="Card actions">
+          <button type="button" role="menuitem">Move to In progress</button>
+          <button type="button" role="menuitem">Assign to me</button>
+          <hr>
+          <button type="button" role="menuitem" class="danger">Archive card</button>
+        </div>
+        <div class="foot"><span>PLAT-507</span><span class="avatar" aria-hidden="true"></span></div>
+      </article>
+    </section>
+
+    <section class="col" aria-labelledby="col-prog">
+      <h2 id="col-prog">In progress</h2>
+      <article class="card">
+        <span class="tag chore">Chore</span>
+        <p class="title">Upgrade Postgres 14 → 16 in staging</p>
+        <button type="button" class="more" aria-haspopup="menu" aria-expanded="false"
+                aria-label="Card actions: Upgrade Postgres 14 to 16 in staging">⋯</button>
+        <div class="menu" role="menu" aria-label="Card actions">
+          <button type="button" role="menuitem">Move to To do</button>
+          <button type="button" role="menuitem">Assign to me</button>
+          <hr>
+          <button type="button" role="menuitem" class="danger">Archive card</button>
+        </div>
+        <div class="foot"><span>PLAT-455</span><span class="avatar" aria-hidden="true"></span></div>
+      </article>
+    </section>
+  </div>
+
+  <script>
+    // The "…" button is the ONLY way to move, assign, or archive a card. It is hidden by
+    // opacity:0 to keep the board clean — but opacity does NOT remove it from the tab order,
+    // and the CSS reveals it on BOTH `.card:hover .more` AND `.card .more:focus` /
+    // `.card:focus-within .more`. So a keyboard user Tabs to the button (it becomes visible
+    // on focus), presses Enter/Space, and the menu opens — exactly the same content the mouse
+    // user gets on hover. Modality-equivalent: hover and focus reveal the same control.
+    document.querySelectorAll('.card .more').forEach(function (btn) {
+      var menu = btn.parentElement.querySelector('.menu');
+      function close() {
+        menu.removeAttribute('data-open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+      btn.addEventListener('click', function () {
+        var open = menu.getAttribute('data-open') === 'true';
+        document.querySelectorAll('.menu[data-open="true"]').forEach(function (m) {
+          m.removeAttribute('data-open');
+          m.parentElement.querySelector('.more').setAttribute('aria-expanded', 'false');
+        });
+        if (open) { close(); }
+        else {
+          menu.setAttribute('data-open', 'true');
+          btn.setAttribute('aria-expanded', 'true');
+          menu.querySelector('button').focus();
+        }
+      });
+      // Esc closes and returns focus to the trigger.
+      menu.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { close(); btn.focus(); }
+      });
+    });
+  </script>
+
+  <!--
+    WHY THIS PASSES SC 2.1.1 (keyboard) — THE MODALITY-EQUIVALENCE BOUNDARY:
+
+    The "…" overflow button is the ONLY way to move, assign, or archive a card — essential
+    functionality. It is visually hidden by default (opacity:0) so the board looks clean, which
+    superficially resembles case-02's hidden row actions. The critical difference is HOW it is
+    hidden and revealed:
+
+      • case-02 used `visibility:hidden`, which REMOVES the control from the tab order, and
+        revealed it only on `:hover` — keyboard users could never reach it. FAIL.
+      • here the control uses `opacity:0`, which keeps it FOCUSABLE and in the tab order, and
+        the CSS reveals it on BOTH `.card:hover .more` AND `.card .more:focus` /
+        `.card:focus-within .more`. A keyboard user Tabs to the button (it appears on focus),
+        presses Enter, and gets the identical menu the mouse user gets on hover. Esc closes and
+        restores focus. PASS.
+
+    This is the second human judgment the SC requires: does FOCUS actually reveal the SAME
+    content that HOVER does? Here it does — the hover and focus paths are equivalent and the
+    function is fully keyboard-operable. SC 2.1.1 is met.
+
+    An automated tool cannot make this call either way: it would see a focusable, named
+    <button> with aria-haspopup and a role="menu" in both case-02 and here, and could not
+    distinguish `visibility:hidden` (fails) from `opacity:0 + :focus reveal` (passes), nor
+    confirm that the keyboard reveal produces the same control. Distinguishing these is the
+    human visual/interaction judgment. Verdict: PASSED.
+  -->
+</body>
+</html>

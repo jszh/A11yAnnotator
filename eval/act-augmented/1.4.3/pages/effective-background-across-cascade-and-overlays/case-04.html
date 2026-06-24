@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resonance — Now Playing</title>
+<style>
+  /* ----------------------------------------------------------------------------
+     A music-player "now playing" card. The designer wanted the track title to
+     "sink into" the artwork panel like a printed tint, so they reached for a CSS
+     COMPOSITING effect:
+        .track-title { mix-blend-mode: soft-light; }
+     This is the F24 cascade/compositing hard case. In the CSSOM the title's
+     DECLARED foreground (#262626, near-black) and its resolvable backdrop (the
+     solid light panel #c0c0c0) are an ordinary, high-contrast pair (~8.3:1) -- a
+     tool reading getComputedStyle().color against the ancestor background sees a
+     comfortable PASS, nowhere near the 4.5:1 line.
+     But mix-blend-mode:soft-light does NOT paint #262626. It RE-DERIVES each glyph's
+     rendered color by compositing the layer color WITH the light panel beneath it;
+     soft-light pulls dark source colors UP toward the (light) backdrop's luminance.
+     Over the #c0c0c0 panel the near-black title therefore RENDERS as a slightly-darker
+     light gray sitting on light gray -- the real on-screen contrast collapses to about
+     1.45:1, illegible. The computed CSS color and the COMPOSITED rendered color diverge
+     by ~6x; contrast is judged on what is presented, so the true verdict is a fail.
+     -------------------------------------------------------------------------- */
+  body { margin:0; background:#101216; font-family:"Avenir Next", system-ui, sans-serif; }
+  .player { max-width: 440px; margin: 48px auto; padding: 0 16px; }
+
+  /* The artwork panel: a SOLID, opaque LIGHT fill (no image, no translucency), so the
+     title's resolvable ancestor background is one clean color: #c0c0c0. */
+  .art {
+    position: relative;
+    background: #c0c0c0;           /* solid light panel -- the "art" */
+    aspect-ratio: 1 / 1;
+    border-radius: 16px 16px 0 0;
+    display: flex; align-items: flex-end; padding: 24px;
+  }
+  /* The failing text. Its DECLARED color is near-black (#262626); against the light
+     #c0c0c0 panel that computes to ~8.3:1 -> a confident CSS pass. The blend mode is
+     what changes the RENDERED color. */
+  .track-title {
+    margin: 0;
+    font-size: 1.85rem; font-weight: 800; line-height: 1.1;
+    color: #262626;
+    mix-blend-mode: soft-light;    /* <-- composites the glyph color with the panel */
+  }
+
+  /* The metadata strip below the art is normal, legible, and NOT part of the defect:
+     opaque dark bar, light text, no blend mode. It shows the same card can be fine
+     when nothing is composited. */
+  .meta {
+    background:#1b1e24; color:#e7e9ee;
+    border-radius: 0 0 16px 16px;
+    padding: 16px 24px 22px;
+  }
+  .meta .artist { font-size: 1.05rem; font-weight: 600; margin: 0 0 2px; }
+  .meta .album  { font-size: .85rem; color:#aeb4bf; margin: 0; }
+  .controls { margin-top: 16px; display:flex; gap:18px; align-items:center; }
+  .controls button {
+    background:#2a2f37; color:#e7e9ee; border:none; border-radius:8px;
+    padding:8px 14px; font:600 .85rem system-ui; cursor:pointer;
+  }
+  .scrub { flex:1; height:4px; background:#3a4049; border-radius:2px; position:relative; }
+  .scrub::before { content:""; position:absolute; inset:0 55% 0 0; background:#7aa2ff; border-radius:2px; }
+</style>
+</head>
+<body>
+  <div class="player">
+    <div class="art">
+      <h1 class="track-title">Lantern in the Static</h1>
+    </div>
+    <div class="meta">
+      <p class="artist">Halverson &amp; the Tide</p>
+      <p class="album">from <em>Coastal Drift</em> &middot; 2025</p>
+      <div class="controls">
+        <button type="button">Prev</button>
+        <button type="button">Pause</button>
+        <button type="button">Next</button>
+        <div class="scrub" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (and what is genuinely human here):
+    The failing text is .track-title ("Lantern in the Static"). A CSSOM contrast
+    checker reads its computed color (#262626) and walks the box tree to its first
+    opaque ancestor background (.art = #c0c0c0). #262626 on #c0c0c0 computes to
+    ~8.3:1, so the checker reports a confident PASS -- nothing is missing, nothing is
+    translucent, the title element even sits on an opaque solid backdrop. (Verified:
+    axe-core 4.12.1 does NOT flag this element -- it returns no contrast violation and
+    no needs-review for .track-title; the only fixable signal an engine could give is a
+    PASS at ~8.3:1.)
+    The trap is `mix-blend-mode: soft-light`. getComputedStyle still returns the DECLARED
+    color #262626, so a tool that compares declared color to the ancestor background never
+    sees the failure. But soft-light re-derives the PAINTED color of every glyph by
+    compositing #262626 WITH the #c0c0c0 panel beneath it; soft-light lifts dark source
+    colors toward the light backdrop, so the title RENDERS as a slightly-darker light gray
+    on light gray -- measured on the rendered pixels it is ~1.45:1, far below 4.5:1 (and
+    below even the 3:1 large-text floor). The computed CSS color and the composited
+    rendered color disagree by roughly 6x, and contrast is judged on what is presented.
+    axe/WAVE/Lighthouse do not simulate CSS blend modes; they trust the declared color, so
+    they mis-pass this. Recognizing that a compositing operator has changed the effective
+    foreground/background relationship, and judging the contrast of the RENDERED result, is
+    the F24 cascade/compositing hard case and requires human visual judgment.
+  -->
+</body>
+</html>

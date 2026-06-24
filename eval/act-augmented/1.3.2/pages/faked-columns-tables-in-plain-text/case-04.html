@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trip Confirmation HZ4Q9P — Meridian Air</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #15233a; background: #f5f7fa; }
+    .page { max-width: 800px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .bar { background: #0b2e6b; color: #fff; padding: 1rem 1.25rem; border-radius: 8px 8px 0 0; }
+    .bar h1 { margin: 0; font-size: 1.25rem; }
+    .bar p { margin: .25rem 0 0; font-size: .85rem; opacity: .9; }
+    .card { background: #fff; border: 1px solid #d7deea; border-top: none; border-radius: 0 0 8px 8px; padding: 1.25rem; }
+    h2 { font-size: 1rem; margin: .25rem 0 .75rem; }
+    label.fl { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .35rem; }
+    /* The itinerary is a read-only textarea. The author space-aligned six columns
+       (Flight / Date / From->To / Depart / Arrive / Gate) so it looks like the
+       confirmation grids airlines email. No <table>, no role — spaces only. */
+    textarea#itin {
+      width: 100%; box-sizing: border-box; min-height: 200px;
+      font-family: "Courier New", monospace; font-size: .85rem; line-height: 1.5;
+      padding: .75rem; border: 1px solid #c2ccdc; border-radius: 6px;
+      white-space: pre; overflow: auto; background: #fbfcfe; resize: vertical;
+    }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; font-size: .85rem; color: #46566e; }
+    .note { background: #fff; border-left: 4px solid #0b2e6b; padding: .75rem 1rem; font-size: .85rem; margin-top: 1.5rem; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="bar">
+      <h1>Your trip is confirmed</h1>
+      <p>Confirmation HZ4Q9P &bull; Passenger: J. RIVERA &bull; Meridian Air</p>
+    </div>
+    <div class="card">
+      <h2>Itinerary</h2>
+      <label class="fl" for="itin">Flight details (read-only — copy for your records)</label>
+      <!-- Six space-aligned columns. The Gate column is what a traveler most needs
+           to read per row; linearized, gates detach from their flight. -->
+      <textarea id="itin" readonly aria-describedby="itinNote">Flight   Date     Route        Depart   Arrive   Gate
+MA 218   12 Jul   SEA -> DEN   06:40    10:12    C14
+MA 933   12 Jul   DEN -> ORD   11:55    15:08    B6
+MA 1042  16 Jul   ORD -> SEA   17:20    19:54    K9
+MA 218   16 Jul   SEA -> SEA   --:--    --:--    (none, layover only)</textarea>
+      <div class="row">
+        <span>Check in 24h before departure.</span>
+        <span>Gates may change &mdash; confirm on the airport monitors.</span>
+      </div>
+    </div>
+
+    <p id="itinNote" class="note">
+      <strong>Why automated tools miss this:</strong> the itinerary is a labelled, read-only
+      <code>&lt;textarea&gt;</code> of valid text — nothing for axe / WAVE / Lighthouse to flag.
+      Checkers read the value as a flat string and cannot perceive that the spaces line up six
+      columns, so they cannot tell that a screen reader reads each line straight across, leaving the
+      gate, departure time and route fused into one run where a traveler can no longer be sure which
+      gate belongs to which flight.
+    </p>
+  </div>
+</body>
+</html>

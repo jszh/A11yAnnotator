@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marlowe & Finch — Artisan Stationery</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (F46 / TT 14.C):
+  The site header (logo on the left, a search box and a small utility-nav on the right)
+  is positioned with a 1-row, 3-column <table> that carries a non-empty <caption>:
+  "Header layout". The <caption> is syntactically valid and non-empty, so the ACT
+  caption-related checks (and axe's table-name heuristics) are satisfied — a checker
+  treats it as a perfectly-named data table. But there is NO data here: the cells are
+  a logo, a search field, and a cart link. A <caption> is "part of the table and
+  identifies the table" (F46); announcing "Header layout, table with 3 columns" before
+  the logo is false structure used purely for presentation. Whether this <table> is a
+  data table at all is TT 14.C — a human judgment no scanner performs.
+-->
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Helvetica Neue", Arial, sans-serif; color:#2a2622; background:#fbf8f3; }
+  table.siteheader { width:100%; border-collapse:collapse; background:#fff;
+                     border-bottom:2px solid #6b4f3a; }
+  table.siteheader caption {
+    /* visually hidden but still announced by AT — this is the trap */
+    position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0);
+    white-space:nowrap;
+  }
+  .siteheader td { vertical-align:middle; padding:18px 22px; }
+  td.brand { width:32%; }
+  td.search { width:46%; text-align:center; }
+  td.util  { width:22%; text-align:right; }
+  .brand .logo { font-family:Georgia, serif; font-size:1.55rem; font-weight:bold; color:#6b4f3a; }
+  .brand .tag { display:block; font-size:.72rem; letter-spacing:.18em; text-transform:uppercase; color:#a08763; }
+  .search form { display:inline-flex; width:100%; max-width:360px; }
+  .search input { flex:1; padding:9px 12px; border:1px solid #cdbfa9; border-right:0; font-size:.9rem; }
+  .search button { background:#6b4f3a; color:#fff; border:0; padding:0 16px; cursor:pointer; }
+  .util a { color:#6b4f3a; text-decoration:none; font-size:.85rem; margin-left:14px; }
+  .util a:hover, .util a:focus { text-decoration:underline; }
+  main { max-width:980px; margin:0 auto; padding:36px 22px; }
+  main h1 { font-family:Georgia, serif; color:#6b4f3a; font-size:1.9rem; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:24px; }
+  .card { background:#fff; border:1px solid #ece3d4; padding:18px; }
+  .card h2 { font-size:1.05rem; margin:0 0 6px; color:#403730; }
+  .card p { font-size:.85rem; line-height:1.5; color:#5b524a; }
+  .price { display:block; margin-top:10px; font-weight:bold; color:#6b4f3a; }
+</style>
+</head>
+<body>
+  <!--
+    LAYOUT TABLE: a 1-row header strip (brand | search | utilities) positioned with a
+    <table>. The <caption>Header layout</caption> falsely identifies this layout strip
+    as a (named) table of data.
+  -->
+  <table class="siteheader">
+    <caption>Header layout</caption>
+    <tr>
+      <td class="brand">
+        <span class="logo">Marlowe &amp; Finch</span>
+        <span class="tag">Artisan Stationery</span>
+      </td>
+      <td class="search">
+        <form role="search" action="#">
+          <label for="q" class="vh" style="position:absolute;left:-9999px;">Search products</label>
+          <input type="search" id="q" name="q" placeholder="Search fountain pens, ink, paper…">
+          <button type="submit">Search</button>
+        </form>
+      </td>
+      <td class="util">
+        <a href="#account">Account</a>
+        <a href="#cart">Cart (0)</a>
+      </td>
+    </tr>
+  </table>
+
+  <main>
+    <h1>New for Autumn</h1>
+    <p>Small-batch inks, cotton-rag notebooks, and letterpress cards from independent makers.</p>
+    <div class="grid">
+      <div class="card">
+        <h2>Iron-Gall Ink, 30&nbsp;ml</h2>
+        <p>A traditional permanent ink that darkens as it oxidises on the page.</p>
+        <span class="price">£14.00</span>
+      </div>
+      <div class="card">
+        <h2>Tomoe River Notebook</h2>
+        <p>52&nbsp;gsm cream paper, smyth-sewn, 180 numbered pages.</p>
+        <span class="price">£22.50</span>
+      </div>
+      <div class="card">
+        <h2>Letterpress Card Set</h2>
+        <p>Six blank cards printed on a 1923 Heidelberg platen press.</p>
+        <span class="price">£11.00</span>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

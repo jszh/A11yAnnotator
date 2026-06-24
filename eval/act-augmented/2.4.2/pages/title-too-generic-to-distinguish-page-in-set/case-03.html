@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 FAILURE (F25, example 2 — template default identical across every doc page).
+    This is the "Authentication API Reference" page of a developer docs site. The
+    sidebar tree-nav lists many sibling pages (Quickstart, Authentication, Webhooks,
+    Errors, Rate limits...), the <h1> and body are specifically the Authentication
+    reference (endpoints, scopes, token request). But the <title> is only the
+    template default "Documentation" — the SAME string every page in the docs set
+    carries. The title names the section/site, not this page, so it cannot
+    distinguish the Authentication reference from the Webhooks or Errors pages.
+    Why automated tools miss it: <title> exists and is non-empty (axe/WAVE/
+    Lighthouse PASS). Recognizing "Documentation" is the shared template default
+    that names the whole doc set rather than this page needs a human to read the
+    body's specific topic and compare it to the title.
+  -->
+  <title>Documentation</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; font-family: ui-sans-serif, "Segoe UI", Roboto, Arial, sans-serif; color:#0f1722; }
+    .topbar { background:#0b1020; color:#e7ecf5; padding:12px 20px; display:flex; align-items:center; gap:16px; font-size:14px; }
+    .topbar .brand { font-weight:800; }
+    .topbar input { margin-left:auto; padding:7px 10px; border-radius:6px; border:1px solid #2a3450; background:#141d33; color:#cfd8ea; width:240px; }
+    .layout { display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+    nav.side { border-right:1px solid #e4e8ef; padding:18px 14px; font-size:14px; }
+    nav.side h2 { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:#7a869a; margin:18px 8px 6px; }
+    nav.side ul { list-style:none; margin:0; padding:0; }
+    nav.side a { display:block; padding:6px 8px; border-radius:6px; text-decoration:none; color:#33405a; }
+    nav.side a[aria-current="page"] { background:#eef2fb; color:#1d4ed8; font-weight:700; }
+    main { padding:30px 48px 64px; max-width:840px; }
+    .crumb { font-size:13px; color:#7a869a; margin-bottom:10px; }
+    h1 { font-size:30px; margin:0 0 8px; }
+    .lede { color:#475067; font-size:16px; margin:0 0 26px; }
+    h2.sec { font-size:20px; margin:34px 0 10px; }
+    .endpoint { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:14px; background:#0b1020; color:#9ae6b4; padding:10px 14px; border-radius:8px; }
+    table { border-collapse:collapse; width:100%; font-size:14px; margin-top:10px; }
+    th, td { text-align:left; border-bottom:1px solid #e4e8ef; padding:8px 10px; }
+    th { color:#475067; }
+    code { font-family: ui-monospace, Menlo, monospace; background:#f1f4f9; padding:1px 5px; border-radius:4px; font-size:13px; }
+    pre { background:#0b1020; color:#cfe1ff; padding:16px; border-radius:10px; overflow:auto; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="brand">Quilltail Pay</span>
+    <span>Developers</span>
+    <input type="search" aria-label="Search documentation" placeholder="Search the docs…">
+  </div>
+
+  <div class="layout">
+    <nav class="side" aria-label="Documentation pages">
+      <h2>Getting started</h2>
+      <ul>
+        <li><a href="/docs/quickstart">Quickstart</a></li>
+        <li><a href="/docs/sandbox">Sandbox & test keys</a></li>
+      </ul>
+      <h2>API reference</h2>
+      <ul>
+        <li><a href="/docs/authentication" aria-current="page">Authentication</a></li>
+        <li><a href="/docs/charges">Charges</a></li>
+        <li><a href="/docs/refunds">Refunds</a></li>
+        <li><a href="/docs/webhooks">Webhooks</a></li>
+        <li><a href="/docs/errors">Errors</a></li>
+        <li><a href="/docs/rate-limits">Rate limits</a></li>
+      </ul>
+    </nav>
+
+    <main>
+      <p class="crumb">API reference / Authentication</p>
+      <h1>Authentication API Reference</h1>
+      <p class="lede">All Quilltail Pay API requests are authenticated with a bearer token obtained from the OAuth 2.0 token endpoint. This page documents how to request, scope, and rotate tokens.</p>
+
+      <h2 class="sec">Token endpoint</h2>
+      <p class="endpoint">POST https://api.quilltail.com/v2/oauth/token</p>
+
+      <h2 class="sec">Request parameters</h2>
+      <table>
+        <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>grant_type</code></td><td>string</td><td>Must be <code>client_credentials</code>.</td></tr>
+          <tr><td><code>client_id</code></td><td>string</td><td>Your application's client identifier.</td></tr>
+          <tr><td><code>client_secret</code></td><td>string</td><td>Your application's secret. Never expose client-side.</td></tr>
+          <tr><td><code>scope</code></td><td>string</td><td>Space-separated scopes, e.g. <code>charges:write refunds:read</code>.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 class="sec">Example request</h2>
+      <pre><code>curl -X POST https://api.quilltail.com/v2/oauth/token \
+  -d grant_type=client_credentials \
+  -d client_id=$QT_CLIENT_ID \
+  -d client_secret=$QT_CLIENT_SECRET \
+  -d scope="charges:write"</code></pre>
+
+      <h2 class="sec">Token lifetime & rotation</h2>
+      <p>Access tokens expire after 3600 seconds. Request a new token before expiry; there is no refresh-token grant for <code>client_credentials</code>. Rotating <code>client_secret</code> immediately invalidates outstanding tokens.</p>
+    </main>
+  </div>
+</body>
+</html>

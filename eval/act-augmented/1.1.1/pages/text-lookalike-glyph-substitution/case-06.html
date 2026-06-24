@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 (Non-text Content), Failure Technique F71 — long-tail variant. F71 is
+    about substituting "characters whose glyphs look similar to the intended
+    character." The most common real-world version of this in 2026 is NOT classic
+    cross-script confusables but the "fancy font" trick from social-bio generators:
+    the author pastes text run through a Unicode styler that maps each Latin letter
+    to a glyph from the MATHEMATICAL ALPHANUMERIC SYMBOLS block (U+1D400–U+1D7FF).
+    Those code points are NOT letters of any alphabet — they are math notation
+    symbols whose glyphs merely resemble bold/italic Latin letters. A screen reader
+    either announces each as "mathematical sans-serif bold small s" (verbose, then
+    the next, then the next — unusable) or, with many TTS engines, skips them as
+    unknown — so the name reads as silence or noise.
+
+    Here the studio's display name and tagline are styled this way:
+        "Sumi Tanaka" -> U+1D5E6 1D602 ...  (Mathematical Sans-Serif Bold)
+        "Designer & Illustrator" -> Mathematical Sans-Serif Italic
+    A screen reader does NOT announce "Sumi Tanaka, Designer & Illustrator." There
+    is no aria-label and no visually-hidden plain-Latin name, so the person's name
+    and role — the entire point of the profile — are conveyed only by glyph shape,
+    with no text alternative. Same SC limb as classic F71: meaning rides on the
+    glyph, not the encoded characters.
+
+    WHY AUTOMATED TOOLS MISS IT: no img/svg/role=img, so all ACT 1.1.1 rules are
+    Inapplicable; axe / WAVE / Lighthouse pass. The H1 is a valid, non-empty,
+    high-contrast heading; these code points are valid Unicode letters by general
+    category (Lu/Ll), so a "non-letter character" heuristic would not even flag
+    them. Recognizing that 𝗦𝘂𝗺𝗶 is "Sumi" in math-bold rather than a real name
+    requires reading the glyphs against the page language — human judgment.
+  -->
+  <title>Sumi Tanaka — Portfolio</title>
+  <style>
+    :root { --ink:#161616; --muted:#6b6b6b; --accent:#7b2ff7; --rule:#ececec; --bg:#ffffff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Helvetica Neue", Arial, sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .hero { max-width:760px; margin:0 auto; padding:4rem 1.4rem 2rem; text-align:center; }
+    .avatar { width:104px; height:104px; border-radius:50%; margin:0 auto 1.2rem; background:radial-gradient(circle at 30% 30%, #d7b8ff, #7b2ff7); }
+    /* The pasted "fancy" glyphs render fine in any Unicode font; size them like a name. */
+    .hero h1 { font-size:2.4rem; margin:.2rem 0 .3rem; font-weight:500; }
+    .hero .role { font-size:1.15rem; color:var(--muted); margin:0 0 1.2rem; }
+    .links { display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap; margin-bottom:1.4rem; }
+    .links a { text-decoration:none; border:1px solid var(--rule); border-radius:999px; padding:.45rem 1rem; font-size:.9rem; color:var(--ink); }
+    .links a.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+    main { max-width:760px; margin:0 auto; padding:1rem 1.4rem 4rem; }
+    h2 { font-size:1.3rem; }
+    .work { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-top:1rem; }
+    .tile { aspect-ratio:4/3; border-radius:12px; background:linear-gradient(135deg,#efe6ff,#cdb4ff); display:flex; align-items:flex-end; padding:.8rem; font-size:.85rem; color:#4a2a7a; font-weight:600; }
+    footer { border-top:1px solid var(--rule); text-align:center; padding:1.4rem; font-size:.82rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div class="avatar" role="img" aria-label="Sumi Tanaka, portrait"></div>
+    <!--
+      DISPLAY NAME pasted from a social-bio "fancy text" generator.
+      "Sumi Tanaka" in Mathematical Sans-Serif Bold:
+      S U+1D5E6, u U+1D602, m U+1D5FA, i U+1D5F6, (space), T U+1D5E7, a U+1D5EE,
+      n U+1D5FB, a U+1D5EE, k U+1D5F8, a U+1D5EE.
+      No aria-label, no visually-hidden plain-Latin name.
+    -->
+    <h1>&#x1D5E6;&#x1D602;&#x1D5FA;&#x1D5F6; &#x1D5E7;&#x1D5EE;&#x1D5FB;&#x1D5EE;&#x1D5F8;&#x1D5EE;</h1>
+    <!--
+      ROLE in Mathematical Sans-Serif Italic:
+      "Designer  Illustrator" (we keep the ampersand & spaces as plain ASCII).
+      D U+1D60E, e U+1D622, s U+1D634, i U+1D626, g U+1D624, n U+1D625, e U+1D622, r U+1D62F
+      I U+1D613, l U+1D62B, l U+1D62B, u U+1D636, s U+1D634, t U+1D635, r U+1D62F,
+      a U+1D622-ish ... we use the italic small set U+1D622 + offset.
+    -->
+    <p class="role">&#x1D60E;&#x1D622;&#x1D634;&#x1D626;&#x1D624;&#x1D625;&#x1D622;&#x1D62F; &amp; &#x1D613;&#x1D62B;&#x1D62B;&#x1D636;&#x1D634;&#x1D635;&#x1D62F;&#x1D622;&#x1D62D;&#x1D626;&#x1D627;</p>
+
+    <div class="links">
+      <a class="primary" href="#work">View work</a>
+      <a href="mailto:hello@example.com">Email me</a>
+      <a href="#about">About</a>
+    </div>
+  </section>
+
+  <main id="work">
+    <h2>Selected work</h2>
+    <div class="work">
+      <div class="tile">Editorial covers — Kinfolk Press</div>
+      <div class="tile">Packaging — Yuzu Soda Co.</div>
+      <div class="tile">Brand system — Northwind Outdoors</div>
+      <div class="tile">Children's book — "The Lantern Fox"</div>
+    </div>
+    <h2 id="about" style="margin-top:2.4rem;">About</h2>
+    <p>I'm a Tokyo- and Vancouver-based illustrator working in editorial, packaging, and picture books. I love warm palettes, hand-lettering, and stories about small brave animals. Open to freelance and licensing inquiries.</p>
+  </main>
+
+  <footer>© 2026 · Built with love and too much coffee.</footer>
+</body>
+</html>

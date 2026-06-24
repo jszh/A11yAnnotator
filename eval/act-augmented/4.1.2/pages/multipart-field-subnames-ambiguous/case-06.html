@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — PASS / boundary contrast for the F86 semantic variant.
+    This is the SAME structural shape as case-01/03/05 (a visually-grouped multi-part phone
+    field: + country code, area code, subscriber number) but built CORRECTLY per ARIA14: each
+    sub-input carries a DIFFERENT, role-appropriate accessible name — "country code", "area
+    code", "subscriber number" — and the group has its own caption "Work phone". So each part
+    not only has a non-empty name (e086e5 passes) but the names DIFFERENTIATE the parts, which
+    is exactly what the failing cases lack.
+
+    The point of including this passing page: it isolates the aspect. The failure under test is
+    specifically UNDIFFERENTIATED per-part naming — not the existence of a multi-part field, and
+    not the use of separate boxes. A human (or reasoning model) annotating the set should mark
+    THIS one "passed" and the others "failed", proving the judgment hinges on whether the
+    per-part names identify each part's role within the whole.
+
+    WHY IT PASSES: every input has a non-empty, role-distinct accessible name set via
+    aria-label per ARIA14's "phone number with multiple fields" example; the group is named
+    "Work phone"; the punctuation is decorative/aria-hidden so it is not read as a name. AT
+    announces "country code", "area code", "subscriber number" — each part is identifiable.
+  -->
+  <title>Account &amp; contact preferences — Meridian Logistics</title>
+  <style>
+    :root { --ink:#1b2430; --muted:#5e6b7a; --line:#d7dde4; --blue:#1655b8; --bg:#f5f7fa; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"IBM Plex Sans",system-ui,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    .container { max-width:600px; margin:0 auto; padding:2.1rem 1.25rem 4rem; }
+    .org { font-weight:800; color:var(--blue); }
+    .tag { font-size:.82rem; color:var(--muted); margin:.2rem 0 1.5rem; }
+    h1 { font-size:1.45rem; margin:0 0 .25rem; }
+    .desc { color:var(--muted); margin:0 0 1.7rem; font-size:.94rem; }
+    .box { background:#fff; border:1px solid var(--line); border-radius:11px; padding:1.5rem; }
+    .field { margin-bottom:1.3rem; }
+    .field > label, .grp > .grp-label { display:block; font-size:.86rem; font-weight:600; margin-bottom:.45rem; }
+    .note { font-size:.78rem; color:var(--muted); margin-top:.4rem; }
+    input { font:inherit; padding:.55rem .6rem; border:1px solid var(--line); border-radius:7px; background:#fff; }
+    input.wide { width:100%; }
+    fieldset { border:0; margin:0; padding:0; }
+    .telrow { display:flex; align-items:center; gap:.45rem; flex-wrap:wrap; }
+    .telrow .plus { color:var(--muted); font-weight:600; }
+    .telrow .cc { width:3.4rem; text-align:center; }
+    .telrow .ac { width:4rem; text-align:center; }
+    .telrow .sn { width:8rem; }
+    .telrow .dash { color:var(--muted); }
+    .submit { background:var(--blue); color:#fff; border:0; padding:.7rem 1.4rem; border-radius:8px; font:inherit; font-weight:700; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <div class="org">Meridian Logistics</div>
+    <p class="tag">Account settings &middot; Contact preferences</p>
+    <h1>Contact preferences</h1>
+    <p class="desc">We&rsquo;ll only call this number for time-critical shipment exceptions. Everything else goes to email.</p>
+
+    <div class="box">
+      <form action="#" method="post" novalidate>
+        <div class="field">
+          <label for="contact">Primary contact name</label>
+          <input class="wide" id="contact" name="contact" type="text" value="Priya Venkataraman" autocomplete="name">
+        </div>
+
+        <!--
+          CORRECT multi-part phone (ARIA14 pattern). Each part has a DISTINCT, role-appropriate
+          accessible name: "country code", "area code", "subscriber number". The group is named
+          "Work phone". Decorative "+" and "-" are aria-hidden.
+        -->
+        <fieldset class="field grp" role="group" aria-labelledby="wp-label">
+          <legend class="grp-label" id="wp-label">Work phone</legend>
+          <div class="telrow">
+            <span class="plus" aria-hidden="true">+</span>
+            <input class="cc" type="tel" inputmode="numeric" maxlength="3" value="44"
+                   aria-label="country code" autocomplete="tel-country-code">
+            <input class="ac" type="tel" inputmode="numeric" maxlength="4" value="20"
+                   aria-label="area code" autocomplete="tel-area-code">
+            <span class="dash" aria-hidden="true">&ndash;</span>
+            <input class="sn" type="tel" inputmode="numeric" maxlength="10" value="7946 0991"
+                   aria-label="subscriber number" autocomplete="tel-local">
+          </div>
+          <p class="note">Include the country code for non-US numbers.</p>
+        </fieldset>
+
+        <div class="field">
+          <label for="ext">Extension (optional)</label>
+          <input id="ext" name="ext" type="text" inputmode="numeric" maxlength="6" value="4120" style="width:6rem;">
+        </div>
+
+        <button class="submit" type="submit">Save preferences</button>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.10 PASS-BY-EXCEPTION — ascii-art diagram (the "layout IS the content" limb).
+
+    Context: an open-source project's CONTRIBUTING / architecture page. It includes a hand-drawn
+    ASCII network/sequence diagram: boxes, pipes (|), dashes, and arrows whose POSITIONS encode the
+    topology — which service connects to which, request direction, and a fan-out. The diagram is the
+    information: column alignment and the horizontal run of the arrows is the meaning. If wrapped or
+    flattened it becomes unintelligible garbage. It is genuinely wider than 320 CSS px.
+
+    THE JUDGMENT: at 320px the <pre> overflows and scrolls horizontally. Like a graphic or a map,
+    this is two-dimensional content that requires consistent orientation for understanding — the SC
+    explicitly cites "ascii art" as a case where text wrapping would lose meaning, so the exception
+    applies. PASS. To honor user preference / forced-colors, the author marks the art with role=img +
+    an aria-label so AT users still get an equivalent, and the diagram inherits currentColor.
+
+    BOUNDARY: this looks structurally identical to case-01/case-05 to a tool (a <pre> overflowing
+    320px). The difference is purely semantic: here the spatial layout is irreplaceable meaning.
+
+    WHY AUTOMATED TOOLS MISS IT: no scanner can look at the characters and recognize an arrangement
+    of |, +, -, > as a meaningful diagram (exempt) versus prose that should wrap. It has the
+    role=img + aria-label, so an alt-text linter is satisfied; but whether the *overflow* is exempt is
+    a content-meaning call. Pure human judgment.
+  -->
+  <title>Contributing — Pollen message-bus architecture</title>
+  <style>
+    :root { --ink:#13202b; --muted:#566373; --line:#dde4ea; --bg:#ffffff; --accent:#0a7d6b; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.65; }
+    .wrap { max-width:740px; margin:0 auto; padding:24px 18px 60px; }
+    .repo { font-size:13px; color:var(--muted); }
+    .repo strong { color:var(--accent); }
+    h1 { font-size:24px; margin:14px 0 6px; }
+    h2 { font-size:17px; margin:26px 0 8px; }
+    p { margin:0 0 14px; }
+    code.inline { background:#eef2f1; border-radius:4px; padding:1px 5px; font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.9em; }
+    figure.diagram { margin:0 0 16px; }
+    figure.diagram figcaption { font-size:12.5px; color:var(--muted); margin:0 0 6px; }
+    pre.ascii {
+      background:#f4f7f6; color:#13202b; border:1px solid var(--line); border-radius:8px;
+      padding:16px 18px; margin:0;
+      font-family:"SF Mono",Menlo,Consolas,monospace; font-size:13px; line-height:1.35;
+      white-space: pre;     /* the alignment of | + - > IS the diagram; must not wrap */
+      overflow-x: auto;     /* excepted 2-D scroll, like a graphic */
+    }
+    @media (forced-colors: active) { pre.ascii { color: CanvasText; border-color: CanvasText; } }
+    footer { margin-top:30px; border-top:1px solid var(--line); padding-top:14px; color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <main>
+      <p class="repo"><strong>pollen-bus</strong> / docs / architecture</p>
+      <h1>How a message travels through Pollen</h1>
+      <p>Before opening a pull request that touches routing, it helps to understand the path a single
+      message takes from a producer to its subscribers. The diagram below shows the fan-out: one
+      <code class="inline">Ingress</code> hands a message to the <code class="inline">Router</code>,
+      which writes it to a durable log and then notifies every matching subscriber group in parallel.</p>
+
+      <h2>Topology</h2>
+      <p>The arrows show direction of flow; the alignment of each branch shows which component talks
+      to which. The two subscriber groups receive copies independently.</p>
+
+      <figure class="diagram">
+        <figcaption>Message flow (read left to right; branches fan out downward)</figcaption>
+        <pre class="ascii" role="img" aria-label="Producer sends to Ingress. Ingress forwards to Router. Router writes to the durable Append Log, then fans out in parallel to two subscriber groups: Group A (analytics and archive workers) and Group B (the email notifier). Acknowledgements flow back from each group to the Router.">
+  Producer
+     |
+     v
+  +---------+        +----------------+        +---------------+
+  | Ingress | -----> |     Router     | -----> |  Append Log   |
+  +---------+        +-------+--------+        +---------------+
+                             |
+            +----------------+----------------+
+            |                                 |
+            v                                 v
+     +-------------+                   +---------------+
+     |  Group A    |                   |   Group B     |
+     |  (analytics |                   |   (email      |
+     |   + archive)|                   |    notifier)  |
+     +------+------+                   +-------+-------+
+            |   ^                              |   ^
+            |   |  ack                         |   |  ack
+            +---+------------------------------+---+
+</pre>
+      </figure>
+
+      <h2>Why this block does not wrap</h2>
+      <p>This is the one element on the page that is allowed to scroll sideways at a narrow width.
+      The spatial arrangement of the boxes and the horizontal runs of the arrows are the meaning —
+      they are the equivalent of a drawn diagram, not a paragraph of text. Wrapping the lines would
+      shatter the alignment and the picture would convey nothing, so the Reflow exception for content
+      whose layout carries meaning applies here. The surrounding prose, headings, and links all reflow
+      normally; only this figure scrolls.</p>
+    </main>
+
+    <footer>pollen-bus &middot; Apache-2.0 &middot; Contributions welcome</footer>
+  </div>
+</body>
+</html>

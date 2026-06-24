@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Write a review — Saffron &amp; Sage</title>
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (SC 2.1.1, F54):
+    The interactive control is a row of five <span>★</span> glyphs whose only
+    activation path is a pointer event (each span has an inline onclick that sets the
+    rating). The spans carry no tabindex, no role, and no key handler, so they are not
+    in the accessibility tree as controls and not in the tab order. axe-core / WAVE /
+    Lighthouse see plain text spans containing a "★" character — there is no missing
+    attribute, no empty name, no role/value violation to flag, because nothing in the
+    static DOM DECLARES these spans to be interactive. A human must use the mouse to
+    discover that clicking a star sets the rating (the visual hover fill + cursor:pointer
+    reveal it is a real control), then confirm there is no keyboard route to it. The
+    surrounding form (name, comment textarea, native submit button) IS fully keyboard
+    accessible, so the failure is one localized pointer-only affordance, not a broken page.
+  -->
+  <style>
+    :root { --ink:#26211b; --muted:#6c6358; --line:#e2dcd1; --gold:#d99a16; --brand:#7d3b2e; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.55 Georgia, "Times New Roman", serif; color: var(--ink); margin: 0; background: #faf7f1; }
+    header { background: var(--brand); color: #fff5ec; padding: 16px 24px; }
+    header .brand { font-weight: 700; letter-spacing: .4px; font-size: 1.15rem; }
+    header .tag { font-style: italic; opacity: .85; font-size: .9rem; }
+    main { max-width: 640px; margin: 30px auto; padding: 0 18px; }
+    h1 { font-size: 1.6rem; margin: 0 0 4px; }
+    .lede { color: var(--muted); margin: 0 0 26px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; }
+    fieldset { border: 0; margin: 0 0 20px; padding: 0; }
+    legend { font-weight: 700; font-size: 1rem; margin-bottom: 8px; padding: 0; }
+    label { display: block; font-weight: 600; margin: 0 0 6px; }
+    input[type="text"], textarea {
+      width: 100%; font: inherit; padding: 10px 12px;
+      border: 1px solid #bcb3a4; border-radius: 8px; background: #fffdf9;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    .hint { color: var(--muted); font-size: .85rem; margin: 6px 0 0; }
+    /* The rating widget — styled to read as a normal, operable control */
+    .stars { font-size: 2rem; line-height: 1; letter-spacing: 4px; user-select: none; }
+    .stars .star { cursor: pointer; color: #d7cbb6; transition: color .12s ease; }
+    .stars .star:hover,
+    .stars .star.lit { color: var(--gold); }
+    .rating-readout { font-size: .9rem; color: var(--muted); margin-top: 8px; min-height: 1.2em; }
+    .submit { margin-top: 8px; }
+    button[type="submit"] {
+      font: inherit; font-weight: 700; color: #fff; background: var(--brand);
+      border: 0; border-radius: 8px; padding: 11px 22px; cursor: pointer;
+    }
+    button[type="submit"]:focus-visible { outline: 3px solid #1652a8; outline-offset: 2px; }
+    input:focus-visible, textarea:focus-visible { outline: 3px solid #1652a8; outline-offset: 1px; }
+    footer { color: var(--muted); font-size: .8rem; text-align: center; margin: 30px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Saffron &amp; Sage</div>
+    <div class="tag">Modern Levantine kitchen — Cambridge</div>
+  </header>
+
+  <main>
+    <h1>Write a review</h1>
+    <p class="lede">Tell other diners about your visit. Your rating helps the kitchen know what to keep on the menu.</p>
+
+    <form class="card" action="#" method="post" aria-labelledby="rev-h">
+      <h2 id="rev-h" style="margin-top:0;font-size:1.1rem;">Your visit to Saffron &amp; Sage</h2>
+
+      <fieldset>
+        <legend>Overall rating</legend>
+        <!--
+          F54: the rating is set ONLY by a pointer click on a <span>. No tabindex,
+          no role, no keydown. A keyboard-only diner cannot set any rating.
+        -->
+        <div class="stars" aria-hidden="false" id="starRow">
+          <span class="star" onclick="setRating(1)" data-v="1">&#9733;</span><span class="star" onclick="setRating(2)" data-v="2">&#9733;</span><span class="star" onclick="setRating(3)" data-v="3">&#9733;</span><span class="star" onclick="setRating(4)" data-v="4">&#9733;</span><span class="star" onclick="setRating(5)" data-v="5">&#9733;</span>
+        </div>
+        <p class="rating-readout" id="readout">Click the stars to rate.</p>
+        <input type="hidden" name="rating" id="ratingValue" value="">
+      </fieldset>
+
+      <fieldset>
+        <label for="name">Display name</label>
+        <input type="text" id="name" name="name" autocomplete="name" required>
+      </fieldset>
+
+      <fieldset>
+        <label for="comment">Your review</label>
+        <textarea id="comment" name="comment" required></textarea>
+        <p class="hint">Roughly 30–500 words. Mention a dish if you can.</p>
+      </fieldset>
+
+      <div class="submit">
+        <button type="submit">Publish review</button>
+      </div>
+    </form>
+  </main>
+
+  <footer>Saffron &amp; Sage · 14 Mill Lane · Reviews are moderated within 24 hours.</footer>
+
+  <script>
+    // Pointer-only rating. There is deliberately NO keyboard handler and the spans
+    // are never made focusable, so this function can only ever be reached by a mouse
+    // click / touch tap — the canonical F54 failure.
+    function setRating(v) {
+      document.getElementById('ratingValue').value = v;
+      var stars = document.querySelectorAll('#starRow .star');
+      stars.forEach(function (s) {
+        s.classList.toggle('lit', Number(s.dataset.v) <= v);
+      });
+      document.getElementById('readout').textContent =
+        'You rated ' + v + ' out of 5 star' + (v === 1 ? '' : 's') + '.';
+    }
+  </script>
+</body>
+</html>

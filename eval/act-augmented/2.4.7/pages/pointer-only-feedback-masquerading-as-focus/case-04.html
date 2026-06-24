@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Course Catalog Filters — Northgate Polytechnic</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: #fafafa; color: #20242b;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+    }
+    header { background: #3b1d6e; color: #fff; padding: 1.1rem 1.6rem; }
+    header h1 { margin: 0; font-size: 1.25rem; }
+    main { max-width: 880px; margin: 0 auto; padding: 1.8rem 1.4rem 4rem; }
+    h2 { font-size: 1.05rem; color: #3b1d6e; margin: 1.6rem 0 .6rem; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: .55rem; }
+
+    /* The filter chips are real <button>s. The original CSS reset killed the
+       focus outline for buttons globally; the author later "re-added" feedback
+       in BOTH :hover and :focus so it would look styled in either state. */
+    .chip {
+      border: 1.5px solid #c9c2da;
+      background: #fff;
+      color: #3b1d6e;
+      padding: .45rem .95rem;
+      border-radius: 999px;
+      font-size: .92rem;
+      cursor: pointer;
+      transition: border-color .12s ease;
+    }
+    button:focus { outline: none; }
+
+    /* These two rules look like a proper hover+focus pair, satisfying a quick
+       CSS read. BUT the only thing they change is the BORDER COLOR from #c9c2da
+       to a near-identical #c4bdd6 — a 1-step lavender shift that is effectively
+       invisible. The REAL, obvious highlight (filled purple pill) is applied by
+       the JavaScript below via a class, and that JS listens to mouse events. */
+    .chip:hover,
+    .chip:focus {
+      border-color: #c4bdd6;
+    }
+
+    /* The conspicuous state the eye actually reads as "this chip is active". */
+    .chip.is-hot {
+      background: #3b1d6e;
+      color: #fff;
+      border-color: #3b1d6e;
+    }
+
+    .results { margin-top: 1.4rem; color: #4a505b; }
+    .results p { margin: .3rem 0; }
+  </style>
+</head>
+<body>
+  <header><h1>Northgate Polytechnic — Course Catalog</h1></header>
+  <main>
+    <h2>Filter by subject</h2>
+    <div class="chips" id="subjectChips" role="group" aria-label="Subject filters">
+      <button type="button" class="chip">Computer Science</button>
+      <button type="button" class="chip">Mechanical Engineering</button>
+      <button type="button" class="chip">Industrial Design</button>
+      <button type="button" class="chip">Applied Mathematics</button>
+      <button type="button" class="chip">Architecture</button>
+      <button type="button" class="chip">Biotechnology</button>
+    </div>
+
+    <div class="results">
+      <p>Showing 142 courses across all subjects.</p>
+      <p>Hover or tap a subject to preview how many courses match.</p>
+    </div>
+  </main>
+
+  <script>
+    // Legacy hover-preview behaviour ported verbatim from the old jQuery site.
+    // It paints the bold purple "hot" state when the POINTER enters a chip and
+    // removes it when the pointer leaves. There is no focus/blur counterpart,
+    // so a keyboard user tabbing onto a chip never gets the conspicuous state —
+    // only the all-but-invisible 1-step border shift from the CSS :focus rule.
+    document.querySelectorAll('#subjectChips .chip').forEach(function (chip) {
+      chip.addEventListener('mouseenter', function () {
+        chip.classList.add('is-hot');
+      });
+      chip.addEventListener('mouseleave', function () {
+        chip.classList.remove('is-hot');
+      });
+    });
+  </script>
+
+  <!--
+    WHY THIS FAILS SC 2.4.7 (Focus Visible) AND WHY AUTOMATED TOOLS MISS IT
+    ----------------------------------------------------------------------
+    At first read the CSS looks correct: there is a `.chip:hover, .chip:focus`
+    rule, so a tool (or a developer skimming the stylesheet) sees that :focus is
+    "handled". But that rule only nudges the border from #c9c2da to #c4bdd6 — a
+    deliberately imperceptible lavender shift. The feedback a sighted user
+    actually perceives as "this chip" is the filled-purple `.is-hot` state, and
+    that class is added/removed by JavaScript bound to `mouseenter` / `mouseleave`
+    — pointer-only events. A keyboard user pressing Tab fires `focus`, never
+    `mouseenter`, so the conspicuous highlight never appears; they are left with
+    the near-zero border change and no UA outline (reset to none).
+
+    Automated tools miss it on two counts: (1) a CSS scan sees a `:focus` rule and
+    assumes focus is styled — it cannot judge that a 1-step border shift is below
+    perceptible threshold; (2) the real indicator is gated behind JS mouse
+    listeners, which static analysis does not model as a modality. Deciding that
+    the visible change a keyboard user receives is effectively nothing requires a
+    human to tab through and compare it against the mouse experience.
+  -->
+</body>
+</html>

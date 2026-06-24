@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Route 14 Weekday Timetable — Riverside Transit</title>
+<style>
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color:#222;
+         background:#fff; margin:0; }
+  .container { max-width: 900px; margin:0 auto; padding: 24px 18px 56px; }
+  .masthead { border-bottom:4px solid #c8102e; padding-bottom:10px; margin-bottom:18px; }
+  .masthead .agency { color:#c8102e; font-weight:800; letter-spacing:1px; font-size:.8rem; }
+  h1 { font-size:1.5rem; margin:4px 0 0; }
+  .effective { color:#666; font-size:.85rem; margin:6px 0 22px; }
+
+  /* A correctly-structured data table: <caption>, <th scope="col"> across the top
+     for each bus departure, <th scope="row"> down the side for each stop.
+     Then role="presentation" is placed on the <table>, which strips ALL of that
+     semantics from the accessibility tree (table, rows, cells, and the scope
+     associations all disappear; it linearises to a run of text). */
+  table.tt { border-collapse: collapse; width:100%; font-size:.9rem; }
+  table.tt caption { text-align:left; font-weight:700; padding:6px 0 10px; color:#333; }
+  table.tt th, table.tt td { border:1px solid #d4d4d4; padding:8px 10px; text-align:center; }
+  table.tt thead th { background:#222; color:#fff; }
+  table.tt tbody th { background:#f4f4f4; text-align:left; font-weight:600; white-space:nowrap; }
+  table.tt tbody tr:nth-child(even) td { background:#fafafa; }
+  .hint { margin-top:18px; font-size:.82rem; color:#666; }
+  .pill { display:inline-block; background:#fde8ea; color:#c8102e; border-radius:20px;
+          padding:2px 10px; font-size:.72rem; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="masthead">
+    <div class="agency">RIVERSIDE TRANSIT</div>
+    <h1>Route 14 &mdash; Downtown via University</h1>
+  </div>
+  <p class="effective"><span class="pill">WEEKDAYS</span> &nbsp; Effective from 3 March. Times show departure from each stop.</p>
+
+  <table class="tt" role="presentation">
+    <caption>Route 14 weekday morning departures</caption>
+    <thead>
+      <tr>
+        <th scope="col">Stop</th>
+        <th scope="col">Bus A</th>
+        <th scope="col">Bus B</th>
+        <th scope="col">Bus C</th>
+        <th scope="col">Bus D</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">Maple St &amp; 1st Ave</th>
+        <td>6:05</td><td>6:35</td><td>7:05</td><td>7:35</td>
+      </tr>
+      <tr>
+        <th scope="row">Riverside Park</th>
+        <td>6:14</td><td>6:44</td><td>7:14</td><td>7:44</td>
+      </tr>
+      <tr>
+        <th scope="row">University Gate</th>
+        <td>6:23</td><td>6:53</td><td>7:25</td><td>7:55</td>
+      </tr>
+      <tr>
+        <th scope="row">City Hospital</th>
+        <td>6:31</td><td>7:01</td><td>7:33</td><td>8:03</td>
+      </tr>
+      <tr>
+        <th scope="row">Downtown Transit Center</th>
+        <td>6:42</td><td>7:12</td><td>7:44</td><td>8:14</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="hint">Buses run every 30 minutes after the last listed departure until 9:00 PM. Real-time arrivals at riversidetransit.example.</p>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS (F92):
+    The underlying markup is a textbook-correct data table: a <caption>, a <thead>
+    with <th scope="col"> for each bus, and a <th scope="row"> for each stop, so every
+    time cell is programmatically tied to its stop AND its bus. The author then added
+    role="presentation" to the <table>. Per WAI-ARIA, role="presentation" SUPPRESSES
+    the semantics of the element and its required-owned descendants: the table, its
+    rows, its header cells, and all scope associations are removed from the
+    accessibility tree. A screen-reader user no longer encounters a table at all — the
+    content linearises to "Stop Bus A Bus B Bus C Bus D Maple St & 1st Ave 6:05 6:35
+    7:05 7:35 ..." with no header announced for any time. ACT treats role=presentation
+    only as an INAPPLICABILITY trigger (the element leaves the a11y tree, so structural
+    rules don't apply); it never flags a genuine data table that has been suppressed.
+    axe/WAVE/Lighthouse raise nothing because using role=presentation on a table is
+    perfectly valid for LAYOUT tables. Distinguishing "correctly suppressed layout
+    table" from "wrongly suppressed data table" requires a human to judge that these
+    times are meaningless without their stop/bus headers — i.e. this IS data.
+  -->
+</div>
+</body>
+</html>

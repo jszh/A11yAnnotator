@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.3 — PASS (multiple-valid-orders limb).
+    A 360-degree competency-review matrix. ROWS are competencies (Communication,
+    Ownership, Collaboration, Adaptability); COLUMNS are RATER perspectives (Self,
+    Manager, Peer, Direct report). Each of the 20 cells is its OWN focusable
+    <input type=range> slider (1..5), so this is a true 4x4 field of independent
+    focusable controls — NOT a radio-group matrix with roving tabindex — and the
+    focus order is therefore fully determined by DOM source order.
+
+    The visual layout is row-major (one competency per row). The tab order is
+    COLUMN-MAJOR by RATER: the sliders are emitted in source order down the Self
+    column, then down the Manager column, then Peer, then Direct report, and CSS
+    Grid places each cell back at its (rater-column, competency-row) coordinate so
+    the matrix still LOOKS row-major. No tabindex is used. "Fill in one rater's
+    full column before the next rater" is exactly how a 360 instrument is completed
+    (you assess from one perspective at a time), so column-major reflects a logical
+    relationship in the content.
+
+    Per the Understanding text, column-at-a-time is an acceptable order for a grid
+    of controls and only one valid order need be provided => PASS.
+
+    Why automated tools miss it: all 20 sliders have <label>s, the grid uses real
+    headers, contrast is fine, nothing is hidden. Nothing fails axe/WAVE/
+    Lighthouse. They cannot judge that "one rater column at a time" reflects a
+    logical relationship; an order-checker that demanded row-major would
+    false-positive on this legitimate column-major instrument.
+  -->
+  <title>360° Competency Review — Form C — Brightpath HR</title>
+  <style>
+    :root { --ink:#1b242c; --muted:#5a6670; --line:#d2dade; --brand:#0b6e64; --bg:#f3f7f6; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter", system-ui, sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+    header { background:#fff; border-bottom:3px solid var(--brand); padding:16px 28px; }
+    header h1 { margin:0; font-size:19px; color:var(--brand); }
+    header p { margin:3px 0 0; font-size:13px; color:var(--muted); }
+    main { max-width:880px; margin:24px auto; padding:0 18px 48px; }
+    .lead { font-size:14px; color:var(--muted); margin:0 0 18px; }
+    form { background:#fff; border:1px solid var(--line); border-radius:10px; padding:22px; }
+    fieldset { border:0; margin:0; padding:0; }
+    legend { font-weight:700; font-size:15px; color:var(--brand); padding:0 0 14px; }
+    .grid {
+      display:grid;
+      grid-template-columns: 220px repeat(4, 1fr);
+      gap:14px 18px;
+      align-items:center;
+    }
+    .corner { font-size:12px; color:var(--muted); }
+    .colhead { font-weight:700; font-size:13px; text-align:center; color:var(--brand); }
+    .rowhead { font-size:13px; font-weight:600; }
+    .cell { text-align:center; }
+    .cell label { display:block; font-size:11px; color:var(--muted); margin-bottom:4px; }
+    .cell input[type=range] { width:100%; }
+    .cell input[type=range]:focus { outline:3px solid #38b2a3; outline-offset:3px; }
+    .scalekey { font-size:12px; color:var(--muted); margin:16px 0 0; }
+    .actions { margin-top:20px; }
+    button { background:var(--brand); color:#fff; border:0; padding:11px 22px; border-radius:7px; font-size:15px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Brightpath HR — 360° Competency Review</h1>
+    <p>Subject: A. Okafor · Cycle 2026-H1 · Form C (rater grid)</p>
+  </header>
+  <main>
+    <p class="lead">
+      Rate each competency from every perspective. Complete <strong>one rater
+      column at a time</strong> (slide all of "Self" first, then "Manager", and so
+      on). Tab moves down each rater's column.
+    </p>
+    <form>
+      <fieldset>
+        <legend>Competency ratings (1 = needs development … 5 = exemplary)</legend>
+        <!--
+          DOM source order is COLUMN-MAJOR by RATER. The <div class="cell">
+          blocks are emitted in this order: Self/Communication, Self/Ownership,
+          Self/Collaboration, Self/Adaptability, then Manager/(4 rows), then
+          Peer/(4 rows), then DirectReport/(4 rows). CSS Grid places each cell at
+          its (column=rater, row=competency) coordinate so it still LOOKS row-major.
+          Tab therefore walks down each rater column => valid column order, no tabindex.
+        -->
+        <div class="grid" role="group" aria-label="Competency by rater">
+          <!-- header row -->
+          <span class="corner" style="grid-column:1;grid-row:1;">Competency \ Rater</span>
+          <span class="colhead" style="grid-column:2;grid-row:1;">Self</span>
+          <span class="colhead" style="grid-column:3;grid-row:1;">Manager</span>
+          <span class="colhead" style="grid-column:4;grid-row:1;">Peer</span>
+          <span class="colhead" style="grid-column:5;grid-row:1;">Direct report</span>
+
+          <!-- row labels -->
+          <span class="rowhead" style="grid-column:1;grid-row:2;">Communication</span>
+          <span class="rowhead" style="grid-column:1;grid-row:3;">Ownership</span>
+          <span class="rowhead" style="grid-column:1;grid-row:4;">Collaboration</span>
+          <span class="rowhead" style="grid-column:1;grid-row:5;">Adaptability</span>
+
+          <!-- COLUMN: Self -->
+          <div class="cell" style="grid-column:2;grid-row:2;"><label for="sf_comm">Self · Communication</label><input id="sf_comm" name="self_comm" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:2;grid-row:3;"><label for="sf_own">Self · Ownership</label><input id="sf_own" name="self_own" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:2;grid-row:4;"><label for="sf_coll">Self · Collaboration</label><input id="sf_coll" name="self_coll" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:2;grid-row:5;"><label for="sf_adapt">Self · Adaptability</label><input id="sf_adapt" name="self_adapt" type="range" min="1" max="5" step="1" value="3"></div>
+
+          <!-- COLUMN: Manager -->
+          <div class="cell" style="grid-column:3;grid-row:2;"><label for="mg_comm">Manager · Communication</label><input id="mg_comm" name="mgr_comm" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:3;grid-row:3;"><label for="mg_own">Manager · Ownership</label><input id="mg_own" name="mgr_own" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:3;grid-row:4;"><label for="mg_coll">Manager · Collaboration</label><input id="mg_coll" name="mgr_coll" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:3;grid-row:5;"><label for="mg_adapt">Manager · Adaptability</label><input id="mg_adapt" name="mgr_adapt" type="range" min="1" max="5" step="1" value="3"></div>
+
+          <!-- COLUMN: Peer -->
+          <div class="cell" style="grid-column:4;grid-row:2;"><label for="pr_comm">Peer · Communication</label><input id="pr_comm" name="peer_comm" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:4;grid-row:3;"><label for="pr_own">Peer · Ownership</label><input id="pr_own" name="peer_own" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:4;grid-row:4;"><label for="pr_coll">Peer · Collaboration</label><input id="pr_coll" name="peer_coll" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:4;grid-row:5;"><label for="pr_adapt">Peer · Adaptability</label><input id="pr_adapt" name="peer_adapt" type="range" min="1" max="5" step="1" value="3"></div>
+
+          <!-- COLUMN: Direct report -->
+          <div class="cell" style="grid-column:5;grid-row:2;"><label for="dr_comm">Direct report · Communication</label><input id="dr_comm" name="dr_comm" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:5;grid-row:3;"><label for="dr_own">Direct report · Ownership</label><input id="dr_own" name="dr_own" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:5;grid-row:4;"><label for="dr_coll">Direct report · Collaboration</label><input id="dr_coll" name="dr_coll" type="range" min="1" max="5" step="1" value="3"></div>
+          <div class="cell" style="grid-column:5;grid-row:5;"><label for="dr_adapt">Direct report · Adaptability</label><input id="dr_adapt" name="dr_adapt" type="range" min="1" max="5" step="1" value="3"></div>
+        </div>
+        <p class="scalekey">Each slider: 1 = needs development, 3 = meets, 5 = exemplary.</p>
+      </fieldset>
+      <div class="actions">
+        <button type="submit">Submit ratings</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

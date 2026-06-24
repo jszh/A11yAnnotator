@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renew Vehicle Registration — Cascade County Services</title>
+<!--
+  ACCESSIBILITY DEFECT (SC 1.4.11 Non-text Contrast, Level AA) — present-but-wrong.
+  GEOMETRY ASPECT: an OUTER focus indicator (an outline drawn OUTSIDE the component) need
+  only contrast with the PAGE the component sits on — but it actually has to clear that page.
+
+  Two flat ghost buttons sit on the white (#fff) page. Neither has a fill or border in the
+  resting state (text-only controls), so their focus indicator is the ONLY visual signal of
+  focus, and it is drawn OUTSIDE the box as a 3px solid outline with offset.
+    - #btn-continue : outer outline is yellow #FFFF00.
+        vs white page = 1.07:1 -> the focused state is invisible. SC 1.4.11 FAIL.
+    - #btn-back     : outer outline is green #008000.
+        vs white page = 5.14:1 -> clearly perceivable. SC 1.4.11 PASS.
+  The geometry is the same for both (outer outline on a white page); the verdict turns only
+  on whether the outer indicator beats the PAGE colour.
+
+  WHY AUTOMATED TOOLS MISS IT: a focus indicator IS present and DOES change on focus, so
+  axe/WAVE/Lighthouse's focus-visible heuristics pass. None of them evaluate the contrast of
+  an author-supplied focus OUTLINE against the surface the component sits on — they have no
+  rule that picks "the page" as the adjacency for an outer indicator and computes 1.07:1.
+  The yellow outline even looks bright on a dark monitor preview, masking the failure.
+-->
+<style>
+  :root { --ink:#1c1c1c; }
+  body { font:16px/1.55 Georgia, "Times New Roman", serif; color:var(--ink);
+         background:#fff; margin:0; }
+  .gov-band { background:#13322b; color:#fff; font:600 .8rem/1 system-ui,sans-serif;
+              letter-spacing:.04em; padding:8px 24px; }
+  main { max-width:640px; margin:0 auto; padding:28px 24px 48px; }
+  h1 { font-size:1.5rem; margin:.2em 0 .1em; }
+  .lede { color:#3a3a3a; }
+  .card { border:1px solid #cfd6d2; border-radius:8px; padding:20px 22px; margin:22px 0; }
+  .card h2 { font:600 1.05rem/1.3 system-ui,sans-serif; margin:0 0 8px; }
+  .card p { margin:.3em 0; font-size:.95rem; }
+  .btnrow { display:flex; gap:18px; margin-top:26px; }
+
+  /* Flat, text-only "ghost" controls: no fill, no resting border. The ONLY focus signal
+     is an outer outline drawn OUTSIDE the box. */
+  .ghost {
+    appearance:none; cursor:pointer; background:transparent; border:0;
+    font:600 1rem/1 system-ui,sans-serif; color:#0b4f9c; padding:10px 4px;
+    text-decoration:underline; text-underline-offset:3px;
+  }
+  /* THE DEFECT vs the control: outer outline colour decides pass/fail against the white page. */
+  #btn-continue:focus { outline:3px solid #FFFF00; outline-offset:4px; } /* yellow vs #fff = 1.07:1 FAIL */
+  #btn-back:focus     { outline:3px solid #008000; outline-offset:4px; } /* green  vs #fff = 5.14:1 PASS */
+
+  .help { color:#555; font-size:.85rem; margin-top:30px; }
+</style>
+</head>
+<body>
+<div class="gov-band">CASCADE COUNTY · DEPARTMENT OF LICENSING</div>
+<main>
+  <h1>Renew vehicle registration</h1>
+  <p class="lede">Step 3 of 4 — review your vehicle and choose how to proceed.</p>
+
+  <div class="card">
+    <h2>2018 Subaru Outback · Plate 4FCV-209</h2>
+    <p>Registered owner: Dana M. Ellsworth</p>
+    <p>Renewal period: 1 Jul 2026 – 30 Jun 2027</p>
+    <p>Fees due: $98.50 (includes $5.00 county road levy)</p>
+  </div>
+
+  <div class="btnrow">
+    <button id="btn-back" class="ghost" type="button">Back to vehicle details</button>
+    <button id="btn-continue" class="ghost" type="submit">Continue to payment</button>
+  </div>
+
+  <p class="help">Use the Tab key to move between the two links above before continuing.</p>
+</main>
+</body>
+</html>

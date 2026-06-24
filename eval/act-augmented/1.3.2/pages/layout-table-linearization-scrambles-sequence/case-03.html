@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bean &amp; Leaf — Member Coupon</title>
+<style>
+  body { font-family: "Trebuchet MS", Verdana, sans-serif; background: #efe7db; margin: 0;
+         color: #2b2118; }
+  .coupon-wrap { max-width: 560px; margin: 40px auto; }
+  table.coupon { border-collapse: collapse; width: 100%; background: #fff8ef;
+     border: 3px dashed #7a5230; }
+  table.coupon td { width: 50%; padding: 24px 20px; vertical-align: middle; text-align: center; }
+  /* Two coupon "stamps" side by side; each stamp is a vertical stack the eye reads
+     TOP-TO-BOTTOM. Left stamp = the offer ("Buy one" over "get one free"); right
+     stamp = the redemption ("$10 espresso flight" over "with code SAVE25"). A divider
+     between the columns reinforces "read each stamp down its own column." */
+  td.left  { border-right: 3px dashed #7a5230; }
+  .big   { font-size: 32px; font-weight: 800; color: #7a5230; line-height: 1.1; }
+  .big2  { font-size: 32px; font-weight: 800; color: #b5651d; line-height: 1.1; }
+  .med   { font-size: 20px; color: #2b2118; line-height: 1.2; }
+  .code { background: #2b2118; color: #ffd9a0; padding: 2px 8px; border-radius: 3px;
+          font-family: monospace; letter-spacing: 1px; }
+  h1 { text-align: center; color: #7a5230; }
+  .stamp-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+                 color: #a98b5f; margin-bottom: 8px; }
+  .fine { text-align: center; font-size: 12px; color: #6b5a48; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <div class="coupon-wrap">
+    <h1>Bean &amp; Leaf Rewards</h1>
+
+    <!--
+      LAYOUT TABLE (no <th>, no scope, no data relationships — a 2-column visual grid
+      of two coupon "stamps"). The dashed divider and the stacked typography tell the
+      eye to read DOWN each column (each stamp), not across the rows:
+
+          LEFT STAMP (read down)        RIGHT STAMP (read down)
+          ----------------------        -----------------------
+          Buy one                       $10 espresso flight
+          get one free                  with code SAVE25
+
+      Visual / intended sequence (column-major):
+          "Buy one  ->  get one free  ->  $10 espresso flight  ->  with code SAVE25"
+          = "Buy one, get one free — $10 espresso flight with code SAVE25."  Coherent.
+
+      But the table is encoded ROW-MAJOR, so the linearized cell stream is:
+          (r1c1) Buy one  (r1c2) $10 espresso flight
+          (r2c1) get one free  (r2c2) with code SAVE25
+          ->  "Buy one  $10 espresso flight  get one free  with code SAVE25"
+      The headline offer "Buy one / get one free" is torn apart, the price line
+      "$10 espresso flight" is announced between the two halves of the promise, and
+      "get one free" lands far from "Buy one." The redemption code is severed from
+      its price. Read aloud this is gibberish as an offer.
+    -->
+    <table class="coupon" role="presentation">
+      <tr>
+        <td class="left">
+          <div class="stamp-label">The deal</div>
+          <div class="big">Buy&nbsp;one</div>
+        </td>
+        <td>
+          <div class="stamp-label">How to redeem</div>
+          <div class="med">$10 espresso flight</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="left">
+          <div class="big2">get one free</div>
+        </td>
+        <td>
+          <div class="med">with code <span class="code">SAVE25</span></div>
+        </td>
+      </tr>
+    </table>
+
+    <p class="fine">Valid through May 31, 2026 at participating Bean &amp; Leaf cafés. One per member.</p>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    All four cells have plain visible text, the table is role="presentation", nothing
+    is empty or mislabeled, the 2x2 grid is valid HTML. The divider + stacked layout
+    establish a COLUMN-MAJOR intended reading the eye follows, but a screen reader
+    linearizes ROW-MAJOR. No automated tool reconstructs the intended visual reading
+    order, nor judges that "Buy one $10 espresso flight get one free with code SAVE25"
+    has stopped being a coherent offer. That is a human semantic + visual judgment.
+  -->
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aperture — Plans &amp; Pricing</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Inter", system-ui, -apple-system, sans-serif;
+         background: #f6f7f9; color: #16181d; }
+  .wrap { max-width: 1040px; margin: 56px auto; padding: 0 24px; }
+  .lede { text-align: center; margin-bottom: 40px; }
+  .lede h1 { font-size: 30px; margin: 0 0 8px; }
+  .lede p  { color: #51555e; font-size: 16px; margin: 0; }   /* #51555e on #f6f7f9 ≈ 7.4:1, passes */
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .card { background: #ffffff; border: 1px solid #e4e7ec; border-radius: 14px;
+          padding: 30px 26px; }
+  .card.featured { border-color: #6b4eff; box-shadow: 0 8px 26px rgba(107,78,255,.16); }
+  .plan { font-size: 14px; font-weight: 700; letter-spacing: .04em;
+          text-transform: uppercase; color: #6b4eff; margin: 0 0 14px; }
+
+  /* The price row. The currency unit and "/mo" are dark and pass.
+     The NUMBER itself is set to a pale gray "accent" — the only place the
+     actual price magnitude is shown. #a3a3a3 on #fff = 2.52:1. */
+  .price { display: flex; align-items: baseline; gap: 2px; margin: 0 0 6px; }
+  .price .cur  { font-size: 26px; font-weight: 700; color: #16181d; }
+  .price .num  { font-size: 56px; font-weight: 800; color: #a3a3a3; line-height: 1; }
+  .price .per  { font-size: 15px; color: #16181d; margin-left: 6px; }
+  .billed { font-size: 13px; color: #6c7079; margin: 0 0 22px; }  /* passes */
+
+  ul.feat { list-style: none; padding: 0; margin: 0 0 26px; }
+  ul.feat li { font-size: 14px; color: #2a2d34; padding: 7px 0 7px 26px; position: relative; }
+  ul.feat li::before { content: "✓"; position: absolute; left: 0; color: #2f9e6b; font-weight: 700; }
+  .choose { display: block; width: 100%; text-align: center; text-decoration: none;
+            background: #6b4eff; color: #fff; font-weight: 700; padding: 12px;
+            border-radius: 8px; }
+  .choose.ghost { background: #fff; color: #6b4eff; border: 1px solid #6b4eff; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="lede">
+      <h1>Simple, transparent pricing</h1>
+      <p>Switch plans or cancel anytime. All prices in USD.</p>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <p class="plan">Starter</p>
+        <p class="price"><span class="cur">$</span><span class="num">19</span><span class="per">/mo</span></p>
+        <p class="billed">Billed monthly</p>
+        <ul class="feat">
+          <li>3 projects</li>
+          <li>2 GB storage</li>
+          <li>Community support</li>
+        </ul>
+        <a class="choose ghost" href="/signup?plan=starter">Choose Starter</a>
+      </section>
+
+      <section class="card featured">
+        <p class="plan">Growth</p>
+        <p class="price"><span class="cur">$</span><span class="num">49</span><span class="per">/mo</span></p>
+        <p class="billed">Billed monthly &middot; most popular</p>
+        <ul class="feat">
+          <li>Unlimited projects</li>
+          <li>100 GB storage</li>
+          <li>Priority email support</li>
+          <li>Advanced analytics</li>
+        </ul>
+        <a class="choose" href="/signup?plan=growth">Choose Growth</a>
+      </section>
+
+      <section class="card">
+        <p class="plan">Scale</p>
+        <p class="price"><span class="cur">$</span><span class="num">99</span><span class="per">/mo</span></p>
+        <p class="billed">Billed monthly</p>
+        <ul class="feat">
+          <li>Unlimited everything</li>
+          <li>1 TB storage</li>
+          <li>Dedicated success manager</li>
+          <li>SSO &amp; audit logs</li>
+        </ul>
+        <a class="choose ghost" href="/signup?plan=scale">Choose Scale</a>
+      </section>
+    </div>
+  </div>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    The price NUMBER ($19 / $49 / $99) is the single most decision-critical piece of
+    information on a pricing page, yet it is the ONLY element styled below contrast
+    (#a3a3a3 on #fff = 2.52:1). Surrounding small text — the "$" sign, "/mo", "Billed
+    monthly", feature list — is dark and PASSES. A naive scanner that samples a few text
+    nodes can find plenty of passing text and many scanners DOWN-WEIGHT large text (the
+    56px number qualifies as large-scale, 3:1 threshold) — but 2.52:1 fails even the 3:1
+    large-text bar, and more importantly NO tool can tell that this faint "accent" is in
+    fact core information that the designer wrongly rationalized as decorative. A human must
+    recognize the number is the price (meaning that cannot be substituted) and rule it
+    in-scope. That meaning judgment is the gap.
+  -->
+</body>
+</html>

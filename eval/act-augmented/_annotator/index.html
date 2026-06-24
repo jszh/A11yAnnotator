@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACT-Augmented Annotator</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#0d1117; --line:#30363d; --line2:#21262d;
+    --text:#c9d1d9; --dim:#8b949e; --dim2:#6e7681; --accent:#58a6ff; --accent-bg:#1f6feb;
+    --green:#3fb950; --amber:#d29922; --red:#f85149; --purple:#bc8cff;
+  }
+  html,body{height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;overflow:hidden;font-size:13px;}
+  button{font-family:inherit;}
+  .btn{border-radius:6px;padding:5px 11px;font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .12s,border-color .12s;border:1px solid var(--line);background:#21262d;color:var(--text);}
+  .btn:hover:not(:disabled){background:#30363d;}
+  .btn:disabled{color:#484f58;cursor:not-allowed;opacity:.7;}
+  .btn.primary{background:var(--accent-bg);border-color:#388bfd;color:#fff;}
+  .btn.primary:hover:not(:disabled){background:#388bfd;}
+  .btn.active{background:#0d2a47;color:var(--accent);border-color:var(--accent-bg);}
+  .btn.sm{padding:3px 8px;font-size:11px;}
+
+  /* ---- top bar ---- */
+  #topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:0 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;height:46px;}
+  .brand{font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;}
+  .brand small{color:var(--dim2);font-weight:500;}
+  #progWrap{display:flex;align-items:center;gap:8px;min-width:220px;flex:0 1 360px;}
+  #progBar{flex:1;height:8px;background:#21262d;border-radius:5px;overflow:hidden;border:1px solid var(--line2);}
+  #progFill{height:100%;width:0;background:linear-gradient(90deg,#1f6feb,#3fb950);transition:width .25s;}
+  #progText{font-size:11px;color:var(--dim);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  #progText b{color:var(--green);}
+  .spacer{flex:1;}
+  #fileName{font-size:11px;color:var(--dim2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* ---- main ---- */
+  #main{display:flex;flex:1;min-height:0;}
+
+  /* ---- queue drawer ---- */
+  #queue{width:280px;flex-shrink:0;background:var(--panel2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;transition:margin-left .18s;}
+  #queue.collapsed{margin-left:-280px;}
+  #queueHead{padding:8px 10px;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;}
+  #queueList{flex:1;overflow-y:auto;padding:4px 0;}
+  .qsc{padding:6px 10px 3px;font-size:11px;font-weight:700;color:var(--accent);position:sticky;top:0;background:var(--panel2);border-bottom:1px solid var(--line2);cursor:pointer;display:flex;gap:6px;align-items:center;}
+  .qsc .lvl{font-size:9px;background:#21262d;border:1px solid var(--line);border-radius:3px;padding:0 4px;color:var(--dim);}
+  .qsc .cnt{margin-left:auto;color:var(--dim2);font-weight:500;}
+  .qasp{padding:4px 10px 2px 16px;font-size:11px;color:var(--dim);font-weight:600;}
+  .qcase{padding:3px 10px 3px 22px;font-size:11px;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:7px;border-left:2px solid transparent;}
+  .qcase:hover{background:#161b22;}
+  .qcase.current{background:#0d2a47;border-left-color:var(--accent);}
+  .qcase .dot{width:8px;height:8px;border-radius:50%;background:#30363d;flex-shrink:0;}
+  .qcase .dot.done{background:var(--green);}
+  .qcase .dot.comment{background:var(--amber);}
+  .qcase .dot.seen{background:#484f58;}
+  .qcase .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* ---- center (page) ---- */
+  #center{flex:1.3;display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--line);}
+  #caseBar{background:var(--panel);border-bottom:1px solid var(--line);padding:6px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+  .crumb{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px;min-width:0;}
+  .crumb b{color:var(--text);}
+  .crumb .sc{color:var(--accent);font-weight:700;}
+  .crumb .sep{color:var(--dim2);}
+  #stage{flex:1;position:relative;overflow:hidden;background:#fff;min-height:0;}
+  #frame{position:absolute;inset:0;width:100%;height:100%;border:none;background:#fff;}
+  #overlay{position:absolute;inset:0;pointer-events:none;z-index:5;}
+  #dimSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .hl{position:absolute;border:2px solid #ff3860;border-radius:2px;box-shadow:0 0 0 2px rgba(255,56,96,.35);background:rgba(255,56,96,.10);}
+  .hl .tag{position:absolute;top:-18px;left:-2px;background:#ff3860;color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;}
+  #hlMsg{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:#161b22;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-size:12px;z-index:8;display:none;box-shadow:0 4px 14px rgba(0,0,0,.5);}
+  #fileGuard{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--bg);color:var(--dim);text-align:center;padding:30px;z-index:20;}
+
+  /* virtual screen reader dock (page 2 only) */
+  #srDock{display:none;flex-direction:column;border-top:1px solid var(--line);background:var(--panel);flex-shrink:0;height:34%;min-height:160px;}
+  #srSplit{display:flex;gap:1px;background:var(--line);flex:1;min-height:0;}
+  #srLeft,#srRight{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--panel);min-height:0;}
+  .paneHead{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.04em;padding:6px 10px;border-bottom:1px solid var(--line2);flex-shrink:0;}
+  .paneHead .srState{margin-left:auto;text-transform:none;font-weight:500;}
+  .paneHead .btn.sm{padding:0 8px;line-height:20px;}
+  .srState{font-size:11px;color:var(--dim2);}
+  .srState.on{color:var(--green);} .srState.err{color:var(--amber);}
+  /* element inspector (right pane, ported from the original annotator) */
+  #selStatus{font-size:11px;color:var(--dim2);padding:6px 10px 2px;flex-shrink:0;}
+  #selStatus.active{color:var(--accent);}
+  .sel-tag{background:#1f2937;border:1px solid #374151;border-radius:4px;padding:1px 6px;font-family:'SF Mono',monospace;font-size:10px;color:#93c5fd;}
+  #elemProps{display:flex;flex-direction:column;gap:2px;padding:4px 10px 8px;overflow-y:auto;flex:1;min-height:0;}
+  #elemProps:empty{display:none;}
+  .ep-k{font-size:9px;font-weight:600;color:#6e7681;text-transform:uppercase;letter-spacing:.05em;}
+  .ep-v{font-size:10px;font-family:'SF Mono','Fira Code',monospace;background:#21262d;border:1px solid #30363d;border-radius:3px;padding:1px 6px;color:#c9d1d9;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ep-v.yes{color:#4ade80;background:#0d2b0d;border-color:#166534;}
+  .ep-v.no{color:#f87171;background:#2d0f0f;border-color:#5b2020;}
+  .ep-v.warn{color:#fbbf24;background:#2d1f00;border-color:#78450a;}
+  .ep-v.scanning{color:#a5b4fc;background:#1e1b4b;border-color:#4338ca;}
+  .ep-row{display:flex;align-items:center;gap:5px;width:100%;padding:2px 0;flex-wrap:wrap;}
+  .ep-chk{font-size:12px;font-weight:700;flex-shrink:0;line-height:1;}
+  .ep-chk.yes{color:#4ade80;} .ep-chk.no{color:#f87171;} .ep-chk.warn{color:#fbbf24;} .ep-chk.scanning{color:#a5b4fc;}
+  .ep-v.ep-fill{flex:1;min-width:0;max-width:none;white-space:normal;}
+  .ep-v.ep-speech{flex:1;min-width:0;max-width:none;white-space:normal;line-height:1.5;}
+  .ep-dim{opacity:.45;}
+  #inspNav{display:flex;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line2);flex-shrink:0;}
+  #srTranscript{overflow-y:auto;padding:6px 12px 12px;flex:1;font-size:13px;line-height:1.5;min-height:0;}
+  #srTranscript .srRow{padding:4px 0;border-bottom:1px solid var(--line2);color:#d8e0ea;word-break:break-word;display:flex;gap:9px;align-items:baseline;}
+  #srTranscript .srRow .cmd{flex-shrink:0;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--dim2);min-width:42px;padding-top:2px;}
+  #srTranscript .srRow.target .cmd{color:var(--green);}
+  #srTranscript .srRow.focus .cmd{color:#79c0ff;}
+  #srTranscript .srRow.click .cmd{color:var(--purple);}
+  #srTranscript .srRow.live{background:rgba(210,153,34,.07);border-radius:4px;}
+  #srTranscript .srRow.live .cmd{color:var(--amber);}
+  #srTranscript .srRow.live.alert .cmd{color:var(--red);}
+  #srTranscript .srRow.live .ph{color:#f0d49a;}
+  #srTranscript .srRow .ph .role{color:#79c0ff;font-weight:600;}
+  #srTranscript .srRow .ph.silent{color:var(--dim2);font-style:italic;}
+  #srTranscript .srEmpty{color:var(--dim);font-style:italic;font-size:12.5px;}
+
+  /* ---- right (inspect + assess) ---- */
+  #right{flex:1.05;min-width:380px;max-width:600px;display:flex;flex-direction:column;min-height:0;background:var(--bg);}
+  #rightScroll{flex:1;overflow-y:auto;padding:0 0 14px;display:flex;flex-direction:column;}
+  .sect{border-bottom:1px solid var(--line2);}
+  .sect > summary,.sectHead{list-style:none;cursor:pointer;padding:10px 15px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#9aa6b2;user-select:none;background:var(--panel);}
+  .sect > summary::-webkit-details-marker{display:none;}
+  .sect > summary::before{content:'▸';color:var(--dim2);font-size:10px;transition:transform .12s;}
+  .sect[open] > summary::before{transform:rotate(90deg);}
+  .sect .body{padding:10px 14px 14px;font-size:13px;line-height:1.55;}
+  .badge{font-size:9px;border-radius:3px;padding:1px 5px;font-weight:700;letter-spacing:.03em;}
+  .badge.tt{background:#0d2a17;color:var(--green);border:1px solid #1d4a2e;}
+  .badge.en{background:#2a210d;color:var(--amber);border:1px solid #4a3a1d;}
+
+  .plain{font-size:15.5px;line-height:1.62;color:#e6edf3;background:#0d2a47;border:1px solid #1f4f7a;border-radius:8px;padding:13px 15px;}
+  .mech{font-size:14.5px;line-height:1.62;color:var(--text);background:#161b22;border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+  #right.step1 .mech{font-size:15.5px;}
+  .selrow{font-size:12px;color:var(--dim2);margin-top:9px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;}
+  .whymiss{font-size:14px;color:#b3bdc9;line-height:1.62;}
+
+  /* markdown render */
+  .md{font-size:14.5px;line-height:1.66;color:#d8e0ea;max-height:48vh;overflow-y:auto;border:1px solid var(--line2);border-radius:6px;padding:13px 16px;background:#0d1117;}
+  .md.expanded{max-height:none;}
+  .md h1,.md h2,.md h3,.md h4{color:var(--accent);margin:13px 0 6px;line-height:1.32;}
+  .md h1{font-size:17.5px;} .md h2{font-size:16px;} .md h3{font-size:14.6px;color:#86c5ff;} .md h4{font-size:14px;color:#a7b6c6;}
+  .md p{margin:7px 0;} .md ul,.md ol{margin:7px 0 7px 20px;} .md li{margin:3px 0;}
+  .md code{background:#283039;border-radius:3px;padding:1px 5px;font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#ffb78a;}
+  .md strong{color:#f3f7fb;} .md em{color:#bcc6d1;}
+  .md blockquote{border-left:3px solid #3b434d;padding-left:12px;margin:8px 0;color:#b3bdc9;}
+  .md hr{border:none;border-top:1px solid var(--line2);margin:11px 0;}
+  .md table{border-collapse:collapse;margin:8px 0;width:100%;font-size:13px;}
+  .md th,.md td{border:1px solid var(--line2);padding:5px 8px;text-align:left;vertical-align:top;}
+  .md th{background:#1c232b;color:#b3bdc9;}
+  .md a{color:var(--accent);}
+  .mdToggle{font-size:11px;color:var(--accent);cursor:pointer;margin-top:6px;display:inline-block;}
+  .ttHint{font-size:13.5px;color:#56d364;margin-bottom:9px;line-height:1.5;}
+  .ttHint.amber{color:#e3b341;}
+  .ttHint .why{color:#b3bdc9;}
+  .md.ttsec{max-height:none;margin-bottom:8px;}
+  .fullToggle{display:inline-block;margin-top:8px;font-size:12px;color:var(--accent);cursor:pointer;user-select:none;}
+  .md.fullDoc{margin-top:6px;max-height:48vh;}
+
+  /* assessment form */
+  #assess{background:var(--panel);border-top:1px solid var(--line);padding:12px 14px;flex-shrink:0;}
+  .q{margin-bottom:12px;}
+  .q .qlabel{font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:7px;display:block;line-height:1.45;}
+  .q .qlabel .hint{font-weight:400;color:var(--dim2);font-size:12px;}
+  .opts{display:flex;gap:8px;flex-wrap:wrap;}
+  .opt{flex:1;min-width:80px;border:1px solid var(--line);border-radius:7px;padding:9px 6px;text-align:center;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text);background:#0d1117;transition:.12s;user-select:none;}
+  .opt:hover{border-color:var(--dim);}
+  .opt.sel{border-width:2px;padding:7px 5px;}
+  .opt.sel.yes,.opt.sel.comment{border-color:var(--amber);background:#2a210d;color:#f0c674;}
+  .opt.sel.no,.opt.sel.approve{border-color:var(--green);background:#0d2a17;color:#7ee787;}
+  .reasonWrap{margin-top:10px;display:none;}
+  .reasonWrap.show{display:block;}
+  .reasons{display:flex;flex-direction:column;gap:5px;}
+  .reason{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:#0d1117;}
+  .reason.sel{border-color:var(--amber);background:#1c1810;}
+  .reason input{accent-color:var(--amber);}
+  #commentText{width:100%;margin-top:8px;background:#0d1117;border:1px solid var(--line);border-radius:6px;color:var(--text);padding:9px;font-size:13.5px;font-family:inherit;resize:vertical;min-height:56px;}
+  #assessFoot1,#assessFoot2,#assessFootP{display:flex;align-items:center;gap:8px;margin-top:6px;}
+  .ssline{font-size:11px;color:var(--dim2);flex:1;}
+  .ssline.saved{color:var(--green);}
+  /* practice mode (ACT calibration cases) */
+  #practiceBanner{display:none;align-items:center;gap:10px;padding:9px 14px;background:#0d2a47;border-bottom:1px solid var(--accent-bg);color:var(--text);font-size:13px;line-height:1.45;}
+  #practiceBanner b{color:#fff;}
+  #right.practice #stepBar,#right.practice #segMech,#right.practice #segWhy{display:none!important;}
+  #right.practice .apractice{display:block;}
+  .pRule{font-weight:700;color:var(--text);font-size:14.5px;margin-bottom:6px;}
+  .pFeedback{margin:10px 0 4px;padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.5;border:1px solid var(--line);}
+  .pFeedback.correct{border-color:#1d4a2e;background:#0d2a17;}
+  .pFeedback.incorrect{border-color:#5a2120;background:#2a0f0f;}
+  .pFeedback .pfHead{font-weight:700;margin-bottom:3px;}
+  .pFeedback.correct .pfHead{color:#7ee787;}
+  .pFeedback.incorrect .pfHead{color:#f0a0a0;}
+  .pFeedback .pfBody{color:var(--text);font-weight:400;}
+  .pFeedback .pfBody b{color:#fff;} .pFeedback .pfBody a{color:var(--accent);}
+
+  /* three-page flow */
+  #stepBar{display:flex;align-items:center;gap:7px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line2);flex-shrink:0;}
+  .stepPill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;border:1px solid var(--line);color:var(--dim2);background:#0d1117;white-space:nowrap;}
+  .stepArrow{color:var(--dim2);font-size:11px;}
+  #right.step1 .stepPill[data-s="1"],#right.step2 .stepPill[data-s="2"]{color:var(--accent);border-color:var(--accent-bg);background:#0d2a47;}
+  .astep{display:none;}
+  #right.step1 .a1,#right.step2 .a2{display:block;}
+  .stepHint{font-size:13.5px;color:#aab4bf;line-height:1.55;margin-bottom:10px;}
+  /* aspect title used as the mechanism segment's header */
+  .mechHead{padding:10px 15px;font-size:14px;font-weight:700;line-height:1.4;color:#e6edf3;background:var(--panel);border-bottom:1px solid var(--line2);}
+
+  .empty{padding:40px;text-align:center;color:var(--dim);}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal.show{display:flex;}
+  .modalBox{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;max-width:520px;width:90%;max-height:80vh;overflow:auto;box-shadow:0 12px 40px rgba(0,0,0,.6);}
+  .modalBox h3{font-size:14px;margin-bottom:10px;color:var(--text);}
+  .modalBox p,.modalBox li{font-size:12px;color:var(--dim);line-height:1.6;}
+  .modalBox code{background:#0d1117;border:1px solid var(--line2);border-radius:3px;padding:1px 5px;font-family:ui-monospace,Menlo,monospace;color:#ffa657;font-size:11px;}
+  .modalBox pre{background:#0d1117;border:1px solid var(--line2);border-radius:6px;padding:10px;overflow:auto;margin:8px 0;font-size:11px;}
+  .modalBox label{display:block;font-size:12px;margin:10px 0 4px;color:var(--text);}
+  .modalBox input[type=text]{width:100%;background:#0d1117;border:1px solid var(--line);border-radius:6px;color:var(--text);padding:7px;font-size:12px;}
+  .modalFoot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <span class="brand">ACT-Aug Annotator <small>· human judgment</small></span>
+  <button class="btn sm" id="queueToggle" title="Show / hide case list">☰ Cases</button>
+  <div id="progWrap">
+    <div id="progBar"><div id="progFill"></div></div>
+    <span id="progText">– / –</span>
+  </div>
+  <div class="spacer"></div>
+  <span id="fileName"></span>
+  <input type="file" id="filterInput" accept="application/json,.json" style="display:none">
+  <button class="btn sm" id="filterBtn" title="Load a JSON file that limits which pages to annotate">⛶ Filter</button>
+  <button class="btn sm" id="filterClear" title="Clear filter (annotate all pages)" style="display:none">✕ Clear filter</button>
+  <button class="btn sm" id="settingsBtn" title="Annotator name & info">⚙</button>
+  <button class="btn sm primary" id="exportBtn" title="Download all annotations + logs as JSON">⬇ Export</button>
+</div>
+
+<div id="main">
+  <!-- case queue -->
+  <aside id="queue">
+    <div id="queueHead"><span>Annotation queue</span><span class="cnt" id="queueCount"></span></div>
+    <div id="queueList"></div>
+  </aside>
+
+  <!-- page view -->
+  <section id="center">
+    <div id="practiceBanner">
+      <span id="pbText"></span>
+      <span class="spacer"></span>
+      <button class="btn sm" id="pbSkip" style="display:none">Skip practice →</button>
+    </div>
+    <div id="caseBar">
+      <div class="crumb" id="crumb"></div>
+      <div class="spacer"></div>
+      <button class="btn sm" id="prevBtn" title="Previous case">‹ Prev</button>
+      <button class="btn sm" id="nextBtn" title="Next case">Next ›</button>
+      <button class="btn sm" id="hlBtn" title="Toggle highlight around the target element (overlay, does not modify the page)">◎ Highlight target</button>
+      <button class="btn sm" id="andiBtn" title="Launch ANDI (Accessible Name &amp; Description Inspector) inside the page view — needs internet (ssa.gov)">⟐ ANDI</button>
+      <button class="btn sm" id="contrastBtn" title="Open the target's text + background colours in the WebAIM contrast checker (new tab)">◑ Contrast</button>
+      <button class="btn sm" id="tabBtn" title="Open this page in a new tab and launch ANDI there">↗ Open in tab</button>
+    </div>
+    <div id="stage">
+      <iframe id="frame" title="Test page under inspection"></iframe>
+      <div id="overlay"></div>
+      <div id="hlMsg"></div>
+      <div id="fileGuard">
+        <div style="font-size:32px">⚠️</div>
+        <div style="font-size:15px;color:var(--text);font-weight:600">Open this tool through the local server</div>
+        <div style="max-width:460px;line-height:1.6">
+          The highlight overlay needs the test pages to be same-origin. Start the server with
+          <code style="color:#ffa657">npm start</code> and open
+          <code style="color:#ffa657">http://localhost:3001/eval/act-augmented/_annotator/index.html</code><br>
+          (currently loaded over <code id="curProto"></code>).
+        </div>
+      </div>
+    </div>
+    <!-- screen-reader transcript (left) + element inspector (right); shown on page 1 -->
+    <div id="srDock">
+      <div id="srSplit">
+        <div id="srLeft">
+          <div class="paneHead">🔊 Transcript
+            <span id="srState" class="srState"></span>
+            <button class="btn sm" id="srClear" title="Clear the transcript">✕</button>
+          </div>
+          <div id="srTranscript"><div class="srEmpty">Click an element in the page (or use ◀ / ▶ in the inspector) to read it. Live-region announcements are logged too.</div></div>
+        </div>
+        <div id="srRight">
+          <div class="paneHead">🔎 Element inspector</div>
+          <div id="inspNav">
+            <button class="btn sm" id="srPrev" disabled title="Read previous item">◀ Prev</button>
+            <button class="btn sm" id="srNext" disabled title="Read next item">Next ▶</button>
+            <button class="btn sm" id="srClick" disabled title="Activate (click) the current element">● Click</button>
+          </div>
+          <div id="selStatus">Click an element in the page to inspect it.</div>
+          <div id="elemProps"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- inspect + assess (two pages) -->
+  <section id="right" class="step1">
+    <div id="stepBar">
+      <span class="stepPill" data-s="1">1 · Apply the test</span>
+      <span class="stepArrow">→</span>
+      <span class="stepPill" data-s="2">2 · Decide</span>
+    </div>
+    <div id="rightScroll">
+      <!-- segments are shown / ordered per page by applyStepLayout() -->
+      <div class="seg sect" id="segWhat">
+        <div class="sectHead">What this checks</div>
+        <div class="body" style="padding-top:0">
+          <div class="plain" id="plainBox">—</div>
+        </div>
+      </div>
+      <div class="seg sect" id="segMech">
+        <div class="mechHead" id="mechHead">—</div>
+        <div class="body" style="padding-top:0">
+          <div class="mech" id="mechBox">—</div>
+          <div class="selrow" id="selBox"></div>
+        </div>
+      </div>
+      <details class="seg sect" id="segMethod">
+        <summary>How to test it <span class="badge" id="methodBadge"></span></summary>
+        <div class="body"><div id="methodHost"><div style="color:var(--dim)">—</div></div></div>
+      </details>
+      <details class="seg sect" id="segWhy">
+        <summary>Why automated tools miss it</summary>
+        <div class="body"><div class="whymiss" id="whyMissBox">—</div></div>
+      </details>
+    </div>
+
+    <!-- assessment -->
+    <div id="assess">
+      <!-- PAGE 1: apply the test + Q1 -->
+      <div class="astep a1">
+        <div class="q">
+          <label class="qlabel">1. Does an accessibility issue actually exist on this page? <span class="hint">(your own judgment, applying the test)</span></label>
+          <div class="opts" id="issueOpts">
+            <div class="opt yes" data-v="yes">⚠ Yes, issue exists</div>
+            <div class="opt no" data-v="no">✓ No issue</div>
+          </div>
+        </div>
+        <div id="assessFoot1">
+          <span id="saveState2" class="ssline">—</span>
+          <button class="btn" id="skip1">Skip →</button>
+          <button class="btn primary" id="toDecide" disabled>Decide →</button>
+        </div>
+      </div>
+      <!-- PAGE 2: decide + Q2 -->
+      <div class="astep a2">
+        <div class="q">
+          <label class="qlabel">2. Do you approve this case as described, or comment?</label>
+          <div class="opts" id="dispOpts">
+            <div class="opt approve" data-v="approve">✓ Approve case</div>
+            <div class="opt comment" data-v="comment">✎ Comment</div>
+          </div>
+          <div class="reasonWrap" id="reasonWrap">
+            <div class="reasons" id="reasonOpts">
+              <label class="reason" data-v="no-error"><input type="radio" name="reason"> There is no error here</label>
+              <label class="reason" data-v="other-error"><input type="radio" name="reason"> There is a different type of error</label>
+              <label class="reason" data-v="page-issue"><input type="radio" name="reason"> Problem with the page itself (broken / won't render)</label>
+              <label class="reason" data-v="other"><input type="radio" name="reason"> Other reason</label>
+            </div>
+            <textarea id="commentText" placeholder="Add a comment (optional, but encouraged)…"></textarea>
+          </div>
+        </div>
+        <div id="assessFoot2">
+          <button class="btn" id="backToTest">← Back</button>
+          <span id="saveState" class="ssline">—</span>
+          <button class="btn" id="skip2">Skip →</button>
+          <button class="btn primary" id="saveBtn">Save &amp; next →</button>
+        </div>
+      </div>
+      <!-- PRACTICE: single Q1 + ground-truth feedback (ACT calibration cases) -->
+      <div class="astep apractice">
+        <div class="q">
+          <label class="qlabel">Does an accessibility issue actually exist on this page? <span class="hint">(apply the test, then judge — this practice case has a known answer)</span></label>
+          <div class="opts" id="pIssueOpts">
+            <div class="opt yes" data-v="yes">⚠ Yes, issue exists</div>
+            <div class="opt no" data-v="no">✓ No issue</div>
+          </div>
+        </div>
+        <div id="pFeedback" class="pFeedback" style="display:none"></div>
+        <div id="assessFootP">
+          <button class="btn" id="pPrev">← Prev</button>
+          <span class="spacer"></span>
+          <button class="btn primary" id="pNext" disabled>Next →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- settings / help modal -->
+<div class="modal" id="settingsModal">
+  <div class="modalBox">
+    <h3>Annotator settings &amp; info</h3>
+    <label for="annName">Your name / id (recorded in the log &amp; export)</label>
+    <input type="text" id="annName" placeholder="e.g. jason">
+    <h3 style="margin-top:16px;font-size:13px">Optional page-filter JSON</h3>
+    <p>Load a JSON file (⛶ Filter) to restrict which pages appear. Any of these shapes work:</p>
+    <pre>// a) array of selectors (string or object)
+["1.1.1", "1.4.3/contrast-from-gradient", "2.4.4/link-purpose/case-02"]
+
+// b) array of objects
+[{"sc":"1.1.1"}, {"sc":"2.4.4","aspect":"link-purpose"},
+ {"sc":"2.4.4","aspect":"link-purpose","caseId":"case-02"}]
+
+// c) wrapped
+{"include": ["1.1.1", {"sc":"4.1.2"}]}
+
+// d) seeded order + work-split slice (deterministic)
+{"include": ["1.1.1","1.4.1"], "seed": 42, "slice": {"ranges": [[0, 0.5]]}}</pre>
+    <p>A selector with only an SC includes every page of that SC; SC+aspect includes the
+       whole aspect; SC+aspect+caseId includes one page. Default (no file) = all pages.
+       <b>seed</b> shuffles SC/aspect/case order deterministically; <b>slice.ranges</b> keeps
+       fractional ranges of that order (for splitting work across annotators — see splits/).</p>
+    <p style="margin-top:10px">Annotations + the inspection log autosave to this browser's localStorage; Export downloads everything as JSON.</p>
+    <div class="modalFoot">
+      <button class="btn" id="settingsClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const LS_KEY = 'act-aug-annotations/v1';
+const MAX_LOGS = 8000;
+
+const state = {
+  manifest:null, cases:[], filtered:[], idx:0,
+  store:{annotations:{}, logs:[], meta:{}, practice:{}},
+  highlightOn:false, rafId:0, hlBoxes:[], mdCache:{}, mdParseCache:{}, caseOpenedAt:0, step:1, srActive:false,
+  filterName:null,
+  mode:'annotate', practiceData:null, practiceAll:[], forcePractice:false,
+  curPageUrl:null, curSelXpath:null,
+};
+
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nowISO = ()=>new Date().toISOString();
+
+/* ---------------- persistence ---------------- */
+function loadStore(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ const o = JSON.parse(raw); state.store = Object.assign({annotations:{},logs:[],meta:{},practice:{}}, o); }
+  }catch(e){ console.warn('store load failed', e); }
+  if(!state.store.practice) state.store.practice = {};
+  if(!state.store.meta.startedAt) state.store.meta.startedAt = nowISO();
+}
+let saveTimer=0;
+function persist(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(state.store)); }
+    catch(e){ console.error('persist failed (quota?)', e); }
+  }, 120);
+}
+function log(action, detail){
+  const c = curCase();
+  state.store.logs.push({
+    ts: nowISO(), action,
+    sc: c?c.sc:null, aspect: c?c.aspectSlug:null, caseId: c?c.caseId:null,
+    annotator: state.store.meta.annotatorName||null,
+    ...(detail?{detail}:{})
+  });
+  if(state.store.logs.length>MAX_LOGS) state.store.logs.splice(0, state.store.logs.length-MAX_LOGS);
+  persist();
+}
+
+/* ---------------- markdown (minimal) ---------------- */
+function mdToHtml(md){
+  const lines = String(md).replace(/\r/g,'').split('\n');
+  let html=[], i=0;
+  const inline = (t)=> esc(t)
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*/g,'$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  while(i<lines.length){
+    let ln = lines[i];
+    if(/^\s*$/.test(ln)){ i++; continue; }
+    // code fence
+    if(/^```/.test(ln)){ let buf=[]; i++; while(i<lines.length && !/^```/.test(lines[i])){ buf.push(lines[i]); i++; } i++; html.push('<pre><code>'+esc(buf.join('\n'))+'</code></pre>'); continue; }
+    // table
+    if(/^\s*\|/.test(ln) && i+1<lines.length && /^\s*\|?[\s:|-]+\|/.test(lines[i+1])){
+      const rows=[]; while(i<lines.length && /^\s*\|/.test(lines[i])){ rows.push(lines[i]); i++; }
+      const cells = (r)=> r.replace(/^\s*\|/,'').replace(/\|\s*$/,'').split('|').map(c=>c.trim());
+      const head = cells(rows[0]);
+      let t='<table><thead><tr>'+head.map(h=>'<th>'+inline(h)+'</th>').join('')+'</tr></thead><tbody>';
+      for(let r=2;r<rows.length;r++){ t+='<tr>'+cells(rows[r]).map(c=>'<td>'+inline(c)+'</td>').join('')+'</tr>'; }
+      html.push(t+'</tbody></table>'); continue;
+    }
+    // heading
+    let h = ln.match(/^(#{1,6})\s+(.*)$/);
+    if(h){ const lvl=Math.min(h[1].length,4); html.push('<h'+lvl+'>'+inline(h[2])+'</h'+lvl+'>'); i++; continue; }
+    // hr
+    if(/^\s*([-*_])\1{2,}\s*$/.test(ln)){ html.push('<hr>'); i++; continue; }
+    // blockquote
+    if(/^\s*>/.test(ln)){ let buf=[]; while(i<lines.length && /^\s*>/.test(lines[i])){ buf.push(lines[i].replace(/^\s*>\s?/,'')); i++; } html.push('<blockquote>'+inline(buf.join(' '))+'</blockquote>'); continue; }
+    // unordered list
+    if(/^\s*[-*]\s+/.test(ln)){ let buf=[]; while(i<lines.length && /^\s*[-*]\s+/.test(lines[i])){ buf.push(lines[i].replace(/^\s*[-*]\s+/,'')); i++; } html.push('<ul>'+buf.map(b=>'<li>'+inline(b)+'</li>').join('')+'</ul>'); continue; }
+    // ordered list
+    if(/^\s*\d+[.)]\s+/.test(ln)){ let buf=[]; while(i<lines.length && /^\s*\d+[.)]\s+/.test(lines[i])){ buf.push(lines[i].replace(/^\s*\d+[.)]\s+/,'')); i++; } html.push('<ol>'+buf.map(b=>'<li>'+inline(b)+'</li>').join('')+'</ol>'); continue; }
+    // paragraph (merge consecutive non-special lines)
+    let buf=[ln]; i++;
+    while(i<lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,6}\s|\s*[-*]\s|\s*\d+[.)]\s|\s*>|```|\s*\|)/.test(lines[i])){ buf.push(lines[i]); i++; }
+    html.push('<p>'+inline(buf.join(' '))+'</p>');
+  }
+  return html.join('\n');
+}
+
+/* ---------------- build flat case list ---------------- */
+function buildCases(){
+  const cases=[];
+  for(const sc of state.manifest.scs){
+    for(const asp of sc.aspects){
+      for(const p of asp.pages){
+        cases.push({
+          key: sc.sc+'::'+asp.slug+'::'+p.id,
+          sc: sc.sc, scTitle: sc.title, level: sc.level, methodology: sc.methodology,
+          aspectSlug: asp.slug, aspectTitle: asp.title, plain: asp.plain,
+          description: asp.description, scLimb: asp.scLimb, references: asp.references,
+          ttTests: asp.ttTests || [], ttWhy: asp.ttWhy || '',
+          caseId: p.id, url: p.url, scenario: p.scenario, mechanism: p.mechanism,
+          primarySelector: p.primarySelector, whyMiss: p.whyAutomatedToolsMiss,
+          highlightSelector: p.highlightSelector||'', selectorNote: p.selectorNote||'',
+          appearsOnInteraction: !!p.appearsOnInteraction, descCorrected: !!p.descCorrected,
+          citation: p.citation, expected: p.expected,
+        });
+      }
+    }
+  }
+  state.cases = cases;
+  state.caseByKey = {};
+  for(const c of cases) state.caseByKey[c.key] = c;
+}
+
+/* ---------------- seeded ordering (for multi-annotator work splits) ---------------- */
+function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function seededShuffle(arr, seedInt){ const r=mulberry32((seedInt>>>0)||1); for(let i=arr.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); const t=arr[i];arr[i]=arr[j];arr[j]=t; } return arr; }
+// Deterministic order for a given seed: shuffle SCs, then aspects within each SC,
+// then cases within each aspect — independent sub-streams so the order is stable.
+function orderedCases(seed){
+  const base = (typeof seed==='number' && isFinite(seed)) ? (seed>>>0) : hashStr(String(seed));
+  const out=[];
+  const scs = seededShuffle((state.manifest.scs||[]).slice(), base ^ 0x9e3779b9);
+  for(const sc of scs){
+    const aspects = seededShuffle((sc.aspects||[]).slice(), base ^ hashStr(sc.sc));
+    for(const asp of aspects){
+      const pages = seededShuffle((asp.pages||[]).slice(), base ^ hashStr(sc.sc+'|'+asp.slug));
+      for(const p of pages){ const c=state.caseByKey[sc.sc+'::'+asp.slug+'::'+p.id]; if(c) out.push(c); }
+    }
+  }
+  return out;
+}
+
+/* ---------------- filter ---------------- */
+function applyFilter(spec){
+  if(!spec){ state.filtered = state.cases.slice(); return; }
+  // 1) base ordering — seeded shuffle (SC > aspect > case) or natural manifest order
+  const seed = (!Array.isArray(spec) && spec.seed!=null) ? spec.seed : null;
+  let list = (seed!=null) ? orderedCases(seed) : state.cases.slice();
+  // 2) include/sc/aspect/case selectors (optional) — keep the base order
+  const incl = Array.isArray(spec) ? spec : (spec.include || spec.pages || spec.scs);
+  if(Array.isArray(incl) && incl.length){
+    const rules = incl.map(item=>{
+      if(typeof item==='string'){ const [sc,aspect,caseId]=item.split('/'); return {sc,aspect,caseId}; }
+      return {sc:item.sc, aspect:item.aspect||item.slug, caseId:item.caseId||item.id||item.case};
+    }).filter(r=>r.sc);
+    if(rules.length) list = list.filter(c => rules.some(r =>
+      r.sc===c.sc && (!r.aspect || r.aspect===c.aspectSlug) && (!r.caseId || r.caseId===c.caseId)));
+  }
+  // 3) fractional slice ranges over the ordered list (work splits) — e.g. [[0,0.5]]
+  const ranges = (!Array.isArray(spec) && spec.slice && Array.isArray(spec.slice.ranges)) ? spec.slice.ranges : null;
+  if(ranges){
+    const n=list.length, picked=[];
+    for(const rg of ranges){ const a=Math.round((rg[0]||0)*n), b=Math.round((rg[1]||0)*n); for(let i=a;i<b;i++) if(list[i]) picked.push(list[i]); }
+    list = picked;
+  }
+  state.filtered = list;
+}
+
+/* ---------------- annotations ---------------- */
+function ann(key){ return state.store.annotations[key]; }
+function isComplete(a){
+  return a && a.issueExists && a.disposition && (a.disposition!=='comment' || a.commentReason);
+}
+function curCase(){ return state.filtered[state.idx]; }
+
+/* ---------------- queue render ---------------- */
+function statusOf(c){
+  if(c.practice){ const pa=state.store.practice[c.key]; if(!pa) return 'none'; return pa.correct ? 'done' : 'comment'; }
+  const a = ann(c.key);
+  if(isComplete(a)) return a.disposition==='comment' ? 'comment' : 'done';
+  if(a) return 'seen';
+  return 'none';
+}
+function renderQueue(){
+  const host = $('#queueList'); host.innerHTML='';
+  $('#queueCount').textContent = state.filtered.length;
+  let lastSc=null, lastAsp=null, scN=0;
+  state.filtered.forEach((c,i)=>{
+    if(c.sc!==lastSc){
+      lastSc=c.sc; lastAsp=null; scN=0;
+      const h=document.createElement('div'); h.className='qsc';
+      const n = state.filtered.filter(x=>x.sc===c.sc).length;
+      h.innerHTML='<span>'+esc(c.sc)+'</span><span class="lvl">'+esc(c.level||'')+'</span><span style="color:var(--dim);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(c.scTitle)+'</span><span class="cnt">'+n+'</span>';
+      host.appendChild(h);
+    }
+    // practice rows are neutral ("Practice N") — never reveal the failed/passed ground truth;
+    // real cases keep their aspect subheader + caseId.
+    if(!c.practice && c.aspectSlug!==lastAsp){
+      lastAsp=c.aspectSlug;
+      const a=document.createElement('div'); a.className='qasp'; a.textContent=c.aspectSlug;
+      host.appendChild(a);
+    }
+    scN++;
+    const label = c.practice ? ('Practice '+scN) : c.caseId;
+    const row=document.createElement('div'); row.className='qcase'+(i===state.idx?' current':'');
+    row.dataset.idx=i;
+    row.innerHTML='<span class="dot '+statusOf(c)+'"></span><span class="nm">'+esc(label)+'</span>';
+    row.addEventListener('click',()=>gotoCase(i,'jump'));
+    host.appendChild(row);
+  });
+}
+function refreshQueueStatuses(){
+  $$('#queueList .qcase').forEach(row=>{
+    const c = state.filtered[+row.dataset.idx];
+    row.querySelector('.dot').className='dot '+statusOf(c);
+    row.classList.toggle('current', (+row.dataset.idx)===state.idx);
+  });
+}
+
+/* ---------------- progress ---------------- */
+function updateProgress(){
+  const practice = state.mode==='practice';
+  const done = practice
+    ? state.filtered.filter(c=>practiceAnswered(c.key)).length
+    : state.filtered.filter(c=>isComplete(ann(c.key))).length;
+  const total = state.filtered.length;
+  $('#progFill').style.width = total? (100*done/total)+'%' : '0%';
+  $('#progText').innerHTML = '<b>'+done+'</b> / '+total+(practice?' practice':' done');
+}
+
+/* ---------------- practice mode (ACT calibration cases, gates the real queue) ---------------- */
+function practiceAnswered(key){ return !!state.store.practice[key]; }
+function practiceDone(){ return state.practiceAll.every(c=>practiceAnswered(c.key)); }
+// SCs in scope = those named by the active filter; no filter ⇒ every SC in the manifest.
+function scopeSCs(){
+  const spec = state.store.filter && state.store.filter.spec;
+  if(spec){
+    const incl = Array.isArray(spec) ? spec : (spec.include || spec.scs || spec.pages);
+    if(Array.isArray(incl) && incl.length){
+      const set=new Set();
+      for(const item of incl){ const sc = (typeof item==='string') ? item.split('/')[0] : (item.sc); if(sc) set.add(sc); }
+      if(set.size) return [...set];
+    }
+  }
+  return (state.manifest.scs||[]).map(s=>s.sc);
+}
+// Build the practice queue for the in-scope SCs (issue case then no-issue case per SC).
+function buildPracticeQueue(){
+  state.practiceAll = [];
+  if(!state.practiceData || !state.practiceData.bySc) return;
+  // randomize the case order WITHIN each SC with the shared seed (default 42), so the
+  // failed/passed pair isn't always in a fixed position; "Practice 1/2" labels are then
+  // assigned in renderQueue from this post-shuffle order.
+  const spec = state.store.filter && state.store.filter.spec;
+  const seedRaw = (spec && !Array.isArray(spec) && spec.seed!=null) ? spec.seed : 42;
+  const base = (typeof seedRaw==='number' && isFinite(seedRaw)) ? (seedRaw>>>0) : hashStr(String(seedRaw));
+  const order = scopeSCs();
+  for(const sc of order){
+    const arr = state.practiceData.bySc[sc]; if(!arr) continue;
+    const shuffled = seededShuffle(arr.slice(), base ^ hashStr('practice|'+sc));
+    for(const c of shuffled) state.practiceAll.push(c);
+  }
+}
+function applyCurrentFilter(){ applyFilter((state.store.filter && state.store.filter.spec) || null); }
+// Switch between practice and annotate; sets the active queue + UI for the mode.
+function setMode(mode){
+  state.mode = mode;
+  document.body.classList.toggle('practiceMode', mode==='practice');
+  if(mode==='practice'){
+    state.filtered = state.practiceAll;
+    let i = state.filtered.findIndex(c=>!practiceAnswered(c.key)); if(i<0) i=0;
+    state.idx = i;
+  } else {
+    applyCurrentFilter();
+    state.idx = restoreIdx();
+  }
+  updatePracticeBanner();
+  renderQueue(); updateProgress(); renderCase();
+}
+// Decide the mode from completion, rebuild the practice queue, and render.
+// ?practice in the URL forces practice mode (a direct link to the practice tasks),
+// even after it's been completed — as long as there are practice cases in scope.
+function recomputePractice(){
+  buildPracticeQueue();
+  const wantPractice = (state.forcePractice && state.practiceAll.length>0) || !practiceDone();
+  setMode(wantPractice ? 'practice' : 'annotate');
+}
+function updatePracticeBanner(){
+  const b=$('#practiceBanner'); if(!b) return;
+  if(state.mode!=='practice'){ b.style.display='none'; return; }
+  const done=state.practiceAll.filter(c=>practiceAnswered(c.key)).length, total=state.practiceAll.length;
+  b.style.display='flex';
+  $('#pbText').innerHTML='<b>Practice mode</b> — calibrate on '+total+' ACT test cases with known answers. '+
+    '<b>'+done+' / '+total+'</b> done. The annotation queue unlocks when all are answered.';
+  $('#pbSkip').style.display = (state.store.meta.allowSkipPractice ? '' : 'none');
+}
+
+/* ---------------- highlight overlay ---------------- */
+function clearHighlight(){
+  cancelAnimationFrame(state.rafId); state.rafId=0;
+  const ov=$('#overlay'); ov.innerHTML=''; ov.style.pointerEvents='none'; // clicks reach the page again
+  state.hlBoxes=[]; state.dimSvg=null; state.dimPath=null;
+  const m=$('#hlMsg'); if(m) m.style.display='none';
+}
+function showHlMsg(t){ const m=$('#hlMsg'); m.textContent=t; m.style.display='block'; clearTimeout(showHlMsg._t); showHlMsg._t=setTimeout(()=>{m.style.display='none';},3200); }
+// strip pseudo-elements + dynamic state pseudo-classes -> resting "base" selector
+function baseSelector(sel){
+  if(!sel) return sel;
+  return sel.split(',').map(part=>part
+    .replace(/::[a-zA-Z-]+(\([^)]*\))?/g,'')
+    .replace(/:(hover|focus|focus-visible|focus-within|active|visited|target|checked|enabled)\b/g,'')
+    .replace(/\s*[>+~]\s*$/,'').trim()
+  ).filter(Boolean).join(', ').trim();
+}
+const FOCUS_RE=/:(focus|focus-visible|focus-within)\b/;
+function buildHighlight(){
+  clearHighlight();
+  const c = curCase(); if(!c) return;
+  const sel = c.highlightSelector || c.primarySelector;
+  if(!sel){ showHlMsg('No target selector for this case.'); return; }
+  let doc;
+  try{ doc = $('#frame').contentDocument; if(!doc) throw new Error('no doc'); }
+  catch(e){ showHlMsg('Cannot read page (cross-origin?). Open via localhost.'); return; }
+  // 1) try the selector as-is; 2) fall back to a resting base selector (strip :focus/:hover/::before…)
+  let els=[], usedBase=false;
+  const tryQS=(s)=>{ try{ return Array.from(doc.querySelectorAll(s)); }catch(e){ return null; } };
+  els = tryQS(sel) || [];
+  if(!els.length){
+    const base = baseSelector(sel);
+    if(base && base!==sel){ const b=tryQS(base); if(b && b.length){ els=b; usedBase=true; } }
+  }
+  if(!els.length){
+    showHlMsg(c.appearsOnInteraction ? 'Target appears only after interaction — trigger it on the page, then toggle highlight.'
+      : 'Selector matched 0 elements: '+sel);
+    return;
+  }
+  // if the original selector was about focus, focus the element so its real indicator shows
+  if(usedBase && FOCUS_RE.test(sel)){ try{ els[0].focus({preventScroll:true}); }catch(e){} }
+  // bring the (first) target into view inside the iframe
+  try{ els[0].scrollIntoView({block:'center', inline:'center'}); }catch(e){}
+  // visibility check
+  const anyVisible = els.some(el=>{ const r=el.getBoundingClientRect(); return r.width>0||r.height>0; });
+  if(!anyVisible){
+    const el0=els[0];
+    const isTitle = /^title$/i.test(el0.tagName) || /^title$/i.test(el0.localName||'') ||
+                    (el0.ownerDocument && el0.ownerDocument.head && el0.ownerDocument.head.contains(el0));
+    if(isTitle) showHlMsg('This case targets a <title> (page/SVG title) — it has no on-page box; it’s read from the document, not drawn on the page.');
+    else showHlMsg('Target is present but hidden in the page’s initial state — open/trigger it on the page, then re-toggle highlight (◎).');
+    // still draw (zero-size boxes auto-hide) so the rAF picks it up if it later shows
+  }
+  const ov=$('#overlay');
+  // ONE dim layer for all targets: an SVG whose even-odd path is the whole stage
+  // minus a hole per target. Appended first so the target boxes paint on top.
+  const SVGNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(SVGNS,'svg'); svg.id='dimSvg';
+  const path=document.createElementNS(SVGNS,'path');
+  path.setAttribute('fill','rgba(13,17,23,0.5)'); path.setAttribute('fill-rule','evenodd');
+  svg.appendChild(path); ov.appendChild(svg);
+  state.dimSvg=svg; state.dimPath=path;
+  const labelBase = usedBase ? (FOCUS_RE.test(sel)?'target (focused)':'target (resting state)') : 'target';
+  state.hlBoxes = els.map((el,n)=>{
+    const box=document.createElement('div'); box.className='hl';
+    if(n===0){ const tag=document.createElement('div'); tag.className='tag'; tag.textContent=labelBase+(els.length>1?' ('+els.length+')':''); box.appendChild(tag); }
+    ov.appendChild(box);
+    return {el, box};
+  });
+  if(usedBase) showHlMsg('No element in the live state — showing the resting element ('+baseSelector(sel)+').');
+  positionHighlight();
+  // re-position each frame while on (covers scroll, layout, reflow)
+  const loop=()=>{ if(!state.highlightOn) return; positionHighlight(); state.rafId=requestAnimationFrame(loop); };
+  state.rafId=requestAnimationFrame(loop);
+}
+function positionHighlight(){
+  const ov=$('#overlay'); const W=ov.clientWidth, H=ov.clientHeight;
+  const holes=[];
+  for(const {el,box} of state.hlBoxes){
+    const r = el.getBoundingClientRect();
+    const hidden = (r.width===0 && r.height===0);
+    // rect is relative to iframe viewport; iframe fills #stage so coords map 1:1
+    box.style.left = r.left+'px'; box.style.top = r.top+'px';
+    const w=Math.max(r.width,6), h=Math.max(r.height,6);
+    box.style.width = w+'px'; box.style.height = h+'px';
+    box.style.display = hidden ? 'none' : 'block';
+    if(!hidden) holes.push({x:r.left, y:r.top, w, h});
+  }
+  // while a backdrop is drawn, capture clicks so nothing reaches the page until
+  // the highlight is toggled off; no backdrop (target hidden) -> let clicks through
+  ov.style.pointerEvents = holes.length ? 'auto' : 'none';
+  // rebuild the single dim path: outer stage rect + one hole subpath per target
+  // (even-odd fill => the holes are punched out exactly once, no cumulative darkening)
+  if(state.dimPath){
+    if(holes.length){
+      let d='M0 0 H'+W+' V'+H+' H0 Z';
+      for(const r of holes) d+=' M'+r.x+' '+r.y+' h'+r.w+' v'+r.h+' h'+(-r.w)+' Z';
+      state.dimPath.setAttribute('d', d);
+      state.dimSvg.style.display='block';
+    } else {
+      state.dimPath.setAttribute('d','');   // no visible target -> don't darken the page
+    }
+  }
+}
+function setHighlight(on){
+  state.highlightOn = on;
+  $('#hlBtn').classList.toggle('active', on);
+  if(on){ buildHighlight(); log('highlight_on',{selector:curCase()?.primarySelector}); }
+  else {
+    clearHighlight(); log('highlight_off');
+    // dismissing the highlight opens the page for inspection -> start the SR (ANDI stays manual)
+    setTimeout(()=>{ if(!state.srActive) srAutoStart(); }, 120);
+  }
+}
+
+/* ---------------- ANDI (SSA Accessible Name & Description Inspector) ---------------- */
+// Loads the LOCALLY VENDORED ANDI (vendor/andi/) so it works offline and isn't
+// re-downloaded from ssa.gov each launch. ANDI derives its host from this script's
+// src, so its modules/css/icons load from /vendor/andi/ too. andi.js self-launches.
+const ANDI_SRC='/vendor/andi/andi.js';
+const ANDI_FAQ='https://www.ssa.gov/accessibility/andi/help/faq.html#csp';
+function launchAndi(doc, win){
+  try{
+    if(win && typeof win.andi==='function'){ win.andi(); showHlMsg('ANDI re-launched.'); return true; }
+    const s=doc.createElement('script');
+    s.id='ssa-andi-loader'; s.src=ANDI_SRC;
+    s.onerror=()=>showHlMsg('ANDI failed to load from the local vendor copy (vendor/andi/).');
+    (doc.body||doc.documentElement).appendChild(s);
+    // CSP detection (per the SSA bookmarklet): if a Content Security Policy blocks
+    // the andi.js script, ANDI never defines its globals → warn and open the FAQ.
+    const cspCheck=()=>{
+      if(typeof win.andiVersionNumber==='undefined'){
+        showHlMsg('A Content Security Policy on this page is blocking ANDI — see the ANDI FAQ (#csp).');
+        try{ window.open(ANDI_FAQ,'_blank'); }catch(e){}
+      }
+    };
+    doc.addEventListener('securitypolicyviolation', cspCheck);
+    setTimeout(()=>doc.removeEventListener('securitypolicyviolation', cspCheck), 3000);
+    return true;
+  }catch(e){ showHlMsg('Cannot launch ANDI: '+e.message); return false; }
+}
+/* ---------------- WebAIM contrast checker ---------------- */
+const WEBAIM_CC='https://webaim.org/resources/contrastchecker/';
+function rgbToHex(s){
+  const m=String(s).match(/rgba?\(([^)]+)\)/);
+  if(!m) return null;
+  const p=m[1].split(',').map(x=>parseFloat(x.trim()));
+  if(p.length>3 && p[3]===0) return null; // fully transparent
+  const h=n=>('0'+Math.round(n).toString(16)).slice(-2);
+  return (h(p[0])+h(p[1])+h(p[2])).toUpperCase();
+}
+// effective background: first ancestor with a non-transparent background-color
+function effectiveBgHex(el, win){
+  let n=el;
+  while(n && n.nodeType===1){
+    const hex=rgbToHex(win.getComputedStyle(n).backgroundColor);
+    if(hex) return hex;
+    n=n.parentElement;
+  }
+  return 'FFFFFF';
+}
+function openContrastChecker(){
+  window.open(WEBAIM_CC,'_blank','noopener'); log('contrast_checker'); // open empty; no pre-filled colours
+}
+// Open the page in a new tab (same-origin) and launch ANDI once it has loaded.
+function openInTabWithAndi(url){
+  const win=window.open(url,'_blank');
+  if(!win){ showHlMsg('Pop-up blocked — allow pop-ups to open the page + ANDI.'); return; }
+  let tries=0;
+  const t=setInterval(()=>{
+    tries++;
+    try{
+      if(win.closed){ clearInterval(t); return; }
+      const d=win.document;
+      if(d && d.readyState==='complete' && d.body && win.location.href && win.location.href!=='about:blank'){
+        clearInterval(t); launchAndi(d, win);
+      }
+    }catch(e){ /* transient cross-origin during navigation */ }
+    if(tries>60){ clearInterval(t); } // ~9s give-up
+  }, 150);
+}
+
+/* ---------------- virtual screen reader (page 2 "Apply the test") ---------------- */
+// Injected into the iframe; loads @guidepup/virtual-screen-reader (/virtual-sr.js),
+// drives it on command, and posts back ONLY the announcements produced by each
+// command (plus the initial focus on the target) — so the transcript reflects the
+// annotator's screen-reader manipulation, not spontaneous chatter.
+const ASR_DRIVER = `(function(){
+  if(window.__aaSR) return;
+  var s={virtual:null,vsr:null,on:false,p:null,mo:null,pend:{},seq:0,cmdBusy:false,lastPosted:null,focusTimer:null,showFocus:false,curEl:null,fbox:null};
+  window.__aaSR=s;
+  function post(m){ try{ parent.postMessage(m,'*'); }catch(_){} }
+  // green rectangle marking where the screen-reader cursor currently is
+  function fbox(){ if(!s.fbox){ var b=document.createElement('div'); b.setAttribute('data-aa-vsr-focus','1'); b.style.cssText='position:absolute;z-index:2147483646;border:2px solid #3fb950;border-radius:3px;background:rgba(63,185,80,0.10);box-shadow:0 0 0 2px rgba(63,185,80,0.35);pointer-events:none;display:none;transition:left .08s,top .08s,width .08s,height .08s;'; (document.body||document.documentElement).appendChild(b); s.fbox=b; } return s.fbox; }
+  function vsrEl(){ try{ var n=s.vsr&&s.vsr.activeNode; if(!n) return null; return n.nodeType===1?n:n.parentElement; }catch(_){ return null; } }
+  function xpathOf(el){ if(!el||!el.tagName) return ''; if(el===document.body) return '/html/body'; if(el===document.documentElement) return '/html'; var ns=el.namespaceURI,isH=!ns||ns==='http://www.w3.org/1999/xhtml',t=isH?el.tagName.toLowerCase():el.tagName,idx=1,sib=el.previousElementSibling; while(sib){ if(sib.tagName===el.tagName) idx++; sib=sib.previousElementSibling; } return xpathOf(el.parentElement)+(isH?'/'+t+'['+idx+']':"/*[local-name()='"+t+"']["+idx+']'); }
+  function curXp(){ try{ return s.curEl?xpathOf(s.curEl):null; }catch(_){ return null; } }
+  function drawFocus(el){ var b=fbox(); if(!s.showFocus||!el||!el.getBoundingClientRect){ b.style.display='none'; return; } var r=el.getBoundingClientRect(); if(r.width===0&&r.height===0){ b.style.display='none'; return; } var sx=window.pageXOffset||document.documentElement.scrollLeft||0, sy=window.pageYOffset||document.documentElement.scrollTop||0; b.style.left=(r.left+sx-2)+'px'; b.style.top=(r.top+sy-2)+'px'; b.style.width=Math.max(0,r.width)+'px'; b.style.height=Math.max(0,r.height)+'px'; b.style.display='block'; }
+  function redrawFocus(){ drawFocus(s.curEl); }
+  window.addEventListener('scroll', function(){ if(s.showFocus&&s.curEl) redrawFocus(); }, true);
+  window.addEventListener('resize', function(){ if(s.showFocus&&s.curEl) redrawFocus(); });
+  function ensure(){ if(s.virtual) return Promise.resolve(s.virtual); if(s.p) return s.p; s.p=import('/virtual-sr.js').then(function(m){ s.virtual=m.virtual; return m.virtual; }); return s.p; }
+  function baseSel(sel){ try{ return sel.split(',').map(function(p){ return p.replace(/::[a-zA-Z-]+(\\([^)]*\\))?/g,'').replace(/:(hover|focus|focus-visible|focus-within|active|visited|target|checked|enabled)\\b/g,'').replace(/\\s*[>+~]\\s*$/,'').trim(); }).filter(Boolean).join(', '); }catch(_){ return sel; } }
+  function resolveEl(sel){ if(!sel) return null; var el=null; try{ el=document.querySelector(sel); }catch(_){} if(el) return el; var b=baseSel(sel); if(b&&b!==sel){ try{ el=document.querySelector(b); }catch(_){} } return el; }
+  function llen(){ return Promise.resolve(s.vsr.spokenPhraseLog()).then(function(l){ return (l&&l.length)||0; }).catch(function(){ return 0; }); }
+  function delta(b){ return Promise.resolve(s.vsr.spokenPhraseLog()).then(function(l){ return Array.prototype.slice.call(l,b); }).catch(function(){ return []; }); }
+  // ---- live-region monitor: "announcements that should be made" (aria-live / role=status / alert) ----
+  function attr(el,a){ return (el && el.getAttribute) ? el.getAttribute(a) : null; }
+  function liveInfo(el){ var n=el; while(n && n.nodeType===1){ var lv=attr(n,'aria-live'); if(lv==='off') return null; if(lv==='assertive') return {root:n,pol:'assertive'}; if(lv==='polite') return {root:n,pol:'polite'}; var role=attr(n,'role')||''; if(role==='alert') return {root:n,pol:'assertive'}; if(role==='status'||role==='log'||role==='progressbar'||role==='marquee'||role==='timer') return {root:n,pol:'polite'}; if(n.tagName==='OUTPUT') return {root:n,pol:'polite'}; n=n.parentElement; } return null; }
+  function climb(el,a,val){ var n=el; while(n && n.nodeType===1){ var x=attr(n,a); if(x!=null) return x===val; n=n.parentElement; } return false; }
+  function hidden(el){ var n=el; while(n && n.nodeType===1){ if(attr(n,'aria-hidden')==='true') return true; n=n.parentElement; } return false; }
+  function txt(el){ return ((el&&(el.textContent!=null?el.textContent:el.nodeValue))||'').replace(/\\s+/g,' ').trim(); }
+  function queueLive(info, added){
+    var root=info.root; if(!root.__k) root.__k='k'+(++s.seq); var k=root.__k;
+    var e=s.pend[k]||(s.pend[k]={root:root,pol:info.pol,parts:[],timer:null}); e.pol=info.pol; if(added) e.parts.push(added);
+    if(e.timer) clearTimeout(e.timer);
+    e.timer=setTimeout(function(){
+      delete s.pend[k]; if(!s.on) return;
+      if(climb(root,'aria-busy','true')||hidden(root)) return;
+      var text = climb(root,'aria-atomic','true') ? txt(root) : (e.parts.join(' ').replace(/\\s+/g,' ').trim() || txt(root));
+      if(text){ s.lastPosted=text; post({t:'asr-phrases',cmd:'live',pol:e.pol,phrases:[text]}); }
+    },150);
+  }
+  function onMut(muts){
+    if(!s.on) return;
+    for(var i=0;i<muts.length;i++){ var m=muts[i];
+      if(m.type==='childList'){
+        var base=m.target.nodeType===1?m.target:m.target.parentElement; var info=liveInfo(base);
+        if(info){ var added=''; for(var j=0;j<m.addedNodes.length;j++) added+=' '+txt(m.addedNodes[j]); queueLive(info, added.replace(/\\s+/g,' ').trim()); }
+        else { for(var j2=0;j2<m.addedNodes.length;j2++){ var nd=m.addedNodes[j2]; if(nd.nodeType===1){ var i2=liveInfo(nd); if(i2 && i2.root===nd) queueLive(i2, txt(nd)); } } }
+      } else if(m.type==='characterData'){
+        var ci=liveInfo(m.target.parentElement); if(ci) queueLive(ci, (m.target.data||'').replace(/\\s+/g,' ').trim());
+      }
+    }
+  }
+  function startMo(){ try{ if(!s.mo) s.mo=new MutationObserver(onMut); s.mo.observe(document.body,{subtree:true,childList:true,characterData:true}); }catch(_){} }
+  function stopMo(){ try{ if(s.mo) s.mo.disconnect(); }catch(_){} for(var k in s.pend){ if(s.pend[k].timer) clearTimeout(s.pend[k].timer); } s.pend={}; }
+  // follow focus (e.g. ANDI's prev/next move DOM focus): announce the newly-focused
+  // element. Skipped while a VSR command is running so it doesn't double-log.
+  function postFocus(){
+    if(!s.on || s.cmdBusy || !s.vsr) return;
+    Promise.resolve(s.vsr.lastSpokenPhrase()).then(function(ph){
+      if(ph && ph!==s.lastPosted){ s.lastPosted=ph; s.curEl=vsrEl()||s.curEl; redrawFocus(); post({t:'asr-phrases',cmd:'focus',phrases:[ph],xpath:curXp()}); }
+    }).catch(function(){});
+  }
+  document.addEventListener('focusin', function(){ if(!s.on) return; clearTimeout(s.focusTimer); s.focusTimer=setTimeout(postFocus, 120); }, true);
+  window.addEventListener('message', function(e){
+    var d=e.data; if(!d||!d.t||String(d.t).indexOf('asr-')!==0) return;
+    if(d.t==='asr-start'){
+      if(d.showFocus!=null) s.showFocus=!!d.showFocus;
+      ensure().then(function(V){
+        var pre = s.on ? Promise.resolve(s.vsr.stop()).catch(function(){}) : Promise.resolve();
+        return pre.then(function(){ s.vsr=V; s.on=false; return s.vsr.start({container:document.body}); });
+      }).then(function(){ s.on=true; s.cmdBusy=true; startMo(); return llen(); }).then(function(before){
+        // explicitly focus the first target element, then mark it with the green rect
+        var el=resolveEl(d.selector);
+        if(el){ try{ el.focus({preventScroll:true}); }catch(_){} if(document.activeElement!==el){ try{ el.setAttribute('tabindex','-1'); el.focus({preventScroll:true}); }catch(_){} } try{ el.scrollIntoView({block:'center'}); }catch(_){} }
+        s.curEl=el; redrawFocus();
+        return new Promise(function(r){ setTimeout(function(){ r(before); },90); });
+      }).then(function(before){
+        function fin(arr){ post({t:'asr-phrases',cmd:'target',phrases:arr,xpath:curXp()}); if(arr&&arr.length) s.lastPosted=arr[arr.length-1]; post({t:'asr-status',status:'started'}); setTimeout(function(){ s.cmdBusy=false; },300); }
+        return delta(before).then(function(ph){
+          if(ph.length){ fin(ph); return; }
+          return Promise.resolve(s.vsr.lastSpokenPhrase()).then(function(last){ fin(last?[last]:[]); }).catch(function(){ fin([]); });
+        });
+      }).catch(function(err){ s.cmdBusy=false; post({t:'asr-status',status:'error',msg:String(err&&err.message||err)}); });
+    } else if(d.t==='asr-cmd'){
+      if(!s.on){ post({t:'asr-status',status:'error',msg:'start the screen reader first'}); return; }
+      s.cmdBusy=true;
+      llen().then(function(b){
+        var act = d.cmd==='next' ? s.vsr.next() : d.cmd==='previous' ? s.vsr.previous() : d.cmd==='click' ? s.vsr.click() : Promise.resolve();
+        return Promise.resolve(act).then(function(){ return delta(b); });
+      }).then(function(ph){ s.curEl=vsrEl()||s.curEl; redrawFocus(); post({t:'asr-phrases',cmd:d.cmd,phrases:ph,xpath:curXp()}); if(ph.length) s.lastPosted=ph[ph.length-1]; setTimeout(function(){ s.cmdBusy=false; },300); }).catch(function(err){ s.cmdBusy=false; post({t:'asr-status',status:'error',msg:String(err&&err.message||err)}); });
+    } else if(d.t==='asr-goto'){
+      // jump the SR cursor to an element addressed by XPath (clicked in the page)
+      if(!s.on){ post({t:'asr-status',status:'error',msg:'start the screen reader first'}); return; }
+      s.cmdBusy=true;
+      var el=null; try{ el=document.evaluate(d.xpath,document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue; }catch(_){}
+      llen().then(function(b){
+        if(el){ try{ el.focus({preventScroll:true}); }catch(_){} if(document.activeElement!==el){ try{ el.setAttribute('tabindex','-1'); }catch(_){} try{ el.dispatchEvent(new FocusEvent('focusin',{bubbles:true})); el.focus({preventScroll:true}); }catch(_){} } try{ el.scrollIntoView({block:'center'}); }catch(_){} }
+        return new Promise(function(r){ setTimeout(function(){ r(b); },90); });
+      }).then(function(b){ return delta(b).then(function(ph){ if(!ph.length){ return Promise.resolve(s.vsr.lastSpokenPhrase()).then(function(last){ return last?[last]:[]; }).catch(function(){ return []; }); } return ph; }); })
+      .then(function(ph){ s.curEl=el||vsrEl()||s.curEl; redrawFocus(); post({t:'asr-phrases',cmd:'target',phrases:ph,xpath:curXp()}); if(ph.length) s.lastPosted=ph[ph.length-1]; setTimeout(function(){ s.cmdBusy=false; },300); })
+      .catch(function(err){ s.cmdBusy=false; post({t:'asr-status',status:'error',msg:String(err&&err.message||err)}); });
+    } else if(d.t==='asr-focusvis'){
+      s.showFocus=!!d.show; redrawFocus();
+    } else if(d.t==='asr-clear'){
+      try{ Promise.resolve(s.vsr.clearSpokenPhraseLog()).catch(function(){}); }catch(_){}
+    } else if(d.t==='asr-stop'){
+      if(s.on){ stopMo(); try{ Promise.resolve(s.vsr.stop()).catch(function(){}); }catch(_){} s.on=false; s.curEl=null; if(s.fbox) s.fbox.style.display='none'; post({t:'asr-status',status:'stopped'}); }
+    }
+  });
+  post({t:'asr-status',status:'ready'});
+})();`;
+function injectSrDriver(){
+  try{
+    const doc=$('#frame').contentDocument; if(!doc||!doc.body) return;
+    if(doc.documentElement.hasAttribute('data-aa-sr')) return;
+    doc.documentElement.setAttribute('data-aa-sr','1');
+    const sc=doc.createElement('script'); sc.textContent=ASR_DRIVER; doc.body.appendChild(sc);
+  }catch(e){}
+}
+/* ---------------- element inspector (ported from the original annotator) ---------------- */
+// Outline styles for the in-page selection/hover highlight (copied from the original).
+const INJECT_CSS = "[data-a11y]{scroll-padding:20px;}[data-a11y] .a11y-hov{outline:2px solid #f59e0b!important;outline-offset:2px!important;cursor:crosshair!important;}[data-a11y] .a11y-sel{outline:2px solid #3b82f6!important;outline-offset:2px!important;background:rgba(59,130,246,.08)!important;}[data-a11y] .a11y-tabhl{outline:2px solid #06b6d4!important;outline-offset:3px!important;background:rgba(6,182,212,.07)!important;}[data-a11y] .a11y-par-1{outline:2px dashed rgba(245,158,11,.5)!important;}[data-a11y] .a11y-par-2{outline:2px dashed rgba(245,158,11,.34)!important;}[data-a11y] .a11y-par-3{outline:2px dashed rgba(245,158,11,.2)!important;}[data-a11y] .a11y-par-4{outline:2px dashed rgba(245,158,11,.1)!important;}";
+// Injected into the iframe: hover preview + click-to-select (heuristic name/role/xpath
+// come from the original annotator's helpers verbatim; the authoritative name comes
+// from /ax-node on the parent side). Selection never activates the element; the
+// inspector's ● Click does (via insp-activate, which lets one real click through).
+const INSPECTOR_JS = `(function(){
+  if(window.__aaInsp) return; window.__aaInsp=1;
+  document.documentElement.setAttribute('data-a11y','1');
+  var hovEl=null, selEl=null, parEls=[], allowClick=false;
+  function getXPath(el){if(!el||!el.tagName)return '';if(el===document.body)return '/html/body';if(el===document.documentElement)return '/html';var ns=el.namespaceURI,isH=!ns||ns==='http://www.w3.org/1999/xhtml',t=isH?el.tagName.toLowerCase():el.tagName,idx=1,sib=el.previousElementSibling;while(sib){if(sib.tagName===el.tagName)idx++;sib=sib.previousElementSibling;}return getXPath(el.parentElement)+(isH?'/'+t+'['+idx+']':"/*[local-name()='"+t+"']["+idx+']');}
+  function getA11yName(el){var al=el.getAttribute('aria-label');if(al)return al.trim();var lby=el.getAttribute('aria-labelledby');if(lby){var parts=lby.split(' ').map(function(i){var r=document.getElementById(i);return r?r.textContent.trim():'';}).filter(Boolean);if(parts.length)return parts.join(' ');}var tag=el.tagName;if(tag==='IMG'||tag==='AREA')return el.getAttribute('alt')||'';if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'){var eid=el.id;if(eid){var lbl=document.querySelector('label[for="'+eid+'"]');if(lbl)return lbl.textContent.trim();}var plbl=el.closest('label');if(plbl)return plbl.textContent.trim();return el.getAttribute('placeholder')||'';}var title=el.getAttribute('title');if(title)return title;var _tc=(el.textContent||'').trim();if(_tc)return _tc.slice(0,60);try{var _im=el.querySelector('img[alt]:not([alt=""]),area[alt]:not([alt=""])');if(_im)return _im.getAttribute('alt').trim().slice(0,60);var _st=el.querySelector('svg title');if(_st&&_st.textContent.trim())return _st.textContent.trim().slice(0,60);}catch(_){}return '';}
+  function getRole(el){var r=el.getAttribute('role');if(r)return r;var t=el.tagName.toLowerCase(),tp=(el.getAttribute('type')||'').toLowerCase();if(t==='input'){var m={checkbox:'checkbox',radio:'radio',button:'button',submit:'button',reset:'button',range:'slider',search:'searchbox',number:'spinbutton'};return m[tp]||'textbox';}if(t==='a')return el.getAttribute('href')!==null?'link':'generic';var rm={a:'link',button:'button',img:'img',svg:'image',p:'paragraph',h1:'heading',h2:'heading',h3:'heading',h4:'heading',h5:'heading',h6:'heading',ul:'list',ol:'list',li:'listitem',nav:'navigation',main:'main',header:'banner',footer:'contentinfo',aside:'complementary',section:'region',article:'article',form:'form',select:'listbox',textarea:'textbox',table:'table',tr:'row',td:'cell',th:'columnheader',dialog:'dialog',summary:'button',details:'group'};return rm[t]||t;}
+  function isFocusable(el){var ti=el.getAttribute('tabindex');if(ti!==null)return parseInt(ti,10)>=0;if(el.disabled)return false;var t=el.tagName.toLowerCase();if(t==='a'||t==='area')return el.getAttribute('href')!==null;if(t==='button'||t==='input'||t==='select'||t==='textarea')return true;if(t==='summary'){var sd=el.parentElement;return !!(sd&&sd.tagName==='DETAILS'&&sd.querySelector('summary')===el);}if((t==='audio'||t==='video')&&el.hasAttribute('controls'))return true;if(t==='iframe')return true;if(el.contentEditable==='true')return true;return false;}
+  function info(el){var _r=el.getAttribute('role')||'';return {tag:el.tagName.toLowerCase(),elId:el.id||'',txt:(el.textContent||'').trim().slice(0,80),name:getA11yName(el),role:getRole(el),focusable:isFocusable(el),xpath:getXPath(el),decorative:_r==='presentation'||_r==='none'||((el.tagName==='IMG'||el.tagName==='AREA')&&el.getAttribute('alt')==='')};}
+  function clearParents(){parEls.forEach(function(p,i){p.classList.remove('a11y-par-'+(i+1));});parEls=[];}
+  function select(el){if(selEl)selEl.classList.remove('a11y-sel');clearParents();selEl=el;if(el){el.classList.add('a11y-sel');var p=el.parentElement,l=1;while(p&&p.tagName&&p.tagName!=='HTML'&&l<=4){p.classList.add('a11y-par-'+l);parEls.push(p);p=p.parentElement;l++;}try{el.scrollIntoView({block:'center'});}catch(_){}}}
+  document.addEventListener('mouseover',function(e){if(hovEl)hovEl.classList.remove('a11y-hov');hovEl=e.target;if(hovEl&&hovEl!==selEl)hovEl.classList.add('a11y-hov');parent.postMessage({t:'insp-hov',d:info(e.target)},'*');},true);
+  document.addEventListener('mouseout',function(){if(hovEl)hovEl.classList.remove('a11y-hov');hovEl=null;parent.postMessage({t:'insp-out'},'*');},true);
+  document.addEventListener('click',function(e){if(allowClick)return;e.preventDefault();e.stopPropagation();var el=e.target;select(el);parent.postMessage({t:'insp-clk',d:info(el)},'*');},true);
+  window.addEventListener('message',function(e){var d=e.data;if(!d||!d.t)return;
+    if(d.t==='insp-sel'){var el=null;try{el=document.evaluate(d.xpath,document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;}catch(_){}if(el)select(el);}
+    else if(d.t==='insp-activate'){if(selEl){allowClick=true;try{selEl.click();}catch(_){}allowClick=false;}}
+    else if(d.t==='insp-hl'){document.querySelectorAll('.a11y-tabhl').forEach(function(x){x.classList.remove('a11y-tabhl');});if(d.xpath){try{var h=document.evaluate(d.xpath,document,null,XPathResult.FIRST_ORDERED_NODE_TYPE,null).singleNodeValue;if(h)h.classList.add('a11y-tabhl');}catch(_){}}}
+  });
+})();`;
+function injectInspector(){
+  try{
+    const doc=$('#frame').contentDocument; if(!doc||!doc.body) return;
+    if(doc.documentElement.hasAttribute('data-aa-insp')) return;
+    doc.documentElement.setAttribute('data-aa-insp','1');
+    const st=doc.createElement('style'); st.textContent=INJECT_CSS; (doc.head||doc.documentElement).appendChild(st);
+    const sc=doc.createElement('script'); sc.textContent=INSPECTOR_JS; doc.body.appendChild(sc);
+  }catch(e){}
+}
+function srSend(m){ try{ $('#frame').contentWindow.postMessage(m,'*'); }catch(e){} }
+function srSetActive(on){
+  state.srActive=on;
+  ['srPrev','srNext','srClick'].forEach(id=>{ const b=$('#'+id); if(b) b.disabled=!on; });
+}
+const SR_HINT='Click an element in the page (or use <b>◀ / ▶</b> in the inspector) to read it. Live-region announcements are logged too.';
+function srReset(){ srSetActive(false); $('#srTranscript').innerHTML='<div class="srEmpty">'+SR_HINT+'</div>'; const st=$('#srState'); st.textContent=''; st.className='srState'; clearInspector(); }
+function srAutoStart(){ const c=curCase(); if(!c) return; const st=$('#srState'); st.textContent='starting…'; st.className='srState'; srSend({t:'asr-start', selector:c.highlightSelector||c.primarySelector}); log('sr_autostart'); }
+function autoLoadAndi(){ try{ const f=$('#frame'); if(f.contentDocument&&f.contentWindow){ launchAndi(f.contentDocument, f.contentWindow); log('andi_autoload'); } }catch(e){} }
+// transcript row. Element reads pass an explicit role (from /ax-node) so the name
+// shown matches Chrome's accessibility node; live rows pass a raw phrase.
+function srRow(cmd, phrase, pol, role){
+  const isAlert = cmd==='live' && pol==='assertive';
+  const row=document.createElement('div'); row.className='srRow '+cmd+(isAlert?' alert':'');
+  const lbl=({target:'read',focus:'focus',next:'next',previous:'prev',click:'click',live:(isAlert?'⚠ alert':'live')})[cmd]||cmd;
+  let ph;
+  if(phrase==null){ ph='<span class="ph silent">(no announcement)</span>'; }
+  else if(role){ ph='<span class="ph"><span class="role">'+esc(role)+'</span>, '+esc(phrase)+'</span>'; }
+  else{
+    const m=/^([a-z][a-z -]*?), /.exec(phrase);
+    if(m) ph='<span class="ph"><span class="role">'+esc(m[1])+'</span>, '+esc(phrase.slice(m[0].length))+'</span>';
+    else ph='<span class="ph">'+esc(phrase)+'</span>';
+  }
+  row.innerHTML='<span class="cmd">'+esc(lbl)+'</span>'+ph;
+  const t=$('#srTranscript'); const em=t.querySelector('.srEmpty'); if(em) t.innerHTML='';
+  t.appendChild(row); t.scrollTop=t.scrollHeight;
+  while(t.childElementCount>400) t.removeChild(t.firstChild);
+}
+function srAppendLive(phrases,pol){ if(!phrases||!phrases.length){ srRow('live',null,pol); return; } for(const p of phrases) srRow('live',p,pol); }
+function srStatus(status, msg){
+  const el=$('#srState');
+  if(status==='started'){ srSetActive(true); el.textContent='ready'; el.className='srState on'; }
+  else if(status==='stopped'){ srSetActive(false); el.textContent='stopped'; el.className='srState'; }
+  else if(status==='error'){ el.textContent=msg||'error'; el.className='srState err'; }
+}
+/* ---------- element inspector (right pane; info from /ax-node = Chrome's a11y node) ---------- */
+function axParam(){ return state.curPageUrl ? ('url='+encodeURIComponent(state.curPageUrl)) : null; }
+function clearInspector(){ state.curSelXpath=null; const ss=$('#selStatus'); if(ss){ ss.className=''; ss.textContent='Click an element in the page to inspect it.'; } const ep=$('#elemProps'); if(ep) ep.innerHTML=''; }
+function epK(t){ const s=document.createElement('span'); s.className='ep-k'; s.textContent=t; return s; }
+function epV(t,cls){ const s=document.createElement('span'); s.className='ep-v'+(cls?' '+cls:''); s.textContent=t; s.title=t; return s; }
+function epRow(){ const r=document.createElement('div'); r.className='ep-row'; return r; }
+let inspSeq=0;
+async function inspectXpath(xpath, opts){
+  opts=opts||{};
+  state.curSelXpath=xpath;
+  srSend({t:'insp-sel', xpath});                       // sync the in-page selection highlight
+  const seq=++inspSeq;
+  const ss=$('#selStatus'); ss.className='active'; ss.innerHTML='Inspecting <span class="sel-tag">'+esc((xpath||'').split('/').pop())+'</span> …';
+  const u=axParam();
+  let ax=null;
+  if(u){ try{ const r=await fetch('/ax-node?'+u+'&xpath='+encodeURIComponent(xpath)); ax=await r.json(); }catch(_){} }
+  if(seq!==inspSeq) return;                             // superseded by a newer selection
+  renderInspector(ax, xpath);
+  if(!opts.noLog){
+    const role=(ax&&ax.role)||'', name=(ax&&ax.name||'').trim();
+    const text = name || (ax&&ax.speech) || opts.fallback || '(no accessible name)';
+    srRow(opts.cmd||'target', text, null, (role&&name)?role:'');
+  }
+}
+function renderInspector(ax, xpath){
+  const ss=$('#selStatus'); ss.className='active'; ss.innerHTML='Inspecting <span class="sel-tag">'+esc((xpath||'').split('/').pop())+'</span>';
+  const ep=$('#elemProps'); ep.innerHTML='';
+  if(!ax){ ep.appendChild(epRow()).appendChild(epV('accessibility node unavailable','no')); return; }
+  // Row 1: ROLE | KEYBOARD | A11Y TREE
+  const r1=epRow();
+  r1.append(epK('ROLE'), epV(ax.role||'(none)'));
+  const kchk=document.createElement('span');
+  if(ax.focusable){ kchk.className='ep-chk yes'; kchk.textContent='✓'; kchk.title='focusable'; } else { kchk.className='ep-v no'; kchk.textContent='not focusable'; }
+  r1.append(epK('KEYBOARD'), kchk);
+  if(ax.inTree){ const c=document.createElement('span'); c.className='ep-chk yes'; c.textContent='✓'; c.title='in accessibility tree'; r1.append(epK('A11Y TREE'), c); }
+  else { const rs=ax.ignoredReasons||[]; const truly=rs.some(r=>/hidden|not rendered/.test(r)); const lab=truly?'hidden':(rs.some(r=>/presentational/.test(r))?'presentational':'static'); r1.append(epK('A11Y TREE'), epV(lab,truly?'no':'warn')); }
+  ep.append(r1);
+  // Row 2: NAME (Chrome's authoritative accessible name)
+  const r2=epRow(); const nm=(ax.name||'').trim();
+  r2.append(epK('NAME'), epV(nm||'(none)', 'ep-fill'+(nm?'':' no')));
+  ep.append(r2);
+  // Row 3: SPEECH (the VSR announcement, if the engine could position on the node)
+  if(ax.speech){ const r3=epRow(); r3.append(epK('SPEECH'), epV(ax.speech,'ep-speech')); ep.append(r3); }
+}
+function onInspHover(d){ if(state.curSelXpath||!d) return; const ss=$('#selStatus'); ss.className=''; ss.innerHTML='hover: <span class="sel-tag">&lt;'+esc(d.tag)+(d.elId?'#'+esc(d.elId):'')+'&gt;</span>'; }
+function onInspOut(){ if(state.curSelXpath) return; const ss=$('#selStatus'); ss.className=''; ss.textContent='Click an element in the page to inspect it.'; }
+function onInspClick(d){
+  if(!d||!d.xpath) return;
+  if(state.srActive) srSend({t:'asr-goto', xpath:d.xpath});   // VSR reads it -> asr-phrases(xpath) -> inspectXpath
+  else inspectXpath(d.xpath,{cmd:'target', fallback:d.name||''});
+  log('insp_select',{xpath:d.xpath, role:d.role});
+}
+function wireSR(){
+  $('#srPrev').addEventListener('click',()=>{ srSend({t:'asr-cmd',cmd:'previous'}); log('sr_previous'); });
+  $('#srNext').addEventListener('click',()=>{ srSend({t:'asr-cmd',cmd:'next'}); log('sr_next'); });
+  $('#srClick').addEventListener('click',()=>{ srSend({t:'insp-activate'}); log('insp_activate',{xpath:state.curSelXpath}); });
+  $('#srClear').addEventListener('click',()=>{ srSend({t:'asr-clear'}); $('#srTranscript').innerHTML='<div class="srEmpty">Transcript cleared.</div>'; log('sr_clear'); });
+  window.addEventListener('message',(e)=>{ const d=e.data; if(!d||!d.t) return;
+    if(d.t==='asr-phrases'){
+      if(d.cmd==='live') srAppendLive(d.phrases,d.pol);
+      else if(d.xpath) inspectXpath(d.xpath,{cmd:d.cmd, fallback:(d.phrases&&d.phrases[0])||''});
+      else if(d.phrases&&d.phrases.length) srRow(d.cmd, d.phrases[0], d.pol);
+    }
+    else if(d.t==='asr-status') srStatus(d.status,d.msg);
+    else if(d.t==='insp-hov') onInspHover(d.d);
+    else if(d.t==='insp-out') onInspOut();
+    else if(d.t==='insp-clk') onInspClick(d.d);
+  });
+}
+
+/* ---------------- methodology (scoped to the relevant TT test) ---------------- */
+// split a TT markdown doc into its "## Test X.Y" sections, keyed by test id.
+function parseTT(md){
+  const lines=String(md).replace(/\r/g,'').split('\n');
+  let titleLine=''; const byId={}; let cur=null;
+  for(const ln of lines){
+    if(!titleLine && /^#\s+/.test(ln)){ titleLine=ln.replace(/^#\s+/,''); continue; }
+    const h2=ln.match(/^##\s+(.*)$/);
+    if(h2){ const idm=h2[1].match(/^Test\s+([0-9]+\.[A-Z])\b/); cur={id:idm?idm[1]:null, buf:[ln]}; if(cur.id) byId[cur.id]=cur; continue; }
+    if(cur) cur.buf.push(ln);
+  }
+  const out={titleLine, byId:{}}; for(const k in byId) out.byId[k]=byId[k].buf.join('\n'); return out;
+}
+function parsedTT(file,txt){ if(!state.mdParseCache[file]) state.mdParseCache[file]=parseTT(txt); return state.mdParseCache[file]; }
+async function ensureTT(file){
+  if(state.mdCache[file]!==undefined) return state.mdCache[file];
+  const res=await fetch('/'+file.replace(/^\/+/,'')); if(!res.ok) throw new Error(res.status);
+  const txt=await res.text(); state.mdCache[file]=txt; return txt;
+}
+function fullDocBlock(txt,label){
+  const id='full'+Math.random().toString(36).slice(2,7);
+  return '<span class="fullToggle" data-full="'+id+'">▸ '+esc(label)+'</span>'+
+         '<div class="md fullDoc" id="'+id+'" style="display:none">'+mdToHtml(txt)+'</div>';
+}
+// Render a W3C "Understanding" HTML doc into the panel (strip scripts/styles,
+// resolve relative URLs, keep the prose) for SCs with no Trusted Tester / EN step.
+function renderUnderstanding(html, docPath){
+  let doc;
+  try{ doc=new DOMParser().parseFromString(html,'text/html'); }
+  catch(e){ return '<div class="whymiss">Could not parse the Understanding doc.</div>'; }
+  doc.querySelectorAll('script,style,link,nav,header,footer,.remove,.skipnav,#navigation').forEach(n=>n.remove());
+  const baseDir='/'+docPath.replace(/^\/+/,'').replace(/[^/]+$/,'');
+  doc.querySelectorAll('[src]').forEach(el=>{ const s=el.getAttribute('src'); if(s && !/^([a-z]+:|\/)/i.test(s)) el.setAttribute('src', baseDir+s); });
+  doc.querySelectorAll('a[href]').forEach(a=>{ const h=a.getAttribute('href'); if(h && !/^([a-z]+:|#|\/)/i.test(h)) a.setAttribute('href', baseDir+h); a.setAttribute('target','_blank'); a.setAttribute('rel','noopener'); });
+  const body=doc.body?doc.body.innerHTML:html;
+  return '<div class="ttHint">No Trusted Tester / EN manual step for this SC — showing the W3C <b>Understanding</b> document.</div>'+
+    '<div class="md understanding">'+body+'</div>';
+}
+async function renderMethodology(c){
+  const host=$('#methodHost'); const badge=$('#methodBadge'); const m=c.methodology||{};
+  if(!m.ttFile){
+    badge.textContent='WCAG Understanding'; badge.className='badge en';
+    const enFoot='<div style="margin-top:10px;font-size:11px;color:var(--dim2);border-top:1px solid var(--line2);padding-top:8px">'+
+      esc(m.enNote||'No Trusted Tester baseline for this SC.')+' No harmonized manual step exists — test against the SC text. EN 301 549 v4.1.1 ref: <code>'+esc(m.enRef||'')+'</code>.</div>';
+    if(m.understandingDoc){
+      const paint=(txt)=>{ if(curCase()&&curCase().key===c.key) host.innerHTML=renderUnderstanding(txt,m.understandingDoc)+enFoot; };
+      if(state.mdCache[m.understandingDoc]!==undefined){ paint(state.mdCache[m.understandingDoc]); }
+      else{
+        host.innerHTML='<div style="color:var(--dim)">Loading WCAG Understanding document…</div>';
+        try{ const res=await fetch('/'+m.understandingDoc.replace(/^\/+/,'')); if(!res.ok) throw new Error(res.status);
+          const txt=await res.text(); state.mdCache[m.understandingDoc]=txt; paint(txt); }
+        catch(e){ host.innerHTML='<div class="whymiss">'+esc(m.enNote||'')+'</div>'+enFoot; }
+      }
+    } else { host.innerHTML='<div class="whymiss">'+esc(m.enNote||'No Trusted Tester baseline for this SC.')+'</div>'+enFoot; }
+    return;
+  }
+  badge.textContent='Trusted Tester'; badge.className='badge tt';
+  let txt;
+  try{ if(state.mdCache[m.ttFile]===undefined) host.innerHTML='<div style="color:var(--dim)">Loading Trusted Tester method…</div>'; txt=await ensureTT(m.ttFile); }
+  catch(e){ host.innerHTML='<div style="color:var(--amber)">Trusted Tester file not found ('+esc(m.ttFile)+'). It lives under refs/ (un-tracked); methodology unavailable here.</div>'; return; }
+  if(!curCase()||curCase().key!==c.key) return; // case changed during fetch
+  const parsed=parsedTT(m.ttFile,txt);
+  const ids=(c.ttTests||[]).filter(id=>parsed.byId[id]);
+  let html='';
+  if(ids.length){
+    badge.textContent='TT '+ids.join(' + ');
+    html+='<div class="ttHint">Showing the Trusted Tester test'+(ids.length>1?'s':'')+' that target'+(ids.length>1?'':'s')+' this kind of failure'+(c.ttWhy?' — <span class="why">'+esc(c.ttWhy)+'</span>':'')+'</div>';
+    for(const id of ids) html+='<div class="md ttsec">'+mdToHtml(parsed.byId[id])+'</div>';
+    html+=fullDocBlock(txt,'Show full SC test process ('+((m.ttAllTests||[]).length||'all')+' tests)');
+  }else{
+    html+='<div class="ttHint amber">No single Trusted Tester test isolates this aspect — here is the full SC test process:</div>';
+    html+='<div class="md">'+mdToHtml(txt)+'</div>';
+  }
+  host.innerHTML=html;
+}
+
+/* ---------------- render a case ---------------- */
+function renderCase(){
+  const c = curCase();
+  if(!c){ $('#crumb').innerHTML='<span class="empty">'+(state.mode==='practice'?'No practice cases for these SCs.':'No cases match the current filter.')+'</span>'; return; }
+  // breadcrumb row removed per request — keep #crumb empty (still used for empty/error states)
+  $('#crumb').innerHTML = '';
+  state.curPageUrl = c.url ? (location.origin + c.url) : null;   // absolute URL for /ax-node
+  renderMethodology(c);
+  srReset(); // new iframe doc -> reset the screen-reader transcript/controls
+  if(c.practice){
+    // calibration case: rule name + plain description, TT method, single Q1 + feedback
+    $('#right').className = 'practice';
+    // show only What-this-checks + How-to-test (clear any inline display/order left by applyStepLayout)
+    ['segWhat','segMethod'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.style.display=''; el.style.order=''; } });
+    $('#plainBox').innerHTML = '<div class="pRule">'+esc(c.ruleName||c.aspectTitle||'')+'</div>'+esc(c.plain||'');
+    const method=document.getElementById('segMethod'); if(method) method.open=true;
+    $('#srDock').style.display='flex';
+    setHighlightSilent(false);      // ACT cases have no designated target → no highlight
+    const f=$('#frame'); f.src = c.url;
+    renderPracticeForm(c);
+  } else {
+    // inspect panels
+    $('#plainBox').textContent = c.plain || c.description || '—';
+    $('#mechHead').textContent = c.aspectTitle || c.aspectSlug || '—'; // aspect title as the mechanism header
+    $('#mechBox').innerHTML = esc(c.mechanism || '—') +
+      (c.descCorrected ? ' <span style="color:var(--dim2);font-style:italic;font-size:11px">(description corrected to match the page)</span>' : '');
+    const effSel = c.highlightSelector || c.primarySelector;
+    $('#selBox').innerHTML = effSel
+      ? ('target selector: <code style="color:#ffa657">'+esc(effSel)+'</code>'
+          + (c.highlightSelector ? ' <span style="color:var(--dim2)">(corrected for highlight)</span>' : ''))
+      : '';
+    $('#whyMissBox').textContent = c.whyMiss || '—';
+    // load page — target highlighted by default; the iframe 'load' handler builds it
+    setHighlightSilent(true);
+    const f=$('#frame'); f.src = c.url;
+    // every case starts at page 1 (read the claim)
+    setStep(1, true);
+    // restore form
+    restoreForm(c);
+  }
+  refreshQueueStatuses();
+  // scroll inspect panel to top
+  $('#rightScroll').scrollTop = 0;
+  state.caseOpenedAt = Date.now();
+  log('case_open',{url:c.url, expected:c.expected, practice:!!c.practice});
+}
+/* ---------------- practice assessment ---------------- */
+function recordPractice(c, answer){
+  const issue = c.expected==='failed';   // ground truth: a failing ACT case = an issue exists
+  const correct = ((answer==='yes')===issue);
+  state.store.practice[c.key] = { sc:c.sc, ruleId:c.ruleId, expected:c.expected, issueExists:answer, correct, answeredAt:nowISO(), annotator:state.store.meta.annotatorName||null };
+  persist();
+}
+function showPracticeFeedback(c, answer){
+  const issue = c.expected==='failed';
+  const correct = ((answer==='yes')===issue);
+  const fb=$('#pFeedback');
+  fb.style.display='block';
+  fb.className='pFeedback '+(correct?'correct':'incorrect');
+  fb.innerHTML = '<div class="pfHead">'+(correct?'✓ Correct':'✗ Not quite')+'</div>'+
+    '<div class="pfBody">Ground truth: <b>'+(issue?'an issue exists':'no issue')+'</b> — this is a <b>'+(issue?'failed':'passed')+'</b> example of <i>'+esc(c.ruleName||'')+'</i>'+
+    (c.rulePage?' (<a href="'+esc(c.rulePage)+'" target="_blank" rel="noopener">ACT rule</a>)':'')+'.</div>';
+}
+function renderPracticeForm(c){
+  const pa = state.store.practice[c.key];
+  $$('#pIssueOpts .opt').forEach(o=>o.classList.toggle('sel', !!pa && o.dataset.v===pa.issueExists));
+  if(pa){ showPracticeFeedback(c, pa.issueExists); $('#pNext').disabled=false; }
+  else { const fb=$('#pFeedback'); fb.style.display='none'; fb.innerHTML=''; $('#pNext').disabled=true; }
+  $('#pPrev').disabled = state.idx<=0;
+  $('#pNext').textContent = practiceDone() ? 'Unlock annotation queue →' : 'Next →';
+}
+function setHighlightSilent(on){ state.highlightOn=on; $('#hlBtn').classList.toggle('active',on); clearHighlight(); }
+// page 1 "Apply the test": mechanism (header = aspect title) + how-to-test, expanded.
+// page 2 "Decide": what-this-checks + mechanism + why-tools-miss (expanded) + how-to-test (folded).
+const STEP_SEGS={1:['segMech','segMethod'],2:['segWhat','segMech','segWhy','segMethod']};
+function applyStepLayout(){
+  ['segWhat','segMech','segMethod','segWhy'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+  (STEP_SEGS[state.step]||[]).forEach((id,i)=>{ const el=document.getElementById(id); if(el){ el.style.display=''; el.style.order=i; } });
+  const method=document.getElementById('segMethod');
+  if(method){ if(state.step===1) method.open=true; else if(state.step===2) method.open=false; }
+  const why=document.getElementById('segWhy'); if(why) why.open=true;
+}
+function setStep(n, silent){
+  state.step = n;
+  $('#right').className = 'step'+n;
+  applyStepLayout();
+  // virtual screen reader dock is shown only on page 1 ("Apply the test")
+  $('#srDock').style.display = (n===1) ? 'flex' : 'none';
+  $('#rightScroll').scrollTop = 0;
+  if(!silent) log('step',{to:n});
+}
+
+/* ---------------- assessment form ---------------- */
+function getDraft(c){
+  return state.store.annotations[c.key] || (state.store.annotations[c.key]={
+    sc:c.sc, aspect:c.aspectSlug, caseId:c.caseId, url:c.url, scTitle:c.scTitle,
+    issueExists:null, disposition:null, commentReason:null, commentText:'',
+    createdAt:nowISO(), updatedAt:null
+  });
+}
+function restoreForm(c){
+  const a = state.store.annotations[c.key] || {};
+  $$('#issueOpts .opt').forEach(o=>o.classList.toggle('sel', o.dataset.v===a.issueExists));
+  $$('#dispOpts .opt').forEach(o=>o.classList.toggle('sel', o.dataset.v===a.disposition));
+  $('#reasonWrap').classList.toggle('show', a.disposition==='comment');
+  $$('#reasonOpts .reason').forEach(r=>{
+    const on = r.dataset.v===a.commentReason; r.classList.toggle('sel',on); r.querySelector('input').checked=on;
+  });
+  $('#commentText').value = a.commentText||'';
+  updateSaveState(c);
+}
+function updateSaveState(c){
+  const a = state.store.annotations[c.key];
+  // page 1: gate "Decide" on Q1
+  const hasQ1 = !!(a && a.issueExists);
+  $('#toDecide').disabled = !hasQ1;
+  const ss2=$('#saveState2');
+  ss2.textContent = hasQ1 ? ('Q1: '+(a.issueExists==='yes'?'issue exists':'no issue')) : 'answer Q1 to continue';
+  ss2.className = 'ssline'+(hasQ1?' saved':'');
+  // page 2: overall completion (Q1 + Q2)
+  const ss=$('#saveState');
+  if(isComplete(a)){ ss.textContent='✓ saved'; ss.className='ssline saved'; }
+  else if(a && (a.issueExists||a.disposition)){ ss.textContent='draft — needs Q2'; ss.className='ssline'; }
+  else { ss.textContent='not annotated'; ss.className='ssline'; }
+}
+function touch(c){ const a=getDraft(c); a.updatedAt=nowISO(); if(state.store.meta.annotatorName) a.annotator=state.store.meta.annotatorName; persist(); updateSaveState(c); refreshQueueStatuses(); updateProgress(); }
+
+function wireForm(){
+  $('#issueOpts').addEventListener('click',e=>{
+    const o=e.target.closest('.opt'); if(!o) return; const c=curCase(); if(!c) return;
+    const a=getDraft(c); a.issueExists=o.dataset.v;
+    $$('#issueOpts .opt').forEach(x=>x.classList.toggle('sel',x===o));
+    log('answer_issue',{value:o.dataset.v}); touch(c);
+  });
+  $('#dispOpts').addEventListener('click',e=>{
+    const o=e.target.closest('.opt'); if(!o) return; const c=curCase(); if(!c) return;
+    const a=getDraft(c); a.disposition=o.dataset.v;
+    $$('#dispOpts .opt').forEach(x=>x.classList.toggle('sel',x===o));
+    $('#reasonWrap').classList.toggle('show', a.disposition==='comment');
+    if(a.disposition!=='comment'){ a.commentReason=null; }
+    log('answer_disposition',{value:o.dataset.v}); touch(c);
+  });
+  $('#reasonOpts').addEventListener('click',e=>{
+    const r=e.target.closest('.reason'); if(!r) return; const c=curCase(); if(!c) return;
+    const a=getDraft(c); a.commentReason=r.dataset.v;
+    $$('#reasonOpts .reason').forEach(x=>{ const on=x===r; x.classList.toggle('sel',on); x.querySelector('input').checked=on; });
+    log('answer_reason',{value:r.dataset.v}); touch(c);
+  });
+  let ctTimer=0;
+  $('#commentText').addEventListener('input',e=>{
+    const c=curCase(); if(!c) return; const a=getDraft(c); a.commentText=e.target.value;
+    persist(); clearTimeout(ctTimer); ctTimer=setTimeout(()=>log('comment_edit',{len:e.target.value.length}),700);
+  });
+  // page navigation
+  const nextCase=()=>gotoCase(Math.min(state.idx+1,state.filtered.length-1),'skip');
+  $('#toDecide').addEventListener('click',()=>{                   // page 1 -> 2 (gated on Q1)
+    const c=curCase(); if(!c) return; const a=state.store.annotations[c.key];
+    if(!a||!a.issueExists){ flashSave('Answer Q1 first','#saveState2'); return; }
+    setStep(2);
+  });
+  $('#backToTest').addEventListener('click',()=>setStep(1));      // page 2 -> 1
+  $('#skip1').addEventListener('click',()=>{ log('skip'); nextCase(); });
+  $('#skip2').addEventListener('click',()=>{ log('skip'); nextCase(); });
+  $('#saveBtn').addEventListener('click',()=>{
+    const c=curCase(); if(!c) return; const a=state.store.annotations[c.key];
+    if(!isComplete(a)){ flashSave('Pick an answer for Q2'+(a&&a.disposition==='comment'?' + a reason':'')); return; }
+    log('save_next'); gotoCase(Math.min(state.idx+1, state.filtered.length-1),'save_next');
+  });
+}
+function wirePractice(){
+  $('#pIssueOpts').addEventListener('click',e=>{
+    const o=e.target.closest('.opt'); if(!o) return; const c=curCase(); if(!c||!c.practice) return;
+    $$('#pIssueOpts .opt').forEach(x=>x.classList.toggle('sel',x===o));
+    recordPractice(c, o.dataset.v);
+    showPracticeFeedback(c, o.dataset.v);
+    $('#pNext').disabled=false;
+    $('#pNext').textContent = practiceDone() ? 'Unlock annotation queue →' : 'Next →';
+    updatePracticeBanner(); updateProgress(); refreshQueueStatuses();
+    log('practice_answer',{sc:c.sc, ruleId:c.ruleId, answer:o.dataset.v, correct:state.store.practice[c.key].correct});
+  });
+  $('#pNext').addEventListener('click',()=>{
+    if(practiceDone()){ log('practice_complete'); setMode('annotate'); showHlMsg('Practice complete — the annotation queue is unlocked.'); return; }
+    // advance to the next case; if at the end, jump to the first still-unanswered one
+    let n=state.idx+1;
+    if(n>=state.filtered.length){ const u=state.filtered.findIndex(c=>!practiceAnswered(c.key)); n = u>=0 ? u : state.idx; }
+    gotoCase(n,'practice_next');
+  });
+  $('#pPrev').addEventListener('click',()=>gotoCase(state.idx-1,'practice_prev'));
+  $('#pbSkip').addEventListener('click',()=>{ log('practice_skip'); setMode('annotate'); });
+}
+function flashSave(msg, sel){ const ss=$(sel||'#saveState'); ss.textContent='⚠ '+msg; ss.className='ssline'; ss.style.color='var(--amber)'; setTimeout(()=>{ss.style.color='';updateSaveState(curCase());},1800); }
+
+/* ---------------- navigation ---------------- */
+function gotoCase(i,how){
+  if(i<0||i>=state.filtered.length) return;
+  // dwell log for the case we are leaving
+  if(state.caseOpenedAt){ log('dwell',{ms: Date.now()-state.caseOpenedAt}); }
+  state.idx=i; if(how) log('nav',{how, to:i});
+  rememberPos();
+  renderCase();
+}
+// remember the last viewed page by its stable key, so a reload (or filter change)
+// returns to it; falls back to the first page only when that key is filtered out.
+function rememberPos(){
+  const c = state.filtered[state.idx];
+  if(c){ state.store.meta.lastKey = c.key; persist(); }
+}
+function restoreIdx(){
+  const key = state.store.meta && state.store.meta.lastKey;
+  if(key){ const i = state.filtered.findIndex(c=>c.key===key); if(i>=0) return i; }
+  return 0;
+}
+
+/* ---------------- export ---------------- */
+function exportJSON(){
+  log('export');
+  const payload = {
+    schema:'act-augmented-annotations/1',
+    exportedAt: nowISO(),
+    meta: state.store.meta,
+    filter: state.filterName||null,
+    counts:{
+      total: state.filtered.length,
+      completed: state.filtered.filter(c=>isComplete(ann(c.key))).length,
+    },
+    annotations: state.store.annotations,
+    logs: state.store.logs,
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='act-aug-annotations-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.json';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+/* ---------------- wiring ---------------- */
+function wireChrome(){
+  $('#queueToggle').addEventListener('click',()=>$('#queue').classList.toggle('collapsed'));
+  $('#prevBtn').addEventListener('click',()=>gotoCase(state.idx-1,'prev'));
+  $('#nextBtn').addEventListener('click',()=>gotoCase(state.idx+1,'next'));
+  $('#hlBtn').addEventListener('click',()=>setHighlight(!state.highlightOn));
+  $('#overlay').addEventListener('click',()=>{ if(state.highlightOn) showHlMsg('Turn off ◎ Highlight to interact with the page.'); });
+  // the backdrop blocks clicks but still lets you scroll the page underneath
+  $('#overlay').addEventListener('wheel',(e)=>{
+    if(!state.highlightOn) return;
+    try{ const w=$('#frame').contentWindow; const f=e.deltaMode===1?16:(e.deltaMode===2?(w.innerHeight||800):1); w.scrollBy(e.deltaX*f, e.deltaY*f); }catch(_){}
+    e.preventDefault();
+  }, {passive:false});
+  $('#andiBtn').addEventListener('click',()=>{
+    const f=$('#frame');
+    let doc,win;
+    try{ doc=f.contentDocument; win=f.contentWindow; if(!doc||!win) throw new Error('no doc'); }
+    catch(e){ showHlMsg('Cannot access the page for ANDI (open via localhost).'); return; }
+    launchAndi(doc,win); log('andi_webview',{url:curCase()?.url});
+  });
+  $('#contrastBtn').addEventListener('click',openContrastChecker);
+  $('#tabBtn').addEventListener('click',()=>{ const c=curCase(); if(c){ openInTabWithAndi(c.url); log('open_new_tab',{url:c.url, andi:true}); } });
+  $('#exportBtn').addEventListener('click',exportJSON);
+  $('#frame').addEventListener('load',()=>{
+    log('iframe_loaded'); injectSrDriver(); injectInspector();
+    if(state.highlightOn) buildHighlight();
+    // SR + ANDI are loaded when the user dismisses the highlight (see setHighlight).
+    // Practice cases have no highlight to dismiss, so start the SR on load.
+    const c=curCase(); if(c&&c.practice){ setTimeout(()=>{ if(!state.srActive) srAutoStart(); }, 150); }
+  });
+  // expand/collapse markdown blocks
+  document.addEventListener('click',e=>{
+    const t=e.target.closest('.mdToggle');
+    if(t){ const md=document.getElementById(t.dataset.md); if(md){ const ex=md.classList.toggle('expanded'); t.textContent=ex?'Collapse ▴':'Expand ▾'; } return; }
+    const f=e.target.closest('.fullToggle');
+    if(f){ const d=document.getElementById(f.dataset.full); if(d){ const show=d.style.display==='none'; d.style.display=show?'':'none'; const label=f.textContent.replace(/^[▸▾]\s*/,''); f.textContent=(show?'▾ ':'▸ ')+label; } }
+  });
+  // settings modal
+  $('#settingsBtn').addEventListener('click',()=>{ $('#annName').value=state.store.meta.annotatorName||''; $('#settingsModal').classList.add('show'); });
+  $('#settingsClose').addEventListener('click',()=>{ state.store.meta.annotatorName=$('#annName').value.trim()||null; persist(); $('#settingsModal').classList.remove('show'); });
+  $('#settingsModal').addEventListener('click',e=>{ if(e.target.id==='settingsModal') $('#settingsClose').click(); });
+  // filter
+  $('#filterBtn').addEventListener('click',()=>$('#filterInput').click());
+  $('#filterInput').addEventListener('change',handleFilterFile);
+  $('#filterClear').addEventListener('click',()=>{ state.filterName=null; state.store.filter=null; persist(); $('#fileName').textContent=''; $('#filterClear').style.display='none'; applyFilter(null); recomputePractice(); log('filter_clear'); });
+  // keyboard (step-aware)
+  document.addEventListener('keydown',e=>{
+    if(e.target.matches('input,textarea')) return;
+    const k=e.key;
+    if(k==='ArrowRight'||k==='n'){ gotoCase(state.idx+1,'key'); }
+    else if(k==='ArrowLeft'||k==='p'){ gotoCase(state.idx-1,'key'); }
+    else if(k==='h'){ setHighlight(!state.highlightOn); }
+    else if(state.mode==='practice'){
+      if(k==='1'){ $$('#pIssueOpts .opt')[0].click(); }
+      else if(k==='2'){ $$('#pIssueOpts .opt')[1].click(); }
+      else if(k==='Enter'){ if(!$('#pNext').disabled) $('#pNext').click(); }
+    }
+    else if(state.step===1){
+      if(k==='1'){ $$('#issueOpts .opt')[0].click(); }
+      else if(k==='2'){ $$('#issueOpts .opt')[1].click(); }
+      else if(k==='Enter'){ $('#toDecide').click(); }
+    } else {
+      if(k==='a'){ $$('#dispOpts .opt')[0].click(); }
+      else if(k==='c'){ $$('#dispOpts .opt')[1].click(); }
+      else if(k==='b'){ $('#backToTest').click(); }
+      else if(k==='Enter'){ $('#saveBtn').click(); }
+    }
+  });
+  window.addEventListener('beforeunload',()=>{ if(state.caseOpenedAt) log('dwell',{ms:Date.now()-state.caseOpenedAt}); });
+}
+function handleFilterFile(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const spec=JSON.parse(r.result);
+      applyFilter(spec);
+      state.filterName=file.name; $('#fileName').textContent='filter: '+file.name; $('#filterClear').style.display='';
+      state.store.filter={name:file.name, spec}; persist();        // persist across reloads
+      recomputePractice();   // new SC scope → maybe practice is required again
+      log('filter_loaded',{file:file.name, matched:state.filtered.length, mode:state.mode});
+      if(state.mode==='annotate' && !state.filtered.length) showHlMsg('Filter matched 0 pages — check the SC/aspect names.');
+    }catch(err){ alert('Could not parse filter JSON: '+err.message); }
+  };
+  r.readAsText(file);
+  e.target.value='';
+}
+
+/* ---------------- init ---------------- */
+async function init(){
+  // ?practice in the URL is a direct link to the practice tasks (forces practice mode)
+  state.forcePractice = new URLSearchParams(location.search).has('practice');
+  if(location.protocol==='file:'){
+    $('#fileGuard').style.display='flex'; $('#curProto').textContent=location.protocol;
+    return;
+  }
+  loadStore();
+  try{
+    const res = await fetch('./manifest.json',{cache:'no-store'});
+    state.manifest = await res.json();
+  }catch(e){
+    $('#crumb').innerHTML='<span style="color:var(--red)">Could not load manifest.json — run build-manifest.js first.</span>';
+    return;
+  }
+  buildCases();
+  // practice / calibration cases (ACT test set) — optional; gate the real queue
+  try{ const pr=await fetch('./practice/practice-cases.json',{cache:'no-store'}); state.practiceData = pr.ok ? await pr.json() : null; }
+  catch(e){ state.practiceData=null; }
+  // restore a previously-loaded page filter from localStorage
+  if(state.store.filter && state.store.filter.spec){
+    applyFilter(state.store.filter.spec);
+    state.filterName=state.store.filter.name||'(saved filter)';
+    $('#fileName').textContent='filter: '+state.filterName; $('#filterClear').style.display='';
+  } else {
+    applyFilter(null);
+  }
+  wireForm(); wirePractice(); wireChrome(); wireSR();
+  recomputePractice();   // decide practice vs annotate, set the queue + idx, and render
+  document.title='ACT-Aug Annotator ('+state.cases.length+' pages)';
+}
+init();
+</script>
+</body>
+</html>

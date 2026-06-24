@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City of Marrowfield — Pay a Parking Citation</title>
+<!--
+  SC 1.4.11 Non-text Contrast — F78 (focus indicator occluded by a same-color
+  thick border).
+
+  The action buttons on this civic-payment step use a heavy "brutalist gov"
+  look: a permanent 4px SOLID BLACK border on every button. The author did NOT
+  set outline:none — they supplied a focus indicator, but made it a thin BLACK
+  outline drawn just OUTSIDE the border (the F78 "both are black" case):
+
+      .btn        { border: 4px solid #000; }
+      .btn:focus  { outline: 2px solid #000; outline-offset: 1px; }
+
+  Because the resting border is 4px solid black and the focus outline is a
+  thinner black line immediately outside it, the focus ring is swallowed: when a
+  button gains focus the black ring sits flush against the 4px black border and
+  reads as one continuous black edge. Focus appears not to move.
+
+  (An author black focus outline is declared explicitly rather than relying on
+  the UA default, because modern browsers paint the default ring in the OS
+  accent color — which would NOT be occluded. F78's failure is specifically the
+  SAME-COLOR case, so the page makes the focus indicator black to match the
+  black border, exactly per the F78 example markup.)
+
+  The page is rendered with the "Continue to payment" button focused
+  (autofocus). Tab between the two buttons and the only thing that changes is a
+  hair of thickness on an already-thick black edge — not humanly discernible as
+  "this button is now focused."
+
+  WHY AUTOMATED TOOLS MISS IT: outline:none is NOT used and a real author focus
+  outline IS declared, so outline-removal and "focus-style-exists" linters pass.
+  The focus outline, measured in isolation against the white page, is high
+  contrast (black on white ~21:1), so a contrast check passes. axe/WAVE/
+  Lighthouse encode no rule for "focus ring occluded by a same-color border."
+  Deciding it requires rendering the focused state, seeing that the black focus
+  line abuts a 4px black border, and judging that a sighted keyboard user cannot
+  perceive that focus landed.
+-->
+<style>
+  :root{
+    --ink:#161616; --gov-blue:#0b4a6f; --paper:#f4f3ef; --line:#c9c6bd;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font:17px/1.55 "Public Sans","Helvetica Neue",Arial,sans-serif;
+  }
+  .gov-bar{background:var(--gov-blue); color:#fff; font-size:.85rem; padding:6px 20px;}
+  header.seal{display:flex; align-items:center; gap:14px; padding:16px 20px; border-bottom:4px solid var(--ink); background:#fff;}
+  header.seal .crest{width:38px; height:38px; border:3px solid var(--ink); border-radius:50%; display:grid; place-items:center; font-weight:800;}
+  header.seal h1{font-size:1.15rem; margin:0;}
+  main{max-width:680px; margin:0 auto; padding:28px 20px 60px;}
+  .step{font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; color:var(--gov-blue); font-weight:700; margin:0 0 4px;}
+  h2{font-size:1.5rem; margin:0 0 18px;}
+  .summary{background:#fff; border:1px solid var(--line); border-radius:6px; padding:18px 20px; margin:0 0 26px;}
+  .summary dl{display:grid; grid-template-columns:auto 1fr; gap:8px 18px; margin:0;}
+  .summary dt{color:#555; font-size:.92rem;}
+  .summary dd{margin:0; font-weight:600; text-align:right;}
+  .summary .total dt, .summary .total dd{font-size:1.15rem; border-top:1px solid var(--line); padding-top:10px;}
+  fieldset{border:1px solid var(--line); border-radius:6px; padding:16px 18px; margin:0 0 26px; background:#fff;}
+  legend{font-weight:700; padding:0 6px;}
+  label{display:block; font-size:.9rem; margin:10px 0 4px;}
+  input[type=text]{width:100%; padding:9px 10px; font-size:1rem; border:1px solid #8a8a8a; border-radius:4px;}
+
+  .actions{display:flex; gap:16px; flex-wrap:wrap;}
+
+  /* THE DEFECT: 4px solid black border on every button, and the author focus
+     indicator is a thin BLACK outline drawn just outside that border. Because
+     both are black and the border is thicker, the focus ring is occluded by the
+     same-color border, so focus is not perceivable. outline:none is NOT used —
+     a real author focus indicator genuinely renders, it is just swallowed. */
+  .btn{
+    font:700 1rem/1 inherit; cursor:pointer; padding:13px 22px;
+    border:4px solid #000;          /* heavy permanent black border */
+    background:#ffd23f; color:#161616; border-radius:0;
+  }
+  .btn.secondary{background:#fff;}
+  .btn:focus{
+    outline:2px solid #000;         /* SAME color as the 4px border, drawn just
+                                       outside it -> swallowed (F78) */
+    outline-offset:1px;
+  }
+
+  footer{max-width:680px; margin:0 auto; padding:18px 20px; color:#555; font-size:.8rem; border-top:1px solid var(--line);}
+</style>
+</head>
+<body>
+<div class="gov-bar">An official service of the City of Marrowfield</div>
+<header class="seal">
+  <div class="crest">MF</div>
+  <div><h1>Marrowfield Citation Portal</h1></div>
+</header>
+
+<main>
+  <p class="step">Step 3 of 4 &middot; Review</p>
+  <h2>Review your citation</h2>
+
+  <div class="summary">
+    <dl>
+      <dt>Citation number</dt><dd>MF-2026-0049817</dd>
+      <dt>Violation</dt><dd>Expired meter — Zone C</dd>
+      <dt>Issued</dt><dd>11 June 2026, 2:14 PM</dd>
+      <dt>Base fine</dt><dd>$45.00</dd>
+      <dt>Processing fee</dt><dd>$2.50</dd>
+    </dl>
+    <dl class="total"><dt>Total due</dt><dd>$47.50</dd></dl>
+  </div>
+
+  <fieldset>
+    <legend>Contact for receipt</legend>
+    <label for="email">Email address (optional)</label>
+    <input type="text" id="email" name="email" autocomplete="email" placeholder="you@example.com">
+  </fieldset>
+
+  <div class="actions">
+    <button type="button" class="btn secondary">Back to citation lookup</button>
+    <!-- Page loads with this button focused. The black author focus outline
+         renders but is occluded by the same-color 4px black border. -->
+    <button type="button" class="btn" autofocus>Continue to payment</button>
+  </div>
+</main>
+
+<footer>
+  Need help? Call 311. &middot; This review step loads with the <em>Continue to payment</em> button focused.
+</footer>
+</body>
+</html>

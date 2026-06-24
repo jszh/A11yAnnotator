@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find your nearest recycling centre — Council services</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The form's locale is unambiguously British: lang="en-GB", the heading "Find your
+  nearest recycling centre", the field labelled "UK postcode", and a worked example
+  "for example SW1A 1AA". When a user enters a real UK postcode and it is rejected
+  (the validator is over-strict on spacing), an error fires — correctly associated,
+  announced in role=alert — with a confident, specific suggestion:
+  "Postcodes must be 5 digits. Please enter your 5-digit postcode."
+  SC 3.3.3 structural facets all pass: an error is detected AND a correction
+  suggestion is provided. axe/WAVE/Lighthouse see associated, announced, contrasty
+  error text.
+  THE DEFECT IS SEMANTIC + GEOGRAPHIC: UK postcodes are ALPHANUMERIC (e.g. SW1A 1AA,
+  M1 1AE, EC1A 1BB) — never "5 digits". The page even shows the correct alphanumeric
+  example in its own label hint, and the field's pattern accepts letters. The
+  suggestion describes a US-style 5-digit ZIP and is impossible to satisfy for this
+  field: there is no 5-digit value that is a valid UK postcode. Following the
+  suggestion guarantees re-failure. No scanner knows what a UK postcode looks like,
+  so none can tell that "5 digits" is the wrong format for a field that, by its own
+  label and pattern, wants alphanumeric. Catching it needs human world-knowledge of
+  the locale's true format.
+-->
+<style>
+  :root{
+    --ink:#0b0c0c; --muted:#505a5f; --line:#b1b4b6; --brand:#1d70b8; --green:#00703c;
+    --danger:#d4351c; --focus:#ffdd00; --paper:#fff;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:18px/1.5 "Helvetica Neue",Arial,sans-serif; color:var(--ink); background:#fff; }
+  .gov{ background:#0b0c0c; color:#fff; padding:10px 0; font-weight:700; }
+  .wrap{ max-width:620px; margin:0 auto; padding:0 22px; }
+  main{ padding:36px 0 70px; }
+  h1{ font-size:2rem; line-height:1.1; margin:0 0 10px; }
+  .lede{ color:var(--muted); margin:0 0 30px; }
+  label{ display:block; font-weight:700; font-size:1.2rem; margin:0 0 4px; }
+  .hint{ color:var(--muted); font-size:1rem; margin:0 0 10px; }
+  .errblock{ border-left:5px solid var(--danger); padding:2px 0 2px 16px; margin:0 0 4px; }
+  .errblock .err{ color:var(--danger); font-weight:700; font-size:1rem; margin:0; }
+  input[type=text]{ width:100%; max-width:16ch; padding:9px 11px; font-size:1.1rem;
+        border:2px solid var(--ink); border-radius:0; }
+  input[aria-invalid="true"]{ border:4px solid var(--danger); }
+  input:focus{ outline:4px solid var(--focus); outline-offset:0; box-shadow:inset 0 0 0 2px var(--ink); }
+  button{ margin-top:22px; background:var(--green); color:#fff; border:0; border-radius:0;
+        font-size:1.1rem; font-weight:700; padding:13px 24px; cursor:pointer; box-shadow:0 2px 0 #002d18; }
+  button:focus{ outline:4px solid var(--focus); outline-offset:0; }
+  .result{ margin-top:26px; padding:16px; background:#f3f9f4; border-left:5px solid var(--green);
+        font-weight:600; }
+  .foot{ color:var(--muted); font-size:.78rem; margin-top:34px; }
+</style>
+</head>
+<body>
+  <div class="gov"><div class="wrap">GOV.UK · Westbridge District Council</div></div>
+  <main>
+    <div class="wrap">
+      <h1>Find your nearest recycling centre</h1>
+      <p class="lede">Enter your postcode and we'll show your closest household waste and recycling centre, with its opening times.</p>
+
+      <form id="pcform" action="#" method="post" novalidate>
+        <label for="postcode">UK postcode</label>
+        <p class="hint" id="pc-hint">For example, SW1A 1AA</p>
+
+        <div class="errblock" id="pc-errblock" hidden>
+          <p class="err" id="pc-err" role="alert"></p>
+        </div>
+
+        <input type="text" id="postcode" name="postcode"
+               aria-describedby="pc-hint pc-err"
+               maxlength="8"
+               pattern="[A-Za-z]{1,2}\d[A-Za-z\d]?\s*\d[A-Za-z]{2}"
+               inputmode="text" autocapitalize="characters" spellcheck="false">
+
+        <button type="submit">Find centre</button>
+      </form>
+
+      <div class="result" id="result" hidden></div>
+
+      <p class="foot">Westbridge District Council demo &middot; renders from file:// &middot; no lookup is performed.</p>
+    </div>
+  </main>
+
+<script>
+(function(){
+  var form  = document.getElementById('pcform');
+  var input = document.getElementById('postcode');
+  var block = document.getElementById('pc-errblock');
+  var err   = document.getElementById('pc-err');
+  var res   = document.getElementById('result');
+
+  // REAL ENFORCED RULE: a (deliberately strict) UK-postcode shape — ALPHANUMERIC,
+  // requiring a single space between the outward and inward codes (e.g. "SW1A 1AA").
+  // It is impossible for any all-digit value to match this.
+  var UK = /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s\d[A-Za-z]{2}$/;
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var v = input.value.trim().toUpperCase();
+    if (UK.test(v)){
+      input.setAttribute('aria-invalid','false');
+      block.hidden = true;
+      res.hidden = false;
+      res.textContent = 'Nearest centre for ' + v + ': Westbridge HWRC, Mill Lane — open today until 6pm.';
+      return;
+    }
+    res.hidden = true;
+    input.setAttribute('aria-invalid','true');
+    // CONFIDENT, SPECIFIC — AND WRONG FOR THE UK: postcodes are alphanumeric, not 5 digits.
+    // No 5-digit value can ever satisfy the UK pattern, so following this fails forever.
+    err.textContent = 'Postcodes must be 5 digits. Please enter your 5-digit postcode (for example, 90210).';
+    block.hidden = false;
+    input.focus();
+  });
+})();
+</script>
+</body>
+</html>

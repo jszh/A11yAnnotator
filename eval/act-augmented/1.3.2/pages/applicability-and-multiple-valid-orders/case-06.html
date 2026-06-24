@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support transcript — Ticket #80421 · Aurora Bank</title>
+<!--
+  SC 1.3.2 — EXPECTED: FAIL (long-tail: a dialogue transcript reordered so answers precede questions)
+
+  A saved customer-support chat transcript. A dialogue is intrinsically order-dependent: a reply
+  only makes sense after the message it answers. Here each message is a grid item, and CSS grid
+  `grid-row` is used to lay the bubbles out in the correct visual top-to-bottom conversation order.
+  BUT in the DOM the messages are stored newest-first (a common "prepend new message" anti-pattern),
+  so the linearized reading order is REVERSED: the agent's closing "Glad I could help!" is read
+  before the customer's opening "Hi, I was charged twice...". Read in DOM order the conversation is
+  back-to-front — answers arrive before their questions and the resolution before the problem.
+
+  Order IS meaningful (a conversation), so the applicability gate is tripped; and the DOM order
+  genuinely breaks meaning, so this is a FAIL — the deliberate contrast to the order-irrelevant
+  PASS cases (01-03). There are no timestamps or "1/2/3" markers a tool could sort by; the reversal
+  is only detectable by reading the dialogue and noticing the replies precede their prompts.
+
+  WHY AUTOMATED TOOLS MISS IT: grid + grid-row are valid; nothing is missing. No 1.3.2 rule exists.
+  Recognising that a transcript read bottom-to-top is incoherent needs reading comprehension.
+-->
+<style>
+  :root { --ink:#1b2330; --muted:#64748b; --line:#e2e8f0; --bg:#eef2f7;
+          --cust:#dbeafe; --agent:#dcfce7; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.55 "Segoe UI", system-ui, sans-serif; color:var(--ink); background:var(--bg); }
+  .panel { max-width:560px; margin:24px auto; background:#fff; border:1px solid var(--line);
+           border-radius:14px; overflow:hidden; }
+  .panel header { padding:14px 18px; border-bottom:1px solid var(--line); }
+  .panel header h1 { margin:0; font-size:1.05rem; }
+  .panel header p { margin:.2rem 0 0; color:var(--muted); font-size:.82rem; }
+
+  /* Messages are grid items. grid-row places them in the correct VISUAL order
+     (top = oldest). But DOM order is newest-first, so the AT reading order is reversed. */
+  .thread { display:grid; grid-template-columns:1fr; gap:10px; padding:18px; }
+  .msg { max-width:80%; padding:9px 13px; border-radius:14px; }
+  .msg .who { display:block; font-size:.72rem; color:var(--muted); margin-bottom:2px; }
+  .msg.cust  { background:var(--cust); justify-self:start; border-bottom-left-radius:4px; }
+  .msg.agent { background:var(--agent); justify-self:end; text-align:left; border-bottom-right-radius:4px; }
+
+  /* Visual conversation order forced via grid-row (1 = top). */
+  #m1 { grid-row:1; }   /* customer opens */
+  #m2 { grid-row:2; }   /* agent asks */
+  #m3 { grid-row:3; }   /* customer answers */
+  #m4 { grid-row:4; }   /* agent resolves */
+  #m5 { grid-row:5; }   /* customer thanks */
+  #m6 { grid-row:6; }   /* agent closes */
+
+  footer { padding:12px 18px; border-top:1px solid var(--line); color:var(--muted); font-size:.78rem; }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <header>
+      <h1>Support transcript &mdash; Ticket #80421</h1>
+      <p>Aurora Bank &middot; saved 14:52 &middot; messages shown in conversation order</p>
+    </header>
+
+    <div class="thread" role="log" aria-label="Chat transcript">
+
+      <!-- DOM is NEWEST-FIRST. The closing message is physically first in source. -->
+      <div class="msg agent" id="m6">
+        <span class="who">Agent &middot; Priya</span>
+        Glad I could help! The refund of &pound;42.00 will land in 3&ndash;5 working days. Take care.
+      </div>
+
+      <div class="msg cust" id="m5">
+        <span class="who">You</span>
+        Perfect, thank you so much for sorting that out.
+      </div>
+
+      <div class="msg agent" id="m4">
+        <span class="who">Agent &middot; Priya</span>
+        I can see the duplicate now &mdash; the second charge was a gateway retry. I&rsquo;ve voided it
+        and raised a refund for &pound;42.00 to the same card.
+      </div>
+
+      <div class="msg cust" id="m3">
+        <span class="who">You</span>
+        It&rsquo;s the &pound;42.00 to &ldquo;Northside Groceries&rdquo; on the 3rd, listed twice.
+      </div>
+
+      <div class="msg agent" id="m2">
+        <span class="who">Agent &middot; Priya</span>
+        Sorry to hear that. Can you tell me the merchant name and the amount of the charge you think
+        is duplicated?
+      </div>
+
+      <div class="msg cust" id="m1">
+        <span class="who">You</span>
+        Hi, I was charged twice for the same purchase this morning and need one of them reversed.
+      </div>
+
+    </div>
+
+    <footer>Transcript for ticket #80421. A copy has been emailed to you.</footer>
+  </div>
+</body>
+</html>

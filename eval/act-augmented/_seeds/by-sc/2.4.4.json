@@ -1,0 +1,298 @@
+{
+  "sc": "2.4.4",
+  "count": 20,
+  "patterns": [
+    {
+      "platform": "Squarespace blog / Summary block grid",
+      "name": "Triple-redundant 'Read More →' links sharing one destination",
+      "description": "Each summary item auto-emits the thumbnail image, the post title, AND a 'Read More →' link, all three pointing to the same post URL. Screen-reader users tabbing the link list hear 'Read More, link / Read More, link / Read More, link' with no way to distinguish posts, and the same destination is reachable three times. The 'Read More →' text cannot be edited or removed through built-in settings.",
+      "wcagScs": [
+        "2.4.4",
+        "1.1.1"
+      ],
+      "typicalMarkup": "<div class=\"summary-item\">\n  <a class=\"summary-thumbnail-container\" href=\"/blog/post-slug\"><img src=\"...\" alt=\"\"></a>\n  <a class=\"summary-title-link\" href=\"/blog/post-slug\">Spring Tips</a>\n  <a class=\"summary-read-more-link\" href=\"/blog/post-slug\">Read More →</a>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Each <a> has non-empty text ('Read More →'), so link-name checks pass; the redundancy/ambiguity is only a problem when the links are read out of context as a list, which requires human judgment about whether the link purpose is determinable. Tools can't know the three links go to the same place is intended vs. confusing.",
+      "realWorldNote": "Amy Carney's hands-on Squarespace audit: 'Redundant links: image, heading, and Read More all link to same destination' and the Read More link cannot be customized or unlinked. https://theamycarney.com/2024/04/02/observations-on-squarespace-accessibility/",
+      "family": "drag-drop-builders"
+    },
+    {
+      "platform": "Gutenberg / page-builder post grids, blog templates, ACF loops (Elementor Posts widget, Divi Blog module)",
+      "name": "Repeated 'Read More' / 'Learn More' links with no in-context distinction",
+      "description": "Post-loop templates render an identical generic call-to-action link for every post in the grid. A screen-reader user pulling up the links list hears 'Read more, Read more, Read more...' (or 'Learn more') with nothing to distinguish destinations. Builders default this string and rarely add per-post screen-reader-text.",
+      "wcagScs": [
+        "2.4.4"
+      ],
+      "typicalMarkup": "<article><h2>Our 2024 Annual Report</h2><p>Lorem ipsum...</p>\n  <a class=\"elementor-button\" href=\"/annual-report\">Read More</a></article>\n<article><h2>Spring Sale Details</h2><p>Lorem ipsum...</p>\n  <a class=\"elementor-button\" href=\"/spring-sale\">Read More</a></article>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The links have non-empty, programmatically-determinable accessible names, so 4.1.2 passes. Judging that 'Read More' is non-descriptive out of context, and that ten of them are ambiguous, requires understanding the link text means nothing without the adjacent heading.",
+      "realWorldNote": "WordPress accessibility handbook documents the screen-reader-text fix precisely because 'read more'/'click here' are 'unintelligible out of context.' https://make.wordpress.org/accessibility/handbook/markup/the-css-class-screen-reader-text/ and https://equalizedigital.com (Accessibility Checker flags this pattern)",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Elementor Icon Box / Icon List widget (Font Awesome icon fonts)",
+      "name": "Icon-only link/button whose accessible name is the icon glyph or empty",
+      "description": "Icon Box and social-icon widgets render a link wrapping only a Font Awesome <i> with no text. The accessible name comes out empty (empty link) or, when the icon font exposes a glyph/private-use character, a screen reader announces a meaningless symbol name. CSS pseudo-element icons (::before content) can be read aloud as random characters bearing no relation to the visible icon.",
+      "wcagScs": [
+        "1.1.1",
+        "2.4.4",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<a href=\"/cart\" class=\"elementor-icon\">\n  <i aria-hidden=\"false\" class=\"fas fa-shopping-cart\"></i>\n</a>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "When the accessible name is truly empty, axe catches it (link has no discernible text). But when the icon font leaks a glyph name or a pseudo-element character into the name, the link is technically 'named' and tools pass it while the announced name ('private-use-F07A') is meaningless — judging that requires hearing what's announced vs. seeing the cart icon.",
+      "realWorldNote": "Elementor docs and abrightclearweb note Icon widgets 'create empty links and adjacent identical links'; Divi review notes CSS pseudo-element icons cause screen readers to 'announce the symbol's name, which has no semantic relationship.' https://www.abrightclearweb.com/elementor-accessibility/ and https://elevagedigital.com/improving-wordpress-divi-accessibility/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Elementor Image Carousel / Slides widget, Divi Slider, Smart Slider 3",
+      "name": "Auto-advancing carousel: icon-only controls + slide content/links hidden from AT",
+      "description": "Slider widgets auto-rotate with no clearly labeled pause/stop control. Prev/next arrows are icon-only with empty accessible names; pagination dots are unlabeled buttons. Off-screen slides are not consistently hidden from the accessibility tree, so screen-reader users encounter duplicate/moving content and links to slides they can't see.",
+      "wcagScs": [
+        "4.1.2",
+        "2.4.4",
+        "1.1.1"
+      ],
+      "typicalMarkup": "<div class=\"swiper-wrapper\"> <!-- autoplay:3000, no labeled pause control -->\n  <div class=\"swiper-slide\" aria-hidden=\"false\"><a href=\"/promo\"><img src=\"slide1.jpg\" alt=\"\"></a></div>\n</div>\n<div class=\"elementor-swiper-button-next\"><i class=\"eicon-chevron-right\"></i></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Empty arrow/dot names are partially catchable, but judging that hidden slides leak focusable links into the tab order, and that there is no labeled pause control, requires observing the running carousel and its focus behavior across slide states.",
+      "realWorldNote": "Elementor audit: 'Images in the carousel advance automatically every three seconds with no mechanism for pausing, stopping, or hiding.' https://www.accessibilitychecker.org/blog/elementor-website-accessibility/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Divi / Elementor button modules with icons and 'global' default labels (Pricing Table, CTA)",
+      "name": "Multiple buttons with identical generic accessible name ('Get Started', 'Submit')",
+      "description": "Pricing-table and CTA modules ship every plan's button reading the same default ('Get Started' / 'Buy Now' / 'Learn More'). Out of context the buttons are indistinguishable by name, so a screen-reader user navigating buttons can't tell the Basic from the Pro plan. Editors leave the default because per-button custom labels 'look kludgy.'",
+      "wcagScs": [
+        "2.4.4",
+        "2.4.6",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<div class=\"pricing basic\"><h3>Basic</h3>...<a class=\"button\">Get Started</a></div>\n<div class=\"pricing pro\"><h3>Pro</h3>...<a class=\"button\">Get Started</a></div>\n<div class=\"pricing enterprise\"><h3>Enterprise</h3>...<a class=\"button\">Get Started</a></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Each button has a valid, non-empty name, so 4.1.2 passes and there's no duplicate-id type error. Recognizing the three 'Get Started' names are ambiguous and need to encode the plan requires understanding the page's meaning and the navigate-by-button workflow.",
+      "realWorldNote": "Beaver Builder review: Pricing Table 'buttons all say the same thing – Get Started, and while you could edit this... it would make the buttons look kludgy.' https://wpshout.com/beaver-builder-accessibility/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "WordPress theme demo import / starter templates (Astra, OceanWP, Elementor Kits, Divi Layouts)",
+      "name": "Placeholder demo content left in production — default title, lorem ipsum, stock alt",
+      "description": "One-click demo imports populate the site with template defaults that editors forget to replace: the page <title> stays 'My WordPress Site' / 'Just another WordPress site' tagline, headings and links read 'Lorem ipsum dolor', CTA buttons say 'Button Text', and stock images carry the kit's generic alt. Titles don't uniquely describe the page; link text is meaningless Latin.",
+      "wcagScs": [
+        "2.4.2",
+        "2.4.4",
+        "1.1.1",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<title>Home – Just another WordPress site</title>\n<h2>Lorem Ipsum Dolor</h2>\n<a class=\"elementor-button\" href=\"#\">Click Here</a>\n<img src=\"placeholder-1.jpg\" alt=\"placeholder image\">",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "A <title> of 'Just another WordPress site' is present and non-empty (2.4.2 passes a presence check); lorem-ipsum link text is non-empty. Recognizing the content is unreplaced placeholder that fails to describe topic/purpose is a semantic judgment a linter can't make.",
+      "realWorldNote": "Demo/starter imports use lorem ipsum and template defaults; WPBeginner documents importing dummy content; 'Just another WordPress site' is the stock tagline. https://www.wpbeginner.com/wp-themes/how-to-add-dummy-content-for-theme-development-in-wordpress/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "WooCommerce / Elementor product loop on Storefront, Astra, Divi shops",
+      "name": "Color/variant swatches conveyed by color only; 'Add to cart' names not unique",
+      "description": "Product variation swatches are colored squares/links with no text or accessible name ('Red', 'Blue' is visual-only), so the choice is unperceivable without color. In the shop grid every product's 'Add to cart' / 'Select options' button has the same name, indistinguishable by product when navigating by button.",
+      "wcagScs": [
+        "1.4.1",
+        "1.1.1",
+        "2.4.4",
+        "4.1.2"
+      ],
+      "typicalMarkup": "<ul class=\"variations\">\n  <li><a class=\"swatch\" style=\"background:#c00\" data-value=\"red\"></a></li>\n  <li><a class=\"swatch\" style=\"background:#00c\" data-value=\"blue\"></a></li>\n</ul>\n<a href=\"?add-to-cart=42\" class=\"button\">Add to cart</a>  <!-- repeated per product -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Color-only meaning (1.4.1) is not statically detectable — a tool can't know the red square MEANS 'red' with no text backup. Repeated 'Add to cart' names are valid names. Both require understanding what the visual conveys and the by-button navigation experience.",
+      "realWorldNote": "WooCommerce color-swatch plugins render color-only links; equalizedigital and WebAIM repeatedly flag color-only controls and duplicate 'add to cart' button names as a top WordPress-shop barrier. https://equalizedigital.com/accessibility-checker/",
+      "family": "wordpress-ecosystem"
+    },
+    {
+      "platform": "Shopify Dawn / generic themes — promo and 'Learn more' CTAs from CMS blocks",
+      "name": "Repeated non-descriptive link text ('Shop now' / 'Learn more')",
+      "description": "Theme content blocks and collection cards generate multiple links whose text is the same generic phrase ('Shop now', 'Learn more', 'View details') with the actual destination only conveyed by an adjacent heading or image. A screen reader user listing links hears 'Shop now, Shop now, Learn more, Learn more' with no way to tell them apart.",
+      "wcagScs": [
+        "2.4.4",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<div class=\"card\">\n  <h3 class=\"card__heading\">Summer Linen Collection</h3>\n  <a href=\"/collections/summer-linen\" class=\"button\">Shop now</a>\n</div>\n<div class=\"card\">\n  <h3 class=\"card__heading\">Winter Knitwear</h3>\n  <a href=\"/collections/winter-knitwear\" class=\"button\">Shop now</a>\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Each link has visible, non-empty text and a valid href, so it passes the auto 'link has discernible text' check. Tools rarely flag duplicated generic link text, and even when they do they cannot judge whether the surrounding heading/context makes the purpose clear — determining ambiguity requires reading the link relative to its context, a human semantic judgment.",
+      "realWorldNote": "Common Dawn/theme CMS pattern; flagged in Shopify WCAG checklists (link clarity must be reviewed manually) and Wix's note that 'reviewing link clarity' is not automatable. https://easyappsecom.com/guides/shopify-wcag-compliance-checklist ; https://www.allaccessible.org/blog/shopify-accessibility-implementation-guide",
+      "family": "ecommerce-platforms"
+    },
+    {
+      "platform": "Webflow / Bubble CMS-driven 'Learn more' / 'Read more' link lists",
+      "name": "Repeated generic link text in collection/repeating lists",
+      "description": "A Collection List or Bubble repeating group renders a card per item, each ending in an identical 'Learn more', 'Read more', or 'View →' link. Out of context the link text is meaningless and screen-reader users hear 'Learn more' a dozen times with no way to tell the destinations apart.",
+      "wcagScs": [
+        "2.4.4",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<div class=\"card\"><h3>Pricing tiers</h3>\n  <a href=\"/pricing\">Learn more</a></div>\n<div class=\"card\"><h3>Case studies</h3>\n  <a href=\"/cases\">Learn more</a></div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Each link HAS visible text and an href, so it passes the 'link must have a name' check. Judging that 'Learn more' is not descriptive of its purpose — and that an associated heading would have to be programmatically connected to fix it — is a contextual/semantic decision tools can't reliably make (the text is technically present and non-empty).",
+      "realWorldNote": "Generic 'Learn more / Read more / click here' links are a canonical 2.4.4 failure; CMS card templates mass-produce them. WebAIM and WCAG 2.4.4 guidance: https://www.w3.org/WAI/WCAG21/Understanding/link-purpose-in-context.html",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Framer / Webflow icon-only social and utility buttons (SVG)",
+      "name": "Icon-only buttons/links with no accessible name",
+      "description": "Social links, hamburger menu toggles, search and close buttons are placed as inline SVG or icon-font glyphs inside a link/button with no text, no aria-label, and no title — so the accessible name is empty. Common in headers/footers generated from design components.",
+      "wcagScs": [
+        "4.1.2",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<a href=\"https://x.com/acme\" class=\"social w-inline-block\">\n  <svg viewBox=\"0 0 24 24\"><path d=\"...\"/></svg>\n</a>\n<div class=\"menu-toggle w-nav-button\"></div>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "This one IS reliably auto-detectable: axe/Lighthouse flag 'links/buttons must have discernible text' when an interactive element has an empty accessible name. Included for completeness as a common no-code artifact, but a linter catches it.",
+      "realWorldNote": "Webflow's accessibility guidance calls out icon-only buttons missing accessible names as a common critical issue and points to the Designer 'Aria Label' field as the fix: https://webflow.com/accessibility/checklist and audit-tool coverage: https://compliscan.ai/accessibility-checker/webflow",
+      "family": "nocode-design-tools"
+    },
+    {
+      "platform": "Inline SVG icon system (Heroicons, Lucide, Feather, Material Symbols inlined)",
+      "name": "Icon-only button/link with no accessible name (SVG provides none)",
+      "description": "A button or link whose only content is an inline <svg> with no <title>, no aria-label on the control, and no visually-hidden text. Screen readers announce just \"button\" / \"link\". Even when a <title> is added inside the SVG, several browser+SR combinations fail to surface it as the control's name, so it must be on the button.",
+      "wcagScs": [
+        "4.1.2",
+        "1.1.1",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<button class=\"icon-btn\">\n  <svg viewBox=\"0 0 24 24\"><path d=\"M...\"/></svg>\n</button>\n<!-- announced as just \"button\" -->",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "axe and Lighthouse DO reliably flag a button/link with an empty accessible name (\"Buttons must have discernible text\"), so a linter catches the no-name case. (Choosing a CORRECT label, however, would need human judgment — but the bare detection is automatable, hence flagged false.)",
+      "realWorldNote": "Sara Soueidan and CSS-Tricks document that there is no reliable way to use an SVG as the sole accessible name and that icon-only controls need aria-label on the control. https://www.sarasoueidan.com/blog/accessible-icon-buttons/",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "CMS-driven card/teaser components (React/Vue rendered from CMS data)",
+      "name": "Repeated generic \"Read more\" / \"Learn more\" links",
+      "description": "A reusable Card component renders a fixed call-to-action link (\"Read more\", \"Learn more\", \"Details\") for every item, with the descriptive title rendered as separate text outside the link. A screen-reader user pulling up the links list hears \"Read more, Read more, Read more...\" with no way to tell the destinations apart; in-context the link text alone is non-descriptive.",
+      "wcagScs": [
+        "2.4.4",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<article class=\"card\">\n  <h3>Annual Report 2025</h3>\n  <p>Summary text...</p>\n  <a href=\"/reports/2025\">Read more</a>\n</article>\n<!-- repeated N times, all links say \"Read more\" -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The link has non-empty text, so \"discernible text\" checks pass. Some tools heuristically warn on the literal string \"read more,\" but they cannot judge whether the surrounding context (the heading) is programmatically associated, whether the destinations actually differ, or whether the text is adequately descriptive — that is a semantic, contextual reading.",
+      "realWorldNote": "Vision Australia and WCAG SC 2.4.4 Link Purpose (In Context) describe non-descriptive \"Read more\" links as a classic failure; common in CMS card components. https://www.visionaustralia.org/business-consulting/digital-access/blog/how-to-make-read-more-links-accessible",
+      "family": "frameworks-component-libs"
+    },
+    {
+      "platform": "Disclosure / 'Show more' / 'Read more' (CMS content blocks, FAQ widgets)",
+      "name": "Disclosure trigger with generic name and no expanded state",
+      "description": "A 'Read more' / 'Show more' control expands hidden text but is a link or div with no aria-expanded and no aria-controls, and its accessible name is just the repeated generic phrase. Screen reader users get a list of identical 'Read more' controls with no context of what each reveals and no indication of open/closed state.",
+      "wcagScs": [
+        "4.1.2",
+        "2.4.4",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<a href=\"#\" class=\"more\" onclick=\"expand(this)\">Read more</a>\n<div class=\"extra\" hidden>Full product description...</div>\n<!-- repeated 12x on the page, each just 'Read more', no aria-expanded -->",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "axe can flag missing discernible text but cannot flag a NON-descriptive name that is technically present ('Read more' is a valid accessible name). Judging that 'Read more' is ambiguous out of context (2.4.4) and that the missing aria-expanded matters because this is a disclosure both require human semantic interpretation of purpose; the toggle role itself is not declared so no state rule fires.",
+      "realWorldNote": "The APG disclosure pattern requires aria-expanded on the trigger; WebAIM and link-purpose guidance repeatedly cite generic repeated 'Read more'/'Learn more' from CMS widgets as a classic 2.4.4 ambiguous-link-text failure. https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/",
+      "family": "apg-component-failures"
+    },
+    {
+      "platform": "WebAIM Million corpus (all builders) — buttons styled as div/span, icon-only controls",
+      "name": "Empty button / icon control with no accessible name",
+      "description": "A control is rendered as <div>, <span>, <a>, or an icon font/SVG with no text node and no aria-label, so its accessible name is empty. Screen readers announce 'button' or 'link' with nothing else. Common with hamburger menus, cart/search icons, social-share icons, and 'X' close buttons in page-builder widgets.",
+      "wcagScs": [
+        "4.1.2",
+        "1.1.1",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<button class=\"icon-cart\"><i class=\"fa fa-shopping-cart\" aria-hidden=\"true\"></i></button>\n<a href=\"/menu\"><svg><use href=\"#hamburger\"/></svg></a>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "This one IS reliably caught by axe/WAVE ('button-name', 'link-name', 'Empty Button', 'Empty Link') — it is a pure programmatic check for an empty accessible name. Included for completeness as a high-prevalence baseline. Flagged humanJudgmentNeeded=false.",
+      "realWorldNote": "WebAIM Million 2026: empty buttons on 30.6% of home pages, empty links on 46.3% — both in the top six errors: https://webaim.org/projects/million/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "CMS feed/listing widgets — WordPress 'Recent Posts', Shopify collection cards, Squarespace summary blocks",
+      "name": "Repeated 'Read more' / 'Learn more' links with no in-context distinction",
+      "description": "A looping CMS template emits the same link text ('Read more', 'Learn more', 'Shop now', 'View') for every card. A linter sees descriptive-enough text and a valid href, but a screen-reader user navigating by link list hears 'Read more, Read more, Read more' with no way to tell the destinations apart. The distinguishing context is only in an adjacent heading the link does not reference.",
+      "wcagScs": [
+        "2.4.4",
+        "1.3.1"
+      ],
+      "typicalMarkup": "<article><h3>Spring Collection</h3><p>...</p><a href=\"/spring\">Read more</a></article>\n<article><h3>Gift Guide</h3><p>...</p><a href=\"/gifts\">Read more</a></article>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "'Read more' is on some tools' generic-phrase blocklists, but many CMS templates use slightly varied phrasing or rely on the (technically present) heading nearby, so automated checks pass or only weakly flag. Judging whether the link purpose is clear FROM ITS CONTEXT — and whether the programmatic association (aria-labelledby to the heading) actually exists — needs a human reading the rendered page.",
+      "realWorldNote": "WebAIM Million 2026: ambiguous link text on 15.2% of pages, 5.3 instances each: https://webaim.org/projects/million/ . Ambiguous-link guidance: https://theadminbar.com/accessibility-weekly/ambiguous-links/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "WordPress slider plugins (Slider Revolution, Smart Slider), Elementor/Divi carousels, Wix Pro Gallery",
+      "name": "Auto-rotating carousel, keyboard-inaccessible, no pause",
+      "description": "A hero carousel auto-advances on a timer with no pause/stop control, prev/next arrows are non-focusable divs, and slide changes are not announced. Keyboard users cannot reach controls; the moving content steals reading position; offscreen slides may still be in the tab order as hidden focusable links.",
+      "wcagScs": [
+        "2.1.1",
+        "2.4.7",
+        "2.4.3",
+        "4.1.3",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<div class=\"slider\" data-autoplay=\"true\" data-interval=\"4000\">\n  <div class=\"slide\"><a href=\"/promo\">Shop the sale</a></div>\n  <div class=\"arrow next\" onclick=\"next()\"></div> <!-- div, not focusable -->\n</div>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Auto-rotation timing and the absence of a pause control are temporal/behavioral and not in the static DOM signature. Tools may catch a div with onclick lacking a role, but cannot verify keyboard reachability of the rotation, that focus is trapped/lost between slides, or that offscreen slides leak into the tab order — all need manual keyboard testing.",
+      "realWorldNote": "WCAG-ART and the A11Y Collective document carousel pause/keyboard/announce failures as classic manual-test items: https://www.a11y-collective.com/blog/accessible-carousel/ ; WP slider accessibility caveats: https://www.abrightclearweb.com/accessible-slider-wordpress/",
+      "family": "real-world-audit-findings"
+    },
+    {
+      "platform": "Icon-only controls (font-icon or SVG) labelled only via the HTML title attribute (e.g. linked social icons, table action icons)",
+      "name": "title attribute as the sole accessible name",
+      "description": "A linked icon or icon button has no text and no aria-label; its only name is a title attribute. title is exposed inconsistently across screen readers (JAWS/NVDA/VoiceOver differ, and it is suppressed when an img alt is present), so the control is effectively unnamed for many users and provides only a flaky mouse-hover tooltip with no keyboard equivalent.",
+      "wcagScs": [
+        "4.1.2",
+        "1.1.1",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<a href=\"/twitter\" title=\"Twitter\"><i class=\"icon-twitter\" aria-hidden=\"true\"></i></a>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Per the accname algorithm title IS a valid (last-resort) name source, so axe computes a non-empty accessible name and passes the element. Whether the title is actually announced (and is adequate) depends on the screen reader and on whether better naming was intended; judging the real-world failure needs a human testing with AT.",
+      "realWorldNote": "24a11y 'Trials and Tribulations of the Title Attribute'; Silktide 'I thought title text improved accessibility. I was wrong.'; W3C issue 867 on title as sole accName. https://www.24a11y.com/2017/the-trials-and-tribulations-of-the-title-attribute/",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Generic / vague link and button text emitted by CMS widgets and listing components ('Read more', 'Learn more', 'Click here', arrow glyphs, repeated per card)",
+      "name": "non-descriptive link/button text repeated out of context",
+      "description": "A grid of cards or a blog listing renders many identical 'Read more' / 'Learn more' links with no aria-label disambiguation and no surrounding programmatic context. A screen-reader user pulling up a links list hears 'Learn more, Learn more, Learn more' with no way to tell destinations apart.",
+      "wcagScs": [
+        "2.4.4",
+        "2.4.6"
+      ],
+      "typicalMarkup": "<article><h3>Pricing</h3><a href=\"/pricing\">Learn more</a></article>\n<article><h3>Support</h3><a href=\"/support\">Learn more</a></article>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "The links have non-empty accessible names, so name-presence checks pass. axe can flag identical link text going to different URLs in some configs, but judging whether 'Learn more' is sufficiently descriptive in context (and whether the heading association rescues it) is a semantic call about link purpose that needs a human.",
+      "realWorldNote": "WCAG 2.4.4 Link Purpose; Deque/WebAIM and Silktide repeatedly cite CMS 'Read more'/'Learn more' widgets as a top real-world failure. https://www.deque.com/blog/text-links-practices-screen-readers/",
+      "family": "aria-antipatterns-real"
+    },
+    {
+      "platform": "Theme components using icon fonts / inline SVG (Font Awesome, Bootstrap icons, Shopify Dawn header)",
+      "name": "Icon-only button/link with no accessible name",
+      "description": "A hamburger, search magnifier, close X, cart, or social-share control is rendered as a button/anchor whose only content is an <i> icon-font glyph or a decorative <svg> with no aria-label, no visually hidden text, and no title. Screen readers announce a bare \"button\" or \"link\" with no indication of what it does; voice-control users have nothing to target.",
+      "wcagScs": [
+        "4.1.2",
+        "2.4.4"
+      ],
+      "typicalMarkup": "<button class=\"nav__toggle\"><i class=\"fa fa-bars\" aria-hidden=\"true\"></i></button>\n<a href=\"/cart\"><svg viewBox=\"0 0 24 24\"><path d=\"...\"/></svg></a>",
+      "humanJudgmentNeeded": false,
+      "whyAutoToolsMiss": "This one is largely catchable: axe/Lighthouse flag buttons and links with no accessible name. (Edge cases where an icon font ligature renders visible text the AT can read, or where a name exists but is wrong, still need human review, but the bare unnamed-control case is a reliable linter hit.)",
+      "realWorldNote": "Icon-only controls are the canonical 4.1.2 \"button with no accessible name\" failure; Font Awesome's own docs and Shopify Dawn audits call it out. https://docs.fontawesome.com/web/dig-deeper/accessibility and https://testparty.ai/blog/shopify-dawn-theme-accessibility",
+      "family": "visual-color-i18n-cognitive"
+    },
+    {
+      "platform": "CMS list/grid widgets (WordPress blog loops, news cards, \"recent posts\")",
+      "name": "Repeated \"Read more\" / \"Learn more\" links with no distinguishing purpose",
+      "description": "A loop of post/product cards renders an identical generic call-to-action link under each item. When a screen-reader user pulls up the links list (or tabs through), they hear \"Read more, link\" / \"Learn more, link\" a dozen times with nothing to differentiate destinations. The descriptive context (the card heading) is programmatically separate from the link, so out of context the purpose is undeterminable.",
+      "wcagScs": [
+        "2.4.4"
+      ],
+      "typicalMarkup": "<article><h3>Spring Sale Tips</h3><p>...</p><a href=\"/post/1\">Read more</a></article>\n<article><h3>New Store Hours</h3><p>...</p><a href=\"/post/2\">Read more</a></article>",
+      "humanJudgmentNeeded": true,
+      "whyAutoToolsMiss": "Each link has non-empty text, so it passes the \"link must have text\" rule. Some tools heuristically flag the literal strings \"read more\"/\"click here\", but they cannot judge whether programmatically-determined context (an ancestor heading, aria-describedby) makes the purpose clear, nor whether the destinations actually differ — that needs reading the page.",
+      "realWorldNote": "Ambiguous \"Read more\"/\"Learn more\" link soup from CMS content is a textbook 2.4.4 failure. https://www.visionaustralia.org/business-consulting/digital-access/blog/how-to-make-read-more-links-accessible and https://theadminbar.com/accessibility-weekly/ambiguous-links/",
+      "family": "visual-color-i18n-cognitive"
+    }
+  ]
+}

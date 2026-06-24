@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.1.1 FAILURE — context/function-dependent equivalence (CONTROL-PURPOSE limb).
+    An order-confirmation screen in a food-delivery web app. While the kitchen hasn't
+    started, the user can stop the order. The stop control is a red stop-sign (octagon)
+    graphic implemented as an inline <svg role="img">; the SVG's <title> (its accessible
+    name) is "Red octagon" — a LITERALLY CORRECT description of the depicted shape. The
+    control's purpose is "Cancel order", but its name describes the geometry in the picture.
+    Because the SVG has a non-empty accessible name AND the control is keyboard-operable,
+    axe/WAVE see a named, focusable control and pass it. A second control next to it
+    ("Track driver") is correctly purpose-named. A sighted user reads the stop sign as
+    "cancel"; a screen-reader user hears "Red octagon, button" and cannot tell it cancels
+    the order — and might fear pressing it.
+    WHY AUTOMATED TOOLS MISS IT: the control has a non-empty accessible name (the SVG title),
+    satisfying name checks. No tool knows the button cancels the order; recognising that
+    "Red octagon" describes the shape rather than naming the cancel action needs human
+    understanding of the metaphor and the control's function.
+  -->
+  <title>Order placed — Fork &amp; Field</title>
+  <style>
+    :root { --ink:#1a1410; --muted:#6b5f55; --line:#e8e0d6; --bg:#faf6f0; --brand:#1f7a4d; --danger:#c62828; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    .wrap { max-width:520px; margin:0 auto; padding:24px 20px 60px; }
+    .brand { font-weight:800; font-size:18px; color:var(--brand); margin-bottom:18px; }
+    .conf { background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px; box-shadow:0 4px 14px rgba(80,60,40,.06); }
+    .conf .tick { width:46px; height:46px; border-radius:50%; background:var(--brand); color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:10px; }
+    .conf h1 { font-size:22px; margin:0 0 4px; }
+    .conf .eta { color:var(--muted); font-size:14px; margin:0 0 18px; }
+    .items { border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:14px 0; margin-bottom:14px; }
+    .items .row { display:flex; justify-content:space-between; font-size:15px; padding:4px 0; }
+    .items .row .q { color:var(--muted); }
+    .total { display:flex; justify-content:space-between; font-weight:700; font-size:16px; margin-bottom:18px; }
+    .controls { display:flex; gap:12px; align-items:center; }
+    .ctl { border:1px solid var(--line); background:#fff; border-radius:12px; padding:10px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:10px; font-size:15px; color:var(--ink); }
+    .ctl:hover { background:#f4efe8; }
+    .ctl:focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+    .ctl svg { width:30px; height:30px; }
+    .ctl .txt { font-weight:600; }
+    .note { color:var(--muted); font-size:12px; margin-top:14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">Fork &amp; Field</div>
+
+    <section class="conf" aria-label="Order confirmation">
+      <div class="tick" aria-hidden="true">✓</div>
+      <h1>Order placed</h1>
+      <p class="eta">Estimated delivery 7:45 PM · The kitchen hasn't started yet</p>
+
+      <div class="items">
+        <div class="row"><span><span class="q">1×</span> Harvest grain bowl</span><span>$13.50</span></div>
+        <div class="row"><span><span class="q">2×</span> Ginger lemonade</span><span>$8.00</span></div>
+        <div class="row"><span><span class="q">1×</span> Olive focaccia</span><span>$5.50</span></div>
+      </div>
+      <div class="total"><span>Total</span><span>$27.00</span></div>
+
+      <div class="controls">
+        <!-- DEFECTIVE CONTROL: the stop-sign graphic's accessible name describes its SHAPE,
+             not the action. This button cancels the order. -->
+        <button type="button" class="ctl" data-action="cancel-order">
+          <svg viewBox="0 0 48 48" role="img" aria-labelledby="stoptitle">
+            <title id="stoptitle">Red octagon</title>
+            <polygon points="15,4 33,4 44,15 44,33 33,44 15,44 4,33 4,15"
+                     fill="#c62828" stroke="#8e1c1c" stroke-width="2"/>
+            <rect x="12" y="21" width="24" height="6" rx="1" fill="#fff"/>
+          </svg>
+          <span class="txt" aria-hidden="true">Cancel</span>
+        </button>
+
+        <!-- CONTRAST CONTROL (correctly purpose-named). -->
+        <button type="button" class="ctl" data-action="track">
+          <svg viewBox="0 0 48 48" role="img" aria-labelledby="tracktitle">
+            <title id="tracktitle">Track driver</title>
+            <circle cx="24" cy="20" r="9" fill="none" stroke="#1f7a4d" stroke-width="3"/>
+            <circle cx="24" cy="20" r="3" fill="#1f7a4d"/>
+            <path d="M24 29 L24 42" stroke="#1f7a4d" stroke-width="3"/>
+          </svg>
+          <span class="txt" aria-hidden="true">Track</span>
+        </button>
+      </div>
+
+      <p class="note">You can cancel free of charge until the kitchen begins preparing your order.</p>
+    </section>
+  </div>
+</body>
+</html>

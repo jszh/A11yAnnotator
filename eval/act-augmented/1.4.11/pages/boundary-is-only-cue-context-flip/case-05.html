@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تبرّع الآن — مؤسسة نور للإغاثة</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Noto Naskh Arabic", "Segoe UI", Tahoma, sans-serif;
+    margin: 0; background: #fbf7f0; color: #2a2118;
+    direction: rtl;
+  }
+  .bar { background: #14532d; color: #fff; padding: 14px 26px; }
+  .bar h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  main { max-width: 560px; margin: 0 auto; padding: 28px 26px 60px; }
+  .card { background: #fff; border-radius: 12px; padding: 26px 24px;
+          box-shadow: 0 6px 24px rgba(20,83,45,.08); }
+  h2 { font-size: 20px; margin: 0 0 6px; color: #14532d; }
+  .lede { color: #5a5046; margin: 0 0 22px; font-size: 14px; line-height: 1.7; }
+
+  .field { margin-bottom: 22px; }
+  .field > label {
+    display: block; font-size: 14px; font-weight: 600;
+    color: #2a2118; margin-bottom: 8px;
+  }
+
+  /* Both money inputs share the SAME faint outline.
+     #A8A8A8 on #FFFFFF == 2.38:1 (below 3:1). In RTL the currency affordance
+     and label mirror to the right, but the contrast number is layout-agnostic. */
+  .money {
+    width: 100%; height: 48px; padding: 0 14px;
+    font-size: 16px; color: #2a2118; background: #fff;
+    border: 2px solid #A8A8A8;   /* 2.38:1 — same on both fields */
+    border-radius: 8px; text-align: right;
+  }
+
+  /* PASS field: a visible right-aligned "ر.س" currency adornment (high contrast,
+     #14532d == 9.11:1) plus its label clearly identify the amount control. The
+     faint border is therefore not the only cue. */
+  .with-currency { position: relative; }
+  .with-currency .unit {
+    position: absolute; inset-inline-start: 12px; top: 50%;
+    transform: translateY(-50%); font-size: 14px; font-weight: 700;
+    color: #14532d;               /* 9.11:1 currency mark */
+  }
+  .with-currency .money { padding-inline-start: 46px; }
+
+  /* FAIL field: the "other amount" box is a bare white box with no adornment,
+     no placeholder, no visible label text (label is sr-only). Its only cue is
+     the same 2.38:1 border. */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+
+  .preset { display: flex; gap: 10px; margin-bottom: 22px; }
+  .preset button {
+    flex: 1; height: 44px; border: 2px solid #14532d; background: #fff;
+    color: #14532d; border-radius: 8px; font-size: 15px; cursor: pointer;
+    font-family: inherit;
+  }
+  .donate {
+    width: 100%; height: 50px; background: #14532d; color: #fff;
+    border: 0; border-radius: 8px; font-size: 16px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+</style>
+</head>
+<body>
+  <header class="bar"><h1>مؤسسة نور للإغاثة</h1></header>
+
+  <main>
+    <div class="card">
+      <h2>ساهم في حملة الشتاء</h2>
+      <p class="lede">تبرّعك يوفّر بطانيات ووجبات دافئة للعائلات النازحة. اختر مبلغًا
+         أو أدخل مبلغًا آخر.</p>
+
+      <form action="#" method="post" novalidate>
+        <div class="preset">
+          <button type="button">٥٠ ر.س</button>
+          <button type="button">١٠٠ ر.س</button>
+          <button type="button">٢٥٠ ر.س</button>
+        </div>
+
+        <!-- PASS: visible label + high-contrast currency mark identify the field;
+             the faint 2.38:1 border is not required. -->
+        <div class="field">
+          <label for="monthly">مبلغ التبرّع الشهري</label>
+          <div class="with-currency">
+            <span class="unit" aria-hidden="true">ر.س</span>
+            <input class="money" id="monthly" name="monthly" type="text"
+                   inputmode="numeric" placeholder="١٠٠">
+          </div>
+        </div>
+
+        <!-- FAIL: "other amount" box — label hidden, no currency mark, no
+             placeholder. The bare white box on white card is signalled ONLY by
+             the same 2.38:1 grey border. Accessible name present (sr-only label),
+             so a name check passes; the visual cue does not. -->
+        <div class="field">
+          <label class="sr-only" for="other">مبلغ آخر لمرة واحدة</label>
+          <input class="money" id="other" name="other" type="text" inputmode="numeric">
+        </div>
+
+        <button class="donate" type="submit">تبرّع الآن</button>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

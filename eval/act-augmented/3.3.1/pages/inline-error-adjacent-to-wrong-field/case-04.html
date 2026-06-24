@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تسجيل عضوية جديدة — مكتبة المعرفة</title>
+<style>
+  body { font-family:"Segoe UI", Tahoma, Arial, sans-serif; color:#1b1b1b; background:#f6f7f9;
+         margin:0; padding:36px 16px; }
+  .box { max-width:600px; margin:0 auto; background:#fff; border:1px solid #d7dae0;
+         border-radius:10px; padding:26px 24px 30px; }
+  h1 { font-size:1.2rem; margin:0 0 4px; }
+  .note { color:#5c6068; font-size:.85rem; margin:0 0 22px; }
+
+  /*
+    A 2-column x 3-row grid. Row 1 = labels, row 2 = inputs, row 3 = inline messages.
+    Column 1 holds the postal code; column 2 holds the city. The developer placed the
+    postal-code error by explicit grid coordinates: grid-row 3, and meant to put it in
+    grid-column 1 (under postal code) but wrote grid-column 2 (under city). So the postal
+    error is painted in the CITY column's message slot. In the DOM the error node is
+    authored right after the postal input, so a source-order / DOM-proximity reading still
+    pairs it with postal code.
+  */
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 22px; align-items:start; }
+  .postal-label { grid-column:1; grid-row:1; }
+  .postal-input { grid-column:1; grid-row:2; }
+  .postal-msg   { grid-column:2; grid-row:3; }  /* BUG: should be grid-column 1 */
+  .city-label   { grid-column:2; grid-row:1; }
+  .city-input   { grid-column:2; grid-row:2; }
+
+  label { font-weight:600; font-size:.83rem; }
+  input { width:100%; box-sizing:border-box; padding:9px 11px; font-size:.95rem;
+          border:1px solid #c4c8cf; border-radius:6px; font-family:inherit; }
+  input.bad { border-color:#c62828; background:#fdf4f4; }
+  .msg { color:#c62828; font-size:.78rem; padding-top:6px; }
+  .submit { margin-top:22px; background:#1565c0; color:#fff; border:0; padding:11px 24px;
+            border-radius:6px; font-size:.93rem; font-weight:600; cursor:pointer; }
+</style>
+</head>
+<body>
+  <main class="box">
+    <h1>تسجيل عضوية جديدة</h1>
+    <p class="note">القسم الثاني: العنوان. الحقول المعلَّمة بنجمة مطلوبة.</p>
+
+    <form action="#" novalidate>
+      <div class="grid">
+        <!-- POSTAL CODE: label, input, then its error — consecutive in the DOM. -->
+        <label class="postal-label" for="postal">الرمز البريدي (5 أرقام)</label>
+        <input class="postal-input bad" id="postal" name="postalCode" type="text"
+               inputmode="numeric" dir="ltr" value="11564">
+        <span class="postal-msg msg">الرمز البريدي يجب أن يتكوّن من 5 أرقام.</span>
+
+        <!-- CITY: empty (the field actually missing a value), no message of its own. -->
+        <label class="city-label" for="city">المدينة</label>
+        <input class="city-input" id="city" name="city" type="text" value="">
+      </div>
+
+      <button type="submit" class="submit">حفظ ومتابعة</button>
+    </form>
+  </main>
+
+  <!--
+    WHY AUTOMATED TOOLS MISS IT (notes in English for the harness)
+    The message ("the postal code must be five digits") is non-empty, visible, in the
+    accessibility tree, and describes the cause — it satisfies every programmatic facet of
+    36b590. There is no aria-describedby, so there is no programmatic association to test;
+    identification rests on presentation. In the DOM the error node is authored immediately
+    after the postal-code input, so source-order / DOM-proximity analysis pairs them
+    correctly. The defect is purely rendered geometry: the postal error is placed by
+    explicit grid coordinates into grid-column 2 (the City column), so on screen it sits in
+    the City field's message slot, directly under the (empty) City input. A sighted Arabic
+    reader scans the postal-code message against the City field and is misled; the City
+    field, which is actually empty, carries a message that names a different field. Static
+    checkers do not compute post-layout (and post-bidi) visual bounding boxes for
+    grid-placed items, so rendered adjacency contradicting the message text is invisible to
+    them.
+  -->
+</body>
+</html>

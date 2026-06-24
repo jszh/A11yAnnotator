@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Care Plan Builder — Northgate Patient Portal</title>
+<style>
+  body { margin: 0; font-family: "Source Sans Pro", Arial, sans-serif; background: #f4f6f9; color: #1b2a3a; }
+  header { background: #1565a0; color: #fff; padding: 14px 24px; }
+  header h1 { margin: 0; font-size: 1.15rem; }
+  .board { max-width: 920px; margin: 22px auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 16px; }
+  .panel { background: #fff; border: 1px solid #cfd8e3; border-radius: 8px; padding: 16px; }
+  .panel.region { border: 2px solid #1565a0; }
+  .panel h2 { margin: 0 0 10px; font-size: 1rem; color: #1565a0; }
+  .panel .help { font-size: .82rem; color: #4a5b6e; background: #eef4fa; border-radius: 6px; padding: 8px 10px; margin: 0 0 12px; }
+  .panel .help kbd { background: #1b2a3a; color: #fff; padding: 1px 6px; border-radius: 4px; font-size: .78rem; }
+  .med { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px dashed #dde4ec; }
+  .med input[type=text] { flex: 1; padding: 6px; border: 1px solid #b4c1d0; border-radius: 4px; }
+  .med button { border: 0; background: #1565a0; color: #fff; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: .82rem; }
+  .save { margin: 22px auto 0; display: block; background: #157a4a; color: #fff; border: 0; border-radius: 6px; padding: 10px 24px; font-weight: 700; cursor: pointer; }
+  footer { max-width: 920px; margin: 18px auto 44px; padding: 0 16px; font-size: .78rem; color: #6b7c8e; }
+</style>
+</head>
+<body>
+<header><h1>Northgate Health &middot; Care Plan Builder</h1></header>
+
+<!-- TWO independent focus-trapping regions side by side. Each is a med-reconciliation editor whose
+     fields loop focus internally. EACH has a real, working custom exit:
+        Region A (Morning) escapes on  Ctrl+J
+        Region B (Evening) escapes on  Ctrl+K
+     Region A shows help text that says "press Ctrl+K to leave this panel" — but Ctrl+K is the EVENING
+     panel's escape, not the morning one's. The advice in A is present, on-screen, reachable, and even
+     names a real working shortcut elsewhere on the page — it just describes the WRONG region. A user
+     trapped in A who follows A's own instructions stays trapped (and would fire B's exit if focus
+     were there). Region B's help is correct, isolating the defect to A. -->
+<div class="board">
+  <section class="panel region" id="regionA" aria-label="Morning medications">
+    <h2>Morning medications</h2>
+    <p class="help">This panel keeps your cursor inside while you reconcile doses. To move focus out,
+       press <kbd>Ctrl</kbd>+<kbd>K</kbd>.</p>
+    <div class="med"><input type="text" value="Metformin 500 mg" aria-label="Morning med 1"><button type="button">Verify</button></div>
+    <div class="med"><input type="text" value="Lisinopril 10 mg" aria-label="Morning med 2"><button type="button">Verify</button></div>
+    <div class="med"><input type="text" value="Atorvastatin 20 mg" aria-label="Morning med 3"><button type="button">Verify</button></div>
+  </section>
+
+  <section class="panel region" id="regionB" aria-label="Evening medications">
+    <h2>Evening medications</h2>
+    <p class="help">This panel keeps your cursor inside while you reconcile doses. To move focus out,
+       press <kbd>Ctrl</kbd>+<kbd>K</kbd>.</p>
+    <div class="med"><input type="text" value="Amlodipine 5 mg" aria-label="Evening med 1"><button type="button">Verify</button></div>
+    <div class="med"><input type="text" value="Warfarin 3 mg" aria-label="Evening med 2"><button type="button">Verify</button></div>
+    <div class="med"><input type="text" value="Melatonin 3 mg" aria-label="Evening med 3"><button type="button">Verify</button></div>
+  </section>
+</div>
+<button class="save" id="save" type="button">Save care plan</button>
+
+<footer>
+  Northgate Health Network &middot; This care plan is reviewed by your pharmacist within 24 hours.
+  <!--
+    WHY AUTOMATED TOOLS MISS THIS:
+    Both panels are well-formed: inputs have aria-labels, the exit instruction is real visible text
+    that even uses <kbd>, and BOTH documented shortcuts (Ctrl+J for A, Ctrl+K for B) are genuinely
+    wired and working somewhere on the page. So there is no missing instruction, no dead key — a
+    scanner finds nothing. The defect is purely RELATIONAL: panel A documents panel B's keystroke.
+    Detecting it requires (1) reading each panel's prose, (2) discovering each region's actual escape
+    by driving the keyboard inside it, and (3) cross-matching advice to region. No static tool models
+    "which trap does this sentence belong to," so axe/WAVE/Lighthouse cannot find a per-region
+    advice/escape mismatch. G21's "document the feature ... within the subset" means the documented
+    feature must be the one that exits THIS subset.
+  -->
+</footer>
+
+<script>
+(function () {
+  function wireTrap(regionId, exitCombo, fallbackFocusId) {
+    var region = document.getElementById(regionId);
+    var fields = region.querySelectorAll('input, button');
+    var first = fields[0];
+    var trapOn = false;
+
+    fields.forEach(function (el) {
+      el.addEventListener('focus', function () { trapOn = true; });
+      el.addEventListener('blur', function () {
+        if (trapOn) setTimeout(function () { if (trapOn) first.focus(); }, 0);
+      });
+    });
+
+    region.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab') { /* allow blur handler to re-trap */ }
+      if (e.ctrlKey && (e.key.toLowerCase() === exitCombo)) {
+        e.preventDefault();
+        trapOn = false;
+        document.getElementById(fallbackFocusId).focus();
+      }
+    });
+  }
+
+  // Region A really escapes on Ctrl+J — but its help text says Ctrl+K.
+  wireTrap('regionA', 'j', 'save');
+  // Region B really escapes on Ctrl+K — its help text correctly says Ctrl+K.
+  wireTrap('regionB', 'k', 'save');
+})();
+</script>
+</body>
+</html>

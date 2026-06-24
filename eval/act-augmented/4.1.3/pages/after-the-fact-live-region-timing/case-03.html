@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library Catalog Search — Ashbourne University</title>
+<style>
+  :root { --maroon:#7a1f2b; --gold:#c8a24a; --ink:#26201f; --muted:#6b6360; --line:#e2dcd6; --paper:#fbf8f4; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Georgia, "Times New Roman", serif; color:var(--ink); background:var(--paper); }
+  header { background:var(--maroon); color:#fff; padding:16px 28px; display:flex; align-items:center; gap:14px; }
+  header .crest { width:38px; height:38px; border:2px solid var(--gold); border-radius:4px; display:grid; place-items:center; font-weight:700; color:var(--gold); }
+  header h1 { font-size:1.15rem; margin:0; font-weight:600; }
+  header .dept { font-size:.8rem; opacity:.85; }
+  main { max-width:740px; margin:26px auto; padding:0 24px; }
+  .searchbar { display:flex; gap:10px; margin-bottom:6px; }
+  .searchbar input { flex:1; padding:11px 14px; border:1px solid #c3b9af; border-radius:6px; font-size:1rem; font-family:inherit; }
+  .searchbar button { background:var(--maroon); color:#fff; border:0; border-radius:6px; padding:11px 22px; font-size:1rem; font-family:inherit; cursor:pointer; }
+  .searchbar button:hover { background:#5e1620; }
+  .hint { color:var(--muted); font-size:.82rem; margin:0 0 22px; }
+  /* The results wrapper styling */
+  .results { margin-top:8px; }
+  .count { font-weight:600; color:var(--maroon); margin:0 0 12px; font-family:Arial, sans-serif; font-size:.95rem; }
+  .hit { border-top:1px solid var(--line); padding:14px 0; }
+  .hit:first-child { border-top:none; }
+  .hit h3 { margin:0 0 3px; font-size:1.05rem; }
+  .hit .meta { color:var(--muted); font-size:.85rem; font-family:Arial, sans-serif; }
+  .hit .avail { display:inline-block; margin-top:6px; font-size:.8rem; font-family:Arial, sans-serif; color:#1c6b3a; }
+  .devnote { margin-top:30px; padding:14px 18px; background:#fff7ed; border:1px solid #f0d9b0; border-radius:8px; font-size:.82rem; color:#6b4e1f; font-family:Arial, sans-serif; line-height:1.5; }
+  code { background:#f1ece5; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="crest" aria-hidden="true">AU</span>
+  <div>
+    <h1>Ashbourne University Libraries</h1>
+    <div class="dept">Online Catalog &amp; Discovery</div>
+  </div>
+</header>
+
+<main>
+  <form id="cat-form" role="search" novalidate>
+    <div class="searchbar">
+      <label for="q" class="visually-hidden" style="position:absolute;left:-9999px">Search the catalog</label>
+      <input id="q" name="q" type="search" placeholder="Search books, journals, media…" value="phenomenology">
+      <button type="submit">Search</button>
+    </div>
+  </form>
+  <p class="hint">Try a title, author, or keyword. Results update below without leaving this page.</p>
+
+  <!-- The results wrapper is present at load but is a PLAIN div with NO aria-live / role.
+       On search, the SAME operation sets aria-live AND writes the "N results" + hits. -->
+  <div id="results" class="results"></div>
+
+  <div class="devnote">
+    <strong>Why automated tools cannot catch this:</strong> Run the search. The results wrapper now reads
+    <code>&lt;div id="results" aria-live="polite"&gt;</code> with a &ldquo;7 results found&rdquo; status line and a
+    list of hits &mdash; a structurally valid live region. axe/WAVE/Lighthouse inspect that DOM and pass it. But the
+    <code>aria-live="polite"</code> attribute was added by <code>setAttribute</code> on the very same tick that the
+    result count and hits were written into the wrapper. A live region must already carry <code>aria-live</code>
+    while it is empty so the AT can register it; turning a node into a live region in the same operation that fills
+    it means the browser never sees an empty-region-then-mutation event, so screen readers stay silent. Whether the
+    attribute predated the content is a temporal fact no single DOM snapshot encodes.
+  </div>
+</main>
+
+<script>
+  // Persona: an LMS/library-systems integrator refactored a working catalog. To "be accessible" they added
+  // aria-live to the results container — but they added it inside the same render() that paints the results,
+  // reasoning "the attribute is on the element when the results show, so it's a live region." They never learned
+  // that aria-live has to be present on the EMPTY container at registration time. Sighted testing looked perfect.
+  var DB = [
+    { t: 'The Phenomenology of Perception', a: 'Maurice Merleau-Ponty', y: 1945, loc: 'Stacks 3 — B2430' },
+    { t: 'Phenomenology of Spirit', a: 'G. W. F. Hegel', y: 1807, loc: 'Stacks 2 — B2929' },
+    { t: 'Ideas: General Introduction to Pure Phenomenology', a: 'Edmund Husserl', y: 1913, loc: 'Stacks 3 — B3279' },
+    { t: 'Phenomenology and the Crisis of Philosophy', a: 'Edmund Husserl', y: 1965, loc: 'Reserve Desk' },
+    { t: 'The Essential Husserl', a: 'ed. Donn Welton', y: 1999, loc: 'Stacks 3 — B3279' },
+    { t: 'Routledge Companion to Phenomenology', a: 'ed. Luft & Overgaard', y: 2011, loc: 'Reference — only in library' },
+    { t: 'Phenomenology: A Very Short Introduction', a: 'Michael Inwood', y: 2018, loc: 'Stacks 1 — available' }
+  ];
+
+  document.getElementById('cat-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var box = document.getElementById('results');
+    var hits = DB; // pretend the query matched these
+
+    // ---- temporal failure: aria-live applied in the SAME tick the content is written ----
+    // The wrapper was a plain <div> until this moment; it becomes a live region AND gets its
+    // text simultaneously, so there is no empty registered region for AT to announce a change in.
+    box.setAttribute('aria-live', 'polite');
+    box.setAttribute('data-region-born-with-content', 'true');
+
+    var html = '<p class="count">' + hits.length + ' results found for &ldquo;phenomenology&rdquo;</p>';
+    hits.forEach(function (h) {
+      html += '<div class="hit">' +
+        '<h3>' + h.t + '</h3>' +
+        '<div class="meta">' + h.a + ' · ' + h.y + '</div>' +
+        '<span class="avail">' + h.loc + '</span>' +
+      '</div>';
+    });
+    box.innerHTML = html;
+  });
+</script>
+</body>
+</html>

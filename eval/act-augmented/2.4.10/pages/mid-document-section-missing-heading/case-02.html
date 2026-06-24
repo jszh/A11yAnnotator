@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dinner Menu — Maison Verdoie</title>
+  <!--
+    SC 2.4.10 (Section Headings, AAA) — aspect: mid-document section missing heading.
+    This is the canonical Understanding example turned into a real menu. The menu is
+    organised into courses: Appetizers, Salads (UN-HEADED), Soups, Entrées, Desserts.
+    Four courses carry programmatic <h2> headings. The SALADS course — between Appetizers
+    and Soups — is introduced ONLY by visually larger bold text in a <p> (a styled
+    paragraph styled to match the size/weight of the real <h2> course headings). To a
+    sighted diner the menu looks like it has five clearly-labelled courses; to AT the
+    Salads block is just body text with no heading.
+
+    WHY AUTOMATED TOOLS MISS IT: every real <h2> is valid, non-empty, correctly ordered,
+    so axe/WAVE/Lighthouse pass. The Salads "heading" is a <p class="course-title"> with
+    font-size/font-weight matching the <h2>s — it carries NO heading role. Deciding that
+    this styled <p> is a section heading the menu OUGHT to expose programmatically (and
+    that Salads is a distinct course needing its own heading like every other course)
+    requires reading the menu's meaning and comparing visual prominence to semantics.
+  -->
+  <style>
+    :root { --ink:#2b2118; --gold:#9a7b3a; --rule:#d8cab2; }
+    body { font: 16px/1.55 "Cormorant Garamond", Garamond, Georgia, serif; color:#2b2118;
+           background:#fbf7ef; margin:0; padding:2.5rem 1rem 4rem; }
+    .menu { max-width: 620px; margin: 0 auto; }
+    header.brand { text-align:center; border-bottom:1px solid #d8cab2; padding-bottom:1rem; margin-bottom:1.5rem; }
+    header.brand h1 { font-size:2.2rem; letter-spacing:.04em; margin:0 0 .25rem; }
+    header.brand .tag { font:italic 15px/1.4 Georgia, serif; color:#7a6a52; }
+
+    /* The real course headings */
+    h2.course { font-size: 1.45rem; font-weight: 700; letter-spacing:.05em;
+                text-align:center; margin: 2.2rem 0 .25rem; color:#5a4327; }
+    h2.course + .course-rule { width:60px; height:2px; background:#9a7b3a; margin:.2rem auto 1rem; }
+
+    /* The IMPOSTOR "heading" for Salads — a <p> styled to look identical to h2.course */
+    p.course-title { font-size: 1.45rem; font-weight: 700; letter-spacing:.05em;
+                     text-align:center; margin: 2.2rem 0 .25rem; color:#5a4327; }
+    p.course-title + .course-rule { width:60px; height:2px; background:#9a7b3a; margin:.2rem auto 1rem; }
+
+    .dish { display:flex; justify-content:space-between; gap:1rem; margin:.6rem 0; }
+    .dish .name { font-weight:600; }
+    .dish .desc { display:block; font:italic 14px/1.35 Georgia, serif; color:#6b5c45; font-weight:400; }
+    .dish .price { white-space:nowrap; color:#5a4327; }
+    footer.fineprint { text-align:center; font:13px/1.4 Georgia, serif; color:#6f6249;
+                       margin-top:2.5rem; border-top:1px solid #d8cab2; padding-top:1rem; }
+  </style>
+</head>
+<body>
+  <div class="menu">
+    <header class="brand">
+      <h1>Maison Verdoie</h1>
+      <p class="tag">Prix-fixe dinner · seasonal Provençal kitchen</p>
+    </header>
+
+    <main>
+      <h2 class="course" id="c-appetizers">Appetizers</h2>
+      <div class="course-rule" aria-hidden="true"></div>
+      <div class="dish"><span class="name">Pissaladière tartlet<span class="desc">slow onion, anchovy, Niçoise olive</span></span><span class="price">14</span></div>
+      <div class="dish"><span class="name">Chilled tomato &amp; basil panna cotta<span class="desc">smoked sea salt, olive oil</span></span><span class="price">13</span></div>
+      <div class="dish"><span class="name">Grilled octopus<span class="desc">white bean purée, piment d'Espelette</span></span><span class="price">17</span></div>
+
+      <!-- ===========================================================
+           UN-HEADED SALADS COURSE. Introduced by a <p class="course-title">
+           styled to look identical to the real <h2.course> headings, but it
+           carries NO heading role. This is the SC 2.4.10 failure: a distinct
+           course (section) with no heading element, exactly like the
+           Understanding "Salad" example.
+           =========================================================== -->
+      <p class="course-title">Salads</p>
+      <div class="course-rule" aria-hidden="true"></div>
+      <div class="dish"><span class="name">Frisée aux lardons<span class="desc">poached egg, mustard vinaigrette, croutons</span></span><span class="price">15</span></div>
+      <div class="dish"><span class="name">Heirloom tomato &amp; burrata<span class="desc">basil oil, aged balsamic, fleur de sel</span></span><span class="price">16</span></div>
+      <div class="dish"><span class="name">Roasted beet &amp; chèvre<span class="desc">candied walnut, frisée, orange</span></span><span class="price">14</span></div>
+
+      <h2 class="course" id="c-soups">Soups</h2>
+      <div class="course-rule" aria-hidden="true"></div>
+      <div class="dish"><span class="name">Soupe au pistou<span class="desc">summer vegetables, basil, parmesan</span></span><span class="price">12</span></div>
+      <div class="dish"><span class="name">Velouté of fennel<span class="desc">crème fraîche, toasted hazelnut</span></span><span class="price">12</span></div>
+
+      <h2 class="course" id="c-entrees">Entrées</h2>
+      <div class="course-rule" aria-hidden="true"></div>
+      <div class="dish"><span class="name">Daube of beef short rib<span class="desc">red wine, orange peel, olives, polenta</span></span><span class="price">34</span></div>
+      <div class="dish"><span class="name">Loup de mer<span class="desc">braised fennel, saffron beurre blanc</span></span><span class="price">36</span></div>
+      <div class="dish"><span class="name">Ratatouille tian<span class="desc">goat-cheese gratin, basil (v)</span></span><span class="price">26</span></div>
+
+      <h2 class="course" id="c-desserts">Desserts</h2>
+      <div class="course-rule" aria-hidden="true"></div>
+      <div class="dish"><span class="name">Tarte au citron<span class="desc">torched meringue, lavender honey</span></span><span class="price">11</span></div>
+      <div class="dish"><span class="name">Dark chocolate marquise<span class="desc">crème anglaise, sea-salt tuile</span></span><span class="price">12</span></div>
+    </main>
+
+    <footer class="fineprint">
+      A 20% service charge is added for parties of six or more. Please inform your server of
+      any allergies. (v) denotes a vegetarian preparation.
+    </footer>
+  </div>
+</body>
+</html>

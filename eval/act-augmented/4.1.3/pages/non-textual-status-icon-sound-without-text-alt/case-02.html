@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Submit assignment — Cell Biology 210 | LearnHub</title>
+<!--
+  SC 4.1.3 aspect: non-textual status (icon) given a status role but no usable text alternative.
+  WHY AUTOMATED TOOLS MISS IT:
+  The upload widget reports progress through a role="status" region that exists at page
+  load (so live-region/F103 checks PASS). The status is carried ENTIRELY by an <img>
+  whose src swaps from a spinner GIF (busy) to a green check PNG (done). Both <img>
+  elements have alt="" — which is the *valid, recommended* markup for a decorative image,
+  so an "images must have alt" linter is satisfied (the attribute is present). Because
+  alt="" makes the image programmatically empty, the role="status" region's computed
+  text is "" the whole time: the spinner announces nothing while uploading, and at
+  completion the green check announces nothing — the blind student hears silence at the
+  exact moment the upload succeeds and cannot tell their assignment was submitted.
+  No tool can decide that this spinner->check image swap *is* the status (vs. a decorative
+  flourish) and that alt="" therefore omits the success state.
+-->
+<style>
+  :root { --ink:#23272e; --line:#d7dde6; --brand:#5a2d82; --ok:#1f8b4c; }
+  * { box-sizing:border-box; }
+  body { font:16px/1.55 "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color:var(--ink); margin:0; background:#f3f1f7; }
+  .wrap { max-width:680px; margin:0 auto; padding:24px 18px 64px; }
+  .crumbs { font-size:13px; color:#6b7280; margin:6px 0 14px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:24px; }
+  h1 { font-size:21px; margin:.1em 0 .3em; }
+  .due { color:#8a4b00; background:#fff3e0; display:inline-block; padding:2px 10px; border-radius:999px; font-size:13px; }
+  .dropzone { margin:20px 0; border:2px dashed var(--line); border-radius:10px; padding:22px; text-align:center; background:#faf9fc; }
+  .file { display:flex; align-items:center; gap:12px; margin-top:18px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; }
+  .file .meta { text-align:left; flex:1; }
+  .file .meta b { display:block; }
+  .file .meta span { color:#6b7280; font-size:13px; }
+  /* status region — the icon lives here and is the only thing that changes */
+  .uploadStatus { width:28px; height:28px; flex:0 0 28px; display:flex; align-items:center; justify-content:center; }
+  .uploadStatus img { width:24px; height:24px; }
+  button { font:inherit; font-weight:600; padding:11px 20px; border-radius:8px; cursor:pointer; border:1px solid transparent; }
+  .primary { background:var(--brand); color:#fff; }
+  .primary[disabled] { opacity:.55; cursor:default; }
+  .spin { animation:spin 1s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="crumbs">LearnHub &rsaquo; Cell Biology 210 &rsaquo; Assignments &rsaquo; <strong>Lab Report 4</strong></p>
+  <main class="card">
+    <h1>Submit assignment: Lab Report 4</h1>
+    <p class="due">Due Fri, 11:59 PM</p>
+
+    <div class="dropzone">Drag a file here, or use the button below to choose your PDF.</div>
+
+    <div class="file">
+      <!-- the only state indicator: an <img> that swaps spinner -> check, both alt="" -->
+      <span class="uploadStatus" id="uStatus" role="status" aria-atomic="true">
+        <!-- idle: nothing -->
+      </span>
+      <span class="meta">
+        <b>lab-report-4-mwong.pdf</b>
+        <span id="fileNote">1.4 MB &middot; ready to submit</span>
+      </span>
+      <button type="button" class="primary" id="submitBtn">Submit</button>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Data-URI assets so the page is fully self-contained (no network).
+  // Spinner: a partial-arc SVG (rotated by CSS). Check: a green tick SVG. Both as <img> with alt="".
+  var SPINNER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" fill="none" stroke="#5a2d82" stroke-width="3" stroke-linecap="round"/></svg>');
+  var CHECK = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#1f8b4c"/><path d="M7 12.4l3 3 7-7.2" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+
+  var statusEl = document.getElementById('uStatus');
+  var btn = document.getElementById('submitBtn');
+  var note = document.getElementById('fileNote');
+
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    note.textContent = '1.4 MB';
+    // BUSY: inject spinner image into role=status. alt="" -> region text stays "".
+    statusEl.innerHTML = '<img class="spin" src="' + SPINNER + '" alt="">';
+    setTimeout(function () {
+      // DONE: swap to green check. alt="" again -> success announces nothing.
+      statusEl.innerHTML = '<img src="' + CHECK + '" alt="">';
+    }, 1800);
+  });
+</script>
+</body>
+</html>

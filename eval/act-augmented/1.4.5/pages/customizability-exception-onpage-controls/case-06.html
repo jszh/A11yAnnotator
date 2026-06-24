@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harborwood Mutual — Your Quote Summary</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    color: #1f2933;
+    background: #eef2f6;
+    line-height: 1.55;
+  }
+  header.brand { background: #0a2c4d; color: #eaf2fb; padding: 14px 26px; }
+  header.brand .name { font-size: 19px; font-weight: 600; }
+  header.brand .name small { font-weight: 400; opacity: .8; }
+
+  main { max-width: 840px; margin: 0 auto; padding: 26px 22px 70px; }
+  .steps { color: #5a6b7b; font-size: 13px; margin-bottom: 6px; }
+
+  .card { background: #fff; border: 1px solid #d3dce4; border-radius: 10px; padding: 20px 22px; }
+
+  .disclosure-controls {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin: 4px 0 16px; font-size: 14px;
+  }
+  .disclosure-controls fieldset { border: 0; margin: 0; padding: 0; display: flex; align-items: center; gap: 8px; }
+  .disclosure-controls legend { font-weight: 600; padding: 0; margin-right: 4px; }
+  .disclosure-controls button, .disclosure-controls select {
+    font: inherit; font-size: 14px; cursor: pointer;
+    border: 1px solid #9fb2c4; border-radius: 6px; background: #f4f8fc; padding: 5px 11px;
+  }
+  .disclosure-controls button:focus-visible, .disclosure-controls select:focus-visible { outline: 3px solid #1d6fb8; }
+
+  /* The legally required disclosure block is delivered as an SVG image of text and is
+     RE-RENDERED at the user's chosen size and colour — but the re-render omits one line. */
+  .disclosure-img { border: 1px solid #d3dce4; border-radius: 8px; background: #fff; padding: 6px; overflow:auto; }
+  .disclosure-img svg { display: block; }
+
+  .quote-figures { margin-top: 22px; display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; }
+  .quote-figures dt { font-weight: 600; color: #44556a; }
+  .total { font-size: 20px; font-weight: 700; color: #0a2c4d; }
+  .cta { margin-top: 20px; }
+  .cta button { font: inherit; font-size: 16px; background: #0a6b3a; color: #fff; border: 0; border-radius: 8px; padding: 11px 20px; cursor: pointer; }
+  footer { border-top: 1px solid #d3dce4; margin-top: 34px; padding-top: 14px; font-size: 13px; color: #6a7785; }
+</style>
+</head>
+<body>
+
+<header class="brand">
+  <div class="name">Harborwood Mutual <small>&middot; Auto Insurance</small></div>
+</header>
+
+<main>
+  <p class="steps">Step 3 of 3 &middot; Review your quote</p>
+
+  <div class="card">
+    <h1>Your quote summary</h1>
+
+    <!--
+      The "Important disclosures" block is a legally required statement rendered as an SVG
+      image of text (to lock the typeface/layout the compliance team approved). A real
+      customization control re-renders it at the user's chosen size and colour. The control
+      WORKS — but the re-rendered ("custom") variant silently OMITS the cooling-off /
+      cancellation line that is present in the default image. Functional control, non-equivalent output.
+    -->
+    <h2 id="disc-h">Important disclosures</h2>
+    <div class="disclosure-controls" role="region" aria-label="Customize disclosure text">
+      <fieldset>
+        <legend>Size</legend>
+        <button type="button" id="dec" aria-label="Decrease disclosure text size">A&minus;</button>
+        <button type="button" id="inc" aria-label="Increase disclosure text size">A+</button>
+      </fieldset>
+      <fieldset>
+        <legend><label for="contrastSel">Colour</label></legend>
+        <select id="contrastSel">
+          <option value="default">Standard</option>
+          <option value="hc">High contrast</option>
+        </select>
+      </fieldset>
+    </div>
+
+    <div class="disclosure-img" id="discWrap" aria-labelledby="disc-h">
+      <!-- Initial (default) image of text: contains ALL four disclosure lines. -->
+      <svg id="discSvg" width="780" height="150" viewBox="0 0 780 150" role="img"
+           aria-label="Important disclosures (see text)">
+        <rect width="780" height="150" fill="#ffffff"></rect>
+        <text x="14" y="30" font-family="Arial, sans-serif" font-size="14" fill="#1f2933">This quote is valid for 14 days and assumes the information you provided is accurate.</text>
+        <text x="14" y="58" font-family="Arial, sans-serif" font-size="14" fill="#1f2933">Premiums shown exclude the $25 policy-issue fee, which is added at purchase.</text>
+        <text x="14" y="86" font-family="Arial, sans-serif" font-size="14" fill="#1f2933">A 14-day cooling-off period applies: you may cancel for a full refund within 14 days.</text>
+        <text x="14" y="114" font-family="Arial, sans-serif" font-size="14" fill="#1f2933">Harborwood Mutual is regulated by the State Insurance Commission, licence #4471-A.</text>
+      </svg>
+    </div>
+
+    <dl class="quote-figures">
+      <dt>Vehicle</dt><dd>2021 Honda Civic LX</dd>
+      <dt>Cover</dt><dd>Comprehensive, $500 deductible</dd>
+      <dt>Annual premium</dt><dd class="total">$1,184</dd>
+    </dl>
+
+    <div class="cta">
+      <button type="button">Continue to payment</button>
+    </div>
+  </div>
+
+  <footer>
+    <p>Harborwood Mutual Insurance Co. &middot; This summary is not a contract of insurance.</p>
+  </footer>
+</main>
+
+<script>
+  // The customization control genuinely re-renders the disclosure image of text at the
+  // chosen size and colour (sharp SVG <text>, no pixelation). BUT the re-render template
+  // omits the third line — the 14-day cooling-off / cancellation right — so the customized
+  // output is functional yet NOT equivalent to the original. Controls present + working,
+  // customized result drops material content => fail.
+  (function () {
+    var wrap = document.getElementById('discWrap');
+    var sizeIdx = 0;
+    var sizes = [14, 16, 19, 23];
+    var hc = false;
+
+    // Note: the cooling-off line is intentionally absent from this re-render template.
+    var LINES = [
+      'This quote is valid for 14 days and assumes the information you provided is accurate.',
+      'Premiums shown exclude the $25 policy-issue fee, which is added at purchase.',
+      'Harborwood Mutual is regulated by the State Insurance Commission, licence #4471-A.'
+    ];
+
+    function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function render() {
+      var fs = sizes[sizeIdx];
+      var lh = Math.round(fs * 1.9);
+      var pad = 18;
+      var color = hc ? '#000000' : '#1f2933';
+      var w = 780;
+      var h = pad + LINES.length * lh;
+      var texts = LINES.map(function (ln, i) {
+        var y = pad + i * lh + fs;
+        return '<text x="14" y="' + y + '" font-family="Arial, sans-serif" font-size="' + fs +
+               '" fill="' + color + '">' + esc(ln) + '</text>';
+      }).join('');
+      wrap.innerHTML =
+        '<svg id="discSvg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h +
+        '" role="img" aria-label="Important disclosures (see text)">' +
+        '<rect width="' + w + '" height="' + h + '" fill="#ffffff"></rect>' + texts + '</svg>';
+    }
+
+    document.getElementById('inc').addEventListener('click', function () {
+      sizeIdx = Math.min(sizes.length - 1, sizeIdx + 1); render();
+    });
+    document.getElementById('dec').addEventListener('click', function () {
+      sizeIdx = Math.max(0, sizeIdx - 1); render();
+    });
+    document.getElementById('contrastSel').addEventListener('change', function (e) {
+      hc = (e.target.value === 'hc'); render();
+    });
+    // The default markup stays as authored until the user customizes; first interaction
+    // swaps in the (non-equivalent) re-rendered version.
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BIOL 204 Genetics — Course Registration · Aldridge University</title>
+  <style>
+    :root { --navy:#13315c; --ink:#1c2530; --soft:#56616e; --gold:#b08400; --bg:#f4f6f9; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink);
+           font:16px/1.6 "Source Serif 4", Georgia, "Times New Roman", serif; }
+    .wrap { max-width: 740px; margin:0 auto; padding:2.5rem 1.25rem 5rem; }
+    .crest { font:700 .78rem/1 "Source Sans 3", system-ui, sans-serif;
+             letter-spacing:.14em; text-transform:uppercase; color:var(--navy); }
+    h1 { font-size:2rem; margin:.4rem 0 .2rem; color:var(--navy); }
+    .course-meta { font-family:"Source Sans 3", system-ui, sans-serif; color:var(--soft);
+                   font-size:.92rem; margin:0 0 1.75rem; }
+    .card { background:#fff; border:1px solid #d7dee7; border-radius:10px;
+            padding:1.5rem 1.7rem; }
+    h2 { font-size:1.25rem; margin:0 0 .75rem; color:var(--navy);
+         font-family:"Source Sans 3", system-ui, sans-serif; }
+    ul.sections { list-style:none; margin:0; padding:0; }
+    ul.sections > li { padding:1rem 0; border-top:1px solid #e7ecf2; }
+    ul.sections > li:first-child { border-top:0; }
+    a { color:#9a3412; text-underline-offset:3px; font-family:"Source Sans 3", system-ui, sans-serif; font-weight:600; }
+    a:focus { outline:3px solid var(--gold); outline-offset:2px; }
+    .seat-note { font-family:"Source Sans 3", system-ui, sans-serif; color:var(--soft); font-size:.85rem; margin-top:2rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <span class="crest">Aldridge University · Department of Biology</span>
+    <h1>BIOL 204 — Genetics</h1>
+    <p class="course-meta">Fall 2025 · 4 credits · Two sections offered · Registration closes 29 August</p>
+
+    <div class="card">
+      <h2>Choose your section before you register</h2>
+      <ul class="sections">
+        <li>
+          This term BIOL 204 runs as two separate cohorts that share a course code but
+          cover the material at a different pace and in a different format, so please
+          <a href="/biol204/syllabus?cohort=in-person-mon-wed">open the syllabus</a>
+          for the Monday/Wednesday in-person lecture cohort with weekly wet-lab sessions, or
+          <a href="/biol204/syllabus?cohort=online-evening">open the syllabus</a>
+          for the fully online evening cohort, which replaces the labs with at-home
+          simulation kits and a different grading scheme. The two documents list
+          different required texts, lab fees and exam dates, so read whichever matches
+          the section you intend to enrol in.
+        </li>
+      </ul>
+    </div>
+
+    <p class="seat-note">Seats are limited in each cohort. Your registration is not final until your advisor approves it.</p>
+
+    <!--
+      WHY THIS PAGE FAILS 2.4.4 (and why automated tools cannot determine that):
+
+      Both inline links have the IDENTICAL accessible name "open the syllabus" and sit in
+      the SAME <li> (one DOM node), so their programmatically determined link context is
+      the SAME context (exactly the same set of DOM nodes), satisfying fd3a94's
+      applicability. This is the genuinely-different-purpose case the aspect targets:
+      the two links resolve to DIFFERENT resources — /biol204/syllabus?cohort=in-person-mon-wed
+      versus /biol204/syllabus?cohort=online-evening — which the page itself states are
+      different documents (different texts, lab fees, exam dates, grading scheme). So per
+      fd3a94 at least one link fails to let the user determine its purpose, and per F63 the
+      disambiguating words ("for the Monday/Wednesday in-person lecture cohort…" /
+      "for the fully online evening cohort…") TRAIL each link rather than being inside or
+      programmatically tied to it. A screen-reader user on a links list hears
+      "open the syllabus / open the syllabus" and cannot tell the in-person cohort from the
+      online one — choosing wrong means buying the wrong textbook and missing the wrong exam.
+
+      WHY AXE / WAVE / LIGHTHOUSE PASS IT (false negative):
+      Each <a> has non-empty, discernible text and a valid href, so link-name /
+      discernible-text checks pass. The two hrefs are NOT byte-identical, so a naive
+      "same name + same href => same resource => pass" shortcut does not even apply here.
+      But the two hrefs differ ONLY in a query-string value (?cohort=in-person-mon-wed vs
+      ?cohort=online-evening). A static checker cannot decide whether two query-string
+      variants of one path resolve to the SAME resource (which would PASS — see fd3a94
+      Passed Examples) or to genuinely DIFFERENT resources (which FAILS — see fd3a94
+      Failed Example 1, contact-us.html?page=1 vs ?page=2). Resolving that requires
+      reading the human prose and judging that an in-person lab cohort and an online
+      evening cohort are different courses — exactly the equivalence judgment fd3a94 marks
+      as not fully automatable. That judgment is what makes this a human-judgment FAIL and
+      distinguishes it from case-02, where three differently-encoded links carry the same
+      dataset and therefore PASS.
+    -->
+  </div>
+</body>
+</html>

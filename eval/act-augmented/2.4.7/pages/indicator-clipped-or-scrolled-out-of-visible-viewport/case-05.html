@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyHealth Portal — Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin:0; font-family:"Segoe UI", system-ui, sans-serif; color:#16202c;
+    background:#eef2f6;
+  }
+
+  .topbar {
+    display:flex; align-items:center; gap:12px;
+    background:#fff; border-bottom:1px solid #d7dde4; padding:12px 18px;
+  }
+  .topbar .menu-btn {
+    width:40px; height:40px; border:1px solid #cfd6df; border-radius:9px;
+    background:#fff; font-size:18px; cursor:pointer; color:#243042;
+  }
+  .topbar .brand { font-weight:700; font-size:16px; }
+
+  .layout { display:grid; grid-template-columns: 1fr; }
+  .main { padding: 24px 22px; max-width: 760px; }
+  .main h1 { font-size:22px; margin:0 0 6px; }
+  .main .sub { color:#5a6573; font-size:13.5px; margin:0 0 18px; }
+  .cardrow { display:grid; grid-template-columns: repeat(2,1fr); gap:14px; }
+  .stat { background:#fff; border:1px solid #d7dde4; border-radius:12px; padding:16px 18px; }
+  .stat .n { font-size:24px; font-weight:800; }
+  .stat .l { font-size:12.5px; color:#6b7480; margin-top:2px; }
+
+  /* OFF-CANVAS NAVIGATION DRAWER.
+     The drawer is hidden by sliding it off the LEFT edge with a CSS transform.
+     The author deliberately used transform (not display:none / visibility) so
+     the open/close can animate smoothly. The consequence: when "closed", the
+     drawer's links are still rendered, still focusable, and still in the tab
+     order — their LAYOUT position is on-screen (left:0), only the paint is
+     pushed off-screen by translateX(-110%). So:
+       * the browser's scrollIntoView / focus() sees a normally-positioned,
+         in-viewport element and does NOT scroll anywhere;
+       * but the pixels (and the focus ring) are painted at x ≈ -300px,
+         entirely off the left edge of the visible viewport.
+     A keyboard user pressing Tab from the menu button lands on the first
+     drawer link, whose focus ring is drawn off-screen and never seen. */
+  .drawer {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 280px; z-index: 30;
+    background:#0f2438; color:#dbe6f0; padding: 18px 14px;
+    transform: translateX(-110%);     /* slid off-screen but NOT display:none */
+    transition: transform .25s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,.25);
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer h2 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:#8aa6c2; margin:4px 8px 12px; }
+  .drawer a {
+    display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:9px;
+    color:#dbe6f0; text-decoration:none; font-size:14px;
+  }
+  .drawer a:hover { background:#16314b; }
+  .drawer a[aria-current] { background:#1b3e60; font-weight:600; }
+
+  /* Author focus ring — present and high contrast. It IS drawn on each drawer
+     link; it is simply painted off-screen when the drawer is in its closed
+     (translated-off) state. */
+  .drawer a:focus { outline:none; }
+  .drawer a:focus-visible { outline: 3px solid #6cb6ff; outline-offset: 2px; border-radius:9px; }
+  .menu-btn:focus-visible, .main a:focus-visible { outline:3px solid #0b5cab; outline-offset:2px; border-radius:8px; }
+
+  .grader { margin: 22px 22px; font-size:12px; color:#8a93a0; line-height:1.7; max-width:760px; }
+  .main a.inline { color:#0b5cab; }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <button class="menu-btn" type="button" aria-label="Open navigation menu" aria-expanded="false" aria-controls="nav-drawer">☰</button>
+    <span class="brand">MyHealth Portal</span>
+  </header>
+
+  <!-- The drawer is "closed": slid off-screen via transform, but its links stay
+       focusable and in the tab order (no display:none, no inert, no tabindex=-1). -->
+  <nav class="drawer" id="nav-drawer" aria-label="Patient navigation">
+    <h2>Menu</h2>
+    <a href="#dashboard" aria-current="page">🏠 Dashboard</a>
+    <a href="#appointments">📅 Appointments</a>
+    <a href="#results">🧪 Lab results</a>
+    <a href="#medications">💊 Medications</a>
+    <a href="#messages">✉️ Messages</a>
+    <a href="#billing">💳 Billing</a>
+    <a href="#profile">👤 Profile &amp; settings</a>
+  </nav>
+
+  <div class="layout">
+    <main class="main">
+      <h1>Welcome back, Dana</h1>
+      <p class="sub">Here is a summary of your care. Open the menu (☰) to navigate, or Tab through the page.</p>
+      <div class="cardrow">
+        <div class="stat"><div class="n">2</div><div class="l">Upcoming appointments</div></div>
+        <div class="stat"><div class="n">1</div><div class="l">New lab result</div></div>
+        <div class="stat"><div class="n">3</div><div class="l">Refills due this month</div></div>
+        <div class="stat"><div class="n">0</div><div class="l">Unread messages</div></div>
+      </div>
+      <p style="margin-top:18px;font-size:14px;line-height:1.7;color:#39434f">
+        Your next appointment is with <a class="inline" href="#appt-cardio">Dr. Okonkwo (Cardiology)</a>
+        on December 22 at 9:40 AM. Please arrive 15 minutes early to update your insurance information.
+      </p>
+    </main>
+  </div>
+
+  <p class="grader">
+    Why automated tools miss it: the drawer links have a valid, high-contrast 3px
+    <code>:focus-visible</code> ring (axe/WAVE/Lighthouse see conformant CSS),
+    and focusing one changes pixels, so ACT oj04fd is satisfied — it asks only
+    for a changed pixel "inside the scrolling area of the viewport," and the
+    drawer's layout box IS at left:0. But the drawer is closed by
+    <code>transform: translateX(-110%)</code> (not <code>display:none</code> /
+    <code>visibility:hidden</code> / <code>inert</code>), so its links remain in
+    the tab order while being PAINTED ~300px off the left edge of the screen.
+    Pressing Tab from the menu button moves focus to the first drawer link; the
+    browser does not scroll (the element's layout position is on-screen), so the
+    focus ring is drawn entirely off-screen and the keyboard user sees no focus
+    anywhere. Judging that the indicator is painted outside the visible viewport
+    — rather than simply that some pixel changed — is a layout/transform-aware
+    human visual judgment.
+  </p>
+
+  <script>
+    // The menu button toggles the drawer open/closed. Closed = translated off.
+    const btn = document.querySelector('.menu-btn');
+    const drawer = document.getElementById('nav-drawer');
+    btn.addEventListener('click', () => {
+      const open = drawer.classList.toggle('open');
+      btn.setAttribute('aria-expanded', String(open));
+    });
+  </script>
+</body>
+</html>

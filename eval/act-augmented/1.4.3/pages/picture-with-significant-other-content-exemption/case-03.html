@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.3 — TWO images on one product page that LOOK alike to a scanner but split on the
+    exemption. A human must classify each, then test only the in-scope one.
+
+    (A) PRODUCT PHOTO (EXEMPT): a photograph of an olive-oil bottle on a kitchen counter — the
+        bottle, the cork, the counter, a sprig, shadow = SIGNIFICANT OTHER VISUAL CONTENT. The
+        printed label on the bottle reads "ARBEQUINA / EXTRA VIRGIN" in low-contrast olive ink
+        on the olive-green label (~1.6:1). That is the label of a real object photographed in a
+        scene — incidental text in a picture with significant other visual content. EXEMPT.
+        Not tested.
+
+    (B) PROMO BANNER (IN SCOPE, FAILS): a separate flat marketing banner placed in the page
+        body. It is an IMAGE OF TEXT done for a particular look — a flat brown fill with the
+        words "FREE SHIPPING OVER $40 / harvest sale ends sunday". The lettering is #c79a5a on
+        the #6b4f2a fill = 2.95:1, below 4.5:1 for normal-size text. It has no significant
+        other visual content; it is text rendered as an image to get a custom display look.
+        IN SCOPE — and it FAILS.
+
+    WHY AUTOMATED TOOLS MISS IT: both are <img> elements with non-empty alt; axe/WAVE/
+    Lighthouse compute NO contrast for either (they only measure live text nodes, and cannot
+    read text inside images). So both pass every automated check. The page's failure requires a
+    human to (1) recognise the bottle photo is an exempt picture and SKIP it, (2) recognise the
+    banner is an image-of-text-for-look that is IN SCOPE, (3) eyedropper its lettering vs fill
+    with the Colour Contrast Analyser and compare to 4.5:1. The two images are deliberately the
+    same DOM shape so only meaning/composition distinguishes them.
+  -->
+  <title>Arbequina Extra-Virgin Olive Oil, 500 ml — Olivar del Sol</title>
+  <style>
+    :root{--ink:#23201b;--muted:#6a6256;--line:#e9e3d8;--paper:#fffdf8;--brand:#5a3d23;--ok:#2e7d32;}
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:#f6f2ea;}
+    header{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;background:var(--paper);border-bottom:1px solid var(--line);}
+    .logo{font-weight:800;letter-spacing:.04em;color:var(--brand);}
+    .cart{color:var(--muted);font-size:14px;text-decoration:none;}
+    /* IN-SCOPE image-of-text banner sits full width under the header */
+    .promo{display:block;width:100%;height:auto;}
+    main{max-width:980px;margin:0 auto;padding:28px;display:grid;grid-template-columns:1fr 1fr;gap:36px;}
+    .gallery img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;}
+    .pd h1{font-size:26px;margin:0 0 6px;}
+    .price{font-size:22px;font-weight:700;margin:6px 0 14px;}
+    .pd p{line-height:1.7;color:#332f28;}
+    .buy{display:inline-block;background:var(--brand);color:#fffdf8;border:0;border-radius:8px;
+      padding:13px 26px;font-size:16px;font-weight:600;cursor:pointer;margin-top:10px;}
+    .meta{margin-top:18px;font-size:14px;color:var(--muted);}
+    @media(max-width:760px){main{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo">OLIVAR DEL SOL</span>
+    <a class="cart" href="#cart">Cart (0)</a>
+  </header>
+
+  <!--
+    (B) IN-SCOPE image-of-text promo banner. Flat fill + words, no other significant content.
+    Lettering #c79a5a on #6b4f2a = 2.95:1 < 4.5:1 → FAILS 1.4.3. The alt transcribes it (so
+    1.1.1 passes), isolating the failure to CONTRAST of an image-of-text-for-look.
+  -->
+  <img class="promo" alt="Free shipping over $40. Harvest sale ends Sunday."
+    src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='980'%20height='110'%20viewBox='0%200%20980%20110'%3E%3Crect%20width='980'%20height='110'%20fill='%236b4f2a'/%3E%3Ctext%20x='490'%20y='50'%20fill='%23c79a5a'%20font-family='Georgia,serif'%20font-size='30'%20font-weight='bold'%20text-anchor='middle'%3EFREE%20SHIPPING%20OVER%20%2440%3C/text%3E%3Ctext%20x='490'%20y='84'%20fill='%23c79a5a'%20font-family='Georgia,serif'%20font-size='20'%20font-style='italic'%20text-anchor='middle'%3Eharvest%20sale%20ends%20sunday%3C/text%3E%3C/svg%3E">
+
+  <main>
+    <div class="gallery">
+      <!--
+        (A) EXEMPT product photo: bottle + cork + counter + sprig + shadow = significant other
+        visual content. The bottle's printed label reads "ARBEQUINA / EXTRA VIRGIN" in
+        low-contrast olive ink (~1.6:1) — incidental text on a photographed object. EXEMPT;
+        not measured.
+      -->
+      <img alt="A 500 ml bottle of Arbequina extra-virgin olive oil standing on a pale wooden kitchen counter, a cork beside it and an olive sprig in the foreground."
+        src="data:image/svg+xml;utf8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='460'%20height='460'%20viewBox='0%200%20460%20460'%3E%3Crect%20width='460'%20height='460'%20fill='%23efe6d6'/%3E%3Crect%20x='0'%20y='330'%20width='460'%20height='130'%20fill='%23d9c4a0'/%3E%3Cellipse%20cx='230'%20cy='338'%20rx='150'%20ry='18'%20fill='%23c3ab84'/%3E%3Crect%20x='185'%20y='120'%20width='90'%20height='220'%20rx='14'%20fill='%235e6b3a'/%3E%3Crect%20x='205'%20y='70'%20width='50'%20height='60'%20rx='6'%20fill='%235e6b3a'/%3E%3Crect%20x='210'%20y='52'%20width='40'%20height='22'%20rx='4'%20fill='%237a5230'/%3E%3Crect%20x='195'%20y='185'%20width='70'%20height='110'%20rx='4'%20fill='%23808a4e'/%3E%3Ctext%20x='230'%20y='225'%20fill='%23717a47'%20font-family='Georgia,serif'%20font-size='15'%20font-weight='bold'%20text-anchor='middle'%3EARBEQUINA%3C/text%3E%3Ctext%20x='230'%20y='250'%20fill='%23717a47'%20font-family='Georgia,serif'%20font-size='11'%20text-anchor='middle'%3EEXTRA%20VIRGIN%3C/text%3E%3Cline%20x1='205'%20y1='268'%20x2='255'%20y2='268'%20stroke='%23717a47'%20stroke-width='1'/%3E%3Cellipse%20cx='325'%20cy='372'%20rx='20'%20ry='12'%20fill='%237a5230'/%3E%3Cpath%20d='M120,360%20q18,-26%2040,-6%20q-22,10%20-40,6z'%20fill='%235e6b3a'/%3E%3Ccircle%20cx='150'%20cy='356'%20r='6'%20fill='%234a5a2c'/%3E%3C/svg%3E">
+    </div>
+
+    <div class="pd">
+      <h1>Arbequina Extra-Virgin Olive Oil — 500 ml</h1>
+      <p class="price">$24.00</p>
+      <p>Cold-pressed within hours of harvest from a single grove in Catalonia. Buttery and
+         mild with a soft green-almond finish — our most popular everyday oil.</p>
+      <button class="buy" type="button">Add to cart</button>
+      <p class="meta">Free shipping over $40 · Harvest 2025 · Acidity &lt; 0.3%</p>
+    </div>
+  </main>
+</body>
+</html>

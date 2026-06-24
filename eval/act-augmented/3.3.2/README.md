@@ -1,0 +1,14 @@
+# SC 3.3.2 Labels or Instructions — augmented test corpus
+
+Automated ACT rules for SC 3.3.2 (Labels or Instructions, Level A) almost entirely reduce the criterion to a *presence* check — they confirm that a form control carries an accessible name or that some visible label/instruction exists, mirroring the Trusted Tester Test 5.A procedure that explicitly "only determines whether visual labels/instructions are present, regardless of accuracy." That leaves the criterion's hardest, intent-level limbs untested by tooling: an instruction that is *promised on focus but never actually made perceivable* when the field is focused; an instruction that is present and well-formed but *semantically wrong, stale, or contradicts the field's enforced rule*; an *icon/image-only label* that satisfies 4.1.2 yet is not "widely understood by the intended target audience"; a *group/legend-level label* that is needed where per-control labels are insufficient (F82 generalized beyond phone numbers) but is absent or only visual; an instruction that exists but is *visually orphaned* from its field (collapsed disclosure, near-background contrast, absolute-positioned overlap, or undue navigation); and the *scope guard* that links and other non-data-entry controls correctly require no labels/instructions. Each of these is irreducibly human-judgment work and is exactly what this corpus adds.
+
+This corpus contributes six aspects. Four aspects (focus-revealed-instruction-not-honored, instruction-present-but-contradicts-field-rule, instruction-visually-orphaned-from-its-field, scope-guard-non-data-entry-controls-need-no-instructions) reach 6 valid human-judgment pages each. Two aspects fall one page short of a clean 6 because a single page each is flagged `needs-fix`: icon-only-label-not-widely-understood holds 5 valid pages (case-06 has a prompt/artifact metadata mismatch — the harness selector and "passed" expectation describe a different page than the FAIL case on disk), and group-label-needed-but-absent-generalized-f82 holds 5 valid pages (case-05 has a prompt-vs-artifact mismatch — the prompt's CSS-generated `counter()` mechanism does not exist in the file, and the residual real-DOM mechanism is weaker than "failed"). All six aspects meet the 5-valid-human-judgment-page bar.
+
+| aspect | valid pages | page statuses |
+|---|---|---|
+| focus-revealed-instruction-not-honored | 6 | valid, valid, valid, valid, valid, valid |
+| instruction-present-but-contradicts-field-rule | 6 | valid, valid, valid, valid, valid, valid |
+| icon-only-label-not-widely-understood | 5 | valid, valid, valid, valid, valid, needs-fix |
+| group-label-needed-but-absent-generalized-f82 | 5 | valid, valid, valid, valid, needs-fix, valid |
+| instruction-visually-orphaned-from-its-field | 6 | valid, valid, valid, valid, valid, valid |
+| scope-guard-non-data-entry-controls-need-no-instructions | 6 | valid, valid, valid, valid, valid, valid |

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Refill Prescription — Meadowbrook Patient Portal</title>
+<!--
+  SC 2.1.2 — modal-popover-legitimate-containment-vs-trap — case-01 (FAIL)
+  Native <dialog open> renders as a modal and a JS focus trap cycles Tab among its
+  three controls. There is NO Close/Cancel button anywhere in the dialog and NO Esc
+  handler. Because the markup was written as <dialog open> (NOT opened via showModal()),
+  the user agent's own Esc-to-cancel behaviour is NOT active, so there is genuinely no
+  keyboard exit. A mouse user clicks the backdrop to leave (a click-outside listener
+  exists); a keyboard user is stranded.
+  WHY AUTOMATED TOOLS MISS IT: the DOM is valid and pristine — a real <dialog> element
+  with role/modal semantics inferred by the UA, accessible names on every field, a
+  <h2> title, labelled inputs. axe/WAVE/Lighthouse never press Tab or Esc, so they never
+  observe that the cycle has no exit; and they cannot judge that the *absence* of a
+  Close control + absence of an Esc handler turns legitimate modal containment into a
+  trap. There is no missing/empty attribute for a linter to flag.
+-->
+<style>
+  :root { font-family: "Segoe UI", system-ui, sans-serif; color: #1b2733; }
+  body { margin: 0; background: #eef3f6; }
+  header.site { background: #0b5d6e; color: #fff; padding: 14px 28px; display: flex; align-items: center; gap: 12px; }
+  header.site .logo { font-weight: 700; font-size: 1.15rem; letter-spacing: .3px; }
+  nav.site a { color: #cfe8ee; text-decoration: none; margin-left: 20px; font-size: .92rem; }
+  main { padding: 28px; max-width: 760px; margin: 0 auto; }
+  .page-controls a { color: #0b5d6e; }
+  dialog[open] {
+    border: none; border-radius: 12px; padding: 0; width: min(440px, 92vw);
+    box-shadow: 0 18px 50px rgba(11,93,110,.28);
+  }
+  dialog::backdrop { background: rgba(7,38,46,.55); }
+  .dlg-head { background: #0b5d6e; color: #fff; padding: 16px 22px; border-radius: 12px 12px 0 0; }
+  .dlg-head h2 { margin: 0; font-size: 1.15rem; }
+  .dlg-body { padding: 22px; }
+  .dlg-body label { display: block; font-weight: 600; margin: 14px 0 6px; font-size: .9rem; }
+  .dlg-body input, .dlg-body select {
+    width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #9fb4bd;
+    border-radius: 7px; font-size: .95rem;
+  }
+  .dlg-foot { padding: 0 22px 22px; }
+  .dlg-foot button {
+    background: #0b5d6e; color: #fff; border: none; border-radius: 8px;
+    padding: 11px 20px; font-size: .95rem; font-weight: 600; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<header class="site">
+  <span class="logo">Meadowbrook Health</span>
+  <nav class="site">
+    <a href="#summary">My Health Summary</a>
+    <a href="#meds">Medications</a>
+    <a href="#messages">Messages</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Medications</h1>
+  <p>Your active prescriptions are listed below. To request a refill, open the refill
+     request form for the medication.</p>
+  <p class="page-controls">
+    <a href="#help">View pharmacy help</a> ·
+    <a href="#account">Account settings</a>
+  </p>
+
+  <!--
+    The dialog is rendered immediately (open attribute). It contains a refill form whose
+    Tab order is cycled by the trap script. Notice: NO close, NO cancel, NO Esc handler.
+  -->
+  <dialog id="refill" open aria-labelledby="refill-title">
+    <div class="dlg-head">
+      <h2 id="refill-title">Request a refill — Lisinopril 10 mg</h2>
+    </div>
+    <div class="dlg-body">
+      <label for="qty">Quantity (30 or 90 day supply)</label>
+      <select id="qty" name="qty">
+        <option>30-day supply</option>
+        <option>90-day supply</option>
+      </select>
+
+      <label for="pharm">Pickup pharmacy</label>
+      <input id="pharm" name="pharm" type="text" value="Meadowbrook Pharmacy — Elm St">
+
+      <label for="notes">Notes for the pharmacist (optional)</label>
+      <input id="notes" name="notes" type="text" placeholder="e.g. running low, traveling soon">
+    </div>
+    <div class="dlg-foot">
+      <button id="submit" type="button">Submit refill request</button>
+    </div>
+  </dialog>
+</main>
+
+<script>
+  // Hand-rolled focus trap copied into the project. It keeps Tab inside the dialog by
+  // wrapping last->first and first->last. It contains NO escape path: there is no Esc
+  // key handler, and the dialog has no Close/Cancel control to tab to. The only way out
+  // is a mouse click on the backdrop (mousedown listener below) — useless to a keyboard user.
+  const dlg = document.getElementById('refill');
+
+  function focusables() {
+    return Array.from(dlg.querySelectorAll('select, input, button'))
+      .filter(el => !el.disabled);
+  }
+
+  dlg.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab') return;            // <-- only Tab is handled; Esc is ignored entirely
+    const items = focusables();
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    }
+  });
+
+  // Mouse-only dismissal: clicking the dark backdrop closes the dialog. Keyboard users
+  // cannot trigger this.
+  dlg.addEventListener('mousedown', function (e) {
+    if (e.target === dlg) dlg.close();
+  });
+
+  // Put initial focus inside the dialog on load.
+  window.addEventListener('load', () => focusables()[0].focus());
+
+  document.getElementById('submit').addEventListener('click', () => {
+    document.getElementById('submit').textContent = 'Refill requested ✓';
+    // NOTE: still does not close or release focus — the trap persists after submit.
+  });
+</script>
+</body>
+</html>

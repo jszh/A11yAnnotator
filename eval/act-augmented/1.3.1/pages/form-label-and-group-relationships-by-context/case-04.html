@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maplewood Permits — Building permit application</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (case-04):
+  This form has TWO yes/no radio questions stacked one after another:
+    Q1 "Will the work change the building's footprint?"  (radios name="footprint")
+    Q2 "Is the property in a flood-hazard zone?"          (radios name="flood")
+  Both questions are styled <p class="q"> blocks. Each radio is correctly labelled
+  ("Yes" / "No") via <label for>, so axe e086e5 passes on all four radios. The two
+  groups ARE distinct at the form level (different name= attributes) BUT neither is
+  wrapped in a <fieldset>/<legend> or role="radiogroup", so to a screen reader the
+  page is a flat run of: question text, "Yes" radio, "No" radio, question text,
+  "Yes" radio, "No" radio. Because the option labels are identical ("Yes"/"No") and
+  the questions are unassociated prose, a user navigating by FORM CONTROL (not by
+  reading every line) lands on a "Yes" radio with no programmatic way to know which
+  question it answers. The grouping that the visual stacking makes obvious is absent
+  programmatically. No static rule detects "ambiguous group membership across two
+  identically-optioned radio sets" — it requires reading the layout and reasoning
+  that the second "Yes" belongs to the flood question, not the footprint question.
+-->
+<style>
+  body { font-family: "Segoe UI", Tahoma, sans-serif; background: #eceff1; color: #263238; margin: 0; }
+  .doc { max-width: 640px; margin: 36px auto; background: #fff; border: 1px solid #cfd8dc; padding: 0 0 36px; }
+  .gov { background: #1b3a5c; color: #fff; padding: 16px 34px; font-size: 13px; letter-spacing: .04em; }
+  .gov strong { display: block; font-size: 17px; letter-spacing: 0; }
+  .body { padding: 8px 34px 0; }
+  h1 { font-size: 20px; }
+  .lead { color: #546e7a; font-size: 14px; line-height: 1.5; }
+  .q { font-size: 15px; font-weight: 600; margin: 26px 0 8px; }
+  .opts { display: flex; gap: 28px; }
+  .opt { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .help { color: #607d8b; font-size: 13px; margin: 4px 0 0; }
+  .file { background: #1b3a5c; color: #fff; border: none; padding: 12px 30px; font-size: 14px; margin-top: 30px; cursor: pointer; border-radius: 3px; }
+</style>
+</head>
+<body>
+  <div class="doc">
+    <div class="gov">
+      City of Maplewood · Building &amp; Safety
+      <strong>Residential Building Permit — Section 3: Scope</strong>
+    </div>
+    <div class="body">
+      <h1>Project scope questions</h1>
+      <p class="lead">Answer both questions so we can route your application to the correct reviewer.</p>
+
+      <form action="#" method="post" novalidate>
+
+        <!-- Q1: footprint. Question is unassociated prose; radios share name only. -->
+        <p class="q">Will the work change the building's footprint?</p>
+        <p class="help">"Footprint" means the outline of the structure on the lot.</p>
+        <div class="opts">
+          <span class="opt"><input type="radio" id="fp_y" name="footprint" value="yes"><label for="fp_y">Yes</label></span>
+          <span class="opt"><input type="radio" id="fp_n" name="footprint" value="no"><label for="fp_n">No</label></span>
+        </div>
+
+        <!-- Q2: flood zone. Identical "Yes"/"No" options, also ungrouped. -->
+        <p class="q">Is the property in a designated flood-hazard zone?</p>
+        <p class="help">Check the FEMA flood map if you are unsure.</p>
+        <div class="opts">
+          <span class="opt"><input type="radio" id="fl_y" name="flood" value="yes"><label for="fl_y">Yes</label></span>
+          <span class="opt"><input type="radio" id="fl_n" name="flood" value="no"><label for="fl_n">No</label></span>
+        </div>
+
+        <button type="submit" class="file">Continue to Section 4</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

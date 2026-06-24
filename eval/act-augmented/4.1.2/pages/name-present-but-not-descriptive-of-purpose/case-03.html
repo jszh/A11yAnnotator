@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 FAILURE (ARIA14 name-quality — identical token shared across distinct-value controls).
+    This is the "leave a review" form for a restaurant listing. The rating is an interactive
+    5-star widget: five <button>s, left to right, each of which sets the rating to 1, 2, 3, 4,
+    or 5 stars when activated. Each button renders a star glyph and is given the identical
+    accessible name aria-label="star". Every name is non-empty and the role (button) and
+    aria-pressed state are correct, so each button PASSES the ACT "Button has non-empty
+    accessible name" rule. But a screen-reader user navigating the group hears
+    "star, star, star, star, star" — five controls with the same name and no way to tell which
+    one assigns "1 star" versus "5 stars." The control's VALUE (which rating it sets) is the
+    whole point, and the name conveys none of it.
+    WHY AUTOMATED TOOLS MISS IT: all five buttons have non-empty names; "star" passes. The
+    only ACT rule that compares identical names for equivalent purpose is iframe-scoped, so it
+    never fires here. Recognizing that five identically-named buttons each set a DIFFERENT
+    rating, so the name must encode the value ("Rate 1 star"…"Rate 5 stars"), requires
+    understanding the widget's left-to-right rating behavior — a human judgment.
+  -->
+  <title>Write a review — Casa Lumiere · Tablesaver</title>
+  <style>
+    :root { --ink:#2b2118; --muted:#8a7c6a; --line:#e7ddcf; --brand:#b8451f; --gold:#e8a200; --bg:#fbf7f0; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Georgia", "Times New Roman", serif; color:var(--ink); background:var(--bg); }
+    header { padding:18px 26px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:14px; }
+    .logo { font-weight:700; font-size:20px; color:var(--brand); font-family:"Helvetica Neue", Arial, sans-serif; letter-spacing:.5px; }
+    .crumb { color:var(--muted); font-size:13px; }
+    main { max-width:620px; margin:30px auto; background:#fff; border:1px solid var(--line); border-radius:10px; padding:28px 30px 32px; }
+    .place { display:flex; gap:14px; align-items:center; margin-bottom:6px; }
+    .place h1 { font-size:22px; margin:0; }
+    .place .cuisine { color:var(--muted); font-size:14px; font-family:"Helvetica Neue", Arial, sans-serif; }
+    p.lede { color:#534637; font-size:15px; line-height:1.55; }
+    form { margin-top:18px; }
+    fieldset { border:1px solid var(--line); border-radius:8px; margin:0 0 20px; padding:16px 18px; }
+    legend { font-weight:700; padding:0 6px; font-family:"Helvetica Neue", Arial, sans-serif; font-size:15px; }
+    .stars { display:inline-flex; gap:4px; }
+    .star-btn { border:0; background:transparent; cursor:pointer; padding:4px; line-height:0; border-radius:6px; }
+    .star-btn svg { width:34px; height:34px; }
+    .star-btn .glyph { fill:#d9cdba; transition:fill .08s; }
+    .star-btn:hover .glyph, .star-btn:hover ~ .star-btn .glyph { fill:#d9cdba; }
+    /* visual fill is driven by JS toggling .on for selected + lower stars */
+    .star-btn.on .glyph { fill:var(--gold); }
+    .star-btn:focus-visible { outline:2px solid var(--brand); outline-offset:1px; }
+    label.fld { display:block; font-weight:700; font-family:"Helvetica Neue", Arial, sans-serif; font-size:14px; margin:0 0 6px; }
+    textarea { width:100%; min-height:110px; border:1px solid var(--line); border-radius:8px; padding:10px 12px; font:inherit; font-size:15px; }
+    button.submit { background:var(--brand); color:#fff; border:0; padding:13px 24px; border-radius:8px; font-size:15px; font-family:"Helvetica Neue", Arial, sans-serif; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="logo">Tablesaver</span>
+    <span class="crumb">Restaurants › San Mateo › Casa Lumiere › Write a review</span>
+  </header>
+
+  <main>
+    <div class="place">
+      <h1>Casa Lumiere</h1>
+      <span class="cuisine">Modern Oaxacan · $$$ · Open until 10:00 PM</span>
+    </div>
+    <p class="lede">You dined here on June 14. Share your experience to help other diners. Your overall
+       rating is required.</p>
+
+    <form action="/reviews/casa-lumiere" method="post">
+      <fieldset>
+        <legend>Overall rating</legend>
+        <div class="stars" role="group" aria-label="Overall rating, 1 to 5 stars">
+          <button type="button" class="star-btn" aria-label="star" aria-pressed="false" data-value="1">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="glyph" d="m12 2 3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
+          </button>
+          <button type="button" class="star-btn" aria-label="star" aria-pressed="false" data-value="2">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="glyph" d="m12 2 3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
+          </button>
+          <button type="button" class="star-btn" aria-label="star" aria-pressed="false" data-value="3">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="glyph" d="m12 2 3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
+          </button>
+          <button type="button" class="star-btn" aria-label="star" aria-pressed="false" data-value="4">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="glyph" d="m12 2 3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
+          </button>
+          <button type="button" class="star-btn" aria-label="star" aria-pressed="false" data-value="5">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="glyph" d="m12 2 3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
+          </button>
+        </div>
+      </fieldset>
+
+      <div>
+        <label class="fld" for="body">Your review</label>
+        <textarea id="body" name="body" placeholder="What did you order? How was the service?"></textarea>
+      </div>
+
+      <p><button class="submit" type="submit">Post review</button></p>
+    </form>
+  </main>
+
+  <script>
+    // Click-to-rate: fill the chosen star and all stars to its left.
+    document.querySelectorAll('.star-btn').forEach(function (btn, i, all) {
+      btn.addEventListener('click', function () {
+        var v = +btn.dataset.value;
+        all.forEach(function (b) {
+          var on = (+b.dataset.value) <= v;
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-pressed', String(on));
+        });
+      });
+    });
+  </script>
+</body>
+</html>

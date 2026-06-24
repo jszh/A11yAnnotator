@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>광복절 기념 — 국가유산 사진전</title>
+  <style>
+    body { font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+           margin:0; color:#1a1a1a; background:#fbf7f0; }
+    .banner { background: linear-gradient(180deg,#102a43 0%, #1c3d5a 100%); color:#fff;
+              text-align:center; padding:3rem 1rem 3.4rem; }
+    .banner .eyebrow { letter-spacing:.4em; font-size:.8rem; opacity:.85; }
+    /* Hero word #1 — rendered wide using the CORRECT technique: CSS letter-spacing.
+       The text node is the intact word "대한민국". PASS. */
+    .banner h1 {
+      margin:.6rem 0 0; font-weight:800; font-size:clamp(2rem,9vw,4.2rem);
+      letter-spacing:.6em; /* visual tracking only; text stays "대한민국" */
+    }
+    main { max-width:760px; margin:2rem auto; padding:0 1.1rem; line-height:1.7; }
+    h2 { font-size:1.25rem; }
+    .subhead {
+      text-align:center; font-size:clamp(1.4rem,6vw,2.4rem); font-weight:700; color:#102a43;
+      margin:1.5rem 0;
+    }
+    .note { background:#fff; border-left:4px solid #102a43; padding:1rem 1.2rem; font-size:.86rem; color:#444; }
+    code { background:#eef0f3; padding:.1em .3em; border-radius:3px; }
+    .en { font-family: Arial, sans-serif; }
+  </style>
+</head>
+<body>
+  <header class="banner">
+    <p class="eyebrow">국가유산 사진전 · 1945–2025</p>
+    <!-- PASS: word "대한민국" (Republic of Korea) is one text node, widened with CSS only. -->
+    <h1>대한민국</h1>
+  </header>
+
+  <main>
+    <h2>전시 안내</h2>
+    <p>
+      올해 광복절을 맞아 국가유산청과 함께 지난 80년의 기록 사진을 선보입니다.
+      입장은 무료이며, 도슨트 해설은 매시 정각에 진행됩니다.
+    </p>
+
+    <!-- F32 FAILURE: the SAME word "대한민국" is here typed with a literal space between every
+         syllable block — "대 한 민 국". The visual is similar to the CSS-tracked hero, but the
+         text node now contains spaces inside the word, so a Korean screen reader reads four
+         isolated syllables ("dae / han / min / guk") rather than the word 대한민국 (Daehan-minguk,
+         "Republic of Korea"). -->
+    <p class="subhead">대 한 민 국 의 빛</p>
+
+    <p>
+      위 소제목은 “대한민국의 빛”이라는 한 구절이지만, 글자 사이에 공백을 넣어 한 단어가
+      음절 단위로 끊어져 읽힙니다.
+    </p>
+
+    <section class="note" aria-label="이 페이지에 대하여">
+      <p class="en">
+        <strong>Why automated checkers pass this page:</strong> both the hero
+        <code>&lt;h1&gt;대한민국&lt;/h1&gt;</code> and the spaced subheading are valid text with
+        <code>lang="ko"</code>; there are no missing attributes for axe/WAVE/Lighthouse to flag.
+        Crucially, this page contrasts the <em>correct</em> way to visually widen a word — CSS
+        <code>letter-spacing</code>, which leaves the text node intact (PASS) — against the F32
+        <em>failure</em> of typing literal spaces inside the word (<code>대 한 민 국 …</code>),
+        which a Korean screen reader reads syllable-by-syllable. The two render almost identically;
+        only inspecting the actual text characters and knowing Korean reveals that one keeps the
+        word and the other breaks it. No scanner segments Korean and compares letter-spacing-vs-
+        literal-spaces for meaning.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

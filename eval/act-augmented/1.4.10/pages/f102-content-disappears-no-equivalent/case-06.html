@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Menu — Saffron &amp; Sage, Whitfield Lane</title>
+<!--
+  SC 1.4.10 Reflow — F102 with VISUAL-ONLY CONVEYANCE: the dish list survives reflow,
+  but the LEGEND that decodes the allergen/dietary symbols is removed at narrow width,
+  orphaning the symbols.
+
+  At desktop width a right-hand legend column maps each single-letter allergen/diet
+  marker to its meaning:  V = Vegetarian, Ve = Vegan, GF = Gluten-free, N = Contains
+  nuts, Sf = Contains shellfish, D = Contains dairy.  Every dish carries those markers
+  (e.g. "Roasted aubergine — Ve GF N"). At <=600px the menu list reflows to a clean
+  single column (good), but the legend aside is removed with display:none. The markers
+  still appear on every dish, but there is now no key explaining them and the key is
+  reproduced nowhere else — no tooltip, no inline expansion, no link to an allergen
+  page. So a guest with a nut or shellfish allergy reading the menu on a phone sees
+  "N" and "Sf" with no way to learn what they mean. The information needed to use the
+  menu safely is lost on reflow.
+
+  Note: the dish text is real text (not images), the legend is real text, and the
+  markers are real text — there is no missing-alt or contrast issue for a tool to
+  catch. The defect is that the DECODER for an existing on-screen code disappears at
+  320px with no equivalent.
+
+  WHY AUTOMATED TOOLS MISS IT: every element is well-formed text; the legend is just
+  display:none in a media query (a legitimate idiom). No tool renders at 320px,
+  notices that abbreviation markers on every dish now have no key, and reasons that
+  the dropped legend was the only thing that made those markers meaningful. That is a
+  human semantic + reflow judgment.
+-->
+<style>
+  :root { --plum:#4a1f3d; --gold:#a9772f; --ink:#221b1f; --paper:#fbf6ee; --line:#e6d9c6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: "Cormorant Garamond", Georgia, serif; color:var(--ink); background:var(--paper); }
+  .head { text-align:center; padding:26px 18px 8px; }
+  .head .name { font-size:2rem; letter-spacing:.04em; color:var(--plum); margin:0; }
+  .head .meta { font-family: "Inter", system-ui, sans-serif; font-size:.8rem; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--gold); margin:6px 0 0; }
+  .wrap { max-width:980px; margin:18px auto; display:grid; grid-template-columns: 1fr 230px; gap:34px; padding:0 22px 60px; }
+  section.course h2 { font-family:"Inter",sans-serif; font-size:.78rem; letter-spacing:.2em;
+    text-transform:uppercase; color:var(--gold); border-bottom:1px solid var(--line); padding-bottom:6px; }
+  .dish { display:flex; justify-content:space-between; gap:14px; padding:12px 0; border-bottom:1px dotted var(--line); }
+  .dish:last-child { border-bottom:0; }
+  .dish .d-name { font-size:1.18rem; }
+  .dish .d-desc { font-family:"Inter",sans-serif; font-size:.82rem; color:#6b5d57; margin-top:2px; }
+  .dish .markers { font-family:"Inter",sans-serif; font-size:.74rem; letter-spacing:.04em;
+    color:var(--plum); white-space:nowrap; font-weight:600; }
+  .dish .price { font-family:"Inter",sans-serif; font-size:.95rem; color:var(--ink); }
+  .dish .right { text-align:right; min-width:70px; }
+
+  aside.legend { border-left:1px solid var(--line); padding-left:22px; align-self:start; position:sticky; top:18px;
+    font-family:"Inter",sans-serif; }
+  aside.legend h2 { font-size:.74rem; letter-spacing:.16em; text-transform:uppercase; color:var(--gold); }
+  aside.legend dl { display:grid; grid-template-columns:auto 1fr; gap:6px 10px; margin:0; }
+  aside.legend dt { font-weight:700; color:var(--plum); }
+  aside.legend dd { margin:0; font-size:.86rem; color:#5a4d47; }
+  footer { text-align:center; font-family:"Inter",sans-serif; font-size:.78rem; color:#8a7c74; padding:0 18px 40px; }
+
+  @media (max-width: 600px) {
+    .wrap { grid-template-columns: 1fr; gap:0; }
+    aside.legend { display:none; }   /* <-- F102: the key that decodes the dish markers is dropped */
+  }
+</style>
+</head>
+<body>
+  <div class="head">
+    <p class="name">Saffron &amp; Sage</p>
+    <p class="meta">Whitfield Lane · Dinner Menu · Spring 2026</p>
+  </div>
+
+  <div class="wrap">
+    <div class="menu">
+      <section class="course">
+        <h2>To begin</h2>
+        <div class="dish">
+          <div>
+            <div class="d-name">Charred leek &amp; almond velouté</div>
+            <div class="d-desc">Toasted flaked almonds, brown-butter croutons</div>
+          </div>
+          <div class="right"><div class="markers">V&nbsp;&nbsp;N&nbsp;&nbsp;D</div><div class="price">£9</div></div>
+        </div>
+        <div class="dish">
+          <div>
+            <div class="d-name">Cured sea trout</div>
+            <div class="d-desc">Beetroot, horseradish crème fraîche, rye</div>
+          </div>
+          <div class="right"><div class="markers">D</div><div class="price">£12</div></div>
+        </div>
+        <div class="dish">
+          <div>
+            <div class="d-name">Salt-baked celeriac tartare</div>
+            <div class="d-desc">Capers, smoked rapeseed oil, sourdough</div>
+          </div>
+          <div class="right"><div class="markers">Ve&nbsp;&nbsp;GF</div><div class="price">£10</div></div>
+        </div>
+      </section>
+
+      <section class="course">
+        <h2>Mains</h2>
+        <div class="dish">
+          <div>
+            <div class="d-name">Roasted aubergine, harissa &amp; tahini</div>
+            <div class="d-desc">Pomegranate, dukkah, flatbread</div>
+          </div>
+          <div class="right"><div class="markers">Ve&nbsp;&nbsp;N</div><div class="price">£18</div></div>
+        </div>
+        <div class="dish">
+          <div>
+            <div class="d-name">Pan-roasted hake</div>
+            <div class="d-desc">Brown shrimp butter, sea greens, jersey royals</div>
+          </div>
+          <div class="right"><div class="markers">Sf&nbsp;&nbsp;D&nbsp;&nbsp;GF</div><div class="price">£24</div></div>
+        </div>
+        <div class="dish">
+          <div>
+            <div class="d-name">Slow-cooked featherblade</div>
+            <div class="d-desc">Bone-marrow mash, charred shallot, red wine</div>
+          </div>
+          <div class="right"><div class="markers">D&nbsp;&nbsp;GF</div><div class="price">£26</div></div>
+        </div>
+      </section>
+
+      <section class="course">
+        <h2>To finish</h2>
+        <div class="dish">
+          <div>
+            <div class="d-name">Pistachio &amp; olive-oil cake</div>
+            <div class="d-desc">Whipped mascarpone, candied lemon</div>
+          </div>
+          <div class="right"><div class="markers">V&nbsp;&nbsp;N&nbsp;&nbsp;D</div><div class="price">£9</div></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- The legend that decodes the per-dish markers. Removed at <=600px, reproduced nowhere else. -->
+    <aside class="legend" aria-labelledby="legend-h">
+      <h2 id="legend-h">Dietary &amp; allergen key</h2>
+      <dl>
+        <dt>V</dt><dd>Vegetarian</dd>
+        <dt>Ve</dt><dd>Vegan</dd>
+        <dt>GF</dt><dd>Gluten-free</dd>
+        <dt>N</dt><dd>Contains nuts</dd>
+        <dt>Sf</dt><dd>Contains shellfish / crustaceans</dd>
+        <dt>D</dt><dd>Contains dairy</dd>
+      </dl>
+      <p style="font-size:.78rem;color:#7a6c64;margin-top:14px;">Please tell your server about any
+        allergy before ordering.</p>
+    </aside>
+  </div>
+
+  <footer>
+    <p>Saffron &amp; Sage · A discretionary 12.5% service charge applies to tables of six or more.</p>
+  </footer>
+</body>
+</html>

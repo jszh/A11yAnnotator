@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patient Intake — Cedar Ridge Family Health</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The error state is DYNAMIC: it only appears after you press "Submit intake form".
+  The inline script (no network) marks each missing required field by turning that
+  field's <label> TEXT red (color:#c01818) and leaves valid labels black. There is no
+  inline message, no icon, no "(required)/(error)" word added — only the label's hue
+  changes. A static scan of the page-as-loaded sees ordinary black labels and passes;
+  even after the submit, axe/WAVE/Lighthouse see <label for> correctly associated, all
+  text above contrast minimum, and a visible (generic) summary line — no rule fires.
+  No automated checker decides that a red label "means this field errored." A sighted
+  color-blind user sees a wall of identical-looking labels and cannot tell which two
+  fields failed. That is the F81 'label color only' failure, judgeable only by a human
+  in the post-submit state.
+-->
+<style>
+  :root { --ink:#222b32; --muted:#5d6770; --line:#c9d1d6; --teal:#0f6e6e; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Helvetica Neue",Arial,sans-serif; color:var(--ink); background:#f3f6f7; }
+  header { background:var(--teal); color:#fff; padding:22px 26px; }
+  header h1 { margin:0; font-size:1.35rem; }
+  header p { margin:4px 0 0; opacity:.92; font-size:.92rem; }
+  main { max-width:640px; margin:24px auto 60px; background:#fff; border-radius:10px;
+         box-shadow:0 4px 18px rgba(15,35,40,.08); padding:28px 30px 32px; }
+  h2 { font-size:1.05rem; margin:0 0 4px; color:#1a2228; }
+  .intro { color:var(--muted); font-size:.92rem; margin:0 0 22px; }
+
+  fieldset { border:1px solid var(--line); border-radius:8px; padding:16px 18px 6px; margin:0 0 22px; }
+  legend { font-weight:700; font-size:.95rem; padding:0 6px; color:#27323a; }
+  .field { margin-bottom:16px; }
+
+  /* Labels are normally black. The validator flips invalid ones to red — color ONLY. */
+  label { display:block; font-size:.88rem; font-weight:600; margin:0 0 6px; color:#222b32; }
+  label.err { color:#c01818; }   /* === the defect: red label = errored, nothing else changes === */
+
+  input, select { width:100%; padding:9px 11px; font-size:1rem; border:1px solid var(--line);
+                  border-radius:6px; background:#fff; color:var(--ink); }
+  input:focus, select:focus { outline:2px solid var(--teal); outline-offset:1px; }
+  .two { display:flex; gap:14px; } .two > .field { flex:1; }
+
+  .summary { display:none; background:#fbecec; border:1px solid #efbcbc; color:#7d1818;
+             border-radius:7px; padding:10px 12px; font-size:.9rem; margin-bottom:20px; }
+  .summary.show { display:block; }
+
+  button { padding:11px 20px; font-size:1rem; font-weight:600; color:#fff; background:var(--teal);
+           border:0; border-radius:7px; cursor:pointer; }
+  .req-note { font-size:.82rem; color:var(--muted); margin:4px 0 20px; }
+  footer { max-width:640px; margin:0 auto; padding:0 30px 30px; color:var(--muted); font-size:.8rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Cedar Ridge Family Health</h1>
+  <p>New patient intake · please complete before your appointment</p>
+</header>
+
+<main>
+  <h2>Patient information</h2>
+  <p class="intro">Required fields are needed so we can verify your record and insurance.</p>
+
+  <!-- Generic summary appears on submit; it does NOT name the failing fields. -->
+  <div class="summary" id="summary" role="alert">Some required information is still missing. Please review the form and resubmit.</div>
+
+  <form id="intake" action="#" method="post" novalidate>
+    <fieldset>
+      <legend>Identity</legend>
+      <div class="two">
+        <div class="field">
+          <label for="first">Legal first name</label>
+          <input id="first" name="first" type="text" data-req value="Marisol">
+        </div>
+        <div class="field">
+          <label for="last">Legal last name</label>
+          <input id="last" name="last" type="text" data-req value="Delgado">
+        </div>
+      </div>
+      <div class="field">
+        <label for="dob">Date of birth</label>
+        <input id="dob" name="dob" type="text" placeholder="MM/DD/YYYY" data-req value="">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Insurance</legend>
+      <div class="field">
+        <label for="carrier">Insurance carrier</label>
+        <select id="carrier" name="carrier" data-req>
+          <option value="">Select…</option>
+          <option selected>BlueShield Regional</option>
+          <option>Aetna</option>
+          <option>Self-pay</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="member">Member ID</label>
+        <input id="member" name="member" type="text" data-req value="">
+      </div>
+    </fieldset>
+
+    <p class="req-note">All fields on this form are required.</p>
+    <button type="submit">Submit intake form</button>
+  </form>
+</main>
+<footer>Cedar Ridge Family Health · 100% file:// — no external resources · Patient Services 555-0142</footer>
+
+<script>
+  // Inline validation on submit. Marks each empty required field by turning ITS LABEL red.
+  // No message text, no icon, no aria-invalid is added — color is the only per-field cue.
+  document.getElementById('intake').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var anyError = false;
+    this.querySelectorAll('[data-req]').forEach(function (el) {
+      var lbl = document.querySelector('label[for="' + el.id + '"]');
+      if (!el.value.trim()) { lbl.classList.add('err'); anyError = true; }
+      else { lbl.classList.remove('err'); }
+    });
+    document.getElementById('summary').classList.toggle('show', anyError);
+  });
+  // Pre-render the post-submit error state on load so an evaluator lands directly in it.
+  window.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('intake').dispatchEvent(new Event('submit'));
+  });
+</script>
+</body>
+</html>

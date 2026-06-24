@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline #4821 — payments-api | ForgeCI</title>
+<!--
+  SC 4.1.3 aspect: non-textual status (spinner image) in a present role=status, alt is the FILENAME.
+  WHY AUTOMATED TOOLS MISS IT:
+  The build-status cell is a valid role="status" present at page load (live-region/F103 PASS).
+  When a deploy starts, an animated spinner <img> is injected with alt="spinner.gif" — a NON-EMPTY,
+  syntactically valid alt attribute, so every "images need alt text" rule PASSES. But the alt is the
+  asset's *filename*, not the status. The role=status region therefore announces the literal string
+  "spinner dot gif" instead of "Deploying" / "application busy", and at completion swaps to an image
+  with alt="check_24.png", announcing "check underscore 24 dot png". Sighted engineers see a spinner
+  then a green check; AT users hear filenames. No automated tool can know that "spinner.gif" is a
+  filename masquerading as a description, nor that the correct announcement should be the build state —
+  that requires reading the alt's meaning against the visual/semantic role of the icon.
+-->
+<style>
+  :root { --ink:#e6edf3; --bg:#0d1117; --panel:#161b22; --line:#30363d; --ok:#2ea043; --busy:#d29922; }
+  * { box-sizing:border-box; }
+  body { font:14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:var(--ink); margin:0; background:var(--bg); }
+  .wrap { max-width:860px; margin:0 auto; padding:20px 16px 64px; }
+  h1 { font:600 18px/1.3 system-ui, sans-serif; margin:8px 0 2px; }
+  .sub { color:#8b949e; font:13px/1.4 system-ui, sans-serif; margin:0 0 18px; }
+  .stages { border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .stage { display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid var(--line); }
+  .stage:last-child { border-bottom:0; }
+  .stage .name { flex:1; }
+  .stage .dur { color:#8b949e; }
+  .icoCell { width:22px; height:22px; flex:0 0 22px; display:flex; align-items:center; justify-content:center; }
+  .icoCell img { width:18px; height:18px; }
+  .done .name::before { content:""; }
+  .spin { animation:spin .9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .bar { margin-top:18px; display:flex; gap:12px; align-items:center; }
+  button { font:600 13px/1 system-ui; padding:9px 16px; border-radius:6px; border:1px solid var(--line); background:#21262d; color:var(--ink); cursor:pointer; }
+  .green { background:var(--ok); border-color:var(--ok); color:#04130a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Pipeline #4821 &middot; payments-api</h1>
+  <p class="sub">main &middot; commit 9f3c1ab &middot; triggered by @dyang</p>
+
+  <div class="stages">
+    <div class="stage done">
+      <span class="icoCell"><img src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='8' fill='%232ea043'/%3E%3Cpath d='M5 9.3l2.3 2.3 5-5.2' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" alt="check_24.png"></span>
+      <span class="name">Install &amp; cache</span><span class="dur">22s</span>
+    </div>
+    <div class="stage done">
+      <span class="icoCell"><img src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='8' fill='%232ea043'/%3E%3Cpath d='M5 9.3l2.3 2.3 5-5.2' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" alt="check_24.png"></span>
+      <span class="name">Unit tests</span><span class="dur">1m 04s</span>
+    </div>
+
+    <!-- Deploy stage: the status icon lives in a role=status region. -->
+    <div class="stage">
+      <span class="icoCell" id="deployStatus" role="status" aria-atomic="true">
+        <!-- idle: empty -->
+      </span>
+      <span class="name">Deploy to staging</span><span class="dur" id="deployDur">—</span>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button type="button" class="green" id="run">Run deploy</button>
+  </div>
+</div>
+
+<script>
+  var SPIN = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M9 2a7 7 0 1 0 7 7' fill='none' stroke='%23d29922' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E";
+  var CHK  = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Ccircle cx='9' cy='9' r='8' fill='%232ea043'/%3E%3Cpath d='M5 9.3l2.3 2.3 5-5.2' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E";
+  var cell = document.getElementById('deployStatus');
+  var dur  = document.getElementById('deployDur');
+
+  document.getElementById('run').addEventListener('click', function () {
+    // BUSY: spinner injected with alt = the FILENAME, not the status.
+    cell.innerHTML = '<img class="spin" src="' + SPIN + '" alt="spinner.gif">';
+    dur.textContent = 'running…';
+    setTimeout(function () {
+      // DONE: green check, alt = another filename.
+      cell.innerHTML = '<img src="' + CHK + '" alt="check_24.png">';
+      dur.textContent = '38s';
+    }, 2200);
+  });
+</script>
+</body>
+</html>

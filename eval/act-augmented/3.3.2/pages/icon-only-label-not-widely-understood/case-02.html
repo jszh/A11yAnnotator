@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulsegrid Analytics — Workspace settings</title>
+<style>
+  /* Self-contained icon font defined inline via @font-face is impractical from file://,
+     so the two "gear" glyphs are inline SVGs that render nearly identically at 18px. */
+  body { margin: 0; font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    background: #0f1117; color: #e6e8ee; }
+  .shell { display: grid; grid-template-columns: 210px 1fr; min-height: 100vh; }
+  nav.side { background: #161922; border-right: 1px solid #232838; padding: 20px 14px; }
+  nav.side .wm { font-weight: 700; font-size: 15px; margin-bottom: 24px; color: #fff; }
+  nav.side a { display: block; color: #9aa1b2; text-decoration: none; font-size: 13.5px;
+    padding: 8px 10px; border-radius: 7px; }
+  nav.side a[aria-current] { background: #222840; color: #fff; }
+  main { padding: 34px 40px; max-width: 720px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #8a91a6; font-size: 13px; margin: 0 0 30px; }
+  fieldset { border: 1px solid #232838; border-radius: 12px; padding: 22px 22px 8px;
+    margin: 0 0 26px; background: #141722; }
+  legend { padding: 0 8px; font-size: 13px; color: #aab2c8; font-weight: 600; }
+
+  .row { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  /* The two glyph cues — visually almost indistinguishable cog wheels. */
+  .cog { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 8px; background: #1d2233;
+    display: grid; place-items: center; color: #c6ccdc; }
+  .cog svg { width: 19px; height: 19px; }
+  .row input { flex: 1 1 auto; background: #0d0f15; border: 1px solid #2a3043;
+    border-radius: 8px; padding: 10px 12px; color: #e6e8ee; font-size: 14px; min-width: 0; }
+  .row input:focus { outline: 0; border-color: #6c8cff; box-shadow: 0 0 0 3px rgba(108,140,255,.22); }
+
+  .save { margin-top: 12px; background: #6c8cff; color: #0c1020; border: 0; font-weight: 650;
+    border-radius: 9px; padding: 11px 20px; font-size: 14px; cursor: pointer; }
+  .devnote { margin: 30px 0 0; font-size: 12px; color: #7f879b; line-height: 1.55; max-width: 720px; }
+  code { color: #c6ccdc; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="side" aria-label="Workspace navigation">
+    <div class="wm">Pulsegrid</div>
+    <a href="#">Dashboards</a>
+    <a href="#">Alerts</a>
+    <a href="#" aria-current="page">Settings</a>
+    <a href="#">Billing</a>
+  </nav>
+
+  <main>
+    <h1>Workspace settings</h1>
+    <p class="sub">Tune how Pulsegrid ingests and refreshes your data.</p>
+
+    <form onsubmit="return false" novalidate>
+      <!-- FAILURE: two adjacent inputs, each cued ONLY by a near-identical cog glyph.
+           Neither field's purpose is visually distinguishable. The first expects a
+           refresh interval (seconds); the second expects a retention window (days).
+           Both glyphs read as "a gear" — the generic "settings" metaphor — which says
+           nothing about which value goes where. Accessible names exist (aria-label) so
+           4.1.2 passes; the VISIBLE cue fails to tell a sighted user the two fields apart. -->
+      <fieldset>
+        <legend>Data pipeline</legend>
+
+        <div class="row">
+          <span class="cog" aria-hidden="true">
+            <!-- 8-tooth cog -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3.2"></circle>
+              <path d="M12 2.6v2.4M12 19v2.4M4.2 6.2l1.7 1.7M18.1 16.1l1.7 1.7M2.6 12h2.4M19 12h2.4M4.2 17.8l1.7-1.7M18.1 7.9l1.7-1.7"></path>
+            </svg>
+          </span>
+          <input type="text" inputmode="numeric"
+                 aria-label="Refresh interval in seconds" autocomplete="off">
+        </div>
+
+        <div class="row">
+          <span class="cog" aria-hidden="true">
+            <!-- same cog, one tooth offset by ~22° — visually almost identical at this size -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3.2"></circle>
+              <g transform="rotate(22 12 12)">
+                <path d="M12 2.6v2.4M12 19v2.4M4.2 6.2l1.7 1.7M18.1 16.1l1.7 1.7M2.6 12h2.4M19 12h2.4M4.2 17.8l1.7-1.7M18.1 7.9l1.7-1.7"></path>
+              </g>
+            </svg>
+          </span>
+          <input type="text" inputmode="numeric"
+                 aria-label="Retention window in days" autocomplete="off">
+        </div>
+      </fieldset>
+
+      <button type="submit" class="save">Save settings</button>
+    </form>
+
+    <p class="devnote">
+      Why automated checkers pass: each input has an <code>aria-label</code> (so axe-core
+      <em>label</em> passes) and both cog SVGs are <code>aria-hidden="true"</code>. A linter cannot
+      render the two glyphs side by side to discover they are visually indistinguishable cogs, and
+      cannot reason that a sighted user therefore has no visible way to tell the "refresh interval"
+      field from the "retention window" field. The legend "Data pipeline" groups them but names
+      neither. Distinguishing the two requires a human looking at the rendered glyphs.
+    </p>
+  </main>
+</div>
+</body>
+</html>

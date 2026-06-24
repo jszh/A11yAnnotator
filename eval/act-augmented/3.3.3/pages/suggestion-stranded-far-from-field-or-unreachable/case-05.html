@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — Shipping address — Loomcraft Home</title>
+<!--
+  ASPECT: Error Suggestion (3.3.3) — correct did-you-mean hidden inside a collapsed disclosure
+  the user is never told to open.
+  The ZIP/city combination doesn't match. The CORRECT suggestion is a precise did-you-mean:
+  "Did you mean Cambridge, MA 02139?". But it is rendered ONLY inside a collapsed
+  <details>/disclosure whose summary just says "Address options" — giving no hint that the fix is
+  inside. The collapsed content is display:none (real disclosure), so it is not in the a11y tree
+  while closed, and the inline error at the field says only "Check your city and ZIP." Nothing
+  tells the user to expand the disclosure to find the correction.
+  WHY AUTOMATED TOOLS MISS IT: the suggestion text exists in the DOM and the disclosure is a valid,
+  named, keyboard-operable widget with correct aria-expanded. No attribute is missing or broken.
+  Judging that the correct fix is buried behind a non-descriptive disclosure the user has no reason
+  to open — that "Address options" never signals "your correction is in here" — is a content /
+  discoverability judgment a scanner cannot make.
+-->
+<style>
+  body { font: 15px/1.55 "Inter", system-ui, Arial, sans-serif; color:#222; background:#f4f4f6; margin:0; }
+  .checkout { max-width: 620px; margin: 24px auto; background:#fff; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,.08); overflow:hidden; }
+  .ck-head { padding:18px 24px; border-bottom:1px solid #ececf0; }
+  .ck-head h1 { font-size:18px; margin:0; }
+  .ck-head .crumbs { font-size:12px; color:#888; margin-top:4px; }
+  .body { padding: 8px 24px 24px; }
+  h2 { font-size:15px; margin: 18px 0 8px; }
+  .row { margin: 12px 0; }
+  .row.two { display:flex; gap:12px; }
+  .row.two > div { flex:1; }
+  label { display:block; font-weight:600; font-size:13px; margin-bottom:4px; }
+  input { width:100%; padding:9px 10px; border:1px solid #c4c4cc; border-radius:7px; font:inherit; }
+  input[aria-invalid="true"] { border:2px solid #d23a2e; }
+  .bare { color:#d23a2e; font-size:13px; margin-top:5px; font-weight:600; }
+  details.addr-opts { margin: 14px 0; border:1px solid #d9d9e0; border-radius:8px; padding:0 12px; background:#fafafd; }
+  details.addr-opts summary { cursor:pointer; padding:10px 0; font-weight:600; font-size:14px; list-style:none; }
+  details.addr-opts summary::-webkit-details-marker { display:none; }
+  details.addr-opts summary::before { content:"\25B8"; display:inline-block; margin-right:8px; transition:transform .15s; }
+  details.addr-opts[open] summary::before { transform:rotate(90deg); }
+  .didyoumean { padding: 4px 0 14px; }
+  .didyoumean button { background:#eef3ff; border:1px solid #b9cdfb; border-radius:6px; padding:8px 12px; font:inherit; cursor:pointer; }
+  .pay { margin-top:20px; background:#1a1a2e; color:#fff; border:0; border-radius:8px; padding:13px 26px; font:600 15px Arial; cursor:pointer; }
+  .alert { background:#fdeceb; border:1px solid #d23a2e; border-radius:8px; padding:11px 14px; margin:14px 0; font-size:14px; }
+  .alert strong { color:#a92a20; }
+</style>
+</head>
+<body>
+<div class="checkout">
+  <div class="ck-head">
+    <h1>Loomcraft Home &mdash; Checkout</h1>
+    <p class="crumbs">Cart &rsaquo; <strong>Shipping</strong> &rsaquo; Payment</p>
+  </div>
+  <div class="body">
+    <form action="#" novalidate>
+      <div class="alert" role="alert">
+        <strong>We couldn&rsquo;t verify your address.</strong> Please review your city and ZIP code below.
+      </div>
+
+      <h2>Shipping address</h2>
+      <div class="row">
+        <label for="street">Street address</label>
+        <input type="text" id="street" name="street" value="77 Massachusetts Ave">
+      </div>
+
+      <div class="row two">
+        <div>
+          <label for="city">City</label>
+          <input type="text" id="city" name="city" value="Cambrige"
+                 aria-invalid="true" aria-describedby="city-bare">
+          <p class="bare" id="city-bare">Check your city and ZIP.</p>
+        </div>
+        <div>
+          <label for="zip">ZIP code</label>
+          <input type="text" id="zip" name="zip" value="02139"
+                 aria-invalid="true" aria-describedby="zip-bare" inputmode="numeric">
+          <p class="bare" id="zip-bare">Check your city and ZIP.</p>
+        </div>
+      </div>
+
+      <!-- The CORRECT did-you-mean correction is buried inside this collapsed disclosure,
+           whose label ("Address options") never hints that the fix lives inside.
+           Closed <details> content is not rendered / not in the a11y tree. -->
+      <details class="addr-opts">
+        <summary>Address options</summary>
+        <div class="didyoumean">
+          <p>Did you mean <strong>Cambridge, MA 02139</strong>? We found a verified match for the
+            address you entered.</p>
+          <button type="button">Use Cambridge, MA 02139</button>
+        </div>
+      </details>
+
+      <div class="row">
+        <label for="state">State</label>
+        <input type="text" id="state" name="state" value="MA">
+      </div>
+
+      <button type="submit" class="pay">Continue to payment</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

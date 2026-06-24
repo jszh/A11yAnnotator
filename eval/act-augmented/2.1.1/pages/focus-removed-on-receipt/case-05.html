@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cadence Analytics — Workspace</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Arial,sans-serif; color:#1d2430; background:#f3f5f9; }
+  .app { display:grid; grid-template-columns:208px 1fr; min-height:100vh; }
+  aside { background:#10182b; color:#cdd6e6; padding:18px 14px; }
+  aside .logo { color:#fff; font-weight:800; letter-spacing:.5px; margin:4px 8px 22px; }
+  aside a { display:block; color:#aeb9cf; text-decoration:none; padding:9px 10px; border-radius:7px; font-size:.9rem; }
+  aside a:focus { outline:2px solid #5b8def; }
+  aside a.active { background:#1d2a47; color:#fff; }
+  main { padding:26px 34px; }
+  .crumbs { font-size:.8rem; color:#7a869c; margin-bottom:10px; }
+  h1 { font-size:1.4rem; margin:0 0 18px; }
+  .toolbar { display:flex; align-items:center; gap:14px; margin-bottom:22px; }
+  .toolbar label { font-size:.85rem; color:#5a6678; }
+
+  /* Custom "date range" listbox */
+  .combo { position:relative; }
+  .combo .trigger {
+    display:inline-flex; align-items:center; gap:8px; padding:9px 14px; min-width:190px;
+    background:#fff; border:1px solid #cbd3e0; border-radius:8px; font-size:.92rem; cursor:pointer; color:#1d2430;
+  }
+  .combo .trigger:focus { outline:3px solid #5b8def; outline-offset:1px; }
+  .combo .trigger::after { content:"▾"; margin-left:auto; color:#7a869c; }
+  .combo .menu {
+    position:absolute; top:calc(100% + 6px); left:0; min-width:220px; background:#fff;
+    border:1px solid #cbd3e0; border-radius:8px; box-shadow:0 12px 30px rgba(16,24,43,.16);
+    padding:6px; list-style:none; margin:0; display:none; z-index:20;
+  }
+  .combo.open .menu { display:block; }
+  .combo .menu li {
+    padding:9px 12px; border-radius:6px; font-size:.9rem; cursor:pointer; color:#28303d;
+  }
+  .combo .menu li:focus { outline:none; background:#eaf1ff; }
+  .combo .menu li[aria-selected="true"]::before { content:"✓ "; color:#3a6df0; }
+
+  .panel { background:#fff; border:1px solid #e3e8f0; border-radius:12px; padding:26px; }
+  .panel p { color:#5a6678; }
+  .kpis { display:flex; gap:18px; margin-top:8px; }
+  .kpi { flex:1; background:#f7f9fc; border:1px solid #eaeef6; border-radius:10px; padding:16px; }
+  .kpi .n { font-size:1.6rem; font-weight:800; }
+  .kpi .l { font-size:.8rem; color:#7a869c; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="logo">CADENCE</div>
+    <nav aria-label="Primary">
+      <a href="#overview" class="active">Overview</a>
+      <a href="#funnels">Funnels</a>
+      <a href="#cohorts">Cohorts</a>
+      <a href="#exports">Exports</a>
+      <a href="#settings">Settings</a>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="crumbs">Workspace / Acme Inc / Overview</div>
+    <h1>Overview</h1>
+
+    <div class="toolbar">
+      <label id="drLbl">Date range</label>
+
+      <!--
+        THE DEFECT (F55 variant: each option fires a DEFERRED blur/re-focus to the trigger).
+        A senior dev built a from-scratch APG-style listbox (role=button trigger + role=listbox
+        with roving option focus). The roles, names, aria-expanded, aria-activedescendant and
+        keyboard OPEN path are all correct — this is exactly the kind of "looks accessible,
+        passes axe" widget WebAIM warns about. The regression: to fix a flicker where two
+        options briefly showed a focus ring during fast arrowing, someone added
+        onfocus="setTimeout(()=>{this.blur();trigger.focus();},0)" to EACH option. So the
+        instant an option receives DOM focus (via Arrow keys or Tab), a microtask later focus
+        is stripped off the option and thrown back to the trigger button. Visibly the ring
+        flashes on "Last 7 days" then snaps back up to the button. A keyboard user can OPEN the
+        list and can SEE options highlight, but focus will not REST on any option, so no option
+        can be activated by keyboard — the control is reachable yet inoperable.
+        Deferred (setTimeout) means it is invisible to anyone scanning the inline source for the
+        obvious onfocus="this.blur()"; you only see it by tabbing/arrowing and watching focus.
+      -->
+      <div class="combo" id="dr">
+        <button type="button" class="trigger" id="drTrigger" aria-haspopup="listbox"
+                aria-expanded="false" aria-labelledby="drLbl drTrigger">Last 30 days</button>
+        <ul class="menu" id="drMenu" role="listbox" aria-labelledby="drLbl" tabindex="-1">
+          <li role="option" tabindex="-1" data-v="7">Last 7 days</li>
+          <li role="option" tabindex="-1" data-v="30" aria-selected="true">Last 30 days</li>
+          <li role="option" tabindex="-1" data-v="90">Last quarter</li>
+          <li role="option" tabindex="-1" data-v="365">Last 12 months</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p>Showing metrics for the selected range.</p>
+      <div class="kpis">
+        <div class="kpi"><div class="n">12,418</div><div class="l">Active users</div></div>
+        <div class="kpi"><div class="n">3.7%</div><div class="l">Conversion</div></div>
+        <div class="kpi"><div class="n">$48,902</div><div class="l">Revenue</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var combo   = document.getElementById('dr');
+    var trigger = document.getElementById('drTrigger');
+    var menu    = document.getElementById('drMenu');
+    var options = Array.prototype.slice.call(menu.querySelectorAll('[role="option"]'));
+
+    function open()  { combo.classList.add('open');  trigger.setAttribute('aria-expanded','true');  options[selectedIndex()].focus(); }
+    function close() { combo.classList.remove('open'); trigger.setAttribute('aria-expanded','false'); trigger.focus(); }
+    function selectedIndex() { var i = options.findIndex(function (o){ return o.getAttribute('aria-selected')==='true'; }); return i<0?0:i; }
+
+    trigger.addEventListener('click', function () { combo.classList.contains('open') ? close() : open(); });
+    trigger.addEventListener('keydown', function (e) {
+      if (e.key==='ArrowDown' || e.key==='Enter' || e.key===' ') { e.preventDefault(); open(); }
+    });
+
+    options.forEach(function (opt, idx) {
+      opt.addEventListener('keydown', function (e) {
+        if (e.key==='ArrowDown') { e.preventDefault(); options[Math.min(idx+1,options.length-1)].focus(); }
+        else if (e.key==='ArrowUp') { e.preventDefault(); options[Math.max(idx-1,0)].focus(); }
+        else if (e.key==='Enter' || e.key===' ') { e.preventDefault(); choose(opt); }
+        else if (e.key==='Escape') { close(); }
+      });
+      opt.addEventListener('click', function () { choose(opt); });
+
+      // THE BUG: deferred blur + bounce to trigger on every option focus (anti-flicker hack).
+      opt.addEventListener('focus', function () {
+        setTimeout(function () { opt.blur(); trigger.focus(); }, 0);
+      });
+    });
+
+    function choose(opt) {
+      options.forEach(function (o){ o.removeAttribute('aria-selected'); });
+      opt.setAttribute('aria-selected','true');
+      trigger.firstChild ? (trigger.textContent = opt.textContent) : null;
+      close();
+    }
+  })();
+</script>
+</body>
+</html>

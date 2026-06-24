@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maple &amp; Thread — Secure Checkout</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 2.4.3 Focus Order):
+  There is NO positive tabindex anywhere and NO focus-managing JavaScript, so every
+  static "tabindex misuse" heuristic (incl. F44) finds nothing to inspect. Every form
+  control has a real <label>, a name, and good contrast — axe/WAVE/Lighthouse pass it.
+  The defect is purely in the KEYBOARD TAB SEQUENCE relative to the rendered visual
+  flow: the "Place order" submit button is the LAST thing a sighted user sees (bottom
+  of the form) but, because CSS flexbox `order` visually demotes a DOM-FIRST element,
+  it is the FIRST focusable control reached by Tab. A keyboard user pressing Tab lands
+  on "Place order" before they ever reach Quantity, Shipping address, or Card details —
+  focus order destroys the operability of the checkout. Catching this requires
+  rendering the page, inferring the intended fill-in sequence from the visual layout,
+  and comparing it to the actual Tab order. No DOM-only scan computes that.
+-->
+<style>
+  :root { --ink:#241c16; --accent:#7a4b2b; --line:#e4d9cd; --paper:#fff; --bg:#faf6f1; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.55 "Georgia",serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--accent); color:#fff; padding:22px 28px; }
+  header h1 { margin:0; font-size:1.5rem; letter-spacing:.5px; }
+  header p { margin:.3rem 0 0; opacity:.9; font-size:.95rem; }
+  main { max-width:680px; margin:0 auto; padding:34px 28px 80px; }
+  h2 { font-size:1.2rem; color:var(--accent); border-bottom:2px solid var(--line); padding-bottom:6px; }
+
+  /* The whole checkout is a single flex column. Source order is:
+       1) submit button  2) quantity  3) shipping  4) payment
+     A redesign moved the call-to-action to the visual bottom with `order:99`,
+     but the button stayed FIRST in the DOM. No tabindex, no JS.
+     Tab order therefore = DOM order = Place order, Quantity, Address..., Card... */
+  form.checkout { display:flex; flex-direction:column; gap:0; }
+  fieldset { border:1px solid var(--line); border-radius:10px; background:var(--paper);
+             margin:18px 0 0; padding:18px 20px 22px; }
+  legend { font-weight:bold; color:var(--accent); padding:0 8px; }
+  label { display:block; margin:12px 0 4px; font-family:system-ui,sans-serif; font-size:.92rem; }
+  input, select { width:100%; padding:10px 12px; font:inherit; font-size:.95rem;
+                  border:1px solid #c9bbab; border-radius:7px; background:#fff; }
+  .row { display:flex; gap:14px; }
+  .row > div { flex:1; }
+  .summary { background:#f3ece3; border:1px solid var(--line); border-radius:10px;
+             padding:14px 18px; margin-top:18px; font-family:system-ui,sans-serif; font-size:.9rem; }
+
+  /* visual demotion of the submit block to the bottom of the page */
+  .place-order { order:99; margin-top:26px; }
+  .place-order button { width:100%; padding:15px; font:inherit; font-size:1.05rem;
+    font-weight:bold; color:#fff; background:var(--accent); border:0; border-radius:8px;
+    cursor:pointer; }
+  .place-order .terms { display:block; margin-top:10px; font-family:system-ui,sans-serif;
+    font-size:.82rem; color:#6b5a48; text-align:center; }
+  /* keep the natural source order for the three data sections */
+  .sec-qty { order:1; } .sec-ship { order:2; } .sec-pay { order:3; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Maple &amp; Thread</h1>
+  <p>Secure checkout · Step 2 of 2</p>
+</header>
+<main>
+  <h2>Complete your order</h2>
+  <p>Review your item, confirm where it is going, then pay. Your card is charged only after you place the order.</p>
+
+  <!-- VISUAL ORDER a sighted user follows, top to bottom:
+         [Order summary] -> Quantity -> Shipping address -> Payment -> [ Place order ]
+       DOM ORDER (= Tab order, no tabindex/JS):
+         Place order  ->  Quantity  ->  Shipping  ->  Payment
+       The first Tab stop is the irreversible submit, reached before any field is filled. -->
+  <form class="checkout" action="#" method="post" novalidate>
+
+    <!-- DOM-FIRST, visually LAST via order:99 -->
+    <div class="place-order">
+      <button type="submit">Place order &amp; pay $48.00</button>
+      <span class="terms">By placing your order you agree to our return policy.</span>
+    </div>
+
+    <div class="summary" role="note">
+      <strong>Your item:</strong> Hand-loomed wool throw — Heather Grey — $48.00
+    </div>
+
+    <fieldset class="sec-qty">
+      <legend>1. Quantity</legend>
+      <label for="qty">How many?</label>
+      <select id="qty" name="qty">
+        <option>1</option><option>2</option><option>3</option><option>4</option>
+      </select>
+      <label for="giftnote">Gift note (optional)</label>
+      <input id="giftnote" name="giftnote" type="text" placeholder="Add a short message">
+    </fieldset>
+
+    <fieldset class="sec-ship">
+      <legend>2. Shipping address</legend>
+      <label for="fullname">Full name</label>
+      <input id="fullname" name="fullname" type="text" autocomplete="name">
+      <label for="addr">Street address</label>
+      <input id="addr" name="addr" type="text" autocomplete="street-address">
+      <div class="row">
+        <div>
+          <label for="city">City</label>
+          <input id="city" name="city" type="text" autocomplete="address-level2">
+        </div>
+        <div>
+          <label for="zip">ZIP / Postal code</label>
+          <input id="zip" name="zip" type="text" autocomplete="postal-code">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="sec-pay">
+      <legend>3. Payment</legend>
+      <label for="card">Card number</label>
+      <input id="card" name="card" type="text" inputmode="numeric" autocomplete="cc-number">
+      <div class="row">
+        <div>
+          <label for="exp">Expiry (MM/YY)</label>
+          <input id="exp" name="exp" type="text" autocomplete="cc-exp">
+        </div>
+        <div>
+          <label for="cvc">Security code</label>
+          <input id="cvc" name="cvc" type="text" autocomplete="cc-csc">
+        </div>
+      </div>
+    </fieldset>
+
+  </form>
+</main>
+</body>
+</html>

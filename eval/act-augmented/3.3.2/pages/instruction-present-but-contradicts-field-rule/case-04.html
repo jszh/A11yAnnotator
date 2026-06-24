@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shipping & contact — Pinewood Outfitters checkout</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS:
+  The phone-number group uses a real <fieldset> with a <legend> ("Phone number (US,
+  10 digits)") — the textbook H71 pattern for grouping/labelling a split control. The
+  three sub-fields have title attributes ("Area code", "Exchange", "Number"). axe / WAVE
+  / Lighthouse confirm: fieldset has a legend, each input has an accessible name, contrast
+  fine, nothing hidden. The "group instruction is present" facet of 3.3.2 (TT 5.A) passes.
+  THE DEFECT IS SEMANTIC: the legend says "US, 10 digits", but this checkout actually
+  requires the 11-digit COUNTRY-CODE form. There is a fourth, leading "Country code"
+  field (maxlength 1, defaulting to "1"), and the submit validator demands 1 + 10 = 11
+  digits AND that the country-code box be filled. A US shopper who reads the legend,
+  enters their familiar 10-digit number, and leaves the unexplained leading box blank is
+  rejected. The group label understates the real requirement (10 vs 11). No checker reads
+  "10 digits" from the legend, counts the four boxes / reads the 11-digit validator, and
+  judges the stated count is short.
+-->
+<style>
+  :root{ --ink:#23201b; --muted:#6f6657; --line:#ddd6c8; --brand:#3f6b3a; --accent:#9a6b2f;
+         --danger:#a32218; --paper:#fffdf8; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Source Sans 3",Segoe UI,system-ui,sans-serif; color:var(--ink);
+        background:#f1ede2; }
+  .wrap{ max-width:600px; margin:0 auto; padding:40px 20px 70px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .brand .leaf{ width:30px; height:30px; border-radius:50% 50% 50% 0; background:var(--brand);
+        transform:rotate(45deg); }
+  .brand b{ font-size:1.15rem; letter-spacing:.3px; }
+  .crumbs{ color:var(--muted); font-size:.82rem; margin:0 0 24px; }
+  .crumbs b{ color:var(--ink); }
+  .card{ background:var(--paper); border:1px solid var(--line); border-radius:12px;
+        padding:28px 26px; box-shadow:0 4px 16px rgba(50,40,20,.06); }
+  h1{ font-size:1.4rem; margin:0 0 20px; }
+  .field{ margin:0 0 22px; }
+  label{ display:block; font-weight:600; font-size:.9rem; margin:0 0 5px; }
+  input[type=text],input[type=email]{ padding:9px 10px; font-size:1rem; border:1.5px solid var(--line);
+        border-radius:7px; background:#fff; color:var(--ink); }
+  input.full{ width:100%; }
+  input:focus{ outline:3px solid var(--brand); outline-offset:1px; border-color:var(--brand); }
+  fieldset{ border:1.5px solid var(--line); border-radius:9px; padding:14px 14px 16px; margin:0; }
+  legend{ font-weight:700; font-size:.95rem; padding:0 6px; }
+  .phone{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .phone .cc{ width:3.2ch; text-align:center; }
+  .phone .area{ width:5.5ch; text-align:center; }
+  .phone .exch{ width:5.5ch; text-align:center; }
+  .phone .num{ width:7ch; text-align:center; }
+  .phone .sep{ color:var(--muted); font-weight:700; }
+  input[aria-invalid="true"]{ border-color:var(--danger); }
+  .err{ color:var(--danger); font-weight:600; font-size:.86rem; margin:9px 0 0; min-height:1em; }
+  button{ margin-top:8px; background:var(--brand); color:#fff; border:0; border-radius:8px;
+        font-size:1rem; font-weight:700; padding:12px 26px; cursor:pointer; }
+  button:focus{ outline:3px solid var(--accent); outline-offset:2px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="leaf" aria-hidden="true"></span><b>Pinewood Outfitters</b></div>
+    <p class="crumbs">Cart › <b>Shipping &amp; contact</b> › Payment › Review</p>
+    <main class="card">
+      <h1>Shipping &amp; contact details</h1>
+
+      <form action="#" method="post" novalidate id="form" autocomplete="off">
+
+        <!-- ALWAYS-CORRECT CONTROL (contrast): email hint matches its rule. -->
+        <div class="field">
+          <label for="email">Email for order updates</label>
+          <input type="email" id="email" name="email" class="full"
+                 aria-describedby="email-hint" autocomplete="email">
+          <p style="color:var(--muted);font-size:.82rem;margin:5px 0 0" id="email-hint">We'll send your receipt and tracking here.</p>
+        </div>
+
+        <!-- DEFECTIVE GROUP: legend understates the requirement (10 digits) vs the enforced 11. -->
+        <div class="field">
+          <fieldset aria-describedby="phone-err">
+            <legend>Phone number (US, 10 digits)</legend>
+            <div class="phone">
+              <!-- This leading country-code box exists but is NOT mentioned in the legend. -->
+              <input type="text" class="cc" id="cc" title="Country code" inputmode="numeric"
+                     maxlength="1" value="" placeholder="1">
+              <span class="sep" aria-hidden="true">(</span>
+              <input type="text" class="area" id="area" title="Area code" inputmode="numeric" maxlength="3">
+              <span class="sep" aria-hidden="true">)</span>
+              <input type="text" class="exch" id="exch" title="Exchange" inputmode="numeric" maxlength="3">
+              <span class="sep" aria-hidden="true">–</span>
+              <input type="text" class="num" id="num" title="Number" inputmode="numeric" maxlength="4">
+            </div>
+          </fieldset>
+          <p class="err" id="phone-err" role="alert"></p>
+        </div>
+
+        <button type="submit">Continue to payment</button>
+      </form>
+    </main>
+    <p style="text-align:center;margin-top:20px;color:#9a917f;font-size:.78rem">Pinewood demo · renders from file://</p>
+  </div>
+
+<script>
+(function(){
+  var form = document.getElementById('form');
+  var cc = document.getElementById('cc'), area = document.getElementById('area'),
+      exch = document.getElementById('exch'), num = document.getElementById('num');
+  var err = document.getElementById('phone-err');
+  var ids = [cc, area, exch, num];
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var digits = ids.map(function(i){ return i.value.replace(/\D/g,''); }).join('');
+    // ENFORCED RULE: 11 digits TOTAL incl. country code (1 + 3 + 3 + 4). Legend says 10.
+    var ok = /^\d{11}$/.test(digits) && cc.value.replace(/\D/g,'').length === 1;
+    if (ok) {
+      ids.forEach(function(i){ i.setAttribute('aria-invalid','false'); });
+      err.textContent = 'Phone number accepted.';
+      err.style.color = '#3f6b3a';
+    } else {
+      ids.forEach(function(i){ i.setAttribute('aria-invalid','true'); });
+      err.textContent = 'Enter your full 11-digit number including the leading country code (1).';
+      err.style.color = '';
+      cc.focus();
+    }
+  });
+})();
+</script>
+</body>
+</html>

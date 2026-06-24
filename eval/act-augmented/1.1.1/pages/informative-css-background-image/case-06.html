@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Select your seat — Flight NV218</title>
+<!--
+  SC 1.1.1 FAILURE (informative CSS background-image — stylesheet rule; long-tail
+  travel/seat-map facet). Seat buttons that are EXIT ROW seats are flagged ONLY by a small
+  running-person "emergency exit" background-image glyph painted by the stylesheet rule
+  button.seat.exit { background-image: ... }. The buttons' accessible names are just the
+  seat numbers ("12A", "12F"). Exit-row seats carry real consequences (legal eligibility
+  rules, extra legroom that costs more, the duty to assist in an evacuation) yet a screen
+  reader announces "12A, button" identically to a normal row. Hide backgrounds /
+  forced-colors -> the exit glyph vanishes and nothing distinguishes exit rows.
+  Note: a separate visible <p> legend explains the glyph, but the legend text is generic
+  ("exit row seats have extra legroom") and is NOT programmatically tied to which buttons
+  are exit-row, so an AT user cannot map the legend to seat 12A. The per-seat fact stays
+  image-only.
+  WHY AUTOMATED TOOLS MISS IT: the exit marker is a CSS background-image on a <button> whose
+  name comes from its text node (the seat number) -> the button HAS a name, so accessible-name
+  rules pass and the F3 image carrier is not a nameable element -> ACT 1.1.1 Inapplicable.
+  Tools cannot OCR the glyph nor reason that "this seat is an exit-row seat" is information
+  available only as a picture.
+-->
+<style>
+  body { font-family: "Helvetica Neue", Arial, sans-serif; margin:0; background:#eaf0f6; color:#16263b; }
+  header { background:#0b3d91; color:#fff; padding:16px 24px; }
+  header h1 { margin:0; font-size:1.2rem; }
+  header .sub { color:#bcd3f7; font-size:.85rem; margin-top:2px; }
+  main { max-width:560px; margin:26px auto; padding:0 18px 50px; }
+  .legend { background:#fff; border:1px solid #cdd9e8; border-radius:10px; padding:12px 16px; font-size:.85rem; color:#42546c; }
+  .cabin { background:#fff; border:1px solid #cdd9e8; border-radius:14px; padding:22px; margin-top:18px; }
+  .rowlabel { text-align:center; color:#7c8aa0; font-size:.8rem; margin:14px 0 6px; letter-spacing:2px; }
+  .row { display:grid; grid-template-columns: 1fr 1fr 24px 1fr 1fr; gap:10px; justify-items:center; margin-bottom:8px; }
+
+  button.seat {
+    width:46px; height:46px; border:1px solid #9fb4cf; border-radius:8px;
+    background:#e7f0fb; color:#16263b; font-weight:600; cursor:pointer; position:relative;
+    background-repeat:no-repeat; background-position:right 3px bottom 3px; background-size:14px 14px;
+  }
+  button.seat:hover { background-color:#d4e6fb; }
+  button.seat[aria-pressed="true"] { background-color:#0b3d91; color:#fff; border-color:#0b3d91; }
+  button.seat:disabled { background:#e3e3e3; color:#9aa3ad; cursor:not-allowed; }
+
+  /* THE DEFECT: exit-row seats are distinguished ONLY by this background glyph (no text/name change). */
+  button.seat.exit {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"><rect width="14" height="14" rx="2" fill="%231a7f37"/><circle cx="7" cy="4" r="1.6" fill="white"/><path d="M7 6l-2 3 1 3M7 6l2 2 2 0M5 9l-1 3" stroke="white" stroke-width="1.1" fill="none" stroke-linecap="round"/></svg>');
+  }
+  .gap { color:#aebccd; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Choose your seat</h1>
+  <div class="sub">Northvale Air &middot; NV218 &middot; Edinburgh &rarr; Geneva</div>
+</header>
+
+<main>
+  <p class="legend">
+    Tap a seat to select it. Window and aisle preferences are shown in the cabin plan.
+    Exit-row seats offer extra legroom and may carry an additional fee.
+  </p>
+
+  <div class="cabin" role="group" aria-label="Cabin seat map">
+    <div class="rowlabel">A &nbsp; B &nbsp;&nbsp; C &nbsp; D</div>
+
+    <div class="row">
+      <button class="seat" aria-pressed="false">10A</button>
+      <button class="seat" aria-pressed="false">10B</button>
+      <span class="gap" aria-hidden="true"></span>
+      <button class="seat" aria-pressed="false">10C</button>
+      <button class="seat" aria-pressed="false">10D</button>
+    </div>
+    <div class="row">
+      <button class="seat" disabled>11A</button>
+      <button class="seat" aria-pressed="false">11B</button>
+      <span class="gap" aria-hidden="true"></span>
+      <button class="seat" aria-pressed="false">11C</button>
+      <button class="seat" disabled>11D</button>
+    </div>
+
+    <!-- Row 12 is the EXIT ROW. The ONLY signal is the .exit background glyph. -->
+    <div class="row">
+      <button class="seat exit" aria-pressed="false">12A</button>
+      <button class="seat exit" aria-pressed="false">12B</button>
+      <span class="gap" aria-hidden="true"></span>
+      <button class="seat exit" aria-pressed="false">12C</button>
+      <button class="seat exit" aria-pressed="false">12D</button>
+    </div>
+
+    <div class="row">
+      <button class="seat" aria-pressed="false">13A</button>
+      <button class="seat" aria-pressed="false">13B</button>
+      <span class="gap" aria-hidden="true"></span>
+      <button class="seat" aria-pressed="false">13C</button>
+      <button class="seat" aria-pressed="false">13D</button>
+    </div>
+  </div>
+</main>
+
+<script>
+  document.querySelectorAll('button.seat:not([disabled])').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var on = b.getAttribute('aria-pressed') === 'true';
+      b.setAttribute('aria-pressed', String(!on));
+    });
+  });
+</script>
+</body>
+</html>

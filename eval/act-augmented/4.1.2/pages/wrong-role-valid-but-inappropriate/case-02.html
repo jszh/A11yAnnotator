@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 4.1.2 (Name, Role, Value) — the "Role" limb, valid-but-INAPPROPRIATE role.
+
+    Aspect: wrong-role-valid-but-inappropriate.
+
+    "Cadence" — a productivity-app marketing page, pricing section. The "Choose Pro"
+    call-to-action is a solid blue PILL that depresses on press (transform + shadow) and,
+    when activated, runs an IN-PAGE action: it selects the Pro plan, updates the order
+    summary below, and shows an inline confirmation — it does NOT navigate anywhere (no
+    href, no URL change, no new document).
+
+    THE DEFECT: the control is coded
+        <span role="link" tabindex="0" ...>Choose Pro</span>
+    role="link" is a valid ARIA token, so 674b10 ("Role attribute has valid value")
+    PASSES. The link role has no extra required states, so 4e8ab6 has nothing to fail.
+    The accessible name ("Choose Pro") is correct. But role="link" tells AT this control
+    NAVIGATES — moves the user to a new location/context. This control does NOT navigate;
+    it performs an in-page action. The correct role for "press me to do something here"
+    is role="button". ARIA distinguishes them by behaviour: a link changes location/
+    context; a button performs an action. Announcing an in-page action control as a
+    "link" misleads AT users about what will happen.
+
+    WHAT AT EXPERIENCES: a screen-reader user hears "Choose Pro, link." Link semantics
+    set the expectation of navigation — many SR users have a links-list mode and treat
+    links as "go somewhere". Activating it instead silently changes the order summary on
+    the same page, defeating that expectation. (A button would announce "Choose Pro,
+    button" and set the correct "this does something here" expectation.)
+
+    WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse confirm role="link" is a
+    valid token, the element has an accessible name, and it is focusable/operable. A link
+    role without an href is not itself an automatic violation. No tool observes that the
+    click handler performs an in-page action (mutating the summary) rather than navigating,
+    and concludes the role should be "button". Distinguishing navigation from in-page
+    action requires reading the behaviour — human judgment.
+  -->
+  <title>Pricing — Cadence</title>
+  <style>
+    :root { --ink:#101828; --muted:#475467; --line:#e4e7ec; --brand:#2563eb; --brand-d:#1d4ed8; --bg:#f8fafc; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter",-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    .wrap { max-width:860px; margin:2.5rem auto; padding:0 1.2rem; }
+    h1 { font-size:1.8rem; text-align:center; margin:.2rem 0 .3rem; }
+    .sub { text-align:center; color:var(--muted); margin:0 0 2rem; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+    .plan { background:#fff; border:1px solid var(--line); border-radius:16px; padding:1.6rem 1.4rem; }
+    .plan.pro { border-color:var(--brand); box-shadow:0 8px 24px rgba(37,99,235,.12); }
+    .plan h2 { font-size:1.15rem; margin:0 0 .2rem; }
+    .price { font-size:2rem; font-weight:700; margin:.3rem 0 .1rem; }
+    .price small { font-size:.85rem; font-weight:500; color:var(--muted); }
+    ul.feat { list-style:none; padding:0; margin:1rem 0 1.3rem; }
+    ul.feat li { padding:.35rem 0 .35rem 1.5rem; position:relative; color:var(--muted); font-size:.92rem; }
+    ul.feat li::before { content:"✓"; position:absolute; left:0; color:var(--brand); font-weight:700; }
+    /* the pill that depresses on press — visually a button */
+    .cta { display:inline-block; width:100%; text-align:center; background:var(--brand); color:#fff;
+           font-weight:600; padding:.8rem 1rem; border-radius:10px; cursor:pointer; user-select:none;
+           transition:transform .06s ease, background .15s ease; }
+    .cta:hover { background:var(--brand-d); }
+    .cta:active { transform:translateY(2px); box-shadow:inset 0 2px 5px rgba(0,0,0,.25); }
+    .cta:focus-visible { outline:3px solid #93c5fd; outline-offset:2px; }
+    .cta.ghost { background:#fff; color:var(--brand); border:1px solid var(--brand); }
+    .summary { margin-top:1.6rem; background:#fff; border:1px dashed var(--line); border-radius:12px; padding:1rem 1.2rem; color:var(--muted); }
+    .summary strong { color:var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Simple pricing for focused teams</h1>
+    <p class="sub">Pick a plan — your order summary updates below. No card needed to start.</p>
+
+    <div class="grid">
+      <div class="plan">
+        <h2>Starter</h2>
+        <div class="price">$0<small> /mo</small></div>
+        <ul class="feat">
+          <li>Up to 3 projects</li>
+          <li>Basic reminders</li>
+          <li>Community support</li>
+        </ul>
+        <!-- in-page action coded as a link -->
+        <span class="cta ghost" role="link" tabindex="0" data-plan="Starter">Choose Starter</span>
+      </div>
+
+      <div class="plan pro">
+        <h2>Pro</h2>
+        <div class="price">$12<small> /mo</small></div>
+        <ul class="feat">
+          <li>Unlimited projects</li>
+          <li>Smart scheduling</li>
+          <li>Priority support</li>
+        </ul>
+        <!-- DEFECT: depresses-and-acts pill coded role="link" (valid token) — should be
+             role="button"; activating it performs an in-page action, not navigation. -->
+        <span class="cta" role="link" tabindex="0" data-plan="Pro">Choose Pro</span>
+      </div>
+    </div>
+
+    <div class="summary" id="summary" aria-live="polite">
+      <strong>Your selection:</strong> <span id="sel">none yet</span>
+    </div>
+  </div>
+
+  <script>
+    // In-page action — NOT navigation. No href, no URL change, no new context.
+    var sel = document.getElementById('sel');
+    document.querySelectorAll('.cta[role="link"]').forEach(function (el) {
+      function act() {
+        var plan = el.getAttribute('data-plan');
+        sel.textContent = plan + ' plan — added to your order';
+      }
+      el.addEventListener('click', act);
+      el.addEventListener('keydown', function (e) {
+        // link semantics: Enter activates. (No Space, reinforcing the "link" mis-coding.)
+        if (e.key === 'Enter') { e.preventDefault(); act(); }
+      });
+    });
+  </script>
+</body>
+</html>

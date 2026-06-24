@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 1.4.5 FAILURE — the "significant other visual content" EXCLUSION limb.
+
+    This page shows TWO images side by side inside a marketing-analytics weekly digest.
+    BOTH are delivered as flat images (inline-SVG `data:` URIs, so the glyphs are image
+    pixels, not live DOM text). Both have a non-empty, accurate alt, so axe/WAVE/Lighthouse
+    pass them. The 1.4.5 question is NOT "is alt present" — it is the gestalt judgment:
+    "Does this picture contain SIGNIFICANT OTHER VISUAL CONTENT (a graph), excluding it from
+    the images-of-text rule, OR is it really an image of text dressed up to look like a chart?"
+
+    LEFT image (figure id=real-chart)  -> a genuine bar chart. The BAR GEOMETRY carries the
+      information: relative bar heights, a quota gridline, an axis. The words ("Mon", "Tue",
+      "Revenue") are mere labels. This is an excluded "graph" -> INAPPLICABLE for 1.4.5
+      (it's still fine because it's not an image of text). It is here to make the boundary tight.
+
+    RIGHT image (figure id=fake-chart) -> looks chart-ish (it has a title bar, a coloured
+      header row, gridlines, a legend swatch) BUT there is NO graphical encoding at all: every
+      "bar" is just the same fixed-width coloured rectangle, identical for every row; the only
+      thing that varies between rows is the NUMBER printed inside. The information ($ values,
+      the +/- deltas, the campaign names) lives entirely in TEXT laid out in a grid. Strip the
+      chrome and it is a data table rendered as a picture. That makes it an IMAGE OF TEXT that
+      could trivially have been a live <table> -> 1.4.5 FAIL. The user cannot resize, restyle,
+      recolour, or select this text; it pixelates on zoom and the dollar values are pixels.
+
+    WHY AUTOMATED TOOLS MISS IT: both <img> have good alt, so image-alt passes for both. No
+    scanner OCRs the two pictures, classifies one as "graph (geometry carries meaning)" and the
+    other as "table-as-image (geometry carries nothing)", and concludes only the second is an
+    image of text. That classification IS the subjective limb of 1.4.5 — pure human judgment of
+    whether the non-text visual content is "significant".
+  -->
+  <title>Weekly Performance Digest — Lumen Commerce Marketing</title>
+  <style>
+    :root { --ink:#1d2733; --muted:#5d6b7a; --line:#e1e7ee; --bg:#eef2f7; --brand:#0b6e6e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+    .wrap { max-width:920px; margin:0 auto; padding:26px 20px 56px; }
+    header.app { display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--line); padding-bottom:14px; }
+    header.app .logo { width:30px; height:30px; border-radius:7px; background:var(--brand); }
+    header.app h1 { font-size:17px; margin:0; }
+    header.app .meta { margin-left:auto; color:var(--muted); font-size:13px; }
+    .lede { color:var(--muted); font-size:14px; line-height:1.6; margin:18px 2px 6px; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:14px; }
+    @media (max-width:740px){ .grid2 { grid-template-columns:1fr; } }
+    .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px; box-shadow:0 1px 2px rgba(20,40,70,.04); }
+    .card h2 { font-size:15px; margin:0 0 3px; }
+    .card .sub { color:var(--muted); font-size:12.5px; margin:0 0 14px; }
+    figure { margin:0; }
+    figure img { display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:8px; background:#fff; }
+    figcaption { color:var(--muted); font-size:12px; margin-top:9px; line-height:1.5; }
+    .foot { margin-top:26px; color:var(--muted); font-size:12px; border-top:1px solid var(--line); padding-top:14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="app">
+      <div class="logo" aria-hidden="true"></div>
+      <h1>Lumen Commerce — Weekly Performance Digest</h1>
+      <span class="meta">Week 24 · FY26</span>
+    </header>
+
+    <p class="lede">
+      Two views from this week's run. The daily-sessions chart on the left shows the traffic
+      shape; the campaign breakdown on the right lists the paid-channel results that finance
+      asked us to circulate.
+    </p>
+
+    <div class="grid2">
+      <!-- LEFT: a GENUINE bar chart. Bar HEIGHTS encode the data; the words are axis labels.
+           Excluded "graph" -> not an image of text -> 1.4.5 INAPPLICABLE. Boundary anchor. -->
+      <section class="card">
+        <h2>Daily sessions</h2>
+        <p class="sub">Organic + direct, Mon–Sun</p>
+        <figure id="real-chart">
+          <img alt="Bar chart of daily website sessions Monday through Sunday. Bars rise from about 18k on Monday to a peak near 41k on Friday, then fall to 22k on Sunday; a dashed line marks the 30k daily target."
+               src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 240'><rect width='420' height='240' fill='%23ffffff'/><line x1='46' y1='200' x2='406' y2='200' stroke='%23c8d2dc'/><line x1='46' y1='20' x2='46' y2='200' stroke='%23c8d2dc'/><line x1='46' y1='92' x2='406' y2='92' stroke='%23f0b400' stroke-dasharray='5 4'/><text x='8' y='96' font-family='Arial' font-size='10' fill='%235d6b7a'>30k</text><g fill='%230b6e6e'><rect x='62' y='128' width='34' height='72'/><rect x='112' y='112' width='34' height='88'/><rect x='162' y='86' width='34' height='114'/><rect x='212' y='64' width='34' height='136'/><rect x='262' y='52' width='34' height='148'/><rect x='312' y='150' width='34' height='50'/><rect x='362' y='120' width='34' height='80'/></g><g font-family='Arial' font-size='10' fill='%235d6b7a' text-anchor='middle'><text x='79' y='216'>Mon</text><text x='129' y='216'>Tue</text><text x='179' y='216'>Wed</text><text x='229' y='216'>Thu</text><text x='279' y='216'>Fri</text><text x='329' y='216'>Sat</text><text x='379' y='216'>Sun</text></g></svg>">
+        </figure>
+        <figcaption>Source: web analytics export. Bar heights show relative session volume.</figcaption>
+      </section>
+
+      <!-- RIGHT: dressed-up to look like a chart (title strip, coloured header row, "legend"
+           swatch, gridlines) but EVERY coloured cell is the SAME size for every row. No bar
+           length, no slice, no position encodes anything. The data is purely the printed text
+           in a grid -> an IMAGE OF TEXT that should be a live <table> -> 1.4.5 FAIL. -->
+      <section class="card">
+        <h2>Paid campaign breakdown</h2>
+        <p class="sub">Spend, revenue and ROAS by campaign</p>
+        <figure id="fake-chart">
+          <img alt="Campaign performance chart. Spring Refresh: spend $4,200, revenue $19,880, ROAS 4.7x. Brand Always-On: spend $6,500, revenue $21,450, ROAS 3.3x. Retargeting Q2: spend $2,100, revenue $12,180, ROAS 5.8x. Prospecting LAL: spend $5,400, revenue $14,040, ROAS 2.6x."
+               src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 460 250'><rect width='460' height='250' fill='%23ffffff'/><rect x='0' y='0' width='460' height='30' fill='%230b6e6e'/><text x='12' y='20' font-family='Arial' font-size='13' fill='%23ffffff' font-weight='bold'>Paid campaign breakdown</text><rect x='338' y='9' width='12' height='12' fill='%2316a0a0'/><text x='356' y='20' font-family='Arial' font-size='10' fill='%23ffffff'>revenue</text><line x1='0' y1='66' x2='460' y2='66' stroke='%23e1e7ee'/><line x1='0' y1='112' x2='460' y2='112' stroke='%23e1e7ee'/><line x1='0' y1='158' x2='460' y2='158' stroke='%23e1e7ee'/><line x1='0' y1='204' x2='460' y2='204' stroke='%23e1e7ee'/><g font-family='Arial' font-size='11'><rect x='0' y='30' width='460' height='22' fill='%23f1f5f9'/><text x='12' y='45' fill='%235d6b7a' font-weight='bold'>Campaign</text><text x='210' y='45' fill='%235d6b7a' font-weight='bold'>Spend</text><text x='300' y='45' fill='%235d6b7a' font-weight='bold'>Revenue</text><text x='400' y='45' fill='%235d6b7a' font-weight='bold'>ROAS</text></g><g font-family='Arial' font-size='12' fill='%231d2733'><text x='12' y='92'>Spring Refresh</text><rect x='200' y='80' width='44' height='14' fill='%2316a0a0'/><text x='206' y='91' font-size='10' fill='%23ffffff'>$4,200</text><text x='300' y='92'>$19,880</text><text x='400' y='92'>4.7x</text><text x='12' y='138'>Brand Always-On</text><rect x='200' y='126' width='44' height='14' fill='%2316a0a0'/><text x='206' y='137' font-size='10' fill='%23ffffff'>$6,500</text><text x='300' y='138'>$21,450</text><text x='400' y='138'>3.3x</text><text x='12' y='184'>Retargeting Q2</text><rect x='200' y='172' width='44' height='14' fill='%2316a0a0'/><text x='206' y='183' font-size='10' fill='%23ffffff'>$2,100</text><text x='300' y='184'>$12,180</text><text x='400' y='184'>5.8x</text><text x='12' y='230'>Prospecting LAL</text><rect x='200' y='218' width='44' height='14' fill='%2316a0a0'/><text x='206' y='229' font-size='10' fill='%23ffffff'>$5,400</text><text x='300' y='230'>$14,040</text><text x='400' y='230'>2.6x</text></g></svg>">
+        </figure>
+        <figcaption>Source: ads platform export, formatted by the brand team for the digest.</figcaption>
+      </section>
+    </div>
+
+    <p class="foot">
+      Internal digest. Forward questions to growth-ops. Figures are preliminary until the
+      finance reconciliation on Monday.
+    </p>
+  </div>
+</body>
+</html>

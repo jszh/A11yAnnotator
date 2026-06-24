@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Centro de Salud Las Acacias — Contacto</title>
+  <style>
+    :root { --sanidad:#0067a3; --ink:#14202b; --soft:#4a5b67; --bg:#eef4f8; }
+    body { margin:0; background:var(--bg); color:var(--ink);
+           font:16px/1.6 "Source Sans 3", "Segoe UI", system-ui, sans-serif; }
+    .wrap { max-width: 680px; margin:0 auto; padding:2.5rem 1.25rem 5rem; }
+    .escudo { font-size:.8rem; letter-spacing:.12em; text-transform:uppercase; color:var(--sanidad); font-weight:700; }
+    h1 { font-size:1.9rem; margin:.4rem 0 1rem; }
+    p { margin:1rem 0; }
+    .panel { background:#fff; border:1px solid #cfe0ec; border-radius:10px; padding:1.4rem 1.6rem; }
+
+    /* The two phone numbers and their meanings are explained up here, in their
+       OWN paragraphs — separate DOM nodes from the call-to-action below. */
+    .numero { font-weight:700; color:var(--ink); }
+
+    /* The two call-to-action links live together in ONE shared paragraph whose
+       only words are the generic lead "Marca para hablar con nosotros:". That
+       single <p> is the programmatically determined link context for BOTH links,
+       so the context is identical for the two of them and names neither purpose. */
+    .acciones { margin-top:1.25rem; }
+    .acciones .lead { color:var(--soft); margin-right:.4rem; }
+    /* Each link carries a DIFFERENT purpose ICON as a CSS background-image. Background
+       images are presentation-only: they are not DOM nodes and never appear in the
+       accessibility tree, so they are part of NEITHER link's accessible name NOR its
+       programmatically determined link context. Sighted users see a calendar (appointments)
+       vs an emergency-cross (112) icon; AT users receive nothing distinguishing. This is the
+       fd3a94 Failed Example 3 pattern: links visually distinguishable through CSS only. */
+    .tel-link { display:inline-flex; align-items:center; gap:.4rem;
+                color:var(--sanidad); text-decoration:underline; text-underline-offset:3px;
+                font-weight:600; margin:0 1.4rem;
+                background-repeat:no-repeat; background-position:left center;
+                background-size:1.1rem 1.1rem; padding-left:1.5rem; }
+    .tel-link[href="tel:+34954112233"] {
+      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230067a3' stroke-width='2'><rect x='3' y='4' width='18' height='17' rx='2'/><line x1='3' y1='9' x2='21' y2='9'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='16' y1='2' x2='16' y2='6'/></svg>"); }
+    .tel-link[href="tel:112"] {
+      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c62828'><path d='M9 2h6v7h7v6h-7v7H9v-7H2V9h7z'/></svg>"); }
+    a:focus, .tel-link:focus { outline:3px solid var(--sanidad); outline-offset:2px; }
+    .aviso { font-size:.88rem; color:var(--soft); margin-top:2rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <span class="escudo">Servicio Andaluz de Salud</span>
+    <h1>Centro de Salud Las Acacias</h1>
+
+    <div class="panel">
+      <p>
+        Atendemos por teléfono de lunes a viernes, de 8:00 a 20:00. Para pedir,
+        cambiar o anular una cita con su médico de familia, marque el
+        <span class="numero">954 11 22 33</span>.
+      </p>
+      <p>
+        Si se trata de una urgencia vital fuera del horario del centro, marque el
+        <span class="numero">112</span>.
+      </p>
+
+      <p class="acciones">
+        <span class="lead">Marca para hablar con nosotros:</span>
+        <a class="tel-link" href="tel:+34954112233">Llámanos</a>
+        <a class="tel-link" href="tel:112">Llámanos</a>
+      </p>
+    </div>
+
+    <p class="aviso" lang="en">
+      <!--
+        WHY AUTOMATED TOOLS MISS THIS (note kept in English for the corpus):
+        The two telephone links have the IDENTICAL accessible name "Llámanos" ("Call us").
+        Both <a> elements sit DIRECTLY inside the SAME paragraph (p.acciones), whose only words
+        are the generic lead "Marca para hablar con nosotros:". That single <p> is the
+        programmatically determined link context for BOTH links, so the two links share the
+        SAME context — exactly the same set of DOM nodes, per ACT rule fd3a94 — and that shared
+        context names NEITHER purpose. This mirrors fd3a94 Failed Example 1 (same name + same
+        context, but the two links go to non-equivalent resources). The destinations are
+        radically NON-equivalent: tel:+34954112233 is the health-centre appointments line
+        (routine bookings), while tel:112 is the pan-European emergency number for
+        life-threatening situations.
+
+        Sighted users ARE told which is which: each link shows a DIFFERENT CSS background-image
+        icon (a calendar for appointments vs an emergency cross for 112), and the two preceding
+        paragraphs explain that 954 11 22 33 is for appointments and 112 is for emergencies.
+        So the page is NOT "ambiguous to users in general" — the fd3a94 exception does not apply.
+        But a CSS background-image is presentation-only: it is not a DOM node and never appears
+        in the accessibility tree, so it is part of NEITHER link's accessible name NOR its
+        programmatically determined link context (this is the fd3a94 Failed Example 3 pattern:
+        links distinguishable through CSS only). The preceding explanatory paragraphs are
+        SEPARATE DOM nodes (not the link context of either <a>) and reference the numbers by
+        digits, never by the link. So a screen-reader user listing links hears only
+        "Llámanos / Llámanos" with no way to tell the appointments line from the 112 emergency
+        line; per fd3a94 the dialled tel: target is not counted as context.
+
+        Each link has a clean, non-empty, identical accessible name and a valid tel: href, so
+        link-name / discernible-text checks PASS. Deciding that an appointments line and the 112
+        emergency line "serve non-equivalent purposes" requires reading the Spanish prose and
+        knowing what 112 is — a semantic, locale-specific judgment no static checker performs.
+      -->
+      Página en español. Horario: L–V 8:00–20:00.
+    </p>
+  </div>
+</body>
+</html>

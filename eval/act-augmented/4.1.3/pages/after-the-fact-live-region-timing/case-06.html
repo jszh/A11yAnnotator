@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cellar Door — Single-Origin Coffee</title>
+<style>
+  :root { --espresso:#3b2a20; --crema:#c9a36a; --ink:#2b2420; --muted:#7a6f66; --line:#eee7dd; --cream:#faf6f0; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Helvetica Neue", system-ui, sans-serif; color:var(--ink); background:var(--cream); }
+  header { background:var(--espresso); color:#f3ece2; padding:16px 28px; display:flex; align-items:center; gap:14px; }
+  header .logo { font-weight:800; letter-spacing:1px; }
+  header .cart { margin-left:auto; font-size:.85rem; }
+  main { max-width:840px; margin:30px auto; padding:0 24px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 26px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:18px; }
+  .product { background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .product .swatch { height:120px; background:linear-gradient(135deg,#6f4e37,#a9794f); }
+  .product .body { padding:14px 16px; }
+  .product h2 { font-size:1.02rem; margin:0 0 2px; }
+  .product .origin { color:var(--muted); font-size:.82rem; margin:0 0 8px; }
+  .product .price { font-weight:700; margin:0 0 12px; }
+  .add { width:100%; background:var(--espresso); color:#fff; border:0; border-radius:7px; padding:10px; font-size:.92rem; font-weight:600; cursor:pointer; }
+  .add:hover { background:#26190f; }
+  /* Snackbar */
+  #snackbar { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(140%); background:#222018; color:#fff; padding:14px 20px; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.35); font-size:.92rem; transition:transform .28s ease; max-width:90vw; }
+  #snackbar.show { transform:translateX(-50%) translateY(0); }
+  .devnote { margin-top:30px; padding:14px 18px; background:#f3f9f2; border:1px solid #bfe0bb; border-radius:8px; font-size:.82rem; color:#2f5b2c; line-height:1.5; }
+  code { background:#e9f1e7; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">CELLAR DOOR</span>
+  <span class="cart">Cart: <span id="cart-count">0</span></span>
+</header>
+
+<main>
+  <h1>Single-Origin Coffee</h1>
+  <p class="sub">Roasted to order in small batches. Free shipping over $40.</p>
+
+  <div class="grid">
+    <div class="product">
+      <div class="swatch" aria-hidden="true"></div>
+      <div class="body">
+        <h2>Yirgacheffe</h2>
+        <p class="origin">Ethiopia · washed · floral, citrus</p>
+        <p class="price">$19.00</p>
+        <button class="add" data-name="Yirgacheffe">Add to cart</button>
+      </div>
+    </div>
+    <div class="product">
+      <div class="swatch" aria-hidden="true"></div>
+      <div class="body">
+        <h2>Huila Reserve</h2>
+        <p class="origin">Colombia · honey · caramel, red apple</p>
+        <p class="price">$21.50</p>
+        <button class="add" data-name="Huila Reserve">Add to cart</button>
+      </div>
+    </div>
+    <div class="product">
+      <div class="swatch" aria-hidden="true"></div>
+      <div class="body">
+        <h2>Sidama Natural</h2>
+        <p class="origin">Ethiopia · natural · blueberry, cocoa</p>
+        <p class="price">$22.00</p>
+        <button class="add" data-name="Sidama Natural">Add to cart</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="devnote">
+    <strong>Why this PASSES (and why it is the boundary control):</strong> The snackbar
+    <code>&lt;div id="snackbar" role="status" aria-live="polite"&gt;</code> is present in the markup <em>at page
+    load</em> as an empty, registered live region. Adding to cart writes ONLY <code>textContent</code> into that
+    pre-existing region (&ldquo;Yirgacheffe added to your cart. 1 item.&rdquo;) and toggles a CSS class to slide it
+    in. Because the region existed and was empty when the AT registered it, the later text mutation IS announced.
+    This is the correct ARIA19/ARIA22 step-1 pattern and the exact opposite of the born-with-content failures in
+    case-01 through case-05 — same final markup, but the region pre-existed the message. The marker
+    <code>data-region-preexisting-empty="true"</code> records the correct timing.
+  </div>
+</main>
+
+<!-- CORRECT TIMING: an empty, persistent live region present in the DOM at load. -->
+<div id="snackbar" role="status" aria-live="polite" data-region-preexisting-empty="true"></div>
+
+<script>
+  // Persona: a careful e-commerce developer who read the ARIA live-region guidance ("create an empty element first,
+  // then update its content"). They shipped one persistent empty role=status snackbar in the markup and only ever
+  // write textContent into it. This is the PASS control: it sharpens the aspect by showing that the SAME resting
+  // DOM (a valid role=status with text) is announced when — and only when — the region pre-existed empty at load.
+  var count = 0;
+  var snack = document.getElementById('snackbar');
+  var hideTimer = null;
+
+  document.querySelectorAll('.add').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      count += 1;
+      document.getElementById('cart-count').textContent = count;
+      // Write ONLY text into the pre-existing, already-registered empty live region. This is the announced path.
+      snack.textContent = btn.getAttribute('data-name') + ' added to your cart. ' +
+        count + (count === 1 ? ' item.' : ' items.');
+      snack.classList.add('show');
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(function () { snack.classList.remove('show'); }, 3500);
+    });
+  });
+</script>
+</body>
+</html>

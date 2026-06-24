@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reorder — Ferndale Roastery Wholesale Portal</title>
+<!--
+  WHY AUTOMATED TOOLS MISS THIS (SC 3.3.3 Error Suggestion, Level AA):
+  Post-submit error state on a B2B wholesale reorder line. The "Cases per order"
+  control is a custom spinbutton (role="spinbutton") whose accepted range is fixed at
+  1 to 10 (the min/max live in the aria-valuemin/aria-valuemax AND in the validator
+  comment). The buyer entered 24. The error is identified in text — "Value not
+  allowed." — exposed via aria-describedby and aria-invalid="true", high contrast.
+  SC 3.3.1 passes. axe / WAVE / Lighthouse go green (valid spinbutton role, name,
+  min/max present, message associated).
+
+  THE DEFECT IS SC 3.3.3: the permitted range is plainly knowable — it is literally
+  declared on the very element (aria-valuemin="1" aria-valuemax="10") — yet the human-
+  readable error never mentions it. "Value not allowed." restates that the entry is
+  wrong without telling the user the entry must be between 1 and 10. The correction
+  ("enter a quantity from 1 to 10") is one short clause away and is omitted.
+
+  Subtlety / why this is at the human-judgment boundary: aria-valuemin/valuemax are
+  PROGRAMMATIC range bounds for AT, NOT an error suggestion. A naive reviewer (or an
+  over-eager rule) might assume "the range is exposed, so the user is covered." But the
+  spinbutton bounds describe the control's range in the abstract; after a rejected
+  submit, a screen reader announces the ERROR MESSAGE, which says only "Value not
+  allowed." The user is not re-read the min/max in that moment, and many AT/announcement
+  flows surface the describedby error text, not the valuemin/valuemax. The SC 3.3.3
+  obligation is that the SUGGESTION be provided in the error text; bounds on the widget
+  do not discharge it. A checker cannot make that judgment.
+-->
+<style>
+  :root{ --ink:#2a211b; --muted:#6f6259; --line:#d9cfc4; --bean:#5a3a22; --crema:#c89b6a; --danger:#a8321f; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font:16px/1.55 "Inter","Segoe UI",system-ui,sans-serif; color:var(--ink);
+        background:#f6f0e9; }
+  .wrap{ max-width:660px; margin:0 auto; padding:0 20px; }
+  header{ background:var(--bean); color:#f6f0e9; padding:16px 0; }
+  header .wrap{ display:flex; align-items:center; gap:10px; }
+  header .cup{ width:18px; height:18px; border-radius:0 0 9px 9px; background:var(--crema); }
+  header b{ font-size:1.05rem; letter-spacing:.3px; }
+  main{ background:#fff; border:1px solid var(--line); border-radius:10px; padding:26px 28px;
+        margin:24px 0 30px; }
+  h1{ font-size:1.35rem; margin:0 0 18px; }
+  .line{ display:flex; gap:16px; align-items:center; border:1px solid var(--line);
+        border-radius:8px; padding:16px; }
+  .line .thumb{ width:54px; height:54px; border-radius:6px; background:#efe2d2; flex:0 0 auto; }
+  .line .meta{ flex:1 1 auto; }
+  .line .meta .name{ font-weight:700; }
+  .line .meta .sku{ color:var(--muted); font-size:.82rem; }
+  .qty{ display:flex; flex-direction:column; align-items:flex-end; }
+  .qty .lbl{ font-weight:600; font-size:.85rem; margin-bottom:5px; }
+  .spin{ display:flex; align-items:stretch; border:2px solid var(--line); border-radius:8px; overflow:hidden; }
+  .spin[data-invalid="true"]{ border-color:var(--danger); }
+  .spin button{ width:38px; border:0; background:#f1e8dd; font-size:1.2rem; cursor:pointer; color:var(--bean); }
+  .spin .val{ width:62px; display:flex; align-items:center; justify-content:center;
+        font-size:1.1rem; font-weight:700; background:#fff; }
+  .spin .val:focus{ outline:3px solid var(--bean); outline-offset:-1px; }
+  .err{ color:var(--danger); font-size:.85rem; font-weight:600; margin:9px 0 0; text-align:right; }
+  .totals{ display:flex; justify-content:space-between; margin-top:22px; padding-top:16px;
+        border-top:1px dashed var(--line); }
+  button.place{ margin-top:20px; padding:12px 24px; font-size:1rem; font-weight:700; color:#fff;
+        background:var(--bean); border:0; border-radius:8px; cursor:pointer; }
+  .note{ color:var(--muted); font-size:.78rem; margin-top:14px; }
+</style>
+</head>
+<body>
+  <header><div class="wrap"><span class="cup" aria-hidden="true"></span><b>Ferndale Roastery · Wholesale</b></div></header>
+
+  <div class="wrap">
+    <main>
+      <h1>Reorder — standing account</h1>
+
+      <form action="#" method="post" novalidate>
+        <div class="line">
+          <span class="thumb" aria-hidden="true"></span>
+          <div class="meta">
+            <div class="name">Ethiopia Yirgacheffe — whole bean</div>
+            <div class="sku">SKU FR-ETH-YRG-5LB · 5 lb case</div>
+          </div>
+          <div class="qty">
+            <span class="lbl" id="qty-lbl">Cases per order</span>
+            <!--
+              Accepted range is fixed 1..10 (per-line case cap for standing accounts).
+              Validator: const ok = n >= 1 && n <= 10;  Entered value: 24.
+              The bounds are declared on the widget (aria-valuemin/max) but the human-
+              readable error never states the 1..10 range.
+            -->
+            <div class="spin" data-invalid="true">
+              <button type="button" aria-hidden="true" tabindex="-1">−</button>
+              <div class="val" role="spinbutton"
+                   id="qty"
+                   aria-labelledby="qty-lbl"
+                   aria-describedby="qty-error"
+                   aria-valuemin="1" aria-valuemax="10" aria-valuenow="24"
+                   aria-invalid="true"
+                   tabindex="0">24</div>
+              <button type="button" aria-hidden="true" tabindex="-1">+</button>
+            </div>
+            <p class="err" id="qty-error">Value not allowed.</p>
+          </div>
+        </div>
+
+        <div class="totals">
+          <span>Estimated line total</span>
+          <strong>—</strong>
+        </div>
+
+        <button type="submit" class="place">Place reorder</button>
+        <p class="note">Standing-account terms: per-line case caps apply. Renders from file://</p>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

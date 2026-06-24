@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Authenticating requests — Meridian Payments API</title>
+<style>
+  :root { --ink:#10151c; --muted:#586677; --line:#e3e8ee; --accent:#6d28d9; --codebg:#0f172a; --codefg:#e2e8f0; }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; color:var(--ink); background:#fff;
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .shell { display:flex; flex-wrap:wrap; align-items:flex-start; }
+  /* Sidebar collapses above the content on narrow viewports — fully responsive. */
+  aside {
+    flex:1 1 220px; min-width:0; padding:20px 16px; border-right:1px solid var(--line); background:#fafbfc;
+  }
+  aside h2 { font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
+  aside ul { list-style:none; margin:0 0 18px; padding:0; }
+  aside li { margin:0 0 6px; }
+  aside a { color:var(--accent); text-decoration:none; font-size:.92rem; }
+  main { flex:999 1 320px; min-width:0; padding:24px 18px 72px; }
+  h1 { font-size:1.6rem; margin:0 0 8px; }
+  h2.sec { font-size:1.15rem; margin:28px 0 10px; }
+  p { margin:0 0 14px; max-width:62ch; }
+  .lede { color:var(--muted); }
+  /* Code BLOCKS wrap fine — they have overflow-x scroll on their own container, which is allowed. */
+  pre.block {
+    background:var(--codebg); color:var(--codefg); border-radius:8px; padding:14px 16px;
+    overflow-x:auto; font:13px/1.55 "SF Mono",Menlo,Consolas,monospace; margin:0 0 16px;
+  }
+  /* The defect lives in INLINE code in body prose, not a block. The token is shown inline as
+     <code> with white-space:nowrap so the value is "selectable as one piece". The author
+     reasoned the token must not wrap so customers don't copy a broken value — but inline,
+     fluid prose, a 64-char nowrap token forces a horizontal scrollbar at 320px while the
+     paragraph it sits in reflows. There is no overflow-wrap escape because nowrap wins. */
+  code.tok {
+    font:13px/1.4 "SF Mono",Menlo,Consolas,monospace;
+    background:#f1edfb; color:#4c1d95; padding:1px 5px; border-radius:4px;
+    white-space:nowrap;
+  }
+  code.inline { font:13px/1.4 "SF Mono",Menlo,Consolas,monospace; background:#f3f4f6; padding:1px 5px; border-radius:4px; }
+  .note { background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:12px 14px; font-size:.93rem; }
+  footer { border-top:1px solid var(--line); margin-top:32px; padding-top:14px; color:var(--muted); font-size:.8rem; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <h2>Guides</h2>
+      <ul>
+        <li><a href="#">Quickstart</a></li>
+        <li><a href="#">Authentication</a></li>
+        <li><a href="#">Charges</a></li>
+        <li><a href="#">Webhooks</a></li>
+        <li><a href="#">Errors</a></li>
+      </ul>
+    </aside>
+
+    <main>
+      <h1>Authenticating requests</h1>
+      <p class="lede">Every call to the Meridian Payments API is authenticated with a secret
+      bearer token. Treat it like a password: never commit it to source control and never expose
+      it in client-side code.</p>
+
+      <h2 class="sec">Sending the token</h2>
+      <p>Pass your secret in the <code class="inline">Authorization</code> header on every request,
+      prefixed with the word <code class="inline">Bearer</code> and a single space. The block below
+      shows a complete example using cURL &mdash; this fenced block scrolls on its own and reflows fine:</p>
+
+      <pre class="block">curl https://api.meridianpay.example/v1/charges \
+  -H "Authorization: Bearer mp_live_..." \
+  -d amount=2000 -d currency=gbp</pre>
+
+      <h2 class="sec">Your test token</h2>
+      <p>For this sandbox session the exact secret you should send is
+      <code class="tok">mp_test_8Kd2Lf9Qe4Rt7Yu1Io5Pa3Sg6Hj0Kl2Zx8Cv4Bn7Mq1Wr5Et9Yu3Io6</code>
+      &mdash; copy it verbatim, including the <code class="inline">mp_test_</code> prefix, into your
+      environment variable. The value is shown inline so you can select the whole secret in one
+      drag without accidentally grabbing surrounding punctuation.</p>
+
+      <div class="note">
+        <strong>Heads up:</strong> rotating a token immediately revokes the previous one. Update
+        every running service before you rotate, or in-flight requests will start returning
+        <code class="inline">401 Unauthorized</code>.
+      </div>
+
+      <footer>
+        Meridian Payments API reference v3 &middot; The page layout, sidebar and prose all reflow
+        to a single column on small screens.
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
