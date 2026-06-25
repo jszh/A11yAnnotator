@@ -5,6 +5,13 @@
 // where it lives (budget.js makeRunBudget/withDeadline; the SDK transport in llm-agent-adapter.js); only the
 // numbers' HOME moves here. Values are UNCHANGED from where they were inlined — this is behavior-preserving.
 
+// Experiment-lane ceiling (R2.2e/Q3): DEFAULT 300000 (5 min). Raised from 120000 so the experiment lane RUNS TO
+// COMPLETION on heavy pages, which makes the claim-proposal set deterministic and removes the budget-deferral
+// `autoPartial` drift (measured: unrun 17-19 → 0, ledger flips → 0, ~+20s/case; the deferred experiments are fast, so
+// the ceiling rarely binds and most pages finish well under it). `V3_ACT_RUN_WALLCLOCK_MS` overrides (e.g. =120000 to
+// reproduce the old behaviour). caseTimeoutMs MUST stay above the ceiling (it is the hard hang-guard), so it tracks it.
+const ACT_RUN_CEILING_MS = Number(process.env.V3_ACT_RUN_WALLCLOCK_MS) || 300000;
+
 const LIMITS = Object.freeze({
   // ── A. Formal cost budgets (budget.js · Rule 8 "bounded cost"). Exhaustion ⇒ an explicit unrun/deferred
   //       record, never a silent drop or a false clear. ─────────────────────────────────────────────────
@@ -61,9 +68,9 @@ const LIMITS = Object.freeze({
     // page runs as many real trigger-and-observe runners as fit in 2 min, then the rest fall to auto-PARTIAL → LLM
     // (instead of an arbitrary first-16). The entry points pass `budgetOpts.maxRunWallClockMs = runWallClockMs`.
     maxAuto: 100000,                  // V3_ACT_MAX_AUTO — was 16; large = "no count cap" (the time budget governs)
-    runWallClockMs: 120000,           // experiment-lane wall-clock budget per page (2 min) — the real governor now
+    runWallClockMs: ACT_RUN_CEILING_MS, // experiment-lane wall-clock budget per page (default 2 min) — the real governor; gated via V3_ACT_RUN_WALLCLOCK_MS (see ACT_RUN_CEILING_MS note above)
     elementCap: 80,                   // V3_ACT_ELEMENT_CAP (live-page body scan; a pre-selected subset overrides it — see collectActPage opts.xpaths)
-    caseTimeoutMs: 180000,            // per-case hard hang-guard — raised above runWallClockMs so the 2-min lane budget is the binding cap, not a hard kill
+    caseTimeoutMs: Math.max(180000, ACT_RUN_CEILING_MS + 60000), // per-case hard hang-guard — kept STRICTLY above the lane ceiling so the time budget binds, not a hard kill (tracks the gated override)
   }),
 
   // ── E. Inventory / discovery quantity budgets (fail-closed DoS backstops — over-cap ⇒ the builder refuses).

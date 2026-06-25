@@ -383,7 +383,7 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
       if (targets.length && reqs[0]) {
         const opLease = await alloc.acquire();
         const op = opLease.page;
-        try { await op.goto(resolveUrl(reqs[0]), { waitUntil: 'load', timeout: 15000 }); applicabilityObservations = await observer.observeApplicability(op, targets); }
+        try { await op.goto(resolveUrl(reqs[0]), { waitUntil: 'load', timeout: 15000 }); await require('./settle.js').awaitSettle(op); applicabilityObservations = await observer.observeApplicability(op, targets); }
         finally { await opLease.release(); }
       }
     } catch (e) { /* best-effort; absence ⇒ the builder falls back to family-level corroboration */ }
@@ -434,6 +434,7 @@ async function runPlan(plan, { resolveUrl, executablePath = CHROME, attestationK
           // body RAW BYTES (the SAME byte domain the collector hashes, audit V3R4). The attestation
           // binds THIS, so a wrong/stale/swapped page cannot be signed as the collector's page.
           const response = await page.goto(resolveUrl(request), { waitUntil: 'load', timeout: Math.max(1, wall) });
+          await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle before the runner reads state
           const body = response ? await response.buffer().catch(() => null) : null;
           const observedPageDigest = body != null ? attest.pageDigestOf(body) : null;
           return sign(await runner(page, req), observedPageDigest);

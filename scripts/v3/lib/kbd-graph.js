@@ -49,6 +49,7 @@ async function collectTabOrder(page, opts = {}) {
   for (let i = 0; i < cap; i++) {
     if (backward) { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
     else { await page.keyboard.press('Tab'); }
+    if (process.env.V3_SETTLE_KBD === '1') await require('./settle.js').awaitFocusSettle(page); // settle the FOCUSED element (not scroll/geometry) before reading activeElement — see settle.js
     const info = await page.evaluate(probeActive).catch(() => ({ sentinel: true, err: true }));
     // A SINGLE body/sentinel mid-ring is normal — positive tabindex routes focus through the document
     // boundary after the highest tabindex, so only TWO consecutive sentinels (or a WeakSet revisit) is a
@@ -106,6 +107,9 @@ async function probeDirectionalEscape(page, regId, budget, backward) {
   for (let i = 0; i < budget; i++) {
     if (backward) { await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); }
     else { await page.keyboard.press('Tab'); }
+    // NO settle here: stillInside() is a synchronous CONTAINMENT check (reg.contains(activeElement)) — it doesn't read
+    // scroll/layout, and this high-frequency probe presses up to `budget` tabs PER REGION (the dominant call source —
+    // ~80% of the focus-settle calls). The order-bearing read that DOES want a settle is the tab-order walk above.
     if (!(await stillInside(page, regId))) return { trapped: false };
   }
   return { trapped: true };

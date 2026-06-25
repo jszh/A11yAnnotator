@@ -45,7 +45,7 @@ async function captureVision(page, xpaths, opts = {}) {
     // so we ALWAYS restore — otherwise the page is left at 320px and EVERY later crop is silently corrupted.
     const orig = page.viewport();
     const cur = orig || await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight })).catch(() => null);
-    try { await page.setViewport({ width: 320, height: (cur && cur.height) || 800 }); viewport320 = await shot(null); }
+    try { await page.setViewport({ width: 320, height: (cur && cur.height) || 800 }); await require('./settle.js').awaitSettle(page); viewport320 = await shot(null); }
     finally { if (cur && cur.width) await page.setViewport(cur).catch(() => {}); }
   }
 
@@ -55,6 +55,7 @@ async function captureVision(page, xpaths, opts = {}) {
     // without this their element-crop is skipped (off-viewport) and the LLM gets no pixels (probe finding
     // on the corpus). scrollIntoView centres it; getBoundingClientRect is then viewport-relative and clips.
     await page.evaluate((x) => { const el = document.evaluate(x, document, null, 9, null).singleNodeValue; if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) { el.scrollIntoView(); } }, xp).catch(() => {});
+    await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle the post-scroll reflow/repaint before the crop
     const rect = await page.evaluate((x) => {
       const el = document.evaluate(x, document, null, 9, null).singleNodeValue;
       if (!el || !el.getBoundingClientRect) return null;
@@ -183,6 +184,7 @@ async function captureStateVision(page, plan, opts = {}) {
   };
   const captureSubmitPair = async (xp) => {
     try { await page.reload({ waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }); } catch (e) {}
+    await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT
     await parkPointer();
     await scrollFormIntoView(xp);
     const r0 = await measureForm(xp); if (!r0) return null;
@@ -269,6 +271,7 @@ async function captureVisionForUrl(url, xpaths, opts = {}) {
   return withLanePage(opts, async (page) => {
     await page.setViewport({ width: opts.width || 1280, height: opts.height || 900 });
     await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
+    await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle fonts+layout before any screenshot
     const stat = await captureVision(page, xpaths, opts);          // static crops first (no page mutation)
     const pairs = opts.statePlan ? await captureStateVision(page, opts.statePlan, opts) : {}; // then driven pairs
     return mergeVision(stat, pairs);

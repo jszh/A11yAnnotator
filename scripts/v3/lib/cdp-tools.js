@@ -165,6 +165,11 @@ async function observeStateAfterActivation(page, args, ctx) {
       const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
       if (!el) return false;
       window.__obsNav = false;
+      // install a DOM-mutation watcher BEFORE the click so a reveal is caught whether it lands synchronously or on a
+      // delayed timer (the node-side wait below polls these). Observing pre-click is what makes the SYNC case fast and
+      // the DELAYED case not-missed — an observer installed AFTER the click cannot tell "already settled" from "delayed".
+      window.__obsSaw = false; window.__obsLast = performance.now();
+      try { window.__obsMO = new MutationObserver(() => { window.__obsSaw = true; window.__obsLast = performance.now(); }); window.__obsMO.observe(document, { subtree: true, childList: true, attributes: true, characterData: true }); } catch (e) {}
       const g = (e) => {
         if (!(e.target === el || (el.contains && el.contains(e.target)))) return;
         const a = el.closest && el.closest('a[href]');
@@ -177,7 +182,19 @@ async function observeStateAfterActivation(page, args, ctx) {
       return true;
     }, targetXpath).catch(() => false);
     if (!acted) return { error: 'target not found on the live clone' };
-    await new Promise((r) => setTimeout(r, 350)); // settle async DOM/aria updates
+    // wait for the post-click reveal to LAND + quiesce: return once the DOM has been quiet for 250ms AFTER a change,
+    // bounded [350ms floor, 2500ms ceiling]. The `__obsSaw` gate is essential — without it, "no mutation yet" reads as
+    // "quiet" and the wait returns BEFORE a delayed reveal (the bug the validation harness caught). A blind fixed delay
+    // fires at a wall-clock the reveal can race past under load. V3_TOOL_LEGACY_DELAY=1 = old blind 350ms (A/B hatch).
+    if (process.env.V3_TOOL_LEGACY_DELAY === '1') { await new Promise((r) => setTimeout(r, 350)); }
+    else await live.evaluate(async (minMs, quietMs, maxMs) => {
+      const t0 = performance.now();
+      for (;;) { const now = performance.now();
+        if (now - t0 >= maxMs) break;                                                  // ceiling — never hang
+        if (now - t0 >= minMs && window.__obsSaw && now - window.__obsLast >= quietMs) break; // a change LANDED and settled
+        await new Promise((r) => requestAnimationFrame(r)); }
+      try { window.__obsMO && window.__obsMO.disconnect(); } catch (e) {}
+    }, 350, 250, 2500).catch(() => {});
     const navIntent = await live.evaluate(() => window.__obsNav === true).catch(() => false);
 
     // AFTER: find newly-visible texts and classify HOW each became visible + whether its live region pre-existed.
@@ -290,7 +307,7 @@ async function setStateAndCapture(page, args, ctx) {
         return { reached: false };
       }, state).catch(() => ({ reached: false }));
     }
-    await new Promise((r) => setTimeout(r, 220));
+    await require('./settle.js').awaitSettle(live, { force: true, floorMs: 220 }); // settle the state transition's reflow before the AFTER frame (floor preserves the old 220ms transition window)
     const afterMeta = await live.evaluate((keys) => {
       const el = document.querySelector('[data-v3-state-target="1"]'); if (!el) return null;
       const cs = getComputedStyle(el); const style = {}; for (const k of keys) style[k] = cs[k];
@@ -338,7 +355,14 @@ async function probeScreenReaderAfterAction(page, args, ctx) {
       try { await v.start({ container: document.body }); } catch (e) { return { found: true, started: false }; }
       try { await v.clearSpokenPhraseLog(); } catch (e) {}
       el.click(); // trigger the action; the VSR's live-region observer voices any change
-      await new Promise((r) => setTimeout(r, 1400)); // settle the politeness queue
+      // settle the politeness queue by QUIESCENCE, not a blind delay: poll the spoken log until no new phrase for
+      // 400ms, FLOOR 1400ms (preserves the old window — no regression), CEILING 2800ms (a slow-under-load
+      // announcement still lands instead of being cut off at a fixed 1400ms).
+      { const t0 = performance.now(); let last = t0, prev = 0;
+        for (;;) { let n = 0; try { n = (await v.spokenPhraseLog()).length; } catch (e) {}
+          const now = performance.now(); if (n !== prev) { last = now; prev = n; }
+          if (now - t0 >= 2800) break; if (now - t0 >= 1400 && now - last >= 400) break;
+          await new Promise((r) => setTimeout(r, 80)); } }
       let log = [];
       try { log = await v.spokenPhraseLog(); } catch (e) {}
       try { await v.stop(); } catch (e) {}
@@ -370,7 +394,7 @@ async function measureGeometryLive(page, args, ctx) {
   const useClone = Number.isFinite(viewportWidth) && viewportWidth > 0 && ctx && typeof ctx.freshClone === 'function';
   const live = useClone ? await ctx.freshClone() : page;
   try {
-    if (useClone) { await live.setViewport({ width: Math.round(viewportWidth), height: 900, deviceScaleFactor: 1 }).catch(() => {}); await new Promise((r) => setTimeout(r, 140)); }
+    if (useClone) { await live.setViewport({ width: Math.round(viewportWidth), height: 900, deviceScaleFactor: 1 }).catch(() => {}); await require('./settle.js').awaitSettle(live, { force: true, floorMs: 140 }); } // settle the viewport-change reflow (floor preserves old 140ms)
   const r = await live.evaluate((xp, oxp) => {
     const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
     if (!el) return { found: false };
@@ -468,7 +492,7 @@ async function renderWithOverrides(page, args, ctx) {
     if (VISION[transform]) await cdp.send('Emulation.setEmulatedVisionDeficiency', { type: VISION[transform] }).catch(() => {});
     else if (transform === 'forced-colors') await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'forced-colors', value: 'active' }] }).catch(() => {});
     else if (transform === 'no-author-css') await live.evaluate(() => { for (const s of [...document.querySelectorAll('style,link[rel=stylesheet]')]) { try { s.disabled = true; } catch (e) {} } }).catch(() => {});
-    await new Promise((r) => setTimeout(r, 160));
+    await require('./settle.js').awaitSettle(live, { force: true, floorMs: 160 }); // settle the media/CSS re-render reflow (floor preserves old 160ms)
     let clip;
     if (typeof targetXpath === 'string' && targetXpath) {
       const meta = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { x: Math.max(0, r.x), y: Math.max(0, r.y), w: r.width, h: r.height }; }, targetXpath).catch(() => null);
@@ -655,6 +679,12 @@ async function resolvePartColor(page, args) {
 // conclusion. SAME-ORIGIN ONLY (http(s) same origin, or file:// same directory for the local mirror):
 // following arbitrary external hrefs is SSRF/exfil surface and breaks the saved-dataset determinism. GET only,
 // depth 0, never the audited session/cookies.
+// Process-level memo of resolved fingerprints, keyed by the FETCHED href. resolve_destination's one nondeterministic
+// act is the live incognito GET (redirect/timing/server state); the same href resolved twice — within a judge, or by
+// two judges in one process — must return the SAME fingerprint or it injects FP variance (R2.2b mechanism #1). Cache
+// only SUCCESSFUL fingerprints (a transient network error stays retryable). Cross-PROCESS determinism still requires
+// freezing the result in the evidence pack — this is the in-process building block. Bounded by # distinct corpus links.
+const _DEST_CACHE = new Map();
 async function resolveDestination(page, args) {
   const { linkXpath, linkXpaths } = args || {};
   const xpaths = (Array.isArray(linkXpaths) && linkXpaths.length) ? linkXpaths : (typeof linkXpath === 'string' && linkXpath ? [linkXpath] : []);
@@ -695,6 +725,7 @@ async function resolveDestination(page, args) {
     if (!/^https?:$/.test(target.protocol) && target.protocol !== 'file:') return { linkXpath: xp, refused: 'non-http-or-file' };
     const sameOrigin = target.protocol === 'file:' ? (base.protocol === 'file:' && sameLocalRoot(target, base)) : (target.origin === base.origin);
     if (!sameOrigin) return { linkXpath: xp, refused: 'cross-origin', destinationOrigin: target.origin };
+    if (_DEST_CACHE.has(target.href)) return { linkXpath: xp, ..._DEST_CACHE.get(target.href), cached: true }; // deterministic re-resolve (no second fetch)
     let bctx = null, p = null;
     try {
       bctx = browser.createBrowserContext ? await browser.createBrowserContext() : await browser.createIncognitoBrowserContext();
@@ -726,7 +757,9 @@ async function resolveDestination(page, args) {
         const vt = ((document.body && document.body.innerText) || '').replace(/\s+/g, ' ').trim().slice(0, 240);
         return { title: document.title, h1: h1 ? h1.textContent : null, mainFirstParagraph: para ? (para.textContent || '').trim().slice(0, 160) : null, visibleText: vt };
       }).catch(() => ({}));
-      return { linkXpath: xp, finalUrl: p.url().slice(0, 300), httpStatus: resp ? resp.status() : null, title: (fp.title || '').slice(0, 200), h1: fp.h1 ? String(fp.h1).trim().slice(0, 160) : null, mainFirstParagraph: fp.mainFirstParagraph || null, visibleText: fp.visibleText || null, instantRedirect, redirectDelayMs, ...(interstitial ? { interstitialPage: true } : {}) };
+      const fingerprint = { finalUrl: p.url().slice(0, 300), httpStatus: resp ? resp.status() : null, title: (fp.title || '').slice(0, 200), h1: fp.h1 ? String(fp.h1).trim().slice(0, 160) : null, mainFirstParagraph: fp.mainFirstParagraph || null, visibleText: fp.visibleText || null, instantRedirect, redirectDelayMs, ...(interstitial ? { interstitialPage: true } : {}) };
+      _DEST_CACHE.set(target.href, fingerprint); // memo the SUCCESSFUL fingerprint for a deterministic re-resolve
+      return { linkXpath: xp, ...fingerprint };
     } catch (e) { return { linkXpath: xp, error: String(e && e.message || e).slice(0, 200) }; }
     finally { try { if (p) await p.close(); } catch (e) {} try { if (bctx && bctx.close) await bctx.close(); } catch (e) {} }
   };

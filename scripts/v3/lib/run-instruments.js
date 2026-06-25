@@ -129,6 +129,7 @@ async function runInstrumentsForUrl(url, opts = {}) {
   const { withLanePage } = require('./page-lease.js');
   return withLanePage(opts, async (page) => {
     await page.goto(url, { waitUntil: 'load', timeout: opts.gotoTimeoutMs || 30000 }).catch(() => {});
+    await require('./settle.js').awaitSettle(page); // gated V3_SETTLE_WAIT — settle before keyboard/VSR state reads
     const res = await runInstruments(page, opts);
     return { file: opts.file || url, runId: opts.runId || null, pageDigest: opts.pageDigest || null, ...res };
   });
