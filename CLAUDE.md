@@ -2,3 +2,4 @@
 - When vision model disagrees with code, inspect the code first. If the disagreement reason is not apparent, ask Gemini 3.5 flash model to help. The API key is in .env.
 - Foundation tests are slow, only run that suite if it is likely needed. Running the full testing suite takes a while, so make it a background task.
 - If you are doing an analysis task: do NOT reset, stash, or otherwise clear the current git working tree unless explicited told to do so. Another agent may be working on it.
+- The scope of our project is defined in categories.json.

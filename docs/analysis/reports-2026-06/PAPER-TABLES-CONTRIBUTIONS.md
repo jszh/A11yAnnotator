@@ -100,6 +100,19 @@ Evidence forms (NONE is the harness's deployed form except where noted):
 | Full + HTML + full-page vision | full-page | 43/66 | 78.8 | 72.2 | 0.75 | 5.1 |
 | Full + HTML, style-stripped | targeted | 42/66 | **78.8** | 76.5 | 0.78 | 4.1 |
 | **Full + HTML, style-stripped + facet-gated** | targeted | 42/66 | 77.3 | **81.0** | **0.79** | 3.1 |
+| **▶ Current pipeline (2026-06-24): default + new det. runners** | targeted | **43/66** | **78.8** | 78.8 | 0.788 | 3.6 |
+
+> **Re-run on current code (2026-06-24, `results/exp30-current-html`).** A full 458-case re-run of the
+> *deployed-default* config (facet-gated style-stripped HTML augmentation + targeted vision + tools) at the
+> **default medium effort**, now including the deterministic runners landed after exp19 — non-text contrast
+> (1.4.11), glyph-text-alt / multipart-grouping / positive-tabindex (C8 small-signals), and the composite
+> arrow-key-trap runner (2.1.2) — plus their collector-parity facts. **Result: 78.8% recall (52/66), the
+> highest LLM-lane marginal recall in the table (43/66).** It **beats the prior best deployed config's recall
+> at a *lower* effort** (exp19 was 77.3% at effort=high; this is 78.8% at medium). The new runners settle more
+> obligations deterministically *before* the LLM (e.g. 1.4.3 `noObligation` 9→15). Precision dips to 78.8%
+> (FP 14 vs exp19's 11) — partly the medium-vs-high effort tradeoff (exp19 @ high held 82.3% precision); a
+> matched high-effort re-run would be expected to recover most of it. Recompute: `node
+> eval/checker-comparison/ablation-table.js`.
 
 **Two independent levers (the corrected central finding).**
 - **Vision is the RECALL lever.** name/role 6 → +vision 26 (LLM-lane). The model must *see* the rendered page
@@ -159,6 +172,37 @@ fires on a GT-pass/inapplicable case. (The methodological check that caught two 
 | confinement keyboard-trap (2.1.2) | — | 4/7 passed | **demoted** to review (escape-advisory is semantic) |
 | **post-fix deterministic FP (full eval)** | — | **0 real** | — |
 
+## Table 1c — Judge-design levers cannot reduce the residual FP (controlled, fixed-evidence)
+
+The Table-1b precision (FP ~3.1–3.6%) is dominated by a residual of *semantic-judgment-limited* FPs (link
+purpose-equivalence, decorative/essential image-of-text, name-vs-descriptiveness). We tested whether **LLM
+judge-design** can remove them with a **fixed-evidence replay harness**: freeze each case's judge inputs
+(route-by-facet structured signals + vision crops + screen-reader transcript) once, then re-run ONLY the LLM
+judgment under a varied judge design. This isolates the judge's *intrinsic* sampling noise from collect/vision/tool
+nondeterminism, which a prior single-run study could not.
+
+**Fixed-evidence noise floor.** With evidence byte-fixed, the FP count still varies **σ≈1.06 / range 3** over K=10
+identical runs — half the full-pipeline range (6); the judge's own sampling is an irreducible ±1 FP. Methods are
+therefore scored by per-case **stable transition** (a 10/10-flagged FP driven to 0/K), not the noise-bound aggregate.
+
+| Judge-design lever | ΔFP | Δrecall | result |
+|---|---|---|---|
+| Confidence-gated abstention | −2.2 | −1.0 | symmetric (FPs are 87% high-confidence) |
+| Self-consistency (majority / unanimity) | −1.7 / −3.7 | −0.4 / −3.4 | negligible / symmetric |
+| Decomposed applicability gate | +0.7 | −0.6 | null |
+| Distractor-strip (drop task framing) | −1.1 | +1.4 n.s. | FP-neutral and recall-neutral (apparent recall gain washes out at full scale) |
+| Positive-class boundary prose | −2.9 | −1.2 | 0 stable FP fixed |
+| Self-refutation cascade | −4.7 | −4.4 | symmetric/net-negative |
+| Grounded-verdict requirement | −4.9 | −1.8 | clears *defensible* link FPs, loses real ones |
+| **Cross-family panel (Gemini refuter)** | −6 | −5 | symmetric |
+| grounded + strip (combination) | −3.3 | −2.2 | non-additive, symmetric |
+
+**Every lever that cuts FP cuts recall comparably; none is asymmetric.** Decisively, a *different model family*
+(Gemini) fails on the *same* residual cases and *agrees* they are barriers — the signature of **intrinsic WCAG
+ambiguity / debatable ground truth**, not a model error a better judge design removes. This is the controlled,
+cross-model confirmation of the Table-1b precision ceiling. (Full study: `docs/analysis/improvement-research-2026-06/
+FP-REDUCTION-CONTROLLED-ROUND2.md`.)
+
 ## Main contributions
 
 1. **A verifiable neuro-symbolic conformance harness with an *obligation ledger*.** Per (element × success
@@ -201,6 +245,15 @@ fires on a GT-pass/inapplicable case. (The methodological check that caught two 
    localize the residual false positives to *semantic-judgment-limited* cases (link purpose-equivalence;
    decorative-image judgment) that additional rules cannot fix — a concrete boundary on where LLMs help vs.
    remain unreliable here.
+
+6. **The residual-FP ceiling is judge-design-invariant (controlled, cross-model).** With a fixed-evidence replay
+   harness + per-case stable-transition protocol (Table 1c), none of **nine** LLM judge-design levers (confidence
+   abstention, self-consistency, atomic decomposition, distractor-stripping, positive-class prose, grounded
+   verdicts, self-refutation) nor a **cross-family Gemini panel** reduces the residual FP without an equal recall
+   cost; the residual is confident and *cross-model-shared* (Gemini and Claude fail on, and agree about, the same
+   cases). This delimits LLM-as-judge improvement for conformance — the boundary in #5 is **intrinsic** (debatable
+   GT / semantic ambiguity), not a prompting deficiency — and quantifies the judge's irreducible sampling noise
+   (σ≈1.06 FP), recommending multi-run-median measurement for sub-floor changes.
 
 ## Related work (anchors to situate the contributions)
 

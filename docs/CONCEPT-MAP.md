@@ -2,9 +2,12 @@
 
 _Updated 2026-06-18 (reflects axe-promotion + checker-uncertainty routing, commits `5dd67a8` / `7e7a3e3`)._
 
-The paper-quality figure is [`figures/harness-architecture.svg`](figures/harness-architecture.svg)
-(raster: [`figures/harness-architecture.png`](figures/harness-architecture.png)). The Mermaid below is the
-editable source of the same architecture.
+The paper-quality **overview** figure is [`figures/harness-architecture.svg`](figures/harness-architecture.svg)
+(raster: [`figures/harness-architecture.png`](figures/harness-architecture.png)) — a focused
+**input → analysis → results** view in plain HCI terms (page → per-element accessibility checklist →
+automated runners + agentic analysis → findings). The Mermaid below is the fuller **system-level** view
+(obligation ledger, the three-source provisional fill, and the authority / gold-calibration gate the
+overview deliberately omits).
 
 **Colour legend:** 🔵 obligation ledger / anchoring · 🟢 deterministic, decides · 🟡 LLM, non-authoritative ·
 🔴 reconciliation · 🟣 trust & calibration · ⚪ evidence & integrity.

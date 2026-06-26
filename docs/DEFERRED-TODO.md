@@ -307,13 +307,17 @@ cap-truncated page is no longer mistaken for a full-page claim. The rest:
   `motion-control` family + `motion-control-v0` rubric. Experimental broad-scope sidecar lanes now exist for
   1.4.2 audio control, 2.2.2 pause/stop/hide evidence, 2.3.1 flash-risk, and 2.1.2 trap review, with generated
   fixtures and no-authoritative-publication gates. These are **not production conformance lanes yet**:
-  - 1.4.2 generated positives prove known non-silent media playback for >3s with no independent control, but
-    arbitrary saved-site audibility and custom control exercise remain unresolved.
+  - 1.4.2 generated positives prove known non-silent media playback for >3s with no native or working
+    independent control, and generated custom pause/mute/volume controls are now exercised for observed effect.
+    Arbitrary saved-site audibility remains unresolved without a future audio-output side signal or equivalent
+    proof.
   - 2.3.1 generated positives cover only a narrow JS opacity-toggle fixture; production needs rendered-frame
     sampling, actual timestamps, relative-luminance / saturated-red threshold math, viewport/occlusion checks, and
     adversarial flash classes.
-  - 2.1.2 strengthening still needs the production trap detector to share the broader region selector and dynamic
-    focusable-derived budget.
+  - 2.1.2 generated keyboard-trap coverage now includes self-refocus, region/escape, and fixed-set confinement
+    positives plus Escape/advised-exit, single-focusable, one-way, and focus-redirection controls. Production
+    promotion still needs saved-page pressure, state isolation/replay traces, and bridge policy for any non-generated
+    detector expansion.
   Keep these sidecar-only until each family has a finite applicability predicate, adversarial fixture classes, saved
   page pressure evidence, and explicit bridge authorization.
 - **C.9.6.3 Complete processes — STRUCTURAL BOUNDARY (document, don't build).** `orchestrate()` consumes a single
@@ -404,9 +408,9 @@ Priority implementation themes:
   discovery for image text, canvas/SVG charts, icon-only meaning, and color-only information. A 2026-06-22 generated
   sidecar prototype now covers fixture-assisted pseudo/background text, canvas/SVG charts, and color-only cues, but
   remains `UNCERTAIN`-only and cannot prove alternative adequacy on arbitrary pages.
-- **Media and temporal thresholds.** Promote only narrow, measured sub-lanes first: audible autoplay duration and
-  independent controls for 1.4.2; rendered-frame flash frequency/area/red-threshold math for 2.3.1; persistent
-  non-essential motion with exercised controls for 2.2.2.
+- **Media and temporal thresholds.** Promote only narrow, measured sub-lanes first: live-page audibility proof for
+  1.4.2 beyond generated non-silent fixtures; rendered-frame flash frequency/area/red-threshold math for 2.3.1;
+  persistent non-essential motion with exercised controls for 2.2.2.
 - **Time-based media alternatives.** A 2026-06-22 generated media-alternatives packet slice now covers 10 positive
   and 10 negative scoped `1.2.x` fixtures with inline transcript/description extraction, SC-specific LLM prompt
   rules, and explicit barrier-or-uncertain sidecar packets. The live sidecar path now preserves scoped `1.2.x`
@@ -444,6 +448,36 @@ Priority implementation themes:
   proper-name/title removal records, language-specific readability formulas or qualified review, threshold mapping to
   lower secondary education, and supplemental-content adequacy review. SC 3.1.5 is AAA and not generally an EN 301
   549 V3.2.1 web requirement. A clean/no-packet readability result is not a `3.1.5` pass.
+- **Character key shortcuts.** A 2026-06-24 generated `2.1.4` packet slice now covers 10 positive and 10 negative
+  controls. Positives require a trusted single printable keypress, observed page-state change outside a focused
+  component, and no observed turn-off/remap/focus-only exception. Controls cover no shortcut surface, focus-only
+  shortcuts, working turn-off controls, working remap-to-modifier controls, and Control/Alt modified-key shortcuts.
+  Prompt-pack pressure emits 20 packets with `{LIKELY_BARRIER:10, UNCERTAIN:10}`; the 10 positives bridge to
+  barrier-only v3 judgments and the 10 controls produce 0 clears. This is still not a complete real-page solution:
+  saved websites need better discovery for JavaScript-only document/window listeners, canvas/offscreen/storage state
+  effects, persisted preference flows, and multi-step settings/remap workflows. A clean/no-packet shortcut result is
+  not a `2.1.4` pass.
+- **Status announcements.** A 2026-06-24 generated `4.1.3` packet slice now covers 10 positive and 10 negative
+  controls. Positives require trusted activation, observed status information about success/results/waiting/progress/
+  errors, focus not moved to the message, and no observed live/status/alert/log/direct announcement channel. Controls
+  cover `role=status`, `role=alert`, `role=log`, `aria-live`, focus movement, direct programmatic announcement, HTML
+  dialog context, native alert context, and disclosure/expanded-content context. Prompt-pack pressure emits 20 packets
+  with `{LIKELY_BARRIER:10, UNCERTAIN:10}` and 0 converted judgments; the lane remains sidecar-only with no registered
+  v3 publication claim family. Visual inspection confirmed that visually similar status messages can be barrier
+  candidates or scoped controls depending on programmatic/focus/context evidence. Remaining work: real accessibility
+  API/AT support evidence, delayed/debounced status settle windows, explicit handling for status-removal and icon-only
+  status semantics, and a publication derivation if this ever graduates beyond review evidence. A clean/no-packet
+  status result is not a `4.1.3` pass.
+- **Target size minimum sidecar controls.** A 2026-06-24 generated `2.5.8` packet slice now covers 10 positive and
+  10 negative controls. Positives require a rendered pointer target, below-24-by-24 CSS-pixel geometry, and 24px circle
+  spacing intersection. Controls now emit scoped `UNCERTAIN` packets for sufficient spacing, inline/in-sentence
+  targets, essential presentation, equivalent same-page target, unmodified user-agent control, and at-least-24px
+  targets. Prompt-pack pressure emits 20 packets with `{LIKELY_BARRIER:10, UNCERTAIN:10}` and 0 converted judgments;
+  integration audit reports 0 clear-bridgeable and 0 barrier-bridgeable rows. This broad-scope LLM lane is not the
+  publication authority for 2.5.8; the deterministic geometry path remains the intended publication mechanism.
+  Remaining work: real same-function equivalent proof, stronger essential/legal and UA-control attribution, tangent/
+  fractional-circle boundary fixtures, transformed/clipped/rounded/complex-shape targets, and obscured target states.
+  A clean/no-packet target-size result is not a `2.5.8` pass.
 - **Pointer and alternative-operation discovery.** Extend fixture-scoped 2.5.1 / 2.5.7 probes to discover author
   path gestures, multipoint-like gestures where possible, drag widgets, keyboard/text-field/menu alternatives, and
   independent essential/UA exception evidence. Current generated lanes are deliberately not exhaustive.
