@@ -18,6 +18,8 @@ const STAGE_FILES = {
   judgments: 'judgments.json',         // Phase-3 semantic adjudication recommendations (non-authoritative; absent in Phase 0) (audit V3R5-M3)
   instruments: 'instruments.json',     // VSR/keyboard instrument findings (non-authoritative shadow signals; not hashed)
   checkerFindings: 'checker-findings.json', // Harness 3.3 external-checker cross-signals (axe C0 / IBM C1; non-authoritative, not hashed)
+  broadScope: 'broad-scope.json',            // broad WCAG/TT/EN sidecar signals (scope/user prefs/process candidates; non-authoritative)
+  broadScopeRationale: 'broad-scope-rationale.json', // broad-scope judge/critic rationales (side artifact, non-authoritative)
   llm: 'llm.json',                     // Harness 3.1 whole-obligation LLM verdicts (source:'llm' shadow obs; non-authoritative)
   llmRationale: 'llm-rationale.json',  // the LLM's free-text rationales (side artifact, bound by id; scanned LENIENTLY)
   llmVision: 'llm-vision.json',        // Harness 3.2 vision crops the LLM judged (side artifact, base64; NEVER in results)
@@ -36,7 +38,7 @@ const PRODUCTION_REQUIRED = ['manifest', 'collect', 'drive', 'candidates', 'plan
 const SHADOW_DEBUG_REQUIRED = ['collect', 'experiments', 'claimProposals'];
 
 // required stages must be present + parseable; optional stages may be absent (→ undefined).
-function loadBundle(dir, { required = ['collect', 'experiments', 'claimProposals'], optional = ['manifest', 'drive', 'candidates', 'plan', 'applicability', 'judgments', 'instruments', 'checkerFindings', 'llm', 'llmRationale', 'llmVision'] } = {}) {
+function loadBundle(dir, { required = ['collect', 'experiments', 'claimProposals'], optional = ['manifest', 'drive', 'candidates', 'plan', 'applicability', 'judgments', 'instruments', 'checkerFindings', 'broadScope', 'broadScopeRationale', 'llm', 'llmRationale', 'llmVision'] } = {}) {
   const errors = [];
   const bundle = {};
   // reject a stray v2 results artifact being passed as a v3 run

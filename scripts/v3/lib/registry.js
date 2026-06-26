@@ -61,6 +61,10 @@ const EXPLICIT = {
   },
   '2.1.2/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A reproduced trap (focus cycles, no mechanism escapes) is a positive observation; no completeness needed.' },
 
+  // ---- Broad-scope: 2.1.4 Character Key Shortcuts (A) — BARRIER-ONLY. ----
+  '2.1.4/NO_BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A scoped clean shortcut probe cannot prove the absence of other page/application single-character shortcuts or all exception mechanisms. Controls and absence stay UNCERTAIN.' },
+  '2.1.4/BARRIER_OBSERVED': { clearability: 'open-scope-never-clearable', accessibilitySupportDependent: false, rationale: 'A trusted single printable character key that changes page state outside a focused component, with no observed off/remap/focus-only exception, is a positive barrier observation; no completeness needed.' },
+
   // ---- C6: 3.3.2 Labels or Instructions (A) — CLEARABLE for the label sub-claim. AT-dependent. ----
   '3.3.2/NO_BARRIER_OBSERVED': {
     clearability: 'closed-scope-clearable', accessibilitySupportDependent: true,

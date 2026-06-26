@@ -34,6 +34,12 @@ const A = require('../../lib/a11y-eval.js'); // F (Harness 3.3): reuse the targe
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
 const sameScope = (a, b) => !!a && !!b && SCOPE_FIELDS.every((f) => a[f] === b[f]);
 
+function broadScopeSummaryCode(row = {}) {
+  const detector = String(row.detector || 'broad-scope').replace(/[^a-zA-Z0-9_.:-]+/g, '-').slice(0, 80);
+  const kind = String(row.kind || 'candidate').replace(/[^a-zA-Z0-9_.:-]+/g, '-').slice(0, 80);
+  return `${detector}:${kind}`;
+}
+
 // The trust anchor (attestation key + on-disk artifact verifier) lives in builder OPTS or on the
 // trusted authority config — NEVER in the bundle. `__trust` is a non-enumerable companion the test
 // helpers / production CLI attach to the authority registry; it is invisible to validateAuthority
@@ -583,6 +589,59 @@ function buildV3(bundle, opts = {}) {
     }
   }
 
+  // BROAD-SCOPE SIDECARE: experimental WCAG/TT/EN scope + review candidates (user preferences,
+  // non-interference, interaction, media/auth/process hints). They are NEVER ledger dispositions.
+  // Keep the published rows structured and harness-authored: no page text/examples ride into results.
+  const broadScopeFindings = [];
+  const broadScopeWarnings = [];
+  const broadScopeVisualChecks = [];
+  const broadScopeReviewPackets = [];
+  if (bundle.broadScope != null) {
+    const bs = bundle.broadScope;
+    if (typeof bs !== 'object' || bs === null) { E('broadScope: must be an object'); return { ok: false, errors, results: null }; }
+    if (Array.isArray(bs.scopeWarnings)) for (const w of bs.scopeWarnings) broadScopeWarnings.push(String(w));
+    if (Array.isArray(bs.visualChecks)) for (const v of bs.visualChecks) {
+      if (v && typeof v === 'object') broadScopeVisualChecks.push({
+        id: String(v.id || ''),
+        detector: String(v.detector || 'broad-scope'),
+        xpath: v.xpath != null ? String(v.xpath) : null,
+        agreement: v.agreement === true,
+        note: v.note ? 'redacted-see-evidence-bundle' : '',
+      });
+    }
+    if (Array.isArray(bs.findings)) for (const f of bs.findings) {
+      if (typeof f !== 'object' || f === null) { E('broadScope.findings: each finding must be an object'); return { ok: false, errors, results: null }; }
+      broadScopeFindings.push({
+        source: 'broad-scope',
+        detector: String(f.detector || 'broad-scope'),
+        sc: String(f.sc || ''),
+        kind: String(f.kind || 'candidate'),
+        xpath: f.xpath != null ? String(f.xpath) : null,
+        detail: broadScopeSummaryCode(f),
+        review: true,
+        authoritative: false,
+        shadow: true,
+        visualRef: f.visualRef != null ? String(f.visualRef) : null,
+      });
+    }
+    if (Array.isArray(bs.reviewPackets)) for (const p of bs.reviewPackets) {
+      if (typeof p !== 'object' || p === null) { E('broadScope.reviewPackets: each packet must be an object'); return { ok: false, errors, results: null }; }
+      broadScopeReviewPackets.push({
+        packetId: String(p.packetId || ''),
+        aspect: String(p.aspect || ''),
+        sc: p.sc != null ? String(p.sc) : null,
+        rawSc: p.rawSc != null ? String(p.rawSc) : '',
+        relatedScs: Array.isArray(p.relatedScs) ? p.relatedScs.map(String) : [],
+        claimFamily: p.claimFamily != null ? String(p.claimFamily) : null,
+        targetXpath: p.targetXpath != null ? String(p.targetXpath) : null,
+        mode: String(p.mode || 'review-only'),
+        evidenceRefs: Array.isArray(p.evidenceRefs) ? p.evidenceRefs.map(String) : [],
+        authoritative: false,
+        shadow: true,
+      });
+    }
+  }
+
   // DETERMINISTIC SIGNALS (Harness 3.3 F): closed-sub-domain facts that reduce LLM load, derived PURELY
   // from the collector's element facts (box / text / axName) — no browser pass. SHADOW only (Decision B):
   // they never clear or barrier an obligation; promotion is a post-corpus decision once their precision on
@@ -708,6 +767,11 @@ function buildV3(bundle, opts = {}) {
     if (!triageMap.has(key)) triageMap.set(key, { sc: f.sc, xpath: f.xpath || null, signals: [], review: true, authoritative: false });
     triageMap.get(key).signals.push({ source: f.source || 'instrument', detector: f.detector, kind: f.kind, detail: f.detail || (f.ruleId ? String(f.ruleId) : '') });
   }
+  for (const f of broadScopeFindings) {
+    const key = `${f.sc}::${f.xpath || '(page)'}::${f.detector}`;
+    if (!triageMap.has(key)) triageMap.set(key, { sc: f.sc, xpath: f.xpath || null, signals: [], review: true, authoritative: false });
+    triageMap.get(key).signals.push({ source: 'broad-scope', detector: f.detector, kind: f.kind, detail: f.detail });
+  }
   const triageCandidates = [...triageMap.values()].map((c) => ({ ...c, agreement: c.signals.length }));
 
   // (6) emit v3-only results; refuse if a legacy label somehow survived
@@ -738,6 +802,10 @@ function buildV3(bundle, opts = {}) {
     adjudicationRecommendations, // DERIVED view over the un-promoted source:'llm' shadow obs (3.1 unify)
     instrumentFindings, // non-authoritative VSR/keyboard instrument signals (shadow until gold-calibrated)
     checkerFindings, // non-authoritative external-checker cross-signals (axe C0 / IBM C1) — never a disposition
+    broadScopeFindings, // experimental WCAG/TT/EN sidecar candidates — never a disposition
+    broadScopeWarnings: [...new Set(broadScopeWarnings)], // scope/process/user-preference warnings for humans/LLM routing
+    broadScopeVisualChecks, // small agreement packets; no raw pixels in strict output
+    broadScopeReviewPackets, // sanitized LLM packet index; full packets stay in the evidence bundle
     triageCandidates, // non-ledger review queue for semantic SCs (1.4.1/1.3.3 + 1.3.2/2.4.3/4.1.3) — review packets, not dispositions
     deterministicSignals, // F: shadow 2.5.8 geometry + 2.5.3 label-in-name facts (closed sub-domains; reduce LLM load)
     summary: {
@@ -762,6 +830,10 @@ function buildV3(bundle, opts = {}) {
       instrumentFindings: instrumentFindings.length,
       checkerFindings: checkerFindings.length, // external-checker cross-signal count (axe C0 / IBM C1)
       checkerFindingsBySc: checkerFindings.reduce((m, f) => { const k = f.sc || 'unknown'; m[k] = (m[k] || 0) + 1; return m; }, Object.create(null)), // per-SC, for the §G annotation sampling
+      broadScopeFindings: broadScopeFindings.length,
+      broadScopeWarnings: new Set(broadScopeWarnings).size,
+      broadScopeVisualChecks: broadScopeVisualChecks.length,
+      broadScopeReviewPackets: broadScopeReviewPackets.length,
       triageCandidates: triageCandidates.length, // non-ledger semantic review candidates (E)
       deterministicSignals: deterministicSignals.length, // F: shadow 2.5.8 geometry + 2.5.3 label-in-name facts
       deterministicSignalsBySc: deterministicSignals.reduce((m, s) => { m[s.sc] = (m[s.sc] || 0) + 1; return m; }, Object.create(null)),
@@ -773,6 +845,7 @@ function buildV3(bundle, opts = {}) {
         provisionalMode: opts.provisionalMode === 'gated' ? 'gated' : 'ungated',
         runLlm: !!(bundle.llm || bundle.judgments),
         runInstruments: !!bundle.instruments,
+        runBroadScope: !!bundle.broadScope,
         checkers: [...new Set(checkerFindings.map((f) => f.source))].sort(), // 'axe' (C0) and/or 'checker' (IBM, C1)
         // C1: surface that an opt-in IBM run was requested but could not contribute (package/CDN absent), so
         // a skipped external checker is visible in the summary rather than indistinguishable from "ran clean".

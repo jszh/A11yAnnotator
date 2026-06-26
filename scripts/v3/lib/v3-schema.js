@@ -58,7 +58,7 @@ const CLEARABILITY = ['closed-scope-clearable', 'open-scope-never-clearable', 'e
 
 // Keyboard-interaction SCs: a clear additionally requires demonstrated keyboard reachability
 // in the tested state (plan Rule 14 — atomicity does not license ignoring cross-SC deps).
-const KEYBOARD_INTERACTION_SCS = ['2.1.1', '2.1.2', '2.4.7', '2.4.3'];
+const KEYBOARD_INTERACTION_SCS = ['2.1.1', '2.1.2', '2.1.4', '2.4.7', '2.4.3'];
 
 // Full SC inventory derived from the existing v2 schema, so the registry must cover exactly
 // the SCs the harness actually evaluates (no drift between the two layers).

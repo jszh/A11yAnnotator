@@ -24,7 +24,7 @@ const BEHAVIORAL_SKILLS = ['keyboard-operability', 'focus-management', 'focus-vi
 const SKILL_SCS = {
   'name-role-state': ['1.1.1', '4.1.2', '2.4.4', '2.5.3'],
   'color-and-visual-text': ['1.4.3', '1.4.11', '1.4.1', '1.4.5'],
-  'keyboard-operability': ['2.1.1', '2.1.2', '2.4.3'],
+  'keyboard-operability': ['2.1.1', '2.1.2', '2.1.4', '2.4.3'],
   'focus-management': ['2.4.3', '2.4.11', '2.4.7'],
   'focus-visibility': ['2.4.7', '2.4.13'],
   'dynamic-announcement': ['4.1.3'],
@@ -48,7 +48,7 @@ const PAGE_SKILL_SCS = {
 const SC_LEVEL = {
   '1.1.1': 'A', '4.1.2': 'A', '2.4.4': 'A', '2.5.3': 'A',
   '1.4.3': 'AA', '1.4.11': 'AA', '1.4.1': 'A', '1.4.5': 'AA',
-  '2.1.1': 'A', '2.1.2': 'A', '2.4.3': 'A', '2.4.11': 'AA', '2.4.7': 'AA', '2.4.13': 'AAA',
+  '2.1.1': 'A', '2.1.2': 'A', '2.1.4': 'A', '2.4.3': 'A', '2.4.11': 'AA', '2.4.7': 'AA', '2.4.13': 'AAA',
   '4.1.3': 'AA', '1.4.10': 'AA', '2.5.8': 'AA', '1.4.13': 'AA', '2.5.5': 'AAA',
   '3.3.1': 'A', '3.3.2': 'A', '3.3.3': 'AA', '2.4.2': 'A', '2.4.6': 'AA', '1.3.1': 'A', '1.3.2': 'A', '2.4.10': 'AAA',
   '1.2.2': 'A', '1.2.1': 'A', '2.2.2': 'A', // Item 10 media captions/alternative + Item 14d pause-stop-hide

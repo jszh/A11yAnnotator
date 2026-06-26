@@ -85,6 +85,8 @@ function crossArtifactErrors(bundle, requiredStages = ['collect', 'experiments',
     // the external-checker findings (axe C0 / IBM C1) to the run identity like the LLM lane.
     ['instruments', bundle.instruments],
     ['checkerFindings', bundle.checkerFindings],
+    ['broadScope', bundle.broadScope],
+    ['broadScopeRationale', bundle.broadScopeRationale],
   ].filter(([, a]) => a != null);
 
   for (const [name, art] of arts) { const hit = findLegacyLabel(art, name); if (hit) push(`legacy verdict label present in ${name} (v3 is a clean schema break): ${hit}`); }

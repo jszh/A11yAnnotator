@@ -15,7 +15,7 @@ const cat = require('./catalog.js');
 // omitting it made EVERY real LLM run's re-gate refuse with "unknown stage llmTrace" — invisible to the mock-agent
 // tests (a mock produces no transport trace, so bundle.llmTrace was never set). timings is added post-build but is
 // listed too so replaying buildV3 over a saved bundle that carries it doesn't spuriously refuse.
-const KNOWN_STAGES = ['manifest', 'collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals', 'applicability', 'judgments', 'instruments', 'checkerFindings', 'llm', 'llmRationale', 'llmVision', 'llmTrace', 'timings'];
+const KNOWN_STAGES = ['manifest', 'collect', 'drive', 'candidates', 'plan', 'experiments', 'claimProposals', 'applicability', 'judgments', 'instruments', 'checkerFindings', 'broadScope', 'broadScopeRationale', 'llm', 'llmRationale', 'llmVision', 'llmTrace', 'timings'];
 const SCOPE_FIELDS = ['actionTargetRef', 'state', 'action', 'environment'];
 const isStr = (v) => typeof v === 'string' && v.length > 0;
 const isObj = (v) => v != null && typeof v === 'object' && !Array.isArray(v);

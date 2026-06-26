@@ -33,7 +33,12 @@ const CONFIGS = [
   ['exp15-full-html-fullpage', 'FULL + HTML + FULL-PAGE vision + TOOLS', 'full-page', 'name/role + v3 signals + HTML + tools'],
   ['exp16-full-html-nostyle', 'FULL + HTML (style-stripped) + vision + TOOLS', 'targeted', 'name/role + v3 signals + HTML(no-style) + tools'],
   ['exp18-gate-no212', 'DEFAULT, gate={1.4.3,4.1.2} (2.1.2 UN-gated)', 'targeted', 'facet-gated minus 2.1.2'],
+  ['run10-deployed-current', '▶ DEPLOYED CURRENT (default + B1 exemption + contrast tool fixes)', 'targeted', 'deployed'],
   ['exp17-full-html-facetgate', 'FULL + HTML (style-stripped, FACET-GATED) + TOOLS', 'targeted', 'name/role + v3 signals + HTML(structural-only) + tools'],
+  // --- main full-corpus runs added after exp18 (context for the current run) ---
+  ['exp19-effort-high', 'FULL (deployed default), effort=HIGH', 'targeted', 'v3 signals + HTML(gated) + tools'],
+  ['exp27-critic', 'FULL + critic lane, effort=med', 'targeted', 'v3 signals + HTML(gated) + tools + critic'],
+  ['exp30-current-html', '▶ CURRENT PIPELINE 2026-06-24 (default + new det. runners C4/C6/C8/C2)', 'targeted', 'v3 signals + HTML(gated) + tools'],
 ];
 
 function metrics(dir) {

@@ -27,6 +27,7 @@ const FAMILIES = Object.freeze({
   'name-role-value':         Object.freeze({ sc: '4.1.2', skills: ['name-role-state'] }),
   // ---- experiment families C1/C3 reuse the above; C4–C9 add these ----
   'no-keyboard-trap':        Object.freeze({ sc: '2.1.2', skills: ['keyboard-operability'] }),   // C5
+  'character-key-shortcut':   Object.freeze({ sc: '2.1.4', skills: ['keyboard-operability'] }),   // Broad-scope 2.1.4 — barrier-only LLM bridge from trusted key probe evidence
   'field-label':             Object.freeze({ sc: '3.3.2', skills: ['forms-instructions-errors'] }), // C6
   'error-identification':    Object.freeze({ sc: '3.3.1', skills: ['forms-instructions-errors'] }), // C6 (form-error-probe)
   'hover-content':           Object.freeze({ sc: '1.4.13', skills: ['color-and-visual-text'] }),  // C9

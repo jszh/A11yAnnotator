@@ -16,6 +16,24 @@ const { makeTimings } = require('./timings.js'); // per-stage + per-element wall
 const { createTabAllocator } = require('./tab-allocator.js'); // ONE shared browser pool for EVERY lane
 const agentPlanner = require('./agent-planner.js');
 
+const BROWSER_ARGS = ['--no-sandbox', '--disable-dev-shm-usage', '--allow-file-access-from-files', '--autoplay-policy=no-user-gesture-required'];
+
+function mergeJudgmentsArtifacts(base, extra, id) {
+  const raw = [
+    ...((base && Array.isArray(base.judgments)) ? base.judgments : []),
+    ...((extra && Array.isArray(extra.judgments)) ? extra.judgments : []),
+  ];
+  const seen = new Set();
+  const judgments = [];
+  for (const j of raw) {
+    const key = j && (j.judgmentId || `${j.sc}|${j.claimFamily}|${j.targetXpath}|${j.verdict}`);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    judgments.push(j);
+  }
+  return { ...id, judgments };
+}
+
 // PHASE 2 tool session: a live browser at the page URL + a fresh-clone factory, threaded to the in-process
 // CDP tool server so the judge can drive the page mid-reasoning. One page per RUN serves every subject (the
 // tools take xpath/coordinate args); mutating tools clone. Lazy puppeteer require (only when tools are on).
@@ -37,7 +55,7 @@ async function openToolSession(url, opts = {}) {
   } else {
     const puppeteer = require('puppeteer');
     const CHROME = opts.executablePath || process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-    ownBrowser = opts.browser || await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    ownBrowser = opts.browser || await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: BROWSER_ARGS });
     ownsBrowser = !opts.browser;
     acquirePage = async () => { const p = await ownBrowser.newPage(); return { page: p, release: async () => { try { await p.close(); } catch (e) {} } }; };
   }
@@ -89,7 +107,7 @@ async function orchestrate(collect, drive, opts = {}) {
   // close only the half we created — injecting one but treating ownership as all-or-nothing would orphan the other.
   const ownsBrowser = !opts.browser;
   const ownsAlloc = !opts.tabAllocator;
-  const browser = opts.browser || await require('puppeteer').launch({ executablePath: opts.executablePath || run.CHROME, headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = opts.browser || await require('puppeteer').launch({ executablePath: opts.executablePath || run.CHROME, headless: 'new', args: BROWSER_ARGS });
   const tabAllocator = opts.tabAllocator || createTabAllocator({ browser, maxTabs: opts.maxTabs });
   try {
   cg.annotateApplicableScs(collect);
@@ -176,6 +194,38 @@ async function orchestrate(collect, drive, opts = {}) {
   if (engines.length || checkerUnavailable) {
     bundle.checkerFindings = { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, engines, ran: engines.length > 0, findings: checkerFindings };
     if (checkerUnavailable) bundle.checkerFindings.checkerUnavailable = checkerUnavailable;
+  }
+  // BROAD-SCOPE SIDECAR (experimental): WCAG/TT/EN scope + review candidates that do NOT publish
+  // conformance outcomes. This is opt-in and identity-bound like instruments/checkers. It opens fresh
+  // pages for mutating probes (text spacing / reduced motion / forced colors) so the main run state is
+  // not contaminated. The builder consumes it as scopeWarnings + broadScopeFindings + triage only.
+  if (opts.runBroadScope && opts.resolveUrl) {
+    const url = opts.resolveUrl(plan.requests && plan.requests[0] ? plan.requests[0] : { targetXpath: '/html' });
+    bundle.broadScope = await timings.stage('broad-scope', () => require('./broad-scope-probes.js')
+      .runBroadScopeForUrl(url, { browser, file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, elementCap: opts.elementCap })
+      .catch((e) => ({ file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, ran: false, error: e && e.message, probes: {}, findings: [], scopeWarnings: [], visualChecks: [], researchAnnotations: [] })));
+    if (opts.runBroadScopeJudge && opts.runBroadScopeCritic) {
+      const broadReview = await timings.stage('broad-scope-llm-review', () => require('./broad-scope-llm-review.js')
+        .runBroadScopePacketReviews(bundle.broadScope, {
+          runJudge: opts.runBroadScopeJudge,
+          runCritic: opts.runBroadScopeCritic,
+          maxPackets: Number.isFinite(opts.maxBroadScopeReviewPackets) ? opts.maxBroadScopeReviewPackets : Infinity,
+        })
+        .catch((e) => ({
+          judgments: { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest, judgments: [] },
+          broadScopeRationale: {
+            file: collect.file,
+            runId: collect.runId,
+            pageDigest: collect.pageDigest,
+            error: e && e.message,
+            rationales: [],
+          },
+        })));
+      bundle.broadScopeRationale = broadReview.broadScopeRationale;
+      if (broadReview.judgments && broadReview.judgments.judgments && broadReview.judgments.judgments.length) {
+        bundle.judgments = mergeJudgmentsArtifacts(bundle.judgments, broadReview.judgments, { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest });
+      }
+    }
   }
   // the trusted orchestrator finalizes + attests the run-manifest binding every artifact hash and the
   // observed page identity (plan Rule 17; audit V3R4-H7). The observed identity is the RUNNER's own
@@ -292,11 +342,22 @@ async function orchestrate(collect, drive, opts = {}) {
         // CHECK #1 (after each worker/subject): reap any stale leaked clone tab (concurrency-safe).
         afterEach: toolSession ? () => toolSession.reapStale() : undefined,
       };
+      // FREEZE HOOK (additive; inert unless opts.onLlmInputs is supplied). Snapshots the EXACT judge inputs —
+      // selected subjects + the per-subject evidence (visionByXpath crops, VSR transcript, checker hints) + the
+      // PRELIMINARY deterministic build (pre-LLM-re-gate, used for scoring). An offline replay harness re-runs
+      // runAdjudication/runRubricJudgments over identical evidence with a different judge design (FP-reduction
+      // experiments) without a browser. Never mutates state; the live run proceeds unchanged.
+      if (typeof opts.onLlmInputs === 'function') {
+        try { opts.onLlmInputs({ agentSubjects, rubricSubjects, pOpts, built }); } catch (e) { /* best effort */ }
+      }
       const adj = await timings.stage('llm-adjudication', () => llmAdj.runAdjudication(agentSubjects, pOpts).catch(() => null));   // → bundle.llm
       const rub = await timings.stage('llm-rubric', () => llmAdj.runRubricJudgments(rubricSubjects, pOpts).catch(() => null));    // → bundle.judgments
       let changed = false;
       if (adj && adj.llm && adj.llm.verdicts.length) { bundle.llm = adj.llm; bundle.llmRationale = adj.llmRationale; changed = true; }
-      if (rub && rub.judgments && rub.judgments.judgments.length) { bundle.judgments = rub.judgments; changed = true; }
+      if (rub && rub.judgments && rub.judgments.judgments.length) {
+        bundle.judgments = mergeJudgmentsArtifacts(bundle.judgments, rub.judgments, { file: collect.file, runId: collect.runId, pageDigest: collect.pageDigest });
+        changed = true;
+      }
       // FULL LLM TRACE (non-authoritative, NOT hashed): merge both producers' turn-by-turn traces and fold each
       // subject's latency into the timings collector keyed by element. Does NOT set `changed` — a trace never
       // affects the ledger/build, it is recorded purely for offline analysis.
