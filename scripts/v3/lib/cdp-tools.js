@@ -348,28 +348,49 @@ async function probeScreenReaderAfterAction(page, args, ctx) {
     const vsr = require('./vsr-collect.js');
     const ok = await vsr.ensureVsr(live);
     if (!ok) return { error: 'vsr-injection-failed', probeFailed: true }; // instrument failure ≠ "nothing voiced" — never set emptyQueue here
-    const res = await live.evaluate(async (xp) => {
+    const res = await live.evaluate(async (xp, legacy) => {
       const v = window.__vsr;
       const el = document.evaluate(xp, document, null, 9, null).singleNodeValue;
       if (!el) return { found: false };
       try { await v.start({ container: document.body }); } catch (e) { return { found: true, started: false }; }
       try { await v.clearSpokenPhraseLog(); } catch (e) {}
-      el.click(); // trigger the action; the VSR's live-region observer voices any change
-      // settle the politeness queue by QUIESCENCE, not a blind delay: poll the spoken log until no new phrase for
-      // 400ms, FLOOR 1400ms (preserves the old window — no regression), CEILING 6000ms. The stress test (vsr-stress.js)
-      // measured announcements landing ~2.0-2.6s under load (the old blind 1400ms would have missed them); the 6s
-      // ceiling leaves generous headroom for heavier contention. The ceiling only binds when phrases are STILL
-      // arriving past the floor — a no-announcement returns at ~1400ms, so this never slows the common case.
-      { const t0 = performance.now(); let last = t0, prev = 0;
-        for (;;) { let n = 0; try { n = (await v.spokenPhraseLog()).length; } catch (e) {}
-          const now = performance.now(); if (n !== prev) { last = now; prev = n; }
-          if (now - t0 >= 6000) break; if (now - t0 >= 1400 && now - last >= 400) break;
-          await new Promise((r) => setTimeout(r, 80)); } }
+      // ARM a live-region MUTATION watcher BEFORE the click — the DETERMINISTIC signal that a 4.1.3 announcement is
+      // coming (a message inserted into a PRE-EXISTING aria-live / role=status|alert region WILL be voiced). It is an
+      // ADDITIONAL quiescence signal, not the sole gate: it RESETS the quiet timer exactly like a spoken phrase, so a
+      // late voice that follows an in-window mutation — even with NO earlier focus phrase — is not cut off at the
+      // floor (the bug the spoken-log-only poll had). ariaNotify (no DOM footprint) is still caught by the spoken-log
+      // signal. A mutation that never voices (a region CREATED with its content; aria-live=off, excluded) just
+      // quiesces out — bounded, never a hang. LIMIT: a mutation that first appears AFTER the floor is still missed —
+      // the floor is the "wait for the announcement to START" window.
+      const LIVE = '[aria-live="polite"],[aria-live="assertive"],[role=status],[role=alert],[role=log],[role=alertdialog],output';
+      let liveAt = 0, sawLive = false;
+      const hit = (node) => { try { const e = node && (node.nodeType === 1 ? node : node.parentElement); if (!e || !e.closest) return false; const m = e.closest(LIVE); return !!m && m.getAttribute('aria-live') !== 'off'; } catch (er) { return false; } };
+      const mo = new MutationObserver((recs) => { for (const r of recs) { let h = hit(r.target); if (!h) for (const an of (r.addedNodes || [])) { if (hit(an) || (an.querySelector && an.querySelector(LIVE))) { h = true; break; } } if (h) { liveAt = performance.now(); sawLive = true; } } });
+      try { mo.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-live'] }); } catch (e) {}
+      el.click(); // trigger the action; the VSR voices any live-region change / ariaNotify
+      // QUIESCENCE poll over two signals: the VSR spoken-phrase log (also catches ariaNotify) and the live-region
+      // mutation time `liveAt`. KEY: when a live region has mutated but the SR has NOT voiced since (awaitingVoice),
+      // we KEEP waiting for the voice — up to `voiceWindow` (3000ms) past the mutation — instead of quiescing at the
+      // floor. That is the fix for a late voice with no earlier phrase (a plain reset-the-timer only buys 400ms). A
+      // mutation that never voices (new region / aria-live=off) expires after voiceWindow and quiesces out — bounded.
+      // floor 1400 / quiet 400 / voiceWindow 3000 / ceiling 6000 (vsr-stress measured voices at ~2.0-2.6s under load).
+      { const t0 = performance.now(); let spokenAt = t0, prev = 0;
+        for (;;) {
+          let n = 0; try { n = (await v.spokenPhraseLog()).length; } catch (e) {}
+          const now = performance.now();
+          if (n !== prev) { spokenAt = now; prev = n; }
+          const lastActivity = (!legacy && liveAt > spokenAt) ? liveAt : spokenAt; // V3_VSR_LEGACY=1 ⇒ spoken-log only
+          const awaitingVoice = !legacy && liveAt > spokenAt && (now - liveAt) < 3000; // a live mutation not yet voiced
+          if (now - t0 >= 6000) break;
+          if (now - t0 >= 1400 && now - lastActivity >= 400 && !awaitingVoice) break;
+          await new Promise((r) => setTimeout(r, 80));
+        } }
+      try { mo.disconnect(); } catch (e) {}
       let log = [];
       try { log = await v.spokenPhraseLog(); } catch (e) {}
       try { await v.stop(); } catch (e) {}
-      return { found: true, started: true, log: Array.isArray(log) ? log.map(String) : [] };
-    }, triggerXpath);
+      return { found: true, started: true, sawLiveMutation: sawLive, log: Array.isArray(log) ? log.map(String) : [] };
+    }, triggerXpath, process.env.V3_VSR_LEGACY === '1');
     if (!res || !res.found) return { error: 'trigger not found', probeFailed: true };
     if (!res.started) return { error: 'vsr-start-failed', probeFailed: true };
     const announcements = (res.log || []).filter(Boolean);
@@ -378,7 +399,10 @@ async function probeScreenReaderAfterAction(page, args, ctx) {
     // and the live-region subset (the 4.1.3-relevant datum). emptyQueue reflects the FULL queue; the model uses
     // noLiveRegionAnnouncement for 4.1.3 (and an un-hide / fresh-container insert may voice nothing ⇒ INCONCLUSIVE).
     const liveRegionAnnouncements = announcements.filter((a) => /^(polite|assertive)\b/i.test(a));
-    return { announcements, announcementCount: announcements.length, emptyQueue: announcements.length === 0, liveRegionAnnouncements, noLiveRegionAnnouncement: liveRegionAnnouncements.length === 0 };
+    // sawLiveMutation + noLiveRegionAnnouncement together pin the 4.1.3 INCONCLUSIVE case: a live region DID update
+    // but the SR voiced nothing (a region created-with-content, an aria-live=off, or a non-perceivable change) — vs
+    // a clean "nothing happened" (no mutation). The model must NOT read an un-voiced update as a pass.
+    return { announcements, announcementCount: announcements.length, emptyQueue: announcements.length === 0, liveRegionAnnouncements, noLiveRegionAnnouncement: liveRegionAnnouncements.length === 0, liveRegionMutated: !!res.sawLiveMutation };
   } finally { try { await live.close(); } catch (e) {} }
 }
 
