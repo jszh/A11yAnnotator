@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trap negative 10</title>
+  <style>
+    body { font: 16px Arial, sans-serif; margin: 24px; }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(20px); } }
+    @keyframes flashFast { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse { from { opacity: .4; } to { opacity: 1; } }
+    
+  .modal { border: 2px solid #333; padding: 12px; width: 320px; background: #f7f7f7; }
+  .closed { display: none; }
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Trap negative 10</h1>
+    <a id="exit" href="#">Before</a><section id="target" class="modal" role="dialog" aria-label="Close button dialog 10"><button>First</button><button aria-label="Close dialog" onclick="document.getElementById('target').classList.add('closed');document.getElementById('exit').focus()">×</button></section><a href="#">After</a>
+  </main>
+  <script>
+  const modal = document.getElementById('target');
+  modal && modal.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const controls = [...modal.querySelectorAll('button,a[href],input')];
+    const i = Math.max(0, controls.indexOf(document.activeElement));
+    e.preventDefault();
+    const next = e.shiftKey ? (i - 1 + controls.length) % controls.length : (i + 1) % controls.length;
+    controls[next].focus();
+  });
+</script>
+</body>
+</html>

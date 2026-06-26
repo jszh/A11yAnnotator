@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pointer gesture negative 3</title>
+  <style>
+    body { font: 16px Arial, sans-serif; margin: 24px; }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(20px); } }
+    @keyframes flashFast { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse { from { opacity: .4; } to { opacity: 1; } }
+    #target{width:190px;height:86px;border:2px solid #333;background:#efe;display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Pointer gesture negative 3</h1>
+    <div id="target" data-v3-path-gesture-target data-v3-ua-pointer-gesture="true" tabindex="0" aria-label="Browser gesture 3">UA gesture 3</div><p id="status">Waiting</p>
+  </main>
+  <script>
+    const target = document.getElementById('target');
+    const statusEl = document.getElementById('status');
+    let down = false;
+    let startX = 0;
+    let maxY = 0;
+    let minY = 0;
+    let maxX = 0;
+    function complete(kind) {
+      if (kind === 'gesture') {
+        window.pathGestureCompleted = true;
+        document.body.setAttribute('data-path-gesture-completed', 'true');
+      } else if (kind === 'click') {
+        window.clickCompleted = true;
+        document.body.setAttribute('data-click-completed', 'true');
+      } else if (kind === 'alternative') {
+        window.alternativeCompleted = true;
+        document.body.setAttribute('data-alternative-completed', 'true');
+      }
+      target.setAttribute('data-state', 'advanced');
+      statusEl.textContent = kind + ' completed 3';
+    }
+    function start(e) {
+      down = true;
+      startX = e.clientX;
+      maxX = e.clientX;
+      maxY = e.clientY;
+      minY = e.clientY;
+    }
+    function move(e) {
+      if (!down) return;
+      maxX = Math.max(maxX, e.clientX);
+      maxY = Math.max(maxY, e.clientY);
+      minY = Math.min(minY, e.clientY);
+      if ((maxX - startX) > 55 && (maxY - minY) > 24) complete('gesture');
+    }
+    function end() { down = false; }
+    target.addEventListener('pointerdown', start);
+    target.addEventListener('pointermove', move);
+    target.addEventListener('pointerup', end);
+    target.addEventListener('mousedown', start);
+    target.addEventListener('mousemove', move);
+    target.addEventListener('mouseup', end);
+    if (false) target.addEventListener('click', () => complete('click'));
+    const alt = document.getElementById('alternative');
+    if (alt && false) alt.addEventListener('click', () => complete('alternative'));
+  </script>
+</body>
+</html>
