@@ -356,12 +356,14 @@ async function probeScreenReaderAfterAction(page, args, ctx) {
       try { await v.clearSpokenPhraseLog(); } catch (e) {}
       el.click(); // trigger the action; the VSR's live-region observer voices any change
       // settle the politeness queue by QUIESCENCE, not a blind delay: poll the spoken log until no new phrase for
-      // 400ms, FLOOR 1400ms (preserves the old window — no regression), CEILING 2800ms (a slow-under-load
-      // announcement still lands instead of being cut off at a fixed 1400ms).
+      // 400ms, FLOOR 1400ms (preserves the old window — no regression), CEILING 6000ms. The stress test (vsr-stress.js)
+      // measured announcements landing ~2.0-2.6s under load (the old blind 1400ms would have missed them); the 6s
+      // ceiling leaves generous headroom for heavier contention. The ceiling only binds when phrases are STILL
+      // arriving past the floor — a no-announcement returns at ~1400ms, so this never slows the common case.
       { const t0 = performance.now(); let last = t0, prev = 0;
         for (;;) { let n = 0; try { n = (await v.spokenPhraseLog()).length; } catch (e) {}
           const now = performance.now(); if (n !== prev) { last = now; prev = n; }
-          if (now - t0 >= 2800) break; if (now - t0 >= 1400 && now - last >= 400) break;
+          if (now - t0 >= 6000) break; if (now - t0 >= 1400 && now - last >= 400) break;
           await new Promise((r) => setTimeout(r, 80)); } }
       let log = [];
       try { log = await v.spokenPhraseLog(); } catch (e) {}
