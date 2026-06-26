@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 — BOUNDARY / PASS variant of the SPA stale-shell-title aspect.
+    This is the CORRECT counterpart to the failing pages: a storefront SPA navigated to a
+    specific product (#/p/maple-desk). The router renders the product view into the body AND
+    updates document.title to reflect the current view's topic — "Maple Standing Desk — ShopFast".
+    The shell brand "ShopFast" is still present (as the suffix) but the title now identifies and
+    distinguishes the specific product. This sharpens the aspect by showing what the failing pages
+    omit: the dynamic title update that an SPA owes each view.
+
+    WHY THIS PASSES (and why automation can't tell it apart from the failing pages on structure
+    alone): structurally this page is identical to the failing ones — a non-empty <title> plus a
+    product body. ACT 2779a5 passes here for the same reason it (wrongly) passes the failing pages.
+    The difference is purely semantic: here the title text actually names the product on screen. Only
+    a reader who compares the rendered <title> to the rendered body can confirm the match — which is
+    exactly why a passing example is needed to prove the judgment is about title↔view correspondence,
+    not about title presence.
+  -->
+  <title>Maple Standing Desk — ShopFast</title>
+  <style>
+    :root{--bg:#fbfbfd;--card:#fff;--ink:#1c1c28;--muted:#5d6470;--line:#e6e8ee;--accent:#b5371f;}
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:system-ui,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);}
+    header{display:flex;align-items:center;gap:14px;padding:14px 26px;border-bottom:1px solid var(--line);}
+    header .brand{font-weight:800;font-size:18px;color:var(--accent);letter-spacing:.5px;}
+    header nav{margin-left:auto;display:flex;gap:18px;font-size:14px;}
+    header nav a{color:var(--muted);text-decoration:none;}
+    .wrap{max-width:900px;margin:24px auto;padding:0 22px;}
+    .bc{font-size:13px;color:var(--muted);margin-bottom:14px;}
+    .product{display:grid;grid-template-columns:320px 1fr;gap:30px;}
+    .gallery{background:#f0ead9;border-radius:16px;height:280px;display:flex;align-items:center;justify-content:center;color:#6b531d;font-size:14px;}
+    h1{font-size:26px;margin:0 0 6px;}
+    .price{font-size:22px;font-weight:700;color:var(--accent);margin:10px 0;}
+    .rating{font-size:13px;color:var(--muted);margin-bottom:14px;}
+    .desc{font-size:15px;line-height:1.6;color:#39414f;}
+    .buy{margin-top:18px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:12px 22px;font-size:15px;cursor:pointer;}
+    ul.specs{margin:18px 0 0;padding-left:18px;font-size:14px;line-height:1.7;color:#39414f;}
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">ShopFast</span>
+    <nav aria-label="Primary"><a href="#/home">Home</a><a href="#/desks">Desks</a><a href="#/cart">Cart</a></nav>
+  </header>
+  <main class="wrap" id="view" aria-live="polite"></main>
+
+  <script>
+    var catalog = {
+      "maple-desk": {
+        name: "Maple Standing Desk", price: "$649", rating: "4.7 (312 reviews)",
+        desc: "A sit-stand desk with a solid maple top and a dual-motor electric lift. Smooth, quiet height adjustment from 25″ to 51″ with four memory presets.",
+        specs: ["Solid maple top, 60″ × 30″", "Dual-motor lift, 265 lb capacity",
+                "Programmable memory keypad", "10-year frame warranty"]
+      }
+    };
+
+    function productView(slug) {
+      var p = catalog[slug];
+      if (!p) return '<h1>Product not found</h1>';
+      return [
+        '<p class="bc">Home &rsaquo; Desks &rsaquo; ' + p.name + '</p>',
+        '<div class="product">',
+        '  <div class="gallery" role="img" aria-label="Photo of the ' + p.name + '">[ product photo ]</div>',
+        '  <div>',
+        '    <h1>' + p.name + '</h1>',
+        '    <div class="rating">★ ' + p.rating + '</div>',
+        '    <div class="price">' + p.price + '</div>',
+        '    <p class="desc">' + p.desc + '</p>',
+        '    <ul class="specs">' + p.specs.map(function (s) { return '<li>' + s + '</li>'; }).join("") + '</ul>',
+        '    <button class="buy">Add to cart</button>',
+        '  </div>',
+        '</div>'
+      ].join("");
+    }
+
+    var BRAND = "ShopFast";
+    function render() {
+      var hash = window.location.hash || "#/p/maple-desk";
+      var m = hash.match(/#\/p\/([\w-]+)/);
+      var slug = m ? m[1] : "maple-desk";
+      document.getElementById("view").innerHTML = productView(slug);
+      // CORRECT: the router DOES update the title to reflect the current view's topic.
+      var p = catalog[slug];
+      document.title = (p ? p.name : "Product") + " — " + BRAND;
+    }
+
+    if (!window.location.hash) {
+      try { history.replaceState(null, "", "#/p/maple-desk"); } catch (e) {}
+    }
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 — UNCOVERED ASPECT: SPA stale shell title not reflecting current view.
+    A webmail single-page app. The list/reading-pane router opens one message
+    (#/mail/m-4821) and renders that opened email — subject, sender, full body — into the
+    reading pane. The Understanding "web application" note explicitly covers webmail. The app
+    sets document.title to "Inbox" at boot and never changes it when a message is opened, so an
+    open message about a specific subject is still titled "Inbox", just like the message list and
+    every other opened message.
+
+    WHY AUTOMATED TOOLS MISS IT: "Inbox" is a present, non-empty, valid <title> — ACT 2779a5
+    passes and axe/WAVE/Lighthouse stay silent. Recognising that an OPEN message ("Re: Q3 budget
+    review — Tuesday 10am") should be reflected in the title, and that "Inbox" fails to identify or
+    distinguish it, requires reading the reading-pane subject/sender and judging the mismatch.
+    That is semantic, not structural; the per-message title update is a runtime SPA behaviour with
+    no static-head signal.
+  -->
+  <title>Inbox</title>
+  <style>
+    :root{--bg:#f3f5f8;--panel:#fff;--ink:#1d2733;--muted:#586271;--line:#e3e8ef;--accent:#1456b8;}
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:Roboto,system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+    .bar{display:flex;align-items:center;gap:10px;background:#fff;border-bottom:1px solid var(--line);padding:10px 18px;}
+    .bar .logo{width:22px;height:22px;border-radius:50%;background:var(--accent);}
+    .bar strong{font-size:16px;}
+    .shell{display:grid;grid-template-columns:200px 320px 1fr;height:calc(100vh - 43px);}
+    nav.folders{background:#fafbfd;border-right:1px solid var(--line);padding:12px 8px;}
+    nav.folders a{display:flex;justify-content:space-between;padding:8px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px;}
+    nav.folders a[aria-current="page"]{background:#e8f0fe;color:var(--accent);font-weight:600;}
+    .list{border-right:1px solid var(--line);overflow:auto;background:var(--panel);}
+    .list .item{padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer;}
+    .list .item.active{background:#eef4ff;}
+    .list .item .from{font-weight:600;}
+    .list .item .subj{color:var(--ink);}
+    .list .item .snip{color:var(--muted);}
+    .reader{padding:22px 30px;overflow:auto;background:var(--panel);}
+    .reader h1{font-size:20px;margin:0 0 4px;}
+    .reader .meta{font-size:13px;color:var(--muted);margin-bottom:18px;}
+    .reader .meta .name{color:var(--ink);font-weight:600;}
+    .reader .body{font-size:15px;line-height:1.6;max-width:640px;}
+  </style>
+</head>
+<body>
+  <header class="bar"><span class="logo" aria-hidden="true"></span><strong>Postbox Mail</strong></header>
+  <div class="shell">
+    <nav class="folders" aria-label="Mailboxes">
+      <a href="#/mail/inbox" aria-current="page"><span>Inbox</span><span>3</span></a>
+      <a href="#/mail/sent"><span>Sent</span></a>
+      <a href="#/mail/drafts"><span>Drafts</span></a>
+      <a href="#/mail/archive"><span>Archive</span></a>
+    </nav>
+    <section class="list" aria-label="Message list" id="list"></section>
+    <main class="reader" id="reader" aria-live="polite" aria-label="Reading pane"></main>
+  </div>
+
+  <script>
+    var messages = [
+      { id:"m-4821", from:"Priya Anand", email:"priya.anand@acme.example",
+        subject:"Re: Q3 budget review — Tuesday 10am", time:"9:42 AM",
+        snip:"Confirming the room change to 4B and the revised…",
+        body:"Hi all,\n\nConfirming the Q3 budget review is Tuesday at 10:00 in room 4B (note the room change). Please bring your line-item variance sheets; we will lock headcount for Q4 in this meeting.\n\nThanks,\nPriya" },
+      { id:"m-4820", from:"GitLab", email:"noreply@git.example",
+        subject:"Pipeline #20194 passed on main", time:"8:05 AM",
+        snip:"All 142 jobs succeeded in 7m 12s…", body:"" },
+      { id:"m-4819", from:"Marcus Lee", email:"m.lee@acme.example",
+        subject:"Lunch Thursday?", time:"Yesterday",
+        snip:"Are you free around noon to grab…", body:"" }
+    ];
+
+    function renderList(activeId) {
+      document.getElementById("list").innerHTML = messages.map(function (m) {
+        return '<div class="item' + (m.id === activeId ? ' active' : '') + '">' +
+          '<div class="from">' + m.from + '</div>' +
+          '<div class="subj">' + m.subject + '</div>' +
+          '<div class="snip">' + m.snip + '</div></div>';
+      }).join("");
+    }
+
+    function renderReader(id) {
+      var m = messages.filter(function (x) { return x.id === id; })[0] || messages[0];
+      var paras = m.body.split("\n\n").map(function (p) {
+        return '<p>' + p.replace(/\n/g, "<br>") + '</p>';
+      }).join("");
+      document.getElementById("reader").innerHTML =
+        '<h1>' + m.subject + '</h1>' +
+        '<p class="meta"><span class="name">' + m.from + '</span> &lt;' + m.email + '&gt; &middot; ' + m.time + '</p>' +
+        '<div class="body">' + paras + '</div>';
+      // INTENTIONAL FAILURE: opening a message updates the reading pane but NOT document.title.
+    }
+
+    function render() {
+      var hash = window.location.hash || "#/mail/m-4821";
+      var m = hash.match(/#\/mail\/(m-\d+)/);
+      var id = m ? m[1] : "m-4821";
+      renderList(id);
+      renderReader(id);
+    }
+
+    if (!window.location.hash) {
+      try { history.replaceState(null, "", "#/mail/m-4821"); } catch (e) {}
+    }
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>

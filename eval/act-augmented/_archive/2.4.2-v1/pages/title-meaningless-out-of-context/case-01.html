@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!--
+    SC 2.4.2 Page Titled — aspect: title-meaningless-out-of-context
+    The <title> is a deictic, relative fragment ("Step 2 of 4"). It is perfectly
+    sensible while you can SEE the body (a shipping-address form mid-checkout),
+    but in a tab bar, browser history, or a list of open windows it names no
+    site, no flow, and no subject. A returning user scanning history cannot tell
+    this from "Step 2 of 4" of any other wizard. The body, however, is rich and
+    lexically specific (shipping address, checkout, order) so a c4a8a4-style
+    "does the title overlap the body" check is satisfied by the on-page context.
+    AUTOMATED TOOLS MISS IT: the <title> is present and non-empty (passes 2779a5),
+    and the words "Step" / "2 of 4" do appear in the visible step indicator, so a
+    lexical-overlap heuristic finds agreement. No tool models "read this alone in
+    a tab"; that requires human judgment about out-of-context identification.
+  -->
+  <title>Step 2 of 4</title>
+  <style>
+    :root { --brand:#1a5276; --ink:#1c2833; --muted:#5d6d7e; --line:#d5dbdb; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+           color: var(--ink); margin: 0; background: #f4f6f7; }
+    header.site { background: var(--brand); color: #fff; padding: 14px 24px;
+                  display: flex; align-items: center; justify-content: space-between; }
+    header.site .logo { font-weight: 700; letter-spacing: .5px; font-size: 1.1rem; }
+    header.site .cart { font-size: .9rem; }
+    main { max-width: 760px; margin: 24px auto; background: #fff; padding: 28px 32px;
+           border: 1px solid var(--line); border-radius: 8px; }
+    ol.steps { display: flex; list-style: none; padding: 0; margin: 0 0 28px;
+               gap: 8px; font-size: .85rem; }
+    ol.steps li { flex: 1; text-align: center; padding: 8px 4px; border-radius: 6px;
+                  background: #eaeded; color: var(--muted); }
+    ol.steps li[aria-current="step"] { background: var(--brand); color: #fff; font-weight: 600; }
+    ol.steps li.done { background: #d5f5e3; color: #1e8449; }
+    h1 { font-size: 1.4rem; margin: 0 0 6px; }
+    p.lead { color: var(--muted); margin-top: 0; }
+    fieldset { border: 1px solid var(--line); border-radius: 6px; margin: 18px 0; padding: 18px; }
+    legend { font-weight: 600; padding: 0 6px; }
+    label { display: block; font-size: .9rem; margin: 12px 0 4px; }
+    input, select { width: 100%; padding: 9px 10px; border: 1px solid var(--line);
+                    border-radius: 5px; font-size: .95rem; }
+    .row { display: flex; gap: 14px; }
+    .row > div { flex: 1; }
+    .actions { display: flex; justify-content: space-between; margin-top: 24px; }
+    button { padding: 11px 22px; border-radius: 6px; border: 0; font-size: .95rem; cursor: pointer; }
+    button.primary { background: var(--brand); color: #fff; }
+    button.ghost { background: #fff; color: var(--brand); border: 1px solid var(--brand); }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <span class="logo">NORTHWIND OUTFITTERS</span>
+    <span class="cart">Order #NW-48127 · 3 items · $214.50</span>
+  </header>
+
+  <main>
+    <ol class="steps" aria-label="Checkout progress">
+      <li class="done">1. Cart</li>
+      <li aria-current="step">2. Shipping</li>
+      <li>3. Payment</li>
+      <li>4. Review</li>
+    </ol>
+
+    <h1>Shipping address</h1>
+    <p class="lead">Where should we send order #NW-48127? Step 2 of 4 in checkout.</p>
+
+    <form action="#payment" method="post">
+      <fieldset>
+        <legend>Recipient</legend>
+        <div class="row">
+          <div>
+            <label for="fname">First name</label>
+            <input id="fname" name="fname" autocomplete="given-name" required>
+          </div>
+          <div>
+            <label for="lname">Last name</label>
+            <input id="lname" name="lname" autocomplete="family-name" required>
+          </div>
+        </div>
+        <label for="addr1">Street address</label>
+        <input id="addr1" name="addr1" autocomplete="address-line1" required>
+        <label for="addr2">Apartment, suite, etc. (optional)</label>
+        <input id="addr2" name="addr2" autocomplete="address-line2">
+        <div class="row">
+          <div>
+            <label for="city">City</label>
+            <input id="city" name="city" autocomplete="address-level2" required>
+          </div>
+          <div>
+            <label for="state">State</label>
+            <select id="state" name="state" autocomplete="address-level1" required>
+              <option value="">Select…</option>
+              <option>California</option>
+              <option>Oregon</option>
+              <option>Washington</option>
+            </select>
+          </div>
+          <div>
+            <label for="zip">ZIP code</label>
+            <input id="zip" name="zip" inputmode="numeric" autocomplete="postal-code" required>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Delivery speed</legend>
+        <label for="ship"><input type="radio" id="ship" name="ship" checked style="width:auto"> Standard (5–7 days, free)</label>
+        <label><input type="radio" name="ship" style="width:auto"> Express (2 days, $12.00)</label>
+      </fieldset>
+
+      <div class="actions">
+        <button type="button" class="ghost">Back to cart</button>
+        <button type="submit" class="primary">Continue to payment</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

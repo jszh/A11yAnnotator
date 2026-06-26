@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 aspect: non-distinguishing-templated-title-within-set
+    The <title> is "Engineering Blog" — topically RELEVANT (it names the section) and
+    non-empty/descriptive enough to pass any linter, but it is the templated CONSTANT
+    that would appear byte-identical on every post in this blog. The body is
+    unmistakably ONE specific dated post. The title therefore cannot distinguish this
+    page from its siblings.
+  -->
+  <title>Engineering Blog</title>
+  <style>
+    :root { --ink:#1a1d22; --muted:#5b6470; --accent:#b7410e; --rule:#e3e6ea; }
+    * { box-sizing: border-box; }
+    body { font: 16px/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+           color: var(--ink); margin: 0; background: #fafbfc; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 24px 20px 80px; }
+    header.site { display:flex; align-items:center; justify-content:space-between;
+                  border-bottom: 2px solid var(--ink); padding-bottom: 12px; }
+    .brand { font-weight: 800; letter-spacing: .02em; }
+    nav.site a { color: var(--muted); text-decoration: none; margin-left: 16px; font-size: 14px; }
+    nav.crumbs { font-size: 13px; color: var(--muted); margin: 18px 0 6px; }
+    nav.crumbs a { color: var(--accent); text-decoration: none; }
+    article h1 { font-size: 30px; line-height: 1.2; margin: 6px 0 4px; }
+    .post-meta { color: var(--muted); font-size: 14px; margin-bottom: 22px;
+                 border-bottom: 1px solid var(--rule); padding-bottom: 14px; }
+    .post-meta time { font-weight: 600; color: var(--ink); }
+    article p { margin: 0 0 16px; }
+    pre { background:#11151a; color:#d6e2ee; padding:14px 16px; border-radius:8px;
+          overflow:auto; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .tag { display:inline-block; background:#fff3ec; color:var(--accent);
+           border:1px solid #f0cdba; border-radius:999px; padding:2px 10px; font-size:12px; margin-right:6px; }
+    footer.site { margin-top: 48px; border-top: 1px solid var(--rule);
+                  padding-top: 16px; color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="site">
+      <span class="brand">NimbusData Engineering Blog</span>
+      <nav class="site" aria-label="Sections">
+        <a href="#">Posts</a><a href="#">Tags</a><a href="#">About</a>
+      </nav>
+    </header>
+
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="#">Home</a> &rsaquo; <a href="#">Engineering Blog</a> &rsaquo;
+      <span aria-current="page">Why we migrated our ingest pipeline to Rust</span>
+    </nav>
+
+    <article>
+      <h1>Why we migrated our ingest pipeline to Rust</h1>
+      <p class="post-meta">
+        Posted <time datetime="2024-03-02">March 2, 2024</time>
+        &nbsp;&middot;&nbsp; by Dana Okonkwo, Staff Engineer
+        &nbsp;&middot;&nbsp; 8&nbsp;min read
+        <br>
+        <span class="tag">rust</span><span class="tag">data-pipeline</span><span class="tag">performance</span>
+      </p>
+
+      <p>
+        For the last three years our event-ingest service was written in Python. It
+        was easy to evolve, but by late 2023 the p99 latency under the holiday traffic
+        spike had crept past 400&nbsp;ms and the garbage-collector pauses were showing
+        up directly in our SLO dashboards. This post walks through why we rewrote the
+        hot path in Rust, what we measured, and the two bugs the borrow checker caught
+        before they ever reached staging.
+      </p>
+
+      <p>
+        The first surprise was memory. The Python workers held roughly 1.9&nbsp;GB
+        resident per pod under load; the Rust replacement settled at 240&nbsp;MB and
+        never moved. That alone let us cut the ingest fleet from 48 pods to 11.
+      </p>
+
+      <pre><code>// before: per-event allocation in the parse loop
+for line in reader.lines() {
+    let evt: Event = serde_json::from_str(&amp;line?)?;
+    sink.push(evt);            // moves, no clone
+}</code></pre>
+
+      <p>
+        We rolled this out region by region across February, and on
+        March&nbsp;1 we flipped the last region. The graph the next morning is the
+        reason this post exists: the latency band that used to oscillate was, for the
+        first time, a flat line. The rest of this article covers the migration
+        playbook so other teams at NimbusData can repeat it.
+      </p>
+
+      <p>
+        <strong>Next post in this series:</strong> "Profiling the Rust ingest path
+        with <code>perf</code> and flamegraphs" (coming March 16).
+      </p>
+    </article>
+
+    <footer class="site">
+      &copy; 2024 NimbusData, Inc. &middot; This is post 47 of the Engineering Blog.
+      Browse the <a href="#">full archive</a> for the other 46 posts.
+    </footer>
+  </div>
+</body>
+</html>

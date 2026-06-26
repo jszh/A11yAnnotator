@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 — UNCOVERED ASPECT: SPA stale shell title not reflecting current view.
+    A kanban app deep-linked to a single card detail (#/board/sprint-14/card/PLT-238). The
+    router opens that card's detail panel over the board and renders its full content — card
+    title, status, assignee, description, checklist — into the body. document.title is set to the
+    app shell "Planner" at boot and is never updated when a card is opened, so a specific opened
+    card is titled "Planner", identical to the board view and every other opened card.
+
+    WHY AUTOMATED TOOLS MISS IT: "Planner" is a present, non-empty, valid <title>; ACT 2779a5
+    passes and axe/WAVE/Lighthouse stay silent. The failure — that an opened card "PLT-238: Fix
+    flaky checkout test" should be reflected in the title and that "Planner" fails to identify or
+    distinguish it — requires reading the open card detail and comparing it to the title. That is
+    semantic. The per-card title update is a runtime SPA behaviour with no static-head signal.
+  -->
+  <title>Planner</title>
+  <style>
+    :root{--bg:#0e1320;--board:#161d2e;--card:#1f2940;--ink:#e7ecf5;--muted:#aeb8cc;--line:#2a3450;--accent:#8db4f6;--ok:#5fd698;}
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:system-ui,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);}
+    header{display:flex;align-items:center;gap:12px;padding:12px 22px;border-bottom:1px solid var(--line);}
+    header .app{font-weight:700;}
+    header .crumb{color:var(--muted);font-size:14px;}
+    .board{display:flex;gap:14px;padding:18px 22px;}
+    .col{background:var(--board);border:1px solid var(--line);border-radius:10px;width:200px;padding:10px;}
+    .col h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:2px 0 10px;}
+    .chip{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:8px;}
+    .overlay{position:fixed;inset:0;background:rgba(6,9,16,.6);display:flex;align-items:flex-start;justify-content:center;padding:48px 16px;}
+    .detail{background:var(--card);border:1px solid var(--line);border-radius:14px;width:640px;max-width:100%;padding:24px 28px;}
+    .detail .key{font-size:12px;color:var(--muted);letter-spacing:.6px;}
+    .detail h1{font-size:22px;margin:4px 0 12px;}
+    .meta{display:flex;gap:18px;font-size:13px;color:var(--muted);margin-bottom:18px;flex-wrap:wrap;}
+    .meta .pill{background:#243152;color:var(--accent);border-radius:999px;padding:3px 10px;}
+    .meta .done{background:#15351f;color:var(--ok);}
+    .detail .body{font-size:15px;line-height:1.65;color:#cdd6e8;}
+    .checklist{list-style:none;padding:0;margin:16px 0 0;font-size:14px;}
+    .checklist li{padding:6px 0;border-bottom:1px solid var(--line);}
+    .checklist li::before{content:"☐ ";color:var(--muted);}
+    .checklist li.done::before{content:"☑ ";color:var(--ok);}
+  </style>
+</head>
+<body>
+  <header>
+    <span class="app">Planner</span>
+    <span class="crumb" id="crumb"></span>
+  </header>
+
+  <!-- the dimmed board behind the open card -->
+  <main class="board" aria-hidden="true">
+    <div class="col"><h2>To do</h2><div class="chip">PLT-240 Add retry banner</div><div class="chip">PLT-241 Audit log filters</div></div>
+    <div class="col"><h2>In progress</h2><div class="chip">PLT-238 Fix flaky checkout test</div><div class="chip">PLT-239 Cart total rounding</div></div>
+    <div class="col"><h2>Review</h2><div class="chip">PLT-235 Coupon stacking</div></div>
+    <div class="col"><h2>Done</h2><div class="chip">PLT-230 Empty-cart copy</div></div>
+  </main>
+
+  <div class="overlay" role="dialog" aria-modal="true" aria-labelledby="cardTitle" id="card"></div>
+
+  <script>
+    var cards = {
+      "PLT-238": {
+        title: "Fix flaky checkout test", board: "Sprint 14", column: "In progress",
+        assignee: "Sofia Marenco", points: "3", due: "Jun 24",
+        desc: "checkout.spec.ts intermittently fails on the payment-confirmation step (~1 in 6 CI runs). Race between the stubbed payment webhook and the order-status poll. Stabilise the wait condition and remove the fixed timeout.",
+        checklist: [
+          ["Reproduce locally with --repeat 20", true],
+          ["Replace setTimeout with waitFor(order.status === 'confirmed')", true],
+          ["Run 50× green in CI", false],
+          ["Remove the quarantine tag", false]
+        ]
+      }
+    };
+
+    function cardView(id) {
+      var c = cards[id];
+      if (!c) return '<div class="detail"><h1>Card not found</h1></div>';
+      var checks = c.checklist.map(function (i) {
+        return '<li class="' + (i[1] ? "done" : "") + '">' + i[0] + '</li>';
+      }).join("");
+      document.getElementById("crumb").textContent = c.board + " › " + id;
+      return [
+        '<div class="detail">',
+        '  <div class="key">' + id + ' &middot; ' + c.board + '</div>',
+        '  <h1 id="cardTitle">' + c.title + '</h1>',
+        '  <div class="meta">',
+        '    <span class="pill">' + c.column + '</span>',
+        '    <span>Assignee: ' + c.assignee + '</span>',
+        '    <span>' + c.points + ' pts</span>',
+        '    <span>Due ' + c.due + '</span>',
+        '  </div>',
+        '  <p class="body">' + c.desc + '</p>',
+        '  <ul class="checklist">' + checks + '</ul>',
+        '</div>'
+      ].join("");
+    }
+
+    function render() {
+      var hash = window.location.hash || "#/board/sprint-14/card/PLT-238";
+      var m = hash.match(/card\/(PLT-\d+)/);
+      var id = m ? m[1] : "PLT-238";
+      document.getElementById("card").innerHTML = cardView(id);
+      // INTENTIONAL FAILURE: opening a card never updates document.title; it stays "Planner".
+    }
+
+    if (!window.location.hash) {
+      try { history.replaceState(null, "", "#/board/sprint-14/card/PLT-238"); } catch (e) {}
+    }
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>

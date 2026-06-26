@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 — UNCOVERED ASPECT: SPA stale shell title not reflecting current view.
+    VARIANT TRIGGER (title lags one navigation behind). An analytics console. Unlike the other
+    failing cases, this router DOES call document.title — but because of an off-by-one bug it
+    writes the PREVIOUS view's name. The app boots on the "Console" landing view (title set to
+    "Console"), the user navigates to the "Revenue by Region" report, the report renders in the
+    body, and the title-setter writes the name it captured BEFORE updating it — so the title stays
+    "Console" while the body clearly shows the Revenue-by-Region report.
+
+    WHY AUTOMATED TOOLS MISS IT: the <title> is present, non-empty, and even dynamically assigned
+    — ACT 2779a5 passes and axe/WAVE/Lighthouse stay silent. The fact that the assigned value is
+    the wrong view's name can only be caught by reading the rendered report (heading, chart caption,
+    data table) and judging that "Console" fails to identify the Revenue-by-Region topic on screen.
+    No structural checker compares title text to rendered topic; the lag is a runtime sequencing bug
+    with no static-head signal.
+  -->
+  <title>Console</title>
+  <style>
+    :root{--bg:#f6f8fb;--card:#fff;--ink:#1b2430;--muted:#586275;--line:#e4e9f0;--accent:#4338ca;--bar:#7c6df2;}
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:system-ui,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);}
+    header{display:flex;align-items:center;gap:14px;padding:12px 24px;background:#1b1740;color:#fff;}
+    header .app{font-weight:700;letter-spacing:.4px;}
+    header nav{margin-left:auto;display:flex;gap:18px;font-size:14px;}
+    header nav a{color:#c7c2e8;text-decoration:none;}
+    header nav a[aria-current="page"]{color:#fff;font-weight:600;}
+    .wrap{max-width:880px;margin:24px auto;padding:0 22px;}
+    .bc{font-size:13px;color:var(--muted);margin-bottom:6px;}
+    h1{font-size:24px;margin:2px 0 4px;}
+    .range{font-size:13px;color:var(--muted);margin-bottom:20px;}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:16px;}
+    .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 16px;}
+    .chart{display:flex;align-items:flex-end;gap:26px;height:200px;padding:0 8px;}
+    .bar{flex:1;background:var(--bar);border-radius:6px 6px 0 0;position:relative;}
+    .bar span{position:absolute;top:-20px;left:0;right:0;text-align:center;font-size:12px;color:var(--ink);}
+    .bar small{position:absolute;bottom:-22px;left:0;right:0;text-align:center;font-size:12px;color:var(--muted);}
+    table{width:100%;border-collapse:collapse;font-size:14px;}
+    th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line);}
+    th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;}
+    td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  </style>
+</head>
+<body>
+  <header>
+    <span class="app">Metricly</span>
+    <nav aria-label="Primary">
+      <a href="#/console">Overview</a>
+      <a href="#/reports/revenue-by-region" aria-current="page">Reports</a>
+      <a href="#/alerts">Alerts</a>
+    </nav>
+  </header>
+  <main class="wrap" id="view" aria-live="polite"></main>
+
+  <script>
+    var reports = {
+      "revenue-by-region": {
+        name: "Revenue by Region", range: "Q2 2026 (Apr 1 – Jun 30)",
+        bars: [["West","$1.92M",78],["Central","$1.14M",46],["East","$2.30M",94],["South","$0.86M",35]],
+        rows: [["East","$2.30M","+11%"],["West","$1.92M","+6%"],["Central","$1.14M","-2%"],["South","$0.86M","+4%"]]
+      }
+    };
+
+    function reportView(slug) {
+      var r = reports[slug];
+      if (!r) return '<h1>Report not found</h1>';
+      var bars = r.bars.map(function (b) {
+        return '<div class="bar" style="height:' + b[2] + '%"><span>' + b[1] + '</span><small>' + b[0] + '</small></div>';
+      }).join("");
+      var rows = r.rows.map(function (x) {
+        return '<tr><td>' + x[0] + '</td><td class="num">' + x[1] + '</td><td class="num">' + x[2] + '</td></tr>';
+      }).join("");
+      return [
+        '<p class="bc">Reports &rsaquo; ' + r.name + '</p>',
+        '<h1>' + r.name + '</h1>',
+        '<p class="range">' + r.range + '</p>',
+        '<div class="card"><h2>Revenue by region (' + r.range + ')</h2><div class="chart">' + bars + '</div></div>',
+        '<div class="card"><h2>Breakdown</h2><table><thead><tr><th>Region</th><th>Revenue</th><th>YoY</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+      ].join("");
+    }
+
+    // Off-by-one title bug: we snapshot the title BEFORE rendering, render the new view,
+    // then write the snapshot back — so the title always lags one navigation behind.
+    function render() {
+      var previousTitle = document.title;               // "Console" on first report load
+      var hash = window.location.hash || "#/reports/revenue-by-region";
+      var m = hash.match(/#\/reports\/([\w-]+)/);
+      if (m) {
+        document.getElementById("view").innerHTML = reportView(m[1]);
+      } else {
+        document.getElementById("view").innerHTML = '<h1>Overview</h1>';
+      }
+      document.title = previousTitle; // BUG: re-applies the prior view's title instead of the current one
+    }
+
+    if (!window.location.hash) {
+      try { history.replaceState(null, "", "#/reports/revenue-by-region"); } catch (e) {}
+    }
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>

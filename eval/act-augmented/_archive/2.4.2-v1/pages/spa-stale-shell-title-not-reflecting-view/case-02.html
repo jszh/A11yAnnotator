@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 — UNCOVERED ASPECT: SPA stale shell title not reflecting current view.
+    A CRM single-page app. The router reads the record id from the hash (#/customers/5567),
+    looks it up in an in-memory store, and renders that ONE customer's detail record into the
+    body. document.title is set ONCE at boot to the shell value "Dashboard" and is never
+    updated per record — so opening Dana Okafor's record (Account #5567) leaves the title
+    "Dashboard", which is what every customer record, every report, and the home view also show.
+
+    WHY AUTOMATED TOOLS MISS IT: "Dashboard" is a present, non-empty, perfectly valid <title>,
+    so ACT 2779a5 passes and axe/WAVE/Lighthouse stay silent. The failure is that this title
+    does not name the specific record on screen (a named customer + account number) and is
+    indistinguishable across every record — a judgment that requires reading the rendered detail
+    panel and comparing it to the generic title. No structural/presence checker does this, and the
+    "title must update per record" behaviour is a runtime SPA concern absent from a static head.
+  -->
+  <title>Dashboard</title>
+  <style>
+    :root{--bg:#eef1f4;--card:#fff;--ink:#222a35;--muted:#566070;--line:#dfe4ea;--accent:#0b8457;}
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:"Segoe UI",system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+    header.top{display:flex;align-items:center;gap:12px;background:#10241c;color:#fff;padding:12px 22px;}
+    header.top .mark{font-weight:700;letter-spacing:.5px;}
+    header.top nav{margin-left:auto;display:flex;gap:18px;font-size:14px;}
+    header.top nav a{color:#cbd8d2;text-decoration:none;}
+    .wrap{max-width:860px;margin:26px auto;padding:0 20px;}
+    .bc{font-size:13px;color:var(--muted);margin-bottom:8px;}
+    h1{font-size:24px;margin:2px 0 4px;}
+    .sub{color:var(--muted);font-size:14px;margin-bottom:20px;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;}
+    .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 12px;}
+    dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:14px;}
+    dt{color:var(--muted);}
+    dd{margin:0;font-weight:600;}
+    .badge{display:inline-block;background:#e6f5ee;color:#0a6e49;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;}
+    table{width:100%;border-collapse:collapse;font-size:14px;}
+    th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line);}
+    th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <span class="mark">NorthStar CRM</span>
+    <nav aria-label="Primary"><a href="#/home">Home</a><a href="#/customers">Customers</a><a href="#/reports">Reports</a></nav>
+  </header>
+  <main class="wrap" id="view" aria-live="polite"></main>
+
+  <script>
+    var customers = {
+      "5567": {
+        name: "Dana Okafor", account: "5567", status: "Active",
+        tier: "Enterprise", owner: "M. Reyes", since: "2019-03-12",
+        email: "dana.okafor@brightline.example", phone: "+1 415 555 0192",
+        mrr: "$4,200", region: "West",
+        recent: [
+          ["2026-06-14", "Renewed annual plan", "$50,400"],
+          ["2026-05-02", "Added 12 seats", "$1,440"],
+          ["2026-03-19", "Support ticket #8821 resolved", "—"]
+        ]
+      }
+    };
+
+    function recordView(id) {
+      var c = customers[id];
+      if (!c) return '<p class="bc">Customers</p><h1>Not found</h1>';
+      var rows = c.recent.map(function (r) {
+        return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>';
+      }).join("");
+      return [
+        '<p class="bc">Customers &rsaquo; ' + c.name + '</p>',
+        '<h1>Customer: ' + c.name + '</h1>',
+        '<p class="sub">Account #' + c.account + ' &middot; <span class="badge">' + c.status + '</span> &middot; ' + c.tier + '</p>',
+        '<div class="grid">',
+        '  <div class="card"><h2>Profile</h2><dl>',
+        '    <dt>Owner</dt><dd>' + c.owner + '</dd>',
+        '    <dt>Customer since</dt><dd>' + c.since + '</dd>',
+        '    <dt>Region</dt><dd>' + c.region + '</dd>',
+        '    <dt>MRR</dt><dd>' + c.mrr + '</dd></dl></div>',
+        '  <div class="card"><h2>Contact</h2><dl>',
+        '    <dt>Email</dt><dd>' + c.email + '</dd>',
+        '    <dt>Phone</dt><dd>' + c.phone + '</dd></dl></div>',
+        '</div>',
+        '<div class="card" style="margin-top:14px"><h2>Recent activity</h2>',
+        '  <table><thead><tr><th>Date</th><th>Event</th><th>Amount</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+      ].join("");
+    }
+
+    function render() {
+      var hash = window.location.hash || "#/customers/5567";
+      var m = hash.match(/#\/customers\/(\w+)/);
+      document.getElementById("view").innerHTML = m ? recordView(m[1]) : '<h1>Home</h1>';
+      // NOTE: title is intentionally never touched here; it was set to "Dashboard" in <head>.
+    }
+
+    if (!window.location.hash) {
+      try { history.replaceState(null, "", "#/customers/5567"); } catch (e) {}
+    }
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>

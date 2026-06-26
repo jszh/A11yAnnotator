@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 Page Titled — UNCOVERED ASPECT: SPA stale shell title not reflecting current view.
+    This is a single-file "SPA". On load, the inline router resolves the location hash
+    (#/settings/notifications) and renders the Settings > Notifications view into the body.
+    The hashchange/route handler deliberately does NOT update document.title, so the rendered
+    DOM shows one specific view (Settings > Notifications) while <title> stays the generic
+    shell value "My App" — identical for every view this SPA can render.
+
+    WHY AUTOMATED TOOLS MISS IT: axe-core / WAVE / Lighthouse only check that a <title>
+    exists and is non-empty. "My App" is a present, non-empty, valid string, so ACT rule
+    2779a5 PASSES. Whether the title reflects THIS view requires reading the rendered body
+    (a Notifications settings panel) and judging that the frozen app-name title fails to
+    identify or distinguish the current topic — a semantic judgment no presence/structure
+    checker performs. The dynamic dimension (title must update on client-side route change)
+    is invisible to a static 3-line DOM snapshot of the <head>.
+  -->
+  <title>My App</title>
+  <style>
+    :root { --bg:#f4f6f9; --panel:#ffffff; --ink:#1f2733; --muted:#5b6675; --line:#e2e7ee; --accent:#2f6fed; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background:var(--bg); color:var(--ink); }
+    .app { display:grid; grid-template-columns: 240px 1fr; min-height:100vh; }
+    .brandbar { grid-column:1 / -1; display:flex; align-items:center; gap:10px; padding:12px 20px; background:#0f1b33; color:#fff; }
+    .brandbar .logo { width:24px; height:24px; border-radius:6px; background:var(--accent); }
+    .brandbar strong { font-size:15px; letter-spacing:.3px; }
+    nav.side { background:var(--panel); border-right:1px solid var(--line); padding:14px 10px; }
+    nav.side a { display:block; padding:9px 12px; border-radius:8px; color:var(--muted); text-decoration:none; font-size:14px; }
+    nav.side a[aria-current="page"] { background:#eaf1ff; color:#0b3aa3; font-weight:600; }
+    main { padding:26px 32px; }
+    .crumbs { font-size:13px; color:var(--muted); margin-bottom:6px; }
+    h1 { font-size:22px; margin:4px 0 18px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px 22px; max-width:680px; margin-bottom:16px; }
+    .row { display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); }
+    .row:last-child { border-bottom:0; }
+    .row .label { font-size:14px; }
+    .row .desc { font-size:12px; color:var(--muted); margin-top:2px; }
+    .switch { width:44px; height:24px; border-radius:14px; background:#c9d2df; position:relative; border:0; cursor:pointer; }
+    .switch[aria-checked="true"] { background:var(--accent); }
+    .switch .knob { position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .15s; }
+    .switch[aria-checked="true"] .knob { left:22px; }
+    select { font-size:14px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="brandbar"><span class="logo" aria-hidden="true"></span><strong>My App</strong></header>
+    <nav class="side" aria-label="Primary">
+      <a href="#/home">Home</a>
+      <a href="#/projects">Projects</a>
+      <a href="#/settings/notifications" aria-current="page">Settings</a>
+      <a href="#/help">Help</a>
+    </nav>
+    <main id="view" aria-live="polite"><!-- view rendered by router --></main>
+  </div>
+
+  <script>
+    // Minimal client-side router for this single-file SPA.
+    var routes = {
+      "#/home": function () {
+        return '<p class="crumbs">Home</p><h1>Welcome back</h1><div class="card">Pick up where you left off.</div>';
+      },
+      "#/settings/notifications": function () {
+        return [
+          '<p class="crumbs">Settings &rsaquo; Notifications</p>',
+          '<h1>Notification preferences</h1>',
+          '<div class="card" role="group" aria-label="Email notifications">',
+          '  <div class="row"><div><div class="label">Product updates</div><div class="desc">News about features and releases.</div></div>',
+          '    <button class="switch" role="switch" aria-checked="true" aria-label="Product updates"><span class="knob"></span></button></div>',
+          '  <div class="row"><div><div class="label">Security alerts</div><div class="desc">Sign-ins from new devices.</div></div>',
+          '    <button class="switch" role="switch" aria-checked="true" aria-label="Security alerts"><span class="knob"></span></button></div>',
+          '  <div class="row"><div><div class="label">Weekly digest</div><div class="desc">A summary every Monday.</div></div>',
+          '    <button class="switch" role="switch" aria-checked="false" aria-label="Weekly digest"><span class="knob"></span></button></div>',
+          '</div>',
+          '<div class="card"><div class="row"><div><div class="label">Delivery frequency</div>',
+          '  <div class="desc">How often grouped notifications are sent.</div></div>',
+          '  <label class="sr-only" for="freq">Delivery frequency</label>',
+          '  <select id="freq"><option>Immediately</option><option selected>Hourly</option><option>Daily</option></select></div></div>'
+        ].join("");
+      }
+    };
+
+    function render() {
+      var hash = window.location.hash || "#/settings/notifications";
+      var view = routes[hash] || routes["#/settings/notifications"];
+      document.getElementById("view").innerHTML = view();
+      // BUG (intentional): the router updates the body but NOT document.title.
+      // Every view keeps the shell title "My App".
+    }
+
+    // Seed the navigated state so the captured DOM shows the Notifications view.
+    if (!window.location.hash) {
+      try { history.replaceState(null, "", "#/settings/notifications"); } catch (e) {}
+    }
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>

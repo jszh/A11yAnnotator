@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 — title-wrong-language-or-garbled — case-02
+    The <title> is the literal, un-rendered templating token "{{page.title}}".
+    The server-side / client-side template interpolation never ran, so the raw
+    Handlebars-style placeholder shipped to production. The body is a substantive
+    French product page (lang="fr"). The token names no topic in any human language.
+    WHY AUTOMATED TOOLS MISS IT: the title is present and non-empty (it is the
+    seven-character-plus string "{{page.title}}"), so every empty-title / missing-title
+    linter PASSES. No automated rule maintains a dictionary of template-placeholder
+    syntaxes (Handlebars, Jinja, ERB, Mustache, Angular, etc.), and even a heuristic
+    that flagged "{{" would false-positive on legitimate content. Recognizing that
+    "{{page.title}}" is a developer artifact that conveys nothing to the French
+    audience is a human semantic judgment.
+  -->
+  <title>{{page.title}}</title>
+  <style>
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif; margin: 0; color: #222;
+      background: #fff; line-height: 1.55;
+    }
+    .topbar { background: #1d2b4f; color: #fff; padding: .8rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .topbar .logo { font-weight: 800; letter-spacing: .04em; }
+    .topbar nav a { color: #cdd6ee; text-decoration: none; margin-left: 1.2rem; font-size: .9rem; }
+    .topbar nav a:hover, .topbar nav a:focus { color: #fff; text-decoration: underline; }
+    .wrap { max-width: 60rem; margin: 0 auto; padding: 1.5rem; }
+    .product { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+    .gallery .main-img { background: linear-gradient(160deg,#e9eef8,#cdd9f0); aspect-ratio: 4/3; border-radius: 10px; display:flex; align-items:center; justify-content:center; color:#5b6c93; font-weight:700; }
+    h1 { font-size: 1.8rem; margin: .2rem 0 .5rem; }
+    .price { font-size: 1.6rem; color: #1d2b4f; font-weight: 800; margin: .5rem 0; }
+    .stock { color: #2a7d2a; font-weight: 600; font-size: .95rem; }
+    ul.specs { padding-left: 1.1rem; }
+    ul.specs li { margin: .35rem 0; }
+    .buy { background: #ef6c00; color: #fff; border: 0; padding: .9rem 1.4rem; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; margin-top: 1rem; }
+    .buy:hover, .buy:focus { background: #d65f00; }
+    @media (max-width: 720px){ .product{ grid-template-columns: 1fr; } }
+    footer { background:#f3f5fa; margin-top: 2.5rem; padding: 1.4rem 1.5rem; color:#555; font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="logo">Maison Vélo</span>
+    <nav aria-label="Navigation principale">
+      <a href="#vtt">VTT</a>
+      <a href="#route">Route</a>
+      <a href="#ville">Ville</a>
+      <a href="#accessoires">Accessoires</a>
+    </nav>
+  </div>
+
+  <main class="wrap">
+    <nav aria-label="Fil d'Ariane" style="font-size:.85rem;color:#777;margin-bottom:1rem;">
+      Accueil › Vélos de ville › Randonneur Confort 7
+    </nav>
+
+    <div class="product">
+      <div class="gallery">
+        <div class="main-img" role="img" aria-label="Vélo de ville Randonneur Confort 7 de couleur bleu nuit">Photo du produit</div>
+      </div>
+      <div class="details">
+        <h1>Vélo de ville Randonneur Confort 7</h1>
+        <p class="price">699,00 €</p>
+        <p class="stock">En stock — expédié sous 48 heures</p>
+
+        <p>Conçu pour les trajets quotidiens et les balades du week-end, le Randonneur
+          Confort 7 allie une position de conduite droite et relaxante à un cadre en
+          aluminium léger. Sa transmission à sept vitesses offre une plage suffisante
+          pour la ville comme pour les pentes douces des bords de Loire.</p>
+
+        <h2>Caractéristiques principales</h2>
+        <ul class="specs">
+          <li>Cadre aluminium 6061, taille unique réglable (165 à 190 cm)</li>
+          <li>Transmission Shimano Nexus 7 vitesses, entretien réduit</li>
+          <li>Freins à disque hydrauliques, efficaces par temps de pluie</li>
+          <li>Porte-bagages arrière intégré, charge jusqu'à 25 kg</li>
+          <li>Éclairage avant et arrière alimenté par dynamo dans le moyeu</li>
+        </ul>
+
+        <button type="button" class="buy">Ajouter au panier</button>
+      </div>
+    </div>
+
+    <section style="margin-top:2.5rem;">
+      <h2>Avis des clients</h2>
+      <p>Note moyenne : 4,6 sur 5 — fondée sur 212 avis vérifiés. Les acheteurs
+        soulignent particulièrement le confort sur les longues distances et la
+        robustesse du porte-bagages. Quelques utilisateurs recommandent de prévoir
+        des garde-boue plus larges pour l'hiver.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Maison Vélo — Livraison offerte dès 80 € d'achat · Paiement sécurisé · Service client du lundi au samedi</p>
+  </footer>
+</body>
+</html>

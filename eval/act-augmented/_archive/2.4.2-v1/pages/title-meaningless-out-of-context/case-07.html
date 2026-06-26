@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!--
+    SC 2.4.2 Page Titled — aspect: title-meaningless-out-of-context — PASSED BOUNDARY
+    This is the seat-selection step of a flight booking. The FAILING version of
+    this scenario would title the page with the bare imperative "Select". This
+    page is the boundary variant that does it RIGHT: the same deictic context
+    (a wizard step whose forward action is "Select your seats") but a <title>
+    that is self-identifying out of context:
+        "Select seats — JFK→LHR Aug 12 — SkyArc Airways"
+    Read alone in a tab, in browser history, or in a window list, this title
+    tells a returning user the action (select seats), the specific flight
+    (JFK→LHR, Aug 12), and the site (SkyArc Airways). It satisfies G88's "make
+    sense when read out of context" while the body is identical in richness to a
+    failing page. Including it sharpens the aspect: the failure is NOT the wizard
+    context or the action word, it is the ABSENCE of a standalone identifier.
+    Expected ACT outcome: PASSED (title is descriptive and out-of-context useful).
+    AUTOMATED TOOLS: also see this as fine — which is the point. The distinction
+    between this PASS and the "Select" FAIL is invisible to automated lexical
+    checks (both overlap the body) and is exactly the human judgement 2.4.2 needs.
+  -->
+  <title>Select seats — JFK→LHR Aug 12 — SkyArc Airways</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: "Helvetica Neue", Arial, sans-serif; color: #102a43; margin: 0; background: #f0f4f8; }
+    header.air { background: #102a43; color: #fff; padding: 14px 26px; display: flex;
+                 justify-content: space-between; align-items: center; }
+    header.air .brand { font-weight: 700; letter-spacing: 1px; }
+    header.air .flt { font-size: .85rem; color: #9fb3c8; }
+    ol.wiz { display: flex; list-style: none; gap: 6px; margin: 0; padding: 14px 26px;
+             background: #fff; border-bottom: 1px solid #d9e2ec; font-size: .82rem; }
+    ol.wiz li { color: #829ab1; }
+    ol.wiz li::after { content: "›"; margin: 0 8px; color: #bcccdc; }
+    ol.wiz li:last-child::after { content: ""; }
+    ol.wiz li[aria-current="step"] { color: #102a43; font-weight: 700; }
+    main { max-width: 760px; margin: 22px auto; display: grid; grid-template-columns: 1fr 220px; gap: 22px; }
+    .cabin { background: #fff; border: 1px solid #d9e2ec; border-radius: 10px; padding: 22px; }
+    h1 { font-size: 1.35rem; margin: 0 0 4px; }
+    .sub { color: #627d98; margin-top: 0; font-size: .9rem; }
+    .rows { margin-top: 18px; }
+    .seatrow { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
+    .seatrow .num { width: 26px; color: #829ab1; font-size: .8rem; }
+    .seat { width: 34px; height: 34px; border-radius: 6px; border: 1px solid #bcccdc;
+            background: #f0f4f8; cursor: pointer; font-size: .72rem; color: #486581; }
+    .seat[aria-pressed="true"] { background: #2bb0ed; border-color: #2bb0ed; color: #fff; }
+    .seat[disabled] { background: #e1e8ef; color: #bcccdc; cursor: not-allowed; }
+    aside.summary { background: #fff; border: 1px solid #d9e2ec; border-radius: 10px; padding: 18px; height: max-content; }
+    aside.summary h2 { font-size: 1rem; margin: 0 0 10px; }
+    aside.summary dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; font-size: .85rem; }
+    aside.summary dt { color: #627d98; }
+    aside.summary dd { margin: 0; }
+    .cta { display: block; width: 100%; margin-top: 16px; padding: 11px; border: 0; border-radius: 8px;
+           background: #2bb0ed; color: #fff; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header class="air">
+    <span class="brand">SKYARC AIRWAYS</span>
+    <span class="flt">SA 0118 · JFK → LHR · Aug 12, 2026</span>
+  </header>
+
+  <ol class="wiz" aria-label="Booking steps">
+    <li>Flights</li>
+    <li>Passengers</li>
+    <li aria-current="step">Seats</li>
+    <li>Extras</li>
+    <li>Payment</li>
+  </ol>
+
+  <main>
+    <section class="cabin" aria-labelledby="seathead">
+      <h1 id="seathead">Select your seats</h1>
+      <p class="sub">SkyArc flight SA 0118, JFK → London Heathrow, Aug 12 — Economy cabin</p>
+
+      <div class="rows" role="group" aria-label="Seat map, rows 14 to 16">
+        <div class="seatrow">
+          <span class="num">14</span>
+          <button class="seat" aria-pressed="false" aria-label="14A window">14A</button>
+          <button class="seat" aria-pressed="false" aria-label="14B middle">14B</button>
+          <button class="seat" disabled aria-label="14C aisle, occupied">14C</button>
+        </div>
+        <div class="seatrow">
+          <span class="num">15</span>
+          <button class="seat" aria-pressed="true" aria-label="15A window, selected">15A</button>
+          <button class="seat" aria-pressed="false" aria-label="15B middle">15B</button>
+          <button class="seat" aria-pressed="false" aria-label="15C aisle">15C</button>
+        </div>
+        <div class="seatrow">
+          <span class="num">16</span>
+          <button class="seat" aria-pressed="false" aria-label="16A window">16A</button>
+          <button class="seat" disabled aria-label="16B middle, occupied">16B</button>
+          <button class="seat" aria-pressed="false" aria-label="16C aisle">16C</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="summary" aria-label="Booking summary">
+      <h2>Your trip</h2>
+      <dl>
+        <dt>Flight</dt><dd>SA 0118</dd>
+        <dt>Route</dt><dd>JFK → LHR</dd>
+        <dt>Date</dt><dd>Aug 12, 2026</dd>
+        <dt>Seat</dt><dd>15A (window)</dd>
+      </dl>
+      <button class="cta" type="button">Select these seats</button>
+    </aside>
+  </main>
+</body>
+</html>

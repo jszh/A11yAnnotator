@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 — UNCOVERED ASPECT: SPA stale shell title not reflecting current view.
+    VARIANT TRIGGER (templated section title, identical across every method page). A docs SPA.
+    The router renders one specific API-method reference page (#/api/payments.captureCharge) into
+    the body — method signature, parameters, returns, example. The title IS set dynamically, but the
+    template hard-codes the SECTION level only: "API Reference — DevDocs". Every method page in the
+    API Reference section therefore gets the identical title; it never descends to the specific method
+    on screen. The body shows captureCharge() unambiguously while the title says only "API Reference".
+
+    WHY AUTOMATED TOOLS MISS IT: "API Reference — DevDocs" is a present, non-empty, descriptive-LOOKING
+    <title> — ACT 2779a5 passes and axe/WAVE/Lighthouse stay silent. It even reads like a real title.
+    The failure is that it is identical for captureCharge, refundCharge, listCharges, etc., so it cannot
+    distinguish this method page from the others, and it omits the specific method topic on screen.
+    Catching that requires reading the rendered method name and reasoning that the section-level title is
+    the same across the whole set — a cross-page distinguishability judgment no presence checker makes.
+  -->
+  <title>API Reference — DevDocs</title>
+  <style>
+    :root{--bg:#fbfcfe;--side:#0f172a;--ink:#0f1b2d;--muted:#5b677a;--line:#e6eaf1;--accent:#2563eb;--code:#0b1220;}
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:system-ui,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);}
+    .shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh;}
+    nav.side{background:var(--side);color:#cdd6e8;padding:18px 14px;}
+    nav.side .logo{font-weight:800;color:#fff;margin-bottom:16px;}
+    nav.side .group{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#7e8aa3;margin:14px 0 6px;}
+    nav.side a{display:block;padding:6px 10px;border-radius:7px;color:#cdd6e8;text-decoration:none;font-size:13px;}
+    nav.side a[aria-current="page"]{background:#1e293b;color:#fff;}
+    main{padding:30px 40px;max-width:820px;}
+    .bc{font-size:13px;color:var(--muted);margin-bottom:6px;}
+    h1{font-size:26px;margin:2px 0 6px;font-family:ui-monospace,Menlo,Consolas,monospace;}
+    .verb{display:inline-block;background:#dcfce7;color:#15803d;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700;margin-right:8px;}
+    .lede{font-size:15px;color:#39455a;line-height:1.6;margin:6px 0 22px;}
+    h2{font-size:15px;border-bottom:1px solid var(--line);padding-bottom:6px;margin:26px 0 12px;}
+    table{width:100%;border-collapse:collapse;font-size:14px;}
+    th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top;}
+    th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;}
+    code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#eef2f9;border-radius:4px;padding:1px 5px;font-size:13px;}
+    pre{background:var(--code);color:#e2e8f0;border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55;}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="side" aria-label="Documentation">
+      <div class="logo">DevDocs</div>
+      <div class="group">Guides</div>
+      <a href="#/guides/quickstart">Quickstart</a>
+      <a href="#/guides/auth">Authentication</a>
+      <div class="group">API Reference — Charges</div>
+      <a href="#/api/payments.captureCharge" aria-current="page">captureCharge</a>
+      <a href="#/api/payments.refundCharge">refundCharge</a>
+      <a href="#/api/payments.listCharges">listCharges</a>
+    </nav>
+    <main id="view" aria-live="polite"></main>
+  </div>
+
+  <script>
+    var api = {
+      "payments.captureCharge": {
+        verb: "POST", path: "/v1/charges/{id}/capture", name: "captureCharge",
+        lede: "Captures the funds on a previously authorized charge. The charge must have status “authorized”; capturing a charge that is already captured returns an error.",
+        params: [
+          ["id", "string, required", "The identifier of the authorized charge to capture."],
+          ["amount", "integer, optional", "Amount to capture, in the smallest currency unit. Defaults to the full authorized amount."],
+          ["statementDescriptor", "string, optional", "Text shown on the customer’s statement (max 22 chars)."]
+        ],
+        returns: "Returns the updated Charge object with status “captured”.",
+        example: "curl https://api.example.com/v1/charges/ch_8821/capture \\\n  -u sk_live_xxx: \\\n  -d amount=4200"
+      }
+    };
+
+    function methodView(key) {
+      var m = api[key];
+      if (!m) return '<h1>Not found</h1>';
+      var params = m.params.map(function (p) {
+        return '<tr><td><code>' + p[0] + '</code></td><td>' + p[1] + '</td><td>' + p[2] + '</td></tr>';
+      }).join("");
+      return [
+        '<p class="bc">API Reference &rsaquo; Charges &rsaquo; ' + m.name + '</p>',
+        '<h1><span class="verb">' + m.verb + '</span>' + m.name + '</h1>',
+        '<p class="lede">' + m.lede + '</p>',
+        '<p><code>' + m.verb + ' ' + m.path + '</code></p>',
+        '<h2>Parameters</h2><table><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>' + params + '</tbody></table>',
+        '<h2>Returns</h2><p class="lede">' + m.returns + '</p>',
+        '<h2>Example request</h2><pre>' + m.example + '</pre>'
+      ].join("");
+    }
+
+    // Templated title bug: derives the title from the SECTION, never the specific method.
+    function sectionFor(hash) {
+      if (hash.indexOf("#/api/") === 0) return "API Reference";
+      if (hash.indexOf("#/guides/") === 0) return "Guides";
+      return "Home";
+    }
+
+    function render() {
+      var hash = window.location.hash || "#/api/payments.captureCharge";
+      var key = hash.replace("#/api/", "");
+      document.getElementById("view").innerHTML = methodView(key);
+      // BUG: title reflects only the section, so it is identical for every method in the section.
+      document.title = sectionFor(hash) + " — DevDocs";
+    }
+
+    if (!window.location.hash) {
+      try { history.replaceState(null, "", "#/api/payments.captureCharge"); } catch (e) {}
+    }
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>

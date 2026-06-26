@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    SC 2.4.2 aspect: non-distinguishing-templated-title-within-set
+    <title> = "IssueTracker" — the web-application name only. This is a web app, and
+    the Understanding doc says the app NAME can be sufficient for the purpose of the
+    page; the trap here is that this is a DISTINCT per-issue VIEW (issue #4821) within
+    the app, and SC 2.4.2 + the Understanding "web application" example require a SPA /
+    app to update the title per view (e.g. "Bank XYZ, December 2005 statement for
+    Account 1234-5678"). A static "IssueTracker" on every issue view fails to
+    distinguish issue #4821 from the thousands of other issues.
+  -->
+  <title>IssueTracker</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { font:15px/1.55 "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin:0;
+           color:#172029; background:#f4f6f8; }
+    header.app { background:#1f2d3d; color:#dfe7ef; padding:0 18px; height:48px;
+                 display:flex; align-items:center; gap:18px; }
+    header.app .name { font-weight:800; letter-spacing:.03em; }
+    header.app nav a { color:#a9bccf; text-decoration:none; font-size:14px; }
+    .layout { max-width:1000px; margin:18px auto; padding:0 18px 80px;
+              display:grid; grid-template-columns: 1fr 260px; gap:24px; }
+    .crumbs { grid-column:1/-1; font-size:13px; color:#697787; margin-bottom:4px; }
+    .crumbs a { color:#1d6fdb; text-decoration:none; }
+    .issue-id { color:#697787; font-size:14px; font-weight:600; }
+    h1 { font-size:24px; margin:2px 0 10px; line-height:1.25; }
+    .badges span { display:inline-block; border-radius:999px; padding:3px 11px;
+                   font-size:12px; font-weight:700; margin-right:6px; }
+    .b-open { background:#e3f3e8; color:#1b7a3d; }
+    .b-bug { background:#fde8e8; color:#b3261e; }
+    .b-prio { background:#fff2db; color:#9a6700; }
+    .card { background:#fff; border:1px solid #e3e8ee; border-radius:10px;
+            padding:16px 18px; margin:14px 0; }
+    .card h2 { font-size:14px; text-transform:uppercase; letter-spacing:.05em;
+               color:#697787; margin:0 0 10px; }
+    .comment { border-top:1px solid #eef1f4; padding:12px 0; }
+    .comment:first-of-type { border-top:0; }
+    .comment .who { font-weight:700; }
+    .comment .when { color:#8a97a5; font-size:13px; }
+    aside .meta-row { display:flex; justify-content:space-between; padding:7px 0;
+                      border-bottom:1px solid #eef1f4; font-size:14px; }
+    aside .meta-row span:first-child { color:#697787; }
+    code { background:#eef1f4; padding:1px 5px; border-radius:4px; font-size:13px; }
+    @media (max-width:760px){ .layout{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header class="app">
+    <span class="name">IssueTracker</span>
+    <nav aria-label="Primary"><a href="#">Dashboard</a> &nbsp; <a href="#">My issues</a> &nbsp; <a href="#">Projects</a></nav>
+  </header>
+
+  <div class="layout">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="#">Projects</a> / <a href="#">checkout-service</a> / <span aria-current="page">Issue #4821</span>
+    </nav>
+
+    <main>
+      <p class="issue-id">checkout-service #4821</p>
+      <h1>Payment retry loops indefinitely when the gateway returns HTTP 402</h1>
+      <p class="badges">
+        <span class="b-open">Open</span>
+        <span class="b-bug">Bug</span>
+        <span class="b-prio">Priority: High</span>
+      </p>
+
+      <div class="card">
+        <h2>Description</h2>
+        <p>
+          When the payment gateway returns <code>402 Payment Required</code>, the retry
+          handler treats it as a transient error and re-submits the same charge forever.
+          We saw 11,400 duplicate attempts on order <code>ORD-99214</code> before the
+          circuit breaker tripped.
+        </p>
+        <p>
+          Steps to reproduce: submit an order with a card that the sandbox flags as
+          "insufficient funds", watch <code>retryCharge()</code> spin. Expected: fail
+          fast after 3 attempts and surface the decline to the user.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>3 comments</h2>
+        <div class="comment">
+          <p><span class="who">priya.menon</span> <span class="when">&middot; opened this issue on Apr 9, 2024</span></p>
+          <p>Confirmed on staging. The 402 branch is missing from the non-retryable set.</p>
+        </div>
+        <div class="comment">
+          <p><span class="who">marcus.lee</span> <span class="when">&middot; Apr 9, 2024</span></p>
+          <p>I can take this. Will add 402/403 to <code>NON_RETRYABLE_STATUSES</code> and add a regression test.</p>
+        </div>
+        <div class="comment">
+          <p><span class="who">priya.menon</span> <span class="when">&middot; Apr 10, 2024</span></p>
+          <p>Thanks &mdash; please also cap total attempts at 3 regardless of status, as defence in depth.</p>
+        </div>
+      </div>
+    </main>
+
+    <aside aria-label="Issue metadata">
+      <div class="card">
+        <h2>Details</h2>
+        <div class="meta-row"><span>Assignee</span><span>marcus.lee</span></div>
+        <div class="meta-row"><span>Reporter</span><span>priya.menon</span></div>
+        <div class="meta-row"><span>Milestone</span><span>v2.7.0</span></div>
+        <div class="meta-row"><span>Opened</span><span>Apr 9, 2024</span></div>
+        <div class="meta-row"><span>Issue</span><span>#4821</span></div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>
