@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-field-binding | error correctly bound via aria-describedby (ARIA21) -->
+<html lang="en"><head><meta charset="utf-8"><title>Bound via describedby</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign in</h1>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required aria-describedby="email-err">
+    <p id="email-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Sign in</button>
+  </form>
+  <script>
+    // The error is injected into #email-err, which the failing field references via aria-describedby, and aria-invalid is set.
+    var f=document.getElementById('f'), email=document.getElementById('email'), m=document.getElementById('email-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ m.textContent='Error: Email must be a valid email address.'; m.hidden=false; email.setAttribute('aria-invalid','true'); }
+      else { m.hidden=true; email.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

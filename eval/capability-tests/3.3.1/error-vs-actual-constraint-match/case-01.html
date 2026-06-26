@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-vs-actual-constraint-match | email-format violated but error says "required" -->
+<html lang="en"><head><meta charset="utf-8"><title>Email field, wrong error</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Newsletter sign-up</h1>
+  <form id="f" novalidate>
+    <label for="email">Email address</label>
+    <input id="email" name="email" type="text" aria-describedby="email-err">
+    <p id="email-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Subscribe</button>
+  </form>
+  <script>
+    // CONSTRAINT: value must match an email pattern. The error text MISMATCHES the real constraint.
+    var f=document.getElementById('f'), e=document.getElementById('email'), m=document.getElementById('email-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.value.trim());
+      if(!ok){
+        // BUG: the field IS filled in; the real failure is bad email FORMAT, but the error claims it is empty/required.
+        m.textContent='Error: Email address is required.';
+        m.hidden=false; e.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

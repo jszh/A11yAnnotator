@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-summary-coherence | summary shows the PREVIOUS submit's errors (one submit behind) -->
+<html lang="en"><head><meta charset="utf-8"><title>Summary one submit behind</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign up</h1>
+  <div id="summary" class="summary" role="alert" hidden>
+    <strong>There is a problem:</strong>
+    <ul id="list"></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <label for="pw">Password (min 8)</label>
+    <input id="pw" name="pw" type="password" minlength="8">
+    <button id="submit" type="submit">Create</button>
+  </form>
+  <script>
+    // BUG: the summary renders the PRIOR computation, then computes the current one — so it is always one submit behind.
+    // It is seeded with a stale entry from an earlier interaction, so on the failing submit the summary shows the
+    // STALE state (an out-of-date field message) instead of the fields that are actually in error right now.
+    var f=document.getElementById('f'), email=document.getElementById('email'), pw=document.getElementById('pw'),
+        s=document.getElementById('summary'), list=document.getElementById('list');
+    var pending=['Confirm email did not match.'];  // stale message from a prior step; not a current failing field
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      // render whatever was pending from LAST time
+      list.innerHTML = pending.map(function(t){return '<li>'+t+'</li>';}).join('');
+      s.hidden = pending.length===0;
+      // now compute current, but store for NEXT submit (lag bug)
+      pending=[];
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) pending.push('Email is required.');
+      if(pw.value.length<8) pending.push('Password must be at least 8 characters.');
+    });
+  </script>
+</body></html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-indicator-name-correctness | error prefixes the field name in the form "Error: Password field." (TT example) -->
+<html lang="en"><head><meta charset="utf-8"><title>TT-style named error</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Set password</h1>
+  <form id="f" novalidate>
+    <label for="pw">Password (minimum 8 characters)</label>
+    <input id="pw" name="pw" type="password" minlength="8" aria-describedby="pw-err">
+    <p id="pw-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Save</button>
+  </form>
+  <script>
+    // Mirrors the Trusted Tester PASS example: "Error: Password field." + a description.
+    var f=document.getElementById('f'), pw=document.getElementById('pw'), m=document.getElementById('pw-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(pw.value.length<8){ m.textContent='Error: Password field. The password must be at least 8 characters.'; m.hidden=false; pw.setAttribute('aria-invalid','true'); }
+      else { m.hidden=true; pw.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

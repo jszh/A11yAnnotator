@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-indicator-name-correctness | multi-field form, the error names the SPECIFIC failing field -->
+<html lang="en"><head><meta charset="utf-8"><title>Specific field named among many</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Profile</h1>
+  <form id="f" novalidate>
+    <label for="first">First name (required)</label>
+    <input id="first" name="first" type="text" required value="Sam">
+    <label for="last">Last name (required)</label>
+    <input id="last" name="last" type="text" required aria-describedby="last-err">
+    <p id="last-err" class="err" role="alert" hidden></p>
+    <label for="city">City (required)</label>
+    <input id="city" name="city" type="text" required value="Denver">
+    <button id="submit" type="submit">Save profile</button>
+  </form>
+  <script>
+    // Field under test: Last name (empty). Error explicitly names "Last name" among the three required fields.
+    var f=document.getElementById('f'), last=document.getElementById('last'), m=document.getElementById('last-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(last.value.trim()===''){ m.textContent='Error: Last name is required.'; m.hidden=false; last.setAttribute('aria-invalid','true'); }
+      else { m.hidden=true; last.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

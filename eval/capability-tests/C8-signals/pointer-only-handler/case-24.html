@@ -1,0 +1,30 @@
+<!-- POSITIVE(abstain) | pointer-only-handler 2.1.1 | delegated-document-click-listener: activation comes from a document-level delegated click handler; the target div carries no inline handler/role/tabindex -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tasks</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    .task { display: flex; align-items: center; gap: .5rem; padding: .4rem 0; }
+    .toggle { display: inline-block; padding: .2rem .6rem; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; }
+    .task.done span.label { text-decoration: line-through; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>Today</h1>
+  <div class="task">
+    <!-- no inline handler, no role, no tabindex on the toggle itself; behavior is supplied by a delegated document click listener (data-action) and there is no keyboard path -->
+    <div id="t1" class="toggle" data-action="complete">Mark done</div>
+    <span class="label">Buy groceries</span>
+  </div>
+  <script>
+    // Event delegation on the document: a static per-element reader cannot easily attribute this to #t1,
+    // and crucially there is NO keydown delegation, so keyboard users cannot complete the task.
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-action="complete"]');
+      if (t) { t.closest('.task').classList.toggle('done'); }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-summary-coherence | summary names a field generically ("Field 2") that does not match labels -->
+<html lang="en"><head><meta charset="utf-8"><title>Summary uses opaque field numbers</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Survey</h1>
+  <div id="summary" class="summary" role="alert" hidden>
+    <strong>There is a problem:</strong>
+    <ul id="list"></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="name">Name (required)</label>
+    <input id="name" name="name" type="text" required value="Sam">
+    <label for="age">Age (required)</label>
+    <input id="age" name="age" type="text" required>
+    <button id="submit" type="submit">Submit</button>
+  </form>
+  <script>
+    // Field under test: Age (empty). BUG: the summary lists "Field 2 has an error" — an opaque positional index that
+    // does not identify the Age field, so the summary does not coherently identify the failing field.
+    var f=document.getElementById('f'), age=document.getElementById('age'),
+        s=document.getElementById('summary'), list=document.getElementById('list');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';
+      if(age.value.trim()===''){ list.innerHTML='<li>Field 2 has an error.</li>'; s.hidden=false; }
+      else { s.hidden=true; }
+    });
+  </script>
+</body></html>

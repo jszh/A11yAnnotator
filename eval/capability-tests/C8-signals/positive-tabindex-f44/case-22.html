@@ -1,0 +1,25 @@
+<!-- NEGATIVE (trap): visual reorder via CSS `order`, but NO positive tabindex — F44 specifically passes -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Filter bar</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    .bar { display: flex; gap: .5rem; }
+    .bar button { padding: .45rem .9rem; }
+    /* CSS reorders the VISUAL position only; it does not set any positive tabindex. */
+    #apply { order: -1; }
+  </style>
+</head>
+<body>
+  <h1>Results</h1>
+  <div class="bar">
+    <button type="button">Sort</button>
+    <button type="button">Group</button>
+    <!-- Visually moved to the front by CSS order, but tab order stays DOM order.
+         F44 concerns positive tabindex specifically; none exists here, so F44 passes. -->
+    <button id="apply" type="button">Apply</button>
+  </div>
+</body>
+</html>

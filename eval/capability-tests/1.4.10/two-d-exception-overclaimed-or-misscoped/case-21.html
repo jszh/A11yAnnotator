@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!-- 1.4.10 NEGATIVE | two-d-exception-overclaimed | LEGITIMATE spreadsheet-style data grid; comparing values across many columns requires 2D layout -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget grid</title>
+<style>
+  body { margin:0; font:16px/1.5 system-ui, sans-serif; padding:16px; }
+  /* LEGITIMATE EXCEPTION: a budget grid where each cell's meaning comes from its row (category)
+     AND column (month) simultaneously. Collapsing to one column would destroy the comparison.
+     This is exactly Note 2's "data tables (not individual cells)." Page chrome still reflows. */
+  .grid-wrap { overflow:auto; }
+  table { border-collapse:collapse; min-width:820px; }
+  th, td { border:1px solid #999; padding:6px 12px; text-align:right; }
+  th:first-child, td:first-child { text-align:left; }
+</style></head>
+<body>
+  <h1>Quarterly budget</h1>
+  <p>This paragraph reflows. The grid keeps its rows and columns because each figure only means something at the intersection of a category and a month.</p>
+  <div class="grid-wrap" role="region" aria-label="Quarterly budget grid" tabindex="0">
+    <table>
+      <tr><th scope="col">Category</th><th scope="col">Jan</th><th scope="col">Feb</th><th scope="col">Mar</th><th scope="col">Apr</th><th scope="col">May</th></tr>
+      <tr><th scope="row">Salaries</th><td>40</td><td>40</td><td>42</td><td>42</td><td>43</td></tr>
+      <tr><th scope="row">Rent</th><td>12</td><td>12</td><td>12</td><td>12</td><td>12</td></tr>
+      <tr><th scope="row">Supplies</th><td>3</td><td>5</td><td>4</td><td>6</td><td>5</td></tr>
+    </table>
+  </div>
+</body></html>

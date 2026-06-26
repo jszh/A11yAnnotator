@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>4.1.2 stale-name-after-activation case 3</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:620px;color:#1a1a1a}
+  h1{font-size:20px}
+  button,[role=button]{font:inherit;padding:9px 16px;cursor:pointer;border:1px solid #555;background:#f4f4f4;border-radius:6px}
+  [role=switch],[role=checkbox]{display:inline-block}
+  .panel{border:1px solid #bbb;padding:10px;margin-top:8px;background:#fafafa}
+  .icon{display:inline-block;width:1em;height:1em;vertical-align:-2px}
+  .slider{position:relative;width:240px;height:28px;border:1px solid #555;border-radius:14px;background:#eee;outline-offset:3px}
+  .thumb{position:absolute;top:2px;width:22px;height:22px;border-radius:50%;background:#356;left:2px}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  output,.val{font-variant-numeric:tabular-nums;font-weight:600}
+  .stepper button{min-width:40px}
+  [aria-pressed=true]{background:#356;color:#fff}
+  .on{background:#356;color:#fff}
+</style></head>
+<body>
+<!-- 4.1.2 POSITIVE | stale-name-after-activation | image-button-alt-stale -->
+  <h1>Volume control</h1>
+  <input id="mute" type="image" alt="Mute"
+    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='%23356'/%3E%3C/svg%3E" onclick="go();return false;">
+  <span id="st">sound on</span>
+<script>
+var muted=false;function go(){muted=!muted;
+  document.getElementById('st').textContent=muted?'muted':'sound on';
+  /* BUG: input[type=image] alt stays "Mute" after the control has muted; now it unmutes but its name still says "Mute" (F89-style stale name on an image control). */}
+</script>
+</body></html>

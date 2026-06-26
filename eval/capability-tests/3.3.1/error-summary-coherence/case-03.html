@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-summary-coherence | STALE: append-only summary pre-seeded with an entry for a field that is valid -->
+<html lang="en"><head><meta charset="utf-8"><title>Stale append-only summary</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Profile</h1>
+  <!-- A prior render left a Phone error in the summary. Phone is now VALID, but the append-only logic never clears it. -->
+  <div id="summary" class="summary" role="alert">
+    <strong>There is a problem:</strong>
+    <ul id="list"><li>Phone format is invalid.</li></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <label for="phone">Phone (format 555-123-4567)</label>
+    <input id="phone" name="phone" type="text" pattern="\d{3}-\d{3}-\d{4}" value="555-123-4567">
+    <button id="submit" type="submit">Save</button>
+  </form>
+  <script>
+    // BUG: the list is only ever appended to, never cleared. On the single invalid submit (Email empty, Phone valid)
+    // the summary keeps the stale "Phone format is invalid." entry for a field that currently passes.
+    var f=document.getElementById('f'), email=document.getElementById('email'), phone=document.getElementById('phone'),
+        s=document.getElementById('summary'), list=document.getElementById('list');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())){ list.insertAdjacentHTML('beforeend','<li>Email is required.</li>'); }
+      if(!/^\d{3}-\d{3}-\d{4}$/.test(phone.value)){ list.insertAdjacentHTML('beforeend','<li>Phone format is invalid.</li>'); }
+      s.hidden=false;  // never clears the pre-seeded stale Phone entry
+    });
+  </script>
+</body></html>

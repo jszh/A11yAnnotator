@@ -1,0 +1,45 @@
+<!-- SC1.4.11 | POSITIVE-ABSTAIN | abstain-gradient-adjacent-surface-truth-fail | white tick on blue gradient (#7fb0ee..#1a73e8); at lightest stop 2.247 (FAIL) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checked tick on a gradient fill (abstain; truth fails at the light end)</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .field { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+  .field input { position: absolute; opacity: 0; }
+  .box {
+    width: 30px; height: 30px; border-radius: 4px;
+    border: 1px solid #1a73e8; background: #ffffff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  /* CHECKED: the fill is a GRADIENT from #7fb0ee (light) to #1a73e8 (dark).
+     A flat-colour reducer cannot pick one adjacent value -> the runner SHOULD ABSTAIN.
+     Human truth: the white tick over the LIGHT end (#7fb0ee) is 2.247:1 = FAIL,
+     so the case is labelled a positive (a barrier exists somewhere on the cue). */
+  .field input:checked + .box {
+    background: linear-gradient(135deg, #7fb0ee 0%, #1a73e8 100%);
+    border-color: #1a73e8;
+  }
+  .field input:checked + .box::after {
+    content: "";
+    width: 9px; height: 15px;
+    border: solid #ffffff;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg) translate(0, -1px);
+    display: block;
+  }
+</style>
+</head>
+<body>
+  <h1>Subscription</h1>
+  <div class="field">
+    <input type="checkbox" id="auto" checked>
+    <label for="auto" class="box"></label>
+    <label for="auto">Auto-renew (checked)</label>
+  </div>
+  <p>The checked tick sits on a blue gradient. A flat-colour contrast reducer cannot
+  resolve a single adjacent surface and should abstain. Human truth: over the light
+  end (#7fb0ee) the white tick is 2.247:1 — a real failure, so this is a positive.</p>
+</body>
+</html>

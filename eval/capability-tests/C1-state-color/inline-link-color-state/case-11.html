@@ -1,0 +1,33 @@
+<!-- SC 1.4.1 | positive | underline-removed-on-hover-with-unclassifiable-svg-icon | rest underlined; :hover drops underline BUT reveals an inline ::after SVG mask icon whose meaning a static analyzer cannot classify -> runner should ABSTAIN on whether the icon is a sufficient cue. Link #1a73e8 vs body 3.863:1 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hover drops underline, ambiguous icon cue</title>
+<style>
+  body { font-family: Georgia, serif; background: #ffffff; color: #1a1a1a; margin: 48px; max-width: 40em; line-height: 1.7; font-size: 18px; }
+  a.body-link {
+    color: #1a73e8;              /* vs body 3.863:1 */
+    text-decoration: underline;  /* rest cue present */
+  }
+  a.body-link:hover {
+    text-decoration: none;       /* underline removed on hover */
+  }
+  a.body-link:hover::after {
+    /* a decorative-looking mask icon appears; classifier cannot tell if it is a
+       meaningful link affordance or decoration -> ambiguous */
+    content: "";
+    display: inline-block;
+    width: 0.7em; height: 0.7em; margin-left: 0.2em;
+    background-color: #1a73e8;
+    -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>') center / contain no-repeat;
+            mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>') center / contain no-repeat;
+  }
+</style>
+</head>
+<body>
+  <p>The institute keeps an open archive of past lectures. You may browse the
+  <a href="/lectures" class="body-link">recorded lecture series</a> at any time,
+  and transcripts are added a few weeks after each event is filmed.</p>
+</body>
+</html>

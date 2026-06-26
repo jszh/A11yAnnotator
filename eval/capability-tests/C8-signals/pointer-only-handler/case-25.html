@@ -1,0 +1,34 @@
+<!-- NEGATIVE(abstain) | pointer-only-handler 2.1.1 | keydown-attached-via-shared-helper-loop: the keyboard path exists but is wired by a generic helper iterating elements, so a per-element static reader may not see keydown bound to this node -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Color picker</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    .swatch { display: inline-block; width: 2rem; height: 2rem; border-radius: 6px; cursor: pointer; vertical-align: middle; }
+    .swatch:focus { outline: 3px solid #222; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <h1>Pick a color</h1>
+  <!-- role=button + tabindex=0; the keyboard handler is genuinely present but attached by a shared loop using a variable event name, so static attribution of keydown to this exact node is hard -->
+  <div id="red" class="swatch" role="button" tabindex="0" data-color="red" style="background:#d93025" aria-label="Red"></div>
+  <p id="picked">Picked: none</p>
+  <script>
+    function bindActivatable(el, fn) {
+      var events = ['click', 'keydown'];
+      events.forEach(function (type) {
+        el.addEventListener(type, function (e) {
+          if (type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+          if (type === 'keydown') e.preventDefault();
+          fn(el);
+        });
+      });
+    }
+    bindActivatable(document.getElementById('red'), function (el) {
+      document.getElementById('picked').textContent = 'Picked: ' + el.dataset.color;
+    });
+  </script>
+</body>
+</html>

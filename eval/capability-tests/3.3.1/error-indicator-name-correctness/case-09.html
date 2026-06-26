@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-indicator-name-correctness | error count is correct but field name is omitted ("1 error found") -->
+<html lang="en"><head><meta charset="utf-8"><title>Count without name</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Apply for card</h1>
+  <form id="f" novalidate>
+    <label for="income">Annual income (required)</label>
+    <input id="income" name="income" type="text" required>
+    <label for="ssn">SSN (required)</label>
+    <input id="ssn" name="ssn" type="text" required value="000-00-0000">
+    <p id="form-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Apply</button>
+  </form>
+  <script>
+    // Field under test: Annual income (empty). BUG: the error reports only "1 error found" — a count with no field name,
+    // so the item in error is not identified.
+    var f=document.getElementById('f'), income=document.getElementById('income'), m=document.getElementById('form-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(income.value.trim()===''){ m.textContent='1 error found.'; m.hidden=false; }
+      else { m.hidden=true; }
+    });
+  </script>
+</body></html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>2.1.2 arrow-key-composite-widget-trap case 08</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:680px;color:#1a1a1a}
+  h1{font-size:20px}
+  button,[role]{font:inherit}
+  .before,.after{display:inline-block;margin:6px 0;padding:8px 14px;border:1px solid #555;border-radius:6px;background:#f4f4f4}
+  [role=menubar],[role=menu],[role=tablist],[role=toolbar],[role=radiogroup]{display:flex;gap:6px;padding:6px;border:1px solid #888;border-radius:8px;margin:10px 0;background:#fafafa}
+  [role=menu]{flex-direction:column;width:200px}
+  [role=menuitem],[role=tab],[role=button],[role=radio]{padding:7px 12px;border:1px solid #777;border-radius:6px;background:#fff;cursor:pointer}
+  [role=listbox]{display:block;width:240px;border:1px solid #888;border-radius:8px;padding:4px;margin:10px 0;background:#fafafa}
+  [role=option]{padding:6px 10px;border-radius:5px;cursor:pointer}
+  [role=grid]{display:grid;grid-template-columns:repeat(3,60px);gap:4px;margin:10px 0}
+  [role=gridcell]{border:1px solid #777;text-align:center;padding:10px;background:#fff}
+  :focus{outline:3px solid #2557d6;outline-offset:2px}
+  [aria-selected=true],[aria-checked=true],[tabindex="0"]:focus{background:#e6eefc}
+  .help{color:#555;font-size:14px}
+</style></head>
+<body>
+<!-- 2.1.2 POSITIVE | arrow-key-composite-widget-trap | menu-both-tab-directions-blocked -->
+  <h1>Profile menu</h1>
+  <a class="before" href="#a">Before widget</a>
+  <ul role="menu" aria-label="Profile">
+    <li id="mm0" role="menuitem" tabindex="0">Account</li>
+    <li role="menuitem" tabindex="-1">Billing</li>
+    <li role="menuitem" tabindex="-1">Sign out</li>
+  </ul>
+  <a class="after" href="#b">After widget</a>
+<script>
+var its=[...document.querySelectorAll('[role=menuitem]')],i=0;
+function mv(d){its[i].tabIndex=-1;i=(i+d+its.length)%its.length;its[i].tabIndex=0;its[i].focus();}
+document.querySelector('[role=menu]').addEventListener('keydown',function(e){
+  if(e.key==='ArrowDown'){e.preventDefault();mv(1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();mv(-1);}
+  else if(e.key==='Tab'){e.preventDefault();e.stopPropagation();/* BUG: both directions blocked, no exit at all. */}
+});
+</script>
+</body></html>

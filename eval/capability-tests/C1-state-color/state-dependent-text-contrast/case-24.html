@@ -1,0 +1,31 @@
+<!-- SC 1.4.3 | negative(abstain) | white-text-over-background-image-stays-pass | white text over a :focus dark CSS texture (#2b2b2b/#3a3a3a, 14.2:1 & 11.4:1); truth PASSES but a flat-color reducer cannot measure an image and must ABSTAIN. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>White text over safe background image on focus</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; margin: 40px; }
+  .card {
+    font-size: 16px;
+    color: #ffffff;            /* white text */
+    background: #2b2b2b;       /* rest: solid dark, white = 14.16:1 PASS */
+    padding: 16px;
+    width: 260px;
+  }
+  /* On focus a dark repeating texture (#2b2b2b 14.2:1 / #3a3a3a 11.4:1) sits
+     behind the same white text. White passes over both shades, but the flat
+     reducer cannot evaluate an image background and must ABSTAIN; truth is PASS. */
+  .card:focus {
+    outline: 2px solid #ffffff;
+    background-image:
+      repeating-linear-gradient(45deg, #2b2b2b 0 8px, #3a3a3a 8px 16px);
+    color: #ffffff;
+  }
+</style>
+</head>
+<body>
+  <p>Focus the card; on focus the same white caption sits over a dark textured image.</p>
+  <div class="card" tabindex="0">Tap to view your saved itinerary details</div>
+</body>
+</html>

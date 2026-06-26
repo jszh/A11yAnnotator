@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-field-binding | adjacency misleads: error rendered directly under the WRONG field -->
+<html lang="en"><head><meta charset="utf-8"><title>Error under wrong field</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:4px;margin-bottom:10px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  .field{margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Contact</h1>
+  <form id="f" novalidate>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" value="ok@example.com">
+      <!-- BUG: the phone error is injected here, directly beneath the (valid) Email field. -->
+      <p id="err" class="err" role="alert" hidden></p>
+    </div>
+    <div class="field">
+      <label for="phone">Phone (format 555-123-4567)</label>
+      <input id="phone" name="phone" type="text" pattern="\d{3}-\d{3}-\d{4}">
+    </div>
+    <button id="submit" type="submit">Save</button>
+  </form>
+  <script>
+    // Field under test: Phone (bad format). The error appears adjacent to Email, so the visual binding points at the
+    // wrong field and there is no programmatic association to Phone.
+    var f=document.getElementById('f'), phone=document.getElementById('phone'), m=document.getElementById('err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^\d{3}-\d{3}-\d{4}$/.test(phone.value);
+      if(!ok){ m.textContent='Error: Phone must match 555-123-4567.'; m.hidden=false; }
+      else { m.hidden=true; }
+    });
+  </script>
+</body></html>

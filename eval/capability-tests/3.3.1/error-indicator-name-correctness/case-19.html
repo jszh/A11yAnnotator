@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE(abstain) | error-indicator-name-correctness | field has NO programmatic accessible name; error uses a plausible human phrase that the runner cannot confirm maps to this control -->
+<html lang="en"><head><meta charset="utf-8"><title>No accessible name to compare against</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Reservation</h1>
+  <!-- Visible text "Party size" sits in a sibling div, not associated to the input by for/aria. The control has no
+       programmatic accessible name, so whether the error "Party size must be between 1 and 8" correctly NAMES this
+       specific field is not deterministically resolvable by name-matching; the runner should abstain. -->
+  <form id="f" novalidate>
+    <div>Party size</div>
+    <input id="party" name="party" type="text" inputmode="numeric" aria-describedby="party-err">
+    <p id="party-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Reserve</button>
+  </form>
+  <script>
+    var f=document.getElementById('f'), e=document.getElementById('party'), m=document.getElementById('party-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var n=Number(e.value);
+      if(!(Number.isFinite(n) && n>=1 && n<=8)){ m.textContent='Error: Party size must be between 1 and 8.'; m.hidden=false; e.setAttribute('aria-invalid','true'); }
+      else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

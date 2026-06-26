@@ -1,0 +1,42 @@
+<!-- SC1.4.11 | POSITIVE | composite-alpha-indicator-in-state | rgba(255,255,255,0.5) over #1a73e8 => #8db9f4 tick vs #1a73e8 fill = 2.226 (FAIL) checked -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Translucent white tick composites below 3:1 on its fill</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .field { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+  .field input { position: absolute; opacity: 0; }
+  .box {
+    width: 28px; height: 28px; border-radius: 4px;
+    border: 1px solid #1a73e8; background: #ffffff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  /* CHECKED: strong blue fill (good vs page) but the tick is 50%-opacity white.
+     Composited over #1a73e8 the tick renders #8db9f4 = 2.226:1 vs the fill = FAIL.
+     The fill passes; the cue ON the fill does not. */
+  .field input:checked + .box {
+    background: #1a73e8; border-color: #1a73e8;
+  }
+  .field input:checked + .box::after {
+    content: "";
+    width: 8px; height: 13px;
+    border: solid rgba(255, 255, 255, 0.5);  /* => #8db9f4 on #1a73e8 = 2.226:1 FAIL */
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg) translate(0, -1px);
+    display: block;
+  }
+</style>
+</head>
+<body>
+  <h1>Filters</h1>
+  <div class="field">
+    <input type="checkbox" id="instock" checked>
+    <label for="instock" class="box"></label>
+    <label for="instock">In stock only (checked)</label>
+  </div>
+  <p>The checked fill (#1a73e8) is fine, but the half-opacity white tick composites
+  to #8db9f4 against that fill = 2.226:1 — the checkmark cue is sub-threshold.</p>
+</body>
+</html>

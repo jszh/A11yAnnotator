@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-summary-coherence | summary lists a PASSING field that is not in error -->
+<html lang="en"><head><meta charset="utf-8"><title>Summary lists a passing field</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Checkout</h1>
+  <div id="summary" class="summary" role="alert" hidden>
+    <strong>There is a problem:</strong>
+    <ul id="list"></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <label for="zip">ZIP code (required)</label>
+    <input id="zip" name="zip" type="text" required value="80202">
+    <button id="submit" type="submit">Place order</button>
+  </form>
+  <script>
+    // Field under test: Email (empty). ZIP is valid. BUG: the summary lists BOTH Email and ZIP; listing the passing ZIP
+    // field makes the summary incoherent (a field not in error is reported as failing).
+    var f=document.getElementById('f'), email=document.getElementById('email'),
+        s=document.getElementById('summary'), list=document.getElementById('list');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';
+      var emailBad=!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(emailBad){
+        list.innerHTML='<li>Email is required.</li><li>ZIP code is required.</li>'; // ZIP is NOT in error
+        s.hidden=false;
+      } else { s.hidden=true; }
+    });
+  </script>
+</body></html>

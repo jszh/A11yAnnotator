@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-field-binding | describedby set but the referenced element is empty (no error text bound) -->
+<html lang="en"><head><meta charset="utf-8"><title>Describedby to empty node</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  .toast{position:fixed;top:10px;right:10px;background:#b00020;color:#fff;padding:8px 12px;border-radius:4px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Reset</h1>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required aria-describedby="email-err">
+    <p id="email-err" class="err"></p>
+    <button id="submit" type="submit">Send link</button>
+  </form>
+  <script>
+    // BUG: the describedby target (#email-err) stays EMPTY; the actual error text is injected into a detached toast
+    // with no association to the field. The binding resolves to nothing.
+    var f=document.getElementById('f'), email=document.getElementById('email');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      var old=document.querySelector('.toast'); if(old) old.remove();
+      if(!ok){
+        var t=document.createElement('div'); t.className='toast';
+        t.textContent='Error: Email must be a valid email address.'; document.body.appendChild(t);
+        email.setAttribute('aria-invalid','true');
+      } else { email.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

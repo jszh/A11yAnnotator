@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-summary-coherence | summary count and listed items agree; focus moved to summary -->
+<html lang="en"><head><meta charset="utf-8"><title>Count agrees with list</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Register</h1>
+  <div id="summary" class="summary" role="alert" tabindex="-1" hidden>
+    <strong id="count"></strong>
+    <ul id="list"></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <label for="user">Username (required)</label>
+    <input id="user" name="user" type="text" required>
+    <button id="submit" type="submit">Register</button>
+  </form>
+  <script>
+    // Both fields empty. Summary lists both, the count says "2 errors", and focus is moved to the summary.
+    var f=document.getElementById('f'), email=document.getElementById('email'), user=document.getElementById('user'),
+        s=document.getElementById('summary'), list=document.getElementById('list'), count=document.getElementById('count');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';
+      var items=[];
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) items.push('Email is required.');
+      if(user.value.trim()==='') items.push('Username is required.');
+      list.innerHTML=items.map(function(t){return '<li>'+t+'</li>';}).join('');
+      count.textContent=items.length+' errors found:';
+      s.hidden=items.length===0;
+      if(items.length){ s.focus(); }
+    });
+  </script>
+</body></html>

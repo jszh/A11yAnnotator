@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-vs-actual-constraint-match | error fires on a VALID value (false error) -->
+<html lang="en"><head><meta charset="utf-8"><title>Valid value rejected</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Postal code</h1>
+  <form id="f" novalidate>
+    <label for="zip">ZIP code (5 digits)</label>
+    <input id="zip" name="zip" type="text" pattern="\d{5}" aria-describedby="zip-err">
+    <p id="zip-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Continue</button>
+  </form>
+  <script>
+    // CONSTRAINT: 5 digits. BUG: validator uses a wrong regex (exactly-4) so a CORRECT 5-digit value triggers an error.
+    var f=document.getElementById('f'), e=document.getElementById('zip'), m=document.getElementById('zip-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^\d{4}$/.test(e.value);   // wrong: should be \d{5}
+      if(!ok){
+        // With invalidValue "12345" (a VALID ZIP) the error fires anyway and describes an error that does not exist.
+        m.textContent='Error: ZIP code must be 5 digits.';
+        m.hidden=false; e.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

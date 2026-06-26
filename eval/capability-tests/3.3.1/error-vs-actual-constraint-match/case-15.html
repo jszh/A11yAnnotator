@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-vs-actual-constraint-match | RISKY-LOOKING but correct: native constraint validation message via SCR18 reflects the real pattern rule -->
+<html lang="en"><head><meta charset="utf-8"><title>Native validity reused correctly</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Contact details</h1>
+  <form id="f" novalidate>
+    <label for="phone">Phone (format 555-123-4567)</label>
+    <input id="phone" name="phone" type="text" pattern="\d{3}-\d{3}-\d{4}" aria-describedby="phone-err">
+    <p id="phone-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Save contact</button>
+  </form>
+  <script>
+    // Risky surface (regex), but the error message is derived from the SAME pattern under test and names the real format rule.
+    var f=document.getElementById('f'), e=document.getElementById('phone'), m=document.getElementById('phone-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=e.checkValidity(); // native pattern validity — matches the actual constraint
+      if(!ok){
+        m.textContent='Error: Phone number must match the format 555-123-4567 (three digits, dash, three digits, dash, four digits).';
+        m.hidden=false; e.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

@@ -1,0 +1,33 @@
+<!-- SC 1.4.1 | negative | valid-invalid-icon-each-state | a field group where BOTH valid and invalid states carry a distinct onscreen glyph (green "✓" when valid, red "✕" when invalid) in addition to color. The differentiating cue exists as a shape in every state, so validity survives grayscale. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Valid/invalid with per-state glyph</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #fff; margin: 40px; }
+  .field { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+  input { font-size: 15px; padding: 8px 10px; border: 2px solid #5f6368; border-radius: 4px; width: 220px; }
+  input[aria-invalid="false"] { border-color: #188038; }
+  input[aria-invalid="true"]  { border-color: #d93025; }
+  .mark { font-size: 16px; width: 1em; }
+  /* Each state draws its own onscreen glyph: "✓" for valid, "✕" for invalid.
+     The glyph shapes differ from each other, so the two states are
+     distinguishable without relying on green vs red. */
+  input[aria-invalid="false"] + .mark::before { content: "\2713"; }
+  input[aria-invalid="true"]  + .mark::before { content: "\2717"; }
+</style>
+</head>
+<body>
+  <form>
+    <div class="field">
+      <input type="text" value="alice@example.com" aria-invalid="false" aria-label="Email">
+      <span class="mark" aria-hidden="true"></span>
+    </div>
+    <div class="field">
+      <input type="text" value="bob@" aria-invalid="true" aria-label="Backup email">
+      <span class="mark" aria-hidden="true"></span>
+    </div>
+  </form>
+</body>
+</html>

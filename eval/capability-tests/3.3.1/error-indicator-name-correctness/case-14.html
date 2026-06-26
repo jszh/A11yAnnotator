@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-indicator-name-correctness | summary lists the failing field by name AND links to it -->
+<html lang="en"><head><meta charset="utf-8"><title>Summary names the field</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Checkout</h1>
+  <div id="summary" class="summary" role="alert" hidden>
+    <strong>There is a problem:</strong>
+    <ul id="summary-list"></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <label for="zip">ZIP code (required)</label>
+    <input id="zip" name="zip" type="text" required value="80202">
+    <button id="submit" type="submit">Place order</button>
+  </form>
+  <script>
+    // Field under test: Email (empty). The summary names the failing field "Email" and links to #email.
+    var f=document.getElementById('f'), email=document.getElementById('email'),
+        s=document.getElementById('summary'), list=document.getElementById('summary-list');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){
+        var li=document.createElement('li'); var a=document.createElement('a');
+        a.href='#email'; a.textContent='Email is required'; li.appendChild(a); list.appendChild(li);
+        s.hidden=false; email.setAttribute('aria-invalid','true');
+      } else { s.hidden=true; email.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

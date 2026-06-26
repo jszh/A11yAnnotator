@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-summary-coherence | grouped control (radios) failing; summary lists the group once, coherently -->
+<html lang="en"><head><meta charset="utf-8"><title>Group failure listed once</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  fieldset{border:1px solid #999;padding:12px;margin:0 0 12px}
+  legend{font-weight:600}
+  label{font-weight:600}
+  input[type=text]{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Survey</h1>
+  <div id="summary" class="summary" role="alert" hidden>
+    <strong>There is a problem:</strong>
+    <ul id="list"></ul>
+  </div>
+  <form id="f" novalidate>
+    <fieldset>
+      <legend>How would you rate us? (required)</legend>
+      <label><input type="radio" name="rating" value="1"> 1</label>
+      <label><input type="radio" name="rating" value="2"> 2</label>
+    </fieldset>
+    <label for="comment">Comment (required)</label>
+    <input id="comment" name="comment" type="text" required value="Great">
+    <button id="submit" type="submit">Submit</button>
+  </form>
+  <script>
+    // Field under test: the rating radio group (none selected). Comment is valid. The summary lists the rating group
+    // exactly once and does not list the passing Comment field.
+    var f=document.getElementById('f'), comment=document.getElementById('comment'),
+        s=document.getElementById('summary'), list=document.getElementById('list');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';
+      var items=[];
+      if(!f.querySelector('input[name="rating"]:checked')) items.push('Please choose a rating for "How would you rate us?".');
+      if(comment.value.trim()==='') items.push('Comment is required.');
+      list.innerHTML=items.map(function(t){return '<li>'+t+'</li>';}).join('');
+      s.hidden=items.length===0;
+    });
+  </script>
+</body></html>

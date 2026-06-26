@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE(abstain) | error-vs-actual-constraint-match | business-rule constraint with no native attr; error is correct but the runner cannot derive the constraint to verify the match -->
+<html lang="en"><head><meta charset="utf-8"><title>Business-rule constraint</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Apply coupon</h1>
+  <form id="f" novalidate>
+    <label for="code">Coupon code</label>
+    <input id="code" name="code" type="text" aria-describedby="code-err">
+    <p id="code-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Apply</button>
+  </form>
+  <script>
+    // No native constraint and no inspectable rule: validity is an opaque allow-list (business logic). The error that
+    // appears is plausibly correct, but the runner cannot DERIVE the constraint, so it cannot judge match vs mismatch.
+    var f=document.getElementById('f'), e=document.getElementById('code'), m=document.getElementById('code-err');
+    var ALLOW=['SAVE10','FREESHIP','VIP'];
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(ALLOW.indexOf(e.value.trim().toUpperCase())===-1){
+        m.textContent='Error: Coupon code is not valid or has expired.';
+        m.hidden=false; e.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

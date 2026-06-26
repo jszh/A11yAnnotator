@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-field-binding | error bound by adjacency (message immediately follows the field, inside its wrapper) -->
+<html lang="en"><head><meta charset="utf-8"><title>Bound by adjacency</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:4px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  .field{margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Order</h1>
+  <form id="f" novalidate>
+    <div class="field">
+      <label for="qty">Quantity (minimum 5)</label>
+      <input id="qty" name="qty" type="text" inputmode="numeric">
+      <p id="qty-err" class="err" role="alert" hidden></p>
+    </div>
+    <button id="submit" type="submit">Add</button>
+  </form>
+  <script>
+    // The error sits immediately beneath the only field, inside its wrapper — visual adjacency binds it unambiguously.
+    var f=document.getElementById('f'), qty=document.getElementById('qty'), m=document.getElementById('qty-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var n=Number(qty.value);
+      if(!(Number.isFinite(n) && n>=5)){ m.textContent='Error: Quantity must be at least 5.'; m.hidden=false; }
+      else { m.hidden=true; }
+    });
+  </script>
+</body></html>

@@ -1,0 +1,38 @@
+<!-- SC1.4.11 | NEGATIVE | passes-every-state | white tick on #1a73e8 fill = 4.505 (PASS); boundary passes at rest too -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkbox tick passes in every state</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .field { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+  .field input { position: absolute; opacity: 0; }
+  .box {
+    width: 28px; height: 28px; border-radius: 4px;
+    border: 2px solid #595959;          /* rest boundary vs white = 7:1 PASS */
+    background: #ffffff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  /* CHECKED: strong blue fill, white tick = 4.505:1 on the fill it abuts. PASS in every state. */
+  .field input:checked + .box { background: #1a73e8; border-color: #1a73e8; }
+  .field input:checked + .box::after {
+    content: "";
+    width: 8px; height: 14px;
+    border: solid #ffffff;              /* white tick vs #1a73e8 = 4.505:1 PASS */
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg) translate(0, -1px);
+    display: block;
+  }
+</style>
+</head>
+<body>
+  <h1>Newsletter</h1>
+  <div class="field">
+    <input type="checkbox" id="weekly" checked>
+    <label for="weekly" class="box"></label>
+    <label for="weekly">Weekly digest (checked)</label>
+  </div>
+  <p>Rest boundary 7:1; checked white tick on #1a73e8 fill 4.505:1. Both states pass.</p>
+</body>
+</html>

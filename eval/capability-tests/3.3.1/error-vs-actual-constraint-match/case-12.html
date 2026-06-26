@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-vs-actual-constraint-match | required-empty, error correctly says the field is required (G83) -->
+<html lang="en"><head><meta charset="utf-8"><title>Correct required error</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Account</h1>
+  <form id="f" novalidate>
+    <label for="name">Full name (required)</label>
+    <input id="name" name="name" type="text" required aria-describedby="name-err">
+    <p id="name-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Create account</button>
+  </form>
+  <script>
+    // CONSTRAINT: required. With invalidValue "" the empty-field error correctly identifies the required rule (G83).
+    var f=document.getElementById('f'), e=document.getElementById('name'), m=document.getElementById('name-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(e.value.trim()===''){
+        m.textContent='Error: Full name is required. Please enter your full name.';
+        m.hidden=false; e.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

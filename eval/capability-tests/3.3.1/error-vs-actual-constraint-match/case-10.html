@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-vs-actual-constraint-match | date range violated but error reverses the direction ("too early" when it is too late) -->
+<html lang="en"><head><meta charset="utf-8"><title>Reversed range error</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Book appointment</h1>
+  <form id="f" novalidate>
+    <label for="day">Appointment day of month (1-28)</label>
+    <input id="day" name="day" type="text" inputmode="numeric" aria-describedby="day-err">
+    <p id="day-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Book</button>
+  </form>
+  <script>
+    // CONSTRAINT: 1 <= value <= 28. With invalidValue "31" (too HIGH) the error wrongly says it is too LOW.
+    var f=document.getElementById('f'), e=document.getElementById('day'), m=document.getElementById('day-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var n=Number(e.value);
+      if(!(Number.isFinite(n) && n>=1 && n<=28)){
+        // BUG: misdescribes the violated bound; tells the user to increase a value that is already over the max.
+        m.textContent='Error: Day must be at least 1.';
+        m.hidden=false; e.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

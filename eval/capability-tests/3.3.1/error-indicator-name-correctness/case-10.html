@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-indicator-name-correctness | placeholder turns red but no persistent text identifier (placeholder is not a name) -->
+<html lang="en"><head><meta charset="utf-8"><title>Placeholder-as-name error</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  input.bad::placeholder{color:#b00020}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Quick contact</h1>
+  <form id="f" novalidate>
+    <!-- No visible label; relies on placeholder. On error the placeholder text is swapped, but a placeholder is
+         not a programmatic name and vanishes once typing resumes. -->
+    <input id="email" name="email" type="email" required placeholder="Email" aria-label="Email">
+    <button id="submit" type="submit">Send</button>
+  </form>
+  <script>
+    // CONSTRAINT: email required. BUG: the only "error message" is a changed placeholder ("Email is required") which
+    // is not a persistent text identifier and is not exposed as an error; the item in error is not identified in text.
+    var f=document.getElementById('f'), email=document.getElementById('email');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ email.classList.add('bad'); email.setAttribute('placeholder','Email is required'); }
+      else { email.classList.remove('bad'); email.setAttribute('placeholder','Email'); }
+    });
+  </script>
+</body></html>

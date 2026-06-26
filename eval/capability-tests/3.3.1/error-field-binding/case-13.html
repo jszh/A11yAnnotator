@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-field-binding | two failing fields, each error bound to its OWN field via describedby -->
+<html lang="en"><head><meta charset="utf-8"><title>Per-field binding</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:4px;margin-bottom:10px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign up</h1>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required aria-describedby="email-err">
+    <p id="email-err" class="err" role="alert" hidden></p>
+    <label for="pw">Password (min 8)</label>
+    <input id="pw" name="pw" type="password" minlength="8" aria-describedby="pw-err">
+    <p id="pw-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Create</button>
+  </form>
+  <script>
+    // Field under test: Password (too short); Email also empty. Each error is bound to its OWN field's describedby target.
+    var f=document.getElementById('f'), email=document.getElementById('email'), pw=document.getElementById('pw'),
+        ee=document.getElementById('email-err'), pe=document.getElementById('pw-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var be=!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(be){ ee.textContent='Error: Email is required.'; ee.hidden=false; email.setAttribute('aria-invalid','true'); }
+      else { ee.hidden=true; email.removeAttribute('aria-invalid'); }
+      if(pw.value.length<8){ pe.textContent='Error: Password must be at least 8 characters.'; pe.hidden=false; pw.setAttribute('aria-invalid','true'); }
+      else { pe.hidden=true; pw.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

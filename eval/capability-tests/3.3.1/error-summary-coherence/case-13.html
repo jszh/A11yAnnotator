@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-summary-coherence | summary recomputed each submit (clears then rebuilds), so never stale -->
+<html lang="en"><head><meta charset="utf-8"><title>Summary cleared and rebuilt</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Profile</h1>
+  <!-- pre-seeded with a Phone entry from a prior state, but Phone is valid now AND the handler rebuilds from scratch -->
+  <div id="summary" class="summary" role="alert">
+    <strong>There is a problem:</strong>
+    <ul id="list"><li>Phone format is invalid.</li></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <label for="phone">Phone (format 555-123-4567)</label>
+    <input id="phone" name="phone" type="text" pattern="\d{3}-\d{3}-\d{4}" value="555-123-4567">
+    <button id="submit" type="submit">Save</button>
+  </form>
+  <script>
+    // Even though the markup was pre-seeded with a stale Phone entry, the handler CLEARS and rebuilds the list from the
+    // current state. On the single invalid submit (Email empty, Phone valid) only Email is listed — coherent.
+    var f=document.getElementById('f'), email=document.getElementById('email'), phone=document.getElementById('phone'),
+        s=document.getElementById('summary'), list=document.getElementById('list');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';   // clear stale state
+      var items=[];
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) items.push('Email is required.');
+      if(!/^\d{3}-\d{3}-\d{4}$/.test(phone.value)) items.push('Phone format is invalid.');
+      list.innerHTML=items.map(function(t){return '<li>'+t+'</li>';}).join('');
+      s.hidden=items.length===0;
+    });
+  </script>
+</body></html>

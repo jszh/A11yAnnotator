@@ -1,0 +1,38 @@
+<!-- SC1.4.11 | NEGATIVE | disabled-inactive-exemption | knob #d4e2fb on track #9fc0f5 = 1.418 FAIL-but-EXEMPT (aria-disabled inactive component) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Disabled toggle: low-contrast indicator is exempt (inactive)</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .row { display: flex; align-items: center; gap: 14px; margin: 24px 0; }
+  .sw input { position: absolute; opacity: 0; }
+  .track {
+    width: 56px; height: 30px; border-radius: 15px;
+    background: #9fc0f5; position: relative; display: inline-block;
+  }
+  .track::after {
+    content: ""; position: absolute; top: 3px; left: 29px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #d4e2fb;                 /* knob vs #9fc0f5 = 1.418:1 — would fail IF the control were active */
+  }
+  /* This switch is DISABLED / inactive: 1.4.11 exempts inactive components. */
+  .sw[aria-disabled="true"] { opacity: 1; }   /* keep colours as-is; exemption is about state, not opacity */
+  .lbl { color: #767676; }
+</style>
+</head>
+<body>
+  <h1>Settings (Pro only)</h1>
+  <div class="row">
+    <span class="sw" role="switch" aria-checked="true" aria-disabled="true">
+      <input type="checkbox" id="hd" checked disabled>
+      <label for="hd" class="track"></label>
+    </span>
+    <label for="hd" class="lbl">HD streaming (unavailable on your plan)</label>
+  </div>
+  <p>This component is disabled (aria-disabled / inactive). Although the on-knob
+  (#d4e2fb) vs the on-track (#9fc0f5) is only 1.418:1, SC 1.4.11 exempts inactive
+  components, so this is not a barrier.</p>
+</body>
+</html>

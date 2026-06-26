@@ -1,0 +1,41 @@
+<!-- SC1.4.11 | POSITIVE | toggle-on-track-vs-knob-fail | #d4e2fb knob on #9fc0f5 ON-track = 1.418 (FAIL) checked -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Toggle ON: knob fails against its track</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .row { display: flex; align-items: center; gap: 14px; margin: 24px 0; }
+  .sw input { position: absolute; opacity: 0; }
+  .track {
+    width: 56px; height: 30px; border-radius: 15px;
+    background: #767676;                 /* OFF track vs white page = 4.5:1 fine at rest */
+    position: relative; display: inline-block;
+  }
+  .track::after {
+    content: ""; position: absolute; top: 3px; left: 3px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #ffffff;                 /* OFF: white knob on #767676 track = ok */
+    transition: none;
+  }
+  /* CHECKED (ON) state: the knob position + colour are the state indicator. */
+  .sw input:checked + .track { background: #9fc0f5; }   /* ON track */
+  .sw input:checked + .track::after {
+    left: 29px; background: #d4e2fb;     /* ON knob vs #9fc0f5 track = 1.418:1 FAIL */
+  }
+</style>
+</head>
+<body>
+  <h1>Settings</h1>
+  <div class="row">
+    <span class="sw">
+      <input type="checkbox" id="wifi" checked>
+      <label for="wifi" class="track"></label>
+    </span>
+    <label for="wifi">Wi-Fi (on)</label>
+  </div>
+  <p>In the ON state the knob (#d4e2fb) abuts the ON track (#9fc0f5) at 1.418:1 —
+  the knob boundary that conveys the on-state is indistinct.</p>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-indicator-name-correctness | icon-only error indicator (✕) with no accessible text name -->
+<html lang="en"><head><meta charset="utf-8"><title>Icon-only error</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  .row{position:relative;margin-bottom:10px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  .mark{position:absolute;right:8px;top:8px;color:#b00020;font-weight:700}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign up</h1>
+  <form id="f" novalidate>
+    <div class="row">
+      <label for="email">Email (required)</label>
+      <input id="email" name="email" type="email" required>
+      <span id="mark" class="mark" aria-hidden="true" hidden>&#10005;</span>
+    </div>
+    <button id="submit" type="submit">Continue</button>
+  </form>
+  <script>
+    // CONSTRAINT: email required. BUG: the only error indicator is a decorative ✕ icon (aria-hidden), with no
+    // text identifying the field in error.
+    var f=document.getElementById('f'), email=document.getElementById('email'), mark=document.getElementById('mark');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ mark.hidden=false; } else { mark.hidden=true; }
+    });
+  </script>
+</body></html>

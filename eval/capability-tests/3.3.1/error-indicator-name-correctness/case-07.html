@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-indicator-name-correctness | error names a positional reference ("the field above") that is ambiguous -->
+<html lang="en"><head><meta charset="utf-8"><title>Ambiguous positional name</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Payment</h1>
+  <form id="f" novalidate>
+    <label for="card">Card number (required)</label>
+    <input id="card" name="card" type="text" required>
+    <label for="cvv">CVV (required)</label>
+    <input id="cvv" name="cvv" type="text" required value="123">
+    <label for="exp">Expiry (required)</label>
+    <input id="exp" name="exp" type="text" required value="12/30">
+    <p id="form-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Pay</button>
+  </form>
+  <script>
+    // Field under test: Card number. BUG: the error says "the field above has a problem", a visual-only positional
+    // reference that does not name the field and is meaningless to AT users / when reflowed.
+    var f=document.getElementById('f'), card=document.getElementById('card'), m=document.getElementById('form-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(card.value.trim()===''){ m.textContent='Error: The field above has a problem.'; m.hidden=false; }
+      else { m.hidden=true; }
+    });
+  </script>
+</body></html>

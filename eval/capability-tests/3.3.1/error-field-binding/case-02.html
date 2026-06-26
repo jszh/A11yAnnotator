@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-field-binding | misbound: aria-describedby points to the WRONG (passing) field's id -->
+<html lang="en"><head><meta charset="utf-8"><title>Describedby points to wrong field</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Checkout</h1>
+  <form id="f" novalidate>
+    <label for="email">Email</label>
+    <!-- BUG: email (valid) carries the describedby that points at the ZIP error message. -->
+    <input id="email" name="email" type="email" value="ok@example.com" aria-describedby="zip-err">
+    <label for="zip">ZIP code (required)</label>
+    <input id="zip" name="zip" type="text" required>
+    <p id="zip-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Place order</button>
+  </form>
+  <script>
+    // Field under test: ZIP (required, empty). The error message exists but is programmatically bound (describedby)
+    // to the EMAIL field, not to the failing ZIP field.
+    var f=document.getElementById('f'), zip=document.getElementById('zip'), m=document.getElementById('zip-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(zip.value.trim()===''){ m.textContent='Error: ZIP code is required.'; m.hidden=false; }
+      else { m.hidden=true; }
+    });
+  </script>
+</body></html>

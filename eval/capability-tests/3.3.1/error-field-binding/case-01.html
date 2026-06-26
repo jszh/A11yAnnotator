@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-field-binding | stranded error: no aria-describedby and not adjacent (placed in footer) -->
+<html lang="en"><head><meta charset="utf-8"><title>Stranded error in footer</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  footer{margin-top:200px;border-top:1px solid #ccc;padding-top:12px}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign in</h1>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <button id="submit" type="submit">Sign in</button>
+  </form>
+  <footer>
+    <p id="email-err" class="err" hidden>Error: Email must be a valid email address.</p>
+  </footer>
+  <script>
+    // CONSTRAINT: email format. BUG: the (correct) error text lives in the page footer with no aria-describedby and
+    // no adjacency to the field — it is not bound to the failing control.
+    var f=document.getElementById('f'), email=document.getElementById('email'), m=document.getElementById('email-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ m.hidden=false; } else { m.hidden=true; }
+    });
+  </script>
+</body></html>

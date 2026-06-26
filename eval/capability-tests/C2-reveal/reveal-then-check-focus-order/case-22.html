@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>2.4.3 reveal-then-check-focus-order case 22</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:640px;color:#1a1a1a}
+  h1{font-size:20px}
+  button,[role=button],[role=menuitem],a{font:inherit}
+  button{padding:9px 16px;cursor:pointer;border:1px solid #555;background:#f4f4f4;border-radius:6px}
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none}
+  .backdrop.open{display:block}
+  [role=dialog],.dialog{position:fixed;top:18%;left:50%;transform:translateX(-50%);width:340px;background:#fff;border:1px solid #333;border-radius:8px;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  [role=menu],.menu{list-style:none;margin:6px 0 0;padding:6px;border:1px solid #555;border-radius:8px;background:#fff;width:220px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+  [role=menu] li,[role=menuitem]{padding:6px 10px;border-radius:5px;cursor:pointer}
+  [role=menuitem]:focus,[role=menuitem]:hover{background:#e6eefc;outline:2px solid #2557d6}
+  .disclosure{border:1px solid #bbb;padding:10px;margin-top:8px;background:#fafafa}
+  :focus{outline:3px solid #2557d6;outline-offset:2px}
+  .field{display:block;margin:8px 0}
+  label{font-weight:600}
+  input,textarea{font:inherit;padding:6px;border:1px solid #888;border-radius:5px;width:100%;box-sizing:border-box}
+  [hidden]{display:none !important}
+  .row{display:flex;gap:8px}
+</style></head>
+<body>
+<!-- 2.4.3 NEGATIVE | reveal-then-check-focus-order | focus-triggered-reveal-content-in-sequence -->
+  <h1>Sign in</h1>
+  <form onsubmit="return false">
+    <label class="field">Email <input id="email" type="email" onfocus="reveal()"></label>
+    <div id="slot"></div>
+    <button id="submit" type="submit">Continue</button>
+  </form>
+<script>
+function reveal(){if(document.getElementById('hint'))return;var p=document.createElement('div');p.id='hint';p.className='disclosure';
+  p.innerHTML='<button id="saved" type="button">Use saved email</button>';
+  document.getElementById('slot').appendChild(p); /* inserted between field and Submit -> in sequence */}
+</script>
+</body></html>

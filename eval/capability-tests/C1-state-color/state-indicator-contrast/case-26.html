@@ -1,0 +1,45 @@
+<!-- SC1.4.11 | NEGATIVE-ABSTAIN | abstain-gradient-adjacent-surface-truth-pass | dark #1a1a1a tick on blue gradient #7fb0ee..#1a73e8; 7.747 down to 3.863 (PASS everywhere) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checked tick on a gradient fill (abstain; truth passes across the gradient)</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .field { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+  .field input { position: absolute; opacity: 0; }
+  .box {
+    width: 30px; height: 30px; border-radius: 4px;
+    border: 1px solid #1a73e8; background: #ffffff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  /* CHECKED: gradient fill from #7fb0ee (light) to #1a73e8 (dark). A flat-colour
+     reducer cannot resolve one adjacent value -> the runner SHOULD ABSTAIN.
+     Human truth: the DARK tick (#1a1a1a) is >=3:1 against BOTH ends
+     (#7fb0ee -> 7.747:1, #1a73e8 -> 3.863:1), so it passes everywhere = negative. */
+  .field input:checked + .box {
+    background: linear-gradient(135deg, #7fb0ee 0%, #1a73e8 100%);
+    border-color: #1a73e8;
+  }
+  .field input:checked + .box::after {
+    content: "";
+    width: 9px; height: 15px;
+    border: solid #1a1a1a;              /* dark tick vs gradient: 7.747 .. 3.863 = PASS across */
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg) translate(0, -1px);
+    display: block;
+  }
+</style>
+</head>
+<body>
+  <h1>Subscription</h1>
+  <div class="field">
+    <input type="checkbox" id="auto2" checked>
+    <label for="auto2" class="box"></label>
+    <label for="auto2">Auto-renew (checked)</label>
+  </div>
+  <p>The checked tick sits on a blue gradient. A flat-colour reducer should abstain.
+  Human truth: the dark #1a1a1a tick clears 3:1 against both gradient stops
+  (7.747:1 at the light end, 3.863:1 at the dark end), so it passes — a negative.</p>
+</body>
+</html>

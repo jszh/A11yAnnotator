@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-summary-coherence | RISKY: a hidden template <li> exists in the DOM but the visible summary lists only failing fields -->
+<html lang="en"><head><meta charset="utf-8"><title>Hidden template, coherent visible summary</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  template{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign up</h1>
+  <div id="summary" class="summary" role="alert" hidden>
+    <strong>There is a problem:</strong>
+    <ul id="list"></ul>
+  </div>
+  <!-- A <template> holds prototypes for every possible error; it is inert and never rendered directly. -->
+  <template id="tpl">
+    <li data-for="email">Email is required.</li>
+    <li data-for="user">Username is required.</li>
+  </template>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <label for="user">Username (required)</label>
+    <input id="user" name="user" type="text" required value="validuser">
+    <button id="submit" type="submit">Create</button>
+  </form>
+  <script>
+    // Risky surface: a template contains a "Username" entry. But the handler clones only the entries whose field is
+    // actually in error. On the single submit (Email empty, Username valid) only the Email <li> is rendered — coherent.
+    var f=document.getElementById('f'), email=document.getElementById('email'), user=document.getElementById('user'),
+        s=document.getElementById('summary'), list=document.getElementById('list'), tpl=document.getElementById('tpl');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';
+      var bad={ email: !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim()), user: user.value.trim()==='' };
+      tpl.content.querySelectorAll('li').forEach(function(li){
+        if(bad[li.getAttribute('data-for')]) list.appendChild(li.cloneNode(true));
+      });
+      s.hidden=list.children.length===0;
+    });
+  </script>
+</body></html>

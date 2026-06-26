@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<!-- 1.4.10 POSITIVE | meaningful-indentation-g224 | source-code <pre> whose indentation is force-WRAPPED at 320px, corrupting code structure -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code (broken on reflow)</title>
+<style>
+  body { margin:0; font:16px/1.6 system-ui, sans-serif; padding:16px; }
+  /* MEANING LOST: G224 explicitly notes "maintaining indentations can be important to help
+     understand code patterns, if not even necessary for the code to function." Here a media query
+     forces the <pre> to wrap (white-space:pre-wrap) AND collapses leading whitespace, so the block
+     structure of the code is destroyed at 320px — nested lines lose their indentation. */
+  pre { background:#0f1117; color:#d6deeb; padding:14px; border-radius:8px;
+        font:14px/1.5 ui-monospace, Menlo, monospace; overflow-x:auto; }
+  @media (max-width:480px){
+    pre { white-space:pre-wrap; }   /* wraps long lines... */
+    pre code { white-space:normal; } /* ...and collapses the leading indentation entirely */
+  }
+</style></head>
+<body>
+  <h1>Example</h1>
+  <pre><code>function build(tree) {
+    if (tree.children) {
+        for (const child of tree.children) {
+            build(child);
+        }
+    }
+    return tree;
+}</code></pre>
+</body></html>

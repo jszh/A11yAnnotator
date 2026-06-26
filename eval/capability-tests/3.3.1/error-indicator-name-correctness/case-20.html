@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-indicator-name-correctness | two fields can fail; error names the CORRECT failing field by label -->
+<html lang="en"><head><meta charset="utf-8"><title>Correct field named among two failures</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:4px;margin-bottom:10px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Contact</h1>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required aria-describedby="email-err" value="ok@example.com">
+    <p id="email-err" class="err" role="alert" hidden></p>
+    <label for="phone">Phone (format 555-123-4567)</label>
+    <input id="phone" name="phone" type="text" pattern="\d{3}-\d{3}-\d{4}" aria-describedby="phone-err">
+    <p id="phone-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Save</button>
+  </form>
+  <script>
+    // Field under test: Phone (bad format). Email is valid. The error names "Phone" (the actual failing field), not Email.
+    var f=document.getElementById('f'), phone=document.getElementById('phone'), pe=document.getElementById('phone-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^\d{3}-\d{3}-\d{4}$/.test(phone.value);
+      if(!ok){ pe.textContent='Error: Phone must match the format 555-123-4567.'; pe.hidden=false; phone.setAttribute('aria-invalid','true'); }
+      else { pe.hidden=true; phone.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

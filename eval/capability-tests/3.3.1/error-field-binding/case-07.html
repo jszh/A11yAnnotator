@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-field-binding | error injected before the field is removed/hidden; binding target detached on submit -->
+<html lang="en"><head><meta charset="utf-8"><title>Error bound to detached node</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign up</h1>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required aria-describedby="email-err">
+    <p id="email-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Continue</button>
+  </form>
+  <script>
+    // BUG: on error the script REMOVES the describedby target from the DOM and appends the message to a new, unassociated
+    // node. The field's aria-describedby now references a node that no longer exists.
+    var f=document.getElementById('f'), email=document.getElementById('email');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      var target=document.getElementById('email-err');
+      if(!ok){
+        if(target) target.remove();                       // detaches the describedby target
+        var p=document.createElement('p'); p.className='err';
+        p.textContent='Error: Email must be a valid email address.';
+        document.body.appendChild(p);                     // unassociated
+        email.setAttribute('aria-invalid','true');
+      }
+    });
+  </script>
+</body></html>

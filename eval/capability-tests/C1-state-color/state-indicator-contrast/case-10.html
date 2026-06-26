@@ -1,0 +1,38 @@
+<!-- SC1.4.11 | POSITIVE | composite-alpha-indicator-in-state | rgba(0,0,0,0.25) over white => #bfbfbf vs white = 1.839 (FAIL) checked -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Semi-transparent checked indicator composites below 3:1</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .field { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+  .field input { position: absolute; opacity: 0; }
+  .box {
+    width: 28px; height: 28px; border-radius: 4px;
+    border: 2px solid #595959; background: #ffffff;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  /* CHECKED: the checkmark uses a SEMI-TRANSPARENT black that composites over the
+     white box interior to #bfbfbf — 1.839:1 against white. The alpha is the trap. */
+  .field input:checked + .box::after {
+    content: "";
+    width: 8px; height: 13px;
+    border: solid rgba(0, 0, 0, 0.25);  /* composites to #bfbfbf on white = 1.839:1 FAIL */
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+    display: block;
+  }
+</style>
+</head>
+<body>
+  <h1>Notifications</h1>
+  <div class="field">
+    <input type="checkbox" id="push" checked>
+    <label for="push" class="box"></label>
+    <label for="push">Enable push notifications (checked)</label>
+  </div>
+  <p>The checked tick is 25%-opacity black. Composited over the white box interior
+  it renders as #bfbfbf = 1.839:1 against white — below 3:1.</p>
+</body>
+</html>

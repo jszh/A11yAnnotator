@@ -1,0 +1,46 @@
+<!-- SC1.4.11 | POSITIVE | rest-pass-checked-indicator-fail | white tick on #7fb0ee fill = 2.247 (FAIL) only when checked -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkbox tick contrast fails only when checked</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .field { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+  /* native control hidden, custom box drawn via label */
+  .field input { position: absolute; opacity: 0; }
+  .box {
+    width: 28px; height: 28px; border-radius: 4px;
+    border: 1px solid #767676;          /* boundary vs white page = 4.5:1, fine at rest */
+    background: #ffffff;
+    display: inline-flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  /* AT REST the box is empty: only the boundary matters (passes). */
+  /* WHEN CHECKED a low-contrast fill appears and the WHITE TICK sits on it. */
+  .field input:checked + .box {
+    background: #7fb0ee;                 /* adjacent surface for the tick */
+    border-color: #7fb0ee;
+  }
+  .field input:checked + .box::after {
+    content: "";
+    width: 8px; height: 14px;
+    border: solid #ffffff;              /* white tick vs #7fb0ee = 2.247:1 FAIL */
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg) translate(0, -1px);
+    display: block;
+  }
+  label.txt { font-size: 18px; }
+</style>
+</head>
+<body>
+  <h1>Email preferences</h1>
+  <div class="field">
+    <input type="checkbox" id="opt" checked>
+    <label for="opt" class="box"></label>
+    <label for="opt" class="txt">Send me product updates (checked)</label>
+  </div>
+  <p>The empty box boundary passes at rest. In the CHECKED state shown, the white
+  tick sits on a light-blue fill it directly abuts — contrast 2.247:1, below 3:1.</p>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Geometry abstain: offset outline perimeter spans a gradient surround</title>
+<style>
+  body { margin:0; font-family:system-ui,sans-serif; }
+  /* The button sits on a radial-gradient surround that goes from light
+     (#f8f9fa) near one corner to dark (#0d47a1) near the opposite corner.
+     The offset outline (#1a73e8) is fully present and complete in GEOMETRY,
+     but the adjacent color varies continuously along its perimeter, so the
+     contrast on each segment differs and no single worst-case ratio can be
+     deterministically computed (pixel-uniform assumption fails). The runner
+     should ABSTAIN rather than assert pass/fail. Human label: passed, since a
+     contrasting segment exists, but it is not provable by a pixel checker. */
+  .stage {
+    min-height:260px;
+    background:radial-gradient(circle at 20% 20%, #f8f9fa 0%, #1a73e8 55%, #0d47a1 100%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .btn {
+    background:transparent; color:#fff; border:1px solid #fff;
+    padding:12px 20px; font-size:16px; cursor:pointer;
+  }
+  .btn:focus { outline:3px solid #1a73e8; outline-offset:4px; }
+  .btn:focus-visible { outline:3px solid #1a73e8; outline-offset:4px; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <button class="btn" id="target">Explore</button>
+  </div>
+</body>
+</html>

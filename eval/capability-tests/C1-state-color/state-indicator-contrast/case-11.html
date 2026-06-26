@@ -1,0 +1,42 @@
+<!-- SC1.4.11 | POSITIVE | adjacent-surface-trap-passes-page-fails-abutting-surface | #767676 vs page white=4.542 PASS but vs abutting #5e5e5e card=1.428 FAIL -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Adjacent-surface trap: passes page, fails abutting card</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .card {
+    background: #5e5e5e;                 /* dark card — this is the indicator's ACTUAL adjacent surface */
+    color: #ffffff; padding: 22px; border-radius: 10px; width: 360px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .sw input { position: absolute; opacity: 0; }
+  .track {
+    width: 56px; height: 30px; border-radius: 15px;
+    background: #2b2b2b; position: relative; display: inline-block;
+  }
+  /* CHECKED (ON) knob is #767676. Against the PAGE white it would be 4.542:1 (pass),
+     but the knob actually sits inside the dark #5e5e5e card / on the dark track —
+     the colour it abuts. A page-relative reading is the trap. */
+  .sw input:checked + .track::after {
+    content: ""; position: absolute; top: 3px; left: 29px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #767676;                 /* vs #5e5e5e card = 1.428:1 FAIL */
+  }
+</style>
+</head>
+<body>
+  <h1>Dark card module</h1>
+  <div class="card">
+    <span class="sw">
+      <input type="checkbox" id="sync" checked>
+      <label for="sync" class="track"></label>
+    </span>
+    <span>Background sync (on)</span>
+  </div>
+  <p>The ON-knob (#767676) clears 3:1 against the white PAGE (4.542:1) but the
+  surface it actually abuts is the dark #5e5e5e card: 1.428:1 — a failure. The
+  page colour is a decoy; 1.4.11 is measured against the adjacent surface.</p>
+</body>
+</html>

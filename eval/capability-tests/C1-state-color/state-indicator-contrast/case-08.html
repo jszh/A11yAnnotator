@@ -1,0 +1,38 @@
+<!-- SC1.4.11 | POSITIVE | near-threshold-2.9-in-state | #969696 checked tick vs white = 2.958 (FAIL, just under) checked -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checked indicator just under threshold (2.958:1)</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .field { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+  .field input { position: absolute; opacity: 0; }
+  .box {
+    width: 26px; height: 26px; border-radius: 4px;
+    border: 2px solid #595959;          /* boundary vs white = 7:1, fine */
+    background: #ffffff;                 /* the tick's adjacent surface stays white */
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  /* CHECKED: a grey check is drawn directly on the white box interior. */
+  .field input:checked + .box::after {
+    content: "";
+    width: 7px; height: 12px;
+    border: solid #969696;              /* checked tick vs white = 2.958:1 FAIL (just under 3) */
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+    display: block;
+  }
+</style>
+</head>
+<body>
+  <h1>Consent</h1>
+  <div class="field">
+    <input type="checkbox" id="agree" checked>
+    <label for="agree" class="box"></label>
+    <label for="agree">I agree to the terms (checked)</label>
+  </div>
+  <p>The dark box boundary passes, but the checkmark cue that conveys the CHECKED
+  state is #969696 on white = 2.958:1 — just below 3:1, a failure.</p>
+</body>
+</html>

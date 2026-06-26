@@ -1,0 +1,30 @@
+<!-- SC 1.4.1 | positive (ABSTAIN) | status-via-background-image | the field's invalid status is conveyed by swapping a background-IMAGE (a red icon baked into a bitmap) plus a red border. A static analyzer cannot read inside the raster to confirm whether the image carries a non-color meaning, AND no onscreen text/markup cue exists — truth is a fail, runner should abstain. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invalid status via background image</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #fff; margin: 40px; }
+  label { display: block; font-size: 14px; margin-bottom: 4px; }
+  input {
+    font-size: 15px; padding: 8px 32px 8px 10px;
+    border: 2px solid #5f6368; border-radius: 4px; width: 240px;
+    background-repeat: no-repeat; background-position: right 8px center; background-size: 16px;
+  }
+  /* Invalid state turns the border red AND paints a background-image into the
+     field. The "cue" lives inside a raster the analyzer cannot classify, and
+     there is no onscreen text or markup glyph. Static decision is unsafe. */
+  input[aria-invalid="true"] {
+    border-color: #d93025;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+  }
+</style>
+</head>
+<body>
+  <form>
+    <label for="cc">Card number</label>
+    <input id="cc" type="text" value="4111" aria-invalid="true">
+  </form>
+</body>
+</html>

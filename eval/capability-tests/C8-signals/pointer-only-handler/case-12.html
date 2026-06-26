@@ -1,0 +1,22 @@
+<!-- POSITIVE | pointer-only-handler 2.1.1 | keyup-wrong-target-document: a keyup listener exists but on document for an unrelated hotkey; the clickable div itself has no key path -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Slideshow</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    .next { display: inline-block; padding: .5rem 1rem; border: 1px solid #1a73e8; color: #1a73e8; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Slide 1 of 5</h1>
+  <!-- there IS a document keyup listener, but it only handles a global "Escape" to exit; the div advances on click only and is not focusable -->
+  <div id="next" class="next" onclick="document.querySelector('h1').textContent='Slide 2 of 5'">Next slide</div>
+  <script>
+    document.addEventListener('keyup', function (e) {
+      if (e.key === 'Escape') { /* exit slideshow — unrelated to the Next control */ }
+    });
+  </script>
+</body>
+</html>

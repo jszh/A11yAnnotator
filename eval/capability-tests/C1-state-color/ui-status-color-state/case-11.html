@@ -1,0 +1,30 @@
+<!-- SC 1.4.1 | positive | aria-only-does-NOT-rescue | the selected segment carries aria-selected="true" (programmatic) but its ONLY VISUAL difference is the fill color (#1a73e8 vs #f1f3f4). aria is programmatic, not visual, so it satisfies 1.3.1/4.1.2 but NOT 1.4.1. Visual selection = color only. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Segmented control: aria-selected only, color-only visual</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #fff; margin: 40px; }
+  .seg { display: inline-flex; border: 1px solid #dadce0; border-radius: 8px; overflow: hidden; }
+  .seg [role="tab"] {
+    appearance: none; -webkit-appearance: none;
+    padding: 8px 20px; font-size: 14px; color: #202124; background: #f1f3f4;
+    border: none; cursor: pointer;
+  }
+  /* aria-selected="true" is exposed to AT (good for 4.1.2 / 1.3.1) but it is a
+     PROGRAMMATIC attribute, not a visual cue. The only VISIBLE difference for a
+     sighted user is the blue fill — no bold, no underline, no checkmark, no
+     border. aria alone does NOT rescue 1.4.1; this is still a failure. */
+  .seg [role="tab"][aria-selected="true"] { background: #1a73e8; color: #fff; }
+</style>
+</head>
+<body>
+  <p>View as:</p>
+  <div class="seg" role="tablist" aria-label="View">
+    <button role="tab" aria-selected="true">Day</button>
+    <button role="tab" aria-selected="false">Week</button>
+    <button role="tab" aria-selected="false">Month</button>
+  </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>3.3.2 focus-revealed-instruction case 12</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:620px;color:#1a1a1a}
+  h1{font-size:20px}
+  .field{margin:14px 0}
+  label{font-weight:600;display:block;margin-bottom:4px}
+  input,textarea,select{font:inherit;padding:7px;border:1px solid #888;border-radius:5px;width:280px;box-sizing:border-box}
+  .hint{font-size:14px;color:#33485e;margin-top:4px}
+  .hint[hidden]{display:none}
+  :focus{outline:3px solid #2557d6;outline-offset:2px}
+  button{font:inherit;padding:8px 16px;border:1px solid #555;border-radius:6px;background:#f4f4f4;cursor:pointer}
+</style></head>
+<body>
+<!-- 3.3.2 POSITIVE | focus-revealed-instruction | instruction-injected-on-mouseenter-only -->
+  <h1>Billing</h1>
+  <form onsubmit="return false">
+    <div class="field"><label for="vat">VAT number</label>
+      <input id="vat" type="text" onmouseenter="inject()"></div>
+    <button type="submit">Save</button>
+  </form>
+<script>
+function inject(){if(document.getElementById('vathint'))return;var d=document.createElement('div');d.id='vathint';d.className='hint';d.textContent='Country prefix + up to 12 digits, e.g. DE123456789.';document.querySelector('.field').appendChild(d);}
+/* BUG: instruction is injected only on mouseenter; focus never creates it. */
+</script>
+</body></html>

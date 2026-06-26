@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-summary-coherence | summary links are broken (anchors point to non-existent ids) -->
+<html lang="en"><head><meta charset="utf-8"><title>Summary links broken</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Application</h1>
+  <div id="summary" class="summary" role="alert" hidden>
+    <strong>There is a problem:</strong>
+    <ul id="list"></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <label for="fullname">Full name (required)</label>
+    <input id="fullname" name="fullname" type="text" required>
+    <button id="submit" type="submit">Submit</button>
+  </form>
+  <script>
+    // BUG: summary entries link to #email-field and #fullname-field, but the actual ids are #email and #fullname. The
+    // summary names the right fields but its links are incoherent (target nothing), so it cannot direct the user to the errors.
+    var f=document.getElementById('f'), email=document.getElementById('email'), fullname=document.getElementById('fullname'),
+        s=document.getElementById('summary'), list=document.getElementById('list');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';
+      var html='';
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) html+='<li><a href="#email-field">Email is required</a></li>';
+      if(fullname.value.trim()==='') html+='<li><a href="#fullname-field">Full name is required</a></li>';
+      if(html){ list.innerHTML=html; s.hidden=false; } else { s.hidden=true; }
+    });
+  </script>
+</body></html>

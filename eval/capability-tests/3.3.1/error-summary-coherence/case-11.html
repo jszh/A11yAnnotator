@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-summary-coherence | summary lists exactly the failing fields, with links -->
+<html lang="en"><head><meta charset="utf-8"><title>Coherent summary</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  .err{color:#b00020;margin-top:4px;margin-bottom:10px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign up</h1>
+  <div id="summary" class="summary" role="alert" hidden>
+    <strong>There is a problem:</strong>
+    <ul id="list"></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required aria-describedby="email-err">
+    <p id="email-err" class="err" hidden></p>
+    <label for="pw">Password (min 8)</label>
+    <input id="pw" name="pw" type="password" minlength="8" aria-describedby="pw-err">
+    <p id="pw-err" class="err" hidden></p>
+    <button id="submit" type="submit">Create</button>
+  </form>
+  <script>
+    // Field under test: Password. Both Email and Password fail. The summary recomputes from scratch and lists exactly
+    // the two failing fields, each linked, and each field also gets its own bound inline error.
+    var f=document.getElementById('f'), email=document.getElementById('email'), pw=document.getElementById('pw'),
+        s=document.getElementById('summary'), list=document.getElementById('list'),
+        ee=document.getElementById('email-err'), pe=document.getElementById('pw-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';
+      var emailBad=!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      var pwBad=pw.value.length<8;
+      ee.hidden=!emailBad; if(emailBad){ ee.textContent='Email is required.'; email.setAttribute('aria-invalid','true'); list.insertAdjacentHTML('beforeend','<li><a href="#email">Email is required</a></li>'); } else { email.removeAttribute('aria-invalid'); }
+      pe.hidden=!pwBad; if(pwBad){ pe.textContent='Password must be at least 8 characters.'; pw.setAttribute('aria-invalid','true'); list.insertAdjacentHTML('beforeend','<li><a href="#pw">Password must be at least 8 characters</a></li>'); } else { pw.removeAttribute('aria-invalid'); }
+      s.hidden = !(emailBad||pwBad);
+    });
+  </script>
+</body></html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-indicator-name-correctness | error names a field by a label that does not exist on the page -->
+<html lang="en"><head><meta charset="utf-8"><title>Phantom field name</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Subscribe</h1>
+  <form id="f" novalidate>
+    <label for="email">Email address (required)</label>
+    <input id="email" name="email" type="email" required>
+    <p id="form-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Subscribe</button>
+  </form>
+  <script>
+    // CONSTRAINT: email required+format. BUG: the error names a "Membership ID" field that does not exist,
+    // so it fails to identify the actual item in error.
+    var f=document.getElementById('f'), email=document.getElementById('email'), m=document.getElementById('form-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ m.textContent='Error: Membership ID is invalid.'; m.hidden=false; }
+      else { m.hidden=true; }
+    });
+  </script>
+</body></html>

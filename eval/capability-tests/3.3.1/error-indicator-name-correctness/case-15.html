@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-indicator-name-correctness | error names field AND uses a color/icon in addition (not color-only) -->
+<html lang="en"><head><meta charset="utf-8"><title>Named plus color/icon</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;border:1px solid #999}
+  input.invalid{border-color:#b00020}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign up</h1>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required aria-describedby="email-err">
+    <p id="email-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Continue</button>
+  </form>
+  <script>
+    // Color is used redundantly with a text message that names the Email field — color is not the only cue.
+    var f=document.getElementById('f'), email=document.getElementById('email'), m=document.getElementById('email-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ m.textContent='Error: Email is required.'; m.hidden=false; email.classList.add('invalid'); email.setAttribute('aria-invalid','true'); }
+      else { m.hidden=true; email.classList.remove('invalid'); email.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

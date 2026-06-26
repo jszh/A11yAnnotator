@@ -1,0 +1,35 @@
+<!-- SC1.4.11 | POSITIVE | current-page-dot-low-contrast | #9bb8ec current-dot on #5a8fe0 navbar = 1.624 (FAIL) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Current-page dot fails against the nav strip</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; margin: 0; }
+  nav { display: flex; gap: 28px; background: #5a8fe0; padding: 18px 28px; }
+  nav a { color: #ffffff; text-decoration: none; font-size: 16px; position: relative; }
+  /* aria-current marks the current page. Its only non-text cue is a dot under the link. */
+  /* The dot abuts the #5a8fe0 nav background. */
+  nav a[aria-current="page"]::after {
+    content: "";
+    position: absolute; left: 50%; transform: translateX(-50%);
+    bottom: -10px; width: 8px; height: 8px; border-radius: 50%;
+    background: #9bb8ec;                 /* current-dot vs #5a8fe0 = 1.624:1 FAIL */
+  }
+  main { padding: 40px; }
+</style>
+</head>
+<body>
+  <nav>
+    <a href="#">Home</a>
+    <a href="#" aria-current="page">Pricing</a>
+    <a href="#">Docs</a>
+    <a href="#">Support</a>
+  </nav>
+  <main>
+    <h1>Pricing</h1>
+    <p>The current-page dot is the non-text state indicator. It sits on the blue
+    nav strip (#5a8fe0): #9bb8ec gives 1.624:1, below 3:1.</p>
+  </main>
+</body>
+</html>

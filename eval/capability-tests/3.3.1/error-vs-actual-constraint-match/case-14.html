@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-vs-actual-constraint-match | maxlength violated, error correctly states the length limit -->
+<html lang="en"><head><meta charset="utf-8"><title>Correct maxlength error</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Create username</h1>
+  <form id="f" novalidate>
+    <label for="user">Username (max 12 characters)</label>
+    <input id="user" name="user" type="text" aria-describedby="user-err">
+    <p id="user-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Save</button>
+  </form>
+  <script>
+    // CONSTRAINT: maxlength 12. Error correctly identifies the length rule that was violated.
+    var f=document.getElementById('f'), e=document.getElementById('user'), m=document.getElementById('user-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(e.value.length>12){
+        m.textContent='Error: Username must be 12 characters or fewer.';
+        m.hidden=false; e.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

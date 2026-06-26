@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>2.1.2 arrow-key-composite-widget-trap case 11</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:680px;color:#1a1a1a}
+  h1{font-size:20px}
+  button,[role]{font:inherit}
+  .before,.after{display:inline-block;margin:6px 0;padding:8px 14px;border:1px solid #555;border-radius:6px;background:#f4f4f4}
+  [role=menubar],[role=menu],[role=tablist],[role=toolbar],[role=radiogroup]{display:flex;gap:6px;padding:6px;border:1px solid #888;border-radius:8px;margin:10px 0;background:#fafafa}
+  [role=menu]{flex-direction:column;width:200px}
+  [role=menuitem],[role=tab],[role=button],[role=radio]{padding:7px 12px;border:1px solid #777;border-radius:6px;background:#fff;cursor:pointer}
+  [role=listbox]{display:block;width:240px;border:1px solid #888;border-radius:8px;padding:4px;margin:10px 0;background:#fafafa}
+  [role=option]{padding:6px 10px;border-radius:5px;cursor:pointer}
+  [role=grid]{display:grid;grid-template-columns:repeat(3,60px);gap:4px;margin:10px 0}
+  [role=gridcell]{border:1px solid #777;text-align:center;padding:10px;background:#fff}
+  :focus{outline:3px solid #2557d6;outline-offset:2px}
+  [aria-selected=true],[aria-checked=true],[tabindex="0"]:focus{background:#e6eefc}
+  .help{color:#555;font-size:14px}
+</style></head>
+<body>
+<!-- 2.1.2 POSITIVE | arrow-key-composite-widget-trap | grid-tab-blocked-keydown-capture -->
+  <h1>Spreadsheet</h1>
+  <a class="before" href="#a">Before widget</a>
+  <div role="grid" id="grid" aria-label="Cells">
+    <div id="g0" role="gridcell" tabindex="0">A1</div><div role="gridcell" tabindex="-1">B1</div>
+    <div role="gridcell" tabindex="-1">A2</div><div role="gridcell" tabindex="-1">B2</div>
+  </div>
+  <a class="after" href="#b">After widget</a>
+<script>
+var cells=[...document.querySelectorAll('[role=gridcell]')],i=0,grid=document.getElementById('grid');
+grid.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight'){e.preventDefault();cells[i].tabIndex=-1;i=(i+1)%cells.length;cells[i].tabIndex=0;cells[i].focus();}
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Tab'&&grid.contains(document.activeElement)){e.preventDefault();/* BUG: capture-phase Tab block traps the grid. */}
+},true);
+</script>
+</body></html>

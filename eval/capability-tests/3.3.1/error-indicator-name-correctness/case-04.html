@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-indicator-name-correctness | multi-field form, error names only "a required field" without saying which one -->
+<html lang="en"><head><meta charset="utf-8"><title>Unnamed required field</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Profile</h1>
+  <form id="f" novalidate>
+    <label for="first">First name (required)</label>
+    <input id="first" name="first" type="text" required value="Sam">
+    <label for="last">Last name (required)</label>
+    <input id="last" name="last" type="text" required>
+    <label for="city">City (required)</label>
+    <input id="city" name="city" type="text" required value="Denver">
+    <p id="form-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Save profile</button>
+  </form>
+  <script>
+    // Field under test: Last name (the empty one). BUG: with three named required fields, the error says only
+    // "a required field is empty" and never identifies WHICH field is in error.
+    var f=document.getElementById('f'), last=document.getElementById('last'), m=document.getElementById('form-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(last.value.trim()===''){ m.textContent='Error: A required field is empty.'; m.hidden=false; }
+      else { m.hidden=true; }
+    });
+  </script>
+</body></html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-summary-coherence | three required fields, two fail, summary lists exactly those two -->
+<html lang="en"><head><meta charset="utf-8"><title>Two of three listed coherently</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Profile</h1>
+  <div id="summary" class="summary" role="alert" hidden>
+    <strong>There is a problem:</strong>
+    <ul id="list"></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="first">First name (required)</label>
+    <input id="first" name="first" type="text" required value="Sam">
+    <label for="last">Last name (required)</label>
+    <input id="last" name="last" type="text" required>
+    <label for="city">City (required)</label>
+    <input id="city" name="city" type="text" required>
+    <button id="submit" type="submit">Save profile</button>
+  </form>
+  <script>
+    // Field under test: Last name. First name valid; Last name and City empty. Summary lists exactly Last name and City.
+    var f=document.getElementById('f'),
+        first=document.getElementById('first'), last=document.getElementById('last'), city=document.getElementById('city'),
+        s=document.getElementById('summary'), list=document.getElementById('list');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';
+      var items=[];
+      if(first.value.trim()==='') items.push('First name is required.');
+      if(last.value.trim()==='') items.push('Last name is required.');
+      if(city.value.trim()==='') items.push('City is required.');
+      list.innerHTML=items.map(function(t){return '<li>'+t+'</li>';}).join('');
+      s.hidden=items.length===0;
+    });
+  </script>
+</body></html>

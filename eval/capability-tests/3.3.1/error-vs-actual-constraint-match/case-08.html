@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-vs-actual-constraint-match | minlength password violated but error says email is invalid (wrong field's constraint named) -->
+<html lang="en"><head><meta charset="utf-8"><title>Password error talks about email</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:8px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Set password</h1>
+  <form id="f" novalidate>
+    <label for="email">Email</label>
+    <input id="email" name="email" type="text" value="user@example.com">
+    <label for="pw">Password (minimum 8 characters)</label>
+    <input id="pw" name="pw" type="password" minlength="8" aria-describedby="pw-err">
+    <p id="pw-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Save</button>
+  </form>
+  <script>
+    // CONSTRAINT under test: password minlength 8. Error wrongly describes an EMAIL problem (a different constraint/field).
+    var f=document.getElementById('f'), pw=document.getElementById('pw'), m=document.getElementById('pw-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(pw.value.length<8){
+        // BUG: the violated constraint is password length, but the error names an email-format problem.
+        m.textContent='Error: Please enter a valid email address.';
+        m.hidden=false; pw.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; pw.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

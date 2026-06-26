@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 1.4.10 NEGATIVE | carousel-panel-overflow-g225 | tablist/tabpanel pattern: one panel shown at a time, real tab buttons switch panels; no overflow strand -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tabbed panels</title>
+<style>
+  body { margin:0; font:16px/1.5 system-ui, sans-serif; padding:16px; }
+  /* PASS: this is a tabs pattern, not an overflow strand. Exactly one panel is visible; tab
+     buttons (real, keyboard-operable) reveal the others in place. Each panel fits 320px and
+     reflows. No panel is ever off-screen behind a horizontal scroll. */
+  [role=tablist] { display:flex; gap:6px; margin-bottom:8px; }
+  [role=tab] { padding:8px 12px; border:1px solid #ccc; background:#f4f4f4; cursor:pointer; }
+  [role=tab][aria-selected=true] { background:#fff; border-bottom-color:#fff; font-weight:600; }
+  [role=tabpanel] { border:1px solid #ccc; padding:16px; max-width:60ch; }
+  [hidden] { display:none; }
+</style></head>
+<body>
+  <h1>Plan details</h1>
+  <div role="tablist" aria-label="Plans">
+    <button role="tab" id="t1" aria-controls="p1" aria-selected="true">Free</button>
+    <button role="tab" id="t2" aria-controls="p2" aria-selected="false">Pro</button>
+    <button role="tab" id="t3" aria-controls="p3" aria-selected="false">Team</button>
+  </div>
+  <div role="tabpanel" id="p1" aria-labelledby="t1"><p>Free plan: the basics for one person.</p></div>
+  <div role="tabpanel" id="p2" aria-labelledby="t2" hidden><p>Pro plan: collaboration and more storage.</p></div>
+  <div role="tabpanel" id="p3" aria-labelledby="t3" hidden><p>Team plan: admin controls and priority support.</p></div>
+  <script>
+    var tabs=[...document.querySelectorAll('[role=tab]')];
+    tabs.forEach(function(tab){ tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.setAttribute('aria-selected', t===tab); document.getElementById(t.getAttribute('aria-controls')).hidden = (t!==tab); });
+    });});
+  </script>
+</body></html>

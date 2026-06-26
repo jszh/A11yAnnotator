@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-vs-actual-constraint-match | max violated but error reports the WRONG limit number -->
+<html lang="en"><head><meta charset="utf-8"><title>Wrong limit reported</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Withdrawal</h1>
+  <form id="f" novalidate>
+    <label for="amt">Amount (maximum 500)</label>
+    <input id="amt" name="amt" type="text" inputmode="numeric" aria-describedby="amt-err">
+    <p id="amt-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Withdraw</button>
+  </form>
+  <script>
+    // CONSTRAINT: value <= 500. Error reports a DIFFERENT max (1000), so the description does not match the real rule.
+    var f=document.getElementById('f'), e=document.getElementById('amt'), m=document.getElementById('amt-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var n=Number(e.value);
+      if(!(Number.isFinite(n) && n<=500)){
+        // BUG: real cap is 500; the text says 1000, which misidentifies the constraint being violated.
+        m.textContent='Error: Amount must not exceed 1000.';
+        m.hidden=false; e.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

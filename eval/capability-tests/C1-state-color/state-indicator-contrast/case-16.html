@@ -1,0 +1,43 @@
+<!-- SC1.4.11 | NEGATIVE | adjacent-governs-pass-page-misleads | #1a73e8 indicator vs abutting white card = 4.505 PASS (page is dark, a decoy) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Adjacent surface governs: passes on the white card despite a dark page</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #2b2b2b; color: #f0f0f0; padding: 40px; }
+  .card {
+    background: #ffffff;                 /* the indicator's ACTUAL adjacent surface */
+    color: #1a1a1a; padding: 22px; border-radius: 10px; width: 360px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .sw input { position: absolute; opacity: 0; }
+  .track {
+    width: 56px; height: 30px; border-radius: 15px;
+    background: #c4c4c4; position: relative; display: inline-block;
+  }
+  /* CHECKED (ON) indicator is a strong blue ON-track + knob that abuts the WHITE card.
+     A naive page-relative reducer might compare to the dark #2b2b2b page (a decoy);
+     the real adjacent surface is the white card, where the cue passes. */
+  .sw input:checked + .track { background: #1a73e8; }   /* ON track vs white card = 4.505:1 PASS */
+  .sw input:checked + .track::after {
+    content: ""; position: absolute; top: 3px; left: 29px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #ffffff;                 /* knob vs #1a73e8 ON-track = 4.505:1 PASS */
+  }
+</style>
+</head>
+<body>
+  <h1>Dark page, white card</h1>
+  <div class="card">
+    <span class="sw">
+      <input type="checkbox" id="dnd" checked>
+      <label for="dnd" class="track"></label>
+    </span>
+    <span>Do not disturb (on)</span>
+  </div>
+  <p>The dark page is a decoy. The ON-track (#1a73e8) abuts the white card = 4.505:1,
+  and the white knob abuts the ON-track = 4.505:1. Measured against the true adjacent
+  surfaces the indicator passes.</p>
+</body>
+</html>

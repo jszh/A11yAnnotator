@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-field-binding | fieldset error bound to the group via aria-describedby on the fieldset -->
+<html lang="en"><head><meta charset="utf-8"><title>Group error bound to fieldset</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  fieldset{border:1px solid #999;padding:12px;margin:0 0 12px}
+  legend{font-weight:600}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Shipping</h1>
+  <form id="f" novalidate>
+    <fieldset aria-describedby="ship-err">
+      <legend>Delivery speed (required)</legend>
+      <label><input type="radio" name="speed" value="std"> Standard</label>
+      <label><input type="radio" name="speed" value="exp"> Express</label>
+      <p id="ship-err" class="err" role="alert" hidden></p>
+    </fieldset>
+    <button id="submit" type="submit">Continue</button>
+  </form>
+  <script>
+    // Field under test: the radio group (none selected). The error is bound to the fieldset via aria-describedby.
+    var f=document.getElementById('f'), m=document.getElementById('ship-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(!f.querySelector('input[name="speed"]:checked')){ m.textContent='Error: Please choose a delivery speed.'; m.hidden=false; }
+      else { m.hidden=true; }
+    });
+  </script>
+</body></html>

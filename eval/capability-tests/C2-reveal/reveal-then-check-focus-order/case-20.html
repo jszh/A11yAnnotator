@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>2.4.3 reveal-then-check-focus-order case 20</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:640px;color:#1a1a1a}
+  h1{font-size:20px}
+  button,[role=button],[role=menuitem],a{font:inherit}
+  button{padding:9px 16px;cursor:pointer;border:1px solid #555;background:#f4f4f4;border-radius:6px}
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none}
+  .backdrop.open{display:block}
+  [role=dialog],.dialog{position:fixed;top:18%;left:50%;transform:translateX(-50%);width:340px;background:#fff;border:1px solid #333;border-radius:8px;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  [role=menu],.menu{list-style:none;margin:6px 0 0;padding:6px;border:1px solid #555;border-radius:8px;background:#fff;width:220px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+  [role=menu] li,[role=menuitem]{padding:6px 10px;border-radius:5px;cursor:pointer}
+  [role=menuitem]:focus,[role=menuitem]:hover{background:#e6eefc;outline:2px solid #2557d6}
+  .disclosure{border:1px solid #bbb;padding:10px;margin-top:8px;background:#fafafa}
+  :focus{outline:3px solid #2557d6;outline-offset:2px}
+  .field{display:block;margin:8px 0}
+  label{font-weight:600}
+  input,textarea{font:inherit;padding:6px;border:1px solid #888;border-radius:5px;width:100%;box-sizing:border-box}
+  [hidden]{display:none !important}
+  .row{display:flex;gap:8px}
+</style></head>
+<body>
+<!-- 2.4.3 NEGATIVE | reveal-then-check-focus-order | two-step-reveal-focus-moves-each-step -->
+  <h1>Wizard</h1>
+  <button id="open" type="button" onclick="openStep1()">Start</button>
+  <div id="bd" class="backdrop"></div>
+  <div id="step1" role="dialog" aria-modal="true" aria-labelledby="s1t" hidden>
+    <h2 id="s1t" style="font-size:17px;margin-top:0">Step 1</h2>
+    <label class="field">First name <input id="fn" type="text"></label>
+    <button id="next" type="button" onclick="goStep2()">Next</button>
+  </div>
+  <div id="step2" role="dialog" aria-modal="true" aria-labelledby="s2t" hidden>
+    <h2 id="s2t" style="font-size:17px;margin-top:0">Step 2</h2>
+    <label class="field">Last name <input id="ln" type="text"></label>
+    <button id="fin" type="button" onclick="closeAll()">Finish</button>
+  </div>
+<script>
+function openStep1(){document.getElementById('bd').classList.add('open');var d=document.getElementById('step1');d.hidden=false;document.getElementById('fn').focus();}
+function goStep2(){document.getElementById('step1').hidden=true;var s=document.getElementById('step2');s.hidden=false;document.getElementById('ln').focus();}
+function closeAll(){document.getElementById('bd').classList.remove('open');document.getElementById('step1').hidden=true;document.getElementById('step2').hidden=true;}
+</script>
+</body></html>

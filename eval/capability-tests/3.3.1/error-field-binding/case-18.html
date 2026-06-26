@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-field-binding | RISKY: a top-of-form summary exists, but each field ALSO has its own bound inline error -->
+<html lang="en"><head><meta charset="utf-8"><title>Summary plus bound inline</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:10px;margin-bottom:14px}
+  .summary[hidden]{display:none}
+  .err{color:#b00020;margin-top:4px;margin-bottom:10px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Checkout</h1>
+  <div id="summary" class="summary" role="alert" hidden><strong>There is a problem:</strong> <span id="sum-txt"></span></div>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required aria-describedby="email-err">
+    <p id="email-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Place order</button>
+  </form>
+  <script>
+    // The summary is convenience-only; the authoritative error is still bound to the Email field via describedby.
+    var f=document.getElementById('f'), email=document.getElementById('email'),
+        m=document.getElementById('email-err'), s=document.getElementById('summary'), st=document.getElementById('sum-txt');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ m.textContent='Error: Email is required.'; m.hidden=false; email.setAttribute('aria-invalid','true'); st.textContent='Email is required.'; s.hidden=false; }
+      else { m.hidden=true; email.removeAttribute('aria-invalid'); s.hidden=true; }
+    });
+  </script>
+</body></html>

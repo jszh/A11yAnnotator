@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-vs-actual-constraint-match | type=number non-numeric input, error correctly describes the numeric-format rule -->
+<html lang="en"><head><meta charset="utf-8"><title>Correct numeric-format error</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Order</h1>
+  <form id="f" novalidate>
+    <label for="qty">Quantity (whole number)</label>
+    <input id="qty" name="qty" type="text" inputmode="numeric" aria-describedby="qty-err">
+    <p id="qty-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Add</button>
+  </form>
+  <script>
+    // CONSTRAINT: must be a whole number. With invalidValue "abc" (truly non-numeric) the error correctly names the format rule.
+    var f=document.getElementById('f'), e=document.getElementById('qty'), m=document.getElementById('qty-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(!/^\d+$/.test(e.value.trim())){
+        m.textContent='Error: Quantity must be a whole number, such as 1 or 12.';
+        m.hidden=false; e.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

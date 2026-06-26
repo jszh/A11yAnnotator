@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-summary-coherence | single failing field, summary lists exactly that one field -->
+<html lang="en"><head><meta charset="utf-8"><title>Single-field coherent summary</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .summary{border:2px solid #b00020;padding:12px;margin-bottom:16px}
+  .summary[hidden]{display:none}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Checkout</h1>
+  <div id="summary" class="summary" role="alert" hidden>
+    <strong id="count"></strong>
+    <ul id="list"></ul>
+  </div>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <label for="zip">ZIP code (required)</label>
+    <input id="zip" name="zip" type="text" required value="80202">
+    <button id="submit" type="submit">Place order</button>
+  </form>
+  <script>
+    // Field under test: Email (empty). ZIP is valid. Summary lists only Email and the count matches.
+    var f=document.getElementById('f'), email=document.getElementById('email'), zip=document.getElementById('zip'),
+        s=document.getElementById('summary'), list=document.getElementById('list'), count=document.getElementById('count');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault(); list.innerHTML='';
+      var items=[];
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) items.push('Email is required.');
+      if(zip.value.trim()==='') items.push('ZIP code is required.');
+      list.innerHTML=items.map(function(t){return '<li>'+t+'</li>';}).join('');
+      count.textContent=items.length+(items.length===1?' error found:':' errors found:');
+      s.hidden=items.length===0;
+    });
+  </script>
+</body></html>

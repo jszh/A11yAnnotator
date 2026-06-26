@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-field-binding | error is only a title/tooltip attribute on a span, never bound to the field -->
+<html lang="en"><head><meta charset="utf-8"><title>Error only in title attr</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  .flag{color:#b00020;cursor:help}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign in</h1>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <span id="flag" class="flag" hidden title="">&#9888;</span>
+    <button id="submit" type="submit">Sign in</button>
+  </form>
+  <script>
+    // BUG: the error text is stuffed into a title="" tooltip on a warning glyph; it is not bound to the field via
+    // aria-describedby, is not adjacent text, and is hidden behind hover.
+    var f=document.getElementById('f'), email=document.getElementById('email'), flag=document.getElementById('flag');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ flag.hidden=false; flag.setAttribute('title','Email must be a valid email address.'); }
+      else { flag.hidden=true; flag.setAttribute('title',''); }
+    });
+  </script>
+</body></html>

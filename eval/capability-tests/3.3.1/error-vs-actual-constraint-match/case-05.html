@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-vs-actual-constraint-match | pattern (phone) violated but error describes a DATE format -->
+<html lang="en"><head><meta charset="utf-8"><title>Phone error names a date format</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Contact details</h1>
+  <form id="f" novalidate>
+    <label for="phone">Phone (format 555-123-4567)</label>
+    <input id="phone" name="phone" type="text" pattern="\d{3}-\d{3}-\d{4}" aria-describedby="phone-err">
+    <p id="phone-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Save contact</button>
+  </form>
+  <script>
+    // CONSTRAINT: phone pattern \d{3}-\d{3}-\d{4}. Error text describes an unrelated date format MM/DD/YYYY.
+    var f=document.getElementById('f'), e=document.getElementById('phone'), m=document.getElementById('phone-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^\d{3}-\d{3}-\d{4}$/.test(e.value);
+      if(!ok){
+        // BUG: the described required format is wrong (a date), so the user cannot understand or fix the phone error.
+        m.textContent='Error: Please enter the date in MM/DD/YYYY format.';
+        m.hidden=false; e.setAttribute('aria-invalid','true');
+      } else { m.hidden=true; e.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

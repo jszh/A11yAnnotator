@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-indicator-name-correctness | error only changes field BORDER COLOR, no text identifier -->
+<html lang="en"><head><meta charset="utf-8"><title>Color-only error</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px;border:1px solid #999}
+  input.invalid{border-color:#b00020}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Sign in</h1>
+  <form id="f" novalidate>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required>
+    <button id="submit" type="submit">Sign in</button>
+  </form>
+  <script>
+    // CONSTRAINT: email required. BUG: the ONLY indication of error is a red border (color-only) with NO text;
+    // the item in error is not identified IN TEXT.
+    var f=document.getElementById('f'), email=document.getElementById('email');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ email.classList.add('invalid'); } else { email.classList.remove('invalid'); }
+    });
+  </script>
+</body></html>

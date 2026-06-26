@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-field-binding | aria-invalid set on the WRONG field; error bound to the passing field -->
+<html lang="en"><head><meta charset="utf-8"><title>aria-invalid on wrong field</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:4px;margin-bottom:10px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Account details</h1>
+  <form id="f" novalidate>
+    <label for="user">Username (required)</label>
+    <input id="user" name="user" type="text" required value="taken_name" aria-describedby="user-err">
+    <p id="user-err" class="err" role="alert" hidden></p>
+    <label for="email">Email (required)</label>
+    <input id="email" name="email" type="email" required aria-describedby="email-err">
+    <p id="email-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Save</button>
+  </form>
+  <script>
+    // Field under test: Email (empty). BUG: the error text + aria-invalid are applied to the Username field (valid),
+    // while the actually-failing Email field gets no error and no aria-invalid.
+    var f=document.getElementById('f'), email=document.getElementById('email'),
+        user=document.getElementById('user'), ue=document.getElementById('user-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ ue.textContent='Error: This field is required.'; ue.hidden=false; user.setAttribute('aria-invalid','true'); }
+      else { ue.hidden=true; user.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

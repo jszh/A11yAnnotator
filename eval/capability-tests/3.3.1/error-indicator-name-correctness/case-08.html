@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-indicator-name-correctness | error references an internal field id/name token, not the human label -->
+<html lang="en"><head><meta charset="utf-8"><title>Internal token, not label</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Travel booking</h1>
+  <form id="f" novalidate>
+    <label for="dob">Date of birth (required)</label>
+    <input id="dob" name="usr_dob_field_07" type="text" required>
+    <p id="form-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Continue</button>
+  </form>
+  <script>
+    // Field under test: "Date of birth". BUG: the error identifies the field by its internal name token
+    // "usr_dob_field_07", which is not the human-readable label and does not identify the item to the user.
+    var f=document.getElementById('f'), dob=document.getElementById('dob'), m=document.getElementById('form-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(dob.value.trim()===''){ m.textContent='Error: usr_dob_field_07 is invalid.'; m.hidden=false; }
+      else { m.hidden=true; }
+    });
+  </script>
+</body></html>

@@ -1,0 +1,45 @@
+<!-- SC1.4.11 | NEGATIVE | decorative-redundant-faint-accent | faint #e3e3e3 accent (1.283, decorative) is redundant; the REQUIRED cue is white tick on #1a73e8 = 4.505 PASS -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Redundant faint accent alongside a sufficient primary cue</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .field { display: flex; align-items: center; gap: 12px; margin: 24px 0; }
+  .field input { position: absolute; opacity: 0; }
+  .box {
+    width: 30px; height: 30px; border-radius: 4px;
+    border: 2px solid #595959; background: #ffffff;
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  /* CHECKED: the REQUIRED state cue is the strong blue fill + white tick (4.505:1, passes).
+     Separately, a faint #e3e3e3 glow ring is added purely for polish — it is NOT needed
+     to identify the checked state (the tick already does), so its 1.283:1 is out of scope. */
+  .field input:checked + .box {
+    background: #1a73e8; border-color: #1a73e8;
+    box-shadow: 0 0 0 4px #e3e3e3;      /* decorative redundant accent vs white = 1.283:1, NOT the cue */
+  }
+  .field input:checked + .box::after {
+    content: "";
+    width: 8px; height: 14px;
+    border: solid #ffffff;              /* primary cue: white tick vs #1a73e8 = 4.505:1 PASS */
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg) translate(0, -1px);
+    display: block;
+  }
+</style>
+</head>
+<body>
+  <h1>Checkout</h1>
+  <div class="field">
+    <input type="checkbox" id="save" checked>
+    <label for="save" class="box"></label>
+    <label for="save">Save card for next time (checked)</label>
+  </div>
+  <p>The checked state is identified by the blue fill and white tick (4.505:1). The
+  faint #e3e3e3 outer glow is a redundant decorative accent — not required to convey
+  the state — so its low contrast does not create a barrier.</p>
+</body>
+</html>

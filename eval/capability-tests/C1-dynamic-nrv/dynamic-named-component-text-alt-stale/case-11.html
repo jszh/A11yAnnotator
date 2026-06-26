@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>4.1.2 dynamic-named-component-text-alt-stale case 11</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:620px;color:#1a1a1a}
+  h1{font-size:20px}
+  button,[role=button]{font:inherit;padding:9px 16px;cursor:pointer;border:1px solid #555;background:#f4f4f4;border-radius:6px}
+  [role=switch],[role=checkbox]{display:inline-block}
+  .panel{border:1px solid #bbb;padding:10px;margin-top:8px;background:#fafafa}
+  .icon{display:inline-block;width:1em;height:1em;vertical-align:-2px}
+  .slider{position:relative;width:240px;height:28px;border:1px solid #555;border-radius:14px;background:#eee;outline-offset:3px}
+  .thumb{position:absolute;top:2px;width:22px;height:22px;border-radius:50%;background:#356;left:2px}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  output,.val{font-variant-numeric:tabular-nums;font-weight:600}
+  .stepper button{min-width:40px}
+  [aria-pressed=true]{background:#356;color:#fff}
+  .on{background:#356;color:#fff}
+</style></head>
+<body>
+<!-- 4.1.2 POSITIVE | dynamic-named-component-text-alt-stale | row-expander-alt-stale -->
+  <h1>Orders</h1>
+  <button id="rx" type="button" aria-label="Show row details" aria-expanded="false" onclick="go()"><span class="icon" id="cx" aria-hidden="true">&#9654;</span></button>
+  <div id="det" class="panel" hidden>Order #1001 details</div>
+<script>
+function go(){var d=document.getElementById('det');var open=d.hidden===false;d.hidden=open;
+  document.getElementById('rx').setAttribute('aria-expanded',(!open).toString());
+  document.getElementById('cx').innerHTML=open?'&#9654;':'&#9660;';
+  /* BUG: aria-expanded flips correctly but aria-label stays "Show row details" even when expanded (should be "Hide row details"); the text alternative is stale. */}
+</script>
+</body></html>

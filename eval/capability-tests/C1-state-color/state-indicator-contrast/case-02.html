@@ -1,0 +1,36 @@
+<!-- SC1.4.11 | POSITIVE | selected-state-underline-vs-strip-fail | #8ab4f8 underline on #5a8fe0 strip = 1.547 (FAIL) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Selected tab underline fails against its strip</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; color: #1a1a1a; padding: 40px; }
+  .tabs { display: flex; background: #5a8fe0; border-radius: 6px 6px 0 0; }
+  .tab {
+    padding: 16px 24px; color: #ffffff; font-size: 16px;
+    position: relative; cursor: default;
+  }
+  /* The SELECTED tab is identified by an underline cue at the strip's bottom edge. */
+  /* That underline abuts the #5a8fe0 strip, NOT the page. */
+  .tab[aria-selected="true"]::after {
+    content: "";
+    position: absolute; left: 12px; right: 12px; bottom: 4px; height: 4px;
+    background: #8ab4f8;                 /* selected underline vs #5a8fe0 strip = 1.547:1 FAIL */
+    border-radius: 2px;
+  }
+  .panel { border: 1px solid #5a8fe0; padding: 24px; border-radius: 0 0 6px 6px; }
+</style>
+</head>
+<body>
+  <h1>Account</h1>
+  <div class="tabs" role="tablist">
+    <div class="tab" role="tab" aria-selected="false">Overview</div>
+    <div class="tab" role="tab" aria-selected="true">Billing</div>
+    <div class="tab" role="tab" aria-selected="false">Security</div>
+  </div>
+  <div class="panel" role="tabpanel">Billing details…</div>
+  <p>The selected-state underline is the only non-text cue distinguishing the active
+  tab. It sits on the blue strip (#5a8fe0), giving 1.547:1 — below 3:1.</p>
+</body>
+</html>

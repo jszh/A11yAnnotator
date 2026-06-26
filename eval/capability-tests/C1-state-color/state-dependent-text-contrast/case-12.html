@@ -1,0 +1,31 @@
+<!-- SC 1.4.3 | positive(abstain) | focus-style-over-background-image | dark text revealed over a light photographic background-image on :focus; truth FAILS (F83) but a flat-color reducer cannot measure an image and must ABSTAIN. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Text over background image on focus</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; margin: 40px; }
+  .card {
+    font-size: 16px;
+    color: #f5f5f5;            /* near-white caption text */
+    background: #2b2b2b;       /* rest: solid dark, f5f5f5 on 2b2b2b PASSES */
+    padding: 16px;
+    width: 260px;
+  }
+  /* On focus, a light, busy data-URI texture replaces the dark fill behind the
+     same near-white text. The flat reducer cannot evaluate an image background
+     and must ABSTAIN; the true contrast over the light texture FAILS (F83). */
+  .card:focus {
+    outline: 2px solid #1a5fc4;
+    background-image:
+      repeating-linear-gradient(45deg, #f0f0f0 0 8px, #e8e8e8 8px 16px);
+    color: #f5f5f5;
+  }
+</style>
+</head>
+<body>
+  <p>Focus the card; on focus the same near-white caption sits over a light textured image.</p>
+  <div class="card" tabindex="0">Tap to view your saved itinerary details</div>
+</body>
+</html>

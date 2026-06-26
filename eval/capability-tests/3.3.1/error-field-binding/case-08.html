@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-field-binding | describedby points to a CONTAINER that holds all fields' help, not the specific error -->
+<html lang="en"><head><meta charset="utf-8"><title>Describedby to shared blob</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Profile</h1>
+  <form id="f" novalidate>
+    <label for="first">First name</label>
+    <input id="first" name="first" type="text" value="Sam" aria-describedby="shared">
+    <label for="last">Last name (required)</label>
+    <input id="last" name="last" type="text" required aria-describedby="shared">
+    <div id="shared"></div>
+    <button id="submit" type="submit">Save</button>
+  </form>
+  <script>
+    // Field under test: Last name (empty). BUG: BOTH fields share the same describedby container; when the Last-name
+    // error lands in #shared, the binding does not distinguish which field is in error (it is also bound to First name).
+    var f=document.getElementById('f'), last=document.getElementById('last'), shared=document.getElementById('shared');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(last.value.trim()===''){ shared.innerHTML='<p class="err" role="alert">Error: Last name is required.</p>'; }
+      else { shared.innerHTML=''; }
+    });
+  </script>
+</body></html>

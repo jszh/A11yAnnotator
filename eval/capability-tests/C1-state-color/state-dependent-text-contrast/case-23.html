@@ -1,0 +1,30 @@
+<!-- SC 1.4.3 | negative(abstain) | white-text-over-gradient-stays-pass | white text over a :hover CSS gradient whose lightest end is #1a5fc4 (6.04:1); truth PASSES everywhere but a flat-color reducer cannot measure a gradient and must ABSTAIN. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>White text over safe gradient on hover</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #ffffff; margin: 40px; }
+  .banner {
+    display: inline-block;
+    font-size: 16px;
+    color: #ffffff;            /* white text */
+    background: #1a5fc4;       /* rest: solid, white = 6.04:1 PASS */
+    padding: 12px 24px;
+    border-radius: 6px;
+    text-decoration: none;
+  }
+  /* On hover the background becomes a gradient between #0a3d8f (10.1:1) and
+     #1a5fc4 (6.04:1). White text passes across the whole gradient, but a
+     flat-color reducer cannot pick one bg and should ABSTAIN; truth is PASS. */
+  .banner:hover {
+    background: linear-gradient(90deg, #0a3d8f 0%, #1a5fc4 100%);
+  }
+</style>
+</head>
+<body>
+  <p>Hover the banner; the hover gradient stays dark enough for the white text throughout.</p>
+  <a href="#promo" class="banner">View your dashboard</a>
+</body>
+</html>

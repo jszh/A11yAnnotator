@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- 3.3.1 POSITIVE | error-indicator-name-correctness | error names the WRONG field -->
+<html lang="en"><head><meta charset="utf-8"><title>Wrong field named</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  label{display:block;font-weight:600;margin-bottom:4px}
+  input{padding:8px;width:100%;box-sizing:border-box;margin-bottom:10px}
+  button{margin-top:8px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Checkout</h1>
+  <form id="f" novalidate>
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" value="buyer@example.com">
+    <label for="zip">ZIP code (required)</label>
+    <input id="zip" name="zip" type="text" required>
+    <p id="form-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Place order</button>
+  </form>
+  <script>
+    // CONSTRAINT under test: ZIP required. BUG: when ZIP is empty the error names the EMAIL field (which is valid),
+    // so it identifies the wrong item as being in error.
+    var f=document.getElementById('f'), zip=document.getElementById('zip'), m=document.getElementById('form-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      if(zip.value.trim()===''){ m.textContent='Error: Please check your Email address.'; m.hidden=false; }
+      else { m.hidden=true; }
+    });
+  </script>
+</body></html>

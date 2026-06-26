@@ -1,0 +1,32 @@
+<!-- SC 1.4.1 | negative (ABSTAIN) | selected-cue-is-unclassifiable-svg | the selected chip turns blue AND swaps in an inline SVG that is meant to be a checkmark, but its path data is opaque to a static analyzer (it could be a meaningful tick or a decorative squiggle). Truth: a real onscreen checkmark accompanies the color in the selected state, so it PASSES — but the runner cannot statically classify the SVG, so it should abstain. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Selected chip with unclassifiable SVG cue</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #fff; margin: 40px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 15px; color: #202124; background: #e8eaed;
+    border-radius: 16px; padding: 8px 14px; margin-right: 8px;
+  }
+  .chip[aria-selected="true"] { color: #fff; background: #1a73e8; }
+  .chip .ico { display: none; width: 14px; height: 14px; }
+  /* The selected chip reveals an inline SVG. Visually it renders a checkmark
+     (a genuine non-color shape cue → the case truly passes), but the bare path
+     data has no title/role and an analyzer cannot prove it conveys "selected"
+     vs being decorative. Static classification is unsafe → abstain. */
+  .chip[aria-selected="true"] .ico { display: inline-block; }
+</style>
+</head>
+<body>
+  <div role="listbox" aria-label="Category">
+    <span class="chip" role="option" aria-selected="false">News</span>
+    <span class="chip" role="option" aria-selected="true">Sport
+      <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 11.2 3.3 8l1.1-1.1 2.1 2.1L11.6 4l1.1 1.1z" fill="#fff"/></svg>
+    </span>
+    <span class="chip" role="option" aria-selected="false">Tech</span>
+  </div>
+</body>
+</html>

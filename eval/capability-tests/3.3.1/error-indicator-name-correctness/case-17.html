@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<!-- 3.3.1 NEGATIVE | error-indicator-name-correctness | field has aria-label (no visible label); error names that accessible name -->
+<html lang="en"><head><meta charset="utf-8"><title>aria-label name echoed</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:520px}
+  .err{color:#b00020;margin-top:6px}
+  input{padding:8px;width:100%;box-sizing:border-box}
+  button{margin-top:14px;padding:9px 18px}
+</style></head>
+<body>
+  <h1>Search subscribers</h1>
+  <form id="f" novalidate role="search">
+    <input id="email" name="email" type="email" required aria-label="Subscriber email" aria-describedby="email-err" placeholder="Subscriber email">
+    <p id="email-err" class="err" role="alert" hidden></p>
+    <button id="submit" type="submit">Search</button>
+  </form>
+  <script>
+    // The field's accessible name is "Subscriber email" (aria-label). The error names exactly that, so it identifies the field.
+    var f=document.getElementById('f'), email=document.getElementById('email'), m=document.getElementById('email-err');
+    f.addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var ok=/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim());
+      if(!ok){ m.textContent='Error: Subscriber email must be a valid email address.'; m.hidden=false; email.setAttribute('aria-invalid','true'); }
+      else { m.hidden=true; email.removeAttribute('aria-invalid'); }
+    });
+  </script>
+</body></html>

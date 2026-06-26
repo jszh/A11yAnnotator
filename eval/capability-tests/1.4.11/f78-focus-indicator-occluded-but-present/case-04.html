@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>F78 positive: focus outline occluded by an overlapping fixed bar</title>
+<style>
+  body { background:#ffffff; font-family:system-ui,sans-serif; margin:0; }
+  /* A fixed action bar is layered (z-index:50) over the top of the content.
+     The focusable control sits so that its TOP region (and the top of its
+     focus outline) lies underneath the opaque bar at rest, with no scrolling
+     required. The portion of the focus indicator beneath the bar is covered,
+     so the indicator is occluded (F78). */
+  .bar {
+    position:fixed; top:0; left:0; right:0; height:64px;
+    background:#1565c0; color:#fff; z-index:50;
+    display:flex; align-items:center; padding:0 24px;
+  }
+  .content { padding-top:40px; padding-left:24px; }
+  .field {
+    position:relative; top:-22px; /* tuck only the TOP of the control + its
+                                     focus ring under the fixed bar's lower edge */
+    z-index:1;
+    width:260px; padding:10px; font-size:16px; border:1px solid #767676;
+  }
+  .field:focus { outline:3px solid #d32f2f; outline-offset:3px; }
+  .field:focus-visible { outline:3px solid #d32f2f; outline-offset:3px; }
+</style>
+</head>
+<body>
+  <div class="bar">My App</div>
+  <div class="content">
+    <label>Search<br>
+      <input class="field" id="target" type="text" placeholder="Type here">
+    </label>
+  </div>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>4.1.2 value-not-settable-or-change-not-notified case 19</title>
+<style>
+  body{font:16px/1.5 system-ui,sans-serif;margin:40px;max-width:620px;color:#1a1a1a}
+  h1{font-size:20px}
+  button,[role=button]{font:inherit;padding:9px 16px;cursor:pointer;border:1px solid #555;background:#f4f4f4;border-radius:6px}
+  [role=switch],[role=checkbox]{display:inline-block}
+  .panel{border:1px solid #bbb;padding:10px;margin-top:8px;background:#fafafa}
+  .icon{display:inline-block;width:1em;height:1em;vertical-align:-2px}
+  .slider{position:relative;width:240px;height:28px;border:1px solid #555;border-radius:14px;background:#eee;outline-offset:3px}
+  .thumb{position:absolute;top:2px;width:22px;height:22px;border-radius:50%;background:#356;left:2px}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+  output,.val{font-variant-numeric:tabular-nums;font-weight:600}
+  .stepper button{min-width:40px}
+  [aria-pressed=true]{background:#356;color:#fff}
+  .on{background:#356;color:#fff}
+</style></head>
+<body>
+<!-- 4.1.2 NEGATIVE | value-not-settable-or-change-not-notified | valuenow-updates-through-bounds -->
+  <h1>Progress</h1>
+  <div id="sl" role="slider" tabindex="0" aria-label="Progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="90"
+    class="slider" onkeydown="key(event)"><span class="thumb" id="th" style="left:200px"></span></div>
+  <span class="val" id="v">90</span>
+<script>
+var val=90;function key(e){if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;e.preventDefault();
+  val=e.key==='ArrowRight'?Math.min(100,val+5):Math.max(0,val-5);
+  document.getElementById('th').style.left=(val*2.2+2)+'px';document.getElementById('v').textContent=val;
+  document.getElementById('sl').setAttribute('aria-valuenow',val);
+  /* OK: valuenow updates on every press, including up to 100. */}
+</script>
+</body></html>
