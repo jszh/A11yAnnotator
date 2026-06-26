@@ -273,7 +273,7 @@ async function setStateAndCapture(page, args, ctx) {
     // position could otherwise leave the target hovered, making hover read as a no-op pass). vision-capture does
     // the same. For hover we then move the pointer onto the element; for the others it stays parked in both frames.
     await live.mouse.move(10000, 10000).catch(() => {});
-    const before = await live.screenshot({ encoding: 'base64', clip });
+    const before = await require('./settle.js').robustScreenshot(live, { encoding: 'base64', clip });
     // drive the state on the clone (pseudo / native property / activation — all reload-isolated)
     let driven = { reached: false };
     if (state === 'hover') {
@@ -314,7 +314,7 @@ async function setStateAndCapture(page, args, ctx) {
       const r = el.getBoundingClientRect();
       return { style, hasText: !!((el.innerText || el.textContent || '').trim()), box: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) } };
     }, STYLE_KEYS).catch(() => null);
-    const after = await live.screenshot({ encoding: 'base64', clip });
+    const after = await require('./settle.js').robustScreenshot(live, { encoding: 'base64', clip });
     const styleDelta = {};
     if (afterMeta) for (const k of STYLE_KEYS) if (meta.style[k] !== afterMeta.style[k]) styleDelta[k] = { before: meta.style[k], after: afterMeta.style[k] };
     const pixelsChanged = before !== after;
@@ -468,7 +468,7 @@ async function requestHiResCrop(page, args, ctx) {
     const meta = await live.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; try { el.scrollIntoView({ block: 'center', inline: 'center' }); } catch (e) {} const r = el.getBoundingClientRect(); return { box: { x: Math.max(0, r.x), y: Math.max(0, r.y), w: r.width, h: r.height }, cssW: Math.round(r.width), cssH: Math.round(r.height) }; }, targetXpath).catch(() => null);
     if (!meta || !(meta.box.w > 0 && meta.box.h > 0)) return { error: 'target not found or zero-size' };
     const clip = { x: Math.round(meta.box.x), y: Math.round(meta.box.y), width: Math.round(meta.box.w), height: Math.round(meta.box.h) };
-    const screenshot = await live.screenshot({ encoding: 'base64', clip }).catch(() => null);
+    const screenshot = await require('./settle.js').robustScreenshot(live, { encoding: 'base64', clip });
     if (!screenshot) return { error: 'capture failed' };
     return { screenshot, scaleUsed: s, cssPixelSize: { w: meta.cssW, h: meta.cssH }, devicePixelSize: { w: Math.round(meta.cssW * s), h: Math.round(meta.cssH * s) }, note: 'higher device-scale re-raster of the SAME layout (not page zoom); if still illegible, return PARTIAL — do not invent text' };
   } finally { try { await live.close(); } catch (e) {} }
@@ -501,7 +501,7 @@ async function renderWithOverrides(page, args, ctx) {
       if (!meta || !(meta.w > 0 && meta.h > 0)) return { error: 'target not found or zero-size', transform };
       clip = { x: Math.round(meta.x), y: Math.round(meta.y), width: Math.round(meta.w), height: Math.round(meta.h) };
     }
-    const screenshot = await live.screenshot({ encoding: 'base64', ...(clip ? { clip } : {}) }).catch(() => null);
+    const screenshot = await require('./settle.js').robustScreenshot(live, { encoding: 'base64', ...(clip ? { clip } : {}) });
     if (!screenshot) return { error: 'capture failed', transform };
     return { transform, screenshot, note: 'rendered under one fixed transform; judge from these pixels — do NOT assert a numeric ratio from a grayscale/CVD image' };
   } finally { try { await live.close(); } catch (e) {} }
@@ -630,7 +630,7 @@ async function resolvePartColor(page, args) {
   // rendered pixel: screenshot a 5x5 clip at the point, decode the centre via an in-page canvas (the data
   // URI is same-origin, so getImageData is allowed) — no PNG-decoder dependency needed.
   const clip = { x: Math.max(0, Math.round(x) - 2), y: Math.max(0, Math.round(y) - 2), width: 5, height: 5 };
-  const shot = await page.screenshot({ encoding: 'base64', clip }).catch(() => null);
+  const shot = await require('./settle.js').robustScreenshot(page, { encoding: 'base64', clip });
   let renderedPixelRGBA = null;
   if (shot) {
     renderedPixelRGBA = await page.evaluate(async (b64) => {
@@ -830,7 +830,7 @@ async function compareNamedRegions(page, args) {
   const box = await page.evaluate((xp) => { const el = document.evaluate(xp, document, null, 9, null).singleNodeValue; if (!el) return null; const r = el.getBoundingClientRect(); return { x: Math.max(0, r.x + window.scrollX), y: Math.max(0, r.y + window.scrollY), w: r.width, h: r.height }; }, targetXpath).catch(() => null);
   if (!box || !(box.w > 0 && box.h > 0)) return { error: 'target not found or zero-size' };
   const clip = { x: Math.round(box.x), y: Math.round(box.y), width: Math.round(box.w), height: Math.round(box.h) };
-  const shot = await page.screenshot({ encoding: 'base64', clip, captureBeyondViewport: true }).catch(() => null);
+  const shot = await require('./settle.js').robustScreenshot(page, { encoding: 'base64', clip, captureBeyondViewport: true });
   if (!shot) return { error: 'capture failed' };
   const colors = await page.evaluate(async (b64, regs) => {
     try {
@@ -887,7 +887,7 @@ async function ocrImageText(page, args, ctx) {
   } else {
     return { error: 'provide targetXpath OR an explicit x/y/width/height rect' };
   }
-  const b64 = await page.screenshot({ encoding: 'base64', clip, captureBeyondViewport: true }).catch(() => null);
+  const b64 = await require('./settle.js').robustScreenshot(page, { encoding: 'base64', clip, captureBeyondViewport: true });
   if (!b64) return { error: 'capture failed' };
   const r = await ctx.ocr.recognize(b64);
   if (r.error) return { error: r.error, note: 'OCR could not run — do NOT infer the crop is empty; treat as INCONCLUSIVE.' };
@@ -935,7 +935,7 @@ async function captureFullPage(page, args, ctx) {
     }, targetXpath || null).catch(() => null);
     if (!info) return { error: 'page introspection failed' };
     if (info.hadTarget && !info.target) return { error: 'target not found' };
-    const screenshot = await live.screenshot({ encoding: 'base64', fullPage: true }).catch(() => null);
+    const screenshot = await require('./settle.js').robustScreenshot(live, { encoding: 'base64', fullPage: true });
     if (!screenshot) return { error: 'capture failed' };
     return { screenshot, fullPage: true, pageSize: info.pageSize, viewport: info.viewport, target: info.target,
       note: 'the WHOLE scrollable document (below the fold included). A target box is in PAGE coordinates (origin = document top); a NEGATIVE y or offDocument:true means the element is positioned OUTSIDE the document (e.g. top:-9999px → visually hidden) and is NOT in the captured pixels. Use to confirm an off-viewport element exists and judge WHERE it sits relative to surrounding content — never infer a barrier from position alone.' };

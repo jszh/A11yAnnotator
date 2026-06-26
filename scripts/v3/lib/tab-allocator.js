@@ -20,10 +20,14 @@
 // or by grantNext() when dequeued — BEFORE the page is opened, and given back exactly once via release() or on
 // an open() failure. So `inUse` is always the true number of checked-out tabs and never drifts.
 //
-// ISOLATION: release() CLOSES the page (no reuse) — matching the harness's fresh-page-per-attempt rule (Rule 3);
-// the slot, not the page, is the reusable resource. CPU caveat: opening 50 tabs is cheap, but running 50
-// CPU-bound tabs (layout/paint/screenshot) is not — effective parallelism is ~cores; lower maxTabs for heavy
-// pages so per-item wall-clock deadlines stay honest.
+// ISOLATION: every tab is opened in its OWN INCOGNITO BROWSER CONTEXT, and release() closes BOTH the page AND the
+// context (no reuse) — a fresh PAGE alone shares the browser's default context, so HISTORY/cookies/storage leak
+// across runs. The concrete bug: the keyboard-activation runner presses Enter on a link → navigates → the
+// destination enters shared history → a LATER focus-visual run sees that link `:visited` (blue→purple), and the
+// browser repaints it ASYNCHRONOUSLY between the two stability crops, flaking the measurement. Per-context isolation
+// gives each lease a clean slate. (resolve_destination already isolates this way.) Matches the fresh-per-attempt rule
+// (Rule 3). CPU caveat: opening 50 tabs is cheap, but running 50 CPU-bound tabs is not — lower maxTabs for heavy
+// pages. Opt out with V3_TAB_NO_ISOLATION=1 (falls back to a shared-context newPage).
 
 const LIMITS = require('./limits.js');
 
@@ -31,7 +35,17 @@ function createTabAllocator(opts = {}) {
   const { browser = null, newPage = null, onWaitStart = null, onWaitEnd = null } = opts;
   // `newPage` is injectable (defaults to browser.newPage()) so the queue/cap logic is unit-testable with a mock
   // page factory — no real Chrome needed for the FIFO/cap/release-on-throw tests.
-  const open = typeof newPage === 'function' ? newPage : (browser ? () => browser.newPage() : null);
+  // Default factory: open each tab in its OWN incognito context (isolated history/cookies/storage), unless an
+  // explicit newPage factory is injected (the unit tests) or isolation is disabled. The context is stashed on the
+  // page so release() can close it. createBrowserContext is the modern Puppeteer API; createIncognitoBrowserContext
+  // the older name; if neither exists (mock/old Chrome) fall back to a plain shared-context page.
+  const isolate = browser && process.env.V3_TAB_NO_ISOLATION !== '1';
+  const openIsolated = async () => {
+    const mk = browser.createBrowserContext || browser.createIncognitoBrowserContext;
+    if (typeof mk === 'function') { const ctx = await mk.call(browser); const p = await ctx.newPage(); try { p.__v3ctx = ctx; } catch (e) {} return p; }
+    return browser.newPage();
+  };
+  const open = typeof newPage === 'function' ? newPage : (isolate ? openIsolated : (browser ? () => browser.newPage() : null));
   if (typeof open !== 'function') throw new Error('createTabAllocator: a `browser` or a `newPage()` factory is required');
   const cap = Math.max(1, Math.floor(Number(opts.maxTabs) || LIMITS.concurrency.maxTabs));
 
@@ -114,6 +128,9 @@ function createTabAllocator(opts = {}) {
     const release = async () => {
       if (released) return; released = true;
       try { if (page && typeof page.close === 'function') await page.close(); } catch (e) {}
+      // close the incognito context too — this is what actually drops the run's history/cookies/storage (closing the
+      // page alone leaves the context, and its history, alive). Best-effort; a missing/closed context is a no-op.
+      try { if (page && page.__v3ctx && typeof page.__v3ctx.close === 'function') await page.__v3ctx.close(); } catch (e) {}
       releaseSlot();
     };
     return { page, release, waitMs };

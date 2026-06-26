@@ -34,7 +34,7 @@ function buildStatePlan(subjects) {
 async function captureVision(page, xpaths, opts = {}) {
   const want = new Set(opts.states || ['element-crop', 'surrounding-region', 'viewport', 'viewport-320']);
   const pad = Number.isFinite(opts.pad) ? opts.pad : 24;
-  const shot = (clip) => page.screenshot(clip ? { clip, encoding: 'base64' } : { encoding: 'base64' }).catch(() => null);
+  const shot = (clip) => require('./settle.js').robustScreenshot(page, clip ? { clip, encoding: 'base64' } : { encoding: 'base64' }); // retry-on-null under contention
   const out = {};
 
   // page-wide viewport crops are shared across all elements — capture once.
@@ -114,7 +114,7 @@ async function captureStateVision(page, plan, opts = {}) {
   const out = {};
   let cdp = null;
   try { cdp = await page.createCDPSession(); await cdp.send('DOM.enable'); await cdp.send('CSS.enable'); } catch (e) { cdp = null; }
-  const shot = (clip) => page.screenshot({ clip, encoding: 'base64' }).catch(() => null);
+  const shot = (clip) => require('./settle.js').robustScreenshot(page, { clip, encoding: 'base64' }); // retry-on-null under contention
   const str = (s) => typeof s === 'string' && s.length > 0;
   // park the pointer FAR off-viewport (proven idle): (0,0) is a real hittable coordinate, so a prior hover
   // iteration that ended there could leave a fixed top-left element :hover and pollute the NEXT subject's

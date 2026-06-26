@@ -78,4 +78,19 @@ async function awaitFocusSettle(page, opts = {}) {
   } catch (e) { /* never let settle break the walk */ }
 }
 
-module.exports = { awaitSettle, awaitFocusSettle };
+// robustScreenshot — a one-shot page.screenshot transiently returns null / throws under heavy page-concurrency,
+// which silently drops a vision crop OR flakes a runner/tool measurement to INCONCLUSIVE (RCA: the focus-visual
+// experiment's null after-crop -> a dropped 2.4.7 proposal -> a ledger autoPartial flip). Retry on null/throw with a
+// short wait between. A first-try success is byte-identical to the one-shot, so this only RECOVERS a spurious failure
+// — never alters a good capture, and makes the outcome MORE deterministic. Drop-in: pass the same screenshot opts.
+async function robustScreenshot(page, opts = {}, tries = 3) {
+  if (!page || typeof page.screenshot !== 'function') return null;
+  for (let i = 0; i < tries; i++) {
+    const s = await page.screenshot(opts).catch(() => null);
+    if (s) return s;
+    if (i < tries - 1) await new Promise((r) => setTimeout(r, 80)); // give the compositor/page a moment, then retry
+  }
+  return null;
+}
+
+module.exports = { awaitSettle, awaitFocusSettle, robustScreenshot };

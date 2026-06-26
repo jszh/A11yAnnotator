@@ -400,7 +400,7 @@ async function runTextContrastPixel(page, request) {
   if (a && a.textRendersVisible && a.foregroundResolved) {
     const clip = await page.evaluate(inkClip, marker).catch(() => null);
     if (clip) {
-      const shot = async () => page.screenshot({ clip, encoding: 'base64' }).catch(() => null);
+      const shot = async () => require('./settle.js').robustScreenshot(page, { clip, encoding: 'base64' });
       await page.evaluate(setGlyphColor, marker, '#ff00ff').catch(() => {});
       const sentA = await shot();
       await page.evaluate(setGlyphColor, marker, '#00ff00').catch(() => {});

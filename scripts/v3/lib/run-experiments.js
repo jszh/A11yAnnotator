@@ -225,6 +225,20 @@ async function realKeyboardReach(page, marker, opts = {}) {
 async function settle(page, ms = 120) {
   await page.evaluate((m) => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, m)))), ms).catch(() => {});
 }
+// ROBUST element-clip screenshot. A one-shot page.screenshot transiently returns null under heavy page-concurrency
+// (RCA: this is what flaked runFocusVisualRetry to cropValid=false ⇒ INCONCLUSIVE ⇒ a dropped 2.4.7 proposal ⇒ a
+// ledger autoPartial flip — off-target, but real instability). Retry on null with a paint settle between. A
+// first-try success is byte-identical to the one-shot, so this only RECOVERS a spurious null — never alters a good
+// capture, and (recovering the measurement) makes the outcome MORE deterministic, not less.
+async function robustShot(page, clip, tries = 3) {
+  if (!clip) return null;
+  for (let i = 0; i < tries; i++) {
+    const s = await page.screenshot({ clip, encoding: 'base64' }).catch(() => null);
+    if (s) return s;
+    if (i < tries - 1) await settle(page, 80);
+  }
+  return null;
+}
 
 // A simple, single-mode control: its only operable mode is keyboard focus + activate. A composite/
 // application widget is NOT mode-complete from a focus probe alone (audit H4: don't self-certify).
@@ -259,11 +273,12 @@ async function runFocusVisualRetry(page, request) {
   // unfocused baseline: blur all, capture indicator + rect + TWO crops (a few frames apart) so we
   // can tell a focus change from a time-varying animation (audit R2-F1).
   await page.evaluate(() => document.activeElement && document.activeElement.blur());
-  const clip = await clipFor(page, marker, padExtent);
+  let clip = await clipFor(page, marker, padExtent);
+  if (!clip) { await settle(page, 80); clip = await clipFor(page, marker, padExtent); } // one retry — a transient null clip would zero out the whole measurement
   const unfocused = await page.evaluate(readIndicator, marker).catch(() => null);
-  const beforeShotA = clip ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
+  const beforeShotA = await robustShot(page, clip);
   await settle(page);
-  const beforeShotB = clip ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
+  const beforeShotB = await robustShot(page, clip);
 
   // REAL keyboard reach: walk the focus ring until the target is active (no fixed tab cap; audit V3R6-MAXTAB)
   const reach = await realKeyboardReach(page, marker);
@@ -274,7 +289,8 @@ async function runFocusVisualRetry(page, request) {
   outcome.realKeyboardFocus = reached;
 
   const focused = reached ? await page.evaluate(readIndicator, marker).catch(() => null) : null;
-  const afterShot = (reached && clip) ? await page.screenshot({ clip, encoding: 'base64' }).catch(() => null) : null;
+  if (reached) await settle(page); // let the focus indicator paint before the after-crop (avoids a pre-ring frame under load)
+  const afterShot = reached ? await robustShot(page, clip) : null;
 
   // mode completeness: a simple single-mode control reached by keyboard — NOT a bare `reached`.
   outcome.modeCompletenessProven = reached && isSimpleControl(focused || unfocused);
